@@ -1,4 +1,9 @@
+#include <assert.h>
+#include <string.h>
+#include <stdio.h>
+
 #include "res_file.h"
+#include "mem.h"
 
 static int _res_file_diff(struct res_file *rf);
 static int _res_file_set_sha1_and_source(struct res_file *rf, const sha1 *cksum, const char *path);
@@ -39,9 +44,7 @@ static int _res_file_set_sha1_and_source(struct res_file *rf, const sha1 *cksum,
 
 	size_t len = strlen(path) + 1;
 
-	if (rf->rf_rpath) {
-		free(rf->rf_rpath);
-	}
+	xfree(rf->rf_rpath);
 	rf->rf_rpath = malloc(len);
 	if (!rf->rf_rpath) { return -1; }
 
@@ -71,15 +74,8 @@ void res_file_init(struct res_file *rf)
 
 void res_file_free(struct res_file *rf)
 {
-	if (rf->rf_rpath) {
-		free(rf->rf_rpath);
-		rf->rf_rpath = NULL;
-	}
-
-	if (rf->rf_stat) {
-		free(rf->rf_stat);
-		rf->rf_stat = NULL;
-	}
+	xfree(rf->rf_rpath);
+	xfree(rf->rf_stat);
 }
 
 /*
@@ -156,6 +152,7 @@ int res_file_set_source(struct res_file *rf, const char *file)
 	assert(rf);
 	size_t len = strlen(file) + 1;
 
+	xfree(rf->rf_rpath);
 	rf->rf_rpath = malloc(len);
 	if (!rf->rf_rpath) { return -1; }
 
@@ -170,11 +167,6 @@ int res_file_set_source(struct res_file *rf, const char *file)
 int res_file_unset_source(struct res_file *rf)
 {
 	assert(rf);
-	if (rf->rf_rpath) {
-		free(rf->rf_rpath);
-		rf->rf_rpath = NULL;
-	}
-
 	sha1_init(&(rf->rf_rsha1));
 	rf->rf_enf ^= RES_FILE_SHA1;
 
@@ -271,9 +263,7 @@ int res_file_stat(struct res_file *rf)
 	}
 
 	if (stat(rf->rf_lpath, rf->rf_stat) == -1) {
-		free(rf->rf_stat);
-		rf->rf_stat = NULL;
-
+		xfree(rf->rf_stat);
 		return -1;
 	}
 

@@ -5,9 +5,6 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <string.h>
-#include <stdio.h>
-#include <assert.h>
 
 #include "sha1.h"
 

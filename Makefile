@@ -1,5 +1,6 @@
 
 
+all: d sha1sum sizes
 
 d: main.o sha1.o res_file.o mem.o res_user.o
 	gcc -o $@ $+

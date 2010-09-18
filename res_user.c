@@ -14,35 +14,34 @@ static int _res_user_diff(struct res_user *ru);
 static int _res_user_diff(struct res_user *ru)
 {
 	assert(ru);
-	assert(ru->ru_pw);
 
 	ru->ru_diff = RES_USER_NONE;
 
-	if (res_user_enforced(ru, NAME) && strcmp(ru->ru_name, ru->ru_pw->pw_name) != 0) {
+	if (res_user_enforced(ru, NAME) && strcmp(ru->ru_name, ru->ru_pw.pw_name) != 0) {
 		ru->ru_diff |= RES_USER_NAME;
 	}
 
-	if (res_user_enforced(ru, PASSWD) && strcmp(ru->ru_passwd, ru->ru_pw->pw_passwd) != 0) {
+	if (res_user_enforced(ru, PASSWD) && strcmp(ru->ru_passwd, ru->ru_pw.pw_passwd) != 0) {
 		ru->ru_diff |= RES_USER_PASSWD;
 	}
 
-	if (res_user_enforced(ru, UID) && ru->ru_uid != ru->ru_pw->pw_uid) {
+	if (res_user_enforced(ru, UID) && ru->ru_uid != ru->ru_pw.pw_uid) {
 		ru->ru_diff |= RES_USER_UID;
 	}
 
-	if (res_user_enforced(ru, GID) && ru->ru_gid != ru->ru_pw->pw_gid) {
+	if (res_user_enforced(ru, GID) && ru->ru_gid != ru->ru_pw.pw_gid) {
 		ru->ru_diff |= RES_USER_GID;
 	}
 
-	if (res_user_enforced(ru, GECOS) && strcmp(ru->ru_gecos, ru->ru_pw->pw_gecos) != 0) {
+	if (res_user_enforced(ru, GECOS) && strcmp(ru->ru_gecos, ru->ru_pw.pw_gecos) != 0) {
 		ru->ru_diff |= RES_USER_GECOS;
 	}
 
-	if (res_user_enforced(ru, DIR) && strcmp(ru->ru_dir, ru->ru_pw->pw_dir) != 0) {
+	if (res_user_enforced(ru, DIR) && strcmp(ru->ru_dir, ru->ru_pw.pw_dir) != 0) {
 		ru->ru_diff |= RES_USER_DIR;
 	}
 
-	if (res_user_enforced(ru, SHELL) && strcmp(ru->ru_shell, ru->ru_pw->pw_shell) != 0) {
+	if (res_user_enforced(ru, SHELL) && strcmp(ru->ru_shell, ru->ru_pw.pw_shell) != 0) {
 		ru->ru_diff |= RES_USER_SHELL;
 	}
 
@@ -67,7 +66,7 @@ void res_user_init(struct res_user *ru)
 	ru->ru_dir = NULL;
 	ru->ru_shell = NULL;
 
-	ru->ru_pw = NULL;
+	memset(&ru->ru_pw, 0, sizeof(struct passwd));
 
 	ru->ru_enf = RES_USER_NONE;
 	ru->ru_diff = RES_USER_NONE;
@@ -77,15 +76,11 @@ void res_user_free(struct res_user *ru)
 {
 	assert(ru);
 
-	/* dynamic char strings */
 	xfree(ru->ru_name);
 	xfree(ru->ru_passwd);
 	xfree(ru->ru_gecos);
 	xfree(ru->ru_dir);
 	xfree(ru->ru_shell);
-
-	/* dynamic structure(s) */
-	xfree(ru->ru_pw);
 }
 
 int res_user_set_name(struct res_user *ru, const char *name)
@@ -308,12 +303,8 @@ int res_user_stat(struct res_user *ru)
 	}
 
 	if (entry) {
-		/* entry may point to static storage cf. getpwnam(3);
-		   copy all members into a new struct */
-		ru->ru_pw = malloc(sizeof(struct passwd));
-		if (!ru->ru_pw) { return -1; }
-
-		memcpy(ru->ru_pw, entry, sizeof(struct passwd));
+		/* entry may point to static storage cf. getpwnam(3); */
+		memcpy(&ru->ru_pw, entry, sizeof(struct passwd));
 	}
 
 	return _res_user_diff(ru);
@@ -332,21 +323,15 @@ void res_user_dump(struct res_user *ru)
 	printf("   ru_shell: \"%s\"\n", ru->ru_shell);
 	printf("--- (ru_pw omitted) ---\n");
 
-	printf("      ru_pw: 0x%0x", (unsigned int)ru->ru_pw);
-	if (ru->ru_pw) {
-		printf(" struct passwd {\n");
-		printf("               pw_name: \"%s\"\n", ru->ru_pw->pw_name);
-		printf("             pw_passwd: \"%s\"\n", ru->ru_pw->pw_passwd);
-		printf("                pw_uid: %u\n", ru->ru_pw->pw_uid);
-		printf("                pw_gid: %u\n", ru->ru_pw->pw_gid);
-		printf("              pw_gecos: \"%s\"\n", ru->ru_pw->pw_gecos);
-		printf("                pw_dir: \"%s\"\n", ru->ru_pw->pw_dir);
-		printf("              pw_shell: \"%s\"\n", ru->ru_pw->pw_shell);
-		printf("             }\n");
-	} else {
-		printf("\n");
-	}
-
+	printf("      ru_pw: struct passwd {\n");
+	printf("                 pw_name: \"%s\"\n", ru->ru_pw.pw_name);
+	printf("               pw_passwd: \"%s\"\n", ru->ru_pw.pw_passwd);
+	printf("                  pw_uid: %u\n", ru->ru_pw.pw_uid);
+	printf("                  pw_gid: %u\n", ru->ru_pw.pw_gid);
+	printf("                pw_gecos: \"%s\"\n", ru->ru_pw.pw_gecos);
+	printf("                  pw_dir: \"%s\"\n", ru->ru_pw.pw_dir);
+	printf("                pw_shell: \"%s\"\n", ru->ru_pw.pw_shell);
+	printf("             }\n");
 
 	printf("     ru_enf: %o\n", ru->ru_enf);
 	printf("    ru_diff: %o\n", ru->ru_diff);

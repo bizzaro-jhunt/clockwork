@@ -28,7 +28,7 @@ struct res_user {
 	char          *ru_dir;     /* Home directory */
 	char          *ru_shell;   /* Path to shell */
 
-	struct passwd *ru_pw;      /* getpwnam(3) / getpwuid(3) of user */
+	struct passwd  ru_pw;      /* cf. getpwnam(3) */
 
 	unsigned int   ru_prio;
 	unsigned int   ru_enf;     /* enforce-compliance flags */

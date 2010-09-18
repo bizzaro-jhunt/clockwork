@@ -13,6 +13,7 @@
 #define RES_USER_GECOS  0020
 #define RES_USER_DIR    0040
 #define RES_USER_SHELL  0100
+#define RES_USER_MKHOME 0200
 
 #define res_user_enforced(ru, flag)  (((ru)->ru_enf  & RES_USER_ ## flag) == RES_USER_ ## flag)
 #define res_user_different(ru, flag) (((ru)->ru_diff & RES_USER_ ## flag) == RES_USER_ ## flag)
@@ -27,6 +28,8 @@ struct res_user {
 	char          *ru_gecos;   /* Comment (GECOS) field */
 	char          *ru_dir;     /* Home directory */
 	char          *ru_shell;   /* Path to shell */
+
+	unsigned char  ru_mkhome;  /* 1 - make home directory; 0 - dont */
 
 	struct passwd  ru_pw;      /* cf. getpwnam(3) */
 
@@ -58,6 +61,9 @@ int res_user_unset_dir(struct res_user *ru);
 
 int res_user_set_shell(struct res_user *ru, const char *shell);
 int res_user_unset_shell(struct res_user *ru);
+
+int res_user_set_makehome(struct res_user *ru, unsigned char mkhome);
+int res_user_unset_makehome(struct res_user *ru);
 
 void res_user_merge(struct res_user *ru1, struct res_user *ru2);
 

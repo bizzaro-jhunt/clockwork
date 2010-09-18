@@ -23,7 +23,7 @@ res_user
   password
 * shell
 * home
-  make home
+* make home
   skeleton
   expire
   inactive

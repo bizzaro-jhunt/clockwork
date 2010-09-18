@@ -4,10 +4,15 @@
 #include <stdio.h>
 #include <errno.h>
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
 #include "res_user.h"
 #include "mem.h"
 
 static int _res_user_diff(struct res_user *ru);
+static unsigned char _res_user_home_exists(struct res_user *ru);
 
 /*****************************************************************/
 
@@ -45,7 +50,24 @@ static int _res_user_diff(struct res_user *ru)
 		ru->ru_diff |= RES_USER_SHELL;
 	}
 
+	if (ru->ru_mkhome == 1 && res_user_enforced(ru, MKHOME) && _res_user_home_exists(ru) == 0) {
+		ru->ru_diff |= RES_USER_MKHOME;
+	}
+
 	return 0;
+}
+
+static unsigned char _res_user_home_exists(struct res_user *ru)
+{
+	assert(ru);
+	assert(ru->ru_dir);
+
+	struct stat st;
+	if (stat(ru->ru_dir, &st) == -1) {
+		return 0; /* 0 = false */
+	}
+
+	return (S_ISDIR(st.st_mode) ? 1 : 0); /* 1 = true; 0 = false */
 }
 
 /*****************************************************************/
@@ -219,6 +241,24 @@ int res_user_unset_shell(struct res_user *ru)
 	return 0;
 }
 
+int res_user_set_makehome(struct res_user *ru, unsigned char mkhome)
+{
+	assert(ru);
+
+	ru->ru_mkhome = mkhome;
+
+	ru->ru_enf |= RES_USER_MKHOME;
+	return 0;
+}
+
+int res_user_unset_makehome(struct res_user *ru)
+{
+	assert(ru);
+
+	ru->ru_enf ^= RES_USER_MKHOME;
+	return 0;
+}
+
 void res_user_merge(struct res_user *ru1, struct res_user *ru2)
 {
 	assert(ru1);
@@ -275,6 +315,12 @@ void res_user_merge(struct res_user *ru1, struct res_user *ru2)
 		printf("Overriding SHELL of ru1 with value from ru2\n");
 		res_user_set_shell(ru1, ru2->ru_shell);
 	}
+
+	if ( res_user_enforced(ru2, MKHOME) &&
+	    !res_user_enforced(ru1, MKHOME)) {
+		printf("Overriding MKHOME of ru1 with value from ru2\n");
+		res_user_set_makehome(ru1, ru2->ru_mkhome);
+	}
 }
 
 int res_user_stat(struct res_user *ru)
@@ -321,6 +367,7 @@ void res_user_dump(struct res_user *ru)
 	printf("   ru_gecos: \"%s\"\n", ru->ru_gecos);
 	printf("     ru_dir: \"%s\"\n", ru->ru_dir);
 	printf("   ru_shell: \"%s\"\n", ru->ru_shell);
+	printf("  ru_mkhome: %u\n", ru->ru_mkhome);
 	printf("--- (ru_pw omitted) ---\n");
 
 	printf("      ru_pw: struct passwd {\n");
@@ -359,4 +406,7 @@ void res_user_dump(struct res_user *ru)
 	printf("SHELL:  %s (%02o & %02o == %02o)\n",
 	       (res_user_enforced(ru, SHELL) ? "enforced  " : "unenforced"),
 	       ru->ru_enf, RES_USER_SHELL, ru->ru_enf & RES_USER_SHELL);
+	printf("MKHOME: %s (%02o & %02o == %02o)\n",
+	       (res_user_enforced(ru, MKHOME) ? "enforced  " : "unenforced"),
+	       ru->ru_enf, RES_USER_MKHOME, ru->ru_enf & RES_USER_MKHOME);
 }

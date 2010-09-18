@@ -42,8 +42,9 @@ void setup_res_user1(struct res_user *ru1)
 	res_user_set_uid(ru1, 5000);
 	res_user_set_gid(ru1, 1001);
 	res_user_set_gecos(ru1, "James Hunt,,,");
-	res_user_set_dir(ru1, "/home/jrhunt");
+	res_user_set_dir(ru1, "/home/super/awesome/jrhunt");
 	res_user_set_shell(ru1, "/bin/bash");
+	res_user_set_makehome(ru1, 1);
 
 }
 
@@ -153,6 +154,9 @@ int main_test_res_user(int argc, char **argv)
 	}
 	if (res_user_different(&ru1, SHELL)) {
 		printf("SHELL:    %s\t%s\n", ru1.ru_shell, ru1.ru_pw.pw_shell);
+	}
+	if (res_user_different(&ru1, MKHOME)) {
+		printf("MKHOME:   X\t-\n");
 	}
 
 	res_user_free(&ru1);

@@ -2,9 +2,9 @@
 
 res_file
 --------
-  owner
-  group
-  mode
+* owner
+* group
+* mode
   source / contents
 
 res_package
@@ -16,24 +16,24 @@ res_package
 
 res_user
 --------
-  username
-  id
-  primary group
+* username
+* id
+* primary group
   groups
   password
-  shell
-  home
+* shell
+* home
   make home
   skeleton
   expire
   inactive
   locked
-  comment
+* comment
 
 res_group
 ---------
-  name
-  id
+* name
+* id
   members
   password
 

@@ -18,17 +18,16 @@ static int _res_file_set_sha1_and_source(struct res_file *rf, const sha1 *cksum,
 static int _res_file_diff(struct res_file *rf)
 {
 	assert(rf);
-	assert(rf->rf_stat);
 
 	rf->rf_diff = RES_FILE_NONE;
 
-	if (res_file_enforced(rf, UID) && rf->rf_uid != rf->rf_stat->st_uid) {
+	if (res_file_enforced(rf, UID) && rf->rf_uid != rf->rf_stat.st_uid) {
 		rf->rf_diff |= RES_FILE_UID;
 	}
-	if (res_file_enforced(rf, GID) && rf->rf_gid != rf->rf_stat->st_gid) {
+	if (res_file_enforced(rf, GID) && rf->rf_gid != rf->rf_stat.st_gid) {
 		rf->rf_diff |= RES_FILE_GID;
 	}
-	if (res_file_enforced(rf, MODE) && (rf->rf_stat->st_mode & rf->rf_mode) != rf->rf_mode) {
+	if (res_file_enforced(rf, MODE) && (rf->rf_stat.st_mode & rf->rf_mode) != rf->rf_mode) {
 		rf->rf_diff |= RES_FILE_MODE;
 	}
 	if (res_file_enforced(rf, SHA1) && memcmp(rf->rf_rsha1.raw, rf->rf_lsha1.raw, SHA1_DIGEST_SIZE) != 0) {
@@ -63,7 +62,7 @@ void res_file_init(struct res_file *rf)
 	assert(rf);
 	rf->rf_enf = 0;
 	rf->rf_diff = 0;
-	rf->rf_stat = NULL;
+	memset(&rf->rf_stat, 0, sizeof(struct stat));
 
 	rf->rf_lpath = NULL;
 	rf->rf_rpath = NULL;
@@ -75,7 +74,6 @@ void res_file_init(struct res_file *rf)
 void res_file_free(struct res_file *rf)
 {
 	xfree(rf->rf_rpath);
-	xfree(rf->rf_stat);
 }
 
 /*
@@ -255,15 +253,8 @@ int res_file_stat(struct res_file *rf)
 {
 	assert(rf);
 	assert(rf->rf_lpath);
-	assert(!rf->rf_stat);
 
-	rf->rf_stat = calloc(1, sizeof(struct stat));
-	if (!rf->rf_stat) {
-		return -1; // out of memory?
-	}
-
-	if (stat(rf->rf_lpath, rf->rf_stat) == -1) {
-		xfree(rf->rf_stat);
+	if (stat(rf->rf_lpath, &rf->rf_stat) == -1) {
 		return -1;
 	}
 

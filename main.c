@@ -84,13 +84,13 @@ int main_test_res_file(int argc, char *argv[])
 	}
 	printf("         Exp.\tAct.\n");
 	if (res_file_different(&rf1, UID)) {
-		printf("UID:     %u\t%u\n", (unsigned int)(rf1.rf_uid), (unsigned int)(rf1.rf_stat->st_uid));
+		printf("UID:     %u\t%u\n", (unsigned int)(rf1.rf_uid), (unsigned int)(rf1.rf_stat.st_uid));
 	}
 	if (res_file_different(&rf1, GID)) {
-		printf("GID:     %u\t%u\n", (unsigned int)(rf1.rf_gid), (unsigned int)(rf1.rf_stat->st_gid));
+		printf("GID:     %u\t%u\n", (unsigned int)(rf1.rf_gid), (unsigned int)(rf1.rf_stat.st_gid));
 	}
 	if (res_file_different(&rf1, MODE)) {
-		printf("Mode:    %o\t%o\n", (unsigned int)(rf1.rf_mode), (unsigned int)(rf1.rf_stat->st_mode));
+		printf("Mode:    %o\t%o\n", (unsigned int)(rf1.rf_mode), (unsigned int)(rf1.rf_stat.st_mode));
 	}
 
 	if (res_file_different(&rf1, SHA1)) {

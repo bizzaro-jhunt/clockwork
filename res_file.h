@@ -29,7 +29,7 @@ struct res_file {
 	sha1         rf_lsha1;  /* Local (actual) checksum */
 	sha1         rf_rsha1;  /* Remote (expected) checksum */
 
-	struct stat *rf_stat;   /* stat(2) of local file */
+	struct stat  rf_stat;   /* stat(2) of local file */
 	unsigned int rf_enf;    /* enforce-compliance flags */
 	unsigned int rf_diff;   /* out-of-compliance flags */
 };

@@ -1,0 +1,45 @@
+
+
+res_file
+--------
+  owner
+  group
+  mode
+  source / contents
+
+res_package
+-----------
+  name
+  package manager
+  status
+  version requirements
+
+res_user
+--------
+  username
+  id
+  primary group
+  groups
+  password
+  shell
+  home
+  make home
+  skeleton
+  expire
+  inactive
+  locked
+  comment
+
+res_group
+---------
+  name
+  id
+  members
+  password
+
+res_service
+-----------
+  name
+  status
+
+

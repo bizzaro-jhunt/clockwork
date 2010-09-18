@@ -147,16 +147,16 @@ int main_test_res_user(int argc, char **argv)
 		printf("GID:     %u\t%u\n", (unsigned int)(ru1.ru_gid), (unsigned int)(ru1.ru_pw.pw_gid));
 	}
 	if (res_user_different(&ru1, GECOS)) {
-		printf("GECOS:    %s\t%s\n", ru1.ru_gecos, ru1.ru_pw.pw_gecos);
+		printf("GECOS:   %s\t%s\n", ru1.ru_gecos, ru1.ru_pw.pw_gecos);
 	}
 	if (res_user_different(&ru1, DIR)) {
-		printf("DIR:    %s\t%s\n", ru1.ru_dir, ru1.ru_pw.pw_dir);
+		printf("DIR:     %s\t%s\n", ru1.ru_dir, ru1.ru_pw.pw_dir);
 	}
 	if (res_user_different(&ru1, SHELL)) {
-		printf("SHELL:    %s\t%s\n", ru1.ru_shell, ru1.ru_pw.pw_shell);
+		printf("SHELL:   %s\t%s\n", ru1.ru_shell, ru1.ru_pw.pw_shell);
 	}
 	if (res_user_different(&ru1, MKHOME)) {
-		printf("MKHOME:   X\t-\n");
+		printf("MKHOME:  X\t-\n");
 	}
 
 	res_user_free(&ru1);

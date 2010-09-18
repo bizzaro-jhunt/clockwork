@@ -58,6 +58,7 @@ void setup_res_group1(struct res_group *rg1)
 
 	res_group_set_name(rg1, "jrhunt");
 	res_group_set_gid(rg1, 1005);
+	res_group_set_passwd(rg1, "sooper seecrit");
 }
 
 void setup_res_group2(struct res_group *rg2)
@@ -183,6 +184,9 @@ int main_test_res_group(int argc, char **argv)
 	printf("         Exp.\tAct.\n");
 	if (res_group_different(&rg1, NAME)) {
 		printf("NAME:    %s\t%s\n", rg1.rg_name, rg1.rg_grp.gr_name);
+	}
+	if (res_group_different(&rg1, PASSWD)) {
+		printf("PASSWD:  %s\t%s\n", rg1.rg_passwd, rg1.rg_grp.gr_passwd);
 	}
 	if (res_group_different(&rg1, GID)) {
 		printf("GID:     %u\t%u\n", (unsigned int)(rg1.rg_gid), (unsigned int)(rg1.rg_grp.gr_gid));

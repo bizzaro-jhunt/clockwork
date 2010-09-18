@@ -1,4 +1,9 @@
 
+Key:  * = detection
+      _ = (space) outstanding
+      + = detection + remediation
+
+
 
 res_file
 --------
@@ -35,7 +40,7 @@ res_group
 * name
 * id
   members
-  password
+* password
 
 res_service
 -----------

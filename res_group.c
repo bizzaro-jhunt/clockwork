@@ -20,6 +20,10 @@ static int _res_group_diff(struct res_group *rg)
 		rg->rg_diff |= RES_GROUP_NAME;
 	}
 
+	if (res_group_enforced(rg, PASSWD) && strcmp(rg->rg_passwd, rg->rg_grp.gr_passwd) != 0) {
+		rg->rg_diff |= RES_GROUP_PASSWD;
+	}
+
 	if (res_group_enforced(rg, GID) && rg->rg_gid != rg->rg_grp.gr_gid) {
 		rg->rg_diff |= RES_GROUP_GID;
 	}
@@ -35,12 +39,14 @@ void res_group_init(struct res_group *rg)
 	rg->rg_prio = 0;
 
 	rg->rg_name = NULL;
+	rg->rg_passwd = NULL;
 	rg->rg_gid = 0;
 }
 
 void res_group_free(struct res_group *rg)
 {
 	xfree(rg->rg_name);
+	xfree(rg->rg_passwd);
 }
 
 int res_group_set_name(struct res_group *rg, const char *name)
@@ -58,6 +64,26 @@ int res_group_unset_name(struct res_group *rg)
 	assert(rg);
 
 	rg->rg_enf ^= RES_GROUP_NAME;
+	return 0;
+}
+
+int res_group_set_passwd(struct res_group *rg, const char *passwd)
+{
+	assert(rg);
+
+	xfree(rg->rg_passwd);
+	rg->rg_passwd = strdup(passwd);
+	if (!rg->rg_passwd) { return -1; }
+
+	rg->rg_enf |= RES_GROUP_PASSWD;
+	return 0;
+}
+
+int res_group_unset_passwd(struct res_group *rg)
+{
+	assert(rg);
+
+	rg->rg_enf ^= RES_GROUP_PASSWD;
 	return 0;
 }
 
@@ -98,6 +124,12 @@ void res_group_merge(struct res_group *rg1, struct res_group *rg2)
 	    !res_group_enforced(rg1, NAME)) {
 		printf("Overriding NAME of rg1 with value from rg2\n");
 		res_group_set_name(rg1, rg2->rg_name);
+	}
+
+	if ( res_group_enforced(rg2, PASSWD) &&
+	    !res_group_enforced(rg1, PASSWD)) {
+		printf("Overriding PASSWD of rg1 with value from rg2\n");
+		res_group_set_passwd(rg1, rg2->rg_passwd);
 	}
 
 	if ( res_group_enforced(rg2, GID) &&
@@ -142,6 +174,7 @@ void res_group_dump(struct res_group *rg)
 	printf("\n\n");
 	printf("struct res_group (0x%0x) {\n", (unsigned int)rg);
 	printf("    rg_name: \"%s\"\n", rg->rg_name);
+	printf("  rg_passwd: \"%s\"\n", rg->rg_passwd);
 	printf("     rg_gid: %u\n", rg->rg_gid);
 	printf("--- (rg_grp omitted) ---\n");
 
@@ -159,6 +192,9 @@ void res_group_dump(struct res_group *rg)
 	printf("NAME:   %s (%02o & %02o == %02o)\n",
 	       (res_group_enforced(rg, NAME) ? "enforced  " : "unenforced"),
 	       rg->rg_enf, RES_GROUP_NAME, rg->rg_enf & RES_GROUP_NAME);
+	printf("PASSWD: %s (%02o & %02o == %02o)\n",
+	       (res_group_enforced(rg, PASSWD) ? "enforced  " : "unenforced"),
+	       rg->rg_enf, RES_GROUP_PASSWD, rg->rg_enf & RES_GROUP_PASSWD);
 	printf("GID:    %s (%02o & %02o == %02o)\n",
 	       (res_group_enforced(rg, GID) ? "enforced  " : "unenforced"),
 	       rg->rg_enf, RES_GROUP_GID, rg->rg_enf & RES_GROUP_GID);

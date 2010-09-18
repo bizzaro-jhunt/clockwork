@@ -3,7 +3,6 @@
 
 #include <stdlib.h>
 #include <sys/types.h>
-#include <sys/types.h>
 #include <pwd.h>
 
 #define RES_USER_NONE   0000

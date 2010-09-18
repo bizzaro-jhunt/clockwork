@@ -77,6 +77,9 @@ int main(int argc, char *argv[])
 		printf("SHA1:    %s\t%s\n", rf1.rf_rsha1.hex, rf1.rf_lsha1.hex);
 	}
 
+	res_file_free(&rf1);
+	res_file_free(&rf2);
+
 	return 0;
 }
 

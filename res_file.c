@@ -69,6 +69,19 @@ void res_file_init(struct res_file *rf)
 	sha1_init(&(rf->rf_rsha1));
 }
 
+void res_file_free(struct res_file *rf)
+{
+	if (rf->rf_rpath) {
+		free(rf->rf_rpath);
+		rf->rf_rpath = NULL;
+	}
+
+	if (rf->rf_stat) {
+		free(rf->rf_stat);
+		rf->rf_stat = NULL;
+	}
+}
+
 /*
  * Set an enforcing UID for a res_file
  */

@@ -1,7 +1,7 @@
 
 
 
-d: main.o sha1.o res_file.o mem.o
+d: main.o sha1.o res_file.o mem.o res_user.o
 	gcc -o $@ $+
 
 sha1sum: sha1.o sha1sum.o

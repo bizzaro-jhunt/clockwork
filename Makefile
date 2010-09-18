@@ -2,6 +2,9 @@
 
 all: d sha1sum sizes
 
+sizes: sizes.c res_user.h res_file.h
+	gcc -o $@ $<
+
 d: main.o sha1.o res_file.o mem.o res_user.o
 	gcc -o $@ $+
 

@@ -3,106 +3,108 @@
 
 #include <stdio.h>
 
-int TOTAL_PASS = 1;
-int SUITE_PASS = 0;
-int TEST_PASS  = 0;
+int TEST_PRINT_PASS = 0;
+int TEST_PRINT_FAIL = 1;
 
-static int __started = 0;
+int __STATUS = 0;
+int __TESTS = 0;
+int __ASSERTIONS = 0;
+int __FAILURES = 0;
 
 static inline void __test_failed(void);
-static inline void __FAIL(void);
-static inline void __PASS(void);
-static inline void __setup_test(void);
-static inline int __finish(void);
-static inline void __TEST(const char *s);
-
-#define SKIP_REMAINING (!SUITE_PASS)
-#define FAIL __FAIL()
-#define PASS __PASS()
-#define START  printf("---- RUNNING TEST SUITES ----\n")
-#define FINISH __finish()
-#define SUITE(n) void test_ ## n (void)
-#define RUN(n) do { \
-	__setup_suite(); \
-	printf("SUITE: %s\n", #n); \
-	test_ ## n (); \
-} while (0)
-#define TEST(s) __TEST(s)
+static inline void test(const char *s);
+static inline int  test_status(void);
 
 /**********************************************************/
-
-static void DEBUG_TEST_ENV(void)
-{
-	printf("\n");
-	printf("---------------------------------------------\n");
-	printf("Total/Suite/Test: %i/%i/%i\n",
-	       TOTAL_PASS, SUITE_PASS, TEST_PASS);
-	printf("---------------------------------------------\n");
-}
 
 static inline void __test_failed(void)
 {
-	TOTAL_PASS = SUITE_PASS = TEST_PASS = 0;
+	++__FAILURES;
+	__STATUS = 0;
 }
 
-static inline void __FAIL(void)
+static inline int test_status(void)
 {
-	__test_failed();
-	printf("FAIL\n");
+	printf("\n"
+	       "--------------------\n"
+	       "TEST RESULTS SUMMARY\n"
+	       "--------------------\n");
+	printf("%4i test(s)\n"
+	       "%4i assertion(s)\n"
+	       "\n"
+	       "%4i FAILURE(S)\n",
+	       __TESTS, __ASSERTIONS, __FAILURES);
+
+	return __FAILURES;
 }
 
-static inline void __PASS(void)
+static inline void test(const char *s)
 {
-	if (!TEST_PASS) { return; }
-	printf("PASS\n");
-}
-
-static inline void __setup_test(void)
-{
-	if (__started && TEST_PASS) { PASS; }
-	TEST_PASS = __started = 1;
-	//DEBUG_TEST_ENV();
-}
-
-static inline void __setup_suite(void)
-{
-	if (__started && TEST_PASS) { PASS; }
-	SUITE_PASS = __started = 1;
-}
-
-static inline int __finish(void)
-{
-	__setup_test();
-	return TOTAL_PASS ? 0 : 1;
-}
-
-static inline void __TEST(const char *s)
-{
-	__setup_test();
-	printf("  - Testing %s... ", s);
-	if (!SUITE_PASS) { printf("SKIP\n"); }
+	__STATUS = 1;
+	++__TESTS;
+	printf("%s\n", s);
 }
 
 /**********************************************************/
 
-#define ASSERTION_FAILED_MSG "Assertion failed"
+static void assert_fail(const char *s)
+{
+	++__ASSERTIONS;
+	__test_failed();
+	if (TEST_PRINT_FAIL) { printf(" - %s: FAIL\n", s); }
+}
+
+static void assert_pass(const char *s)
+{
+	++__ASSERTIONS;
+	if (TEST_PRINT_PASS) { printf(" - %s: PASS\n", s); }
+}
+
+static void assert_true(const char *s, int value)
+{
+	++__ASSERTIONS;
+	(value ? assert_pass(s) : assert_fail(s));
+}
+
+static void assert_false(const char *s, int value)
+{
+	assert_true(s, !value);
+}
+
+static void assert_not_null(const char *s, void *ptr)
+{
+	assert_true(s, ptr != NULL);
+}
+
+static void assert_null(const char *s, void *ptr)
+{
+	assert_true(s, ptr == NULL);
+}
 
 static void assert_int_equals(const char *s, int expected, int actual)
 {
-	if (!TEST_PASS) { return; }
-	if (expected == actual) { return; }
-
-	__test_failed();
-	printf("FAIL: %i != %i\n", expected, actual);
+	++__ASSERTIONS;
+	if (expected == actual) {
+		if (TEST_PRINT_PASS) { printf(" - %s: PASS\n", s); }
+	} else {
+		__test_failed();
+		if (TEST_PRINT_FAIL) {
+			printf(" - %s: FAIL: %i != %i\n", s, expected, actual);
+		}
+	}
 }
 
 static void assert_str_equals(const char *s, const char *expected, const char *actual)
 {
-	if (!TEST_PASS) { return; }
-	if (strcmp(expected, actual) == 0) { return; }
-
-	__test_failed();
-	printf("FAIL: %s != %s\n", expected, actual);
+	++__ASSERTIONS;
+	if (strcmp(expected, actual) == 0) {
+		if (TEST_PRINT_PASS) { printf(" - %s: PASS\n", s); }
+	} else {
+		__test_failed();
+		if (TEST_PRINT_FAIL) {
+			printf(" - %s: FAIL: %s != %s\n", s, expected, actual);
+		}
+	}
 }
 
 

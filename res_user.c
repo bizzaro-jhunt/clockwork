@@ -54,6 +54,14 @@ static int _res_user_diff(struct res_user *ru)
 		ru->ru_diff |= RES_USER_MKHOME;
 	}
 
+	if (res_user_enforced(ru, INACT) && ru->ru_inact != ru->ru_sp.sp_inact) {
+		ru->ru_diff |= RES_USER_INACT;
+	}
+
+	if (res_user_enforced(ru, EXPIRE) && ru->ru_expire != ru->ru_sp.sp_expire) {
+		ru->ru_diff |= RES_USER_EXPIRE;
+	}
+
 	return 0;
 }
 
@@ -268,6 +276,43 @@ int res_user_unset_makehome(struct res_user *ru)
 	return 0;
 }
 
+int res_user_set_inactivate(struct res_user *ru, long days)
+{
+	assert(ru);
+
+	ru->ru_inact = days;
+
+	ru->ru_enf |= RES_USER_INACT;
+	return 0;
+}
+
+int res_user_unset_inactivate(struct res_user *ru)
+{
+	assert(ru);
+
+	ru->ru_enf ^= RES_USER_INACT;
+	return 0;
+}
+
+int res_user_set_expiration(struct res_user *ru, long days)
+{
+	assert(ru);
+
+	ru->ru_expire = days;
+
+	ru->ru_enf |= RES_USER_EXPIRE;
+	return 0;
+}
+
+int res_user_unset_expiration(struct res_user *ru)
+{
+	assert(ru);
+
+	ru->ru_enf ^= RES_USER_EXPIRE;
+	return 0;
+}
+
+
 void res_user_merge(struct res_user *ru1, struct res_user *ru2)
 {
 	assert(ru1);
@@ -329,6 +374,18 @@ void res_user_merge(struct res_user *ru1, struct res_user *ru2)
 	    !res_user_enforced(ru1, MKHOME)) {
 		printf("Overriding MKHOME of ru1 with value from ru2\n");
 		res_user_set_makehome(ru1, ru2->ru_mkhome, ru2->ru_skel);
+	}
+
+	if ( res_user_enforced(ru2, INACT) &&
+	    !res_user_enforced(ru1, INACT)) {
+		printf("Overriding INACT of ru1 with value from ru2\n");
+		res_user_set_inactivate(ru1, ru2->ru_inact);
+	}
+
+	if ( res_user_enforced(ru2, EXPIRE) &&
+	    !res_user_enforced(ru1, EXPIRE)) {
+		printf("Overriding EXPIRE of ru1 with value from ru2\n");
+		res_user_set_expiration(ru1, ru2->ru_expire);
 	}
 }
 
@@ -406,6 +463,8 @@ void res_user_dump(struct res_user *ru)
 	printf("     ru_dir: \"%s\"\n", ru->ru_dir);
 	printf("   ru_shell: \"%s\"\n", ru->ru_shell);
 	printf("  ru_mkhome: %u\n", ru->ru_mkhome);
+	printf("   ru_inact: %li\n", ru->ru_inact);
+	printf("  ru_expire: %li\n", ru->ru_expire);
 
 	printf("      ru_pw: struct passwd {\n");
 	printf("                 pw_name: \"%s\"\n", ru->ru_pw.pw_name);
@@ -420,12 +479,12 @@ void res_user_dump(struct res_user *ru)
 	printf("      ru_sp: struct spwd {\n");
 	printf("                 sp_namp: \"%s\"\n", ru->ru_sp.sp_namp);
 	printf("                 sp_pwdp: \"%s\"\n", ru->ru_sp.sp_pwdp);
-	printf("               sp_lstchg: %lu\n", ru->ru_sp.sp_lstchg);
-	printf("                  sp_min: %lu\n", ru->ru_sp.sp_min);
-	printf("                  sp_max: %lu\n", ru->ru_sp.sp_max);
-	printf("                 sp_warn: %lu\n", ru->ru_sp.sp_warn);
-	printf("                sp_inact: %lu\n", ru->ru_sp.sp_inact);
-	printf("               sp_expire: %lu\n", ru->ru_sp.sp_expire);
+	printf("               sp_lstchg: %li\n", ru->ru_sp.sp_lstchg);
+	printf("                  sp_min: %li\n", ru->ru_sp.sp_min);
+	printf("                  sp_max: %li\n", ru->ru_sp.sp_max);
+	printf("                 sp_warn: %li\n", ru->ru_sp.sp_warn);
+	printf("                sp_inact: %li\n", ru->ru_sp.sp_inact);
+	printf("               sp_expire: %li\n", ru->ru_sp.sp_expire);
 	printf("             }\n");
 
 	printf("    ru_skel: \"%s\"\n", ru->ru_skel);
@@ -458,4 +517,10 @@ void res_user_dump(struct res_user *ru)
 	printf("MKHOME: %s (%02o & %02o == %02o)\n",
 	       (res_user_enforced(ru, MKHOME) ? "enforced  " : "unenforced"),
 	       ru->ru_enf, RES_USER_MKHOME, ru->ru_enf & RES_USER_MKHOME);
+	printf("INACT:  %s (%02o & %02o == %02o)\n",
+	       (res_user_enforced(ru, INACT) ? "enforced  " : "unenforced"),
+	       ru->ru_enf, RES_USER_INACT, ru->ru_enf & RES_USER_INACT);
+	printf("EXPIRE: %s (%02o & %02o == %02o)\n",
+	       (res_user_enforced(ru, EXPIRE) ? "enforced  " : "unenforced"),
+	       ru->ru_enf, RES_USER_EXPIRE, ru->ru_enf & RES_USER_EXPIRE);
 }

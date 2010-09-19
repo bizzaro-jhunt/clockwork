@@ -30,8 +30,8 @@ res_user
 * home
 * make home
 * skeleton
-  expire
-  inactive
+* expire
+* inactive
   locked
 * comment
 

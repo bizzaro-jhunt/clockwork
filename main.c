@@ -50,6 +50,10 @@ void setup_res_user1(struct res_user *ru1)
 
 void setup_res_user2(struct res_user *ru2)
 {
+	res_user_init(ru2);
+
+	res_user_set_inactivate(ru2, 4);
+	res_user_set_expiration(ru2, 815162342);
 }
 
 void setup_res_group1(struct res_group *rg1)
@@ -130,6 +134,13 @@ int main_test_res_user(int argc, char **argv)
 	struct res_user ru2;
 
 	setup_res_user1(&ru1);
+	ru1.ru_prio = 4;
+
+	setup_res_user2(&ru2);
+	ru2.ru_prio = 42;
+
+	res_user_merge(&ru1, &ru2);
+
 	if (res_user_stat(&ru1) == -1) {
 		perror("unable to stat user");
 		exit(1);
@@ -167,6 +178,12 @@ int main_test_res_user(int argc, char **argv)
 	}
 	if (res_user_different(&ru1, MKHOME)) {
 		printf("MKHOME:  X\t-\n");
+	}
+	if (res_user_different(&ru1, INACT)) {
+		printf("INACT:   %li\t%li\n", ru1.ru_inact, ru1.ru_sp.sp_inact);
+	}
+	if (res_user_different(&ru1, EXPIRE)) {
+		printf("EXPIRE:  %li\t%li\n", ru1.ru_expire, ru1.ru_sp.sp_expire);
 	}
 
 	res_user_free(&ru1);

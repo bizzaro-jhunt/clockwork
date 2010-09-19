@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <pwd.h>
+#include <shadow.h>
 
 #define RES_USER_NONE   0000
 #define RES_USER_NAME   0001
@@ -32,6 +33,7 @@ struct res_user {
 	unsigned char  ru_mkhome;  /* 1 - make home directory; 0 - dont */
 
 	struct passwd  ru_pw;      /* cf. getpwnam(3) */
+	struct spwd    ru_sp;      /* cf. getspnam(3) */
 
 	char          *ru_skel;    /* Path to skeleton dir (for ru_mkhome) */
 

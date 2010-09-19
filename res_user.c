@@ -26,7 +26,7 @@ static int _res_user_diff(struct res_user *ru)
 		ru->ru_diff |= RES_USER_NAME;
 	}
 
-	if (res_user_enforced(ru, PASSWD) && strcmp(ru->ru_passwd, ru->ru_pw.pw_passwd) != 0) {
+	if (res_user_enforced(ru, PASSWD) && strcmp(ru->ru_passwd, ru->ru_sp.sp_pwdp) != 0) {
 		ru->ru_diff |= RES_USER_PASSWD;
 	}
 
@@ -91,6 +91,7 @@ void res_user_init(struct res_user *ru)
 	ru->ru_skel = strdup("/etc/skel");
 
 	memset(&ru->ru_pw, 0, sizeof(struct passwd));
+	memset(&ru->ru_sp, 0, sizeof(struct spwd));
 
 	ru->ru_enf = RES_USER_NONE;
 	ru->ru_diff = RES_USER_NONE;
@@ -331,11 +332,11 @@ void res_user_merge(struct res_user *ru1, struct res_user *ru2)
 	}
 }
 
-int res_user_stat(struct res_user *ru)
+static int _res_user_stat_passwd(struct res_user *ru)
 {
 	assert(ru);
 
-	struct passwd *entry = NULL;
+	struct passwd *pwentry = NULL;
 
 	/* FIXME: how to deal with diff UID and name? */
 	/* for now, prefer UID match over name match */
@@ -346,20 +347,49 @@ int res_user_stat(struct res_user *ru)
 
 	if (res_user_enforced(ru, UID)) {
 		printf("Looking for user by UID (%u)\n", ru->ru_uid);
-		entry = getpwuid(ru->ru_uid);
-		if (!entry && errno) { return -1; }
+		pwentry = getpwuid(ru->ru_uid);
+		if (!pwentry && errno) { return -1; }
 	}
 
-	if (!entry && res_user_enforced(ru, NAME)) {
+	if (!pwentry && res_user_enforced(ru, NAME)) {
 		printf("Looking for user by name (%s)\n", ru->ru_name);
-		entry = getpwnam(ru->ru_name);
-		if (!entry && errno) { return -1; }
+		pwentry = getpwnam(ru->ru_name);
+		if (!pwentry && errno) { return -1; }
 	}
 
-	if (entry) {
-		/* entry may point to static storage cf. getpwnam(3); */
-		memcpy(&ru->ru_pw, entry, sizeof(struct passwd));
+	if (!pwentry) {
+		return -1;
 	}
+
+	/* pwentry may point to static storage cf. getpwnam(3); */
+	memcpy(&ru->ru_pw, pwentry, sizeof(struct passwd));
+	return 0;
+}
+
+static int _res_user_stat_shadow(struct res_user *ru)
+{
+	/* N.B.: _res_user_stat_passwd MUST be called prior to calling
+	   this function, since it relies on ru_pw.pw_name for lookup */
+
+	assert(ru);
+
+	struct spwd *spentry = NULL;
+	spentry = getspnam(ru->ru_pw.pw_name);
+	if (!spentry) {
+		return -1;
+	}
+
+	/* spentry may point to static storage cf. getspnam(3); */
+	memcpy(&ru->ru_sp, spentry, sizeof(struct spwd));
+	return 0;
+}
+
+int res_user_stat(struct res_user *ru)
+{
+	assert(ru);
+
+	if (_res_user_stat_passwd(ru) == -1) { return -1; }
+	if (_res_user_stat_shadow(ru) == -1) { return -1; }
 
 	return _res_user_diff(ru);
 }
@@ -376,7 +406,6 @@ void res_user_dump(struct res_user *ru)
 	printf("     ru_dir: \"%s\"\n", ru->ru_dir);
 	printf("   ru_shell: \"%s\"\n", ru->ru_shell);
 	printf("  ru_mkhome: %u\n", ru->ru_mkhome);
-	printf("--- (ru_pw omitted) ---\n");
 
 	printf("      ru_pw: struct passwd {\n");
 	printf("                 pw_name: \"%s\"\n", ru->ru_pw.pw_name);
@@ -386,6 +415,17 @@ void res_user_dump(struct res_user *ru)
 	printf("                pw_gecos: \"%s\"\n", ru->ru_pw.pw_gecos);
 	printf("                  pw_dir: \"%s\"\n", ru->ru_pw.pw_dir);
 	printf("                pw_shell: \"%s\"\n", ru->ru_pw.pw_shell);
+	printf("             }\n");
+
+	printf("      ru_sp: struct spwd {\n");
+	printf("                 sp_namp: \"%s\"\n", ru->ru_sp.sp_namp);
+	printf("                 sp_pwdp: \"%s\"\n", ru->ru_sp.sp_pwdp);
+	printf("               sp_lstchg: %lu\n", ru->ru_sp.sp_lstchg);
+	printf("                  sp_min: %lu\n", ru->ru_sp.sp_min);
+	printf("                  sp_max: %lu\n", ru->ru_sp.sp_max);
+	printf("                 sp_warn: %lu\n", ru->ru_sp.sp_warn);
+	printf("                sp_inact: %lu\n", ru->ru_sp.sp_inact);
+	printf("               sp_expire: %lu\n", ru->ru_sp.sp_expire);
 	printf("             }\n");
 
 	printf("    ru_skel: \"%s\"\n", ru->ru_skel);

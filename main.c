@@ -130,7 +130,10 @@ int main_test_res_user(int argc, char **argv)
 	struct res_user ru2;
 
 	setup_res_user1(&ru1);
-	res_user_stat(&ru1);
+	if (res_user_stat(&ru1) == -1) {
+		perror("unable to stat user");
+		exit(1);
+	}
 
 	res_user_dump(&ru1);
 
@@ -145,7 +148,7 @@ int main_test_res_user(int argc, char **argv)
 		printf("NAME:    %s\t%s\n", ru1.ru_name, ru1.ru_pw.pw_name);
 	}
 	if (res_user_different(&ru1, PASSWD)) {
-		printf("PASSWD:  %s\t%s\n", ru1.ru_passwd, ru1.ru_pw.pw_passwd);
+		printf("PASSWD:  %s\t%s\n", ru1.ru_passwd, ru1.ru_sp.sp_pwdp);
 	}
 	if (res_user_different(&ru1, UID)) {
 		printf("UID:     %u\t%u\n", (unsigned int)(ru1.ru_uid), (unsigned int)(ru1.ru_pw.pw_uid));

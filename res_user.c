@@ -13,6 +13,8 @@
 
 static int _res_user_diff(struct res_user *ru);
 static unsigned char _res_user_home_exists(struct res_user *ru);
+static int _res_user_stat_passwd(struct res_user *ru);
+static int _res_user_stat_shadow(struct res_user *ru);
 
 /*****************************************************************/
 
@@ -82,6 +84,58 @@ static unsigned char _res_user_home_exists(struct res_user *ru)
 	}
 
 	return (S_ISDIR(st.st_mode) ? 1 : 0); /* 1 = true; 0 = false */
+}
+
+static int _res_user_stat_passwd(struct res_user *ru)
+{
+	assert(ru);
+
+	struct passwd *pwentry = NULL;
+
+	/* FIXME: how to deal with diff UID and name? */
+	/* for now, prefer UID match over name match */
+
+	/* getpuid and getpwnam return NULL on error OR no match.
+	   clear errno manually to test for errors. */
+	errno = 0;
+
+	if (res_user_enforced(ru, UID)) {
+		printf("Looking for user by UID (%u)\n", ru->ru_uid);
+		pwentry = getpwuid(ru->ru_uid);
+		if (!pwentry && errno) { return -1; }
+	}
+
+	if (!pwentry && res_user_enforced(ru, NAME)) {
+		printf("Looking for user by name (%s)\n", ru->ru_name);
+		pwentry = getpwnam(ru->ru_name);
+		if (!pwentry && errno) { return -1; }
+	}
+
+	if (!pwentry) {
+		return -1;
+	}
+
+	/* pwentry may point to static storage cf. getpwnam(3); */
+	memcpy(&ru->ru_pw, pwentry, sizeof(struct passwd));
+	return 0;
+}
+
+static int _res_user_stat_shadow(struct res_user *ru)
+{
+	/* N.B.: _res_user_stat_passwd MUST be called prior to calling
+	   this function, since it relies on ru_pw.pw_name for lookup */
+
+	assert(ru);
+
+	struct spwd *spentry = NULL;
+	spentry = getspnam(ru->ru_pw.pw_name);
+	if (!spentry) {
+		return -1;
+	}
+
+	/* spentry may point to static storage cf. getspnam(3); */
+	memcpy(&ru->ru_sp, spentry, sizeof(struct spwd));
+	return 0;
 }
 
 /*****************************************************************/
@@ -418,58 +472,6 @@ void res_user_merge(struct res_user *ru1, struct res_user *ru2)
 		printf("Overriding LOCK of ru1 with value from ru2\n");
 		res_user_set_lock(ru1, ru2->ru_lock);
 	}
-}
-
-static int _res_user_stat_passwd(struct res_user *ru)
-{
-	assert(ru);
-
-	struct passwd *pwentry = NULL;
-
-	/* FIXME: how to deal with diff UID and name? */
-	/* for now, prefer UID match over name match */
-
-	/* getpuid and getpwnam return NULL on error OR no match.
-	   clear errno manually to test for errors. */
-	errno = 0;
-
-	if (res_user_enforced(ru, UID)) {
-		printf("Looking for user by UID (%u)\n", ru->ru_uid);
-		pwentry = getpwuid(ru->ru_uid);
-		if (!pwentry && errno) { return -1; }
-	}
-
-	if (!pwentry && res_user_enforced(ru, NAME)) {
-		printf("Looking for user by name (%s)\n", ru->ru_name);
-		pwentry = getpwnam(ru->ru_name);
-		if (!pwentry && errno) { return -1; }
-	}
-
-	if (!pwentry) {
-		return -1;
-	}
-
-	/* pwentry may point to static storage cf. getpwnam(3); */
-	memcpy(&ru->ru_pw, pwentry, sizeof(struct passwd));
-	return 0;
-}
-
-static int _res_user_stat_shadow(struct res_user *ru)
-{
-	/* N.B.: _res_user_stat_passwd MUST be called prior to calling
-	   this function, since it relies on ru_pw.pw_name for lookup */
-
-	assert(ru);
-
-	struct spwd *spentry = NULL;
-	spentry = getspnam(ru->ru_pw.pw_name);
-	if (!spentry) {
-		return -1;
-	}
-
-	/* spentry may point to static storage cf. getspnam(3); */
-	memcpy(&ru->ru_sp, spentry, sizeof(struct spwd));
-	return 0;
 }
 
 int res_user_stat(struct res_user *ru)

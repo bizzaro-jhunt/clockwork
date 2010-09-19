@@ -27,7 +27,7 @@ static int _res_file_diff(struct res_file *rf)
 	if (res_file_enforced(rf, GID) && rf->rf_gid != rf->rf_stat.st_gid) {
 		rf->rf_diff |= RES_FILE_GID;
 	}
-	if (res_file_enforced(rf, MODE) && (rf->rf_stat.st_mode & rf->rf_mode) != rf->rf_mode) {
+	if (res_file_enforced(rf, MODE) && (rf->rf_stat.st_mode & 07777) != rf->rf_mode) {
 		rf->rf_diff |= RES_FILE_MODE;
 	}
 	if (res_file_enforced(rf, SHA1) && memcmp(rf->rf_rsha1.raw, rf->rf_lsha1.raw, SHA1_DIGEST_SIZE) != 0) {
@@ -128,7 +128,7 @@ int res_file_unset_gid(struct res_file *rf)
 int res_file_set_mode(struct res_file *rf, mode_t mode)
 {
 	assert(rf);
-	rf->rf_mode = mode;
+	rf->rf_mode = mode & 07777; /* mask off non-perm bits */
 	rf->rf_enf |= RES_FILE_MODE;
 
 	return 0;

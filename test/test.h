@@ -97,6 +97,9 @@ static void assert_int_equals(const char *s, int expected, int actual)
 static void assert_str_equals(const char *s, const char *expected, const char *actual)
 {
 	++__ASSERTIONS;
+	if (expected == NULL) { expected = "(null)"; }
+	if (actual == NULL)   { actual   = "(null)"; }
+
 	if (strcmp(expected, actual) == 0) {
 		if (TEST_PRINT_PASS) { printf(" - %s: PASS\n", s); }
 	} else {

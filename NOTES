@@ -1,0 +1,7 @@
+Locking System Accounts
+-----------------------
+User account locking seems to be accomplished via the standard passwd(1)
+command by placing an exclamation point (!, 0x21) immediately before the
+encrypted password in the /etc/shadow file.  Unlocking is done by removing
+this exclamation point.  This method seems to be preferred because it
+allows sysads to lock an account without losing the original password.

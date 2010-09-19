@@ -13,7 +13,7 @@ int __FAILURES = 0;
 
 static inline void __test_failed(void);
 static inline void test(const char *s);
-static inline int  test_status(void);
+static int test_status(void);
 
 /**********************************************************/
 
@@ -23,7 +23,7 @@ static inline void __test_failed(void)
 	__STATUS = 0;
 }
 
-static inline int test_status(void)
+static int test_status(void)
 {
 	printf("\n"
 	       "--------------------\n"

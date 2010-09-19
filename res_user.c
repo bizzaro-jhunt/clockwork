@@ -20,6 +20,8 @@ static int _res_user_diff(struct res_user *ru)
 {
 	assert(ru);
 
+	unsigned char locked = (ru->ru_sp.sp_pwdp && *(ru->ru_sp.sp_pwdp) == '!') ? 1 : 0;
+
 	ru->ru_diff = RES_USER_NONE;
 
 	if (res_user_enforced(ru, NAME) && strcmp(ru->ru_name, ru->ru_pw.pw_name) != 0) {
@@ -62,6 +64,10 @@ static int _res_user_diff(struct res_user *ru)
 		ru->ru_diff |= RES_USER_EXPIRE;
 	}
 
+	if (res_user_enforced(ru, LOCK) && ru->ru_lock != locked) {
+		ru->ru_diff |= RES_USER_LOCK;
+	}
+
 	return 0;
 }
 
@@ -97,6 +103,8 @@ void res_user_init(struct res_user *ru)
 	ru->ru_shell = NULL;
 	ru->ru_mkhome = 1;
 	ru->ru_skel = strdup("/etc/skel");
+
+	ru->ru_lock = 1;
 
 	memset(&ru->ru_pw, 0, sizeof(struct passwd));
 	memset(&ru->ru_sp, 0, sizeof(struct spwd));
@@ -312,6 +320,23 @@ int res_user_unset_expiration(struct res_user *ru)
 	return 0;
 }
 
+int res_user_set_lock(struct res_user *ru, unsigned char locked)
+{
+	assert(ru);
+
+	ru->ru_lock = locked;
+
+	ru->ru_enf |= RES_USER_LOCK;
+	return 0;
+}
+
+int res_user_unset_lock(struct res_user *ru)
+{
+	assert(ru);
+
+	ru->ru_enf ^= RES_USER_LOCK;
+	return 0;
+}
 
 void res_user_merge(struct res_user *ru1, struct res_user *ru2)
 {
@@ -386,6 +411,12 @@ void res_user_merge(struct res_user *ru1, struct res_user *ru2)
 	    !res_user_enforced(ru1, EXPIRE)) {
 		printf("Overriding EXPIRE of ru1 with value from ru2\n");
 		res_user_set_expiration(ru1, ru2->ru_expire);
+	}
+
+	if ( res_user_enforced(ru2, LOCK) &&
+	    !res_user_enforced(ru1, LOCK)) {
+		printf("Overriding LOCK of ru1 with value from ru2\n");
+		res_user_set_lock(ru1, ru2->ru_lock);
 	}
 }
 
@@ -463,6 +494,7 @@ void res_user_dump(struct res_user *ru)
 	printf("     ru_dir: \"%s\"\n", ru->ru_dir);
 	printf("   ru_shell: \"%s\"\n", ru->ru_shell);
 	printf("  ru_mkhome: %u\n", ru->ru_mkhome);
+	printf("    ru_lock: %u\n", ru->ru_lock);
 	printf("   ru_inact: %li\n", ru->ru_inact);
 	printf("  ru_expire: %li\n", ru->ru_expire);
 
@@ -523,4 +555,7 @@ void res_user_dump(struct res_user *ru)
 	printf("EXPIRE: %s (%02o & %02o == %02o)\n",
 	       (res_user_enforced(ru, EXPIRE) ? "enforced  " : "unenforced"),
 	       ru->ru_enf, RES_USER_EXPIRE, ru->ru_enf & RES_USER_EXPIRE);
+	printf("LOCK:   %s (%02o & %02o == %02o)\n",
+	       (res_user_enforced(ru, LOCK) ? "enforced  " : "unenforced"),
+	       ru->ru_enf, RES_USER_LOCK, ru->ru_enf & RES_USER_LOCK);
 }

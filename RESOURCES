@@ -32,7 +32,7 @@ res_user
 * skeleton
 * expire
 * inactive
-  locked
+* locked
 * comment
 
 res_group

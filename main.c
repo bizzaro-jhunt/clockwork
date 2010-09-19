@@ -36,8 +36,8 @@ void setup_res_user1(struct res_user *ru1)
 {
 	res_user_init(ru1);
 
-	res_user_set_name(ru1, "jrhunt");
-	res_user_set_passwd(ru1, "*");
+	res_user_set_name(ru1, "jrh2");
+	res_user_set_passwd(ru1, "$6$nahablHe$1qen4PePmYtEIC6aCTYoQFLgMp//snQY7nDGU7.9iVzXrmmCYLDsOKc22J6MPRUuH/X4XJ7w.JaEXjofw9h1d/");
 	/*res_user_set_passwd(ru1, "$1$iXn0WLY7$bxZf/GsnpNn0HSsSjba3F1");*/
 	res_user_set_uid(ru1, 5000);
 	res_user_set_gid(ru1, 1001);
@@ -54,6 +54,7 @@ void setup_res_user2(struct res_user *ru2)
 
 	res_user_set_inactivate(ru2, 4);
 	res_user_set_expiration(ru2, 815162342);
+	res_user_set_lock(ru2, 0);
 }
 
 void setup_res_group1(struct res_group *rg1)
@@ -185,8 +186,12 @@ int main_test_res_user(int argc, char **argv)
 	if (res_user_different(&ru1, EXPIRE)) {
 		printf("EXPIRE:  %li\t%li\n", ru1.ru_expire, ru1.ru_sp.sp_expire);
 	}
+	if (res_user_different(&ru1, LOCK)) {
+		printf("LOCK:    %u\t%u\n", ru1.ru_lock, (ru1.ru_lock ? 0 : 1));
+	}
 
 	res_user_free(&ru1);
+	res_user_free(&ru2);
 
 	return 0;
 }

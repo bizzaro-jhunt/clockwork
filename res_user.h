@@ -20,6 +20,7 @@
 #define RES_USER_PWWARN  1 << 10
 #define RES_USER_INACT   1 << 11
 #define RES_USER_EXPIRE  1 << 12
+#define RES_USER_LOCK    1 << 13
 
 #define res_user_enforced(ru, flag)  (((ru)->ru_enf  & RES_USER_ ## flag) == RES_USER_ ## flag)
 #define res_user_different(ru, flag) (((ru)->ru_diff & RES_USER_ ## flag) == RES_USER_ ## flag)
@@ -36,6 +37,7 @@ struct res_user {
 	char          *ru_shell;   /* Path to shell */
 
 	unsigned char  ru_mkhome;  /* 1 - make home directory; 0 - dont */
+	unsigned char  ru_lock;    /* 1 - lock account; 0 - unlock */
 
 	/* These members match struct spwd; cf. getspnam(3) */
 	/*
@@ -88,6 +90,9 @@ int res_user_unset_inactivate(struct res_user *ru);
 
 int res_user_set_expiration(struct res_user *ru, long days);
 int res_user_unset_expiration(struct res_user *ru);
+
+int res_user_set_lock(struct res_user *ru, unsigned char locked);
+int res_user_unset_lock(struct res_user *ru);
 
 void res_user_merge(struct res_user *ru1, struct res_user *ru2);
 

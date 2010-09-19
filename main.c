@@ -206,8 +206,8 @@ int main_test_res_group(int argc, char **argv)
 int main(int argc, char **argv) {
 	while (*++argv) {
 		     if (strcmp(*argv, "file")  == 0) { main_test_res_file(argc, argv); }
-		else if (strcmp(*argv, "user")  == 0) { main_test_res_file(argc, argv); }
-		else if (strcmp(*argv, "group") == 0) { main_test_res_file(argc, argv); }
+		else if (strcmp(*argv, "user")  == 0) { main_test_res_user(argc, argv); }
+		else if (strcmp(*argv, "group") == 0) { main_test_res_group(argc, argv); }
 	}
 }
 

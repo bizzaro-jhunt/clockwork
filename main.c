@@ -10,7 +10,7 @@ void setup_res_file1(struct res_file *rf1)
 {
 	res_file_init(rf1);
 
-	rf1->rf_lpath = "/etc/sudoers";
+	rf1->rf_lpath = "test/act/sudoers";
 	res_file_set_uid(rf1, 0);
 	res_file_set_gid(rf1, 15);
 	res_file_set_mode(rf1, 0640);
@@ -22,10 +22,10 @@ void setup_res_file2(struct res_file *rf2)
 {
 	res_file_init(rf2);
 
-	rf2->rf_lpath = "/etc/sudoers";
+	rf2->rf_lpath = "test/act/sudoers";
 
-	if (res_file_set_source(rf2, "test/sudoers") == -1) {
-		perror("Unable to generate SHA1 checksum for test/sudoers");
+	if (res_file_set_source(rf2, "test/exp/sudoers") == -1) {
+		perror("Unable to generate SHA1 checksum for test/exp/sudoers");
 		exit(1);
 	}
 	res_file_set_uid(rf2, 404);
@@ -76,28 +76,21 @@ int main_test_res_file(int argc, char *argv[])
 	setup_res_file2(&rf2);
 	rf2.rf_prio = 10; /* lower priority */
 
-	/*
-	res_file_dump(&rf1);
-	res_file_dump(&rf2);
-	*/
-
 	res_file_merge(&rf1, &rf2);
-
-	/*
-	res_file_dump(&rf1);
-	*/
 
 	if (res_file_stat(&rf1) == -1) {
 		perror(rf1.rf_lpath);
 		return 1;
 	}
 
+	res_file_dump(&rf1);
+
 	if (rf1.rf_diff == RES_FILE_NONE) {
 		printf("File is in compliance\n");
 	} else {
 		printf("File is out of compliance:\n");
+		printf("         Exp.\tAct.\n");
 	}
-	printf("         Exp.\tAct.\n");
 	if (res_file_different(&rf1, UID)) {
 		printf("UID:     %u\t%u\n", (unsigned int)(rf1.rf_uid), (unsigned int)(rf1.rf_stat.st_uid));
 	}
@@ -107,9 +100,22 @@ int main_test_res_file(int argc, char *argv[])
 	if (res_file_different(&rf1, MODE)) {
 		printf("Mode:    %o\t%o\n", (unsigned int)(rf1.rf_mode), (unsigned int)(rf1.rf_stat.st_mode));
 	}
-
 	if (res_file_different(&rf1, SHA1)) {
 		printf("SHA1:    %s\t%s\n", rf1.rf_rsha1.hex, rf1.rf_lsha1.hex);
+	}
+
+	if (rf1.rf_diff == RES_FILE_NONE) {
+		printf("Remediation unnecessary\n");
+	} else {
+		printf("\n\n");
+		printf("Attempting to remediate.\n");
+
+		if (res_file_remediate(&rf1) == -1) {
+			perror("rf1 remediation failed");
+			exit(1);
+		}
+
+		printf("Remediation succeeded!\n");
 	}
 
 	res_file_free(&rf1);
@@ -198,9 +204,11 @@ int main_test_res_group(int argc, char **argv)
 }
 
 int main(int argc, char **argv) {
-	main_test_res_file(argc, argv);
-	main_test_res_user(argc, argv);
-	main_test_res_group(argc, argv);
+	while (*++argv) {
+		     if (strcmp(*argv, "file")  == 0) { main_test_res_file(argc, argv); }
+		else if (strcmp(*argv, "user")  == 0) { main_test_res_file(argc, argv); }
+		else if (strcmp(*argv, "group") == 0) { main_test_res_file(argc, argv); }
+	}
 }
 
 // vim:ts=4:noet:sts=4:sw=4

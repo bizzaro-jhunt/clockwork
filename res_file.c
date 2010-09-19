@@ -268,6 +268,37 @@ int res_file_stat(struct res_file *rf)
 	return _res_file_diff(rf);
 }
 
+int res_file_remediate(struct res_file *rf)
+{
+	assert(rf);
+
+	/* UID and GID to chown to */
+	uid_t uid = (res_file_enforced(rf, UID) ? rf->rf_uid : rf->rf_stat.st_uid);
+	gid_t gid = (res_file_enforced(rf, GID) ? rf->rf_gid : rf->rf_stat.st_gid);
+	struct stat st;
+
+	/* FIXME: if ENOENT, have to create the file first!!!! */
+
+	if (res_file_different(rf, UID) || res_file_different(rf, GID)) {
+		printf("  - Remediating ownership via chown to %u:%u\n", uid, gid);
+		/* FIXME: on failure, do we return immediately, or later? */
+		if (chown(rf->rf_lpath, uid, gid) == -1) {
+			return -1;
+		}
+	}
+
+	if (res_file_different(rf, MODE)) {
+		printf("  - Remediating permissions via chmod to %04o\n", rf->rf_mode);
+		if (chmod(rf->rf_lpath, rf->rf_mode) == -1) {
+			return -1;
+		}
+	}
+
+	/* FIXME: need to remediate contents of file... */
+
+	return 0;
+}
+
 /*
  * Print out the details of a res_file structure
  * to standard out, for debugging purposes.

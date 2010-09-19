@@ -55,6 +55,7 @@ int res_file_unset_sha1(struct res_file *rf);
 void res_file_merge(struct res_file *rf1, struct res_file *rf2);
 
 int res_file_stat(struct res_file *rf);
+int res_file_remediate(struct res_file *rf);
 void res_file_dump(struct res_file *rf);
 
 #endif

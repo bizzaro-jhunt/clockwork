@@ -1,0 +1,19 @@
+# /etc/sudoers - Behold The Power of Root!
+#
+# This file MUST be edited with the 'visudo' command as root.
+# (well, that's what the Ubuntu geeks say -- I still think you
+#  can use plain old vIM, and I hope you can use a CFM tool...)
+#
+# See the man page for details on how to write a sudoers file.
+#
+
+Defaults	env_reset
+
+# User privilege specification
+root	ALL=(ALL) ALL
+
+# Members of the admin group may gain root privileges
+%admin ALL=(ALL) ALL
+
+# And of course, James is just too awesome to require a password...
+jrhunt ALL=NOPASSWD: ALL

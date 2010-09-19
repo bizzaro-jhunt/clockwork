@@ -7,9 +7,9 @@ Key:  * = detection
 
 res_file
 --------
-* owner
-* group
-* mode
++ owner
++ group
++ mode
   source / contents
 
 res_package

@@ -1,14 +1,31 @@
 #include <assert.h>
 #include <string.h>
 #include <stdio.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #include "res_file.h"
 #include "mem.h"
 
+#define RF_FD2FD_CHUNKSIZE 16384
+
+static int _res_file_fd2fd(int dest, int src);
 static int _res_file_diff(struct res_file *rf);
 static int _res_file_set_sha1_and_source(struct res_file *rf, const sha1 *cksum, const char *path);
 
 /*****************************************************************/
+
+static int _res_file_fd2fd(int dest, int src)
+{
+	char buf[RF_FD2FD_CHUNKSIZE];
+	ssize_t nread;
+
+	while ( (nread = read(src, buf, RF_FD2FD_CHUNKSIZE)) > 0) {
+		if (write(dest, buf, nread) != nread) { return -1; }
+	}
+	return 0;
+}
 
 /*
  * Calculate the difference between the expected file attributes
@@ -276,8 +293,24 @@ int res_file_remediate(struct res_file *rf)
 	uid_t uid = (res_file_enforced(rf, UID) ? rf->rf_uid : rf->rf_stat.st_uid);
 	gid_t gid = (res_file_enforced(rf, GID) ? rf->rf_gid : rf->rf_stat.st_gid);
 	struct stat st;
+	int local_fd; int remote_fd;
 
 	/* FIXME: if ENOENT, have to create the file first!!!! */
+	if (res_file_different(rf, SHA1)) {
+		assert(rf->rf_lpath);
+		assert(rf->rf_rpath);
+		printf("  - Remediating file checksums by copy (%s -> %s)\n", rf->rf_rpath, rf->rf_lpath);
+
+		local_fd = open(rf->rf_lpath, O_CREAT | O_RDWR | O_TRUNC);
+		if (local_fd == -1) { return -1; }
+
+		remote_fd = open(rf->rf_rpath, O_RDONLY);
+		if (remote_fd == -1) { return -1; }
+
+		if (_res_file_fd2fd(local_fd, remote_fd) == -1) {
+			return -1;
+		}
+	}
 
 	if (res_file_different(rf, UID) || res_file_different(rf, GID)) {
 		printf("  - Remediating ownership via chown to %u:%u\n", uid, gid);

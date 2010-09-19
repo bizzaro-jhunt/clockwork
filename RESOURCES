@@ -5,12 +5,12 @@ Key:  * = detection
 
 
 
-res_file
+res_file (done)
 --------
 + owner
 + group
 + mode
-  source / contents
++ source / contents
 
 res_package
 -----------

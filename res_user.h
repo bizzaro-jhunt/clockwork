@@ -33,6 +33,8 @@ struct res_user {
 
 	struct passwd  ru_pw;      /* cf. getpwnam(3) */
 
+	char          *ru_skel;    /* Path to skeleton dir (for ru_mkhome) */
+
 	unsigned int   ru_prio;
 	unsigned int   ru_enf;     /* enforce-compliance flags */
 	unsigned int   ru_diff;    /* out-of-compliance flags */
@@ -62,7 +64,7 @@ int res_user_unset_dir(struct res_user *ru);
 int res_user_set_shell(struct res_user *ru, const char *shell);
 int res_user_unset_shell(struct res_user *ru);
 
-int res_user_set_makehome(struct res_user *ru, unsigned char mkhome);
+int res_user_set_makehome(struct res_user *ru, unsigned char mkhome, const char *skel);
 int res_user_unset_makehome(struct res_user *ru);
 
 void res_user_merge(struct res_user *ru1, struct res_user *ru2);

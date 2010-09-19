@@ -87,6 +87,8 @@ void res_user_init(struct res_user *ru)
 	ru->ru_gecos = NULL;
 	ru->ru_dir = NULL;
 	ru->ru_shell = NULL;
+	ru->ru_mkhome = 1;
+	ru->ru_skel = strdup("/etc/skel");
 
 	memset(&ru->ru_pw, 0, sizeof(struct passwd));
 
@@ -103,6 +105,8 @@ void res_user_free(struct res_user *ru)
 	xfree(ru->ru_gecos);
 	xfree(ru->ru_dir);
 	xfree(ru->ru_shell);
+
+	xfree(ru->ru_skel);
 }
 
 int res_user_set_name(struct res_user *ru, const char *name)
@@ -241,11 +245,15 @@ int res_user_unset_shell(struct res_user *ru)
 	return 0;
 }
 
-int res_user_set_makehome(struct res_user *ru, unsigned char mkhome)
+int res_user_set_makehome(struct res_user *ru, unsigned char mkhome, const char *skel)
 {
 	assert(ru);
 
 	ru->ru_mkhome = mkhome;
+	xfree(ru->ru_skel); /* nullifies ru_skel */
+	if (skel) {
+		ru->ru_skel = strdup(skel);
+	}
 
 	ru->ru_enf |= RES_USER_MKHOME;
 	return 0;
@@ -319,7 +327,7 @@ void res_user_merge(struct res_user *ru1, struct res_user *ru2)
 	if ( res_user_enforced(ru2, MKHOME) &&
 	    !res_user_enforced(ru1, MKHOME)) {
 		printf("Overriding MKHOME of ru1 with value from ru2\n");
-		res_user_set_makehome(ru1, ru2->ru_mkhome);
+		res_user_set_makehome(ru1, ru2->ru_mkhome, ru2->ru_skel);
 	}
 }
 
@@ -380,6 +388,7 @@ void res_user_dump(struct res_user *ru)
 	printf("                pw_shell: \"%s\"\n", ru->ru_pw.pw_shell);
 	printf("             }\n");
 
+	printf("    ru_skel: \"%s\"\n", ru->ru_skel);
 	printf("     ru_enf: %o\n", ru->ru_enf);
 	printf("    ru_diff: %o\n", ru->ru_diff);
 	printf("}\n");

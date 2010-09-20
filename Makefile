@@ -12,6 +12,8 @@ CC := gcc $(CC_FLAGS)
 
 VG := valgrind --leak-check=full --show-reachable=yes
 
+LCOV := lcov --directory . --base-directory .
+
 ############################################################
 # Object Group Variables
 
@@ -58,7 +60,9 @@ test/%.o: test/%.c test/test.h
 
 lcov.info: tests
 	test/run
-	lcov --directory . --base-directory . -c -o lcov.info
+	$(LCOV) --capture -o $@.tmp
+	$(LCOV) --remove $@.tmp test/* > $@
+	rm -f $@.tmp
 
 ############################################################
 # Maintenance

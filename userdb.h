@@ -15,7 +15,7 @@ struct pwdb {
 
 struct spdb {
 	struct spdb *next;
-	struct spwd  spwd;
+	struct spwd *spwd;
 };
 
 struct pwdb* pwdb_init(const char *path);

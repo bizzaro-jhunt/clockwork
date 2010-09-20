@@ -19,3 +19,4 @@ will have to warn callers that the second parameter passed to the pwdb_rm()
 function will be freed, so that future usage results in undefined behavior.
 
 SOLVED: The passwd member of struct pwdb is now a pointer
+        The spwd member of struct spdb is now also a pointer

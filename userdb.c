@@ -16,6 +16,7 @@ static void _pwdb_entry_free(struct pwdb *entry);
 
 static struct spdb* _spdb_entry(struct spwd *spwd);
 static struct spdb* _spdb_fgetpwent(FILE *input);
+static void _shadow_free(struct spwd *spwd);
 static void _spdb_entry_free(struct spdb *entry);
 
 /**********************************************************/
@@ -80,17 +81,23 @@ static struct spdb* _spdb_entry(struct spwd *spwd)
 	struct spdb *ent = malloc(sizeof(struct spdb));
 	if (!ent) { return NULL; }
 
+	ent->spwd = malloc(sizeof(struct spwd));
+	if (!ent->spwd) {
+		free(ent);
+		return NULL;
+	}
+
 	ent->next = NULL;
 
-	ent->spwd.sp_namp   = strdup(spwd->sp_namp);
-	ent->spwd.sp_pwdp   = strdup(spwd->sp_pwdp);
-	ent->spwd.sp_lstchg = spwd->sp_lstchg;
-	ent->spwd.sp_min    = spwd->sp_min;
-	ent->spwd.sp_max    = spwd->sp_max;
-	ent->spwd.sp_warn   = spwd->sp_warn;
-	ent->spwd.sp_inact  = spwd->sp_inact;
-	ent->spwd.sp_expire = spwd->sp_expire;
-	ent->spwd.sp_flag   = spwd->sp_flag;
+	ent->spwd->sp_namp   = strdup(spwd->sp_namp);
+	ent->spwd->sp_pwdp   = strdup(spwd->sp_pwdp);
+	ent->spwd->sp_lstchg = spwd->sp_lstchg;
+	ent->spwd->sp_min    = spwd->sp_min;
+	ent->spwd->sp_max    = spwd->sp_max;
+	ent->spwd->sp_warn   = spwd->sp_warn;
+	ent->spwd->sp_inact  = spwd->sp_inact;
+	ent->spwd->sp_expire = spwd->sp_expire;
+	ent->spwd->sp_flag   = spwd->sp_flag;
 
 	return ent;
 }
@@ -104,9 +111,17 @@ static struct spdb* _spdb_fgetspent(FILE *input)
 	return _spdb_entry(spwd);
 }
 
+static void _shadow_free(struct spwd *spwd)
+{
+	if (!spwd) { return; }
+	xfree(spwd->sp_namp);
+	xfree(spwd->sp_pwdp);
+	xfree(spwd);
+}
+
 static void _spdb_entry_free(struct spdb *entry) {
-	free(entry->spwd.sp_namp);
-	free(entry->spwd.sp_pwdp);
+	if (!entry) { return; }
+	_shadow_free(entry->spwd);
 	free(entry);
 }
 
@@ -269,8 +284,8 @@ struct spwd* spdb_get_by_name(struct spdb *db, const char *name)
 
 	struct spdb *ent;
 	for (ent = db; ent; ent = ent->next) {
-		if (strcmp(ent->spwd.sp_namp, name) == 0) {
-			return &(ent->spwd);
+		if (ent->spwd && strcmp(ent->spwd->sp_namp, name) == 0) {
+			return ent->spwd;
 		}
 	}
 
@@ -284,7 +299,7 @@ int spdb_add(struct spdb *db, struct spwd *sp)
 	if (!db || !sp) { return -1; }
 
 	for (; db; ent = db, db = db->next) {
-		if (strcmp(db->spwd.sp_namp, sp->sp_namp) == 0) {
+		if (db->spwd && strcmp(db->spwd->sp_namp, sp->sp_namp) == 0) {
 			/* how to signal 'already exists'? */
 			return -1;
 		}
@@ -296,15 +311,20 @@ int spdb_add(struct spdb *db, struct spwd *sp)
 
 int spdb_rm(struct spdb *db, struct spwd *sp)
 {
-	struct spdb *ent;
+	struct spdb *ent = NULL;
 
 	if (!db || !sp) { return -1; }
 
 	for (; db; ent = db, db = db->next) {
-		if (&(db->spwd) == sp) {
-			if (ent) { /* FIXME: handle removal of list head */
+		if (db->spwd == sp) {
+			if (ent) {
 				ent->next = db->next;
 				_spdb_entry_free(db);
+				return 0;
+			} else {
+				/* special case for list head removal */
+				_shadow_free(db->spwd);
+				db->spwd = NULL;
 				return 0;
 			}
 		}
@@ -321,11 +341,7 @@ void spdb_free(struct spdb *db)
 
 	while (entry) {
 		cur = entry->next;
-
-		free(entry->spwd.sp_namp);
-		free(entry->spwd.sp_pwdp);
-		free(entry);
-
+		_spdb_entry_free(entry);
 		entry = cur;
 	}
 }
@@ -338,7 +354,7 @@ int spdb_write(struct spdb *db, const char *file)
 	if (!output) { return -1; }
 
 	for (; db; db = db->next) {
-		if (putspent(&(db->spwd), output) == -1) {
+		if (db->spwd && putspent(db->spwd, output) == -1) {
 			fclose(output);
 			return -1;
 		}

@@ -52,7 +52,10 @@ coverage: lcov.info tests
 
 tests: test/run
 
-test/run: test/run.o test/test.o test/userdb.o userdb.o
+test/run: test/run.o test/test.o \
+          test/userdb.o userdb.o \
+          test/sha1.o sha1.o
+
 	$(CC) -o $@ $+
 
 test/%.o: test/%.c test/test.h

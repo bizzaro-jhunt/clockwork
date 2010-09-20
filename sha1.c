@@ -1,19 +1,7 @@
-/*
-Test Vectors (from FIPS PUB 180-1)
-"abc"
-  A9993E36 4706816A BA3E2571 7850C26C 9CD0D89D
-"abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"
-  84983E44 1C3BD26E BAAE4AA1 F95129E5 E54670F1
-A million repetitions of "a"
-  34AA973C D4C4DAA4 F61EEB2B DBAD2731 6534016F
-*/
-
 #include <stdio.h>
 #include <string.h>
-/* for sha1_file */
 #include <sys/stat.h>
 #include <fcntl.h>
-
 #include <errno.h>
 
 #include "sha1.h"
@@ -45,19 +33,6 @@ void sha1_hexdigest(sha1 *sha1);
 #define R3(v,w,x,y,z,i) z+=(((w|x)&y)|(w&x))+blk(i)+0x8F1BBCDC+rol(v,5);w=rol(w,30);
 #define R4(v,w,x,y,z,i) z+=(w^x^y)+blk(i)+0xCA62C1D6+rol(v,5);w=rol(w,30);
 
-
-#ifdef VERBOSE  /* SAK */
-void sha1_print_context(sha1_ctx *context, char *msg){
-  printf("%s (%d,%d) %x %x %x %x %x\n",
-	 msg,
-	 context->count[0], context->count[1],
-	 context->state[0],
-	 context->state[1],
-	 context->state[2],
-	 context->state[3],
-	 context->state[4]);
-}
-#endif /* VERBOSE */
 
 /* Hash a single 512-bit block. This is the core of the algorithm. */
 void sha1_transform(uint32_t state[5], const uint8_t buffer[64])
@@ -130,10 +105,6 @@ void sha1_ctx_update(sha1_ctx* context, const uint8_t* data, const size_t len)
 {
     size_t i, j;
 
-#ifdef VERBOSE
-    sha1_print_context(context, "before");
-#endif
-
     j = (context->count[0] >> 3) & 63;
     if ((context->count[0] += len << 3) < (len << 3)) context->count[1]++;
     context->count[1] += (len >> 29);
@@ -147,10 +118,6 @@ void sha1_ctx_update(sha1_ctx* context, const uint8_t* data, const size_t len)
     }
     else i = 0;
     memcpy(&context->buffer[j], &data[i], len - i);
-
-#ifdef VERBOSE
-    sha1_print_context(context, "after ");
-#endif
 }
 
 
@@ -249,78 +216,3 @@ int sha1_data(const void *data, size_t len, sha1 *cksum)
 	return 0;
 }
 
-
-/*************************************************************/
-
-/* self test */
-
-#ifdef TEST
-
-static char *test_data[] = {
-    "abc",
-    "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq",
-    "A million repetitions of 'a'"};
-static char *test_results[] = {
-    "A9993E36 4706816A BA3E2571 7850C26C 9CD0D89D",
-    "84983E44 1C3BD26E BAAE4AA1 F95129E5 E54670F1",
-    "34AA973C D4C4DAA4 F61EEB2B DBAD2731 6534016F"};
-
-
-void digest_to_hex(const uint8_t digest[SHA1_DIGEST_SIZE], char *output)
-{
-    int i,j;
-    char *c = output;
-
-    for (i = 0; i < SHA1_DIGEST_SIZE/4; i++) {
-        for (j = 0; j < 4; j++) {
-            sprintf(c,"%02X", digest[i*4+j]);
-            c += 2;
-        }
-        sprintf(c, " ");
-        c += 1;
-    }
-    *(c - 1) = '\0';
-}
-
-int main(int argc, char** argv)
-{
-    int k;
-    sha1_ctx context;
-    uint8_t digest[20];
-    char output[80];
-
-    fprintf(stdout, "verifying SHA-1 implementation... ");
-
-    for (k = 0; k < 2; k++){
-        sha1_ctx_init(&context);
-        sha1_ctx_update(&context, (uint8_t*)test_data[k], strlen(test_data[k]));
-        sha1_ctx_final(&context, digest);
-	digest_to_hex(digest, output);
-
-        if (strcmp(output, test_results[k])) {
-            fprintf(stdout, "FAIL\n");
-            fprintf(stderr,"* hash of \"%s\" incorrect:\n", test_data[k]);
-            fprintf(stderr,"\t%s returned\n", output);
-            fprintf(stderr,"\t%s is correct\n", test_results[k]);
-            return (1);
-        }
-    }
-    /* million 'a' vector we feed separately */
-    sha1_ctx_init(&context);
-    for (k = 0; k < 1000000; k++)
-        sha1_ctx_update(&context, (uint8_t*)"a", 1);
-    sha1_ctx_final(&context, digest);
-    digest_to_hex(digest, output);
-    if (strcmp(output, test_results[2])) {
-        fprintf(stdout, "FAIL\n");
-        fprintf(stderr,"* hash of \"%s\" incorrect:\n", test_data[2]);
-        fprintf(stderr,"\t%s returned\n", output);
-        fprintf(stderr,"\t%s is correct\n", test_results[2]);
-        return (1);
-    }
-
-    /* success */
-    fprintf(stdout, "ok\n");
-    return(0);
-}
-#endif /* TEST */

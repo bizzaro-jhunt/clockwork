@@ -1,6 +1,8 @@
+*.o
+*.gc??
+lcov.info
 d
 sha1sum
 upstream
 sizes
-*.o
 test/run

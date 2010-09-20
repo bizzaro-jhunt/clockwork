@@ -3,7 +3,10 @@
 ############################################################
 # Global Variables
 
-CC_FLAGS := -g
+
+CC_FLAGS := -g #                       Debug syms for gdb
+CC_FLAGS += -fprofile-arcs #           gcov / lcov coverage
+CC_FLAGS += -ftest-coverage #          gcov / lcov coverage
 
 CC := gcc $(CC_FLAGS)
 
@@ -40,6 +43,11 @@ test: tests
 memtest: tests
 	$(VG) test/run
 
+coverage: lcov.info tests
+	rm -rf doc/coverage
+	mkdir -p doc/coverage
+	genhtml -o doc/coverage lcov.info
+
 tests: test/run
 
 test/run: test/run.o test/test.o test/userdb.o userdb.o
@@ -48,12 +56,20 @@ test/run: test/run.o test/test.o test/userdb.o userdb.o
 test/%.o: test/%.c test/test.h
 	$(CC) -c -o $@ $<
 
+lcov.info: tests
+	test/run
+	lcov --directory . --base-directory . -c -o lcov.info
+
 ############################################################
 # Maintenance
 
 clean:
 	find . -name '*.o' -o -name '*.gc??' | xargs rm -f
+	rm -f lcov.info
 	rm -f $(UTILS) test/userdb
+
+dist: clean
+	rm -rf doc/coverage
 
 ############################################################
 # "Extra" Dependencies

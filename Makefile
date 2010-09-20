@@ -68,6 +68,7 @@ test/%.o: test/%.c test/test.h
 	$(CC) -c -o $@ $<
 
 lcov.info: tests
+	find . -name '*.gcda' | xargs rm -f
 	test/run
 	$(LCOV) --capture -o $@.tmp
 	$(LCOV) --remove $@.tmp test/* > $@

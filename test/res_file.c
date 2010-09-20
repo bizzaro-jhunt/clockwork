@@ -113,6 +113,9 @@ void test_res_file_merge()
 	assert_int_equals("MODE set properly after merge", rf1.rf_mode, 0700);
 	assert_str_equals("LPATH set properly after merge", rf1.rf_rpath, "test/data/sha1/file1");
 	assert_str_equals("LSHA1 set properly after merge", rf1.rf_rsha1.hex, TESTFILE_SHA1_file1);
+
+	res_file_free(&rf1);
+	res_file_free(&rf2);
 }
 
 void test_suite_res_file()

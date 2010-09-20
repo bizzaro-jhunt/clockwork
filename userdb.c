@@ -12,6 +12,10 @@ static struct pwdb* _pwdb_entry(struct passwd *passwd);
 static struct pwdb* _pwdb_fgetpwent(FILE *input);
 static void _pwdb_entry_free(struct pwdb *entry);
 
+static struct spdb* _spdb_entry(struct spwd *spwd);
+static struct spdb* _spdb_fgetpwent(FILE *input);
+static void _spdb_entry_free(struct spdb *entry);
+
 /**********************************************************/
 
 static struct pwdb* _pwdb_entry(struct passwd *passwd)

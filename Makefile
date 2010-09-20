@@ -35,7 +35,7 @@ d: main.o sha1.o res_file.o mem.o res_user.o res_group.o
 sha1sum: sha1.o sha1sum.o
 	$(CC) -o $@ $+
 
-sizes: sizes.c res_user.h res_file.h res_group.h
+sizes: sizes.c res_user.h res_file.h res_group.h userdb.h
 	$(CC) -o $@ $<
 
 ############################################################

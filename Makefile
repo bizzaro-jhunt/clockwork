@@ -14,6 +14,8 @@ VG := valgrind --leak-check=full --show-reachable=yes
 
 LCOV := lcov --directory . --base-directory .
 
+MOG := ./mog
+
 ############################################################
 # Object Group Variables
 
@@ -53,7 +55,11 @@ coverage: lcov.info tests
 tests: test/run
 
 test/run: test/run.o test/test.o \
+          mem.o \
           test/userdb.o userdb.o \
+          test/res_file.o res_file.o \
+          test/res_group.o res_group.o \
+          test/res_user.o res_user.o \
           test/sha1.o sha1.o
 
 	$(CC) -o $@ $+
@@ -66,6 +72,12 @@ lcov.info: tests
 	$(LCOV) --capture -o $@.tmp
 	$(LCOV) --remove $@.tmp test/* > $@
 	rm -f $@.tmp
+
+test/res_file.o: test/res_file.c res_file.h test/sha1_files.h
+	$(CC) -c -o $@ $<
+
+test/sha1_files.h:
+	$(MOG) sha1_tests
 
 ############################################################
 # Maintenance

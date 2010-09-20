@@ -1,0 +1,21 @@
+#!/bin/bash
+
+case $1 in
+sha1_tests)
+	sha1sum test/data/sha1/file* | \
+		awk '{ print "#define", $2, "\"" $1 "\"" }' | \
+		sed -e 's: .*/: TESTFILE_SHA1_:g' > test/sha1_files.h
+	;;
+
+*)
+	echo "USAGE: $0 <op>"
+	echo
+	echo "Where <op> is one of"
+	echo
+	echo "  sha1_tests   - Generate test/sha1_files.h preprocessor directives"
+	echo
+
+	exit 2
+	;;
+
+esac

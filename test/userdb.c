@@ -203,6 +203,31 @@ void test_pwdb_rm()
 	pwdb_free(db);
 }
 
+void test_pwdb_rm_head()
+{
+	struct pwdb *db;
+	struct passwd *pw;
+	const char *name;
+
+	db = open_passwd(PWFILE);
+
+	test("PWDB: Removal of list head (first entry)");
+
+	pw = &(db->passwd);
+	name = strdup(pw->pw_name);
+
+	assert_true("removal of first account in list", pwdb_rm(db, pw));
+	assert_null("removed entry does not exist in memory", pwdb_get_by_name(db, name));
+	assert_true("save passwd database to " PWFILE_NEW, pwdb_write(db, PWFILE_NEW) == 0);
+
+	pwdb_free(db);
+	db = open_passwd(PWFILE_NEW);
+
+	assert_null("removed entry does not exist in " PWFILE_NEW, pwdb_get_by_name(db, name));
+
+	pwdb_free(db);
+}
+
 void test_spdb_init()
 {
 	struct spdb *db;
@@ -307,6 +332,7 @@ void test_suite_userdb() {
 	test_pwdb_get();
 	test_pwdb_add();
 	test_pwdb_rm();
+	test_pwdb_rm_head();
 
 	/* shadow db tests */
 	test_spdb_init();

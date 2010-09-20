@@ -5,3 +5,15 @@ command by placing an exclamation point (!, 0x21) immediately before the
 encrypted password in the /etc/shadow file.  Unlocking is done by removing
 this exclamation point.  This method seems to be preferred because it
 allows sysads to lock an account without losing the original password.
+
+PWDB / SPDB - Remove List Head
+------------------------------
+Removing the list head (first entry in the database) currently presents a
+few problems.  The caller has a pointer to the entry structure, so
+stitching it out of the picture does not work.
+
+Perhaps the best bet is to go back to pointers for payload (either struct
+passwd * or struct spwd *) and set the pointer to NULL for all deleted
+payloads (and free()ing memory accordingly).  Of course, the documentation
+will have to warn callers that the second parameter passed to the pwdb_rm()
+function will be freed, so that future usage results in undefined behavior.

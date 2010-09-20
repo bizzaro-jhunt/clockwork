@@ -165,7 +165,7 @@ int pwdb_add(struct pwdb *db, struct passwd *pw)
 
 int pwdb_rm(struct pwdb *db, struct passwd *pw)
 {
-	struct pwdb *ent;
+	struct pwdb *ent = NULL;
 
 	if (!db || !pw) { return -1; }
 

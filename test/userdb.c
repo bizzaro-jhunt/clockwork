@@ -86,6 +86,8 @@ static void assert_pwdb_get(struct pwdb *db, const char *name, uid_t uid, gid_t 
 	assert_not_null(buf, pw);
 	assert_passwd(pw, name, uid, gid);
 
+	pw = pwdb_get_by_uid(db, uid);
+
 	snprintf(buf, 256, "Look up %s user by UID (%u)", name, uid);
 	assert_not_null(buf, pw);
 	assert_passwd(pw, name, uid, gid);

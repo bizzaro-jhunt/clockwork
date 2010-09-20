@@ -1,3 +1,16 @@
+/**
+
+  SHA-1 in C
+  Adapted from the public domain;
+
+  Originally implemented by:
+    Steven Reid     <sreid@sea-to-sky.net>
+    James H. Brown  <jbrown@burgoyne.com>
+    Saul Kravitz    <saul.kravitz@celera.com>
+    Ralph Giles     <giles@ghostscript.com>
+
+ **/
+
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -6,8 +19,7 @@
 
 #include "sha1.h"
 
-void sha1_transform(uint32_t state[5], const uint8_t buffer[64]);
-void sha1_hexdigest(sha1 *sha1);
+static void sha1_transform(uint32_t state[5], const uint8_t buffer[64]);
 
 /* for sha1_fd */
 #define SHA1_FD_BUFSIZE 8192
@@ -35,7 +47,7 @@ void sha1_hexdigest(sha1 *sha1);
 
 
 /* Hash a single 512-bit block. This is the core of the algorithm. */
-void sha1_transform(uint32_t state[5], const uint8_t buffer[64])
+static void sha1_transform(uint32_t state[5], const uint8_t buffer[64])
 {
     uint32_t a, b, c, d, e;
     typedef union {
@@ -146,7 +158,7 @@ void sha1_ctx_final(sha1_ctx* context, uint8_t digest[SHA1_DIGEST_SIZE])
     memset(context->buffer, 0, 64);
     memset(context->state, 0, 20);
     memset(context->count, 0, 8);
-    memset(finalcount, 0, 8);	/* SWR */
+    memset(finalcount, 0, 8);
 }
 
 void sha1_hexdigest(sha1 *sha1)

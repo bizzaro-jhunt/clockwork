@@ -22,6 +22,8 @@ void sha1_ctx_init(sha1_ctx* context);
 void sha1_ctx_update(sha1_ctx* context, const uint8_t* data, const size_t len);
 void sha1_ctx_final(sha1_ctx* context, uint8_t digest[SHA1_DIGEST_SIZE]);
 
+void sha1_hexdigest(sha1 *sha1);
+
 void sha1_init(sha1* checksum);
 int sha1_fd(int fd, sha1* checksum);
 int sha1_file(const char *path, sha1* checksum);

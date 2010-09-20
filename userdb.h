@@ -10,7 +10,7 @@ struct spdb;
 
 struct pwdb {
 	struct pwdb   *next;
-	struct passwd  passwd;
+	struct passwd *passwd;
 };
 
 struct spdb {

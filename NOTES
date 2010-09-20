@@ -17,3 +17,5 @@ passwd * or struct spwd *) and set the pointer to NULL for all deleted
 payloads (and free()ing memory accordingly).  Of course, the documentation
 will have to warn callers that the second parameter passed to the pwdb_rm()
 function will be freed, so that future usage results in undefined behavior.
+
+SOLVED: The passwd member of struct pwdb is now a pointer

@@ -213,10 +213,10 @@ void test_pwdb_rm_head()
 
 	test("PWDB: Removal of list head (first entry)");
 
-	pw = &(db->passwd);
+	pw = db->passwd;
 	name = strdup(pw->pw_name);
 
-	assert_true("removal of first account in list", pwdb_rm(db, pw));
+	assert_true("removal of first account in list", pwdb_rm(db, pw) == 0);
 	assert_null("removed entry does not exist in memory", pwdb_get_by_name(db, name));
 	assert_true("save passwd database to " PWFILE_NEW, pwdb_write(db, PWFILE_NEW) == 0);
 
@@ -225,6 +225,7 @@ void test_pwdb_rm_head()
 
 	assert_null("removed entry does not exist in " PWFILE_NEW, pwdb_get_by_name(db, name));
 
+	free(name);
 	pwdb_free(db);
 }
 

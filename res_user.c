@@ -338,7 +338,7 @@ int res_user_unset_makehome(struct res_user *ru)
 	return 0;
 }
 
-int res_user_set_inactivate(struct res_user *ru, long days)
+int res_user_set_inact(struct res_user *ru, long days)
 {
 	assert(ru);
 
@@ -348,7 +348,7 @@ int res_user_set_inactivate(struct res_user *ru, long days)
 	return 0;
 }
 
-int res_user_unset_inactivate(struct res_user *ru)
+int res_user_unset_inact(struct res_user *ru)
 {
 	assert(ru);
 
@@ -356,7 +356,7 @@ int res_user_unset_inactivate(struct res_user *ru)
 	return 0;
 }
 
-int res_user_set_expiration(struct res_user *ru, long days)
+int res_user_set_expire(struct res_user *ru, long days)
 {
 	assert(ru);
 
@@ -366,7 +366,7 @@ int res_user_set_expiration(struct res_user *ru, long days)
 	return 0;
 }
 
-int res_user_unset_expiration(struct res_user *ru)
+int res_user_unset_expire(struct res_user *ru)
 {
 	assert(ru);
 
@@ -458,13 +458,13 @@ void res_user_merge(struct res_user *ru1, struct res_user *ru2)
 	if ( res_user_enforced(ru2, INACT) &&
 	    !res_user_enforced(ru1, INACT)) {
 		printf("Overriding INACT of ru1 with value from ru2\n");
-		res_user_set_inactivate(ru1, ru2->ru_inact);
+		res_user_set_inact(ru1, ru2->ru_inact);
 	}
 
 	if ( res_user_enforced(ru2, EXPIRE) &&
 	    !res_user_enforced(ru1, EXPIRE)) {
 		printf("Overriding EXPIRE of ru1 with value from ru2\n");
-		res_user_set_expiration(ru1, ru2->ru_expire);
+		res_user_set_expire(ru1, ru2->ru_expire);
 	}
 
 	if ( res_user_enforced(ru2, LOCK) &&

@@ -85,11 +85,11 @@ int res_user_unset_shell(struct res_user *ru);
 int res_user_set_makehome(struct res_user *ru, unsigned char mkhome, const char *skel);
 int res_user_unset_makehome(struct res_user *ru);
 
-int res_user_set_inactivate(struct res_user *ru, long days);
-int res_user_unset_inactivate(struct res_user *ru);
+int res_user_set_inact(struct res_user *ru, long days);
+int res_user_unset_inact(struct res_user *ru);
 
-int res_user_set_expiration(struct res_user *ru, long days);
-int res_user_unset_expiration(struct res_user *ru);
+int res_user_set_expire(struct res_user *ru, long days);
+int res_user_unset_expire(struct res_user *ru);
 
 int res_user_set_lock(struct res_user *ru, unsigned char locked);
 int res_user_unset_lock(struct res_user *ru);

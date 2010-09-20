@@ -217,8 +217,8 @@ void setup_res_user2(struct res_user *ru2)
 {
 	res_user_init(ru2);
 
-	res_user_set_inactivate(ru2, 4);
-	res_user_set_expiration(ru2, 815162342);
+	res_user_set_inact(ru2, 4);
+	res_user_set_expire(ru2, 815162342);
 	res_user_set_lock(ru2, 0);
 }
 

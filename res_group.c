@@ -1,6 +1,5 @@
 #include <assert.h>
 #include <string.h>
-#include <stdio.h>
 #include <errno.h>
 
 #include "res_group.h"
@@ -122,19 +121,16 @@ void res_group_merge(struct res_group *rg1, struct res_group *rg2)
 
 	if ( res_group_enforced(rg2, NAME) &&
 	    !res_group_enforced(rg1, NAME)) {
-		printf("Overriding NAME of rg1 with value from rg2\n");
 		res_group_set_name(rg1, rg2->rg_name);
 	}
 
 	if ( res_group_enforced(rg2, PASSWD) &&
 	    !res_group_enforced(rg1, PASSWD)) {
-		printf("Overriding PASSWD of rg1 with value from rg2\n");
 		res_group_set_passwd(rg1, rg2->rg_passwd);
 	}
 
 	if ( res_group_enforced(rg2, GID) &&
 	    !res_group_enforced(rg1, GID)) {
-		printf("Overriding GID of rg1 with value from rg2\n");
 		res_group_set_gid(rg1, rg2->rg_gid);
 	}
 }
@@ -150,13 +146,11 @@ int res_group_stat(struct res_group *rg)
 	errno = 0;
 
 	if (res_group_enforced(rg, GID)) {
-		printf("Looking for group by GID (%u)\n", rg->rg_gid);
 		entry = getgrgid(rg->rg_gid);
 		if (!entry && errno) { return -1; }
 	}
 
 	if (!entry && res_group_enforced(rg, NAME)) {
-		printf("Looking for group by name (%s)\n", rg->rg_name);
 		entry = getgrnam(rg->rg_name);
 		if (!entry && errno) { return -1; }
 	}

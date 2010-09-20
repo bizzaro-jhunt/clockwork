@@ -1,6 +1,5 @@
 #include <assert.h>
 #include <string.h>
-#include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -241,25 +240,21 @@ void res_file_merge(struct res_file *rf1, struct res_file *rf2)
 
 	if ( res_file_enforced(rf2, UID) &&
 	    !res_file_enforced(rf1, UID)) {
-		printf("Overriding UID of rf1 with value from rf2\n");
 		res_file_set_uid(rf1, rf2->rf_uid);
 	}
 
 	if ( res_file_enforced(rf2, GID) &&
 	    !res_file_enforced(rf1, GID)) {
-		printf("Overriding GID of rf1 with value from rf2\n");
 		res_file_set_gid(rf1, rf2->rf_gid);
 	}
 
 	if ( res_file_enforced(rf2, MODE) &&
 	    !res_file_enforced(rf1, MODE)) {
-		printf("Overriding MODE of rf1 with value from rf2\n");
 		res_file_set_mode(rf1, rf2->rf_mode);
 	}
 
 	if ( res_file_enforced(rf2, SHA1) &&
 	    !res_file_enforced(rf1, SHA1)) {
-		printf("Overriding SHA1 of rf1 with value from rf2\n");
 		_res_file_set_sha1_and_source(rf1, &(rf2->rf_rsha1), rf2->rf_rpath);
 	}
 }
@@ -301,7 +296,7 @@ int res_file_remediate(struct res_file *rf)
 	if (res_file_different(rf, SHA1)) {
 		assert(rf->rf_lpath);
 		assert(rf->rf_rpath);
-		printf("  - Remediating file checksums by copy (%s -> %s)\n", rf->rf_rpath, rf->rf_lpath);
+		//printf("  - Remediating file checksums by copy (%s -> %s)\n", rf->rf_rpath, rf->rf_lpath);
 
 		local_fd = open(rf->rf_lpath, O_CREAT | O_RDWR | O_TRUNC);
 		if (local_fd == -1) { return -1; }
@@ -315,7 +310,7 @@ int res_file_remediate(struct res_file *rf)
 	}
 
 	if (res_file_different(rf, UID) || res_file_different(rf, GID)) {
-		printf("  - Remediating ownership via chown to %u:%u\n", uid, gid);
+		//printf("  - Remediating ownership via chown to %u:%u\n", uid, gid);
 		/* FIXME: on failure, do we return immediately, or later? */
 		if (chown(rf->rf_lpath, uid, gid) == -1) {
 			return -1;
@@ -323,7 +318,7 @@ int res_file_remediate(struct res_file *rf)
 	}
 
 	if (res_file_different(rf, MODE)) {
-		printf("  - Remediating permissions via chmod to %04o\n", rf->rf_mode);
+		//printf("  - Remediating permissions via chmod to %04o\n", rf->rf_mode);
 		if (chmod(rf->rf_lpath, rf->rf_mode) == -1) {
 			return -1;
 		}

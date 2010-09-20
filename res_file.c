@@ -329,7 +329,5 @@ int res_file_remediate(struct res_file *rf)
 		}
 	}
 
-	/* FIXME: need to remediate contents of file... */
-
 	return 0;
 }

@@ -2,44 +2,18 @@
 #include "sha1_files.h"
 #include "../res_file.h"
 
-static void assert_rf_uid_enforcement(struct res_file *rf)
-{
-	res_file_set_uid(rf, 23);
-	assert_true("UID enforced", res_file_enforced(rf, UID));
-	assert_int_equals("UID set properly", rf->rf_uid, 23);
-
-	res_file_unset_uid(rf);
-	assert_true("UID no longer enforced", !res_file_enforced(rf, UID));
-
-	res_file_set_uid(rf, 46);
-	assert_int_equals("UID re-set properly", rf->rf_uid, 46);
-}
-
-static void assert_rf_gid_enforcement(struct res_file *rf)
-{
-	res_file_set_gid(rf, 45);
-	assert_true("GID enforced", res_file_enforced(rf, GID));
-	assert_int_equals("GID set properly", rf->rf_gid, 45);
-
-	res_file_unset_gid(rf);
-	assert_true("GID no longer enforced", !res_file_enforced(rf, GID));
-
-	res_file_set_gid(rf, 11);
-	assert_int_equals("GID re-set properly", rf->rf_gid, 11);
-}
-
-static void assert_rf_mode_enforcement(struct res_file *rf)
-{
-	res_file_set_mode(rf, 0741);
-	assert_true("MODE enforced", res_file_enforced(rf, MODE));
-	assert_int_equals("MODE set properly", rf->rf_mode, 0741);
-
-	res_file_unset_mode(rf);
-	assert_true("MODE no longer enforced", !res_file_enforced(rf, MODE));
-
-	res_file_set_mode(rf, 0447);
-	assert_int_equals("MODE re-set properly", rf->rf_mode, 0447);
-}
+#define ASSERT_ENFORCEMENT(o,f,c,t,v1,v2) do {\
+	res_file_set_ ## f (o,v1); \
+	assert_true( #c " enforced", res_file_enforced(o,c)); \
+	assert_ ## t ## _equals( #c " set properly", (o)->rf_ ## f, v1); \
+	\
+	res_file_unset_ ## f (o); \
+	assert_true( #c " no longer enforced", !res_file_enforced(o,c)); \
+	\
+	res_file_set_ ## f (o,v2); \
+	assert_true( #c " re-enforced", res_file_enforced(o,c)); \
+	assert_ ## t ## _equals ( #c " re-set properly", (o)->rf_ ## f, v2); \
+} while(0)
 
 static void assert_rf_source_enforcement(struct res_file *rf)
 {
@@ -71,13 +45,13 @@ void test_res_file_enforcement()
 	assert_true("SHA1 not enforced", !res_file_enforced(&rf, SHA1));
 
 	test("RES_FILE: UID enforcement");
-	assert_rf_uid_enforcement(&rf);
+	ASSERT_ENFORCEMENT(&rf,uid,UID,int,23,46);
 
 	test("RES_FILE: GID enforcement");
-	assert_rf_gid_enforcement(&rf);
+	ASSERT_ENFORCEMENT(&rf,gid,GID,int,45,11);
 
 	test("RES_FILE: MODE enforcement");
-	assert_rf_mode_enforcement(&rf);
+	ASSERT_ENFORCEMENT(&rf,mode,MODE,int,0755,0447);
 
 	test("RES_FILE: SHA1 / rpath enforcement");
 	assert_rf_source_enforcement(&rf);

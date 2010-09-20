@@ -1,51 +1,18 @@
 #include "test.h"
 #include "../res_group.h"
 
-static void assert_rg_name_enforcement(struct res_group *rg)
-{
-	const char *name1 = "name1";
-	const char *name2 = "name2";
-
-	res_group_set_name(rg, name1);
-	assert_true("NAME enforced", res_group_enforced(rg, NAME));
-	assert_str_equals("NAME set properly", rg->rg_name, name1);
-
-	res_group_unset_name(rg);
-	assert_true("NAME no longer enforced", !res_group_enforced(rg, NAME));
-
-	res_group_set_name(rg, name2);
-	assert_str_equals("NAME re-set properly", rg->rg_name, name2);
-}
-
-static void assert_rg_passwd_enforcement(struct res_group *rg)
-{
-	const char *passwd1 = "password1";
-	const char *passwd2 = "password2";
-
-	res_group_set_passwd(rg, passwd1);
-	assert_true("PASSWD enforced", res_group_enforced(rg, PASSWD));
-	assert_str_equals("PASSWD set properly", rg->rg_passwd, passwd1);
-
-	res_group_unset_passwd(rg);
-	assert_true("PASSWD no longer enforced", !res_group_enforced(rg, PASSWD));
-
-	res_group_set_passwd(rg, passwd2);
-	assert_str_equals("PASSWD re-set properly", rg->rg_passwd, passwd2);
-}
-
-
-static void assert_rg_gid_enforcement(struct res_group *rg)
-{
-	res_group_set_gid(rg, 22);
-	assert_true("GID enforced", res_group_enforced(rg, GID));
-	assert_int_equals("GID set properly", rg->rg_gid, 22);
-
-	res_group_unset_gid(rg);
-	assert_true("GID no longer enforced", !res_group_enforced(rg, GID));
-
-	res_group_set_gid(rg, 46);
-	assert_int_equals("GID re-set roperly", rg->rg_gid, 46);
-}
+#define ASSERT_ENFORCEMENT(o,f,c,t,v1,v2) do {\
+	res_group_set_ ## f (o,v1); \
+	assert_true( #c " enforced", res_group_enforced(o,c)); \
+	assert_ ## t ## _equals( #c " set properly", (o)->rg_ ## f, v1); \
+	\
+	res_group_unset_ ## f (o); \
+	assert_true( #c " no longer enforced", !res_group_enforced(o,c)); \
+	\
+	res_group_set_ ## f (o,v2); \
+	assert_true( #c " re-enforced", res_group_enforced(o,c)); \
+	assert_ ## t ## _equals ( #c " re-set properly", (o)->rg_ ## f, v2); \
+} while(0)
 
 void test_res_group_enforcement()
 {
@@ -54,16 +21,17 @@ void test_res_group_enforcement()
 
 	test("RES_GROUP: Default Enforcements");
 	assert_true("NAME not enforced", !res_group_enforced(&rg, NAME));
+	assert_true("PASSWD not enforced", !res_group_enforced(&rg, PASSWD));
 	assert_true("GID not enforced", !res_group_enforced(&rg, GID));
 
 	test("RES_GROUP: NAME enforcement");
-	assert_rg_name_enforcement(&rg);
+	ASSERT_ENFORCEMENT(&rg,name,NAME,str,"name1","name2");
 
 	test("RES_GROUP: PASSWD enforcement");
-	assert_rg_passwd_enforcement(&rg);
+	ASSERT_ENFORCEMENT(&rg,passwd,PASSWD,str,"password1","password2");
 
 	test("RES_GROUP: GID enforcement");
-	assert_rg_gid_enforcement(&rg);
+	ASSERT_ENFORCEMENT(&rg,gid,GID,int,15,16);
 
 	res_group_free(&rg);
 }

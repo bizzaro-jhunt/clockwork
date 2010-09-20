@@ -3,4 +3,4 @@ sha1sum
 upstream
 sizes
 *.o
-test/userdb
+test/run

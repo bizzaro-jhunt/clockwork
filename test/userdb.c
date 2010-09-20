@@ -298,19 +298,17 @@ void test_spdb_rm()
 	spdb_free(db);
 }
 
-int main(int argc, char **argv)
-{
-	test_setup(argc, argv);
+void test_suite_userdb() {
 
+	/* passwd db tests */
 	test_pwdb_init();
 	test_pwdb_get();
 	test_pwdb_add();
 	test_pwdb_rm();
 
+	/* shadow db tests */
 	test_spdb_init();
 	test_spdb_get();
 	test_spdb_add();
 	test_spdb_rm();
-
-	return test_status();
 }

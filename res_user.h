@@ -97,6 +97,5 @@ int res_user_unset_lock(struct res_user *ru);
 void res_user_merge(struct res_user *ru1, struct res_user *ru2);
 
 int res_user_stat(struct res_user *ru);
-void res_user_dump(struct res_user *ru);
 
 #endif

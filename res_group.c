@@ -168,34 +168,3 @@ int res_group_stat(struct res_group *rg)
 
 	return _res_group_diff(rg);
 }
-
-void res_group_dump(struct res_group *rg)
-{
-	printf("\n\n");
-	printf("struct res_group (0x%0x) {\n", (unsigned int)rg);
-	printf("    rg_name: \"%s\"\n", rg->rg_name);
-	printf("  rg_passwd: \"%s\"\n", rg->rg_passwd);
-	printf("     rg_gid: %u\n", rg->rg_gid);
-	printf("--- (rg_grp omitted) ---\n");
-
-	printf("      rg_grp: struct passwd {\n");
-	printf("                 gr_name: \"%s\"\n", rg->rg_grp.gr_name);
-	printf("               gr_passwd: \"%s\"\n", rg->rg_grp.gr_passwd);
-	printf("                  gr_gid: %u\n", rg->rg_grp.gr_gid);
-	printf("             }\n");
-
-	printf("     rg_enf: %o\n", rg->rg_enf);
-	printf("    rg_diff: %o\n", rg->rg_diff);
-	printf("}\n");
-	printf("\n");
-
-	printf("NAME:   %s (%02o & %02o == %02o)\n",
-	       (res_group_enforced(rg, NAME) ? "enforced  " : "unenforced"),
-	       rg->rg_enf, RES_GROUP_NAME, rg->rg_enf & RES_GROUP_NAME);
-	printf("PASSWD: %s (%02o & %02o == %02o)\n",
-	       (res_group_enforced(rg, PASSWD) ? "enforced  " : "unenforced"),
-	       rg->rg_enf, RES_GROUP_PASSWD, rg->rg_enf & RES_GROUP_PASSWD);
-	printf("GID:    %s (%02o & %02o == %02o)\n",
-	       (res_group_enforced(rg, GID) ? "enforced  " : "unenforced"),
-	       rg->rg_enf, RES_GROUP_GID, rg->rg_enf & RES_GROUP_GID);
-}

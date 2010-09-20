@@ -6,6 +6,171 @@
 #include "res_group.h"
 #include "res_user.h"
 
+/*
+ * Print out the details of a res_file structure
+ * to standard out, for debugging purposes.
+ */
+void res_file_dump(struct res_file *rf)
+{
+	printf("\n\n");
+	printf("struct res_file (0x%0x) {\n", (unsigned int)rf);
+	printf("  rf_lpath: \"%s\"\n", rf->rf_lpath);
+	printf("  rf_rpath: \"%s\"\n", rf->rf_rpath);
+	printf("    rf_uid: %u\n", rf->rf_uid);
+	printf("    rf_gid: %u\n", rf->rf_gid);
+	printf("   rf_mode: %o\n", rf->rf_mode);
+	printf("  rf_lsha1: \"%s\"\n", rf->rf_lsha1.hex);
+	printf("  rf_rsha1: \"%s\"\n", rf->rf_rsha1.hex);
+	printf("-- (rf_stat omitted) --\n");
+	printf("    rf_enf: %o\n", rf->rf_enf);
+	printf("   rf_diff: %o\n", rf->rf_diff);
+	printf("}\n");
+	printf("\n");
+
+	printf("UID:  ");
+	if (res_file_enforced(rf, UID)) {
+		printf("enforced  ");
+	} else {
+		printf("unenforced");
+	}
+	printf(" (%02o & %02o == %02o)\n", rf->rf_enf, RES_FILE_UID, rf->rf_enf & RES_FILE_UID);
+
+	printf("GID:  ");
+	if (res_file_enforced(rf, GID)) {
+		printf("enforced  ");
+	} else {
+		printf("unenforced");
+	}
+	printf(" (%02o & %02o == %02o)\n", rf->rf_enf, RES_FILE_GID, rf->rf_enf & RES_FILE_GID);
+
+	printf("MODE: ");
+	if (res_file_enforced(rf, MODE)) {
+		printf("enforced  ");
+	} else {
+		printf("unenforced");
+	}
+	printf(" (%02o & %02o == %02o)\n", rf->rf_enf, RES_FILE_MODE, rf->rf_enf & RES_FILE_MODE);
+
+	printf("SHA1: ");
+	if (res_file_enforced(rf, SHA1)) {
+		printf("enforced  ");
+	} else {
+		printf("unenforced");
+	}
+	printf(" (%02o & %02o == %02o)\n", rf->rf_enf, RES_FILE_SHA1, rf->rf_enf & RES_FILE_SHA1);
+
+	printf("\n");
+}
+
+void res_group_dump(struct res_group *rg)
+{
+	printf("\n\n");
+	printf("struct res_group (0x%0x) {\n", (unsigned int)rg);
+	printf("    rg_name: \"%s\"\n", rg->rg_name);
+	printf("  rg_passwd: \"%s\"\n", rg->rg_passwd);
+	printf("     rg_gid: %u\n", rg->rg_gid);
+	printf("--- (rg_grp omitted) ---\n");
+
+	printf("      rg_grp: struct passwd {\n");
+	printf("                 gr_name: \"%s\"\n", rg->rg_grp.gr_name);
+	printf("               gr_passwd: \"%s\"\n", rg->rg_grp.gr_passwd);
+	printf("                  gr_gid: %u\n", rg->rg_grp.gr_gid);
+	printf("             }\n");
+
+	printf("     rg_enf: %o\n", rg->rg_enf);
+	printf("    rg_diff: %o\n", rg->rg_diff);
+	printf("}\n");
+	printf("\n");
+
+	printf("NAME:   %s (%02o & %02o == %02o)\n",
+	       (res_group_enforced(rg, NAME) ? "enforced  " : "unenforced"),
+	       rg->rg_enf, RES_GROUP_NAME, rg->rg_enf & RES_GROUP_NAME);
+	printf("PASSWD: %s (%02o & %02o == %02o)\n",
+	       (res_group_enforced(rg, PASSWD) ? "enforced  " : "unenforced"),
+	       rg->rg_enf, RES_GROUP_PASSWD, rg->rg_enf & RES_GROUP_PASSWD);
+	printf("GID:    %s (%02o & %02o == %02o)\n",
+	       (res_group_enforced(rg, GID) ? "enforced  " : "unenforced"),
+	       rg->rg_enf, RES_GROUP_GID, rg->rg_enf & RES_GROUP_GID);
+}
+
+void res_user_dump(struct res_user *ru)
+{
+	printf("\n\n");
+	printf("struct res_user (0x%0x) {\n", (unsigned int)ru);
+	printf("    ru_name: \"%s\"\n", ru->ru_name);
+	printf("  ru_passwd: \"%s\"\n", ru->ru_passwd);
+	printf("     ru_uid: %u\n", ru->ru_uid);
+	printf("     ru_gid: %u\n", ru->ru_gid);
+	printf("   ru_gecos: \"%s\"\n", ru->ru_gecos);
+	printf("     ru_dir: \"%s\"\n", ru->ru_dir);
+	printf("   ru_shell: \"%s\"\n", ru->ru_shell);
+	printf("  ru_mkhome: %u\n", ru->ru_mkhome);
+	printf("    ru_lock: %u\n", ru->ru_lock);
+	printf("   ru_inact: %li\n", ru->ru_inact);
+	printf("  ru_expire: %li\n", ru->ru_expire);
+
+	printf("      ru_pw: struct passwd {\n");
+	printf("                 pw_name: \"%s\"\n", ru->ru_pw.pw_name);
+	printf("               pw_passwd: \"%s\"\n", ru->ru_pw.pw_passwd);
+	printf("                  pw_uid: %u\n", ru->ru_pw.pw_uid);
+	printf("                  pw_gid: %u\n", ru->ru_pw.pw_gid);
+	printf("                pw_gecos: \"%s\"\n", ru->ru_pw.pw_gecos);
+	printf("                  pw_dir: \"%s\"\n", ru->ru_pw.pw_dir);
+	printf("                pw_shell: \"%s\"\n", ru->ru_pw.pw_shell);
+	printf("             }\n");
+
+	printf("      ru_sp: struct spwd {\n");
+	printf("                 sp_namp: \"%s\"\n", ru->ru_sp.sp_namp);
+	printf("                 sp_pwdp: \"%s\"\n", ru->ru_sp.sp_pwdp);
+	printf("               sp_lstchg: %li\n", ru->ru_sp.sp_lstchg);
+	printf("                  sp_min: %li\n", ru->ru_sp.sp_min);
+	printf("                  sp_max: %li\n", ru->ru_sp.sp_max);
+	printf("                 sp_warn: %li\n", ru->ru_sp.sp_warn);
+	printf("                sp_inact: %li\n", ru->ru_sp.sp_inact);
+	printf("               sp_expire: %li\n", ru->ru_sp.sp_expire);
+	printf("             }\n");
+
+	printf("    ru_skel: \"%s\"\n", ru->ru_skel);
+	printf("     ru_enf: %o\n", ru->ru_enf);
+	printf("    ru_diff: %o\n", ru->ru_diff);
+	printf("}\n");
+	printf("\n");
+
+	printf("NAME:   %s (%02o & %02o == %02o)\n",
+	       (res_user_enforced(ru, NAME) ? "enforced  " : "unenforced"),
+	       ru->ru_enf, RES_USER_NAME, ru->ru_enf & RES_USER_NAME);
+	printf("PASSWD: %s (%02o & %02o == %02o)\n",
+	       (res_user_enforced(ru, PASSWD) ? "enforced  " : "unenforced"),
+	       ru->ru_enf, RES_USER_PASSWD, ru->ru_enf & RES_USER_PASSWD);
+	printf("UID:    %s (%02o & %02o == %02o)\n",
+	       (res_user_enforced(ru, UID) ? "enforced  " : "unenforced"),
+	       ru->ru_enf, RES_USER_UID, ru->ru_enf & RES_USER_UID);
+	printf("GID:    %s (%02o & %02o == %02o)\n",
+	       (res_user_enforced(ru, GID) ? "enforced  " : "unenforced"),
+	       ru->ru_enf, RES_USER_GID, ru->ru_enf & RES_USER_GID);
+	printf("GECOS:  %s (%02o & %02o == %02o)\n",
+	       (res_user_enforced(ru, GECOS) ? "enforced  " : "unenforced"),
+	       ru->ru_enf, RES_USER_GECOS, ru->ru_enf & RES_USER_GECOS);
+	printf("DIR:    %s (%02o & %02o == %02o)\n",
+	       (res_user_enforced(ru, DIR) ? "enforced  " : "unenforced"),
+	       ru->ru_enf, RES_USER_DIR, ru->ru_enf & RES_USER_DIR);
+	printf("SHELL:  %s (%02o & %02o == %02o)\n",
+	       (res_user_enforced(ru, SHELL) ? "enforced  " : "unenforced"),
+	       ru->ru_enf, RES_USER_SHELL, ru->ru_enf & RES_USER_SHELL);
+	printf("MKHOME: %s (%02o & %02o == %02o)\n",
+	       (res_user_enforced(ru, MKHOME) ? "enforced  " : "unenforced"),
+	       ru->ru_enf, RES_USER_MKHOME, ru->ru_enf & RES_USER_MKHOME);
+	printf("INACT:  %s (%02o & %02o == %02o)\n",
+	       (res_user_enforced(ru, INACT) ? "enforced  " : "unenforced"),
+	       ru->ru_enf, RES_USER_INACT, ru->ru_enf & RES_USER_INACT);
+	printf("EXPIRE: %s (%02o & %02o == %02o)\n",
+	       (res_user_enforced(ru, EXPIRE) ? "enforced  " : "unenforced"),
+	       ru->ru_enf, RES_USER_EXPIRE, ru->ru_enf & RES_USER_EXPIRE);
+	printf("LOCK:   %s (%02o & %02o == %02o)\n",
+	       (res_user_enforced(ru, LOCK) ? "enforced  " : "unenforced"),
+	       ru->ru_enf, RES_USER_LOCK, ru->ru_enf & RES_USER_LOCK);
+}
+
 void setup_res_file1(struct res_file *rf1)
 {
 	res_file_init(rf1);

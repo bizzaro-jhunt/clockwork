@@ -188,6 +188,7 @@ int res_file_unset_source(struct res_file *rf)
 	return 0;
 }
 
+#if 0
 /*
  * Set an enforcing SHA1 checksum for a res_file
  */
@@ -212,6 +213,7 @@ int res_file_unset_sha1(struct res_file *rf)
 
 	return 0;
 }
+#endif
 
 /*
  * Merge two res_file structures, respecting priority.
@@ -330,60 +332,4 @@ int res_file_remediate(struct res_file *rf)
 	/* FIXME: need to remediate contents of file... */
 
 	return 0;
-}
-
-/*
- * Print out the details of a res_file structure
- * to standard out, for debugging purposes.
- */
-void res_file_dump(struct res_file *rf)
-{
-	printf("\n\n");
-	printf("struct res_file (0x%0x) {\n", (unsigned int)rf);
-	printf("  rf_lpath: \"%s\"\n", rf->rf_lpath);
-	printf("  rf_rpath: \"%s\"\n", rf->rf_rpath);
-	printf("    rf_uid: %u\n", rf->rf_uid);
-	printf("    rf_gid: %u\n", rf->rf_gid);
-	printf("   rf_mode: %o\n", rf->rf_mode);
-	printf("  rf_lsha1: \"%s\"\n", rf->rf_lsha1.hex);
-	printf("  rf_rsha1: \"%s\"\n", rf->rf_rsha1.hex);
-	printf("-- (rf_stat omitted) --\n");
-	printf("    rf_enf: %o\n", rf->rf_enf);
-	printf("   rf_diff: %o\n", rf->rf_diff);
-	printf("}\n");
-	printf("\n");
-
-	printf("UID:  ");
-	if (res_file_enforced(rf, UID)) {
-		printf("enforced  ");
-	} else {
-		printf("unenforced");
-	}
-	printf(" (%02o & %02o == %02o)\n", rf->rf_enf, RES_FILE_UID, rf->rf_enf & RES_FILE_UID);
-
-	printf("GID:  ");
-	if (res_file_enforced(rf, GID)) {
-		printf("enforced  ");
-	} else {
-		printf("unenforced");
-	}
-	printf(" (%02o & %02o == %02o)\n", rf->rf_enf, RES_FILE_GID, rf->rf_enf & RES_FILE_GID);
-
-	printf("MODE: ");
-	if (res_file_enforced(rf, MODE)) {
-		printf("enforced  ");
-	} else {
-		printf("unenforced");
-	}
-	printf(" (%02o & %02o == %02o)\n", rf->rf_enf, RES_FILE_MODE, rf->rf_enf & RES_FILE_MODE);
-
-	printf("SHA1: ");
-	if (res_file_enforced(rf, SHA1)) {
-		printf("enforced  ");
-	} else {
-		printf("unenforced");
-	}
-	printf(" (%02o & %02o == %02o)\n", rf->rf_enf, RES_FILE_SHA1, rf->rf_enf & RES_FILE_SHA1);
-
-	printf("\n");
 }

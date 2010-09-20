@@ -83,12 +83,28 @@ void assert_false(const char *s, int value)
 
 void assert_not_null(const char *s, void *ptr)
 {
-	assert_true(s, ptr != NULL);
+	++__ASSERTIONS;
+	if (ptr != NULL) {
+		if (TEST_PRINT_PASS) { printf(" - %s: PASS\n", s); }
+	} else {
+		__test_failed();
+		if (TEST_PRINT_FAIL) {
+			printf(" - %s: FAIL: %p is NULL\n", s, ptr);
+		}
+	}
 }
 
 void assert_null(const char *s, void *ptr)
 {
-	assert_true(s, ptr == NULL);
+	++__ASSERTIONS;
+	if (ptr == NULL) {
+		if (TEST_PRINT_PASS) { printf(" - %s: PASS\n", s); }
+	} else {
+		__test_failed();
+		if (TEST_PRINT_FAIL) {
+			printf(" - %s: FAIL: %p is not NULL\n", s, ptr);
+		}
+	}
 }
 
 void assert_int_equals(const char *s, int expected, int actual)

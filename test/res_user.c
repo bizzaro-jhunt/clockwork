@@ -124,6 +124,9 @@ void test_res_user_merge()
 	*/
 	assert_int_equals("INACT set properly after merge", ru1.ru_inact, 1000);
 	assert_int_equals("EXPIRE set properly after merge", ru1.ru_expire, 2000);
+
+	res_user_free(&ru1);
+	res_user_free(&ru2);
 }
 
 void test_suite_res_user()

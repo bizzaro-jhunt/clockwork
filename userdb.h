@@ -1,6 +1,8 @@
 #ifndef USERDB_H
 #define USERDB_H
 
+#include "env.h"
+
 #include <sys/types.h>
 #include <pwd.h>
 #include <shadow.h>

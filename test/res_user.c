@@ -1,4 +1,4 @@
-#include "test.h"
+#include "init.h"
 #include "../res_user.h"
 
 #define ASSERT_ENFORCEMENT(o,f,c,t,v1,v2) do {\

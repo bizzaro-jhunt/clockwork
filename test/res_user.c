@@ -46,6 +46,25 @@ void test_res_user_enforcement()
 	test("RES_USER: SHELL enforcement");
 	ASSERT_ENFORCEMENT(&ru,shell,SHELL,str,"/bin/bash","/sbin/nologin");
 
+	test("RES_USER: MKHOME enforcement");
+	res_user_set_makehome(&ru, 1, "/etc/skel.admin");
+	assert_true("MKHOME enforced", res_user_enforced(&ru, MKHOME));
+	assert_int_equals("MKHOME set properly", ru.ru_mkhome, 1);
+	assert_str_equals("SKEL set properly", ru.ru_skel, "/etc/skel.admin");
+
+	res_user_unset_makehome(&ru);
+	assert_true("MKHOME no longer enforced", !res_user_enforced(&ru, MKHOME));
+
+	res_user_set_makehome(&ru, 1, "/etc/new.skel");
+	assert_true("MKHOME re-enforced", res_user_enforced(&ru, MKHOME));
+	assert_int_equals("MKHOME re-set properly", ru.ru_mkhome, 1);
+	assert_str_equals("SKEL re-set properly", ru.ru_skel, "/etc/new.skel");
+
+	res_user_set_makehome(&ru, 0, "/etc/skel");
+	assert_true("MKHOME re-re-enforced", res_user_enforced(&ru, MKHOME));
+	assert_int_equals("MKHOME re-re-set properly", ru.ru_mkhome, 0);
+	assert_null("SKEL is NULL", ru.ru_skel);
+
 	test("RES_USER: INACT enforcement");
 	ASSERT_ENFORCEMENT(&ru,inact,INACT,int,45,999);
 

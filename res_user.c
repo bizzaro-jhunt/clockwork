@@ -322,7 +322,7 @@ int res_user_set_makehome(struct res_user *ru, unsigned char mkhome, const char 
 
 	ru->ru_mkhome = mkhome;
 	xfree(ru->ru_skel); /* nullifies ru_skel */
-	if (skel) {
+	if (mkhome && skel) {
 		ru->ru_skel = strdup(skel);
 	}
 

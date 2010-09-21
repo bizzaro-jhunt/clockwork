@@ -52,6 +52,7 @@ int res_group_set_name(struct res_group *rg, const char *name)
 {
 	assert(rg);
 
+	xfree(rg->rg_name);
 	rg->rg_name = strdup(name);
 
 	rg->rg_enf |= RES_GROUP_NAME;

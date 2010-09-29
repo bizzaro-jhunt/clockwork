@@ -1,4 +1,5 @@
-#include "init.h"
+#include "test.h"
+#include "../env.h"
 #include "../res_user.h"
 
 #define ASSERT_ENFORCEMENT(o,f,c,t,v1,v2) do {\
@@ -13,6 +14,13 @@
 	assert_true( #c " re-enforced", res_user_enforced(o,c)); \
 	assert_ ## t ## _equals ( #c " re-set properly", (o)->ru_ ## f, v2); \
 } while(0)
+
+void test_res_user_environment()
+{
+	test("RES_USER: Test Environment");
+	assert_str_equals("SYS_PASSWD set properly", "test/data/passwd", SYS_PASSWD);
+	assert_str_equals("SYS_SHADOW set properly", "test/data/shadow", SYS_SHADOW);
+}
 
 void test_res_user_enforcement()
 {
@@ -129,8 +137,38 @@ void test_res_user_merge()
 	res_user_free(&ru2);
 }
 
+void test_res_user_diffstat()
+{
+	struct res_user ru;
+
+	res_user_init(&ru);
+
+	res_user_set_name(&ru, "svc");
+	res_user_set_uid(&ru, 7001);
+	res_user_set_gid(&ru, 8001);
+	res_user_set_gecos(&ru, "SVC service account");
+	res_user_set_shell(&ru, "/sbin/nologin");
+	res_user_set_dir(&ru, "/nonexistent");
+	res_user_set_makehome(&ru, 1, "/etc/skel.svc");
+
+	test("RES_USER: res_user_stat picks up differences properly");
+	assert_int_equals("res_user_stat return zero", res_user_stat(&ru), 0);
+	assert_true("NAME is in compliance", !res_user_different(&ru, NAME));
+	assert_true("UID is out of compliance", res_user_different(&ru, UID));
+	assert_true("GID is out of compliance", res_user_different(&ru, GID));
+	assert_true("GECOS is out of compliance", res_user_different(&ru, GECOS));
+	assert_true("SHELL is in compliance", !res_user_different(&ru, SHELL));
+	assert_true("DIR is in compliance", !res_user_different(&ru, DIR));
+	assert_true("MKHOME is out of compliance", res_user_different(&ru, MKHOME));
+
+	res_user_free(&ru);
+}
+
 void test_suite_res_user()
 {
+	test_res_user_environment();
+
 	test_res_user_enforcement();
 	test_res_user_merge();
+	test_res_user_diffstat();
 }

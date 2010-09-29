@@ -6,9 +6,11 @@
 #include <sys/types.h>
 #include <pwd.h>
 #include <shadow.h>
+#include <grp.h>
 
 struct pwdb;
 struct spdb;
+struct grdb;
 
 struct pwdb {
 	struct pwdb   *next;
@@ -18,6 +20,11 @@ struct pwdb {
 struct spdb {
 	struct spdb *next;
 	struct spwd *spwd;
+};
+
+struct grdb {
+	struct grdb  *next;
+	struct group *group;
 };
 
 struct pwdb* pwdb_init(const char *path);
@@ -34,5 +41,15 @@ int spdb_add(struct spdb *db, struct spwd *sp); /* FIXME: needs const qualifier 
 int spdb_rm(struct spdb *db, struct spwd *sp); /* FIXME: needs const qualifier */
 int spdb_write(struct spdb *db, const char *file);
 void spdb_free(struct spdb *db);
+
+struct grdb* grdb_init(const char *path);
+struct group* grdb_get_by_name(struct grdb *db, const char *name);
+struct group* grdb_get_by_gid(struct grdb *db, gid_t gid);
+int grdb_add(struct grdb *db, struct group *g);
+int grdb_rm(struct grdb *db, struct group *g);
+int grdb_write(struct grdb *db, const char *file);
+void grdb_free(struct grdb *db);
+
+
 
 #endif

@@ -21,6 +21,10 @@
 #define SPFILE     "test/data/shadow"
 #define SPFILE_NEW "test/tmp/shadow.new"
 
+/* test /etc/group file */
+#define GRFILE     "test/data/group"
+#define GRFILE_NEW "test/data/group.new"
+
 /*********************************************************/
 
 static struct pwdb *open_passwd(const char *path)
@@ -50,6 +54,24 @@ static struct spdb *open_shadow(const char *path)
 	if (!db) {
 		if (snprintf(buf, 256, "Unable to open %s", path) < 0) {
 			perror("open_shadow / snprintf failed");
+		} else {
+			perror(buf);
+		}
+		exit(ABORT_CODE);
+	}
+
+	return db;
+}
+
+static struct grdb *open_group(const char *path)
+{
+	struct grdb *db;
+	char buf[256];
+
+	db = grdb_init(path);
+	if (!db) {
+		if (snprintf(buf, 256, "Unable to open %s", path) < 0) {
+			perror("open_group / snprintf failed");
 		} else {
 			perror(buf);
 		}
@@ -106,6 +128,37 @@ static void assert_spdb_get(struct spdb *db, const char *name)
 	snprintf(buf, 256, "%s username should be %s", name, name);
 	assert_str_equals(buf, sp->sp_namp, name);
 }
+
+static void assert_group(struct group *gr, const char *name, gid_t gid)
+{
+	char buf[256];
+
+	snprintf(buf, 256, "%s GID should be %u", name, gid);
+	assert_int_equals(buf, gr->gr_gid, gid);
+
+	snprintf(buf, 256, "%s username should be %s", name, name);
+	assert_str_equals(buf, gr->gr_name, name);
+}
+
+static void assert_grdb_get(struct grdb *db, const char *name, gid_t gid)
+{
+	char buf[256];
+	struct group *gr;
+
+	gr = grdb_get_by_name(db, name);
+
+	snprintf(buf, 256, "Look up %s group by name", name);
+	assert_not_null(buf, gr);
+	assert_group(gr, name, gid);
+
+	gr = grdb_get_by_gid(db, gid);
+
+	snprintf(buf, 256, "Look up %s group by UID (%u)", name, gid);
+	assert_not_null(buf, gr);
+	assert_group(gr, name, gid);
+}
+
+/*********************************************************/
 
 void test_pwdb_init()
 {
@@ -352,6 +405,128 @@ void test_spdb_rm_head()
 	spdb_free(db);
 }
 
+void test_grdb_init()
+{
+	struct grdb *db;
+
+	test("GRDB: Initialize group database structure");
+
+	assert_null("fail to open non-existent file (" BAD_FILE ")", grdb_init(BAD_FILE));
+	assert_null("fail to open bad path (" NOT_DIR ")", grdb_init(NOT_DIR));
+	assert_not_null("open " GRFILE, db = grdb_init(GRFILE));
+
+	grdb_free(db);
+}
+
+void test_grdb_get()
+{
+	struct grdb *db;
+	struct group *gr;
+
+	db = open_group(GRFILE);
+
+	test("GRDB: Lookup of root (1st group entry)");
+	assert_grdb_get(db, "root", 0);
+
+	test("GRDB: Lookup of svc (last group entry)");
+	assert_grdb_get(db, "service", 909);
+
+	test("GRDB: Lookup of users (middle of group database)");
+	assert_grdb_get(db, "users", 20);
+
+	grdb_free(db);
+}
+
+void test_grdb_add()
+{
+	struct grdb *db;
+	struct group gr, *ent;
+
+	db = open_group(GRFILE);
+
+	memset(&gr, 0, sizeof(gr));
+	test("PWBD: Add an entry to group database");
+	gr.gr_name = "new_group";
+	gr.gr_gid = 500;
+
+	assert_null("new_group account doesn't already exist", grdb_get_by_name(db, gr.gr_name));
+	assert_true("creation of new group account", grdb_add(db, &gr) == 0);
+	assert_not_null("new entry exists in memory", grdb_get_by_name(db, gr.gr_name));
+	assert_true("save group database to " GRFILE_NEW, grdb_write(db, GRFILE_NEW) == 0);
+
+	grdb_free(db);
+	db = open_group(GRFILE_NEW);
+	assert_not_null("re-read new entry from " GRFILE_NEW, ent = grdb_get_by_name(db, gr.gr_name));
+
+	assert_str_equals("  check equality of gr_name",   "new_group",       ent->gr_name);
+	assert_int_equals("  check equality of gr_gid",    500,              ent->gr_gid);
+
+	if (unlink(GRFILE_NEW) == -1) {
+		perror("Unable to remove " GRFILE_NEW);
+		exit(ABORT_CODE);
+	}
+
+	grdb_free(db);
+}
+
+void test_grdb_rm()
+{
+	struct grdb *db;
+	struct group *gr;
+	const char *rm_group = "sys";
+
+	db = open_group(GRFILE);
+
+	test("GRDB: Remove an entry from group database");
+	assert_not_null("account to be removed exists", gr = grdb_get_by_name(db, rm_group));
+	assert_true("removal of account", grdb_rm(db, gr) == 0);
+	assert_null("removed entry does not exist in memory", grdb_get_by_name(db, rm_group));
+	assert_true("save group database to " GRFILE_NEW, grdb_write(db, GRFILE_NEW) == 0);
+
+	grdb_free(db);
+	db = open_group(GRFILE_NEW);
+
+	assert_null("removed entry does not exist in " GRFILE_NEW, grdb_get_by_name(db, rm_group));
+
+	if (unlink(GRFILE_NEW) == -1) {
+		perror("Unable to remove " GRFILE_NEW);
+		exit(ABORT_CODE);
+	}
+
+	grdb_free(db);
+}
+
+void test_grdb_rm_head()
+{
+	struct grdb *db;
+	struct group *gr;
+	char *name;
+
+	db = open_group(GRFILE);
+
+	test("GRDB: Removal of list head (first entry)");
+
+	gr = db->group;
+	name = strdup(gr->gr_name);
+
+	assert_true("removal of first account in list", grdb_rm(db, gr) == 0);
+	assert_null("removed entry does not exist in memory", grdb_get_by_name(db, name));
+	assert_true("save group database to " GRFILE_NEW, grdb_write(db, GRFILE_NEW) == 0);
+
+	grdb_free(db);
+	db = open_group(GRFILE_NEW);
+
+	assert_null("removed entry does not exist in " GRFILE_NEW, grdb_get_by_name(db, name));
+
+	if (unlink(GRFILE_NEW) == -1) {
+		perror("Unable to remove " GRFILE_NEW);
+		exit(ABORT_CODE);
+	}
+
+	free(name);
+	grdb_free(db);
+}
+
 void test_suite_userdb() {
 
 	/* passwd db tests */
@@ -367,4 +542,11 @@ void test_suite_userdb() {
 	test_spdb_add();
 	test_spdb_rm();
 	test_spdb_rm_head();
+
+	/* group db tests */
+	test_grdb_init();
+	test_grdb_get();
+	test_grdb_add();
+	test_grdb_rm();
+	test_grdb_rm_head();
 }

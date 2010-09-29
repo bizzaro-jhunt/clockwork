@@ -19,6 +19,11 @@ static struct spdb* _spdb_fgetpwent(FILE *input);
 static void _shadow_free(struct spwd *spwd);
 static void _spdb_entry_free(struct spdb *entry);
 
+static struct grdb* _grdb_entry(struct group *group);
+static struct grdb* _grdb_fgetgrent(FILE *input);
+static void _group_free(struct group *group);
+static void _grdb_entry_free(struct grdb *entry);
+
 /**********************************************************/
 
 static struct pwdb* _pwdb_entry(struct passwd *passwd)
@@ -122,6 +127,57 @@ static void _shadow_free(struct spwd *spwd)
 static void _spdb_entry_free(struct spdb *entry) {
 	if (!entry) { return; }
 	_shadow_free(entry->spwd);
+	free(entry);
+}
+
+static struct grdb* _grdb_entry(struct group *group)
+{
+	assert(group);
+
+	struct grdb *ent = malloc(sizeof(struct grdb));
+	if (!ent) { return NULL; }
+
+	ent->group = malloc(sizeof(struct group));
+	if (!ent->group) {
+		free(ent);
+		return NULL;
+	}
+
+	ent->next = NULL;
+
+	ent->group->gr_name   = strdup(group->gr_name);
+	ent->group->gr_gid    = group->gr_gid;
+	if (group->gr_passwd) {
+		ent->group->gr_passwd = strdup(group->gr_passwd);
+	} else {
+		ent->group->gr_passwd = NULL;
+	}
+	/* FIXME: support for gr_mem */
+
+	return ent;
+}
+
+static struct grdb* _grdb_fgetgrent(FILE *input)
+{
+	assert(input);
+
+	struct group *group = fgetgrent(input);
+	if (!group) { return NULL; }
+	return _grdb_entry(group);
+}
+
+static void _group_free(struct group *group)
+{
+	if (!group) { return; }
+	xfree(group->gr_name);
+	xfree(group->gr_passwd);
+	/* FIXME: gr_mem support */
+}
+
+static void _grdb_entry_free(struct grdb *entry)
+{
+	if (!entry) { return; }
+	_group_free(entry->group);
 	free(entry);
 }
 
@@ -361,5 +417,129 @@ int spdb_write(struct spdb *db, const char *file)
 	}
 	fclose(output);
 	return 0;
+}
+
+/**********************************************************/
+
+struct grdb* grdb_init(const char *path)
+{
+	struct grdb *db, *cur, *entry;
+	FILE *input;
+
+	input = fopen(path, "r");
+	if (!input) {
+		return NULL;
+	}
+
+	db = cur = entry = NULL;
+	errno = 0;
+	while (entry = _grdb_fgetgrent(input)) {
+		if (!db) {
+			db = entry;
+		} else {
+			cur->next = entry;
+		}
+
+		cur = entry;
+	}
+
+	fclose(input);
+
+	return db;
+}
+
+struct group* grdb_get_by_name(struct grdb *db, const char *name)
+{
+	assert(name);
+
+	for (; db; db = db->next) {
+		if (db->group && strcmp(db->group->gr_name, name) == 0) {
+			return db->group;
+		}
+	}
+
+	return NULL;
+}
+
+struct group* grdb_get_by_gid(struct grdb *db, gid_t gid)
+{
+	for (; db; db = db->next) {
+		if (db->group && db->group->gr_gid == gid) {
+			return db->group;
+		}
+	}
+
+	return NULL;
+}
+
+int grdb_add(struct grdb *db, struct group *g)
+{
+	struct grdb *ent;
+
+	if (!db || !g) { return -1; }
+
+	for (; db; ent = db, db = db->next) {
+		if (db->group && db->group->gr_gid == g->gr_gid) {
+			/* how to signal 'already exists'? */
+			return -1;
+		}
+	}
+	ent->next = _grdb_entry(g);
+
+	return 0;
+}
+
+int grdb_rm(struct grdb *db, struct group *g)
+{
+	struct grdb *ent = NULL;
+
+	if (!db || !g) { return -1; }
+
+	for (; db; ent = db, db = db->next) {
+		if (db->group == g) {
+			if (ent) {
+				ent->next = db->next;
+				_grdb_entry_free(db);
+				return 0;
+			} else {
+				/* special case for list head removal */
+				_group_free(db->group);
+				db->group = NULL;
+				return 0;
+			}
+		}
+	}
+	return -1;
+}
+
+int grdb_write(struct grdb *db, const char *file)
+{
+	FILE *output;
+
+	output = fopen(file, "w");
+	if (!output) { return -1; }
+
+	for (; db; db = db->next) {
+		if (db->group && putgrent(db->group, output) == -1) {
+			fclose(output);
+			return -1;
+		}
+	}
+	fclose(output);
+	return 0;
+}
+
+void grdb_free(struct grdb *db)
+{
+	struct grdb *cur;
+	struct grdb *ent = db;
+
+	if (!db) { return; }
+
+	while (ent) {
+		cur = ent->next;
+		_grdb_entry_free(ent);
+		ent = cur;
+	}
 }
 

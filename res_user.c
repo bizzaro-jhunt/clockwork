@@ -1,7 +1,6 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
 #include <errno.h>
 
 #include <sys/types.h>
@@ -10,6 +9,7 @@
 
 #include "res_user.h"
 #include "mem.h"
+#include "userdb.h"
 
 static int _res_user_diff(struct res_user *ru);
 static unsigned char _res_user_home_exists(struct res_user *ru);
@@ -90,25 +90,29 @@ static int _res_user_stat_passwd(struct res_user *ru)
 {
 	assert(ru);
 
+	struct pwdb *pwdb = NULL;
 	struct passwd *pwentry = NULL;
 
-	/* FIXME: how to deal with diff UID and name? */
-	/* for now, prefer UID match over name match */
-
-	/* getpuid and getpwnam return NULL on error OR no match.
-	   clear errno manually to test for errors. */
-	errno = 0;
-
-	if (res_user_enforced(ru, UID)) {
-		printf("Looking for user by UID (%u)\n", ru->ru_uid);
-		pwentry = getpwuid(ru->ru_uid);
-		if (!pwentry && errno) { return -1; }
+	/* initialize a PWDB structure */
+	pwdb = pwdb_init(SYS_PASSWD);
+	if (!pwdb) {
+		perror("pwdb_init");
+		return -1;
 	}
 
+	/*
+	if (res_user_enforced(ru, UID)) {
+		pwentry = pwdb_get_by_uid(pwdb, ru->ru_uid);
+		if (!pwentry) { return -1; }
+	}
+	*/
+
 	if (!pwentry && res_user_enforced(ru, NAME)) {
-		printf("Looking for user by name (%s)\n", ru->ru_name);
-		pwentry = getpwnam(ru->ru_name);
-		if (!pwentry && errno) { return -1; }
+		pwentry = pwdb_get_by_name(pwdb, ru->ru_name);
+		if (!pwentry) {
+			perror("pwdb_get_by_name");
+			return -1;
+		}
 	}
 
 	if (!pwentry) {
@@ -116,6 +120,7 @@ static int _res_user_stat_passwd(struct res_user *ru)
 	}
 
 	/* pwentry may point to static storage cf. getpwnam(3); */
+	/* FIXME: this doesn't deep-copy string pointers in passwd structure */
 	memcpy(&ru->ru_pw, pwentry, sizeof(struct passwd));
 	return 0;
 }
@@ -127,13 +132,17 @@ static int _res_user_stat_shadow(struct res_user *ru)
 
 	assert(ru);
 
+	struct spdb *spdb = NULL;
 	struct spwd *spentry = NULL;
-	spentry = getspnam(ru->ru_pw.pw_name);
+
+	spdb = spdb_init(SYS_SHADOW);
+	spentry = spdb_get_by_name(spdb, ru->ru_pw.pw_name);
 	if (!spentry) {
 		return -1;
 	}
 
 	/* spentry may point to static storage cf. getspnam(3); */
+	/* FIXME: this doesn't deep-copy string pointers in passwd structure */
 	memcpy(&ru->ru_sp, spentry, sizeof(struct spwd));
 	return 0;
 }
@@ -409,67 +418,56 @@ void res_user_merge(struct res_user *ru1, struct res_user *ru2)
 
 	if ( res_user_enforced(ru2, NAME) &&
 	    !res_user_enforced(ru1, NAME)) {
-		printf("Overriding NAME of ru1 with value from ru2\n");
 		res_user_set_name(ru1, ru2->ru_name);
 	}
 
 	if ( res_user_enforced(ru2, PASSWD) &&
 	    !res_user_enforced(ru1, PASSWD)) {
-		printf("Overriding PASSWD of ru1 with value from ru2\n");
 		res_user_set_passwd(ru1, ru2->ru_passwd);
 	}
 
 	if ( res_user_enforced(ru2, UID) &&
 	    !res_user_enforced(ru1, UID)) {
-		printf("Overriding UID of ru1 with value from ru2\n");
 		res_user_set_uid(ru1, ru2->ru_uid);
 	}
 
 	if ( res_user_enforced(ru2, GID) &&
 	    !res_user_enforced(ru1, GID)) {
-		printf("Overriding GID of ru1 with value from ru2\n");
 		res_user_set_gid(ru1, ru2->ru_gid);
 	}
 
 	if ( res_user_enforced(ru2, GECOS) &&
 	    !res_user_enforced(ru1, GECOS)) {
-		printf("Overriding GECOS of ru1 with value from ru2\n");
 		res_user_set_gecos(ru1, ru2->ru_gecos);
 	}
 
 	if ( res_user_enforced(ru2, DIR) &&
 	    !res_user_enforced(ru1, DIR)) {
-		printf("Overriding DIR of ru1 with value from ru2\n");
 		res_user_set_dir(ru1, ru2->ru_dir);
 	}
 
 	if ( res_user_enforced(ru2, SHELL) &&
 	    !res_user_enforced(ru1, SHELL)) {
-		printf("Overriding SHELL of ru1 with value from ru2\n");
 		res_user_set_shell(ru1, ru2->ru_shell);
 	}
 
 	if ( res_user_enforced(ru2, MKHOME) &&
 	    !res_user_enforced(ru1, MKHOME)) {
-		printf("Overriding MKHOME of ru1 with value from ru2\n");
 		res_user_set_makehome(ru1, ru2->ru_mkhome, ru2->ru_skel);
 	}
 
 	if ( res_user_enforced(ru2, INACT) &&
 	    !res_user_enforced(ru1, INACT)) {
-		printf("Overriding INACT of ru1 with value from ru2\n");
 		res_user_set_inact(ru1, ru2->ru_inact);
 	}
 
 	if ( res_user_enforced(ru2, EXPIRE) &&
 	    !res_user_enforced(ru1, EXPIRE)) {
-		printf("Overriding EXPIRE of ru1 with value from ru2\n");
 		res_user_set_expire(ru1, ru2->ru_expire);
 	}
 
 	if ( res_user_enforced(ru2, LOCK) &&
 	    !res_user_enforced(ru1, LOCK)) {
-		printf("Overriding LOCK of ru1 with value from ru2\n");
 		res_user_set_lock(ru1, ru2->ru_lock);
 	}
 }
@@ -478,8 +476,8 @@ int res_user_stat(struct res_user *ru)
 {
 	assert(ru);
 
-	if (_res_user_stat_passwd(ru) == -1) { return -1; }
-	if (_res_user_stat_shadow(ru) == -1) { return -1; }
+	if (_res_user_stat_passwd(ru) != 0) { return -3; }
+	if (_res_user_stat_shadow(ru) != 0) { return -2; }
 
 	return _res_user_diff(ru);
 }

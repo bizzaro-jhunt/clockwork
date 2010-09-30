@@ -148,6 +148,7 @@ static struct grdb* _grdb_entry(struct group *group)
 		ent->group->gr_passwd = NULL;
 	}
 	/* FIXME: support for gr_mem */
+	ent->group->gr_mem = NULL;
 
 	return ent;
 }

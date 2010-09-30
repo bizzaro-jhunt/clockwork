@@ -9,12 +9,11 @@
 
 #include "res_user.h"
 #include "mem.h"
-#include "userdb.h"
 
 static int _res_user_diff(struct res_user *ru);
 static unsigned char _res_user_home_exists(struct res_user *ru);
-static int _res_user_stat_passwd(struct res_user *ru);
-static int _res_user_stat_shadow(struct res_user *ru);
+static int _res_user_stat_passwd(struct res_user *ru, struct pwdb *db);
+static int _res_user_stat_shadow(struct res_user *ru, struct spdb *db);
 
 /*****************************************************************/
 
@@ -86,50 +85,37 @@ static unsigned char _res_user_home_exists(struct res_user *ru)
 	return (S_ISDIR(st.st_mode) ? 1 : 0); /* 1 = true; 0 = false */
 }
 
-static int _res_user_stat_passwd(struct res_user *ru)
+static int _res_user_stat_passwd(struct res_user *ru, struct pwdb *db)
 {
 	assert(ru);
+	assert(ru->ru_name);
+	assert(db);
 
-	struct pwdb *pwdb = NULL;
-	struct passwd *pwentry = NULL;
+	struct passwd *pw;
 
-	/* initialize a PWDB structure */
-	pwdb = pwdb_init(SYS_PASSWD);
-	if (!pwdb) { return -1; }
-
-	if (res_user_enforced(ru, NAME)) {
-		pwentry = pwdb_get_by_name(pwdb, ru->ru_name);
-	}
-
-	if (!pwentry) {
-		return -1;
-	}
+	pw = pwdb_get_by_name(db, ru->ru_name);
+	if (!pw) { return -1; }
 
 	/* pwentry may point to static storage cf. getpwnam(3); */
 	/* FIXME: this doesn't deep-copy string pointers in passwd structure */
-	memcpy(&ru->ru_pw, pwentry, sizeof(struct passwd));
+	memcpy(&ru->ru_pw, pw, sizeof(struct passwd));
 	return 0;
 }
 
-static int _res_user_stat_shadow(struct res_user *ru)
+static int _res_user_stat_shadow(struct res_user *ru, struct spdb *db)
 {
-	/* N.B.: _res_user_stat_passwd MUST be called prior to calling
-	   this function, since it relies on ru_pw.pw_name for lookup */
-
 	assert(ru);
+	assert(ru->ru_name);
+	assert(db);
 
-	struct spdb *spdb = NULL;
-	struct spwd *spentry = NULL;
+	struct spwd *sp;
 
-	spdb = spdb_init(SYS_SHADOW);
-	spentry = spdb_get_by_name(spdb, ru->ru_pw.pw_name);
-	if (!spentry) {
-		return -1;
-	}
+	sp = spdb_get_by_name(db, ru->ru_pw.pw_name);
+	if (!sp) { return -1; }
 
 	/* spentry may point to static storage cf. getspnam(3); */
 	/* FIXME: this doesn't deep-copy string pointers in passwd structure */
-	memcpy(&ru->ru_sp, spentry, sizeof(struct spwd));
+	memcpy(&ru->ru_sp, sp, sizeof(struct spwd));
 	return 0;
 }
 
@@ -458,12 +444,14 @@ void res_user_merge(struct res_user *ru1, struct res_user *ru2)
 	}
 }
 
-int res_user_stat(struct res_user *ru)
+int res_user_stat(struct res_user *ru, struct pwdb *pwdb, struct spdb *spdb)
 {
 	assert(ru);
+	assert(pwdb);
+	assert(spdb);
 
-	if (_res_user_stat_passwd(ru) != 0) { return -3; }
-	if (_res_user_stat_shadow(ru) != 0) { return -2; }
+	if (_res_user_stat_passwd(ru, pwdb) != 0) { return -1; }
+	if (_res_user_stat_shadow(ru, spdb) != 0) { return -1; }
 
 	return _res_user_diff(ru);
 }

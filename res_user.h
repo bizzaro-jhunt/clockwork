@@ -6,6 +6,8 @@
 #include <pwd.h>
 #include <shadow.h>
 
+#include "userdb.h"
+
 #define RES_USER_NONE   0000
 #define RES_USER_NAME   0001
 #define RES_USER_PASSWD 0002
@@ -96,6 +98,6 @@ int res_user_unset_lock(struct res_user *ru);
 
 void res_user_merge(struct res_user *ru1, struct res_user *ru2);
 
-int res_user_stat(struct res_user *ru);
+int res_user_stat(struct res_user *ru, struct pwdb *pwdb, struct spdb *spdb);
 
 #endif

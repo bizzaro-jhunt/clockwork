@@ -15,13 +15,6 @@
 	assert_ ## t ## _equals ( #c " re-set properly", (o)->ru_ ## f, v2); \
 } while(0)
 
-void test_res_user_environment()
-{
-	test("RES_USER: Test Environment");
-	assert_str_equals("SYS_PASSWD set properly", "test/data/passwd", SYS_PASSWD);
-	assert_str_equals("SYS_SHADOW set properly", "test/data/shadow", SYS_SHADOW);
-}
-
 void test_res_user_enforcement()
 {
 	struct res_user ru;
@@ -140,6 +133,8 @@ void test_res_user_merge()
 void test_res_user_diffstat()
 {
 	struct res_user ru;
+	struct pwdb *pwdb;
+	struct spdb *spdb;
 
 	res_user_init(&ru);
 
@@ -151,8 +146,20 @@ void test_res_user_diffstat()
 	res_user_set_dir(&ru, "/nonexistent");
 	res_user_set_makehome(&ru, 1, "/etc/skel.svc");
 
-	test("RES_USER: res_user_stat picks up differences properly");
-	assert_int_equals("res_user_stat return zero", res_user_stat(&ru), 0);
+	pwdb = pwdb_init("test/data/passwd");
+	if (!pwdb) {
+		assert_fail("Unable to init pwdb");
+		return;
+	}
+
+	spdb = spdb_init("test/data/shadow");
+	if (!spdb) {
+		assert_fail("Unable to init spdb");
+		return;
+	}
+
+	test("RES_USER: Diffstat");
+	assert_int_equals("res_user_stat return zero", res_user_stat(&ru, pwdb, spdb), 0);
 	assert_true("NAME is in compliance", !res_user_different(&ru, NAME));
 	assert_true("UID is out of compliance", res_user_different(&ru, UID));
 	assert_true("GID is out of compliance", res_user_different(&ru, GID));
@@ -166,8 +173,6 @@ void test_res_user_diffstat()
 
 void test_suite_res_user()
 {
-	test_res_user_environment();
-
 	test_res_user_enforcement();
 	test_res_user_merge();
 	test_res_user_diffstat();

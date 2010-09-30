@@ -1,0 +1,14 @@
+#
+# /etc/fstab: file system information.
+#
+# The contents of this file are managed by the configuration
+# management system.  Be advised: any changes you make WILL
+# be lost!  (even the comments...)
+#
+# <file system> <mount point>   <type>  <options>       <dump>  <pass>
+proc            /proc           proc    defaults        0       0
+LABEL=/         /               ext3    defaults        0       1
+LABEL=swap      none            swap    sw              0       0
+/dev/hda        /media/cdrom0   udf     user,noauto     0       0
+LABEL=files     /srv/files      ext4    noexec          0       0
+LABEL=data      /srv/data       ext4    nodev,noexec    0       0

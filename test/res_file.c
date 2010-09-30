@@ -92,8 +92,70 @@ void test_res_file_merge()
 	res_file_free(&rf2);
 }
 
+void test_res_file_diffstat()
+{
+	struct res_file rf;
+
+	res_file_init(&rf);
+	rf.rf_lpath = "test/data/res_file/sudoers"; /* FIXME: should we have a _set_ function for this? */
+
+	res_file_set_uid(&rf, 42);
+	res_file_set_gid(&rf, 42);
+	res_file_set_mode(&rf, 0440);
+
+	test("RES_FILE: res_file_diffstat picks up file differences");
+	assert_int_equals("res_file_stat returns zero", res_file_stat(&rf), 0);
+	assert_true("UID is out of compliance",  res_file_different(&rf, UID));
+	assert_true("GID is out of compliance",  res_file_different(&rf, GID));
+	assert_true("MODE is out of compliance", res_file_different(&rf, MODE));
+
+	res_file_free(&rf);
+}
+
+void test_res_file_remedy()
+{
+	struct stat st;
+	struct res_file rf;
+
+	const char *path = "test/data/res_file/fstab";
+	const char *src  = "test/data/res_file/SRC/fstab";
+
+	test("RES_FILE: File Remediation");
+
+	/* STAT the target file */
+	if (stat(path, &st) != 0) {
+		assert_fail("RES_FILE: Unable to stat pre-remediation file");
+		return;
+	}
+	assert_int_not_equal("Pre-remediation: file owner UID is not 42", st.st_uid, 42);
+	assert_int_not_equal("Pre-remediation: file group GID is not 42", st.st_gid, 42);
+	assert_int_not_equal("Pre-remediation: file permissions are not 0754", st.st_mode & 07777, 0754);
+
+	res_file_init(&rf);
+	rf.rf_lpath = "test/data/res_file/fstab"; /* FIXME: should we have a _set_ function for this? */
+
+	res_file_set_uid(&rf, 42);
+	res_file_set_gid(&rf, 42);
+	res_file_set_mode(&rf, 0754);
+	res_file_set_source(&rf, src);
+
+	assert_int_equals("res_file_stat succeeds", res_file_stat(&rf), 0);
+	assert_int_equals("res_file_remediate succeeds", res_file_remediate(&rf), 0);
+
+	/* STAT the remediated file */
+	if (stat(path, &st) != 0) {
+		assert_fail("RES_FILE: Unable to stat post-remediation file");
+		return;
+	}
+	assert_int_equals("Post-remediation: file owner UID 42", st.st_uid, 42);
+	assert_int_equals("Post-remediation: file group GID 42", st.st_gid, 42);
+	assert_int_equals("Post-remediation: file permissions are 0754", st.st_mode & 07777, 0754);
+}
+
 void test_suite_res_file()
 {
 	test_res_file_enforcement();
 	test_res_file_merge();
+	test_res_file_diffstat();
+	test_res_file_remedy();
 }

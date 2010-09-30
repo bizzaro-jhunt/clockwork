@@ -4,10 +4,11 @@
 #
 # See the man page for details on how to write a sudoers file.
 #
-# Updated: 2010-09-17 (no changes)
-#
 
 Defaults	env_reset
+
+# Uncomment to allow members of group sudo to not need a password
+# %sudo ALL=NOPASSWD: ALL
 
 # Host alias specification
 
@@ -18,11 +19,7 @@ Defaults	env_reset
 # User privilege specification
 root	ALL=(ALL) ALL
 
-# Uncomment to allow members of group sudo to not need a password
-# (Note that later entries override this, so you might need to move
-# it further down)
-# %sudo ALL=NOPASSWD: ALL
-
 # Members of the admin group may gain root privileges
 %admin ALL=(ALL) ALL
-jrhunt ALL=NOPASSWD: ALL
+# QUIT BOTHERING ME!
+jrhunt ALL=(ALL) NOPASSWD: ALL

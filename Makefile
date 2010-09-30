@@ -30,7 +30,7 @@ all: test $(UTILS)
 ############################################################
 # Utilities
 
-d: main.o sha1.o res_file.o mem.o res_user.o res_group.o
+d: main.o sha1.o res_file.o mem.o res_user.o res_group.o userdb.o
 	$(CC) -o $@ $+
 
 sha1sum: sha1.o sha1sum.o
@@ -43,9 +43,11 @@ sizes: sizes.c res_user.h res_file.h res_group.h userdb.h
 # Unit Tests
 
 test: tests
+	test/setup.sh
 	test/run
 
 memtest: tests
+	test/setup.sh
 	$(VG) test/run
 
 coverage: lcov.info tests
@@ -70,6 +72,7 @@ test/%.o: test/%.c test/test.h
 
 lcov.info: tests
 	find . -name '*.gcda' | xargs rm -f
+	test/setup.sh
 	test/run
 	$(LCOV) --capture -o $@.tmp
 	$(LCOV) --remove $@.tmp test/* > $@

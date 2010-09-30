@@ -15,4 +15,9 @@
 #define SYS_SHADOW "/etc/shadow"
 #endif
 
+/** cleartext system group database **/
+#ifndef SYS_GROUP
+#define SYS_GROUP "/etc/group"
+#endif
+
 #endif

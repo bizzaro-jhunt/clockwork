@@ -62,7 +62,25 @@ void test_res_group_merge()
 	res_group_free(&rg2);
 }
 
+void test_res_group_diffstat()
+{
+	struct res_group rg;
+
+	res_group_init(&rg);
+
+	res_group_set_name(&rg, "service");
+	res_group_set_gid(&rg, 6000);
+
+	test("RES_GROUP: Diffstat");
+	assert_int_equals("res_group_stat returns 0", res_group_stat(&rg), 0);
+	assert_true("NAME is in compliance", !res_group_different(&rg, NAME));
+	assert_true("GID is not in compliance", res_group_different(&rg, GID));
+
+	res_group_free(&rg);
+}
+
 void test_suite_res_group() {
 	test_res_group_enforcement();
 	test_res_group_merge();
+	test_res_group_diffstat();
 }

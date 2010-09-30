@@ -4,6 +4,7 @@
 
 #include "res_group.h"
 #include "mem.h"
+#include "userdb.h"
 
 static int _res_group_diff(struct res_group *rg);
 
@@ -140,26 +141,22 @@ int res_group_stat(struct res_group *rg)
 {
 	assert(rg);
 
+	struct grdb *grdb = NULL;
 	struct group *entry = NULL;
 
-	/* getgrgid and getgrnam return NULL on error OR no match.
-	   clear errno manually to test for errors. */
-	errno = 0;
+	grdb = grdb_init(SYS_GROUP);
+	if (!grdb) { return -1; }
 
-	if (res_group_enforced(rg, GID)) {
-		entry = getgrgid(rg->rg_gid);
-		if (!entry && errno) { return -1; }
+	if (res_group_enforced(rg, NAME)) {
+		entry = grdb_get_by_name(grdb, rg->rg_name);
 	}
 
-	if (!entry && res_group_enforced(rg, NAME)) {
-		entry = getgrnam(rg->rg_name);
-		if (!entry && errno) { return -1; }
+	if (!entry) {
+		return -1;
 	}
 
-	if (entry) {
-		/* entry may point to static storage cf. getgrnam(3); */
-		memcpy(&rg->rg_grp, entry, sizeof(struct group));
-	}
-
+	/* entry may point to static storage cf. getgrnam(3); */
+	/* FIXME: this doesn't deep-copy string pointers in group structure */
+	memcpy(&rg->rg_grp, entry, sizeof(struct group));
 	return _res_group_diff(rg);
 }

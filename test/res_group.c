@@ -65,14 +65,21 @@ void test_res_group_merge()
 void test_res_group_diffstat()
 {
 	struct res_group rg;
+	struct grdb *grdb;
 
 	res_group_init(&rg);
 
 	res_group_set_name(&rg, "service");
 	res_group_set_gid(&rg, 6000);
 
+	grdb = grdb_init("test/data/group");
+	if (!grdb) {
+		assert_fail("Unable to init grdb");
+		return;
+	}
+
 	test("RES_GROUP: Diffstat");
-	assert_int_equals("res_group_stat returns 0", res_group_stat(&rg), 0);
+	assert_int_equals("res_group_stat returns 0", res_group_stat(&rg, grdb), 0);
 	assert_true("NAME is in compliance", !res_group_different(&rg, NAME));
 	assert_true("GID is not in compliance", res_group_different(&rg, GID));
 

@@ -4,7 +4,6 @@
 
 #include "res_group.h"
 #include "mem.h"
-#include "userdb.h"
 
 static int _res_group_diff(struct res_group *rg);
 
@@ -137,20 +136,13 @@ void res_group_merge(struct res_group *rg1, struct res_group *rg2)
 	}
 }
 
-int res_group_stat(struct res_group *rg)
+int res_group_stat(struct res_group *rg, struct grdb *grdb)
 {
 	assert(rg);
 
-	struct grdb *grdb = NULL;
 	struct group *entry = NULL;
 
-	grdb = grdb_init(SYS_GROUP);
-	if (!grdb) { return -1; }
-
-	if (res_group_enforced(rg, NAME)) {
-		entry = grdb_get_by_name(grdb, rg->rg_name);
-	}
-
+	entry = grdb_get_by_name(grdb, rg->rg_name);
 	if (!entry) {
 		return -1;
 	}

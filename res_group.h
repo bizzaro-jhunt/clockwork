@@ -5,6 +5,8 @@
 #include <sys/types.h>
 #include <grp.h>
 
+#include "userdb.h"
+
 #define RES_GROUP_NONE   0000
 #define RES_GROUP_NAME   0001
 #define RES_GROUP_PASSWD 0002
@@ -39,6 +41,6 @@ int res_group_unset_gid(struct res_group *rg);
 
 void res_group_merge(struct res_group *rg1, struct res_group *rg2);
 
-int res_group_stat(struct res_group *rg);
+int res_group_stat(struct res_group *rg, struct grdb *grdb);
 
 #endif

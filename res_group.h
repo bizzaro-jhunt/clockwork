@@ -20,7 +20,8 @@ struct res_group {
 	char          *rg_passwd;  /* Group membership password (encrypted) */
 	gid_t          rg_gid;     /* Numeric Group ID */
 
-	struct group   rg_grp;      /* cf. getgrnam(3) */
+	struct group   rg_grp;     /* cf. getgrnam(3) */
+	struct sgrp    rg_sg;      /* cf. /usr/include/sgrp.h */
 
 	unsigned int   rg_prio;
 	unsigned int   rg_enf;     /* enforce-compliance flags */
@@ -41,6 +42,6 @@ int res_group_unset_gid(struct res_group *rg);
 
 void res_group_merge(struct res_group *rg1, struct res_group *rg2);
 
-int res_group_stat(struct res_group *rg, struct grdb *grdb);
+int res_group_stat(struct res_group *rg, struct grdb *grdb, struct sgdb *sgdb);
 
 #endif

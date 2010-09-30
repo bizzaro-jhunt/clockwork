@@ -6,6 +6,8 @@
 #include "mem.h"
 
 static int _res_group_diff(struct res_group *rg);
+static int _res_group_stat_group(struct res_group *rg, struct grdb *db);
+static int _res_group_stat_gshadow(struct res_group *rg, struct sgdb *db);
 
 /*****************************************************************/
 
@@ -19,7 +21,7 @@ static int _res_group_diff(struct res_group *rg)
 		rg->rg_diff |= RES_GROUP_NAME;
 	}
 
-	if (res_group_enforced(rg, PASSWD) && strcmp(rg->rg_passwd, rg->rg_grp.gr_passwd) != 0) {
+	if (res_group_enforced(rg, PASSWD) && strcmp(rg->rg_passwd, rg->rg_sg.sg_passwd) != 0) {
 		rg->rg_diff |= RES_GROUP_PASSWD;
 	}
 
@@ -30,16 +32,55 @@ static int _res_group_diff(struct res_group *rg)
 	return 0;
 }
 
+static int _res_group_stat_group(struct res_group *rg, struct grdb *db)
+{
+	assert(rg);
+	assert(rg->rg_name);
+	assert(db);
+
+	struct group *gr;
+
+	gr = grdb_get_by_name(db, rg->rg_name);
+	if (!gr) { return -1; }
+
+	/* gr may point to static storage cf. getgrnam(3); */
+	/* FIXME: this doesn't deep-copy string pointers in group structure */
+	memcpy(&rg->rg_grp, gr, sizeof(struct group));
+	return 0;
+}
+
+static int _res_group_stat_gshadow(struct res_group *rg, struct sgdb *db)
+{
+	assert(rg);
+	assert(rg->rg_name);
+	assert(db);
+
+	struct sgrp *sg;
+
+	sg = sgdb_get_by_name(db, rg->rg_name);
+	if (!sg) { return -1; }
+
+	/* sg may point to static storage */
+	/* FIXME: this doesn't deep-copy string pointers in sgrp structure */
+	memcpy(&rg->rg_sg, sg, sizeof(struct sgrp));
+	return 0;
+}
+
 /*****************************************************************/
 
 void res_group_init(struct res_group *rg)
 {
-	rg->rg_enf = 0;
 	rg->rg_prio = 0;
 
 	rg->rg_name = NULL;
 	rg->rg_passwd = NULL;
 	rg->rg_gid = 0;
+
+	memset(&rg->rg_grp, 0, sizeof(struct group));
+	memset(&rg->rg_sg,  0, sizeof(struct sgrp));
+
+	rg->rg_enf = RES_GROUP_NONE;
+	rg->rg_diff = RES_GROUP_NONE;
 }
 
 void res_group_free(struct res_group *rg)
@@ -136,19 +177,14 @@ void res_group_merge(struct res_group *rg1, struct res_group *rg2)
 	}
 }
 
-int res_group_stat(struct res_group *rg, struct grdb *grdb)
+int res_group_stat(struct res_group *rg, struct grdb *grdb, struct sgdb *sgdb)
 {
 	assert(rg);
+	assert(grdb);
+	assert(sgdb);
 
-	struct group *entry = NULL;
+	if (_res_group_stat_group(rg, grdb)   != 0) { return -1; }
+	if (_res_group_stat_gshadow(rg, sgdb) != 0) { return -1; }
 
-	entry = grdb_get_by_name(grdb, rg->rg_name);
-	if (!entry) {
-		return -1;
-	}
-
-	/* entry may point to static storage cf. getgrnam(3); */
-	/* FIXME: this doesn't deep-copy string pointers in group structure */
-	memcpy(&rg->rg_grp, entry, sizeof(struct group));
 	return _res_group_diff(rg);
 }

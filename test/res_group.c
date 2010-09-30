@@ -66,6 +66,7 @@ void test_res_group_diffstat()
 {
 	struct res_group rg;
 	struct grdb *grdb;
+	struct sgdb *sgdb;
 
 	res_group_init(&rg);
 
@@ -78,8 +79,14 @@ void test_res_group_diffstat()
 		return;
 	}
 
+	sgdb = sgdb_init("test/data/gshadow");
+	if (!sgdb) {
+		assert_fail("Unable to init gshadow");
+		return;
+	}
+
 	test("RES_GROUP: Diffstat");
-	assert_int_equals("res_group_stat returns 0", res_group_stat(&rg, grdb), 0);
+	assert_int_equals("res_group_stat returns 0", res_group_stat(&rg, grdb, sgdb), 0);
 	assert_true("NAME is in compliance", !res_group_different(&rg, NAME));
 	assert_true("GID is not in compliance", res_group_different(&rg, GID));
 

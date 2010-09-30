@@ -7,7 +7,6 @@
 CC_FLAGS := -g #                       Debug syms for gdb
 CC_FLAGS += -fprofile-arcs #           gcov / lcov coverage
 CC_FLAGS += -ftest-coverage #          gcov / lcov coverage
-CC_FLAGS += -DTEST #                   For test values
 
 CC := gcc $(CC_FLAGS)
 

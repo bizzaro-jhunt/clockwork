@@ -9,6 +9,20 @@
 #include "userdb.h"
 #include "mem.h"
 
+/**********************************************************/
+
+/* Allocate a userdb entry (pwdb, sgdb, etc.) and its payload
+   member (passwd, sgrp, etc.), while handling errors.  Since
+   this code was common to at four functions, it was macrofied. */
+#define ALLOC_ENTRY(db_t,db,ent_t,ent) do {\
+	if (!(db = malloc(sizeof(db_t)))) { return NULL; } \
+	db->next = NULL; \
+	if (!(ent = malloc(sizeof(ent_t)))) { \
+		free(db); \
+		return NULL; \
+	} \
+} while(0)
+
 static struct pwdb* _pwdb_entry(struct passwd *passwd);
 static struct pwdb* _pwdb_fgetpwent(FILE *input);
 static void _passwd_free(struct passwd *passwd);
@@ -35,16 +49,8 @@ static struct pwdb* _pwdb_entry(struct passwd *passwd)
 {
 	assert(passwd);
 
-	struct pwdb *ent = malloc(sizeof(struct pwdb));
-	if (!ent) { return NULL; }
-
-	ent->next = NULL;
-
-	ent->passwd = malloc(sizeof(struct passwd));
-	if (!ent->passwd) {
-		free(ent);
-		return NULL;
-	}
+	struct pwdb *ent;
+	ALLOC_ENTRY(struct pwdb, ent, struct passwd, ent->passwd);
 
 	ent->passwd->pw_name   = strdup(passwd->pw_name);
 	ent->passwd->pw_passwd = strdup(passwd->pw_passwd);
@@ -88,16 +94,8 @@ static struct spdb* _spdb_entry(struct spwd *spwd)
 {
 	assert(spwd);
 
-	struct spdb *ent = malloc(sizeof(struct spdb));
-	if (!ent) { return NULL; }
-
-	ent->spwd = malloc(sizeof(struct spwd));
-	if (!ent->spwd) {
-		free(ent);
-		return NULL;
-	}
-
-	ent->next = NULL;
+	struct spdb *ent;
+	ALLOC_ENTRY(struct spdb, ent, struct spwd, ent->spwd);
 
 	ent->spwd->sp_namp   = strdup(spwd->sp_namp);
 	ent->spwd->sp_pwdp   = strdup(spwd->sp_pwdp);
@@ -139,16 +137,8 @@ static struct grdb* _grdb_entry(struct group *group)
 {
 	assert(group);
 
-	struct grdb *ent = malloc(sizeof(struct grdb));
-	if (!ent) { return NULL; }
-
-	ent->group = malloc(sizeof(struct group));
-	if (!ent->group) {
-		free(ent);
-		return NULL;
-	}
-
-	ent->next = NULL;
+	struct grdb *ent;
+	ALLOC_ENTRY(struct grdb, ent, struct group, ent->group);
 
 	ent->group->gr_name   = strdup(group->gr_name);
 	ent->group->gr_gid    = group->gr_gid;
@@ -190,16 +180,8 @@ static struct sgdb* _sgdb_entry(struct sgrp *sgrp)
 {
 	assert(sgrp);
 
-	struct sgdb *ent = malloc(sizeof(struct sgdb));
-	if (!ent) { return NULL; }
-
-	ent->sgrp = malloc(sizeof(struct sgrp));
-	if (!ent->sgrp) {
-		free(ent);
-		return NULL;
-	}
-
-	ent->next = NULL;
+	struct sgdb *ent;
+	ALLOC_ENTRY(struct sgdb, ent, struct sgrp, ent->sgrp);
 
 	ent->sgrp->sg_namp   = strdup(sgrp->sg_namp);
 	ent->sgrp->sg_passwd = strdup(sgrp->sg_passwd);

@@ -94,6 +94,9 @@ clean:
 dist: clean
 	rm -rf doc/coverage
 
+fixme:
+	find . -name '*.c' -o -name '*.c' | xargs grep -n FIXME:
+
 ############################################################
 # "Extra" Dependencies
 

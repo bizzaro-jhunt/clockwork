@@ -23,11 +23,11 @@
 
 /* test /etc/group file */
 #define GRFILE     "test/data/group"
-#define GRFILE_NEW "test/data/group.new"
+#define GRFILE_NEW "test/tmp/group.new"
 
 /* test /etc/gshadow file */
 #define SGFILE     "test/data/gshadow"
-#define SGFILE_NEW "test/data/gshadow.new"
+#define SGFILE_NEW "test/tmp/gshadow.new"
 
 /*********************************************************/
 

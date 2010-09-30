@@ -95,24 +95,10 @@ static int _res_user_stat_passwd(struct res_user *ru)
 
 	/* initialize a PWDB structure */
 	pwdb = pwdb_init(SYS_PASSWD);
-	if (!pwdb) {
-		perror("pwdb_init");
-		return -1;
-	}
+	if (!pwdb) { return -1; }
 
-	/*
-	if (res_user_enforced(ru, UID)) {
-		pwentry = pwdb_get_by_uid(pwdb, ru->ru_uid);
-		if (!pwentry) { return -1; }
-	}
-	*/
-
-	if (!pwentry && res_user_enforced(ru, NAME)) {
+	if (res_user_enforced(ru, NAME)) {
 		pwentry = pwdb_get_by_name(pwdb, ru->ru_name);
-		if (!pwentry) {
-			perror("pwdb_get_by_name");
-			return -1;
-		}
 	}
 
 	if (!pwentry) {

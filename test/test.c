@@ -120,6 +120,19 @@ void assert_int_equals(const char *s, int expected, int actual)
 	}
 }
 
+void assert_int_not_equal(const char *s, int unexpected, int actual)
+{
+	++__ASSERTIONS;
+	if (unexpected == actual) {
+		__test_failed();
+		if (TEST_PRINT_FAIL) {
+			printf(" - %s: FAIL: %i == %i\n", s, unexpected, actual);
+		}
+	} else {
+		if (TEST_PRINT_PASS) { printf(" - %s: PASS\n", s); }
+	}
+}
+
 void assert_str_equals(const char *s, const char *expected, const char *actual)
 {
 	++__ASSERTIONS;
@@ -133,6 +146,22 @@ void assert_str_equals(const char *s, const char *expected, const char *actual)
 		if (TEST_PRINT_FAIL) {
 			printf(" - %s: FAIL: %s != %s\n", s, expected, actual);
 		}
+	}
+}
+
+void assert_str_not_equal(const char *s, const char *unexpected, const char *actual)
+{
+	++__ASSERTIONS;
+	if (unexpected == NULL) { unexpected = "(null)"; }
+	if (actual == NULL)     { actual     = "(null)"; }
+
+	if (strcmp(unexpected, actual) == 0) {
+		__test_failed();
+		if (TEST_PRINT_FAIL) {
+			printf(" - %s: FAIL: %s == %s\n", s, unexpected, actual);
+		}
+	} else {
+		if (TEST_PRINT_PASS) { printf(" - %s: PASS\n", s); }
 	}
 }
 

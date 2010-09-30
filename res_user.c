@@ -416,7 +416,54 @@ int res_user_stat(struct res_user *ru, struct pwdb *pwdb, struct spdb *spdb)
 
 	ru->ru_pw = pwdb_get_by_name(pwdb, ru->ru_name);
 	ru->ru_sp = spdb_get_by_name(spdb, ru->ru_name);
-	if (!ru->ru_pw || !ru->ru_sp) { return -1; }
+	if (!ru->ru_pw || !ru->ru_sp) { /* new account */
+		ru->ru_diff = ru->ru_enf;
+		return 0;
+	}
 
 	return _res_user_diff(ru);
+}
+
+int res_user_remediate(struct res_user *ru, struct pwdb *pwdb, struct spdb *spdb)
+{
+	assert(ru);
+	assert(pwdb);
+	assert(spdb);
+
+	if (!ru->ru_pw) {
+		ru->ru_pw = pwdb_new_entry(pwdb, ru->ru_name);
+		if (!ru->ru_pw) { return -1; }
+	}
+
+	if (!ru->ru_sp) {
+		ru->ru_sp = spdb_new_entry(spdb, ru->ru_name);
+		if (!ru->ru_sp) { return -1; }
+	}
+
+	if (res_user_enforced(ru, PASSWD)) {
+		ru->ru_pw->pw_passwd = strdup("x");
+		ru->ru_sp->sp_pwdp = strdup(ru->ru_passwd);
+	}
+
+	if (res_user_enforced(ru, UID)) {
+		ru->ru_pw->pw_uid = ru->ru_uid;
+	}
+
+	if (res_user_enforced(ru, GID)) {
+		ru->ru_pw->pw_gid = ru->ru_gid;
+	}
+
+	if (res_user_enforced(ru, GECOS)) {
+		ru->ru_pw->pw_gecos = strdup(ru->ru_gecos);
+	}
+
+	if (res_user_enforced(ru, DIR)) {
+		ru->ru_pw->pw_dir = strdup(ru->ru_dir);
+	}
+
+	if (res_user_enforced(ru, SHELL)) {
+		ru->ru_pw->pw_shell = strdup(ru->ru_shell);
+	}
+
+	return 0;
 }

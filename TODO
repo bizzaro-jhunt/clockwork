@@ -4,9 +4,6 @@ Continually Growing List of Things To Do
 userdb::
   File locking (shadow)
 
-res_user::
-  user account remediation
-
 res_group::
   sg_adm support (Group Administrator List)
   sg_mem support (Group Member List)

@@ -130,7 +130,7 @@ void test_res_user_merge()
 	res_user_free(&ru2);
 }
 
-void test_res_user_diffstat()
+void test_res_user_diffstat_remediation()
 {
 	struct res_user ru;
 	struct pwdb *pwdb;
@@ -159,7 +159,7 @@ void test_res_user_diffstat()
 	}
 
 	test("RES_USER: Diffstat");
-	assert_int_equals("res_user_stat return zero", res_user_stat(&ru, pwdb, spdb), 0);
+	assert_int_equals("res_user_stat returns zero", res_user_stat(&ru, pwdb, spdb), 0);
 	assert_true("NAME is in compliance", !res_user_different(&ru, NAME));
 	assert_true("UID is out of compliance", res_user_different(&ru, UID));
 	assert_true("GID is out of compliance", res_user_different(&ru, GID));
@@ -168,6 +168,61 @@ void test_res_user_diffstat()
 	assert_true("DIR is in compliance", !res_user_different(&ru, DIR));
 	assert_true("MKHOME is out of compliance", res_user_different(&ru, MKHOME));
 
+	test("RES_USER: Remediation (existing account)");
+	assert_int_equals("res_user_remediate returns zero", res_user_remediate(&ru, pwdb, spdb), 0);
+	assert_str_equals("pw_name is still set properly", ru.ru_pw->pw_name, "svc");
+	assert_int_equals("pw_uid is updated properly", ru.ru_pw->pw_uid, 7001);
+	assert_int_equals("pw_gid is updated properly", ru.ru_pw->pw_gid, 8001);
+	assert_str_equals("pw_gecos is updated properly", ru.ru_pw->pw_gecos, "SVC service account");
+	assert_str_equals("pw_shell is still set properly", ru.ru_pw->pw_shell, "/sbin/nologin");
+	assert_str_equals("pw_dir is still set properly", ru.ru_pw->pw_dir, "/nonexistent");
+
+	assert_str_equals("sp_namp is still set properly", ru.ru_sp->sp_namp, "svc");
+
+	res_user_free(&ru);
+}
+
+void test_res_user_remediation_new()
+{
+	struct res_user ru;
+	struct pwdb *pwdb;
+	struct spdb *spdb;
+
+	res_user_init(&ru);
+
+	res_user_set_name(&ru, "new_user");
+	res_user_set_uid(&ru, 7010);
+	res_user_set_gid(&ru, 20);
+	res_user_set_gecos(&ru, "New Account");
+	res_user_set_shell(&ru, "/sbin/nologin");
+	res_user_set_dir(&ru, "test/data/tmp/new_user.home");
+	res_user_set_makehome(&ru, 1, "/etc/skel.svc");
+
+	pwdb = pwdb_init("test/data/passwd");
+	if (!pwdb) {
+		assert_fail("Unable to init pwdb");
+		return;
+	}
+
+	spdb = spdb_init("test/data/shadow");
+	if (!spdb) {
+		assert_fail("Unable to init spdb");
+		return;
+	}
+
+	test("RES_USER: Remediation (new account)");
+	assert_int_equals("res_user_stat returns zero", res_user_stat(&ru, pwdb, spdb), 0);
+	test("RES_USER: Remediation (existing account)");
+	assert_int_equals("res_user_remediate returns zero", res_user_remediate(&ru, pwdb, spdb), 0);
+	assert_str_equals("pw_name is set properly", ru.ru_pw->pw_name, "new_user");
+	assert_int_equals("pw_uid is set properly", ru.ru_pw->pw_uid, 7010);
+	assert_int_equals("pw_gid is set properly", ru.ru_pw->pw_gid, 20);
+	assert_str_equals("pw_gecos is set properly", ru.ru_pw->pw_gecos, "New Account");
+	assert_str_equals("pw_shell is set properly", ru.ru_pw->pw_shell, "/sbin/nologin");
+	assert_str_equals("pw_dir is set properly", ru.ru_pw->pw_dir, "test/data/tmp/new_user.home");
+
+	assert_str_equals("sp_namp is set properly", ru.ru_sp->sp_namp, "new_user");
+
 	res_user_free(&ru);
 }
 
@@ -175,5 +230,6 @@ void test_suite_res_user()
 {
 	test_res_user_enforcement();
 	test_res_user_merge();
-	test_res_user_diffstat();
+	test_res_user_diffstat_remediation();
+	test_res_user_remediation_new();
 }

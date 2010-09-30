@@ -52,13 +52,13 @@ static struct pwdb* _pwdb_entry(struct passwd *passwd)
 	struct pwdb *ent;
 	ALLOC_ENTRY(struct pwdb, ent, struct passwd, ent->passwd);
 
-	ent->passwd->pw_name   = strdup(passwd->pw_name);
-	ent->passwd->pw_passwd = strdup(passwd->pw_passwd);
+	ent->passwd->pw_name   = xstrdup(passwd->pw_name);
+	ent->passwd->pw_passwd = xstrdup(passwd->pw_passwd);
 	ent->passwd->pw_uid    = passwd->pw_uid;
 	ent->passwd->pw_gid    = passwd->pw_gid;
-	ent->passwd->pw_gecos  = strdup(passwd->pw_gecos);
-	ent->passwd->pw_dir    = strdup(passwd->pw_dir);
-	ent->passwd->pw_shell  = strdup(passwd->pw_shell);
+	ent->passwd->pw_gecos  = xstrdup(passwd->pw_gecos);
+	ent->passwd->pw_dir    = xstrdup(passwd->pw_dir);
+	ent->passwd->pw_shell  = xstrdup(passwd->pw_shell);
 
 	return ent;
 }
@@ -97,8 +97,8 @@ static struct spdb* _spdb_entry(struct spwd *spwd)
 	struct spdb *ent;
 	ALLOC_ENTRY(struct spdb, ent, struct spwd, ent->spwd);
 
-	ent->spwd->sp_namp   = strdup(spwd->sp_namp);
-	ent->spwd->sp_pwdp   = strdup(spwd->sp_pwdp);
+	ent->spwd->sp_namp   = xstrdup(spwd->sp_namp);
+	ent->spwd->sp_pwdp   = xstrdup(spwd->sp_pwdp);
 	ent->spwd->sp_lstchg = spwd->sp_lstchg;
 	ent->spwd->sp_min    = spwd->sp_min;
 	ent->spwd->sp_max    = spwd->sp_max;
@@ -140,13 +140,9 @@ static struct grdb* _grdb_entry(struct group *group)
 	struct grdb *ent;
 	ALLOC_ENTRY(struct grdb, ent, struct group, ent->group);
 
-	ent->group->gr_name   = strdup(group->gr_name);
+	ent->group->gr_name   = xstrdup(group->gr_name);
 	ent->group->gr_gid    = group->gr_gid;
-	if (group->gr_passwd) {
-		ent->group->gr_passwd = strdup(group->gr_passwd);
-	} else {
-		ent->group->gr_passwd = NULL;
-	}
+	ent->group->gr_passwd = xstrdup(group->gr_passwd);
 	/* FIXME: support for gr_mem */
 	ent->group->gr_mem = NULL;
 
@@ -184,10 +180,12 @@ static struct sgdb* _sgdb_entry(struct sgrp *sgrp)
 	struct sgdb *ent;
 	ALLOC_ENTRY(struct sgdb, ent, struct sgrp, ent->sgrp);
 
-	ent->sgrp->sg_namp   = strdup(sgrp->sg_namp);
-	ent->sgrp->sg_passwd = strdup(sgrp->sg_passwd);
+	ent->sgrp->sg_namp   = xstrdup(sgrp->sg_namp);
+	ent->sgrp->sg_passwd = xstrdup(sgrp->sg_passwd);
 	/* FIXME: support for sg_mem */
+	ent->sgrp->sg_mem = NULL;
 	/* FIXME: support for sg_adm */
+	ent->sgrp->sg_adm = NULL;
 
 	return ent;
 }
@@ -268,6 +266,34 @@ struct passwd* pwdb_get_by_uid(struct pwdb *db, uid_t uid)
 	}
 
 	return NULL;
+}
+
+struct passwd* pwdb_new_entry(struct pwdb *db, const char *name)
+{
+	assert(name);
+
+	struct pwdb *ent;
+	struct passwd *pw;
+
+	if (!db) { return NULL; }
+
+	pw = malloc(sizeof(struct passwd));
+	if (!pw) { return NULL; }
+
+	/* shallow pointers are ok; _pwdb_entry strdup's them */
+	pw->pw_name = name;
+	pw->pw_passwd = "x";
+	pw->pw_uid = -1;
+	pw->pw_gid = -1;
+	pw->pw_gecos = "";
+	pw->pw_dir = "/";
+	pw->pw_shell = "/sbin/nologin";
+
+	for (; db->next; db = db->next)
+		;
+
+	db->next = _pwdb_entry(pw);
+	return pw;
 }
 
 int pwdb_add(struct pwdb *db, struct passwd *pw)
@@ -382,6 +408,32 @@ struct spwd* spdb_get_by_name(struct spdb *db, const char *name)
 	}
 
 	return NULL;
+}
+
+struct spwd* spdb_new_entry(struct spdb *db, const char *name)
+{
+	struct spdb *ent;
+	struct spwd *sp;
+
+	if (!db) { return NULL; }
+
+	sp = calloc(1, sizeof(struct spwd));
+	if (!sp) { return NULL; }
+
+	/* shallow pointers are ok; _spdb_entry strdup's them */
+	sp->sp_namp = name;
+	sp->sp_pwdp = "!";
+	sp->sp_min = 0;
+	sp->sp_max = 99999;
+	sp->sp_warn = 7;
+	sp->sp_inact = 0;
+	sp->sp_expire = 0;
+
+	for (; db->next; db = db->next)
+		;
+
+	db->next = _spdb_entry(sp);
+	return sp;
 }
 
 int spdb_add(struct spdb *db, struct spwd *sp)
@@ -508,6 +560,28 @@ struct group* grdb_get_by_gid(struct grdb *db, gid_t gid)
 	return NULL;
 }
 
+struct group* grdb_new_entry(struct grdb *db, const char *name)
+{
+	struct grdb *ent;
+	struct group *gr;
+
+	if (!db) { return NULL; }
+
+	gr = calloc(1, sizeof(struct group));
+	if (!gr) { return NULL; }
+
+	/* shallow pointers are ok; _grdb_entry strdup's them */
+	gr->gr_name = name;
+	gr->gr_passwd = "x";
+	gr->gr_gid = -1;
+
+	for (; db->next; db = db->next)
+		;
+
+	db->next = _grdb_entry(gr);
+	return gr;
+}
+
 int grdb_add(struct grdb *db, struct group *g)
 {
 	struct grdb *ent;
@@ -619,6 +693,26 @@ struct sgrp* sgdb_get_by_name(struct sgdb *db, const char *name)
 	}
 
 	return NULL;
+}
+
+struct sgrp* sgdb_new_entry(struct sgdb *db, const char *name)
+{
+	struct sgdb *ent;
+	struct sgrp *sg;
+
+	if (!db) { return NULL; }
+
+	sg = calloc(1, sizeof(struct sgrp));
+	if (!sg) { return NULL; }
+
+	/* shallow pointers are ok; _grdb_entry strdup's them */
+	sg->sg_namp = name;
+
+	for (; db->next; db = db->next)
+		;
+
+	db->next = _sgdb_entry(sg);
+	return sg;
 }
 
 int sgdb_add(struct sgdb *db, struct sgrp *g)

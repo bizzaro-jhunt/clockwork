@@ -316,6 +316,29 @@ void test_pwdb_rm_head()
 	pwdb_free(db);
 }
 
+void test_pwdb_new_entry()
+{
+	struct pwdb *db;
+	struct passwd *pw;
+	char *name = "new_pwuser";
+
+	db = open_passwd(PWFILE);
+
+	test("PWDB: New Entry Creation");
+
+	pw = pwdb_new_entry(db, name);
+	assert_not_null("pwdb_new_entry returns a passwd structure", pw);
+	assert_str_equals("pw_name is set properly", pw->pw_name, name);
+	assert_str_equals("pw_passwd default is sane", pw->pw_passwd, "x");
+	assert_int_equals("pw_uid default is sane", pw->pw_uid, -1);
+	assert_int_equals("pw_gid default is sane", pw->pw_gid, -1);
+	assert_str_equals("pw_gecos default is sane", pw->pw_gecos, "");
+	assert_str_equals("pw_dir default is sane", pw->pw_dir, "/");
+	assert_str_equals("pw_shell default is sane", pw->pw_shell, "/sbin/nologin");
+
+	pwdb_free(db);
+}
+
 void test_spdb_init()
 {
 	struct spdb *db;
@@ -436,6 +459,29 @@ void test_spdb_rm_head()
 	assert_null("removed entry does not exist in " SPFILE_NEW, spdb_get_by_name(db, name));
 
 	free(name);
+	spdb_free(db);
+}
+
+void test_spdb_new_entry()
+{
+	struct spdb *db;
+	struct spwd *sp;
+	char *name = "new_spuser";
+
+	db = open_shadow(SPFILE);
+
+	test("SPDB: New Entry Creation");
+
+	sp = spdb_new_entry(db, name);
+	assert_not_null("spdb_new_entry returns an spwd structure", sp);
+	assert_str_equals("sp_namp is set properly", sp->sp_namp, name);
+	assert_str_equals("sp_pwdp default is sane", sp->sp_pwdp, "!");
+	assert_int_equals("sp_min default is sane", sp->sp_min, 0);
+	assert_int_equals("sp_max default is sane", sp->sp_max, 99999);
+	assert_int_equals("sp_warn default is sane", sp->sp_warn, 7);
+	assert_int_equals("sp_inact default is sane", sp->sp_inact, 0);
+	assert_int_equals("sp_expire default is sane", sp->sp_expire, 0);
+
 	spdb_free(db);
 }
 
@@ -561,6 +607,25 @@ void test_grdb_rm_head()
 	grdb_free(db);
 }
 
+void test_grdb_new_entry()
+{
+	struct grdb *db;
+	struct group *gr;
+	char *name = "new_group";
+
+	db = open_group(GRFILE);
+
+	test("GRDB: New Entry Creation");
+
+	gr = grdb_new_entry(db, name);
+	assert_not_null("grdb_new_entry returns a group structure", gr);
+	assert_str_equals("gr_name is set properly", gr->gr_name, name);
+	assert_str_equals("gr_passwd default is sane", gr->gr_passwd, "x");
+	assert_int_equals("gr_gid default is sane", gr->gr_gid, -1);
+
+	grdb_free(db);
+}
+
 void test_sgdb_init()
 {
 	struct sgdb *db;
@@ -672,6 +737,23 @@ void test_sgdb_rm_head()
 	sgdb_free(db);
 }
 
+void test_sgdb_new_entry()
+{
+	struct sgdb *db;
+	struct sgrp *sg;
+	char *name = "new_group";
+
+	db = open_gshadow(SGFILE);
+
+	test("SGDB: New Entry Creation");
+
+	sg = sgdb_new_entry(db, name);
+	assert_not_null("sgdb_new_entry returns an sgrp structure", sg);
+	assert_str_equals("sg_namp is set properly", sg->sg_namp, name);
+
+	sgdb_free(db);
+}
+
 void test_suite_userdb() {
 
 	/* passwd db tests */
@@ -680,6 +762,7 @@ void test_suite_userdb() {
 	test_pwdb_add();
 	test_pwdb_rm();
 	test_pwdb_rm_head();
+	test_pwdb_new_entry();
 
 	/* shadow db tests */
 	test_spdb_init();
@@ -687,6 +770,7 @@ void test_suite_userdb() {
 	test_spdb_add();
 	test_spdb_rm();
 	test_spdb_rm_head();
+	test_spdb_new_entry();
 
 	/* group db tests */
 	test_grdb_init();
@@ -694,6 +778,7 @@ void test_suite_userdb() {
 	test_grdb_add();
 	test_grdb_rm();
 	test_grdb_rm_head();
+	test_grdb_new_entry();
 
 	/* gshadow db tests */
 	test_sgdb_init();
@@ -701,4 +786,5 @@ void test_suite_userdb() {
 	test_sgdb_add();
 	test_sgdb_rm();
 	test_sgdb_rm_head();
+	test_sgdb_new_entry();
 }

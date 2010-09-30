@@ -50,8 +50,8 @@ struct res_user {
 	long           ru_inact;   /* disable account (days after pw expires */
 	long           ru_expire;  /* account expiration (days since 1/1/70) */
 
-	struct passwd  ru_pw;      /* cf. getpwnam(3) */
-	struct spwd    ru_sp;      /* cf. getspnam(3) */
+	struct passwd *ru_pw;      /* pointer to an entry in pwdb */
+	struct spwd   *ru_sp;      /* pointer to an entry in spdb */
 
 	char          *ru_skel;    /* Path to skeleton dir (for ru_mkhome) */
 

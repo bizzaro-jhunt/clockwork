@@ -20,8 +20,8 @@ struct res_group {
 	char          *rg_passwd;  /* Group membership password (encrypted) */
 	gid_t          rg_gid;     /* Numeric Group ID */
 
-	struct group   rg_grp;     /* cf. getgrnam(3) */
-	struct sgrp    rg_sg;      /* cf. /usr/include/sgrp.h */
+	struct group  *rg_grp;     /* pointer to an entry in grdb */
+	struct sgrp   *rg_sg;      /* pointer to an entry in sgdb */
 
 	unsigned int   rg_prio;
 	unsigned int   rg_enf;     /* enforce-compliance flags */

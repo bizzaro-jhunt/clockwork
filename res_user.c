@@ -12,8 +12,6 @@
 
 static int _res_user_diff(struct res_user *ru);
 static unsigned char _res_user_home_exists(struct res_user *ru);
-static int _res_user_stat_passwd(struct res_user *ru, struct pwdb *db);
-static int _res_user_stat_shadow(struct res_user *ru, struct spdb *db);
 
 /*****************************************************************/
 
@@ -21,35 +19,35 @@ static int _res_user_diff(struct res_user *ru)
 {
 	assert(ru);
 
-	unsigned char locked = (ru->ru_sp.sp_pwdp && *(ru->ru_sp.sp_pwdp) == '!') ? 1 : 0;
+	unsigned char locked = (ru->ru_sp->sp_pwdp && *(ru->ru_sp->sp_pwdp) == '!') ? 1 : 0;
 
 	ru->ru_diff = RES_USER_NONE;
 
-	if (res_user_enforced(ru, NAME) && strcmp(ru->ru_name, ru->ru_pw.pw_name) != 0) {
+	if (res_user_enforced(ru, NAME) && strcmp(ru->ru_name, ru->ru_pw->pw_name) != 0) {
 		ru->ru_diff |= RES_USER_NAME;
 	}
 
-	if (res_user_enforced(ru, PASSWD) && strcmp(ru->ru_passwd, ru->ru_sp.sp_pwdp) != 0) {
+	if (res_user_enforced(ru, PASSWD) && strcmp(ru->ru_passwd, ru->ru_sp->sp_pwdp) != 0) {
 		ru->ru_diff |= RES_USER_PASSWD;
 	}
 
-	if (res_user_enforced(ru, UID) && ru->ru_uid != ru->ru_pw.pw_uid) {
+	if (res_user_enforced(ru, UID) && ru->ru_uid != ru->ru_pw->pw_uid) {
 		ru->ru_diff |= RES_USER_UID;
 	}
 
-	if (res_user_enforced(ru, GID) && ru->ru_gid != ru->ru_pw.pw_gid) {
+	if (res_user_enforced(ru, GID) && ru->ru_gid != ru->ru_pw->pw_gid) {
 		ru->ru_diff |= RES_USER_GID;
 	}
 
-	if (res_user_enforced(ru, GECOS) && strcmp(ru->ru_gecos, ru->ru_pw.pw_gecos) != 0) {
+	if (res_user_enforced(ru, GECOS) && strcmp(ru->ru_gecos, ru->ru_pw->pw_gecos) != 0) {
 		ru->ru_diff |= RES_USER_GECOS;
 	}
 
-	if (res_user_enforced(ru, DIR) && strcmp(ru->ru_dir, ru->ru_pw.pw_dir) != 0) {
+	if (res_user_enforced(ru, DIR) && strcmp(ru->ru_dir, ru->ru_pw->pw_dir) != 0) {
 		ru->ru_diff |= RES_USER_DIR;
 	}
 
-	if (res_user_enforced(ru, SHELL) && strcmp(ru->ru_shell, ru->ru_pw.pw_shell) != 0) {
+	if (res_user_enforced(ru, SHELL) && strcmp(ru->ru_shell, ru->ru_pw->pw_shell) != 0) {
 		ru->ru_diff |= RES_USER_SHELL;
 	}
 
@@ -57,11 +55,11 @@ static int _res_user_diff(struct res_user *ru)
 		ru->ru_diff |= RES_USER_MKHOME;
 	}
 
-	if (res_user_enforced(ru, INACT) && ru->ru_inact != ru->ru_sp.sp_inact) {
+	if (res_user_enforced(ru, INACT) && ru->ru_inact != ru->ru_sp->sp_inact) {
 		ru->ru_diff |= RES_USER_INACT;
 	}
 
-	if (res_user_enforced(ru, EXPIRE) && ru->ru_expire != ru->ru_sp.sp_expire) {
+	if (res_user_enforced(ru, EXPIRE) && ru->ru_expire != ru->ru_sp->sp_expire) {
 		ru->ru_diff |= RES_USER_EXPIRE;
 	}
 
@@ -83,40 +81,6 @@ static unsigned char _res_user_home_exists(struct res_user *ru)
 	}
 
 	return (S_ISDIR(st.st_mode) ? 1 : 0); /* 1 = true; 0 = false */
-}
-
-static int _res_user_stat_passwd(struct res_user *ru, struct pwdb *db)
-{
-	assert(ru);
-	assert(ru->ru_name);
-	assert(db);
-
-	struct passwd *pw;
-
-	pw = pwdb_get_by_name(db, ru->ru_name);
-	if (!pw) { return -1; }
-
-	/* pwentry may point to static storage cf. getpwnam(3); */
-	/* FIXME: this doesn't deep-copy string pointers in passwd structure */
-	memcpy(&ru->ru_pw, pw, sizeof(struct passwd));
-	return 0;
-}
-
-static int _res_user_stat_shadow(struct res_user *ru, struct spdb *db)
-{
-	assert(ru);
-	assert(ru->ru_name);
-	assert(db);
-
-	struct spwd *sp;
-
-	sp = spdb_get_by_name(db, ru->ru_pw.pw_name);
-	if (!sp) { return -1; }
-
-	/* spentry may point to static storage cf. getspnam(3); */
-	/* FIXME: this doesn't deep-copy string pointers in passwd structure */
-	memcpy(&ru->ru_sp, sp, sizeof(struct spwd));
-	return 0;
 }
 
 /*****************************************************************/
@@ -141,8 +105,8 @@ void res_user_init(struct res_user *ru)
 
 	ru->ru_lock = 1;
 
-	memset(&ru->ru_pw, 0, sizeof(struct passwd));
-	memset(&ru->ru_sp, 0, sizeof(struct spwd));
+	ru->ru_pw = NULL;
+	ru->ru_sp = NULL;
 
 	ru->ru_enf = RES_USER_NONE;
 	ru->ru_diff = RES_USER_NONE;
@@ -450,8 +414,9 @@ int res_user_stat(struct res_user *ru, struct pwdb *pwdb, struct spdb *spdb)
 	assert(pwdb);
 	assert(spdb);
 
-	if (_res_user_stat_passwd(ru, pwdb) != 0) { return -1; }
-	if (_res_user_stat_shadow(ru, spdb) != 0) { return -1; }
+	ru->ru_pw = pwdb_get_by_name(pwdb, ru->ru_name);
+	ru->ru_sp = spdb_get_by_name(spdb, ru->ru_name);
+	if (!ru->ru_pw || !ru->ru_sp) { return -1; }
 
 	return _res_user_diff(ru);
 }

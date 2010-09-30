@@ -6,63 +6,29 @@
 #include "mem.h"
 
 static int _res_group_diff(struct res_group *rg);
-static int _res_group_stat_group(struct res_group *rg, struct grdb *db);
-static int _res_group_stat_gshadow(struct res_group *rg, struct sgdb *db);
 
 /*****************************************************************/
 
 static int _res_group_diff(struct res_group *rg)
 {
 	assert(rg);
+	assert(rg->rg_grp);
+	assert(rg->rg_sg);
 
 	rg->rg_diff = RES_GROUP_NONE;
 
-	if (res_group_enforced(rg, NAME) && strcmp(rg->rg_name, rg->rg_grp.gr_name) != 0) {
+	if (res_group_enforced(rg, NAME) && strcmp(rg->rg_name, rg->rg_grp->gr_name) != 0) {
 		rg->rg_diff |= RES_GROUP_NAME;
 	}
 
-	if (res_group_enforced(rg, PASSWD) && strcmp(rg->rg_passwd, rg->rg_sg.sg_passwd) != 0) {
+	if (res_group_enforced(rg, PASSWD) && strcmp(rg->rg_passwd, rg->rg_sg->sg_passwd) != 0) {
 		rg->rg_diff |= RES_GROUP_PASSWD;
 	}
 
-	if (res_group_enforced(rg, GID) && rg->rg_gid != rg->rg_grp.gr_gid) {
+	if (res_group_enforced(rg, GID) && rg->rg_gid != rg->rg_grp->gr_gid) {
 		rg->rg_diff |= RES_GROUP_GID;
 	}
 
-	return 0;
-}
-
-static int _res_group_stat_group(struct res_group *rg, struct grdb *db)
-{
-	assert(rg);
-	assert(rg->rg_name);
-	assert(db);
-
-	struct group *gr;
-
-	gr = grdb_get_by_name(db, rg->rg_name);
-	if (!gr) { return -1; }
-
-	/* gr may point to static storage cf. getgrnam(3); */
-	/* FIXME: this doesn't deep-copy string pointers in group structure */
-	memcpy(&rg->rg_grp, gr, sizeof(struct group));
-	return 0;
-}
-
-static int _res_group_stat_gshadow(struct res_group *rg, struct sgdb *db)
-{
-	assert(rg);
-	assert(rg->rg_name);
-	assert(db);
-
-	struct sgrp *sg;
-
-	sg = sgdb_get_by_name(db, rg->rg_name);
-	if (!sg) { return -1; }
-
-	/* sg may point to static storage */
-	/* FIXME: this doesn't deep-copy string pointers in sgrp structure */
-	memcpy(&rg->rg_sg, sg, sizeof(struct sgrp));
 	return 0;
 }
 
@@ -76,8 +42,8 @@ void res_group_init(struct res_group *rg)
 	rg->rg_passwd = NULL;
 	rg->rg_gid = 0;
 
-	memset(&rg->rg_grp, 0, sizeof(struct group));
-	memset(&rg->rg_sg,  0, sizeof(struct sgrp));
+	rg->rg_grp = NULL;
+	rg->rg_sg  = NULL;
 
 	rg->rg_enf = RES_GROUP_NONE;
 	rg->rg_diff = RES_GROUP_NONE;
@@ -183,8 +149,9 @@ int res_group_stat(struct res_group *rg, struct grdb *grdb, struct sgdb *sgdb)
 	assert(grdb);
 	assert(sgdb);
 
-	if (_res_group_stat_group(rg, grdb)   != 0) { return -1; }
-	if (_res_group_stat_gshadow(rg, sgdb) != 0) { return -1; }
+	rg->rg_grp = grdb_get_by_name(grdb, rg->rg_name);
+	rg->rg_sg = sgdb_get_by_name(sgdb, rg->rg_name);
+	if (!rg->rg_grp || !rg->rg_sg) { return -1; }
 
 	return _res_group_diff(rg);
 }

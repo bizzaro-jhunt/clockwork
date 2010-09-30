@@ -25,6 +25,10 @@
 #define GRFILE     "test/data/group"
 #define GRFILE_NEW "test/data/group.new"
 
+/* test /etc/gshadow file */
+#define SGFILE     "test/data/gshadow"
+#define SGFILE_NEW "test/data/gshadow.new"
+
 /*********************************************************/
 
 static struct pwdb *open_passwd(const char *path)
@@ -72,6 +76,24 @@ static struct grdb *open_group(const char *path)
 	if (!db) {
 		if (snprintf(buf, 256, "Unable to open %s", path) < 0) {
 			perror("open_group / snprintf failed");
+		} else {
+			perror(buf);
+		}
+		exit(ABORT_CODE);
+	}
+
+	return db;
+}
+
+static struct sgdb *open_gshadow(const char *path)
+{
+	struct sgdb *db;
+	char buf[256];
+
+	db = sgdb_init(path);
+	if (!db) {
+		if (snprintf(buf, 256, "Unable to open %s", path) < 0) {
+			perror("open_gshadow / snprintf failed");
 		} else {
 			perror(buf);
 		}
@@ -156,6 +178,18 @@ static void assert_grdb_get(struct grdb *db, const char *name, gid_t gid)
 	snprintf(buf, 256, "Look up %s group by UID (%u)", name, gid);
 	assert_not_null(buf, gr);
 	assert_group(gr, name, gid);
+}
+
+static void assert_sgdb_get(struct sgdb *db, const char *name)
+{
+	char buf[256];
+	struct sgrp *gr;
+
+	gr = sgdb_get_by_name(db, name);
+
+	snprintf(buf, 256, "Look up %s sgrp by name", name);
+	assert_not_null(buf, gr);
+	assert_str_equals(buf, gr->sg_namp, name);
 }
 
 /*********************************************************/
@@ -527,6 +561,117 @@ void test_grdb_rm_head()
 	grdb_free(db);
 }
 
+void test_sgdb_init()
+{
+	struct sgdb *db;
+
+	test("SGDB: Initialize passwd database structure");
+	assert_null("fail to open non-existent file (" BAD_FILE ")", sgdb_init(BAD_FILE));
+	assert_null("fail to open bad path (" NOT_DIR ")", sgdb_init(NOT_DIR));
+	assert_not_null("open " SGFILE, db = sgdb_init(SGFILE));
+
+	sgdb_free(db);
+}
+
+void test_sgdb_get()
+{
+	struct sgdb *db;
+	struct sgrp *sp;
+
+	db = open_gshadow(SGFILE);
+
+	test("SGDB: Lookup of root (1st gshadow entry)");
+	assert_sgdb_get(db, "root");
+
+	test("SGDB: Lookup of service (last gshadow entry)");
+	assert_sgdb_get(db, "service");
+
+	test("SGDB: Lookup of user (middle of gshadow database)");
+	assert_sgdb_get(db, "sys");
+
+	sgdb_free(db);
+}
+
+void test_sgdb_add()
+{
+	struct sgdb *db;
+	struct sgrp sp, *ent;
+
+	db = open_gshadow(SGFILE);
+
+	memset(&sp, 0, sizeof(sp));
+	test("SGDB: Add an entry to gshadow database");
+	sp.sg_namp = "new_group";
+	sp.sg_passwd = "$6$pwhash";
+
+	assert_null("new_group entry doesn't already exist", sgdb_get_by_name(db, sp.sg_namp));
+	assert_true("creation of newg shadow entry", sgdb_add(db, &sp) == 0);
+	assert_not_null("new entry exists in memory", sgdb_get_by_name(db, sp.sg_namp));
+	assert_true("save gshadow database to " SGFILE_NEW, sgdb_write(db, SGFILE_NEW) == 0);
+
+	sgdb_free(db);
+	db = open_gshadow(SGFILE_NEW);
+
+	assert_not_null("re-read net entry from " SGFILE_NEW, ent = sgdb_get_by_name(db, sp.sg_namp));
+	assert_str_equals("  check equality of sg_namp",   "new_group",  ent->sg_namp);
+	assert_str_equals("  check equality of sg_passwd", "$6$pwhash", ent->sg_passwd);
+
+	if (unlink(SGFILE_NEW) == -1) {
+		perror("Unable to remove " SGFILE_NEW);
+		exit(ABORT_CODE);
+	}
+
+	sgdb_free(db);
+}
+
+void test_sgdb_rm()
+{
+	struct sgdb *db;
+	struct sgrp *sp;
+	const char *rm_user = "sys";
+
+	db = open_gshadow(SGFILE);
+
+	test("SGDB: Remove an entry from gshadow database");
+	assert_not_null("account to be removed exists", sp = sgdb_get_by_name(db, rm_user));
+	assert_true("removal of account", sgdb_rm(db, sp) == 0);
+	assert_null("removed entry does not exist in memory", sgdb_get_by_name(db, rm_user));
+	assert_true("save gshadow database to " SGFILE_NEW, sgdb_write(db, SGFILE_NEW) == 0);
+
+	sgdb_free(db);
+	db = open_gshadow(SGFILE_NEW);
+
+	assert_null("removed entry does not exist in " PWFILE_NEW, sgdb_get_by_name(db, rm_user));
+
+	sgdb_free(db);
+}
+
+void test_sgdb_rm_head()
+{
+	struct sgdb *db;
+	struct sgrp *sp;
+	char *name;
+
+	db = open_gshadow(SGFILE);
+
+	test("SGDB: Removal of list head (first entry)");
+
+	sp = db->sgrp;
+	name = strdup(sp->sg_namp);
+
+	assert_true("removal of first account in list", sgdb_rm(db, sp) == 0);
+	assert_null("removed entry does not exist in memory", sgdb_get_by_name(db, name));
+	assert_true("save passwd database to " SGFILE_NEW, sgdb_write(db, SGFILE_NEW) == 0);
+
+	sgdb_free(db);
+	db = open_gshadow(SGFILE_NEW);
+
+	assert_null("removed entry does not exist in " SGFILE_NEW, sgdb_get_by_name(db, name));
+
+	free(name);
+	sgdb_free(db);
+}
+
 void test_suite_userdb() {
 
 	/* passwd db tests */
@@ -549,4 +694,11 @@ void test_suite_userdb() {
 	test_grdb_add();
 	test_grdb_rm();
 	test_grdb_rm_head();
+
+	/* gshadow db tests */
+	test_sgdb_init();
+	test_sgdb_get();
+	test_sgdb_add();
+	test_sgdb_rm();
+	test_sgdb_rm_head();
 }

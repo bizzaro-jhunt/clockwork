@@ -7,6 +7,7 @@
 #include <pwd.h>
 #include <shadow.h>
 #include <grp.h>
+#include <gshadow.h>
 
 struct pwdb;
 struct spdb;
@@ -25,6 +26,11 @@ struct spdb {
 struct grdb {
 	struct grdb  *next;
 	struct group *group;
+};
+
+struct sgdb {
+	struct sgdb *next;
+	struct sgrp *sgrp;
 };
 
 struct pwdb* pwdb_init(const char *path);
@@ -50,6 +56,11 @@ int grdb_rm(struct grdb *db, struct group *g);
 int grdb_write(struct grdb *db, const char *file);
 void grdb_free(struct grdb *db);
 
-
+struct sgdb* sgdb_init(const char *path);
+struct sgrp* sgdb_get_by_name(struct sgdb *db, const char *name);
+int sgdb_add(struct sgdb *db, struct sgrp *g);
+int sgdb_rm(struct sgdb *db, struct sgrp *g);
+int sgdb_write(struct sgdb *db, const char *file);
+void sgdb_free(struct sgdb *db);
 
 #endif

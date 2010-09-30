@@ -28,6 +28,8 @@ setup_res_user() {
 setup_userdb() {
 	rm -f test/tmp/passwd.new
 	rm -f test/tmp/shadow.new
+	rm -f test/tmp/group.new
+	rm -f test/tmp/gshadow.new
 }
 
 ######################################################

@@ -24,6 +24,11 @@ static struct grdb* _grdb_fgetgrent(FILE *input);
 static void _group_free(struct group *group);
 static void _grdb_entry_free(struct grdb *entry);
 
+static struct sgdb* _sgdb_entry(struct sgrp *sgrp);
+static struct sgdb* _sgdb_fgetgrent(FILE *input);
+static void _gshadow_free(struct sgrp *sgrp);
+static void _sgdb_entry_free(struct sgdb *entry);
+
 /**********************************************************/
 
 static struct pwdb* _pwdb_entry(struct passwd *passwd)
@@ -178,6 +183,54 @@ static void _grdb_entry_free(struct grdb *entry)
 {
 	if (!entry) { return; }
 	_group_free(entry->group);
+	free(entry);
+}
+
+static struct sgdb* _sgdb_entry(struct sgrp *sgrp)
+{
+	assert(sgrp);
+
+	struct sgdb *ent = malloc(sizeof(struct sgdb));
+	if (!ent) { return NULL; }
+
+	ent->sgrp = malloc(sizeof(struct sgrp));
+	if (!ent->sgrp) {
+		free(ent);
+		return NULL;
+	}
+
+	ent->next = NULL;
+
+	ent->sgrp->sg_namp   = strdup(sgrp->sg_namp);
+	ent->sgrp->sg_passwd = strdup(sgrp->sg_passwd);
+	/* FIXME: support for sg_mem */
+	/* FIXME: support for sg_adm */
+
+	return ent;
+}
+
+static struct sgdb* _sgdb_fgetsgent(FILE *input)
+{
+	assert(input);
+
+	struct sgrp *sgrp = fgetsgent(input);
+	if (!sgrp) { return NULL; }
+	return _sgdb_entry(sgrp);
+}
+
+static void _gshadow_free(struct sgrp *sgrp)
+{
+	if (!sgrp) { return; }
+	xfree(sgrp->sg_namp);
+	xfree(sgrp->sg_passwd);
+	/* FIXME: sg_mem support */
+	/* FIXME: sg_adm support */
+}
+
+static void _sgdb_entry_free(struct sgdb *entry)
+{
+	if (!entry) { return; }
+	_gshadow_free(entry->sgrp);
 	free(entry);
 }
 
@@ -540,6 +593,119 @@ void grdb_free(struct grdb *db)
 		cur = ent->next;
 		_grdb_entry_free(ent);
 		ent = cur;
+	}
+}
+
+/**********************************************************/
+
+struct sgdb* sgdb_init(const char *path)
+{
+	struct sgdb *db, *cur, *entry;
+	FILE *input;
+
+	input = fopen(path, "r");
+	if (!input) {
+		return NULL;
+	}
+
+	db = cur = entry = NULL;
+	errno = 0;
+	while (entry = _sgdb_fgetsgent(input)) {
+		if (!db) {
+			db = entry;
+		} else {
+			cur->next = entry;
+		}
+
+		cur = entry;
+	}
+
+	fclose(input);
+
+	return db;
+}
+
+struct sgrp* sgdb_get_by_name(struct sgdb *db, const char *name)
+{
+	assert(name);
+
+	for (; db; db = db->next) {
+		if (db->sgrp && strcmp(db->sgrp->sg_namp, name) == 0) {
+			return db->sgrp;
+		}
+	}
+
+	return NULL;
+}
+
+int sgdb_add(struct sgdb *db, struct sgrp *g)
+{
+	struct sgdb *ent;
+
+	if (!db || !g) { return -1; }
+
+	for (; db; ent = db, db = db->next) {
+		if (db->sgrp && strcmp(db->sgrp->sg_namp, g->sg_namp) == 0) {
+			/* how to signal 'already exists'? */
+			return -1;
+		}
+	}
+	ent->next = _sgdb_entry(g);
+
+	return 0;
+}
+
+int sgdb_rm(struct sgdb *db, struct sgrp *g)
+{
+	struct sgdb *ent = NULL;
+
+	if (!db || !g) { return -1; }
+
+	for (; db; ent = db, db = db->next) {
+		if (db->sgrp == g) {
+			if (ent) {
+				ent->next = db->next;
+				_sgdb_entry_free(db);
+				return 0;
+			} else {
+				/* special case for list head removal */
+				_gshadow_free(db->sgrp);
+				db->sgrp = NULL;
+				return 0;
+			}
+		}
+	}
+	return -1;
+}
+
+int sgdb_write(struct sgdb *db, const char *file)
+{
+	FILE *output;
+
+	output = fopen(file, "w");
+	if (!output) { return -1; }
+
+	for (; db; db = db->next) {
+		if (db->sgrp && putsgent(db->sgrp, output) == -1) {
+			fclose(output);
+			return -1;
+		}
+	}
+	fclose(output);
+	return 0;
+}
+
+void sgdb_free(struct sgdb *db)
+{
+	struct sgdb *cur;
+	struct sgdb *entry = db;
+
+	if (!db) { return; }
+
+	while (entry) {
+		cur = entry->next;
+		_sgdb_entry_free(entry);
+		entry = cur;
 	}
 }
 

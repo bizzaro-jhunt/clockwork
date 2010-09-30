@@ -8,7 +8,6 @@ res_user::
   user account remediation
 
 res_group::
-  group account remediation
   sg_adm support (Group Administrator List)
   sg_mem support (Group Member List)
 

@@ -43,5 +43,6 @@ int res_group_unset_gid(struct res_group *rg);
 void res_group_merge(struct res_group *rg1, struct res_group *rg2);
 
 int res_group_stat(struct res_group *rg, struct grdb *grdb, struct sgdb *sgdb);
+int res_group_remediate(struct res_group *rg, struct grdb *grdb, struct sgdb *sgdb);
 
 #endif

@@ -151,7 +151,38 @@ int res_group_stat(struct res_group *rg, struct grdb *grdb, struct sgdb *sgdb)
 
 	rg->rg_grp = grdb_get_by_name(grdb, rg->rg_name);
 	rg->rg_sg = sgdb_get_by_name(sgdb, rg->rg_name);
-	if (!rg->rg_grp || !rg->rg_sg) { return -1; }
+	if (!rg->rg_grp || !rg->rg_sg) { /* new group */
+		rg->rg_diff = rg->rg_enf;
+		return 0;
+	}
 
 	return _res_group_diff(rg);
+}
+
+int res_group_remediate(struct res_group *rg, struct grdb *grdb, struct sgdb *sgdb)
+{
+	assert(rg);
+	assert(grdb);
+	assert(sgdb);
+
+	if (!rg->rg_grp) {
+		rg->rg_grp = grdb_new_entry(grdb, rg->rg_name);
+		if (!rg->rg_grp) { return -1; }
+	}
+
+	if (!rg->rg_sg) {
+		rg->rg_sg = sgdb_new_entry(sgdb, rg->rg_name);
+		if (!rg->rg_sg) { return -1; }
+	}
+
+	if (res_group_enforced(rg, PASSWD)) {
+		rg->rg_grp->gr_passwd = strdup("x");
+		rg->rg_sg->sg_passwd = strdup(rg->rg_passwd);
+	}
+
+	if (res_group_enforced(rg, GID)) {
+		rg->rg_grp->gr_gid = rg->rg_gid;
+	}
+
+	return 0;
 }

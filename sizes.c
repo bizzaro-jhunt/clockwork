@@ -27,6 +27,12 @@ int main(int argc, char **arg)
 	SIZEOF(sha1, "           ");
 	printf("\n");
 
+	SIZEOF(struct passwd, "     ");
+	SIZEOF(struct spwd, "       ");
+	SIZEOF(struct group, "      ");
+	SIZEOF(struct sgrp, "       ");
+	printf("\n");
+
 	SIZEOF(struct res_file, "   ");
 	SIZEOF(struct res_group, "  ");
 	SIZEOF(struct res_user, "   ");

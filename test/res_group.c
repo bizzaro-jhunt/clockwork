@@ -98,6 +98,8 @@ void test_res_group_diffstat_remediation()
 	assert_int_equals("rg_gid is updated properly", rg.rg_grp->gr_gid, 6000);
 
 	res_group_free(&rg);
+	grdb_free(grdb);
+	sgdb_free(sgdb);
 }
 
 void test_res_group_remediate_new()
@@ -120,6 +122,7 @@ void test_res_group_remediate_new()
 	sgdb = sgdb_init("test/data/gshadow");
 	if (!sgdb) {
 		assert_fail("Unable to init gshadow");
+		grdb_free(grdb);
 		return;
 	}
 
@@ -132,6 +135,8 @@ void test_res_group_remediate_new()
 	assert_int_equals("rg_gid is updated properly", rg.rg_grp->gr_gid, 6010);
 
 	res_group_free(&rg);
+	grdb_free(grdb);
+	sgdb_free(sgdb);
 }
 
 void test_suite_res_group() {

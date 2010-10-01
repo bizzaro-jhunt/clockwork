@@ -150,6 +150,8 @@ void test_res_file_remedy()
 	assert_int_equals("Post-remediation: file owner UID 42", st.st_uid, 42);
 	assert_int_equals("Post-remediation: file group GID 42", st.st_gid, 42);
 	assert_int_equals("Post-remediation: file permissions are 0754", st.st_mode & 07777, 0754);
+
+	res_file_free(&rf);
 }
 
 void test_suite_res_file()

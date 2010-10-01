@@ -164,6 +164,7 @@ static void _group_free(struct group *group)
 	xfree(group->gr_name);
 	xfree(group->gr_passwd);
 	/* FIXME: gr_mem support */
+	xfree(group);
 }
 
 static void _grdb_entry_free(struct grdb *entry)
@@ -206,6 +207,7 @@ static void _gshadow_free(struct sgrp *sgrp)
 	xfree(sgrp->sg_passwd);
 	/* FIXME: sg_mem support */
 	/* FIXME: sg_adm support */
+	xfree(sgrp);
 }
 
 static void _sgdb_entry_free(struct sgdb *entry)
@@ -293,7 +295,9 @@ struct passwd* pwdb_new_entry(struct pwdb *db, const char *name)
 		;
 
 	db->next = _pwdb_entry(pw);
-	return pw;
+	free(pw);
+
+	return (db->next ? db->next->passwd : NULL);
 }
 
 int pwdb_add(struct pwdb *db, struct passwd *pw)
@@ -433,7 +437,9 @@ struct spwd* spdb_new_entry(struct spdb *db, const char *name)
 		;
 
 	db->next = _spdb_entry(sp);
-	return sp;
+	free(sp);
+
+	return (db->next ? db->next->spwd : NULL);
 }
 
 int spdb_add(struct spdb *db, struct spwd *sp)
@@ -567,7 +573,7 @@ struct group* grdb_new_entry(struct grdb *db, const char *name)
 
 	if (!db) { return NULL; }
 
-	gr = calloc(1, sizeof(struct group));
+	gr = malloc(sizeof(struct group));
 	if (!gr) { return NULL; }
 
 	/* shallow pointers are ok; _grdb_entry strdup's them */
@@ -579,7 +585,9 @@ struct group* grdb_new_entry(struct grdb *db, const char *name)
 		;
 
 	db->next = _grdb_entry(gr);
-	return gr;
+	free(gr);
+
+	return (db->next ? db->next->group : NULL);
 }
 
 int grdb_add(struct grdb *db, struct group *g)
@@ -705,14 +713,17 @@ struct sgrp* sgdb_new_entry(struct sgdb *db, const char *name)
 	sg = calloc(1, sizeof(struct sgrp));
 	if (!sg) { return NULL; }
 
-	/* shallow pointers are ok; _grdb_entry strdup's them */
-	sg->sg_namp = name;
+	/* shallow pointers are ok; _sgdb_entry strdup's them */
+	sg->sg_namp = xstrdup(name);
 
 	for (; db->next; db = db->next)
 		;
 
 	db->next = _sgdb_entry(sg);
-	return sg;
+	xfree(sg->sg_namp);
+	free(sg);
+
+	return (db->next ? db->next->sgrp : NULL);
 }
 
 int sgdb_add(struct sgdb *db, struct sgrp *g)
@@ -774,15 +785,12 @@ int sgdb_write(struct sgdb *db, const char *file)
 
 void sgdb_free(struct sgdb *db)
 {
-	struct sgdb *cur;
-	struct sgdb *entry = db;
+	struct sgdb *ent;
 
-	if (!db) { return; }
-
-	while (entry) {
-		cur = entry->next;
-		_sgdb_entry_free(entry);
-		entry = cur;
+	while (db) {
+		ent = db->next;
+		_sgdb_entry_free(db);
+		db = ent;
 	}
 }
 

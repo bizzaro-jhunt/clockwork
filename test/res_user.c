@@ -180,6 +180,8 @@ void test_res_user_diffstat_remediation()
 	assert_str_equals("sp_namp is still set properly", ru.ru_sp->sp_namp, "svc");
 
 	res_user_free(&ru);
+	pwdb_free(pwdb);
+	spdb_free(spdb);
 }
 
 void test_res_user_remediation_new()
@@ -224,6 +226,8 @@ void test_res_user_remediation_new()
 	assert_str_equals("sp_namp is set properly", ru.ru_sp->sp_namp, "new_user");
 
 	res_user_free(&ru);
+	pwdb_free(pwdb);
+	spdb_free(spdb);
 }
 
 void test_suite_res_user()

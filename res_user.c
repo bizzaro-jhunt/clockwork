@@ -441,7 +441,10 @@ int res_user_remediate(struct res_user *ru, struct pwdb *pwdb, struct spdb *spdb
 	}
 
 	if (res_user_enforced(ru, PASSWD)) {
+		xfree(ru->ru_pw->pw_passwd);
 		ru->ru_pw->pw_passwd = strdup("x");
+
+		xfree(ru->ru_sp->sp_pwdp);
 		ru->ru_sp->sp_pwdp = strdup(ru->ru_passwd);
 	}
 
@@ -454,14 +457,17 @@ int res_user_remediate(struct res_user *ru, struct pwdb *pwdb, struct spdb *spdb
 	}
 
 	if (res_user_enforced(ru, GECOS)) {
+		xfree(ru->ru_pw->pw_gecos);
 		ru->ru_pw->pw_gecos = strdup(ru->ru_gecos);
 	}
 
 	if (res_user_enforced(ru, DIR)) {
+		xfree(ru->ru_pw->pw_dir);
 		ru->ru_pw->pw_dir = strdup(ru->ru_dir);
 	}
 
 	if (res_user_enforced(ru, SHELL)) {
+		xfree(ru->ru_pw->pw_shell);
 		ru->ru_pw->pw_shell = strdup(ru->ru_shell);
 	}
 

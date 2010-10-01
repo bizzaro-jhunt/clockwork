@@ -626,6 +626,40 @@ void test_grdb_new_entry()
 	grdb_free(db);
 }
 
+void test_grdb_gr_mem_support()
+{
+	struct grdb *db;
+	struct group *gr;
+	char **gr_mem;
+	char *memb;
+
+	db = open_group(GRFILE);
+
+	test("GRDB: gr_mem (members array) support");
+
+	gr = grdb_get_by_name(db, "members");
+	assert_not_null("members group exists in groups db", gr);
+	assert_not_null("gr_mem array is not null", gr->gr_mem);
+	gr_mem = gr->gr_mem;
+
+	memb = *(gr_mem++);
+	assert_not_null("gr_mem[0] is not null", memb);
+	assert_str_equals("gr_mem[0] is the account1 user", memb, "account1");
+
+	memb = *(gr_mem++);
+	assert_not_null("gr_mem[1] is not null", memb);
+	assert_str_equals("gr_mem[1] is the account2 user", memb, "account2");
+
+	memb = *(gr_mem++);
+	assert_not_null("gr_mem[2] is not null", memb);
+	assert_str_equals("gr_mem[2] is the account3 user", memb, "account3");
+
+	memb = *(gr_mem++);
+	assert_null("no more gr_mem entries", memb);
+
+	grdb_free(db);
+}
+
 void test_sgdb_init()
 {
 	struct sgdb *db;
@@ -779,6 +813,7 @@ void test_suite_userdb() {
 	test_grdb_rm();
 	test_grdb_rm_head();
 	test_grdb_new_entry();
+	test_grdb_gr_mem_support();
 
 	/* gshadow db tests */
 	test_sgdb_init();

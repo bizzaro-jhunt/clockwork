@@ -143,8 +143,7 @@ static struct grdb* _grdb_entry(struct group *group)
 	ent->group->gr_name   = xstrdup(group->gr_name);
 	ent->group->gr_gid    = group->gr_gid;
 	ent->group->gr_passwd = xstrdup(group->gr_passwd);
-	/* FIXME: support for gr_mem */
-	ent->group->gr_mem = NULL;
+	ent->group->gr_mem    = xarrdup(group->gr_mem);
 
 	return ent;
 }
@@ -160,10 +159,16 @@ static struct grdb* _grdb_fgetgrent(FILE *input)
 
 static void _group_free(struct group *group)
 {
+	char **a; /* pointer for gr_mem array traversal */
+
 	if (!group) { return; }
 	xfree(group->gr_name);
 	xfree(group->gr_passwd);
-	/* FIXME: gr_mem support */
+
+	/* free the gr_mem array */
+	for (a = group->gr_mem; a && *a; a++) { xfree(*a); }
+	xfree(group->gr_mem);
+
 	xfree(group);
 }
 
@@ -283,7 +288,7 @@ struct passwd* pwdb_new_entry(struct pwdb *db, const char *name)
 	if (!pw) { return NULL; }
 
 	/* shallow pointers are ok; _pwdb_entry strdup's them */
-	pw->pw_name = name;
+	pw->pw_name = (char *)name;
 	pw->pw_passwd = "x";
 	pw->pw_uid = -1;
 	pw->pw_gid = -1;
@@ -425,7 +430,7 @@ struct spwd* spdb_new_entry(struct spdb *db, const char *name)
 	if (!sp) { return NULL; }
 
 	/* shallow pointers are ok; _spdb_entry strdup's them */
-	sp->sp_namp = name;
+	sp->sp_namp = (char *)name;
 	sp->sp_pwdp = "!";
 	sp->sp_min = 0;
 	sp->sp_max = 99999;
@@ -577,9 +582,10 @@ struct group* grdb_new_entry(struct grdb *db, const char *name)
 	if (!gr) { return NULL; }
 
 	/* shallow pointers are ok; _grdb_entry strdup's them */
-	gr->gr_name = name;
+	gr->gr_name = (char *)name;
 	gr->gr_passwd = "x";
 	gr->gr_gid = -1;
+	gr->gr_mem = NULL;
 
 	for (; db->next; db = db->next)
 		;

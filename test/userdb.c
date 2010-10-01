@@ -525,7 +525,7 @@ void test_grdb_add()
 	db = open_group(GRFILE);
 
 	memset(&gr, 0, sizeof(gr));
-	test("PWBD: Add an entry to group database");
+	test("GRDB: Add an entry to group database");
 	gr.gr_name = "new_group";
 	gr.gr_gid = 500;
 

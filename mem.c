@@ -13,3 +13,22 @@ void __xfree(void **ptr2ptr)
 char* xstrdup(const char *s) {
 	return (s ? strdup(s) : NULL);
 }
+
+char** xarrdup(char **a) {
+	char **n, **t;
+
+	if (!a) { return NULL; }
+	for (t = a; *t; t++)
+		;
+
+	n = calloc(t - a + 1, sizeof(char*));
+	if (!n) {
+		return NULL;
+	}
+
+	for (t = n; *a; a++) {
+		*t++ = xstrdup(*a);
+	}
+
+	return n;
+}

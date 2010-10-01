@@ -298,7 +298,7 @@ int res_file_remediate(struct res_file *rf)
 		assert(rf->rf_rpath);
 		//printf("  - Remediating file checksums by copy (%s -> %s)\n", rf->rf_rpath, rf->rf_lpath);
 
-		local_fd = open(rf->rf_lpath, O_CREAT | O_RDWR | O_TRUNC);
+		local_fd = open(rf->rf_lpath, O_CREAT | O_RDWR | O_TRUNC, rf->rf_mode);
 		if (local_fd == -1) { return -1; }
 
 		remote_fd = open(rf->rf_rpath, O_RDONLY);

@@ -788,6 +788,72 @@ void test_sgdb_new_entry()
 	sgdb_free(db);
 }
 
+void test_sgdb_sg_mem_support()
+{
+	struct sgdb *db;
+	struct sgrp *sg;
+	char *name = "members";
+	char **sg_mem;
+	char *memb;
+
+	db = open_gshadow(SGFILE);
+
+	test("SGDB: sg_mem (membership array) support");
+
+	sg = sgdb_get_by_name(db, name);
+	assert_not_null("members group exists in gshadow db", sg);
+	assert_not_null("sg_mem array is not null", sg->sg_mem);
+	sg_mem = sg->sg_mem;
+
+	memb = *(sg_mem++);
+	assert_not_null("sg_mem[0] is not null", memb);
+	assert_str_equals("sg_mem[0] is the account1 user", memb, "account1");
+
+	memb = *(sg_mem++);
+	assert_not_null("sg_mem[1] is not null", memb);
+	assert_str_equals("sg_mem[1] is the account2 user", memb, "account2");
+
+	memb = *(sg_mem++);
+	assert_not_null("sg_mem[2] is not null", memb);
+	assert_str_equals("sg_mem[2] is the account3 user", memb, "account3");
+
+	memb = *(sg_mem++);
+	assert_null("no more sg_mem entries", memb);
+
+	sgdb_free(db);
+}
+
+void test_sgdb_sg_adm_support()
+{
+	struct sgdb *db;
+	struct sgrp *sg;
+	char *name = "members";
+	char **sg_adm;
+	char *admin;
+
+	db = open_gshadow(SGFILE);
+
+	test("SGDB: sg_adm (administrators array) support");
+
+	sg = sgdb_get_by_name(db, name);
+	assert_not_null("members group exists in gshadow db", sg);
+	assert_not_null("sg_adm array is not null", sg->sg_adm);
+	sg_adm = sg->sg_adm;
+
+	admin = *(sg_adm++);
+	assert_not_null("sg_adm[0] is not null", admin);
+	assert_str_equals("sg_adm[0] is the admin1 user", admin, "admin1");
+
+	admin = *(sg_adm++);
+	assert_not_null("sg_adm[1] is not null", admin);
+	assert_str_equals("sg_adm[1] is the admin2 user", admin, "admin2");
+
+	admin = *(sg_adm++);
+	assert_null("no more sg_adm entries", admin);
+
+	sgdb_free(db);
+}
+
 void test_suite_userdb() {
 
 	/* passwd db tests */
@@ -822,4 +888,6 @@ void test_suite_userdb() {
 	test_sgdb_rm();
 	test_sgdb_rm_head();
 	test_sgdb_new_entry();
+	test_sgdb_sg_mem_support();
+	test_sgdb_sg_adm_support();
 }

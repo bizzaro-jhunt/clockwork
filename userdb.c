@@ -188,10 +188,8 @@ static struct sgdb* _sgdb_entry(struct sgrp *sgrp)
 
 	ent->sgrp->sg_namp   = xstrdup(sgrp->sg_namp);
 	ent->sgrp->sg_passwd = xstrdup(sgrp->sg_passwd);
-	/* FIXME: support for sg_mem */
-	ent->sgrp->sg_mem = NULL;
-	/* FIXME: support for sg_adm */
-	ent->sgrp->sg_adm = NULL;
+	ent->sgrp->sg_mem    = xarrdup(sgrp->sg_mem);
+	ent->sgrp->sg_adm    = xarrdup(sgrp->sg_adm);
 
 	return ent;
 }
@@ -207,11 +205,20 @@ static struct sgdb* _sgdb_fgetsgent(FILE *input)
 
 static void _gshadow_free(struct sgrp *sgrp)
 {
+	char **a;  /* pointer for sg_mem and sg_adm array traversal */
+
 	if (!sgrp) { return; }
 	xfree(sgrp->sg_namp);
 	xfree(sgrp->sg_passwd);
-	/* FIXME: sg_mem support */
-	/* FIXME: sg_adm support */
+
+	/* free the sg_mem array */
+	for (a = sgrp->sg_mem; a && *a; a++) { xfree(*a); }
+	xfree(sgrp->sg_mem);
+
+	/* free the sg_adm array */
+	for (a = sgrp->sg_adm; a && *a; a++) { xfree(*a); }
+	xfree(sgrp->sg_adm);
+
 	xfree(sgrp);
 }
 

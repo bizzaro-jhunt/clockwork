@@ -3,8 +3,6 @@ Continually Growing List of Things To Do
 
 userdb::
   File locking (shadow)
-  sg_adm support (Group Administrator List)
-  sg_mem support (Group Member List)
 
 res_group::
   gr_mem support (Group Member List)

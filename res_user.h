@@ -8,15 +8,15 @@
 
 #include "userdb.h"
 
-#define RES_USER_NONE   0000
-#define RES_USER_NAME   0001
-#define RES_USER_PASSWD 0002
-#define RES_USER_UID    0004
-#define RES_USER_GID    0010
-#define RES_USER_GECOS  0020
-#define RES_USER_DIR    0040
-#define RES_USER_SHELL  0100
-#define RES_USER_MKHOME 0200
+#define RES_USER_NONE          0
+#define RES_USER_NAME    1 <<  0
+#define RES_USER_PASSWD  1 <<  1
+#define RES_USER_UID     1 <<  2
+#define RES_USER_GID     1 <<  3
+#define RES_USER_GECOS   1 <<  4
+#define RES_USER_DIR     1 <<  5
+#define RES_USER_SHELL   1 <<  6
+#define RES_USER_MKHOME  1 <<  7
 #define RES_USER_PWMIN   1 <<  8
 #define RES_USER_PWMAX   1 <<  9
 #define RES_USER_PWWARN  1 << 10
@@ -42,11 +42,9 @@ struct res_user {
 	unsigned char  ru_lock;    /* 1 - lock account; 0 - unlock */
 
 	/* These members match struct spwd; cf. getspnam(3) */
-	/*
-	long           ru_min;
-	long           ru_max;
-	long           ru_warn;
-	*/
+	long           ru_pwmin;   /* minimum days between password changes */
+	long           ru_pwmax;   /* maximum password age (in days) */
+	long           ru_pwwarn;  /* days to warn user about impending change */
 	long           ru_inact;   /* disable account (days after pw expires */
 	long           ru_expire;  /* account expiration (days since 1/1/70) */
 
@@ -86,6 +84,15 @@ int res_user_unset_shell(struct res_user *ru);
 
 int res_user_set_makehome(struct res_user *ru, unsigned char mkhome, const char *skel);
 int res_user_unset_makehome(struct res_user *ru);
+
+int res_user_set_pwmin(struct res_user *ru, long days);
+int res_user_unset_pwmin(struct res_user *ru);
+
+int res_user_set_pwmax(struct res_user *ru, long days);
+int res_user_unset_pwmax(struct res_user *ru);
+
+int res_user_set_pwwarn(struct res_user *ru, long days);
+int res_user_unset_pwwarn(struct res_user *ru);
 
 int res_user_set_inact(struct res_user *ru, long days);
 int res_user_unset_inact(struct res_user *ru);

@@ -55,6 +55,18 @@ static int _res_user_diff(struct res_user *ru)
 		ru->ru_diff |= RES_USER_MKHOME;
 	}
 
+	if (res_user_enforced(ru, PWMIN) && ru->ru_pwmin != ru->ru_sp->sp_min) {
+		ru->ru_diff |= RES_USER_PWMIN;
+	}
+
+	if (res_user_enforced(ru, PWMAX) && ru->ru_pwmax != ru->ru_sp->sp_max) {
+		ru->ru_diff |= RES_USER_PWMAX;
+	}
+
+	if (res_user_enforced(ru, PWWARN) && ru->ru_pwwarn != ru->ru_sp->sp_warn) {
+		ru->ru_diff |= RES_USER_PWWARN;
+	}
+
 	if (res_user_enforced(ru, INACT) && ru->ru_inact != ru->ru_sp->sp_inact) {
 		ru->ru_diff |= RES_USER_INACT;
 	}
@@ -283,6 +295,60 @@ int res_user_unset_makehome(struct res_user *ru)
 	return 0;
 }
 
+int res_user_set_pwmin(struct res_user *ru, long days)
+{
+	assert(ru);
+
+	ru->ru_pwmin = days;
+
+	ru->ru_enf |= RES_USER_PWMIN;
+	return 0;
+}
+
+int res_user_unset_pwmin(struct res_user *ru)
+{
+	assert(ru);
+
+	ru->ru_enf ^= RES_USER_PWMIN;
+	return 0;
+}
+
+int res_user_set_pwmax(struct res_user *ru, long days)
+{
+	assert(ru);
+
+	ru->ru_pwmax = days;
+
+	ru->ru_enf |= RES_USER_PWMAX;
+	return 0;
+}
+
+int res_user_unset_pwmax(struct res_user *ru)
+{
+	assert(ru);
+
+	ru->ru_enf ^= RES_USER_PWMAX;
+	return 0;
+}
+
+int res_user_set_pwwarn(struct res_user *ru, long days)
+{
+	assert(ru);
+
+	ru->ru_pwwarn = days;
+
+	ru->ru_enf |= RES_USER_PWWARN;
+	return 0;
+}
+
+int res_user_unset_pwwarn(struct res_user *ru)
+{
+	assert(ru);
+
+	ru->ru_enf ^= RES_USER_PWWARN;
+	return 0;
+}
+
 int res_user_set_inact(struct res_user *ru, long days)
 {
 	assert(ru);
@@ -392,6 +458,21 @@ void res_user_merge(struct res_user *ru1, struct res_user *ru2)
 		res_user_set_makehome(ru1, ru2->ru_mkhome, ru2->ru_skel);
 	}
 
+	if ( res_user_enforced(ru2, PWMIN) &&
+	    !res_user_enforced(ru1, PWMIN)) {
+		res_user_set_pwmin(ru1, ru2->ru_pwmin);
+	}
+
+	if ( res_user_enforced(ru2, PWMAX) &&
+	    !res_user_enforced(ru1, PWMAX)) {
+		res_user_set_pwmax(ru1, ru2->ru_pwmax);
+	}
+
+	if ( res_user_enforced(ru2, PWWARN) &&
+	    !res_user_enforced(ru1, PWWARN)) {
+		res_user_set_pwwarn(ru1, ru2->ru_pwwarn);
+	}
+
 	if ( res_user_enforced(ru2, INACT) &&
 	    !res_user_enforced(ru1, INACT)) {
 		res_user_set_inact(ru1, ru2->ru_inact);
@@ -469,6 +550,26 @@ int res_user_remediate(struct res_user *ru, struct pwdb *pwdb, struct spdb *spdb
 	if (res_user_enforced(ru, SHELL)) {
 		xfree(ru->ru_pw->pw_shell);
 		ru->ru_pw->pw_shell = strdup(ru->ru_shell);
+	}
+
+	if (res_user_enforced(ru, PWMIN)) {
+		ru->ru_sp->sp_min = ru->ru_pwmin;
+	}
+
+	if (res_user_enforced(ru, PWMAX)) {
+		ru->ru_sp->sp_max = ru->ru_pwmax;
+	}
+
+	if (res_user_enforced(ru, PWWARN)) {
+		ru->ru_sp->sp_warn = ru->ru_pwwarn;
+	}
+
+	if (res_user_enforced(ru, INACT)) {
+		ru->ru_sp->sp_inact = ru->ru_inact;
+	}
+
+	if (res_user_enforced(ru, EXPIRE)) {
+		ru->ru_sp->sp_expire = ru->ru_expire;
 	}
 
 	return 0;

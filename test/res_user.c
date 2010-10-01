@@ -66,6 +66,15 @@ void test_res_user_enforcement()
 	assert_int_equals("MKHOME re-re-set properly", ru.ru_mkhome, 0);
 	assert_null("SKEL is NULL", ru.ru_skel);
 
+	test("RES_USER: PWMIN enforcement");
+	ASSERT_ENFORCEMENT(&ru,pwmin,PWMIN,int,1,7);
+
+	test("RES_USER: PWMAX enforcement");
+	ASSERT_ENFORCEMENT(&ru,pwmax,PWMAX,int,45,99999);
+
+	test("RES_USER: PWWARN enforcement");
+	ASSERT_ENFORCEMENT(&ru,pwwarn,PWWARN,int,2,9);
+
 	test("RES_USER: INACT enforcement");
 	ASSERT_ENFORCEMENT(&ru,inact,INACT,int,45,999);
 
@@ -92,21 +101,17 @@ void test_res_user_merge()
 	res_user_set_gid(&ru1, 321);
 	res_user_set_name(&ru2, "user");
 	res_user_set_shell(&ru1, "/sbin/nologin");
-	/*
 	res_user_set_pwmin(&ru1, 2);
 	res_user_set_pwmax(&ru1, 45);
-	*/
 
 	res_user_set_uid(&ru2, 999);
 	res_user_set_gid(&ru2, 999);
 	res_user_set_name(&ru2, "user");
 	res_user_set_dir(&ru2, "/home/user");
 	res_user_set_gecos(&ru2, "GECOS for user");
-	/*
 	res_user_set_pwmin(&ru2, 4);
 	res_user_set_pwmax(&ru2, 90);
 	res_user_set_pwwarn(&ru2, 14);
-	*/
 	res_user_set_inact(&ru2, 1000);
 	res_user_set_expire(&ru2, 2000);
 
@@ -118,11 +123,9 @@ void test_res_user_merge()
 	assert_str_equals("GECOS set properly after merge", ru1.ru_gecos, "GECOS for user");
 	assert_str_equals("DIR set properly after merge", ru1.ru_dir, "/home/user");
 	assert_str_equals("SHELL set properly after merge", ru1.ru_shell, "/sbin/nologin");
-	/*
-	assert_int_equals("PWMIN set properly after merge", ru1.ru_min, 2);
-	assert_int_equals("PWMAX set properly after merge", ru1.ru_max, 45);
-	assert_int_equals("PWWARN set properly after merge", ru1.ru_warn, 14);
-	*/
+	assert_int_equals("PWMIN set properly after merge", ru1.ru_pwmin, 2);
+	assert_int_equals("PWMAX set properly after merge", ru1.ru_pwmax, 45);
+	assert_int_equals("PWWARN set properly after merge", ru1.ru_pwwarn, 14);
 	assert_int_equals("INACT set properly after merge", ru1.ru_inact, 1000);
 	assert_int_equals("EXPIRE set properly after merge", ru1.ru_expire, 2000);
 
@@ -145,6 +148,9 @@ void test_res_user_diffstat_remediation()
 	res_user_set_shell(&ru, "/sbin/nologin");
 	res_user_set_dir(&ru, "/nonexistent");
 	res_user_set_makehome(&ru, 1, "/etc/skel.svc");
+	res_user_set_pwmin(&ru, 4);
+	res_user_set_pwmax(&ru, 45);
+	res_user_set_pwwarn(&ru, 3);
 
 	pwdb = pwdb_init("test/data/passwd");
 	if (!pwdb) {
@@ -167,6 +173,9 @@ void test_res_user_diffstat_remediation()
 	assert_true("SHELL is in compliance", !res_user_different(&ru, SHELL));
 	assert_true("DIR is in compliance", !res_user_different(&ru, DIR));
 	assert_true("MKHOME is out of compliance", res_user_different(&ru, MKHOME));
+	assert_true("PWMIN is out of compliance", res_user_different(&ru, PWMIN));
+	assert_true("PWMAX is out of compliance", res_user_different(&ru, PWMAX));
+	assert_true("PWWARN is out of compliance", res_user_different(&ru, PWWARN));
 
 	test("RES_USER: Remediation (existing account)");
 	assert_int_equals("res_user_remediate returns zero", res_user_remediate(&ru, pwdb, spdb), 0);
@@ -178,6 +187,9 @@ void test_res_user_diffstat_remediation()
 	assert_str_equals("pw_dir is still set properly", ru.ru_pw->pw_dir, "/nonexistent");
 
 	assert_str_equals("sp_namp is still set properly", ru.ru_sp->sp_namp, "svc");
+	assert_int_equals("sp_min is still set properly", ru.ru_sp->sp_min, 4);
+	assert_int_equals("sp_max is still set properly", ru.ru_sp->sp_max, 45);
+	assert_int_equals("sp_warn is still set properly", ru.ru_sp->sp_warn, 3);
 
 	res_user_free(&ru);
 	pwdb_free(pwdb);
@@ -214,7 +226,6 @@ void test_res_user_remediation_new()
 
 	test("RES_USER: Remediation (new account)");
 	assert_int_equals("res_user_stat returns zero", res_user_stat(&ru, pwdb, spdb), 0);
-	test("RES_USER: Remediation (existing account)");
 	assert_int_equals("res_user_remediate returns zero", res_user_remediate(&ru, pwdb, spdb), 0);
 	assert_str_equals("pw_name is set properly", ru.ru_pw->pw_name, "new_user");
 	assert_int_equals("pw_uid is set properly", ru.ru_pw->pw_uid, 7010);

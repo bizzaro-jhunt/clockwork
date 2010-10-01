@@ -21,19 +21,22 @@ res_package
 
 res_user
 --------
-* username
-* id
-* primary group
++ username
++ id
++ primary group
   groups
-* password
-* shell
-* home
++ password
++ shell
++ home
 * make home
 * skeleton
-* expire
-* inactive
++ pwmin
++ pwmax
++ pwwarn
++ expire
++ inactive
 * locked
-* comment
++ comment
 
 res_group
 ---------

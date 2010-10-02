@@ -71,7 +71,7 @@ int _stringlist_strcmp_desc(const void *a, const void *b)
 	return -1 * strcmp(* (char * const *) a, * (char * const *) b);
 }
 
-stringlist* stringlist_new(void)
+stringlist* stringlist_new(char **src)
 {
 	stringlist *sl;
 

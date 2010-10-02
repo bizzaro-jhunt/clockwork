@@ -8,7 +8,7 @@ stringlist* setup_stringlist(const char *s1, const char *s2, const char *s3)
 {
 	stringlist *sl;
 
-	sl = stringlist_new();
+	sl = stringlist_new(NULL);
 	assert_not_null("stringlist_new returns a non-null pointer", sl);
 	assert_int_equals("adding the s1 string to the list", stringlist_add(sl, s1), 0);
 	assert_int_equals("adding the s2 string to the list", stringlist_add(sl, s2), 0);
@@ -21,7 +21,7 @@ void test_stringlist_init()
 {
 	stringlist *sl;
 
-	sl = stringlist_new();
+	sl = stringlist_new(NULL);
 
 	test("stringlist: Initialization Routines");
 	assert_not_null("stringlist_new returns a non-null pointer", sl);
@@ -35,7 +35,7 @@ void test_stringlist_basic_add_remove_search()
 {
 	stringlist *sl;
 
-	sl = stringlist_new();
+	sl = stringlist_new(NULL);
 
 	test("stringlist: Basic Add/Remove/Search");
 	assert_not_null("have a non-null stringlist", sl);
@@ -70,7 +70,7 @@ void test_stringlist_expansion()
 	char buf[32];
 	char assertion[128];
 
-	sl = stringlist_new();
+	sl = stringlist_new(NULL);
 	test("stringlist: Automatic List Expansion");
 	assert_not_null("have a non-null stringlist", sl);
 

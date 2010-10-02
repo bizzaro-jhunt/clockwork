@@ -59,6 +59,7 @@ tests: test/run
 
 test/run: test/run.o test/test.o \
           mem.o \
+          test/stringlist.o stringlist.o \
           test/userdb.o userdb.o \
           test/res_file.o res_file.o \
           test/res_group.o res_group.o \

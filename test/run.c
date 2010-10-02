@@ -6,6 +6,8 @@ int main(int argc, char **argv)
 {
 	test_setup(argc, argv);
 
+	test_suite_stringlist();
+
 	test_suite_userdb();
 	test_suite_sha1();
 

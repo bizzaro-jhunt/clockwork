@@ -96,3 +96,29 @@ int stringlist_add(stringlist *sl, const char* str)
 	return 0;
 }
 
+int stringlist_remove(stringlist *sl, const char *str)
+{
+	assert(sl);
+	assert(str);
+
+	char *removed = NULL;
+	size_t i;
+	for (i = 0; i < sl->num; i++) {
+		if (strcmp(sl->strings[i], str) == 0) {
+			removed = sl->strings[i];
+			break;
+		}
+	}
+
+	for (; i < sl->num; i++) {
+		sl->strings[i] = sl->strings[i+1];
+	}
+
+	if (removed) {
+		sl->num--;
+		free(removed);
+		return 0;
+	}
+
+	return -1;
+}

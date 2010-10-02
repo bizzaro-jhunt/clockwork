@@ -3,6 +3,19 @@
 #include "test.h"
 #include "../stringlist.h"
 
+stringlist* setup_stringlist(const char *s1, const char *s2, const char *s3, const char *s4)
+{
+	stringlist *sl;
+
+	sl = stringlist_new();
+	assert_not_null("stringlist_new returns a non-null pointer", sl);
+	assert_int_equals("adding the s1 string to the list", stringlist_add(sl, s1), 0);
+	assert_int_equals("adding the s2 string to the list", stringlist_add(sl, s2), 0);
+	assert_int_equals("adding the s3 string to the list", stringlist_add(sl, s3), 0);
+
+	return sl;
+}
+
 void test_stringlist_init()
 {
 	stringlist *sl;
@@ -38,6 +51,14 @@ void test_stringlist_basic_add_remove_search()
 	assert_int_equals("search for 'second string' succeeds", stringlist_search(sl, "second string"), 0);
 	assert_int_not_equal("search for 'no such string' fails", stringlist_search(sl, "no such string"), 0);
 
+	assert_int_equals("removal of 'first string' succeeds", stringlist_remove(sl, "first string"), 0);
+	assert_int_equals("stringlist now has 1 string", sl->num, 1);
+	assert_int_not_equal("search for 'first string' fails", stringlist_search(sl, "first string"), 0);
+	assert_int_equals("search for 'second string' still succeeds", stringlist_search(sl, "second string"), 0);
+
+	assert_str_equals("strings[0] is 'second string'", sl->strings[0], "second string");
+	assert_null("strings[1] is NULL", sl->strings[1]);
+
 	stringlist_free(sl);
 }
 
@@ -63,6 +84,19 @@ void test_stringlist_expansion()
 	}
 
 	assert_int_not_equal("sl->len should have changed", sl->len, max);
+
+	stringlist_free(sl);
+}
+
+void test_stringlist_remove_nonexistent()
+{
+	const char *tomato = "tomato";
+
+	stringlist *sl;
+	sl = setup_stringlist(sl, "apple", "pear", "banana");
+
+	assert_int_not_equal("stringlist does not contain 'tomato'", stringlist_search(sl, tomato), 0);
+	assert_int_not_equal("removal of 'tomato' from stringlist fails", stringlist_remove(sl, tomato), 0);
 
 	stringlist_free(sl);
 }

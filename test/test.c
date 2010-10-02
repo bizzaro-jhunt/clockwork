@@ -133,6 +133,58 @@ void assert_int_not_equal(const char *s, int unexpected, int actual)
 	}
 }
 
+void assert_int_greater_than(const char *s, int actual, int threshold)
+{
+	++__ASSERTIONS;
+	if (actual <= threshold) {
+		__test_failed();
+		if (TEST_PRINT_FAIL) {
+			printf(" - %s: FAIL: %i <= %i\n", s, actual, threshold);
+		}
+	} else {
+		if (TEST_PRINT_PASS) { printf(" - %s: PASS\n", s); }
+	}
+}
+
+void assert_int_greater_than_or_equal(const char *s, int actual, int threshold)
+{
+	++__ASSERTIONS;
+	if (actual < threshold) {
+		__test_failed();
+		if (TEST_PRINT_FAIL) {
+			printf(" - %s: FAIL: %i < %i\n", s, actual, threshold);
+		}
+	} else {
+		if (TEST_PRINT_PASS) { printf(" - %s: PASS\n", s); }
+	}
+}
+
+void assert_int_less_than(const char *s, int actual, int threshold)
+{
+	++__ASSERTIONS;
+	if (actual >= threshold) {
+		__test_failed();
+		if (TEST_PRINT_FAIL) {
+			printf(" - %s: FAIL: %i >= %i\n", s, actual, threshold);
+		}
+	} else {
+		if (TEST_PRINT_PASS) { printf(" - %s: PASS\n", s); }
+	}
+}
+
+void assert_int_less_than_or_equal(const char *s, int actual, int threshold)
+{
+	++__ASSERTIONS;
+	if (actual > threshold) {
+		__test_failed();
+		if (TEST_PRINT_FAIL) {
+			printf(" - %s: FAIL: %i > %i\n", s, actual, threshold);
+		}
+	} else {
+		if (TEST_PRINT_PASS) { printf(" - %s: PASS\n", s); }
+	}
+}
+
 void assert_str_equals(const char *s, const char *expected, const char *actual)
 {
 	++__ASSERTIONS;

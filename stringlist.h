@@ -28,4 +28,6 @@ int stringlist_search(stringlist*, const char*);
 int stringlist_add(stringlist*, const char*);
 int stringlist_remove(stringlist*, const char*);
 
+int stringlist_diff(stringlist*, stringlist*);
+
 #endif /* STRINGLIST_H */

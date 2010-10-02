@@ -204,3 +204,20 @@ int stringlist_remove(stringlist *sl, const char *str)
 
 	return -1;
 }
+
+int stringlist_diff(stringlist* a, stringlist* b)
+{
+	assert(a);
+	assert(b);
+
+	size_t i;
+
+	if (a->num != b->num) { return 0; }
+	for (i = 0; i < a->num; i++) {
+		if (stringlist_search(b, a->strings[i]) != 0) {
+			return 0;
+		}
+	}
+
+	return 1; /* equivalent */
+}

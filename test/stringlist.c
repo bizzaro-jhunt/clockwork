@@ -210,6 +210,29 @@ void test_stringlist_uniq_already()
 	assert_null("post-uniq strings[3] is NULL", sl->strings[3]);
 }
 
+void test_stringlist_diff()
+{
+	const char *a = "alice";
+	const char *b = "bob";
+	const char *c = "candace";
+	const char *d = "david";
+	const char *e = "ethan";
+
+	stringlist *sl1, *sl2;
+
+	sl1 = setup_stringlist(b, c, a);
+	sl2 = setup_stringlist(b, c, a);
+
+	test("stringlist: Diff");
+	assert_int_not_equal("sl1 and sl2 are equivalent", stringlist_diff(sl1, sl2), 0);
+
+	stringlist_add(sl2, d);
+	assert_int_equals("after addition of 'david' to sl2, sl1 and sl2 differ", stringlist_diff(sl1, sl2), 0);
+
+	stringlist_add(sl1, e);
+	assert_int_equals("after addition of 'ethan' to sl1, sl1 and sl2 differ", stringlist_diff(sl1, sl2), 0);
+}
+
 void test_suite_stringlist()
 {
 	test_stringlist_init();
@@ -219,4 +242,5 @@ void test_suite_stringlist()
 	test_stringlist_qsort();
 	test_stringlist_uniq();
 	test_stringlist_uniq_already();
+	test_stringlist_diff();
 }

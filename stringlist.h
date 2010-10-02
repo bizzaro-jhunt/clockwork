@@ -10,8 +10,19 @@ typedef struct {
 	char   **strings;  /* array of null-terminated strings */
 } stringlist;
 
+typedef int (*sl_comparator)(const void*, const void*);
+
+#define STRINGLIST_SORT_ASC     _stringlist_strcmp_asc
+#define STRINGLIST_SORT_DESC    _stringlist_strcmp_desc
+
+int _stringlist_strcmp_asc(const void*, const void*);
+int _stringlist_strcmp_desc(const void*, const void*);
+
 stringlist* stringlist_new(void);
 void stringlist_free(stringlist*);
+
+void stringlist_sort(stringlist*, sl_comparator);
+void stringlist_uniq(stringlist*);
 
 int stringlist_search(stringlist*, const char*);
 int stringlist_add(stringlist*, const char*);

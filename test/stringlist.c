@@ -1,9 +1,10 @@
 #include <stdio.h>
+#include <string.h>
 
 #include "test.h"
 #include "../stringlist.h"
 
-stringlist* setup_stringlist(const char *s1, const char *s2, const char *s3, const char *s4)
+stringlist* setup_stringlist(const char *s1, const char *s2, const char *s3)
 {
 	stringlist *sl;
 
@@ -93,12 +94,96 @@ void test_stringlist_remove_nonexistent()
 	const char *tomato = "tomato";
 
 	stringlist *sl;
-	sl = setup_stringlist(sl, "apple", "pear", "banana");
+	sl = setup_stringlist("apple", "pear", "banana");
 
+	test("stringlist: Remove non-existent");
 	assert_int_not_equal("stringlist does not contain 'tomato'", stringlist_search(sl, tomato), 0);
 	assert_int_not_equal("removal of 'tomato' from stringlist fails", stringlist_remove(sl, tomato), 0);
 
 	stringlist_free(sl);
+}
+
+void test_stringlist_qsort()
+{
+	const char *a = "alice";
+	const char *b = "bob";
+	const char *c = "candace";
+
+	stringlist *sl;
+	test("stringlist: Sorting");
+	sl = setup_stringlist(b, c, a);
+	assert_str_equals("pre-sort strings[0] is 'bob'", sl->strings[0], "bob");
+	assert_str_equals("pre-sort strings[1] is 'candace'", sl->strings[1], "candace");
+	assert_str_equals("pre-sort strings[2] is 'alice'", sl->strings[2], "alice");
+	assert_null("pre-sort ASC strings[3] is NULL", sl->strings[3]);
+
+	stringlist_sort(sl, STRINGLIST_SORT_ASC);
+	assert_str_equals("post-sort ASC strings[0] is 'alice'", sl->strings[0], "alice");
+	assert_str_equals("post-sort ASC strings[1] is 'bob'", sl->strings[1], "bob");
+	assert_str_equals("post-sort ASC strings[2] is 'candace'", sl->strings[2], "candace");
+	assert_null("post-sort ASC strings[3] is NULL", sl->strings[3]);
+
+	stringlist_sort(sl, STRINGLIST_SORT_DESC);
+	assert_str_equals("post-sort ASC strings[0] is 'candace'", sl->strings[0], "candace");
+	assert_str_equals("post-sort ASC strings[1] is 'bob'", sl->strings[1], "bob");
+	assert_str_equals("post-sort ASC strings[2] is 'alice'", sl->strings[2], "alice");
+	assert_null("post-sort ASC strings[3] is NULL", sl->strings[3]);
+}
+
+void test_stringlist_uniq()
+{
+	const char *a = "alice";
+	const char *b = "bob";
+	const char *c = "candace";
+
+	stringlist *sl;
+
+	sl = setup_stringlist(b, c, a);
+	stringlist_add(sl, b);
+	stringlist_add(sl, b);
+	stringlist_add(sl, c);
+
+	test("stringlist: Uniq");
+	assert_int_equals("pre-uniq stringlist has 6 strings", sl->num, 6);
+	assert_str_equals("pre-uniq strings[0] is 'bob'",     sl->strings[0], "bob");
+	assert_str_equals("pre-uniq strings[1] is 'candace'", sl->strings[1], "candace");
+	assert_str_equals("pre-uniq strings[2] is 'alice'",   sl->strings[2], "alice");
+	assert_str_equals("pre-uniq strings[3] is 'bob'",     sl->strings[3], "bob");
+	assert_str_equals("pre-uniq strings[4] is 'bob'",     sl->strings[4], "bob");
+	assert_str_equals("pre-uniq strings[5] is 'candace'", sl->strings[5], "candace");
+	assert_null("pre-uniq strings[6] is NULL", sl->strings[6]);
+
+	stringlist_uniq(sl);
+	assert_int_equals("post-uniq stringlist has 3 strings", sl->num, 3);
+	assert_str_equals("post-uniq strings[0] is 'alice'",   sl->strings[0], "alice");
+	assert_str_equals("post-uniq strings[1] is 'bob'",     sl->strings[1], "bob");
+	assert_str_equals("post-uniq strings[2] is 'candace'", sl->strings[2], "candace");
+	assert_null("post-uniq strings[3] is NULL", sl->strings[3]);
+}
+
+void test_stringlist_uniq_already()
+{
+	const char *a = "alice";
+	const char *b = "bob";
+	const char *c = "candace";
+
+	stringlist *sl;
+
+	sl = setup_stringlist(b, c, a);
+
+	test("stringlist: Uniq (no changes needed)");
+	assert_int_equals("pre-uniq stringlist has 3 strings", sl->num, 3);
+	assert_str_equals("pre-uniq strings[0] is 'bob'",     sl->strings[0], "bob");
+	assert_str_equals("pre-uniq strings[1] is 'candace'", sl->strings[1], "candace");
+	assert_str_equals("pre-uniq strings[2] is 'alice'",   sl->strings[2], "alice");
+	assert_null("pre-uniq strings[3] is NULL", sl->strings[3]);
+
+	stringlist_uniq(sl);
+	assert_int_equals("post-uniq stringlist has 3 strings", sl->num, 3);
+	assert_str_equals("post-uniq strings[0] is 'alice'",   sl->strings[0], "alice");
+	assert_str_equals("post-uniq strings[1] is 'bob'",     sl->strings[1], "bob");
+	assert_str_equals("post-uniq strings[2] is 'candace'", sl->strings[2], "candace");
+	assert_null("post-uniq strings[3] is NULL", sl->strings[3]);
 }
 
 void test_suite_stringlist()
@@ -106,4 +191,7 @@ void test_suite_stringlist()
 	test_stringlist_init();
 	test_stringlist_basic_add_remove_search();
 	test_stringlist_expansion();
+	test_stringlist_qsort();
+	test_stringlist_uniq();
+	test_stringlist_uniq_already();
 }

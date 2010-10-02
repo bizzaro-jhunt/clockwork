@@ -74,18 +74,34 @@ int _stringlist_strcmp_desc(const void *a, const void *b)
 stringlist* stringlist_new(char **src)
 {
 	stringlist *sl;
+	char **t;
 
 	sl = malloc(sizeof(stringlist));
 	if (!sl) {
 		return NULL;
 	}
 
-	sl->num = 0;
-	sl->len = INIT_LEN;
+	if (src) {
+		t = src;
+		while (*t++)
+			;
+		sl->num = t - src - 1;
+		sl->len = (sl->num / EXPAND_LEN + 1) * EXPAND_LEN;
+	} else {
+		sl->num = 0;
+		sl->len = INIT_LEN;
+	}
+
 	sl->strings = calloc(sl->len, sizeof(char *));
 	if (!sl->strings) {
 		free(sl);
 		return NULL;
+	}
+
+	if (src) {
+		for (t = sl->strings; *src; src++, t++) {
+			*t = strdup(*src);
+		}
 	}
 
 	return sl;

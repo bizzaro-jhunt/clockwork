@@ -31,6 +31,30 @@ void test_stringlist_init()
 	stringlist_free(sl);
 }
 
+void test_stringlist_init_with_data()
+{
+	stringlist *sl;
+	char *data[32];
+	char buf[32];
+	size_t i;
+
+	for (i = 0; i < 32; i++) {
+		snprintf(buf, 32, "data%u", i);
+		data[i] = strdup(buf);
+	}
+	data[32] = NULL;
+
+	sl = stringlist_new(data);
+	test("stringlist: Initialization (with data)");
+	assert_int_equals("stringlist should have 32 strings", sl->num, 32);
+	assert_int_greater_than("stringlist should have more than 32 slots", sl->len, 32);
+	assert_str_equals("spot-check strings[0]", sl->strings[0], "data0");
+	assert_str_equals("spot-check strings[14]", sl->strings[14], "data14");
+	assert_str_equals("spot-check strings[28]", sl->strings[28], "data28");
+	assert_str_equals("spot-check strings[31]", sl->strings[31], "data31");
+	assert_null("strings[32] should be a NULL terminator", sl->strings[32]);
+}
+
 void test_stringlist_basic_add_remove_search()
 {
 	stringlist *sl;
@@ -189,6 +213,7 @@ void test_stringlist_uniq_already()
 void test_suite_stringlist()
 {
 	test_stringlist_init();
+	test_stringlist_init_with_data();
 	test_stringlist_basic_add_remove_search();
 	test_stringlist_expansion();
 	test_stringlist_qsort();

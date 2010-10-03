@@ -4,7 +4,7 @@
 #include "test.h"
 #include "../stringlist.h"
 
-stringlist* setup_stringlist(const char *s1, const char *s2, const char *s3)
+static stringlist* setup_stringlist(const char *s1, const char *s2, const char *s3)
 {
 	stringlist *sl;
 
@@ -15,6 +15,20 @@ stringlist* setup_stringlist(const char *s1, const char *s2, const char *s3)
 	assert_int_equals("adding the s3 string to the list", stringlist_add(sl, s3), 0);
 
 	return sl;
+}
+
+static void assert_stringlist_contains(stringlist *sl, const char *name, const char *s)
+{
+	char buf[128];
+	snprintf(buf, 128, "%s contains '%s'", name, s);
+	assert_int_equals(buf, stringlist_search(sl, s), 0);
+}
+
+static void assert_stringlist_does_not_contain(stringlist *sl, const char *name, const char *s)
+{
+	char buf[128];
+	snprintf(buf, 128, "%s does not contain '%s'", name, s);
+	assert_int_not_equal(buf, stringlist_search(sl, s), 0);
 }
 
 void test_stringlist_init()
@@ -85,6 +99,76 @@ void test_stringlist_basic_add_remove_search()
 	assert_null("strings[1] is NULL", sl->strings[1]);
 
 	stringlist_free(sl);
+}
+
+void test_stringlist_add_all()
+{
+	stringlist *sl1, *sl2;
+
+	sl1 = setup_stringlist("lorem", "ipsum", "dolor");
+	sl2 = setup_stringlist("sit", "amet", "consectetur");
+
+	test("stringlist: Combination of string lists");
+	assert_stringlist_contains(sl1, "sl1", "lorem");
+	assert_stringlist_contains(sl1, "sl1", "ipsum");
+	assert_stringlist_contains(sl1, "sl1", "dolor");
+	assert_stringlist_does_not_contain(sl1, "sl1", "sit");
+	assert_stringlist_does_not_contain(sl1, "sl1", "amet");
+	assert_stringlist_does_not_contain(sl1, "sl1", "consectetur");
+
+	assert_stringlist_does_not_contain(sl2, "sl2", "lorem");
+	assert_stringlist_does_not_contain(sl2, "sl2", "ipsum");
+	assert_stringlist_does_not_contain(sl2, "sl2", "dolor");
+	assert_stringlist_contains(sl2, "sl2", "sit");
+	assert_stringlist_contains(sl2, "sl2", "amet");
+	assert_stringlist_contains(sl2, "sl2", "consectetur");
+
+	assert_int_equals("combine sl1 and sl2 successfully", stringlist_add_all(sl1, sl2), 0);
+
+	assert_stringlist_contains(sl1, "sl1", "lorem");
+	assert_stringlist_contains(sl1, "sl1", "ipsum");
+	assert_stringlist_contains(sl1, "sl1", "dolor");
+	assert_stringlist_contains(sl1, "sl1", "sit");
+	assert_stringlist_contains(sl1, "sl1", "amet");
+	assert_stringlist_contains(sl1, "sl1", "consectetur");
+
+	assert_stringlist_does_not_contain(sl2, "sl2", "lorem");
+	assert_stringlist_does_not_contain(sl2, "sl2", "ipsum");
+	assert_stringlist_does_not_contain(sl2, "sl2", "dolor");
+	assert_stringlist_contains(sl2, "sl2", "sit");
+	assert_stringlist_contains(sl2, "sl2", "amet");
+	assert_stringlist_contains(sl2, "sl2", "consectetur");
+}
+
+void test_stringlist_remove_all()
+{
+	stringlist *sl1, *sl2;
+
+	sl1 = setup_stringlist("lorem", "ipsum", "dolor");
+	sl2 = setup_stringlist("ipsum", "dolor", "sit");
+
+	test("stringlist: Removal of string lists");
+	assert_stringlist_contains(sl1, "sl1", "lorem");
+	assert_stringlist_contains(sl1, "sl1", "ipsum");
+	assert_stringlist_contains(sl1, "sl1", "dolor");
+	assert_stringlist_does_not_contain(sl1, "sl1", "sit");
+
+	assert_stringlist_does_not_contain(sl2, "sl2", "lorem");
+	assert_stringlist_contains(sl2, "sl2", "ipsum");
+	assert_stringlist_contains(sl2, "sl2", "dolor");
+	assert_stringlist_contains(sl2, "sl2", "sit");
+
+	assert_int_equals("remove sl2 from sl1 successfully", stringlist_remove_all(sl1, sl2), 0);
+
+	assert_stringlist_contains(sl1, "sl1", "lorem");
+	assert_stringlist_does_not_contain(sl1, "sl1", "ipsum");
+	assert_stringlist_does_not_contain(sl1, "sl1", "dolor");
+	assert_stringlist_does_not_contain(sl1, "sl1", "sit");
+
+	assert_stringlist_does_not_contain(sl2, "sl2", "lorem");
+	assert_stringlist_contains(sl2, "sl2", "ipsum");
+	assert_stringlist_contains(sl2, "sl2", "dolor");
+	assert_stringlist_contains(sl2, "sl2", "sit");
 }
 
 void test_stringlist_expansion()
@@ -238,6 +322,8 @@ void test_suite_stringlist()
 	test_stringlist_init();
 	test_stringlist_init_with_data();
 	test_stringlist_basic_add_remove_search();
+	test_stringlist_add_all();
+	test_stringlist_remove_all();
 	test_stringlist_expansion();
 	test_stringlist_qsort();
 	test_stringlist_uniq();

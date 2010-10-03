@@ -25,8 +25,12 @@ void stringlist_sort(stringlist*, sl_comparator);
 void stringlist_uniq(stringlist*);
 
 int stringlist_search(stringlist*, const char*);
+
 int stringlist_add(stringlist*, const char*);
+int stringlist_add_all(stringlist*, stringlist*);
+
 int stringlist_remove(stringlist*, const char*);
+int stringlist_remove_all(stringlist*, stringlist*);
 
 int stringlist_diff(stringlist*, stringlist*);
 

@@ -176,9 +176,27 @@ int stringlist_add(stringlist *sl, const char* str)
 		return -1;
 	}
 
-	sl->strings[sl->num] = strdup(str);
-	sl->num++;
+	sl->strings[sl->num++] = strdup(str);
 	sl->strings[sl->num] = NULL;
+
+	return 0;
+}
+
+int stringlist_add_all(stringlist *dst, stringlist *src)
+{
+	assert(src);
+	assert(dst);
+
+	size_t i;
+
+	if (_stringlist_capacity(dst) < src->num && _stringlist_expand(dst, src->num)) {
+		return -1;
+	}
+
+	for (i = 0; i < src->num; i++) {
+		dst->strings[dst->num++] = strdup(src->strings[i]);
+	}
+	dst->strings[dst->num] = NULL;
 
 	return 0;
 }
@@ -208,6 +226,24 @@ int stringlist_remove(stringlist *sl, const char *str)
 	}
 
 	return -1;
+}
+
+int stringlist_remove_all(stringlist *dst, stringlist *src)
+{
+	assert(src);
+	assert(dst);
+
+	size_t s, d;
+	for (d = 0; d < dst->num; d++) {
+		for (s = 0; s < src->num; s++) {
+			if ( strcmp(dst->strings[d], src->strings[s]) == 0 ) {
+				dst->strings[d] = NULL;
+				break;
+			}
+		}
+	}
+
+	return _stringlist_reduce(dst);
 }
 
 int stringlist_diff(stringlist* a, stringlist* b)

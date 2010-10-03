@@ -5,12 +5,13 @@
 #include "stringlist.h"
 
 #define INIT_LEN   16
-#define EXPAND_LEN  8
 
+#define EXPAND_FACTOR 8
+#define EXPAND_LEN(x) (x / EXPAND_FACTOR + 1) * EXPAND_FACTOR
 
-#define _stringlist_full(sl) ((sl)->num == (sl)->len - 1)
 static int _stringlist_expand(stringlist*, size_t);
 static int _stringlist_reduce(stringlist*);
+static size_t _stringlist_capacity(stringlist*);
 
 static int _stringlist_expand(stringlist *sl, size_t expand)
 {
@@ -18,8 +19,7 @@ static int _stringlist_expand(stringlist *sl, size_t expand)
 	assert(expand > 0);
 
 	char **s;
-
-	expand += sl->len;
+	expand = EXPAND_LEN(expand) + sl->len;
 	s = realloc(sl->strings, expand * sizeof(char *));
 	if (!s) {
 		return -1;
@@ -57,6 +57,11 @@ static int _stringlist_reduce(stringlist *sl)
 	return 0;
 }
 
+static size_t _stringlist_capacity(stringlist* sl)
+{
+	return sl->len - 1 - sl->num;
+}
+
 /*****************************************************************/
 
 int _stringlist_strcmp_asc(const void *a, const void *b)
@@ -86,7 +91,7 @@ stringlist* stringlist_new(char **src)
 		while (*t++)
 			;
 		sl->num = t - src - 1;
-		sl->len = (sl->num / EXPAND_LEN + 1) * EXPAND_LEN;
+		sl->len = EXPAND_LEN(sl->num);
 	} else {
 		sl->num = 0;
 		sl->len = INIT_LEN;
@@ -167,7 +172,7 @@ int stringlist_add(stringlist *sl, const char* str)
 	assert(str);
 
 	/* expand as needed */
-	if (_stringlist_full(sl) && _stringlist_expand(sl, EXPAND_LEN) != 0) {
+	if (_stringlist_capacity(sl) == 0 && _stringlist_expand(sl, 1) != 0) {
 		return -1;
 	}
 

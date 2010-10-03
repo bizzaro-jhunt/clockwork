@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdarg.h>
 
 #include "test.h"
 #include "../stringlist.h"
@@ -29,6 +30,28 @@ static void assert_stringlist_does_not_contain(stringlist *sl, const char *name,
 	char buf[128];
 	snprintf(buf, 128, "%s does not contain '%s'", name, s);
 	assert_int_not_equal(buf, stringlist_search(sl, s), 0);
+}
+
+static void assert_stringlist(stringlist *sl, const char *name, size_t n, ...)
+{
+	va_list args;
+	size_t i;
+	char *str;
+	char buf[128];
+
+	snprintf(buf, 128, "%s has %d strings", name, n);
+	assert_int_equals(buf, sl->num, n);
+
+	va_start(args, n);
+	for (i = 0; i < n; i++) {
+		str = va_arg(args, char *);
+		snprintf(buf, 128, "%s->strings[%d] == '%s'", name, i, str);
+		assert_str_equals(buf, sl->strings[i], str);
+	}
+	va_end(args);
+
+	snprintf(buf, 128, "%s->strings[%d] is NULL", name, sl->num);
+	assert_null(buf, sl->strings[sl->num]);
 }
 
 void test_stringlist_init()
@@ -81,22 +104,16 @@ void test_stringlist_basic_add_remove_search()
 	assert_int_equals("add 'first string' to string list", stringlist_add(sl, "first string"), 0);
 	assert_int_equals("add 'second string' to string list", stringlist_add(sl, "second string"), 0);
 
-	assert_int_equals("stringlist has 2 strings", sl->num, 2);
-	assert_str_equals("strings[0] is 'first string'", sl->strings[0], "first string");
-	assert_str_equals("strings[1] is 'second string'", sl->strings[1], "second string");
-	assert_null("strings[2] is NULL", sl->strings[2]);
+	assert_stringlist(sl, "sl", 2, "first string", "second string");
 
 	assert_int_equals("search for 'first string' succeeds", stringlist_search(sl, "first string"), 0);
 	assert_int_equals("search for 'second string' succeeds", stringlist_search(sl, "second string"), 0);
 	assert_int_not_equal("search for 'no such string' fails", stringlist_search(sl, "no such string"), 0);
 
 	assert_int_equals("removal of 'first string' succeeds", stringlist_remove(sl, "first string"), 0);
-	assert_int_equals("stringlist now has 1 string", sl->num, 1);
-	assert_int_not_equal("search for 'first string' fails", stringlist_search(sl, "first string"), 0);
-	assert_int_equals("search for 'second string' still succeeds", stringlist_search(sl, "second string"), 0);
+	assert_stringlist(sl, "sl", 1, "second string");
 
-	assert_str_equals("strings[0] is 'second string'", sl->strings[0], "second string");
-	assert_null("strings[1] is NULL", sl->strings[1]);
+	assert_int_equals("search for 'second string' still succeeds", stringlist_search(sl, "second string"), 0);
 
 	stringlist_free(sl);
 }
@@ -109,35 +126,12 @@ void test_stringlist_add_all()
 	sl2 = setup_stringlist("sit", "amet", "consectetur");
 
 	test("stringlist: Combination of string lists");
-	assert_stringlist_contains(sl1, "sl1", "lorem");
-	assert_stringlist_contains(sl1, "sl1", "ipsum");
-	assert_stringlist_contains(sl1, "sl1", "dolor");
-	assert_stringlist_does_not_contain(sl1, "sl1", "sit");
-	assert_stringlist_does_not_contain(sl1, "sl1", "amet");
-	assert_stringlist_does_not_contain(sl1, "sl1", "consectetur");
-
-	assert_stringlist_does_not_contain(sl2, "sl2", "lorem");
-	assert_stringlist_does_not_contain(sl2, "sl2", "ipsum");
-	assert_stringlist_does_not_contain(sl2, "sl2", "dolor");
-	assert_stringlist_contains(sl2, "sl2", "sit");
-	assert_stringlist_contains(sl2, "sl2", "amet");
-	assert_stringlist_contains(sl2, "sl2", "consectetur");
+	assert_stringlist(sl1, "pre-combine sl1", 3, "lorem", "ipsum", "dolor");
+	assert_stringlist(sl2, "pre-combine sl2", 3, "sit", "amet", "consectetur");
 
 	assert_int_equals("combine sl1 and sl2 successfully", stringlist_add_all(sl1, sl2), 0);
-
-	assert_stringlist_contains(sl1, "sl1", "lorem");
-	assert_stringlist_contains(sl1, "sl1", "ipsum");
-	assert_stringlist_contains(sl1, "sl1", "dolor");
-	assert_stringlist_contains(sl1, "sl1", "sit");
-	assert_stringlist_contains(sl1, "sl1", "amet");
-	assert_stringlist_contains(sl1, "sl1", "consectetur");
-
-	assert_stringlist_does_not_contain(sl2, "sl2", "lorem");
-	assert_stringlist_does_not_contain(sl2, "sl2", "ipsum");
-	assert_stringlist_does_not_contain(sl2, "sl2", "dolor");
-	assert_stringlist_contains(sl2, "sl2", "sit");
-	assert_stringlist_contains(sl2, "sl2", "amet");
-	assert_stringlist_contains(sl2, "sl2", "consectetur");
+	assert_stringlist(sl1, "post-combine sl1", 6, "lorem", "ipsum", "dolor", "sit", "amet", "consectetur");
+	assert_stringlist(sl2, "post-combine sl2", 3, "sit", "amet", "consectetur");
 }
 
 void test_stringlist_remove_all()
@@ -148,27 +142,12 @@ void test_stringlist_remove_all()
 	sl2 = setup_stringlist("ipsum", "dolor", "sit");
 
 	test("stringlist: Removal of string lists");
-	assert_stringlist_contains(sl1, "sl1", "lorem");
-	assert_stringlist_contains(sl1, "sl1", "ipsum");
-	assert_stringlist_contains(sl1, "sl1", "dolor");
-	assert_stringlist_does_not_contain(sl1, "sl1", "sit");
-
-	assert_stringlist_does_not_contain(sl2, "sl2", "lorem");
-	assert_stringlist_contains(sl2, "sl2", "ipsum");
-	assert_stringlist_contains(sl2, "sl2", "dolor");
-	assert_stringlist_contains(sl2, "sl2", "sit");
+	assert_stringlist(sl1, "pre-remove sl1", 3, "lorem", "ipsum", "dolor");
+	assert_stringlist(sl2, "pre-remove sl2", 3, "ipsum", "dolor", "sit");
 
 	assert_int_equals("remove sl2 from sl1 successfully", stringlist_remove_all(sl1, sl2), 0);
-
-	assert_stringlist_contains(sl1, "sl1", "lorem");
-	assert_stringlist_does_not_contain(sl1, "sl1", "ipsum");
-	assert_stringlist_does_not_contain(sl1, "sl1", "dolor");
-	assert_stringlist_does_not_contain(sl1, "sl1", "sit");
-
-	assert_stringlist_does_not_contain(sl2, "sl2", "lorem");
-	assert_stringlist_contains(sl2, "sl2", "ipsum");
-	assert_stringlist_contains(sl2, "sl2", "dolor");
-	assert_stringlist_contains(sl2, "sl2", "sit");
+	assert_stringlist(sl1, "post-remove sl1", 1, "lorem");
+	assert_stringlist(sl2, "post-remove sl2", 3, "ipsum", "dolor", "sit");
 }
 
 void test_stringlist_expansion()
@@ -205,8 +184,9 @@ void test_stringlist_remove_nonexistent()
 	sl = setup_stringlist("apple", "pear", "banana");
 
 	test("stringlist: Remove non-existent");
-	assert_int_not_equal("stringlist does not contain 'tomato'", stringlist_search(sl, tomato), 0);
+	assert_stringlist(sl, "pre-remove sl", 3, "apple", "pear", "banana");
 	assert_int_not_equal("removal of 'tomato' from stringlist fails", stringlist_remove(sl, tomato), 0);
+	assert_stringlist(sl, "pre-remove sl", 3, "apple", "pear", "banana");
 
 	stringlist_free(sl);
 }

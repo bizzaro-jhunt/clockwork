@@ -8,5 +8,6 @@ void __xfree(void **ptr2ptr);
 
 char* xstrdup(const char *s);
 char** xarrdup(char **a);
+void xarrfree(char **a);
 
 #endif /* MEM_H */

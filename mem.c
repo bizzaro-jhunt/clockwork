@@ -10,11 +10,13 @@ void __xfree(void **ptr2ptr)
 	*ptr2ptr = NULL;
 }
 
-char* xstrdup(const char *s) {
+char* xstrdup(const char *s)
+{
 	return (s ? strdup(s) : NULL);
 }
 
-char** xarrdup(char **a) {
+char** xarrdup(char **a)
+{
 	char **n, **t;
 
 	if (!a) { return NULL; }
@@ -31,4 +33,14 @@ char** xarrdup(char **a) {
 	}
 
 	return n;
+}
+
+void xarrfree(char **a)
+{
+	char **s = a;
+	if (!a) { return; }
+	while (*s) {
+		free(*s++);
+	}
+	free(a);
 }

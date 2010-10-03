@@ -146,6 +146,7 @@ void stringlist_uniq(stringlist *sl)
 	stringlist_sort(sl, STRINGLIST_SORT_ASC);
 	for (i = 0; i < sl->num - 1; i++) {
 		if (strcmp(sl->strings[i], sl->strings[i+1]) == 0) {
+			free(sl->strings[i]);
 			sl->strings[i] = NULL;
 		}
 	}
@@ -237,6 +238,7 @@ int stringlist_remove_all(stringlist *dst, stringlist *src)
 	for (d = 0; d < dst->num; d++) {
 		for (s = 0; s < src->num; s++) {
 			if ( strcmp(dst->strings[d], src->strings[s]) == 0 ) {
+				free(dst->strings[d]);
 				dst->strings[d] = NULL;
 				break;
 			}

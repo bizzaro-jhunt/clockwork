@@ -90,6 +90,11 @@ void test_stringlist_init_with_data()
 	assert_str_equals("spot-check strings[28]", sl->strings[28], "data28");
 	assert_str_equals("spot-check strings[31]", sl->strings[31], "data31");
 	assert_null("strings[32] should be a NULL terminator", sl->strings[32]);
+
+	stringlist_free(sl);
+	for (i = 0; i < 32; i++) {
+		free(data[i]);
+	}
 }
 
 void test_stringlist_basic_add_remove_search()
@@ -132,6 +137,9 @@ void test_stringlist_add_all()
 	assert_int_equals("combine sl1 and sl2 successfully", stringlist_add_all(sl1, sl2), 0);
 	assert_stringlist(sl1, "post-combine sl1", 6, "lorem", "ipsum", "dolor", "sit", "amet", "consectetur");
 	assert_stringlist(sl2, "post-combine sl2", 3, "sit", "amet", "consectetur");
+
+	stringlist_free(sl1);
+	stringlist_free(sl2);
 }
 
 void test_stringlist_remove_all()
@@ -148,6 +156,9 @@ void test_stringlist_remove_all()
 	assert_int_equals("remove sl2 from sl1 successfully", stringlist_remove_all(sl1, sl2), 0);
 	assert_stringlist(sl1, "post-remove sl1", 1, "lorem");
 	assert_stringlist(sl2, "post-remove sl2", 3, "ipsum", "dolor", "sit");
+
+	stringlist_free(sl1);
+	stringlist_free(sl2);
 }
 
 void test_stringlist_expansion()
@@ -216,6 +227,8 @@ void test_stringlist_qsort()
 	assert_str_equals("post-sort ASC strings[1] is 'bob'", sl->strings[1], "bob");
 	assert_str_equals("post-sort ASC strings[2] is 'alice'", sl->strings[2], "alice");
 	assert_null("post-sort ASC strings[3] is NULL", sl->strings[3]);
+
+	stringlist_free(sl);
 }
 
 void test_stringlist_uniq()
@@ -247,6 +260,8 @@ void test_stringlist_uniq()
 	assert_str_equals("post-uniq strings[1] is 'bob'",     sl->strings[1], "bob");
 	assert_str_equals("post-uniq strings[2] is 'candace'", sl->strings[2], "candace");
 	assert_null("post-uniq strings[3] is NULL", sl->strings[3]);
+
+	stringlist_free(sl);
 }
 
 void test_stringlist_uniq_already()
@@ -272,6 +287,8 @@ void test_stringlist_uniq_already()
 	assert_str_equals("post-uniq strings[1] is 'bob'",     sl->strings[1], "bob");
 	assert_str_equals("post-uniq strings[2] is 'candace'", sl->strings[2], "candace");
 	assert_null("post-uniq strings[3] is NULL", sl->strings[3]);
+
+	stringlist_free(sl);
 }
 
 void test_stringlist_diff()
@@ -295,6 +312,9 @@ void test_stringlist_diff()
 
 	stringlist_add(sl1, e);
 	assert_int_equals("after addition of 'ethan' to sl1, sl1 and sl2 differ", stringlist_diff(sl1, sl2), 0);
+
+	stringlist_free(sl1);
+	stringlist_free(sl2);
 }
 
 void test_suite_stringlist()

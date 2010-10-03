@@ -1,13 +1,8 @@
-Continually Growing List of Things To Do
-========================================
+List of Things To Do
+====================
 
 userdb::
   File locking (shadow)
-
-res_group::
-  gr_mem support (Group Member List)
-  sg_adm support (Group Administrator List)
-  sg_mem support (Group Member List)
 
 misc::
   policy framework

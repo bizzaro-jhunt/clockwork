@@ -4,4 +4,4 @@ bin:x:2:
 sys:x:3:
 members:x:4:account1,account2,account3
 users:x:20:
-service:x:909
+service:x:909:account1,account2

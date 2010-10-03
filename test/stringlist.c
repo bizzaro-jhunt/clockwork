@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
 
@@ -254,6 +255,45 @@ void test_stringlist_diff()
 	stringlist_free(sl2);
 }
 
+void test_stringlist_diff_non_uniq()
+{
+	const char *s1 = "string1";
+	const char *s2 = "string2";
+	const char *s3 = "string3";
+
+	stringlist *sl1, *sl2;
+
+	sl1 = setup_stringlist(s1, s2, s2);
+	sl2 = setup_stringlist(s1, s2, s3);
+
+	test("stringlist: Diff (non-unique entries)");
+	assert_int_equals("sl1 and sl2 are different (forward)", stringlist_diff(sl1, sl2), 0);
+	assert_int_equals("sl2 and sl1 are different (reverse)", stringlist_diff(sl2, sl1), 0);
+
+	stringlist_free(sl1);
+	stringlist_free(sl2);
+}
+
+void test_stringlist_diff_single_string()
+{
+	stringlist *sl1, *sl2;
+	const char *a = "string a";
+	const char *b = "string b";
+
+	sl1 = stringlist_new(NULL);
+	stringlist_add(sl1, a);
+
+	sl2 = stringlist_new(NULL);
+	stringlist_add(sl2, b);
+
+	test("stringlist: Diff (single string)");
+	assert_int_equals("sl1 and sl2 are different (forward)", stringlist_diff(sl1, sl2), 0);
+	assert_int_equals("sl2 and sl1 are different (reverse)", stringlist_diff(sl2, sl1), 0);
+
+	stringlist_free(sl1);
+	stringlist_free(sl2);
+}
+
 void test_suite_stringlist()
 {
 	test_stringlist_init();
@@ -265,5 +305,8 @@ void test_suite_stringlist()
 	test_stringlist_qsort();
 	test_stringlist_uniq();
 	test_stringlist_uniq_already();
+
 	test_stringlist_diff();
+	test_stringlist_diff_non_uniq();
+	test_stringlist_diff_single_string();
 }

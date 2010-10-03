@@ -257,10 +257,11 @@ int stringlist_diff(stringlist* a, stringlist* b)
 
 	if (a->num != b->num) { return 0; }
 	for (i = 0; i < a->num; i++) {
-		if (stringlist_search(b, a->strings[i]) != 0) {
+		if (stringlist_search(b, a->strings[i]) != 0
+		 || stringlist_search(a, b->strings[i]) != 0) {
 			return 0;
 		}
 	}
 
-	return 1; /* equivalent */
+	return -1; /* equivalent */
 }

@@ -58,6 +58,7 @@ coverage: lcov.info tests
 tests: test/run
 
 test/run: test/run.o test/test.o \
+          test/assertions.o \
           mem.o \
           test/stringlist.o stringlist.o \
           test/userdb.o userdb.o \

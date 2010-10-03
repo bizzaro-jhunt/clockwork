@@ -107,7 +107,7 @@ void assert_null(const char *s, void *ptr)
 	}
 }
 
-void assert_int_equals(const char *s, int expected, int actual)
+void assert_int_equals(const char *s, int actual, int expected)
 {
 	++__ASSERTIONS;
 	if (expected == actual) {
@@ -115,18 +115,18 @@ void assert_int_equals(const char *s, int expected, int actual)
 	} else {
 		__test_failed();
 		if (TEST_PRINT_FAIL) {
-			printf(" - %s: FAIL: %i != %i\n", s, expected, actual);
+			printf(" - %s: FAIL: %i != %i\n", s, actual, expected);
 		}
 	}
 }
 
-void assert_int_not_equal(const char *s, int unexpected, int actual)
+void assert_int_not_equal(const char *s, int actual, int unexpected)
 {
 	++__ASSERTIONS;
 	if (unexpected == actual) {
 		__test_failed();
 		if (TEST_PRINT_FAIL) {
-			printf(" - %s: FAIL: %i == %i\n", s, unexpected, actual);
+			printf(" - %s: FAIL: %i == %i\n", s, actual, unexpected);
 		}
 	} else {
 		if (TEST_PRINT_PASS) { printf(" - %s: PASS\n", s); }
@@ -185,7 +185,7 @@ void assert_int_less_than_or_equal(const char *s, int actual, int threshold)
 	}
 }
 
-void assert_str_equals(const char *s, const char *expected, const char *actual)
+void assert_str_equals(const char *s, const char *actual, const char *expected)
 {
 	++__ASSERTIONS;
 	if (expected == NULL) { expected = "(null)"; }
@@ -196,12 +196,12 @@ void assert_str_equals(const char *s, const char *expected, const char *actual)
 	} else {
 		__test_failed();
 		if (TEST_PRINT_FAIL) {
-			printf(" - %s: FAIL: %s != %s\n", s, expected, actual);
+			printf(" - %s: FAIL: %s != %s\n", s, actual, expected);
 		}
 	}
 }
 
-void assert_str_not_equal(const char *s, const char *unexpected, const char *actual)
+void assert_str_not_equal(const char *s, const char *actual, const char *unexpected)
 {
 	++__ASSERTIONS;
 	if (unexpected == NULL) { unexpected = "(null)"; }
@@ -210,7 +210,7 @@ void assert_str_not_equal(const char *s, const char *unexpected, const char *act
 	if (strcmp(unexpected, actual) == 0) {
 		__test_failed();
 		if (TEST_PRINT_FAIL) {
-			printf(" - %s: FAIL: %s == %s\n", s, unexpected, actual);
+			printf(" - %s: FAIL: %s == %s\n", s, actual, unexpected);
 		}
 	} else {
 		if (TEST_PRINT_PASS) { printf(" - %s: PASS\n", s); }

@@ -19,7 +19,7 @@ static struct test_struct *new_test_struct(int value)
 	if (!ts) {
 		return NULL;
 	}
-	__list_init(&ts->entry);
+	list_init(&ts->entry);
 
 	ts->value = value;
 	return ts;

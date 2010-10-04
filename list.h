@@ -21,7 +21,7 @@ struct list {
 #define LIST(n) struct list n = { &(n), &(n) }
 
 /* Initialize a list pointer */
-#define __list_init(n) ((n)->next = (n)->prev = (n))
+#define list_init(n) ((n)->next = (n)->prev = (n))
 
 /* Retrieve data node (type t) from list l, in member m */
 #define list_node(l,t,m) ((t*)(l - offsetof(t,m)))
@@ -103,7 +103,7 @@ static inline void list_add_tail(struct list *n, struct list *l)
 static inline void list_del(struct list *n)
 {
 	__list_splice(n->prev, n->next);
-	__list_init(n);
+	list_init(n);
 }
 
 /* INTERNAL: replace o with n */
@@ -119,7 +119,7 @@ static inline void __list_replace(struct list *o, struct list *n)
 static inline void list_replace(struct list *o, struct list *n)
 {
 	__list_replace(o, n);
-	__list_init(o);
+	list_init(o);
 }
 
 /* Move n to the head of l */
@@ -141,7 +141,7 @@ static inline void list_join(struct list *head, struct list *tail)
 {
 	__list_splice(head->prev, tail->next);
 	__list_splice(tail->prev, head);
-	__list_init(tail);
+	list_init(tail);
 }
 
 #endif

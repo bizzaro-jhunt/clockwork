@@ -16,5 +16,7 @@ int main(int argc, char **argv)
 	test_suite_res_user();
 	test_suite_res_group();
 
+	test_suite_policy();
+
 	return test_status();
 }

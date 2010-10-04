@@ -76,6 +76,10 @@ static int _res_file_set_sha1_and_source(struct res_file *rf, const sha1 *cksum,
 void res_file_init(struct res_file *rf)
 {
 	assert(rf);
+
+	rf->rf_prio = 0;
+	list_init(&rf->res);
+
 	rf->rf_enf = 0;
 	rf->rf_diff = 0;
 	memset(&rf->rf_stat, 0, sizeof(struct stat));
@@ -89,6 +93,10 @@ void res_file_init(struct res_file *rf)
 
 void res_file_free(struct res_file *rf)
 {
+	assert(rf);
+
+	list_del(&rf->res);
+
 	xfree(rf->rf_rpath);
 }
 

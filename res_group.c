@@ -73,6 +73,7 @@ static int _group_update(stringlist *add, stringlist *rm, const char *user)
 void res_group_init(struct res_group *rg)
 {
 	rg->rg_prio = 0;
+	list_init(&rg->res);
 
 	rg->rg_name = NULL;
 	rg->rg_passwd = NULL;
@@ -97,6 +98,8 @@ void res_group_free(struct res_group *rg)
 {
 	xfree(rg->rg_name);
 	xfree(rg->rg_passwd);
+
+	list_del(&rg->res);
 
 	if (rg->rg_mem) {
 		stringlist_free(rg->rg_mem);

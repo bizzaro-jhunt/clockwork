@@ -6,6 +6,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+#include "list.h"
 #include "sha1.h"
 
 #define RES_FILE_NONE 0000
@@ -32,6 +33,8 @@ struct res_file {
 	struct stat  rf_stat;   /* stat(2) of local file */
 	unsigned int rf_enf;    /* enforce-compliance flags */
 	unsigned int rf_diff;   /* out-of-compliance flags */
+
+	struct list  res;       /* Node in policy list */
 };
 
 void res_file_init(struct res_file *rf);

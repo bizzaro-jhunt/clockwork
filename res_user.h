@@ -6,6 +6,7 @@
 #include <pwd.h>
 #include <shadow.h>
 
+#include "list.h"
 #include "userdb.h"
 
 #define RES_USER_NONE          0
@@ -56,6 +57,8 @@ struct res_user {
 	unsigned int   ru_prio;
 	unsigned int   ru_enf;     /* enforce-compliance flags */
 	unsigned int   ru_diff;    /* out-of-compliance flags */
+
+	struct list    res;       /* Node in policy list */
 };
 
 void res_user_init(struct res_user *ru);

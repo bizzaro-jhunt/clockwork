@@ -102,6 +102,7 @@ void res_user_init(struct res_user *ru)
 	assert(ru);
 
 	ru->ru_prio = 0;
+	list_init(&ru->res);
 
 	ru->ru_name = NULL;
 	ru->ru_passwd = NULL;
@@ -127,6 +128,8 @@ void res_user_init(struct res_user *ru)
 void res_user_free(struct res_user *ru)
 {
 	assert(ru);
+
+	list_del(&ru->res);
 
 	xfree(ru->ru_name);
 	xfree(ru->ru_passwd);

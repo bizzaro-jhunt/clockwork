@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <grp.h>
 
+#include "list.h"
 #include "userdb.h"
 #include "stringlist.h"
 
@@ -37,6 +38,8 @@ struct res_group {
 	unsigned int   rg_prio;
 	unsigned int   rg_enf;     /* enforce-compliance flags */
 	unsigned int   rg_diff;    /* out-of-compliance flags */
+
+	struct list    res;       /* Node in policy list */
 };
 
 void res_group_init(struct res_group *rg);

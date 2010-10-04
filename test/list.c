@@ -1,7 +1,6 @@
 #ifndef _TEST_LIST_H
 #define _TEST_LIST_H
 
-#include <stdarg.h>
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -26,34 +25,23 @@ static struct test_struct *new_test_struct(int value)
 	return ts;
 }
 
-static void assert_list(struct list *l, const char *s, size_t n, ...)
-{
-	va_list args;
-	size_t i;
-	char buf[128];
-	int value;
-	struct test_struct *struc;
-	struct list *ptr = l->next;
+#define SETUP_THE_NUMBERS \
+	struct test_struct \
+	          *t4  = new_test_struct(4),  \
+	          *t8  = new_test_struct(8),  \
+	          *t15 = new_test_struct(15), \
+	          *t16 = new_test_struct(16), \
+	          *t23 = new_test_struct(23), \
+	          *t42 = new_test_struct(42);
 
-	va_start(args, n);
-	for (i = 0; i < n; i++) {
-		struc = list_node(ptr,struct test_struct,entry);
-		value = va_arg(args, int);
-
-		snprintf(buf, 128, "%s: item %u is a valid data node", s, i);
-		assert_not_null(buf, struc);
-
-		snprintf(buf, 128, "%s: item %u has a value of %u", s, i, value);
-		assert_int_equals(buf, struc->value, value);
-
-		ptr = ptr->next;
-	}
-	va_end(args);
-
-	/* FIXME: need assert_pointer_equal and assert_pointer_not_equal */
-	snprintf(buf, 128, "%s: list has no more distinct entries", s);
-	assert_true(buf, ptr->next == l);
-}
+#define TEARDOWN_THE_NUMBERS do { \
+	free(t4);  \
+	free(t8);  \
+	free(t15); \
+	free(t16); \
+	free(t23); \
+	free(t42); \
+} while (0)
 
 static void assert_list_bounds(struct list *l, const char *desc, int head, int tail)
 {
@@ -122,16 +110,16 @@ void test_list_removal()
 
 	test("List: entry removal via list_del");
 	list_del(&ts1->entry);
-	assert_list_bounds(&l, "(8, 15)", 8, 15);
+	assert_list_bounds(&l, "(8 15)", 8, 15);
 
 	list_add_tail(&ts1->entry, &l);
-	assert_list_bounds(&l, "(8, 15, 4)", 8, 4);
+	assert_list_bounds(&l, "(8 15, 4)", 8, 4);
 
 	list_del(&ts3->entry);
-	assert_list_bounds(&l, "(8, 4)", 8, 4);
+	assert_list_bounds(&l, "(8 4)", 8, 4);
 
 	list_del(&ts2->entry);
-	assert_list_bounds(&l, "(4, 4)", 4, 4);
+	assert_list_bounds(&l, "(4 4)", 4, 4);
 
 	free(ts1);
 	free(ts2);
@@ -140,18 +128,12 @@ void test_list_removal()
 
 void test_list_iteration()
 {
-	struct test_struct *t4, *t8, *t15, *t16, *t23, *t42;
 	LIST(l);
 	struct list *pos;
 	struct test_struct *ts;
 	int sum;
 
-	t4  = new_test_struct(4);
-	t8  = new_test_struct(8);
-	t15 = new_test_struct(15);
-	t16 = new_test_struct(16);
-	t23 = new_test_struct(23);
-	t42 = new_test_struct(42);
+	SETUP_THE_NUMBERS;
 
 	list_add_tail(&t4->entry,  &l);
 	list_add_tail(&t8->entry,  &l);
@@ -169,26 +151,15 @@ void test_list_iteration()
 	for_each_node_r(ts, &l, entry) { sum += ts->value; }
 	assert_int_equals("for_each_node_r traversal", sum, 108);
 
-	free(t4);
-	free(t8);
-	free(t15);
-	free(t16);
-	free(t23);
-	free(t42);
+	TEARDOWN_THE_NUMBERS;
 }
 
 void test_list_join()
 {
-	struct test_struct *t4, *t8, *t15, *t16, *t23, *t42;
 	LIST(first);
 	LIST(last);
 
-	t4  = new_test_struct(4);
-	t8  = new_test_struct(8);
-	t15 = new_test_struct(15);
-	t16 = new_test_struct(16);
-	t23 = new_test_struct(23);
-	t42 = new_test_struct(42);
+	SETUP_THE_NUMBERS;
 
 	list_add_tail(&t4->entry,  &first);
 	list_add_tail(&t8->entry,  &first);
@@ -208,26 +179,14 @@ void test_list_join()
 
 	assert_true("&last is empty after join", list_empty(&last));
 
-	free(t4);
-	free(t8);
-	free(t15);
-	free(t16);
-	free(t23);
-	free(t42);
+	TEARDOWN_THE_NUMBERS;
 }
 
 void test_list_moves()
 {
-	struct test_struct *t4, *t8, *t15, *t16, *t23, *t42;
 	LIST(first);
 	LIST(last);
-
-	t4  = new_test_struct(4);
-	t8  = new_test_struct(8);
-	t15 = new_test_struct(15);
-	t16 = new_test_struct(16);
-	t23 = new_test_struct(23);
-	t42 = new_test_struct(42);
+	SETUP_THE_NUMBERS;
 
 	list_add_tail(&t4->entry,  &first);
 	list_add_tail(&t8->entry,  &first);
@@ -258,25 +217,13 @@ void test_list_moves()
 	assert_list_sum("sum(23 42 4) is 65", &last, 69);
 	assert_list_bounds(&last, "(23 42 4)", 23, 4);
 
-	free(t4);
-	free(t8);
-	free(t15);
-	free(t16);
-	free(t23);
-	free(t42);
+	TEARDOWN_THE_NUMBERS;
 }
 
 void test_list_replacements()
 {
-	struct test_struct *t4, *t8, *t15, *t16, *t23, *t42;
 	LIST(l);
-
-	t4  = new_test_struct(4);
-	t8  = new_test_struct(8);
-	t15 = new_test_struct(15);
-	t16 = new_test_struct(16);
-	t23 = new_test_struct(23);
-	t42 = new_test_struct(42);
+	SETUP_THE_NUMBERS;
 
 	list_add_tail(&t4->entry,  &l);
 	list_add_tail(&t8->entry,  &l);
@@ -298,12 +245,7 @@ void test_list_replacements()
 	assert_list_sum("sum(16 23 42) is 81", &l, 81);
 	assert_list_bounds(&l, "(16 23 42)", 16, 42);
 
-	free(t4);
-	free(t8);
-	free(t15);
-	free(t16);
-	free(t23);
-	free(t42);
+	TEARDOWN_THE_NUMBERS;
 }
 
 void test_suite_list()

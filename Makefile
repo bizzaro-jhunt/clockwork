@@ -60,6 +60,7 @@ tests: test/run
 test/run: test/run.o test/test.o \
           test/assertions.o \
           mem.o \
+          test/list.o \
           test/stringlist.o stringlist.o \
           test/userdb.o userdb.o \
           test/res_file.o res_file.o \

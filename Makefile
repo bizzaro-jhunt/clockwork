@@ -109,6 +109,12 @@ main.o: main.c res_file.h res_group.h res_user.h
 	$(CC) -c -o $@ $<
 
 ############################################################
+# EXPERIMENTAL
+
+test_server: test_server.o proto.o net.o
+	$(CC) -o $@ $+
+
+############################################################
 # Pattern Rules
 
 %.o: %.c %.h

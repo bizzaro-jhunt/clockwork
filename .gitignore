@@ -5,5 +5,7 @@ d
 sha1sum
 upstream
 sizes
+test_server
+doc/proto.png
 test/run
 test/sha1_files.h

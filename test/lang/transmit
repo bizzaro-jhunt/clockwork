@@ -1,14 +1,15 @@
 2xx - Success
   - 200 OK
   - 201 Identity Accepted for Review
-  - 202 Identity Confirmed
+  - 202 Identity Known
   - 203 Sending Data
 3xx - Provisional
   - 301 Ready to Receive
 4xx - Client Failure
   - 401 Identity Unknown
 5xx - Server Failure
-6xx - <reserved>
+6xx - Protocol Breakdown
+  - 601 Protocol Error
 7xx - <reserved>
 8xx - <reserved>
 9xx - <reserved>
@@ -38,13 +39,13 @@ Policy Retrieval for Trusted Client
 C: <connect>
 S: hello, i am server.host.name                    S: HELO server.host.name
 C: hello, my name is client.host.name              C: HELO client.host.name
-S: i remember you!                                 S: 202 Identity Confirmed
+S: i remember you!                                 S: 202 Identity Known
 
-C: what's new with my policy?                      C: QUERY POLICY
+C: what's new with my policy?                      C: QUERY
 S: latest version is 4.32.6                        S: 200 OK
                                                       VERSION 4.32.6
 
-C: give me my policy                               C: RETRIEVE POLICY
+C: give me my policy                               C: RETRIEVE
 S: policy found. stop when I say 'done'            S: 203 Sending Data
    POLICY DATA                                     S: <data>
    POLICY DATA                                     S: <data>
@@ -63,9 +64,9 @@ Report Upload from Trusted Client
 C: <connect>
 S: hello, i am server.host.name                    S: HELO server.host.name
 C: hello, my name is client.host.name              C: HELO client.host.name
-S: i remember you!                                 S: 202 Identity Confirmed
+S: i remember you!                                 S: 202 Identity Known
 
-C: here is my report                               C: STORE REPORT
+C: here is my report                               C: STORE
 S: go ahead                                        S: 301 Ready to Receive
 
 C: stop when I say 'done'                          C: (no analog)

@@ -10,9 +10,7 @@ static int __proto_error(struct connection *conn);
 static int __proto_readline(struct connection *conn);
 
 static int server_helo(struct connection *conn);
-static int server_identify(struct connection *conn);
 static int server_main(struct connection *conn);
-static int server_recv_report(struct connection *conn);
 
 /**********************************************************/
 
@@ -41,30 +39,25 @@ static int __proto_readline(struct connection *conn)
 
 static int server_helo(struct connection *conn)
 {
-	if (net_writeline(&conn->nbuf, "HELO %s\r\n", conn->server) < 0) {
+	if (net_writeline(&conn->nbuf, "HELO %s\r\n", conn->name[0]) < 0) {
 		perror("write failed");
 		exit(1);
 	}
 
 	__proto_readline(conn);
 	if (strncmp(conn->line, "HELO ", 5) == 0) {
-		return server_identify(conn);
+		conn->name[1] = strdup(conn->line + 5);
+		if (strcmp(conn->name[1], "client.example.net") == 0) {
+			net_writeline(&conn->nbuf, "202 Identity Known\r\n");
+			conn->next = server_main;
+			return 0;
+		} else {
+			net_writeline(&conn->nbuf, "401 Identity Unknown\r\n");
+			close(conn->fd);
+			return -1;
+		}
 	}
 	return __proto_error(conn);
-}
-
-static int server_identify(struct connection *conn)
-{
-	char *client = (char*)conn->line + 5;
-	if (strcmp(client, "client.example.net") == 0) {
-		net_writeline(&conn->nbuf, "202 Identity Known\r\n");
-		conn->next = server_main;
-		return 0;
-	} else {
-		net_writeline(&conn->nbuf, "401 Identity Unknown\r\n");
-		close(conn->fd);
-		return -1;
-	}
 }
 
 static int server_main(struct connection *conn)
@@ -87,33 +80,30 @@ static int server_main(struct connection *conn)
 		return 0;
 	} else if (strcmp(conn->line, "REPORT") == 0) {
 		net_writeline(&conn->nbuf, "301 Go Ahead\r\n");
-		conn->next = server_recv_report;
+		__proto_readline(conn);
+		while (strcmp(conn->line, "DONE") != 0) {
+			__proto_readline(conn);
+		}
+		net_writeline(&conn->nbuf, "200 OK\r\n");
+		conn->next = server_main;
 		return 0;
 	}
 	return __proto_error(conn);
 }
 
-static int server_recv_report(struct connection *conn)
-{
-	__proto_readline(conn);
-	while (strcmp(conn->line, "DONE") != 0) {
-		__proto_readline(conn);
-	}
-	net_writeline(&conn->nbuf, "200 OK\r\n");
-	conn->next = server_main;
-	return 0;
-}
-
 /**********************************************************/
 
-int proto_init(struct connection *conn, int fd, const char *name)
+int proto_init(struct connection *conn, int fd, const char *name, const char *ident)
 {
 	conn->len = 0;
 	conn->next = NULL;
 	memset(conn->line, 0, PROTO_LINE_MAX);
 
-	conn->server = strdup(name);
+	conn->name[0] = strdup(name);
+	conn->ident[0] = strdup(ident);
 	conn->fd = fd;
+
+	conn->version = -1;
 
 	netbuf_init(&conn->nbuf, fd);
 
@@ -122,6 +112,10 @@ int proto_init(struct connection *conn, int fd, const char *name)
 
 int server_dispatch(struct connection *conn)
 {
+
+	fprintf(stderr, "  server process started\n");
+	fprintf(stderr, "  %s : %s\n", conn->name[0], conn->ident[0]);
+
 	conn->next = server_helo;
 
 	while ( conn->next && (*(conn->next))(conn) == 0 )
@@ -156,22 +150,22 @@ static int __client_status(char *data)
   sent in response to the challenge.
 
  */
-int client_helo(netbuf *buf, char *name, char *identity)
+int client_helo(struct connection *conn)
 {
 	char data[255];
 	size_t len;
 	int status;
 
-	/* FIXME: discarding server HELO */
-	net_readline(buf, data, 255); /* FIXME: handle failure */
+	__proto_readline(conn);
+	conn->name[1] = strdup(conn->line);;
 
-	if (net_writeline(buf, "HELO %s\r\n", name) < 0) {
+	if (net_writeline(&conn->nbuf, "HELO %s\r\n", conn->name[0]) < 0) {
 		perror("client_helo");
 		return -1;
 	}
 
-	net_readline(buf, data, 255); /* FIXME: handle failure */
-	switch (status = __client_status(data)) {
+	__proto_readline(conn);
+	switch (status = __client_status(conn->line)) {
 	case 202:
 		return 0;
 	case 401:
@@ -180,52 +174,50 @@ int client_helo(netbuf *buf, char *name, char *identity)
 		return -2; /* protocol error */
 	}
 
-	if (net_writeline(buf, "IDENT %s %s\r\n", name, identity) < 0) {
+	if (net_writeline(&conn->nbuf, "IDENT %s %s\r\n", conn->name[0], conn->ident[0]) < 0) {
 		perror("client_helo");
 		return -1;
 	}
 
-	net_readline(buf, data, len); /* FIXME: handle failure */
+	__proto_readline(conn);
+	/* FIXME: how to handle 201 Identity Accepted */
 	return -1;
 }
 
-int client_query(netbuf *buf, long *version)
+int client_query(struct connection *conn)
 {
 	char data[255];
 	size_t len;
 	int status;
 
-
-	*version = 0;
-
-	if (net_writeline(buf, "QUERY\r\n") < 0) {
+	if (net_writeline(&conn->nbuf, "QUERY\r\n") < 0) {
 		perror("client_query");
 		return -1;
 	}
-	len = net_readline(buf, data, 255); /* FIXME: handle failure */
+	__proto_readline(conn);
+	status = __client_status(conn->line);
 
-	status = __client_status(data);
 	if (STATUS_IS(status, 200)) {
-		len = net_readline(buf, data, 255);
-		*version = atol(data + 8); /* skip "VERSION ", 8 bytes */
+		__proto_readline(conn);
+		conn->version = atol(conn->line + 8); /* skip "VERSION ", 8 bytes */
 		return 200;
 	} else {
 		return status;
 	}
 }
 
-int client_retrieve(netbuf *buf, char **data, size_t *n)
+int client_retrieve(struct connection *conn, char **data, size_t *n)
 {
 }
 
-int client_report(netbuf *buf, char *data, size_t n)
+int client_report(struct connection *conn, char *data, size_t n)
 {
 }
 
-int client_bye(netbuf *buf)
+int client_bye(struct connection *conn)
 {
-	net_writeline(buf, "BYE\r\n");
-	close(buf->fd);
+	net_writeline(&conn->nbuf, "BYE\r\n");
+	close(conn->fd);
 	return 0;
 }
 

@@ -45,7 +45,7 @@ int main(int argc, char **argv)
 			default:
 				fprintf(stderr, "child: serving client\n");
 				conn = malloc(sizeof(struct connection));
-				proto_init(conn, connfd, "server.niftylogic.net");
+				proto_init(conn, connfd, "server.niftylogic.net", "decafbad-decafbad-decafbad");
 				return server_dispatch(conn);
 			}
 		} else {

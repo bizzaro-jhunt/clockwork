@@ -5,9 +5,9 @@
 
 
 CC_FLAGS := -g #                       Debug syms for gdb
-#CC_FLAGS := -gdwarf-2 #                DWARF3; for Valgrind
-#CC_FLAGS += -fprofile-arcs #           gcov / lcov coverage
-#CC_FLAGS += -ftest-coverage #          gcov / lcov coverage
+CC_FLAGS := -gdwarf-2 #                DWARF3; for Valgrind
+CC_FLAGS += -fprofile-arcs #           gcov / lcov coverage
+CC_FLAGS += -ftest-coverage #          gcov / lcov coverage
 
 CC := gcc $(CC_FLAGS)
 

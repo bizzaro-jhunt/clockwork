@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <string.h>
 #include <errno.h>
 #include <unistd.h>
@@ -16,182 +17,82 @@
 
 #define CRLF(c) ((c) == '\n' || (c) == '\r')
 
-static void netbuf_dump(netbuf *buf);
-static int  netbuf_fill_recv(netbuf *buf);
-
-/**************************************************************/
-
-static void netbuf_dump(netbuf *buf)
+static char network_getc(network_buffer *buffer)
 {
-	size_t i;
-	fprintf(stderr, "--[ recv ]-----------------------------------------------------\n");
-	for (i = 0; i < buf->recv_len; i++) {
-		fprintf(stderr, "%c", buf->recv0[i]);
-	}
-	fprintf(stderr, "\n");
-	fprintf(stderr, "---------------------------------------------------------------\n");
-	fprintf(stderr, "%u bytes total\n\n", buf->recv_len);
+	int nread;
 
-	fprintf(stderr, "--[ send ]-----------------------------------------------------\n");
-	fprintf(stderr, "%s\n", buf->send);
-	fprintf(stderr, "---------------------------------------------------------------\n");
-	fprintf(stderr, "%u bytes total\n", buf->send_len);
-}
-
-static int netbuf_fill_recv(netbuf *buf)
-{
-	buf->recv0 = buf->recv;
-	buf->recv_len = read(buf->fd, buf->recv, NBUF_MAX);
-	return buf->recv_len;
-}
-
-/**************************************************************/
-
-void netbuf_init(netbuf *buf, int fd)
-{
-	buf->fd = fd;
-
-	buf->recv_len = 0;
-	memset(buf->recv, 0, NBUF_MAX);
-	buf->recv0 = buf->recv;
-
-	memset(buf->send, 0, NBUF_MAX);
-}
-
-char netbuf_getc(netbuf *buf)
-{
-	int rc;
-
-	if (buf->recv_len <= 0) {
-		rc = netbuf_fill_recv(buf);
-		if (rc < 0) { /* error reading */
-			perror("netbuf_getc");
-			exit(0); /* FIXME: handle this better */
-		} else if (rc == 0) {
-			return '\0';
+	if (buffer->recv_len <= 0) {
+		buffer->recv_pos = buffer->recv;
+again:
+		nread = BIO_read(buffer->io, buffer->recv, sizeof(buffer->recv));
+		if (nread <= 0) {
+			fprintf(stderr, "network_getc: got %i back from BIO_read\n", nread);
+			if (BIO_should_retry(buffer->io)) {
+				fprintf(stderr, "network_getc: should retry\n");
+				goto again;
+			} else {
+				return '\0'; /* error condition */
+			}
 		}
+		buffer->recv_len = nread;
 	}
-	buf->recv_len--;
-	return *buf->recv0++;
+	buffer->recv_len--;
+	return *buffer->recv_pos++;
 }
 
 /**************************************************************/
 
-int net_writeline(netbuf *buf, char *fmt, ...)
+void network_buffer_init(network_buffer *buffer, BIO *io)
+{
+	assert(buffer);
+	assert(io);
+
+	buffer->io = io;
+	buffer->recv_len = 0;
+	memset(buffer->recv, 0, sizeof(buffer->recv));
+	memset(buffer->send, 0, sizeof(buffer->send));
+	buffer->recv_pos = buffer->recv;
+}
+
+size_t network_write(network_buffer *buffer, char *src, size_t len)
+{
+	return BIO_write(buffer->io, src, len);
+}
+
+size_t network_printf(network_buffer *buffer, char *fmt, ...)
 {
 	va_list args;
 	size_t len;
 
 	va_start(args, fmt);
-	len = vsnprintf(buf->send, NBUF_MAX, fmt, args);
+	len = vsnprintf(buffer->send, NETWORK_BUFFER_MAX, fmt, args);
 	if (len < 0) {
-		/* error in snprintf */
+		/* error in vsnprintf */
 		return -1;
-	} else if (len > NBUF_MAX) {
+	} else if (len > NETWORK_BUFFER_MAX) {
 		/* data overflow */
 		return -1;
 	}
-
-	fprintf(stderr, "send: (%u) %s", len, buf->send);
-	return write(buf->fd, buf->send, len);
+	return network_write(buffer, buffer->send, len);
 }
 
-int net_readline(netbuf *buf, char *dst, size_t n)
+size_t network_readline(network_buffer *buffer, char *str, size_t n)
 {
-	char *line = dst;
+	char *line = str;
 	size_t len = 0;
 	char c;
 
-	/* clear out CR/LF */
-	for (c = netbuf_getc(buf); c != '\0' && CRLF(c); c = netbuf_getc(buf))
+	/* Eat up newline characters from previous runs */
+	for (c = network_getc(buffer); c != '\0' && CRLF(c); c = network_getc(buffer))
 		;
 
-	for (; len < n && c && !CRLF(c); c = netbuf_getc(buf)) {
+	for (; len < n && c && !CRLF(c); c = network_getc(buffer)) {
 		len++;
-		*dst++ = c;
+		*str++ = c;
 	}
-	*dst = '\0';
+	*str = '\0';
 
 	fprintf(stderr, "recv: (%u) %s\n", len, line);
-
 	return len;
-}
-
-int net_connect(const char *address, uint16_t port)
-{
-	int fd;
-	struct sockaddr_in sa;
-
-	fd = socket(AF_INET, SOCK_STREAM, 0);
-	if (fd < 0) { return -1; }
-
-	/* set up sa with address / port to bind to */
-	memset(&sa, 0, sizeof(struct sockaddr_in));
-	sa.sin_family = AF_INET;
-	sa.sin_port = htons(port); /* in_port_t == uint16_t */
-
-	errno = 0;
-	if (inet_pton(AF_INET, address, &sa.sin_addr) != 1) {
-		if (errno == 0) { errno = EINVAL; }
-		return -1;
-	}
-
-	if (connect(fd, SA(&sa), sizeof(sa)) != 0) {
-		return -1;
-	}
-
-	return fd;
-}
-
-
-int net_listen(const char *address, uint16_t port)
-{
-	int fd;
-	struct sockaddr_in sa;
-
-	/* get a socket from the kernel */
-	fd = socket(AF_INET, SOCK_STREAM, 0);
-	if (fd < 0) { return -1; }
-
-	/* set up sa with address / port to listen on */
-	memset(&sa, 0, sizeof(struct sockaddr_in));
-	sa.sin_family = AF_INET;
-	sa.sin_port = htons(port); /* in_port_t == uint16_t */
-
-	errno = 0;
-	if (inet_pton(AF_INET, address, &sa.sin_addr) != 1) {
-		if (errno == 0) { errno = EINVAL; }
-		return -1;
-	}
-
-	/* bind the socket to a listening address */
-	if (bind(fd, SA(&sa), sizeof(sa)) != 0) {
-		return -1;
-	}
-
-	/* listen on the bound socket */
-	if (listen(fd, 0) != 0) {
-		return -1;
-	}
-
-	return fd;
-}
-
-int net_accept(int fd)
-{
-	int conn;
-
-	conn = accept(fd, NULL, NULL);
-	if (conn < 0) { return -1; }
-
-	switch (fork()) {
-		case -1: return -1;
-		case  0: /* in child */
-			close(fd);
-			return conn;
-		default: /* in parent */
-			close(conn);
-			return 0;
-	}
 }
 

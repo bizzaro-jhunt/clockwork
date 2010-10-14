@@ -1,33 +1,25 @@
 #ifndef _NET_H
 #define _NET_H
 
-#define NBUF_MAX 8192
+#include <openssl/bio.h>
+
+#define NETWORK_BUFFER_MAX 8192
+
 typedef struct {
-	int     fd;
-	char    data[NBUF_MAX];
-	char   *start;
-	size_t  len;
 
-	char    recv[NBUF_MAX];
-	size_t  recv_len;
-	char   *recv0;
+	BIO     *io; /* OpenSSL BIO object to read from / write to */
 
-	char    send[NBUF_MAX];
-	size_t  send_len;
-} netbuf;
+	char     recv[NETWORK_BUFFER_MAX]; /* Raw buffer for storing read data */
+	char     send[NETWORK_BUFFER_MAX]; /* Buffer for writing data */
 
+	char    *recv_pos; /* Position in recv of next character */
+	size_t   recv_len; /* Amount of usable data in recv */
 
-void netbuf_init(netbuf *buf, int fd);
-char netbuf_getc(netbuf *buf);
+} network_buffer;
 
-/* int net_read(netbuf *buf, *dst, size_t len); */
-int net_write(netbuf *buf, char *src, size_t n);
-int net_writeline(netbuf *buf, char *fmt, ...);
-int net_readline(netbuf *buf, char *dst, size_t n);
-
-int net_connect(const char *address, unsigned short port);
-
-int net_listen(const char *address, unsigned short port);
-int net_accept(int fd);
+void network_buffer_init(network_buffer *buffer, BIO *io);
+size_t network_write(network_buffer *buffer, char *src, size_t len);
+size_t network_printf(network_buffer *buffer, char *fmt, ...);
+size_t network_readline(network_buffer *buffer, char *str, size_t n);
 
 #endif

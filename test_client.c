@@ -4,41 +4,53 @@
 #include "proto.h"
 #include "net.h"
 
+#define int_error(msg) handle_error(__FILE__, __LINE__, msg)
+void handle_error(const char *file, int lineno, const char *msg)
+{
+	fprintf(stderr, "** %s:%i %s\n", file, lineno, msg);
+	ERR_print_errors_fp(stderr);
+	exit(1);
+}
+
 int main(int argc, char **argv)
 {
-	int sockfd;
-	long version;
+	BIO *sock;
+	network_buffer nbuf;
 	struct connection conn;
 
-	if (argc != 3) {
-		fprintf(stderr, "USAGE: %s address port\n", argv[0]);
-		return 2;
+	init_openssl();
+
+	sock = BIO_new_connect("127.0.0.1:7890");
+	if (!sock) {
+		int_error("Error creating connection BIO");
 	}
 
-	sockfd = net_connect(argv[1], atoi(argv[2]));
-	if (sockfd < 0) {
-		perror("net_connect");
-		return 1;
+	if (BIO_do_connect(sock) <= 0) {
+		int_error("Error connecting to remote server");
 	}
 
-	proto_init(&conn, sockfd,
+	fprintf(stderr, "Connection opened\n");
+	network_buffer_init(&nbuf, sock);
+
+	proto_init(&conn, &nbuf,
 	           "client.example.net",
-	           "deadbeef-deadbeef-deadbeef");
+	           "deadbeef-deadbeef-deadbeff");
+	conn.version = 42;
 
 	if (client_helo(&conn) != 0) {
 		fprintf(stderr, "client_helo returned non-zero\n");
 		exit(1);
 	}
-	printf(">> Server knows who we are\n");
+	fprintf(stderr, ">> server knows who we are\n");
 
 	if (client_query(&conn) != 200) {
 		client_bye(&conn);
 		exit(1);
 	}
-
-	printf("Server has version '%li'; newer than ours\n", conn.version);
-
+	fprintf(stderr, ">> server has version %li; newer than ours\n", conn.version);
 	client_bye(&conn);
-	return 0;
 
+	BIO_free(sock);
+	return 0;
 }
+

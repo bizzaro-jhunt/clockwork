@@ -3,18 +3,10 @@
 
 #include <stdint.h>
 #include <sys/types.h>
-
-#include <openssl/bio.h>
-#include <openssl/err.h>
-#include <openssl/rand.h>
 #include <openssl/ssl.h>
 
-#include "net.h"
-
-#define PROTO_LINE_MAX 256
-
 typedef enum {
-	PROTOCOL_OP_NOOP = 19,
+	PROTOCOL_OP_NOOP = 1,
 	PROTOCOL_OP_ERROR,
 	PROTOCOL_OP_ACK,
 	PROTOCOL_OP_BYE,
@@ -33,9 +25,9 @@ typedef enum {
   a request or response sent in either direction.
  */
 typedef struct {
-	protocol_op  op;    /* Operation, on of PROTOCOL_OP_* */
-	uint16_t     len;   /* Length of data, in bytes */
-	uint8_t     *data;  /* Pointer to len bytes of data. */
+	protocol_op  op;    /* Operation, one of PROTOCOL_OP_* */
+	uint16_t     len;   /* Length of data, in octets */
+	uint8_t     *data;  /* Pointer to len octets of data. */
 } protocol_data_unit;
 
 struct protocol_context;

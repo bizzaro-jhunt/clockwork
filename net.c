@@ -1,4 +1,3 @@
-#include <assert.h>
 #include <string.h>
 #include <errno.h>
 #include <unistd.h>
@@ -13,86 +12,90 @@
 
 #include "net.h"
 
-#define SA(s) ((struct sockaddr *)(s))
-
-#define CRLF(c) ((c) == '\n' || (c) == '\r')
-
-static char network_getc(network_buffer *buffer)
+int verify_callback(int ok, X509_STORE_CTX *store)
 {
-	int nread;
+	char data[256];
 
-	if (buffer->recv_len <= 0) {
-		buffer->recv_pos = buffer->recv;
-again:
-		nread = BIO_read(buffer->io, buffer->recv, sizeof(buffer->recv));
-		if (nread <= 0) {
-			fprintf(stderr, "network_getc: got %i back from BIO_read\n", nread);
-			if (BIO_should_retry(buffer->io)) {
-				fprintf(stderr, "network_getc: should retry\n");
-				goto again;
-			} else {
-				return '\0'; /* error condition */
+	if (!ok) {
+		X509 *cert = X509_STORE_CTX_get_current_cert(store);
+		int depth  = X509_STORE_CTX_get_error_depth(store);
+		int err    = X509_STORE_CTX_get_error(store);
+
+		fprintf(stderr, "-Error with certificate at depth: %i\n", depth);
+		X509_NAME_oneline(X509_get_issuer_name(cert), data, 256);
+		fprintf(stderr, "  issuer   = %s\n", data);
+		X509_NAME_oneline(X509_get_subject_name(cert), data, 256);
+		fprintf(stderr, "  subject  = %s\n", data);
+		fprintf(stderr, "  err %i:%s\n", err, X509_verify_cert_error_string(err));
+	}
+
+	return ok;
+}
+
+long post_connection_check(SSL *ssl, char *host)
+{
+	X509 *cert;
+	X509_NAME *subj;
+	char data[256];
+	int extcount;
+	int ok = 0;
+
+	if (!(cert = SSL_get_peer_certificate(ssl)) || !host) {
+		goto err_occurred;
+	}
+
+	if ((extcount = X509_get_ext_count(cert)) > 0) {
+		int i;
+
+		for (i = 0; i < extcount; i++) {
+			const unsigned char *extstr;
+			X509_EXTENSION *ext;
+
+			ext = X509_get_ext(cert, i);
+			extstr = OBJ_nid2sn(OBJ_obj2nid(X509_EXTENSION_get_object(ext)));
+
+			if (strcmp(extstr, "subjectAltName") == 0) {
+				int j;
+				const unsigned char *data;
+				STACK_OF(CONF_VALUE) *val;
+				CONF_VALUE *nval;
+				X509V3_EXT_METHOD *meth;
+
+				if (!(meth = X509V3_EXT_get(ext))) {
+					break;
+				}
+				data = ext->value->data;
+				val = meth->i2v(meth,
+				                meth->d2i(NULL, &data, ext->value->length),
+				                NULL);
+				for (j = 0; j < sk_CONF_VALUE_num(val); j++) {
+					nval = sk_CONF_VALUE_value(val, j);
+					if (!strcmp(nval->name, "DNS") && !strcmp(nval->value, host)) {
+						ok = 1;
+						break;
+					}
+				}
+			}
+			if (ok) {
+				break;
 			}
 		}
-		buffer->recv_len = nread;
 	}
-	buffer->recv_len--;
-	return *buffer->recv_pos++;
-}
 
-/**************************************************************/
-
-void network_buffer_init(network_buffer *buffer, BIO *io)
-{
-	assert(buffer);
-	assert(io);
-
-	buffer->io = io;
-	buffer->recv_len = 0;
-	memset(buffer->recv, 0, sizeof(buffer->recv));
-	memset(buffer->send, 0, sizeof(buffer->send));
-	buffer->recv_pos = buffer->recv;
-}
-
-size_t network_write(network_buffer *buffer, char *src, size_t len)
-{
-	return BIO_write(buffer->io, src, len);
-}
-
-size_t network_printf(network_buffer *buffer, char *fmt, ...)
-{
-	va_list args;
-	size_t len;
-
-	va_start(args, fmt);
-	len = vsnprintf(buffer->send, NETWORK_BUFFER_MAX, fmt, args);
-	if (len < 0) {
-		/* error in vsnprintf */
-		return -1;
-	} else if (len > NETWORK_BUFFER_MAX) {
-		/* data overflow */
-		return -1;
+	if (!ok && (subj = X509_get_subject_name(cert)) &&
+	    X509_NAME_get_text_by_NID(subj, NID_commonName, data, 256) > 0) {
+		data[255] = '\0';
+		if (strcasecmp(data, host) != 0) {
+			goto err_occurred;
+		}
 	}
-	return network_write(buffer, buffer->send, len);
-}
 
-size_t network_readline(network_buffer *buffer, char *str, size_t n)
-{
-	char *line = str;
-	size_t len = 0;
-	char c;
+	X509_free(cert);
+	return SSL_get_verify_result(ssl);
 
-	/* Eat up newline characters from previous runs */
-	for (c = network_getc(buffer); c != '\0' && CRLF(c); c = network_getc(buffer))
-		;
-
-	for (; len < n && c && !CRLF(c); c = network_getc(buffer)) {
-		len++;
-		*str++ = c;
+err_occurred:
+	if (cert) {
+		X509_free(cert);
 	}
-	*str = '\0';
-
-	fprintf(stderr, "recv: (%u) %s\n", len, line);
-	return len;
+	return X509_V_ERR_APPLICATION_VERIFICATION;
 }
-

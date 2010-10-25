@@ -1,3 +1,5 @@
+#include <assert.h>
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -5,79 +7,253 @@
 #include "proto.h"
 #include "net.h"
 
-static int __proto_readline(struct connection *conn);
+static int pdu_allocate(protocol_data_unit *pdu, uint16_t op, uint16_t len);
 
-static int server_helo(struct connection *conn);
-static int server_main(struct connection *conn);
+static int server_main(struct protocol_context *pctx);
 
 /**********************************************************/
 
-static int __proto_readline(struct connection *conn)
+static int pdu_allocate(protocol_data_unit *pdu, uint16_t op, uint16_t len)
 {
-	conn->len = network_readline(conn->nbuf, conn->line, PROTO_LINE_MAX);
-	if (conn->len < 0) {
-		network_printf(conn->nbuf, "500 Internal Error\r\n");
+	assert(pdu);
+
+	pdu->op = op;
+
+	if (pdu->data) {
+		free(pdu->data);
+	}
+
+	pdu->data = malloc(len);
+	if (!pdu->data) {
 		return -1;
 	}
+
+	pdu->len = len;
+
 	return 0;
 }
 
-static int server_helo(struct connection *conn)
+static int server_main(struct protocol_context *pctx)
 {
-	if (network_printf(conn->nbuf, "HELO %s\r\n", conn->name[0]) < 0) {
-		perror("write failed");
-		exit(1);
-	}
+	char errbuf[256] = {0};
 
-	__proto_readline(conn);
-	if (strncmp(conn->line, "HELO ", 5) == 0) {
-		conn->name[1] = strdup(conn->line + 5);
-		if (strcmp(conn->name[1], "client.example.net") == 0) {
-			network_printf(conn->nbuf, "202 Identity Known\r\n");
-			conn->next = server_main;
-			return 0;
-		} else {
-			network_printf(conn->nbuf, "401 Identity Unknown\r\n");
-			return -1;
+	pdu_receive(pctx);
+	switch (pctx->recv_pdu.op) {
+
+	case PROTOCOL_OP_NOOP:
+		if (pdu_encode_NOOP(&pctx->send_pdu) < 0) {
+			fprintf(stderr, "Unable to encode NOOP\n");
+			exit(42);
 		}
-	}
-	network_printf(conn->nbuf, "601 Protocol Error\r\n");
-	return -1;
-}
+		pdu_send(pctx);
+		break;
 
-static int server_main(struct connection *conn)
-{
-	__proto_readline(conn);
-	if (strcmp(conn->line, "BYE") == 0) {
+	case PROTOCOL_OP_BYE:
+		if (pdu_encode_ACK(&pctx->send_pdu) < 0) {
+			fprintf(stderr, "Unable to encode ACK\n");
+			exit(42);
+		}
+		pdu_send(pctx);
 		return -1;
 
-	} else if (strcmp(conn->line, "QUERY") == 0) {
-		network_printf(conn->nbuf, "200 OK\r\n");
-		network_printf(conn->nbuf, "453256 OK\r\n");
-		return 0;
-
-	} else if (strcmp(conn->line, "RETRIEVE") == 0) {
-		network_printf(conn->nbuf, "203 Sending Data\r\n");
-		network_printf(conn->nbuf, "<data>\r\n");
-		network_printf(conn->nbuf, "<data>\r\n");
-		network_printf(conn->nbuf, "<data>\r\n");
-		network_printf(conn->nbuf, "<data>\r\n");
-		network_printf(conn->nbuf, "DONE\r\n");
-		return 0;
-
-	} else if (strcmp(conn->line, "REPORT") == 0) {
-		network_printf(conn->nbuf, "301 Go Ahead\r\n");
-		__proto_readline(conn);
-		while (strcmp(conn->line, "DONE") != 0) {
-			__proto_readline(conn);
+	case PROTOCOL_OP_GET_VERSION:
+		if (pdu_encode_SEND_VERSION(&pctx->send_pdu, 452356) < 0) {
+			fprintf(stderr, "Unable to encode SEND_VERSION\n");
+			exit(42);
 		}
-		network_printf(conn->nbuf, "200 OK\r\n");
-		conn->next = server_main;
+		pdu_send(pctx);
+		return 0;
+
+	case PROTOCOL_OP_GET_POLICY:
+		if (pdu_encode_SEND_POLICY(&pctx->send_pdu, "POLICY\nPOLICY\nPOLICY") < 0) {
+			fprintf(stderr, "Unable to encode GET_VERSION\n");
+			exit(42);
+		}
+		pdu_send(pctx);
+		return 0;
+
+	case PROTOCOL_OP_PUT_REPORT:
+		if (pdu_encode_ACK(&pctx->send_pdu) < 0) {
+			fprintf(stderr, "Unable to encode ACK\n");
+			exit(42);
+		}
+		pdu_send(pctx);
+		break;
+
+	default:
+		snprintf(errbuf, 256, "Unrecognized PDU OP: %u", pctx->recv_pdu.op);
+		if (pdu_encode_ERROR(&pctx->send_pdu, 405, errbuf) < 0) {
+			fprintf(stderr, "Unable to encode ERROR\n");
+			exit(42);
+		}
+		pdu_send(pctx);
+		return -1;
+	}
+
+#if 0
+	} else if (strcmp(pctx->line, "REPORT") == 0) {
+		network_printf(pctx->nbuf, "301 Go Ahead\r\n");
+		__proto_readline(pctx);
+		while (strcmp(pctx->line, "DONE") != 0) {
+			__proto_readline(pctx);
+		}
+		network_printf(pctx->nbuf, "200 OK\r\n");
+		pctx->next = server_main;
 		return 0;
 
 	}
-	network_printf(conn->nbuf, "601 Protocol Error\r\n");
-	return -1;
+#endif
+}
+
+int pdu_encode_NOOP(protocol_data_unit *pdu)
+{
+	return pdu_allocate(pdu, PROTOCOL_OP_NOOP, 0);
+}
+
+int pdu_encode_ERROR(protocol_data_unit *pdu, uint16_t err_code, const char *str)
+{
+	assert(pdu);
+
+	uint16_t len = strlen(str);
+	err_code = htons(err_code);
+
+	if (pdu_allocate(pdu, PROTOCOL_OP_ERROR, len + sizeof(err_code)) < 0) {
+		return -1;
+	}
+
+	memcpy(pdu->data, &err_code, sizeof(err_code));
+	memcpy(pdu->data + sizeof(err_code), str, len);
+
+	return 0;
+}
+
+int pdu_encode_ACK(protocol_data_unit *pdu)
+{
+	return pdu_allocate(pdu, PROTOCOL_OP_ACK, 0);
+}
+
+int pdu_encode_BYE(protocol_data_unit *pdu)
+{
+	return pdu_allocate(pdu, PROTOCOL_OP_BYE, 0);
+}
+
+int pdu_encode_GET_VERSION(protocol_data_unit *pdu)
+{
+	return pdu_allocate(pdu, PROTOCOL_OP_GET_VERSION, 0);
+}
+
+int pdu_encode_SEND_VERSION(protocol_data_unit *pdu, uint32_t version)
+{
+	assert(pdu);
+
+	version = htonl(version);
+
+	if (pdu_allocate(pdu, PROTOCOL_OP_SEND_VERSION, sizeof(version)) < 0) {
+		return -1;
+	}
+
+	memcpy(pdu->data, &version, sizeof(version));
+
+	return 0;
+}
+
+int pdu_encode_GET_POLICY(protocol_data_unit *pdu)
+{
+	return pdu_allocate(pdu, PROTOCOL_OP_GET_POLICY, 0);
+}
+
+int pdu_encode_SEND_POLICY(protocol_data_unit *pdu, const char *policy)
+{
+	assert(pdu);
+
+	uint32_t len = strlen(policy);
+
+	if (pdu_allocate(pdu, PROTOCOL_OP_SEND_POLICY, len) < 0) {
+		return -1;
+	}
+
+	memcpy(pdu->data, policy, len);
+
+	return 0;
+}
+
+int pdu_receive(struct protocol_context *ctx)
+{
+	assert(ctx);
+
+	protocol_data_unit *pdu = &(ctx->recv_pdu);
+	uint16_t op, len;
+	int nread;
+
+	nread = SSL_read(ctx->io, &op, sizeof(op));
+	if (nread <= 0) {
+		fprintf(stderr, "pdu_receive: got %i from SSL_read\n", nread);
+		exit(42);
+	}
+	op = ntohs(op);
+
+	nread = SSL_read(ctx->io, &len, sizeof(len));
+	if (nread <= 0) {
+		fprintf(stderr, "pdu_receive: got %i from SSL_read\n", nread);
+		exit(42);
+	}
+	len = ntohs(len);
+
+	if (pdu_allocate(pdu, op, len) < 0) {
+		perror("pdu_receive pdu_allocate");
+		exit(42);
+	}
+
+	fprintf(stderr, "pdu_receive: OP:%u;LEN:%u\n", pdu->op, pdu->len);
+
+	if (len > 0) {
+		nread = SSL_read(ctx->io, pdu->data, pdu->len);
+		if (nread <= 0) {
+			fprintf(stderr, "pdu_receive: got %i from SSL_read\n", nread);
+			exit(42);
+		}
+	}
+
+	return 0;
+}
+
+int pdu_send(struct protocol_context *ctx)
+{
+	assert(ctx);
+
+	protocol_data_unit *pdu = &(ctx->send_pdu);
+	int nwritten;
+	uint16_t op, len;
+
+	fprintf(stderr, "pdu_send: OP:%u;LEN:%u\n", pdu->op, pdu->len);
+
+	op  = htons(pdu->op);
+	len = htons(pdu->len);
+
+	/* Write op to the wire */
+	nwritten = SSL_write(ctx->io, &op, sizeof(op));
+	if (nwritten != sizeof(op)) {
+		fprintf(stderr, "pdu_send: got %i from SSL_write\n", nwritten);
+		exit(42);
+	}
+
+	/* Write len to the wire */
+	nwritten = SSL_write(ctx->io, &len, sizeof(len));
+	if (nwritten != sizeof(len)) {
+		fprintf(stderr, "pdu_send: got %i from SSL_write\n", nwritten);
+		exit(42);
+	}
+
+	if (pdu->len > 0) {
+		/* Write payload to the wire */
+		nwritten = SSL_write(ctx->io, pdu->data, pdu->len);
+		if (nwritten != pdu->len) {
+			fprintf(stderr, "pdu_send: got %i from SSL_write\n", nwritten);
+			exit(42);
+		}
+	}
+
+	return 0;
 }
 
 /**********************************************************/
@@ -91,129 +267,64 @@ void init_openssl(void)
 	SSL_load_error_strings();
 }
 
-int proto_init(struct connection *conn, network_buffer *nbuf, const char *name, const char *ident)
+int proto_init(struct protocol_context *pctx, SSL *io)
 {
-	conn->len = 0;
-	memset(conn->line, 0, sizeof(conn->line));
-
-	conn->next = NULL;
-	conn->name[0] = strdup(name);
-	conn->ident[0] = strdup(ident);
-
-	conn->nbuf = nbuf;
-	conn->version = -1;
+	pctx->io = io;
+	memset(&pctx->send_pdu, 0, sizeof(protocol_data_unit));
+	memset(&pctx->recv_pdu, 0, sizeof(protocol_data_unit));
+	pctx->next = NULL;
 
 	init_openssl();
 
 	return 0;
 }
 
-int server_dispatch(struct connection *conn)
+int server_dispatch(struct protocol_context *pctx)
 {
-
 	fprintf(stderr, "  server process started\n");
-	fprintf(stderr, "  %s : %s\n", conn->name[0], conn->ident[0]);
 
-	conn->next = server_helo;
-
-	while ( conn->next && (*(conn->next))(conn) == 0 )
+	pctx->next = server_main;
+	while ( pctx->next && (*(pctx->next))(pctx) == 0 )
 		;
 
 	return 0;
 }
 
-#define STATUS_IS(s,n) ((s) >= n && (s) < n + 100)
-static int __client_status(char *data)
+int client_query(struct protocol_context *pctx)
 {
-	char code[4] = {0};
-	strncpy(code, data, 3);
-	return atoi(code);
-}
-
-/**
-  client_helo - Open Hailing Frequencies
-
-  This is the first step on the client side of the protocol
-  exchange; the client must read the HELO sent by the server
-  and respond in kind.  If challenged, the client will provide
-  its identity to the server for review.
-
-  client_helo returns 0 if the server responded with a
-  202 Identity Known status.  In this case, no challenge-response
-  takes place with respect to client identity.
-
-  client_helo returns -1 if the server responded with a
-  401 Identity Unknown status.  In this case, the identity is
-  sent in response to the challenge.
-
- */
-int client_helo(struct connection *conn)
-{
-	char data[255];
-	size_t len;
-	int status;
-
-	__proto_readline(conn);
-	conn->name[1] = strdup(conn->line);;
-
-	if (network_printf(conn->nbuf, "HELO %s\r\n", conn->name[0]) < 0) {
-		perror("client_helo");
-		return -1;
-	}
-
-	__proto_readline(conn);
-	switch (status = __client_status(conn->line)) {
-	case 202:
-		return 0;
-	case 401:
-		break;
-	default:
-		return -2; /* protocol error */
-	}
-
-	if (network_printf(conn->nbuf, "IDENT %s %s\r\n", conn->name[0], conn->ident[0]) < 0) {
-		perror("client_helo");
-		return -1;
-	}
-
-	__proto_readline(conn);
-	/* FIXME: how to handle 201 Identity Accepted */
-	return -1;
-}
-
-int client_query(struct connection *conn)
-{
-	char data[255];
-	size_t len;
-	int status;
-
-	if (network_printf(conn->nbuf, "QUERY\r\n") < 0) {
+	if (pdu_encode_GET_POLICY(&pctx->send_pdu) < 0) {
 		perror("client_query");
 		return -1;
 	}
-	__proto_readline(conn);
-	status = __client_status(conn->line);
-
-	if (STATUS_IS(status, 200)) {
-		__proto_readline(conn);
-		conn->version = atol(conn->line + 8); /* skip "VERSION ", 8 bytes */
-		return 200;
-	} else {
-		return status;
+	if (pdu_send(pctx) < 0) {
+		perror("client_query");
+		return -1;
 	}
+
+	pdu_receive(pctx);
+	return 200; /* FIXME: temporary */
 }
 
-int client_retrieve(struct connection *conn, char **data, size_t *n)
+int client_retrieve(struct protocol_context *pctx, char **data, size_t *n)
 {
 }
 
-int client_report(struct connection *conn, char *data, size_t n)
+int client_report(struct protocol_context *pctx, char *data, size_t n)
 {
 }
 
-int client_bye(struct connection *conn)
+int client_bye(struct protocol_context *pctx)
 {
-	network_printf(conn->nbuf, "BYE\r\n");
+	if (pdu_encode_BYE(&pctx->send_pdu) < 0) {
+		perror("client_bye");
+		return -1;
+	}
+	if (pdu_send(pctx) < 0) {
+		perror("client_bye");
+		return -1;
+	}
+
+	pdu_receive(pctx);
 	return 0;
 }
 

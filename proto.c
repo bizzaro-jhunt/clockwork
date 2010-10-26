@@ -9,8 +9,6 @@
 
 static int pdu_allocate(protocol_data_unit *pdu, uint16_t op, uint16_t len);
 
-static int server_main(struct protocol_context *pctx);
-
 /**********************************************************/
 
 static int pdu_allocate(protocol_data_unit *pdu, uint16_t op, uint16_t len)
@@ -33,62 +31,63 @@ static int pdu_allocate(protocol_data_unit *pdu, uint16_t op, uint16_t len)
 	return 0;
 }
 
-static int server_main(struct protocol_context *pctx)
+int server_dispatch(protocol_context *pctx)
 {
 	char errbuf[256] = {0};
 
-	pdu_receive(pctx);
-	switch (pctx->recv_pdu.op) {
+	for (;;) {
+		pdu_receive(pctx);
+		switch (pctx->recv_pdu.op) {
 
-	case PROTOCOL_OP_NOOP:
-		if (pdu_encode_NOOP(&pctx->send_pdu) < 0) {
-			fprintf(stderr, "Unable to encode NOOP\n");
-			exit(42);
-		}
-		pdu_send(pctx);
-		break;
+		case PROTOCOL_OP_NOOP:
+			if (pdu_encode_NOOP(&pctx->send_pdu) < 0) {
+				fprintf(stderr, "Unable to encode NOOP\n");
+				exit(42);
+			}
+			pdu_send(pctx);
+			break;
 
-	case PROTOCOL_OP_BYE:
-		if (pdu_encode_ACK(&pctx->send_pdu) < 0) {
-			fprintf(stderr, "Unable to encode ACK\n");
-			exit(42);
-		}
-		pdu_send(pctx);
-		return -1;
+		case PROTOCOL_OP_BYE:
+			if (pdu_encode_ACK(&pctx->send_pdu) < 0) {
+				fprintf(stderr, "Unable to encode ACK\n");
+				exit(42);
+			}
+			pdu_send(pctx);
+			return 0;
 
-	case PROTOCOL_OP_GET_VERSION:
-		if (pdu_encode_SEND_VERSION(&pctx->send_pdu, 452356) < 0) {
-			fprintf(stderr, "Unable to encode SEND_VERSION\n");
-			exit(42);
-		}
-		pdu_send(pctx);
-		return 0;
+		case PROTOCOL_OP_GET_VERSION:
+			if (pdu_encode_SEND_VERSION(&pctx->send_pdu, 452356) < 0) {
+				fprintf(stderr, "Unable to encode SEND_VERSION\n");
+				exit(42);
+			}
+			pdu_send(pctx);
+			break;
 
-	case PROTOCOL_OP_GET_POLICY:
-		if (pdu_encode_SEND_POLICY(&pctx->send_pdu, "POLICY\nPOLICY\nPOLICY") < 0) {
-			fprintf(stderr, "Unable to encode GET_VERSION\n");
-			exit(42);
-		}
-		pdu_send(pctx);
-		return 0;
+		case PROTOCOL_OP_GET_POLICY:
+			if (pdu_encode_SEND_POLICY(&pctx->send_pdu, "POLICY\nPOLICY\nPOLICY") < 0) {
+				fprintf(stderr, "Unable to encode GET_VERSION\n");
+				exit(42);
+			}
+			pdu_send(pctx);
+			break;
 
-	case PROTOCOL_OP_PUT_REPORT:
-		if (pdu_encode_ACK(&pctx->send_pdu) < 0) {
-			fprintf(stderr, "Unable to encode ACK\n");
-			exit(42);
-		}
-		pdu_send(pctx);
-		break;
+		case PROTOCOL_OP_PUT_REPORT:
+			if (pdu_encode_ACK(&pctx->send_pdu) < 0) {
+				fprintf(stderr, "Unable to encode ACK\n");
+				exit(42);
+			}
+			pdu_send(pctx);
+			break;
 
-	default:
-		snprintf(errbuf, 256, "Unrecognized PDU OP: %u", pctx->recv_pdu.op);
-		if (pdu_encode_ERROR(&pctx->send_pdu, 405, errbuf) < 0) {
-			fprintf(stderr, "Unable to encode ERROR\n");
-			exit(42);
+		default:
+			snprintf(errbuf, 256, "Unrecognized PDU OP: %u", pctx->recv_pdu.op);
+			if (pdu_encode_ERROR(&pctx->send_pdu, 405, errbuf) < 0) {
+				fprintf(stderr, "Unable to encode ERROR\n");
+				exit(42);
+			}
+			pdu_send(pctx);
+			return -1;
 		}
-		pdu_send(pctx);
-		return -1;
-	}
 
 #if 0
 	} else if (strcmp(pctx->line, "REPORT") == 0) {
@@ -98,11 +97,11 @@ static int server_main(struct protocol_context *pctx)
 			__proto_readline(pctx);
 		}
 		network_printf(pctx->nbuf, "200 OK\r\n");
-		pctx->next = server_main;
 		return 0;
 
 	}
 #endif
+	} /* for (;;) */
 }
 
 int pdu_encode_NOOP(protocol_data_unit *pdu)
@@ -177,7 +176,7 @@ int pdu_encode_SEND_POLICY(protocol_data_unit *pdu, const char *policy)
 	return 0;
 }
 
-int pdu_receive(struct protocol_context *ctx)
+int pdu_receive(protocol_context *ctx)
 {
 	assert(ctx);
 
@@ -217,7 +216,7 @@ int pdu_receive(struct protocol_context *ctx)
 	return 0;
 }
 
-int pdu_send(struct protocol_context *ctx)
+int pdu_send(protocol_context *ctx)
 {
 	assert(ctx);
 
@@ -267,30 +266,18 @@ void init_openssl(void)
 	SSL_load_error_strings();
 }
 
-int proto_init(struct protocol_context *pctx, SSL *io)
+int proto_init(protocol_context *pctx, SSL *io)
 {
 	pctx->io = io;
 	memset(&pctx->send_pdu, 0, sizeof(protocol_data_unit));
 	memset(&pctx->recv_pdu, 0, sizeof(protocol_data_unit));
-	pctx->next = NULL;
 
 	init_openssl();
 
 	return 0;
 }
 
-int server_dispatch(struct protocol_context *pctx)
-{
-	fprintf(stderr, "  server process started\n");
-
-	pctx->next = server_main;
-	while ( pctx->next && (*(pctx->next))(pctx) == 0 )
-		;
-
-	return 0;
-}
-
-int client_query(struct protocol_context *pctx)
+int client_query(protocol_context *pctx)
 {
 	if (pdu_encode_GET_POLICY(&pctx->send_pdu) < 0) {
 		perror("client_query");
@@ -305,15 +292,15 @@ int client_query(struct protocol_context *pctx)
 	return 200; /* FIXME: temporary */
 }
 
-int client_retrieve(struct protocol_context *pctx, char **data, size_t *n)
+int client_retrieve(protocol_context *pctx, char **data, size_t *n)
 {
 }
 
-int client_report(struct protocol_context *pctx, char *data, size_t n)
+int client_report(protocol_context *pctx, char *data, size_t n)
 {
 }
 
-int client_bye(struct protocol_context *pctx)
+int client_bye(protocol_context *pctx)
 {
 	if (pdu_encode_BYE(&pctx->send_pdu) < 0) {
 		perror("client_bye");

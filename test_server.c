@@ -50,7 +50,7 @@ SSL_CTX *setup_server_context(void)
 void* server_thread(void *arg)
 {
 	SSL *ssl = (SSL*)arg;
-	struct protocol_context pctx;
+	protocol_context pctx;
 	long err;
 
 	pthread_detach(pthread_self());

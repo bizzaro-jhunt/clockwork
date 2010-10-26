@@ -48,7 +48,7 @@ int main(int argc, char **argv)
 	SSL *ssl;
 	SSL_CTX *ctx;
 	long err;
-	struct protocol_context pctx;
+	protocol_context pctx;
 
 	init_openssl();
 	RAND_load_file("/dev/urandom", 1024);

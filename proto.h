@@ -30,20 +30,12 @@ typedef struct {
 	uint8_t     *data;  /* Pointer to len octets of data. */
 } protocol_data_unit;
 
-struct protocol_context;
-
-/**
-  protocol_handler
- */
-typedef int (*protocol_handler)(struct protocol_context*);
-
-struct protocol_context {
+typedef struct {
 	SSL                *io;        /* IO stream to read from / write to */
 
 	protocol_data_unit  send_pdu;  /* PDU to send to the other side */
 	protocol_data_unit  recv_pdu;  /* PDU received from other side */
-	protocol_handler    next;
-};
+} protocol_context;
 
 int pdu_encode_NOOP(protocol_data_unit *pdu);
 int pdu_encode_ERROR(protocol_data_unit *pdu, uint16_t err_code, const char *str);
@@ -54,18 +46,18 @@ int pdu_encode_SEND_VERSION(protocol_data_unit *pdu, uint32_t version);
 int pdu_encode_GET_POLICY(protocol_data_unit *pdu);
 int pdu_encode_SEND_POLICY(protocol_data_unit *pdu, const char *policy);
 
-int pdu_receive(struct protocol_context *ctx);
-int pdu_send(struct protocol_context *ctx);
+int pdu_receive(protocol_context *ctx);
+int pdu_send(protocol_context *ctx);
 
 void init_openssl(void);
 
-int proto_init(struct protocol_context *pctx, SSL *io);
+int proto_init(protocol_context *pctx, SSL *io);
 
-int server_dispatch(struct protocol_context *pctx);
+int server_dispatch(protocol_context *pctx);
 
-int client_query(struct protocol_context *pctx);
-int client_retrieve(struct protocol_context *pctx, char **data, size_t *len);
-int client_report(struct protocol_context *pctx, char *data, size_t len);
-int client_bye(struct protocol_context *pctx);
+int client_query(protocol_context *pctx);
+int client_retrieve(protocol_context *pctx, char **data, size_t *len);
+int client_report(protocol_context *pctx, char *data, size_t len);
+int client_bye(protocol_context *pctx);
 
 #endif

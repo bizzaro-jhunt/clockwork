@@ -31,72 +31,72 @@ static int pdu_allocate(protocol_data_unit *pdu, uint16_t op, uint16_t len)
 	return 0;
 }
 
-int server_dispatch(protocol_context *pctx)
+int server_dispatch(protocol_session *session)
 {
 	char errbuf[256] = {0};
 
 	for (;;) {
-		pdu_receive(pctx);
-		switch (pctx->recv_pdu.op) {
+		pdu_receive(session);
+		switch (session->recv_pdu.op) {
 
 		case PROTOCOL_OP_NOOP:
-			if (pdu_encode_NOOP(&pctx->send_pdu) < 0) {
+			if (pdu_encode_NOOP(&session->send_pdu) < 0) {
 				fprintf(stderr, "Unable to encode NOOP\n");
 				exit(42);
 			}
-			pdu_send(pctx);
+			pdu_send(session);
 			break;
 
 		case PROTOCOL_OP_BYE:
-			if (pdu_encode_ACK(&pctx->send_pdu) < 0) {
+			if (pdu_encode_ACK(&session->send_pdu) < 0) {
 				fprintf(stderr, "Unable to encode ACK\n");
 				exit(42);
 			}
-			pdu_send(pctx);
+			pdu_send(session);
 			return 0;
 
 		case PROTOCOL_OP_GET_VERSION:
-			if (pdu_encode_SEND_VERSION(&pctx->send_pdu, 452356) < 0) {
+			if (pdu_encode_SEND_VERSION(&session->send_pdu, 452356) < 0) {
 				fprintf(stderr, "Unable to encode SEND_VERSION\n");
 				exit(42);
 			}
-			pdu_send(pctx);
+			pdu_send(session);
 			break;
 
 		case PROTOCOL_OP_GET_POLICY:
-			if (pdu_encode_SEND_POLICY(&pctx->send_pdu, "POLICY\nPOLICY\nPOLICY") < 0) {
+			if (pdu_encode_SEND_POLICY(&session->send_pdu, "POLICY\nPOLICY\nPOLICY") < 0) {
 				fprintf(stderr, "Unable to encode GET_VERSION\n");
 				exit(42);
 			}
-			pdu_send(pctx);
+			pdu_send(session);
 			break;
 
 		case PROTOCOL_OP_PUT_REPORT:
-			if (pdu_encode_ACK(&pctx->send_pdu) < 0) {
+			if (pdu_encode_ACK(&session->send_pdu) < 0) {
 				fprintf(stderr, "Unable to encode ACK\n");
 				exit(42);
 			}
-			pdu_send(pctx);
+			pdu_send(session);
 			break;
 
 		default:
-			snprintf(errbuf, 256, "Unrecognized PDU OP: %u", pctx->recv_pdu.op);
-			if (pdu_encode_ERROR(&pctx->send_pdu, 405, errbuf) < 0) {
+			snprintf(errbuf, 256, "Unrecognized PDU OP: %u", session->recv_pdu.op);
+			if (pdu_encode_ERROR(&session->send_pdu, 405, errbuf) < 0) {
 				fprintf(stderr, "Unable to encode ERROR\n");
 				exit(42);
 			}
-			pdu_send(pctx);
+			pdu_send(session);
 			return -1;
 		}
 
 #if 0
-	} else if (strcmp(pctx->line, "REPORT") == 0) {
-		network_printf(pctx->nbuf, "301 Go Ahead\r\n");
-		__proto_readline(pctx);
-		while (strcmp(pctx->line, "DONE") != 0) {
-			__proto_readline(pctx);
+	} else if (strcmp(session->line, "REPORT") == 0) {
+		network_printf(session->nbuf, "301 Go Ahead\r\n");
+		__proto_readline(session);
+		while (strcmp(session->line, "DONE") != 0) {
+			__proto_readline(session);
 		}
-		network_printf(pctx->nbuf, "200 OK\r\n");
+		network_printf(session->nbuf, "200 OK\r\n");
 		return 0;
 
 	}
@@ -176,22 +176,22 @@ int pdu_encode_SEND_POLICY(protocol_data_unit *pdu, const char *policy)
 	return 0;
 }
 
-int pdu_receive(protocol_context *ctx)
+int pdu_receive(protocol_session *session)
 {
-	assert(ctx);
+	assert(session);
 
-	protocol_data_unit *pdu = &(ctx->recv_pdu);
+	protocol_data_unit *pdu = &(session->recv_pdu);
 	uint16_t op, len;
 	int nread;
 
-	nread = SSL_read(ctx->io, &op, sizeof(op));
+	nread = SSL_read(session->io, &op, sizeof(op));
 	if (nread <= 0) {
 		fprintf(stderr, "pdu_receive: got %i from SSL_read\n", nread);
 		exit(42);
 	}
 	op = ntohs(op);
 
-	nread = SSL_read(ctx->io, &len, sizeof(len));
+	nread = SSL_read(session->io, &len, sizeof(len));
 	if (nread <= 0) {
 		fprintf(stderr, "pdu_receive: got %i from SSL_read\n", nread);
 		exit(42);
@@ -206,7 +206,7 @@ int pdu_receive(protocol_context *ctx)
 	fprintf(stderr, "pdu_receive: OP:%u;LEN:%u\n", pdu->op, pdu->len);
 
 	if (len > 0) {
-		nread = SSL_read(ctx->io, pdu->data, pdu->len);
+		nread = SSL_read(session->io, pdu->data, pdu->len);
 		if (nread <= 0) {
 			fprintf(stderr, "pdu_receive: got %i from SSL_read\n", nread);
 			exit(42);
@@ -216,11 +216,11 @@ int pdu_receive(protocol_context *ctx)
 	return 0;
 }
 
-int pdu_send(protocol_context *ctx)
+int pdu_send(protocol_session *session)
 {
-	assert(ctx);
+	assert(session);
 
-	protocol_data_unit *pdu = &(ctx->send_pdu);
+	protocol_data_unit *pdu = &(session->send_pdu);
 	int nwritten;
 	uint16_t op, len;
 
@@ -230,14 +230,14 @@ int pdu_send(protocol_context *ctx)
 	len = htons(pdu->len);
 
 	/* Write op to the wire */
-	nwritten = SSL_write(ctx->io, &op, sizeof(op));
+	nwritten = SSL_write(session->io, &op, sizeof(op));
 	if (nwritten != sizeof(op)) {
 		fprintf(stderr, "pdu_send: got %i from SSL_write\n", nwritten);
 		exit(42);
 	}
 
 	/* Write len to the wire */
-	nwritten = SSL_write(ctx->io, &len, sizeof(len));
+	nwritten = SSL_write(session->io, &len, sizeof(len));
 	if (nwritten != sizeof(len)) {
 		fprintf(stderr, "pdu_send: got %i from SSL_write\n", nwritten);
 		exit(42);
@@ -245,7 +245,7 @@ int pdu_send(protocol_context *ctx)
 
 	if (pdu->len > 0) {
 		/* Write payload to the wire */
-		nwritten = SSL_write(ctx->io, pdu->data, pdu->len);
+		nwritten = SSL_write(session->io, pdu->data, pdu->len);
 		if (nwritten != pdu->len) {
 			fprintf(stderr, "pdu_send: got %i from SSL_write\n", nwritten);
 			exit(42);
@@ -266,52 +266,52 @@ void init_openssl(void)
 	SSL_load_error_strings();
 }
 
-int proto_init(protocol_context *pctx, SSL *io)
+int protocol_session_init(protocol_session *session, SSL *io)
 {
-	pctx->io = io;
-	memset(&pctx->send_pdu, 0, sizeof(protocol_data_unit));
-	memset(&pctx->recv_pdu, 0, sizeof(protocol_data_unit));
+	session->io = io;
+	memset(&session->send_pdu, 0, sizeof(protocol_data_unit));
+	memset(&session->recv_pdu, 0, sizeof(protocol_data_unit));
 
 	init_openssl();
 
 	return 0;
 }
 
-int client_query(protocol_context *pctx)
+int client_query(protocol_session *session)
 {
-	if (pdu_encode_GET_POLICY(&pctx->send_pdu) < 0) {
+	if (pdu_encode_GET_POLICY(&session->send_pdu) < 0) {
 		perror("client_query");
 		return -1;
 	}
-	if (pdu_send(pctx) < 0) {
+	if (pdu_send(session) < 0) {
 		perror("client_query");
 		return -1;
 	}
 
-	pdu_receive(pctx);
+	pdu_receive(session);
 	return 200; /* FIXME: temporary */
 }
 
-int client_retrieve(protocol_context *pctx, char **data, size_t *n)
+int client_retrieve(protocol_session *session, char **data, size_t *n)
 {
 }
 
-int client_report(protocol_context *pctx, char *data, size_t n)
+int client_report(protocol_session *session, char *data, size_t n)
 {
 }
 
-int client_bye(protocol_context *pctx)
+int client_bye(protocol_session *session)
 {
-	if (pdu_encode_BYE(&pctx->send_pdu) < 0) {
+	if (pdu_encode_BYE(&session->send_pdu) < 0) {
 		perror("client_bye");
 		return -1;
 	}
-	if (pdu_send(pctx) < 0) {
+	if (pdu_send(session) < 0) {
 		perror("client_bye");
 		return -1;
 	}
 
-	pdu_receive(pctx);
+	pdu_receive(session);
 	return 0;
 }
 

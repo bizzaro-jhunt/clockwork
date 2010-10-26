@@ -50,7 +50,7 @@ SSL_CTX *setup_server_context(void)
 void* server_thread(void *arg)
 {
 	SSL *ssl = (SSL*)arg;
-	protocol_context pctx;
+	protocol_session session;
 	long err;
 
 	pthread_detach(pthread_self());
@@ -65,9 +65,9 @@ void* server_thread(void *arg)
 	}
 
 	fprintf(stderr, "SSL Connection opened.\n");
-	proto_init(&pctx, ssl);
+	protocol_session_init(&session, ssl);
 
-	server_dispatch(&pctx);
+	server_dispatch(&session);
 
 	SSL_shutdown(ssl);
 

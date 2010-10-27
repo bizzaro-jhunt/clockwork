@@ -3,9 +3,7 @@
 
 #include "proto.h"
 
-#define CIPHERS "ALL:!ADM:!LOW"
-#define CAFILE  "certs/CA/cacert.pem"
-
+#define CAFILE   "certs/CA/cacert.pem"
 #define CERTFILE "certs/CA/certs/client.niftylogic.net.pem"
 #define KEYFILE  "certs/client.niftylogic.net/key.pem"
 

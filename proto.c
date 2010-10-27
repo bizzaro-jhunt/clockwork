@@ -574,9 +574,7 @@ long protocol_ssl_verify_peer(SSL *ssl, const char *host)
 	return SSL_get_verify_result(ssl);
 
 err_occurred:
-	if (cert) {
-		X509_free(cert);
-	}
+	X509_free(cert);
 	return X509_V_ERR_APPLICATION_VERIFICATION;
 }
 

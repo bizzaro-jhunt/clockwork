@@ -35,7 +35,13 @@ void* server_thread(void *arg)
 
 	if ((err = protocol_ssl_verify_peer(ssl, CLIENT)) != X509_V_OK) {
 		fprintf(stderr, "-Error: peer certificate: %s\n", X509_verify_cert_error_string(err));
-		int_error("Error checking SSL object after connection");
+		/* send some sort of IDENT error back */
+		ERR_print_errors_fp(stderr);
+		SSL_clear(ssl);
+
+		SSL_free(ssl);
+		ERR_remove_state(0);
+		return;
 	}
 
 	fprintf(stderr, "SSL Connection opened.\n");

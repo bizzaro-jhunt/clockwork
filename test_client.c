@@ -2,7 +2,6 @@
 #include <stdlib.h>
 
 #include "proto.h"
-#include "net.h"
 
 #define CIPHERS "ALL:!ADM:!LOW"
 #define CAFILE "certs/CA/cacert.pem"
@@ -22,26 +21,6 @@ void handle_error(const char *file, int lineno, const char *msg)
 	exit(1);
 }
 
-SSL_CTX *setup_client_ssl_context(void)
-{
-	SSL_CTX *ctx;
-
-	ctx = SSL_CTX_new(TLSv1_method());
-	if (SSL_CTX_load_verify_locations(ctx, CAFILE, CADIR) != 1) {
-		int_error("Error loading CA file / directory");
-	}
-	if (SSL_CTX_use_certificate_chain_file(ctx, CERTFILE) != 1) {
-		int_error("Error loading ceritifcate from file");
-	}
-	if (SSL_CTX_use_PrivateKey_file(ctx, KEYFILE, SSL_FILETYPE_PEM) != 1) {
-		int_error("Error loading private key from file");
-	}
-	SSL_CTX_set_verify(ctx, SSL_VERIFY_FAIL_IF_NO_PEER_CERT, verify_callback);
-	SSL_CTX_set_verify_depth(ctx, 4);
-
-	return ctx;
-}
-
 int main(int argc, char **argv)
 {
 	BIO *sock;
@@ -54,7 +33,10 @@ int main(int argc, char **argv)
 	init_openssl();
 	RAND_load_file("/dev/urandom", 1024);
 
-	ctx = setup_client_ssl_context();
+	ctx = protocol_ssl_context(CAFILE, CERTFILE, KEYFILE);
+	if (!ctx) {
+		int_error("Error setting up SSL context");
+	}
 
 	sock = BIO_new_connect(SERVER ":" PORT);
 	if (!sock) {
@@ -72,7 +54,7 @@ int main(int argc, char **argv)
 	if (SSL_connect(ssl) <= 0) {
 		int_error("Error connecting SSL object");
 	}
-	if ((err = post_connection_check(ssl, SERVER)) != X509_V_OK) {
+	if ((err = protocol_ssl_post_connection_check(ssl, SERVER)) != X509_V_OK) {
 		fprintf(stderr, "-Error: peer certificate: %s\n", X509_verify_cert_error_string(err));
 		int_error("Error checking SSL object ater connection");
 	}

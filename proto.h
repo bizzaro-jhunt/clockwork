@@ -3,7 +3,12 @@
 
 #include <stdint.h>
 #include <sys/types.h>
+
+#include <openssl/bio.h>
+#include <openssl/err.h>
+#include <openssl/rand.h>
 #include <openssl/ssl.h>
+#include <openssl/x509v3.h>
 
 typedef enum {
 	PROTOCOL_OP_NOOP = 1,
@@ -88,6 +93,10 @@ void init_openssl(void);
 
 int protocol_session_init(protocol_session *session, SSL *io);
 int protocol_session_deinit(protocol_session *session);
+
+int protocol_ssl_verify_peer(int ok, X509_STORE_CTX *store);
+SSL_CTX *protocol_ssl_context(const char *ca_cert_file, const char *cert_file, const char *key_file);
+long protocol_ssl_post_connection_check(SSL *ssl, char *host);
 
 int server_dispatch(protocol_session *session);
 

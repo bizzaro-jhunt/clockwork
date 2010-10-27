@@ -114,10 +114,10 @@ main.o: main.c res_file.h res_group.h res_user.h
 ############################################################
 # EXPERIMENTAL
 
-test_server: test_server.o proto.o net.o
+test_server: test_server.o proto.o
 	$(CC) -o $@ $+
 
-test_client: test_client.o proto.o net.o
+test_client: test_client.o proto.o
 	$(CC) -o $@ $+
 
 ############################################################

@@ -1,21 +1,16 @@
-#include <stdio.h>
-#include <stdlib.h>
-
 #include <assert.h>
 
-#include <openssl/bio.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdarg.h>
 
 #include "threads.h"
 #include "proto.h"
 
-#include <stdarg.h>
 
-#define CAFILE "certs/CA/cacert.pem"
-#define CADIR  NULL
-
+#define CAFILE   "certs/CA/cacert.pem"
 #define CERTFILE "certs/CA/cacert.pem"
 #define KEYFILE  "certs/CA/private/cakey.pem"
-#define CN       "cfm.niftylogic.net"
 #define CLIENT   "client1.niftylogic.net"
 
 #define int_error(msg) handle_error(__FILE__, __LINE__, msg)

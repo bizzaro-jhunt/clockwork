@@ -472,13 +472,14 @@ int pdu_receive(protocol_session *session)
 
 /**********************************************************/
 
-void init_openssl(void)
+void protocol_ssl_init(void)
 {
 	if (!SSL_library_init()) {
 		fprintf(stderr, "init_openssl: Failed to initialize OpenSSL\n");
 		exit(1);
 	}
 	SSL_load_error_strings();
+	RAND_load_file("/dev/urandom", 1024);
 }
 
 int protocol_session_init(protocol_session *session, SSL *io)
@@ -510,27 +511,7 @@ int protocol_session_deinit(protocol_session *session)
 	return 0;
 }
 
-int protocol_ssl_verify_peer(int ok, X509_STORE_CTX *store)
-{
-	char data[256];
-
-	if (!ok) {
-		X509 *cert = X509_STORE_CTX_get_current_cert(store);
-		int depth  = X509_STORE_CTX_get_error_depth(store);
-		int err    = X509_STORE_CTX_get_error(store);
-
-		fprintf(stderr, "-Error with certificate at depth: %i\n", depth);
-		X509_NAME_oneline(X509_get_issuer_name(cert), data, 256);
-		fprintf(stderr, "  issuer   = %s\n", data);
-		X509_NAME_oneline(X509_get_subject_name(cert), data, 256);
-		fprintf(stderr, "  subject  = %s\n", data);
-		fprintf(stderr, "  err %i:%s\n", err, X509_verify_cert_error_string(err));
-	}
-
-	return ok;
-}
-
-long protocol_ssl_post_connection_check(SSL *ssl, char *host)
+long protocol_ssl_verify_peer(SSL *ssl, const char *host)
 {
 	X509 *cert;
 	X509_NAME *subj;
@@ -602,7 +583,7 @@ err_occurred:
 	return X509_V_ERR_APPLICATION_VERIFICATION;
 }
 
-SSL_CTX *protocol_ssl_context(const char *ca_cert_file, const char *cert_file, const char *key_file)
+SSL_CTX* protocol_ssl_default_context(const char *ca_cert_file, const char *cert_file, const char *key_file)
 {
 	assert(ca_cert_file);
 	assert(cert_file);
@@ -621,8 +602,7 @@ SSL_CTX *protocol_ssl_context(const char *ca_cert_file, const char *cert_file, c
 		return NULL;
 	}
 
-	SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT,
-	                   protocol_ssl_verify_peer);
+	SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, NULL);
 	SSL_CTX_set_verify_depth(ctx, 4);
 	return ctx;
 }

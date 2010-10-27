@@ -33,7 +33,7 @@ void* server_thread(void *arg)
 		int_error("Error accepting SSL connection");
 	}
 
-	if ((err = protocol_ssl_post_connection_check(ssl, CLIENT)) != X509_V_OK) {
+	if ((err = protocol_ssl_verify_peer(ssl, CLIENT)) != X509_V_OK) {
 		fprintf(stderr, "-Error: peer certificate: %s\n", X509_verify_cert_error_string(err));
 		int_error("Error checking SSL object after connection");
 	}
@@ -58,10 +58,8 @@ int main(int argc, char **argv)
 	SSL_CTX *ctx;
 	THREAD_TYPE tid;
 
-	init_openssl();
-	RAND_load_file("/dev/urandom", 1024);
-
-	ctx = protocol_ssl_context(CAFILE, CERTFILE, KEYFILE);
+	protocol_ssl_init();
+	ctx = protocol_ssl_default_context(CAFILE, CERTFILE, KEYFILE);
 	if (!ctx) {
 		int_error("Error setting up SSL context");
 	}

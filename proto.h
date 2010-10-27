@@ -1,6 +1,14 @@
 #ifndef _PROTO_H
 #define _PROTO_H
 
+/***
+
+  The following namespaces are reserved by this module:
+    protocol_*
+    pdu_*
+
+ ***/
+
 #include <stdint.h>
 #include <sys/types.h>
 
@@ -53,6 +61,33 @@ typedef struct {
 	unsigned char      *errstr;    /* Copy of the last error received */
 } protocol_session;
 
+/**********************************************************/
+
+void init_openssl(void);
+
+int protocol_session_init(protocol_session *session, SSL *io);
+int protocol_session_deinit(protocol_session *session);
+
+void protocol_ssl_init(void);
+void protocol_ssl_seed_prng(void);
+
+long protocol_ssl_verify_peer(SSL *ssl, const char *hostname);
+
+SSL_CTX* protocol_ssl_default_context(const char *ca_cert_file,
+                                      const char *cert_file,
+                                      const char *key_file);
+
+int server_dispatch(protocol_session *session);
+
+uint32_t client_get_policy_version(protocol_session *session);
+int client_disconnect(protocol_session *session);
+
+/**********************************************************/
+
+int pdu_read(SSL *io, protocol_data_unit *pdu);
+int pdu_write(SSL *io, protocol_data_unit *pdu);
+int pdu_receive(protocol_session *session);
+
 int pdu_send_NOOP(protocol_session *session);
 int pdu_encode_NOOP(protocol_data_unit *pdu);
 int pdu_decode_NOOP(protocol_data_unit *pdu);
@@ -84,23 +119,5 @@ int pdu_decode_GET_POLICY(protocol_data_unit *pdu);
 int pdu_send_SEND_POLICY(protocol_session *session, const uint8_t *policy, size_t len);
 int pdu_encode_SEND_POLICY(protocol_data_unit *pdu, const uint8_t *policy, size_t len);
 int pdu_decode_SEND_POLICY(protocol_data_unit *pdu, uint8_t **policy, size_t *len);
-
-int pdu_read(SSL *io, protocol_data_unit *pdu);
-int pdu_write(SSL *io, protocol_data_unit *pdu);
-int pdu_receive(protocol_session *session);
-
-void init_openssl(void);
-
-int protocol_session_init(protocol_session *session, SSL *io);
-int protocol_session_deinit(protocol_session *session);
-
-int protocol_ssl_verify_peer(int ok, X509_STORE_CTX *store);
-SSL_CTX *protocol_ssl_context(const char *ca_cert_file, const char *cert_file, const char *key_file);
-long protocol_ssl_post_connection_check(SSL *ssl, char *host);
-
-int server_dispatch(protocol_session *session);
-
-uint32_t client_get_policy_version(protocol_session *session);
-int client_disconnect(protocol_session *session);
 
 #endif

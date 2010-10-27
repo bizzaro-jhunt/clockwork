@@ -29,10 +29,8 @@ int main(int argc, char **argv)
 	protocol_session session;
 	uint32_t version;
 
-	init_openssl();
-	RAND_load_file("/dev/urandom", 1024);
-
-	ctx = protocol_ssl_context(CAFILE, CERTFILE, KEYFILE);
+	protocol_ssl_init();
+	ctx = protocol_ssl_default_context(CAFILE, CERTFILE, KEYFILE);
 	if (!ctx) {
 		int_error("Error setting up SSL context");
 	}
@@ -53,7 +51,7 @@ int main(int argc, char **argv)
 	if (SSL_connect(ssl) <= 0) {
 		int_error("Error connecting SSL object");
 	}
-	if ((err = protocol_ssl_post_connection_check(ssl, SERVER)) != X509_V_OK) {
+	if ((err = protocol_ssl_verify_peer(ssl, SERVER)) != X509_V_OK) {
 		fprintf(stderr, "-Error: peer certificate: %s\n", X509_verify_cert_error_string(err));
 		int_error("Error checking SSL object ater connection");
 	}

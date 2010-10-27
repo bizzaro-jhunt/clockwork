@@ -534,7 +534,6 @@ long protocol_ssl_verify_peer(SSL *ssl, const char *host)
 			ext = X509_get_ext(cert, i);
 			extstr = OBJ_nid2sn(OBJ_obj2nid(X509_EXTENSION_get_object(ext)));
 
-			fprintf(stderr, "... %s\n", extstr);
 			if (strcmp(extstr, "subjectAltName") == 0) {
 				int j;
 				const unsigned char *data;
@@ -551,7 +550,6 @@ long protocol_ssl_verify_peer(SSL *ssl, const char *host)
 				                NULL);
 				for (j = 0; j < sk_CONF_VALUE_num(val); j++) {
 					nval = sk_CONF_VALUE_value(val, j);
-					fprintf(stderr, "Checking '%s' against '%s'\n", nval->value, host);
 					if (!strcmp(nval->name, "DNS") && !strcmp(nval->value, host)) {
 						ok = 1;
 						break;
@@ -567,7 +565,6 @@ long protocol_ssl_verify_peer(SSL *ssl, const char *host)
 	if (!ok && (subj = X509_get_subject_name(cert)) &&
 	    X509_NAME_get_text_by_NID(subj, NID_commonName, data, 256) > 0) {
 		data[255] = '\0';
-		fprintf(stderr, "Checking '%s' against '%s'\n", data, host);
 		if (strcasecmp(data, host) != 0) {
 			goto err_occurred;
 		}

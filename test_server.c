@@ -70,9 +70,9 @@ void* server_thread(void *arg)
 	server_dispatch(&session);
 
 	SSL_shutdown(ssl);
-
 	fprintf(stderr, "Connection closed.\n");
 
+	protocol_session_deinit(&session);
 	SSL_free(ssl);
 	ERR_remove_state(0);
 }
@@ -97,6 +97,8 @@ int main(int argc, char **argv)
 	if (BIO_do_accept(listen) <= 0) {
 		int_error("Error binding server socket");
 	}
+
+	fprintf(stderr, "Server ready for connections\n");
 
 	for (;;) {
 		if (BIO_do_accept(listen) <= 0) {

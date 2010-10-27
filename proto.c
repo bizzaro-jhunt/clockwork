@@ -7,6 +7,10 @@
 #include "proto.h"
 #include "net.h"
 
+
+#define SEND_PDU(session_ptr) (&(session_ptr)->send_pdu)
+#define RECV_PDU(session_ptr) (&(session_ptr)->recv_pdu)
+
 static int pdu_allocate(protocol_data_unit *pdu, uint16_t op, uint16_t len);
 
 /**********************************************************/
@@ -17,10 +21,7 @@ static int pdu_allocate(protocol_data_unit *pdu, uint16_t op, uint16_t len)
 
 	pdu->op = op;
 
-	if (pdu->data) {
-		free(pdu->data);
-	}
-
+	free(pdu->data);
 	pdu->data = malloc(len);
 	if (!pdu->data) {
 		return -1;
@@ -29,6 +30,14 @@ static int pdu_allocate(protocol_data_unit *pdu, uint16_t op, uint16_t len)
 	pdu->len = len;
 
 	return 0;
+}
+
+static void pdu_deallocate(protocol_data_unit *pdu)
+{
+	assert(pdu);
+
+	free(pdu->data);
+	pdu->data = NULL;
 }
 
 int server_dispatch(protocol_session *session)
@@ -40,52 +49,46 @@ int server_dispatch(protocol_session *session)
 		switch (session->recv_pdu.op) {
 
 		case PROTOCOL_OP_NOOP:
-			if (pdu_encode_NOOP(&session->send_pdu) < 0) {
-				fprintf(stderr, "Unable to encode NOOP\n");
+			if (pdu_send_NOOP(session) < 0) {
+				fprintf(stderr, "Unable to send NOOP\n");
 				exit(42);
 			}
-			pdu_send(session);
 			break;
 
 		case PROTOCOL_OP_BYE:
-			if (pdu_encode_ACK(&session->send_pdu) < 0) {
-				fprintf(stderr, "Unable to encode ACK\n");
+			if (pdu_send_ACK(session) < 0) {
+				fprintf(stderr, "Unable to send ACK\n");
 				exit(42);
 			}
-			pdu_send(session);
 			return 0;
 
 		case PROTOCOL_OP_GET_VERSION:
-			if (pdu_encode_SEND_VERSION(&session->send_pdu, 452356) < 0) {
-				fprintf(stderr, "Unable to encode SEND_VERSION\n");
+			if (pdu_send_SEND_VERSION(session, 452356) < 0) {
+				fprintf(stderr, "Unable to send SEND_VERSION\n");
 				exit(42);
 			}
-			pdu_send(session);
 			break;
 
 		case PROTOCOL_OP_GET_POLICY:
-			if (pdu_encode_SEND_POLICY(&session->send_pdu, "POLICY\nPOLICY\nPOLICY") < 0) {
-				fprintf(stderr, "Unable to encode GET_VERSION\n");
+			if (pdu_send_SEND_POLICY(session, "POLICY\nPOLICY\nPOLICY", 20) < 0) {
+				fprintf(stderr, "Unable to send GET_VERSION\n");
 				exit(42);
 			}
-			pdu_send(session);
 			break;
 
 		case PROTOCOL_OP_PUT_REPORT:
-			if (pdu_encode_ACK(&session->send_pdu) < 0) {
-				fprintf(stderr, "Unable to encode ACK\n");
+			if (pdu_send_ACK(session) < 0) {
+				fprintf(stderr, "Unable to send ACK\n");
 				exit(42);
 			}
-			pdu_send(session);
 			break;
 
 		default:
 			snprintf(errbuf, 256, "Unrecognized PDU OP: %u", session->recv_pdu.op);
-			if (pdu_encode_ERROR(&session->send_pdu, 405, errbuf) < 0) {
-				fprintf(stderr, "Unable to encode ERROR\n");
+			if (pdu_send_ERROR(session, 405, errbuf, strlen(errbuf)) < 0) {
+				fprintf(stderr, "Unable to send ERROR\n");
 				exit(42);
 			}
-			pdu_send(session);
 			return -1;
 		}
 
@@ -104,16 +107,49 @@ int server_dispatch(protocol_session *session)
 	} /* for (;;) */
 }
 
+int pdu_send_NOOP(protocol_session *session)
+{
+	assert(session);
+
+	int rc = pdu_encode_NOOP(SEND_PDU(session));
+	if (rc < 0) {
+		return rc;
+	}
+
+	return pdu_write(session->io, SEND_PDU(session));
+}
+
 int pdu_encode_NOOP(protocol_data_unit *pdu)
 {
 	return pdu_allocate(pdu, PROTOCOL_OP_NOOP, 0);
 }
 
-int pdu_encode_ERROR(protocol_data_unit *pdu, uint16_t err_code, const char *str)
+int pdu_decode_NOOP(protocol_data_unit *pdu)
+{
+	assert(pdu);
+	assert(pdu->op == PROTOCOL_OP_NOOP);
+
+	/* no special processing for NOOP PDUs */
+
+	return 0;
+}
+
+int pdu_send_ERROR(protocol_session *session, uint16_t err_code, const uint8_t *str, size_t len)
+{
+	assert(session);
+
+	int rc = pdu_encode_ERROR(SEND_PDU(session), err_code, str, len);
+	if (rc < 0) {
+		return 0;
+	}
+
+	return pdu_write(session->io, SEND_PDU(session));
+}
+
+int pdu_encode_ERROR(protocol_data_unit *pdu, uint16_t err_code, const uint8_t *str, size_t len)
 {
 	assert(pdu);
 
-	uint16_t len = strlen(str);
 	err_code = htons(err_code);
 
 	if (pdu_allocate(pdu, PROTOCOL_OP_ERROR, len + sizeof(err_code)) < 0) {
@@ -126,9 +162,70 @@ int pdu_encode_ERROR(protocol_data_unit *pdu, uint16_t err_code, const char *str
 	return 0;
 }
 
+int pdu_decode_ERROR(protocol_data_unit *pdu, uint16_t *err_code, uint8_t **str, size_t *len)
+{
+	assert(pdu);
+	assert(pdu->op == PROTOCOL_OP_ERROR);
+	assert(err_code);
+	assert(str);
+	/* len parameter is optional */
+
+	size_t my_len;
+
+	memcpy(err_code, pdu->data, sizeof(*err_code));
+	*err_code = ntohs(*err_code);
+
+	my_len = pdu->len - sizeof(*err_code) + 1;
+	*str = calloc(my_len, sizeof(uint8_t));
+	if (!str) {
+		return -1;
+	}
+
+	memcpy(*str, pdu->data + sizeof(*err_code), my_len);
+	if (len) {
+		*len = my_len;
+	}
+
+	return 0;
+}
+
+int pdu_send_ACK(protocol_session *session)
+{
+	assert(session);
+
+	int rc = pdu_encode_ACK(SEND_PDU(session));
+	if (rc < 0) {
+		return 0;
+	}
+
+	return pdu_write(session->io, SEND_PDU(session));
+}
+
 int pdu_encode_ACK(protocol_data_unit *pdu)
 {
 	return pdu_allocate(pdu, PROTOCOL_OP_ACK, 0);
+}
+
+int pdu_decode_ACK(protocol_data_unit *pdu)
+{
+	assert(pdu);
+	assert(pdu->op == PROTOCOL_OP_ACK);
+
+	/* no special processing for ACK PDUs */
+
+	return 0;
+}
+
+int pdu_send_BYE(protocol_session *session)
+{
+	assert(session);
+
+	int rc = pdu_encode_BYE(SEND_PDU(session));
+	if (rc < 0) {
+		return 0;
+	}
+
+	return pdu_write(session->io, SEND_PDU(session));
 }
 
 int pdu_encode_BYE(protocol_data_unit *pdu)
@@ -136,9 +233,53 @@ int pdu_encode_BYE(protocol_data_unit *pdu)
 	return pdu_allocate(pdu, PROTOCOL_OP_BYE, 0);
 }
 
+int pdu_decode_BYE(protocol_data_unit *pdu)
+{
+	assert(pdu);
+	assert(pdu->op == PROTOCOL_OP_BYE);
+
+	/* no special processing for BYE PDUs */
+
+	return 0;
+}
+
+int pdu_send_GET_VERSION(protocol_session *session)
+{
+	assert(session);
+
+	int rc = pdu_encode_GET_VERSION(SEND_PDU(session));
+	if (rc < 0) {
+		return 0;
+	}
+
+	return pdu_write(session->io, SEND_PDU(session));
+}
+
 int pdu_encode_GET_VERSION(protocol_data_unit *pdu)
 {
 	return pdu_allocate(pdu, PROTOCOL_OP_GET_VERSION, 0);
+}
+
+int pdu_decode_GET_VERSION(protocol_data_unit *pdu)
+{
+	assert(pdu);
+	assert(pdu->op == PROTOCOL_OP_GET_VERSION);
+
+	/* no special processing for GET_VERSION PDUs */
+
+	return 0;
+}
+
+int pdu_send_SEND_VERSION(protocol_session *session, uint32_t version)
+{
+	assert(session);
+
+	int rc = pdu_encode_SEND_VERSION(SEND_PDU(session), version);
+	if (rc < 0) {
+		return 0;
+	}
+
+	return pdu_write(session->io, SEND_PDU(session));
 }
 
 int pdu_encode_SEND_VERSION(protocol_data_unit *pdu, uint32_t version)
@@ -152,8 +293,31 @@ int pdu_encode_SEND_VERSION(protocol_data_unit *pdu, uint32_t version)
 	}
 
 	memcpy(pdu->data, &version, sizeof(version));
+	return 0;
+}
+
+int pdu_decode_SEND_VERSION(protocol_data_unit *pdu, uint32_t *version)
+{
+	assert(pdu);
+	assert(pdu->op == PROTOCOL_OP_SEND_VERSION);
+	assert(version);
+
+	memcpy(version, pdu->data, sizeof(*version));
+	*version = ntohl(*version);
 
 	return 0;
+}
+
+int pdu_send_GET_POLICY(protocol_session *session)
+{
+	assert(session);
+
+	int rc = pdu_encode_GET_POLICY(SEND_PDU(session));
+	if (rc < 0) {
+		return 0;
+	}
+
+	return pdu_write(session->io, SEND_PDU(session));
 }
 
 int pdu_encode_GET_POLICY(protocol_data_unit *pdu)
@@ -161,95 +325,147 @@ int pdu_encode_GET_POLICY(protocol_data_unit *pdu)
 	return pdu_allocate(pdu, PROTOCOL_OP_GET_POLICY, 0);
 }
 
-int pdu_encode_SEND_POLICY(protocol_data_unit *pdu, const char *policy)
+int pdu_decode_GET_POLICY(protocol_data_unit *pdu)
 {
 	assert(pdu);
+	assert(pdu->op == PROTOCOL_OP_GET_POLICY);
 
-	uint32_t len = strlen(policy);
+	/* no special processing for GET_POLICY PDUs */
+
+	return 0;
+}
+
+int pdu_send_SEND_POLICY(protocol_session *session, const uint8_t *policy, size_t len)
+{
+	assert(session);
+
+	int rc = pdu_encode_SEND_POLICY(SEND_PDU(session), policy, len);
+	if (rc < 0) {
+		return 0;
+	}
+
+	return pdu_write(session->io, SEND_PDU(session));
+}
+
+int pdu_encode_SEND_POLICY(protocol_data_unit *pdu, const uint8_t *policy, size_t len)
+{
+	assert(pdu);
+	assert(policy);
 
 	if (pdu_allocate(pdu, PROTOCOL_OP_SEND_POLICY, len) < 0) {
 		return -1;
 	}
 
 	memcpy(pdu->data, policy, len);
+	return 0;
+}
+
+int pdu_decode_SEND_POLICY(protocol_data_unit *pdu, uint8_t **policy, size_t *len)
+{
+	assert(pdu);
+	assert(pdu->op == PROTOCOL_OP_SEND_POLICY);
+	assert(policy);
+	/* len is optional */
+
+	/* FIXME: implement pdu_decode_SEND_POLICY */
 
 	return 0;
 }
 
-int pdu_receive(protocol_session *session)
+int pdu_read(SSL *io, protocol_data_unit *pdu)
 {
-	assert(session);
+	assert(io);
+	assert(pdu);
 
-	protocol_data_unit *pdu = &(session->recv_pdu);
 	uint16_t op, len;
 	int nread;
 
-	nread = SSL_read(session->io, &op, sizeof(op));
+	nread = SSL_read(io, &op, sizeof(op));
 	if (nread <= 0) {
-		fprintf(stderr, "pdu_receive: got %i from SSL_read\n", nread);
-		exit(42);
+		return -1; /* error reading header */
 	}
 	op = ntohs(op);
 
-	nread = SSL_read(session->io, &len, sizeof(len));
+	nread = SSL_read(io, &len, sizeof(len));
 	if (nread <= 0) {
-		fprintf(stderr, "pdu_receive: got %i from SSL_read\n", nread);
-		exit(42);
+		return -1; /* error reading header */
 	}
 	len = ntohs(len);
 
 	if (pdu_allocate(pdu, op, len) < 0) {
-		perror("pdu_receive pdu_allocate");
-		exit(42);
+		return -2; /* error allocating pdu */
 	}
 
-	fprintf(stderr, "pdu_receive: OP:%u;LEN:%u\n", pdu->op, pdu->len);
-
 	if (len > 0) {
-		nread = SSL_read(session->io, pdu->data, pdu->len);
+		nread = SSL_read(io, pdu->data, pdu->len);
 		if (nread <= 0) {
-			fprintf(stderr, "pdu_receive: got %i from SSL_read\n", nread);
-			exit(42);
+			return -3; /* error reading payload */
 		}
 	}
 
+	fprintf(stderr, "pdu_read:  OP:%04u; LEN:%04u\n", pdu->op, pdu->len);
 	return 0;
 }
 
-int pdu_send(protocol_session *session)
+int pdu_write(SSL *io, protocol_data_unit *pdu)
 {
-	assert(session);
+	assert(io);
+	assert(pdu);
 
-	protocol_data_unit *pdu = &(session->send_pdu);
-	int nwritten;
 	uint16_t op, len;
-
-	fprintf(stderr, "pdu_send: OP:%u;LEN:%u\n", pdu->op, pdu->len);
+	int nwritten;
 
 	op  = htons(pdu->op);
 	len = htons(pdu->len);
 
-	/* Write op to the wire */
-	nwritten = SSL_write(session->io, &op, sizeof(op));
+	nwritten = SSL_write(io, &op, sizeof(op));
 	if (nwritten != sizeof(op)) {
-		fprintf(stderr, "pdu_send: got %i from SSL_write\n", nwritten);
-		exit(42);
+		return -1; /* error writing header */
 	}
 
-	/* Write len to the wire */
-	nwritten = SSL_write(session->io, &len, sizeof(len));
+	nwritten = SSL_write(io, &len, sizeof(len));
 	if (nwritten != sizeof(len)) {
-		fprintf(stderr, "pdu_send: got %i from SSL_write\n", nwritten);
-		exit(42);
+		return -1; /* error writing header */
 	}
 
 	if (pdu->len > 0) {
-		/* Write payload to the wire */
-		nwritten = SSL_write(session->io, pdu->data, pdu->len);
+		nwritten = SSL_write(io, pdu->data, pdu->len);
 		if (nwritten != pdu->len) {
-			fprintf(stderr, "pdu_send: got %i from SSL_write\n", nwritten);
+			return -3; /* error writing payload */
+		}
+	}
+
+	fprintf(stderr, "pdu_write: OP:%04u; LEN:%04u\n", pdu->op, pdu->len);
+	return 0;
+}
+
+/**
+  Returns 0 on success, or < 0 on failure. Failure includes
+    application-level issues (the ERROR PDU).
+ */
+int pdu_receive(protocol_session *session)
+{
+	assert(session);
+
+	protocol_data_unit *pdu = RECV_PDU(session);
+	int rc;
+
+	rc = pdu_read(session->io, pdu);
+	if (rc < 0) {
+		fprintf(stderr, "pdu_receive: pdu_read returned %i\n", rc);
+		exit(42);
+	}
+
+	/* handle error response */
+	if (pdu->op == PROTOCOL_OP_ERROR) {
+		free(session->errstr);
+		if (pdu_decode_ERROR(pdu, &(session->errnum), &(session->errstr), NULL) < 0) {
+			perror("Unable to decode ERROR PDU");
 			exit(42);
 		}
+
+		fprintf(stderr, "Received an ERROR: %u - %s\n", session->errnum, session->errstr);
+		return -1;
 	}
 
 	return 0;
@@ -269,45 +485,61 @@ void init_openssl(void)
 int protocol_session_init(protocol_session *session, SSL *io)
 {
 	session->io = io;
-	memset(&session->send_pdu, 0, sizeof(protocol_data_unit));
-	memset(&session->recv_pdu, 0, sizeof(protocol_data_unit));
 
-	init_openssl();
+	memset(SEND_PDU(session), 0, sizeof(protocol_data_unit));
+	memset(RECV_PDU(session), 0, sizeof(protocol_data_unit));
+
+	session->errnum = 0;
+	session->errstr = NULL;
 
 	return 0;
 }
 
-int client_query(protocol_session *session)
+int protocol_session_deinit(protocol_session *session)
 {
-	if (pdu_encode_GET_POLICY(&session->send_pdu) < 0) {
-		perror("client_query");
-		return -1;
-	}
-	if (pdu_send(session) < 0) {
-		perror("client_query");
-		return -1;
-	}
+	session->io = NULL;
 
-	pdu_receive(session);
-	return 200; /* FIXME: temporary */
+	pdu_deallocate(SEND_PDU(session));
+	memset(SEND_PDU(session), 0, sizeof(protocol_data_unit));
+
+	pdu_deallocate(RECV_PDU(session));
+	memset(RECV_PDU(session), 0, sizeof(protocol_data_unit));
+
+	session->errnum = 0;
+	free(session->errstr);
+
+	return 0;
 }
 
-int client_retrieve(protocol_session *session, char **data, size_t *n)
+/**
+  Returns 0 on error, since policy version numbers *must* be > 0
+ */
+uint32_t client_get_policy_version(protocol_session *session)
 {
-}
+	uint32_t version;
 
-int client_report(protocol_session *session, char *data, size_t n)
-{
-}
-
-int client_bye(protocol_session *session)
-{
-	if (pdu_encode_BYE(&session->send_pdu) < 0) {
-		perror("client_bye");
-		return -1;
+	if (pdu_send_GET_VERSION(session) < 0) {
+		perror("client_get_policy_version");
+		return 0;
 	}
-	if (pdu_send(session) < 0) {
-		perror("client_bye");
+
+	if (pdu_receive(session) < 0) {
+		perror("client_get_policy_version");
+		return 0;
+	}
+
+	if (pdu_decode_SEND_VERSION(&session->recv_pdu, &version) != 0) {
+		perror("client_get_policy_version");
+		return 0;
+	}
+
+	return version;
+}
+
+int client_disconnect(protocol_session *session)
+{
+	if (pdu_send_BYE(session) < 0) {
+		perror("client_disconnect");
 		return -1;
 	}
 

@@ -49,6 +49,7 @@ int main(int argc, char **argv)
 	SSL_CTX *ctx;
 	long err;
 	protocol_session session;
+	uint32_t version;
 
 	init_openssl();
 	RAND_load_file("/dev/urandom", 1024);
@@ -79,14 +80,17 @@ int main(int argc, char **argv)
 	fprintf(stderr, "SSL Connection opened\n");
 	protocol_session_init(&session, ssl);
 
-	if (client_query(&session) != 200) {
-		client_bye(&session);
+	version = client_get_policy_version(&session);
+	if (version == 0) {
+		client_disconnect(&session);
 		SSL_clear(ssl);
 		exit(1);
 	}
-//	fprintf(stderr, ">> server has version %li; newer than ours\n", session.version);
-	client_bye(&session);
-	SSL_clear(ssl);
+	fprintf(stderr, ">> server has version %lu; newer than ours\n", (long unsigned int)version);
+	client_disconnect(&session);
+
+	SSL_shutdown(ssl);
+	protocol_session_deinit(&session);
 
 	SSL_free(ssl);
 	SSL_CTX_free(ctx);

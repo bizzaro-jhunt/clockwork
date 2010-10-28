@@ -475,7 +475,7 @@ int pdu_receive(protocol_session *session)
 void protocol_ssl_init(void)
 {
 	if (!SSL_library_init()) {
-		fprintf(stderr, "init_openssl: Failed to initialize OpenSSL\n");
+		fprintf(stderr, "protocol_ssl_init: Failed to initialize OpenSSL\n");
 		exit(1);
 	}
 	SSL_load_error_strings();

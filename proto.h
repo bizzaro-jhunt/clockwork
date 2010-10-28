@@ -63,8 +63,6 @@ typedef struct {
 
 /**********************************************************/
 
-void init_openssl(void);
-
 int protocol_session_init(protocol_session *session, SSL *io);
 int protocol_session_deinit(protocol_session *session);
 

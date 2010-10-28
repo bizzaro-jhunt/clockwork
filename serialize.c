@@ -1,0 +1,188 @@
+#include <assert.h>
+
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+
+#include "serialize.h"
+
+#define SERIALIZER_BUF_MAX 8192
+
+struct _serializer {
+	char buf[SERIALIZER_BUF_MAX];
+	char *cursor;
+
+	size_t len;
+};
+
+struct _unserializer {
+	char  *data;   /* Serialized string */
+	char  *cursor;
+	char  *end;    /* Pointer to last character in data
+	                  not counting the null terminator. */
+
+	size_t len;    /* Length of data string */
+};
+
+#define serializer_buffer_left(s) (SERIALIZER_BUF_MAX - (s)->len)
+#define serializer_buffer_full(s) (serializer_buffer_left(s) == 0)
+
+serializer* serializer_new() {
+	serializer *s;
+
+	s = malloc(sizeof(serializer));
+	if (!s) {
+		return NULL;
+	}
+
+	s->len = 0;
+	memset(s->buf, '\0', SERIALIZER_BUF_MAX);
+	s->cursor = s->buf;
+}
+
+int serializer_data(const serializer *s, char **dst, size_t *len)
+{
+	assert(s);
+	assert(dst);
+	assert(len);
+
+	*len = s->len;
+	*dst = strndup(s->buf, s->len);
+	return 0;
+}
+
+int serializer_start(serializer *s)
+{
+	if (serializer_buffer_full(s)) {
+		return -1;
+	}
+	*(s->cursor++) = '{';
+	s->len++;
+
+	return 0;
+}
+
+int serializer_finish(serializer *s)
+{
+	if (serializer_buffer_full(s)) {
+		return -1;
+	}
+
+	*(s->cursor++) = '}';
+	s->len++;
+
+	return 0;
+}
+
+#define serializer_add_macro(s,fmt,d) do { \
+	int nwritten; \
+	size_t space = serializer_buffer_left(s); \
+	if ((s)->len == 1) { \
+		nwritten = snprintf((s)->cursor, space,  "\"" fmt "\"", (d)); \
+	} else { \
+		nwritten = snprintf((s)->cursor, space, ":\"" fmt "\"", (d)); \
+	} \
+	if (nwritten < 0) { \
+		return -1; \
+	} else if (nwritten > space) { \
+		return -2; \
+	} \
+	s->len += nwritten; \
+	s->cursor += nwritten; \
+	return 0; \
+} while (0);
+
+int serializer_add_string(serializer *s, const char *data)
+{
+	assert(s);
+	if (data) {
+		serializer_add_macro(s, "%s", data);
+	} else {
+		serializer_add_macro(s, "%s", "");
+	}
+}
+
+int serializer_add_character(serializer *s, unsigned char data)
+{
+	assert(s);
+	serializer_add_macro(s, "%c", data);
+}
+
+int serializer_add_unsigned_integer(serializer *s, unsigned long data)
+{
+	assert(s);
+	serializer_add_macro(s, "%lu", data);
+}
+
+int serializer_add_signed_integer(serializer *s, signed long data)
+{
+	assert(s);
+	serializer_add_macro(s, "%li", data);
+}
+
+unserializer* unserializer_new(const char *data, size_t len) {
+	assert(data);
+
+	unserializer *u;
+
+	u = malloc(sizeof(unserializer));
+	if (!u) {
+		return NULL;
+	}
+
+	u->len = len;
+	u->data = strndup(data, len + 1);
+	u->cursor = u->data;
+	u->end = u->data + len;
+
+	return u;
+}
+
+int unserializer_start(unserializer *u)
+{
+	assert(u);
+
+	char *p;
+
+	for (p = u->data; p != u->end && *p != '{'; p++)
+		;
+
+	if (p == u->end) {
+		return -1;
+	}
+
+	u->cursor = p;
+	return 0;
+}
+
+int unserializer_get_next(unserializer *u, char **dst, size_t *len)
+{
+	assert(u);
+	assert(dst);
+	assert(len);
+
+	char *a, *b;
+	for (a = u->cursor; a != u->end && *a++ != '"';)
+		;
+
+	if (a == u->end) {
+		return -1;
+	}
+
+	for (b = a; b != u->end && *b != '"'; b++)
+		;
+
+	free(*dst);
+	*dst = malloc(b - a + 1);
+	if (!*dst) {
+		return -2;
+	}
+
+	*len = b - a;
+	memcpy(*dst, a, *len);
+	(*dst)[*len] = '\0';
+
+	u->cursor = ++b;
+	return 0;
+}
+

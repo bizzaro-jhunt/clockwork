@@ -3,11 +3,12 @@
 #include "policy.h"
 #include "mem.h"
 
-void policy_init(struct policy *pol, const char *name)
+void policy_init(struct policy *pol, const char *name, uint32_t version)
 {
 	assert(pol);
 
 	pol->name = xstrdup(name);
+	pol->version = version;
 
 	list_init(&pol->res_files);
 	list_init(&pol->res_groups);

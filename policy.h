@@ -8,7 +8,7 @@
 
 struct policy {
 	char        *name;       /* User-assigned name of policy */
-	/* FIXME: need version number that changes when policy changes */
+	uint32_t     version;    /* Policy version number */
 
 	/* Components */
 	struct list  res_files;
@@ -16,7 +16,7 @@ struct policy {
 	struct list  res_users;
 };
 
-void policy_init(struct policy *pol, const char *name);
+void policy_init(struct policy *pol, const char *name, uint32_t version);
 void policy_free(struct policy *pol);
 
 int policy_add_file_resource(struct policy *pol, struct res_file *rf);

@@ -196,7 +196,7 @@ void assert_str_equals(const char *s, const char *actual, const char *expected)
 	} else {
 		__test_failed();
 		if (TEST_PRINT_FAIL) {
-			printf(" - %s: FAIL: %s != %s\n", s, actual, expected);
+			printf(" - %s: FAIL:\n\t\"%s\" !=\n\t\"%s\"\n", s, actual, expected);
 		}
 	}
 }

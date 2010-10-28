@@ -6,3 +6,7 @@ userdb::
 
 misc::
   policy framework
+  policy version detection
+  resource serialization / unserialization
+  policy serialization / unserialization
+  policy support in proto

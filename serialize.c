@@ -51,6 +51,31 @@ int serializer_data(const serializer *s, char **dst, size_t *len)
 	return 0;
 }
 
+char* serializer_escape(const char *data)
+{
+	char *escaped, *write_ptr;
+	const char *read_ptr;
+	size_t len;
+
+	for (len = 0, read_ptr = data; *read_ptr; read_ptr++) {
+		len++;
+		if (*read_ptr == '"') {
+			len++;
+		}
+	}
+
+	escaped = malloc(len + 1);
+	for (write_ptr = escaped, read_ptr = data; *read_ptr; read_ptr++) {
+		if (*read_ptr == '"') {
+			*write_ptr++ = '\\';
+		}
+		*write_ptr++ = *read_ptr;
+	}
+	*write_ptr = '\0';
+
+	return escaped;
+}
+
 int serializer_start(serializer *s)
 {
 	if (serializer_buffer_full(s)) {
@@ -95,8 +120,13 @@ int serializer_finish(serializer *s)
 int serializer_add_string(serializer *s, const char *data)
 {
 	assert(s);
+
+	char *escaped;
 	if (data) {
-		serializer_add_macro(s, "%s", data);
+		escaped = serializer_escape(data);
+		/* FIXME: check escaped == NULL */
+		serializer_add_macro(s, "%s", escaped);
+		free(escaped);
 	} else {
 		serializer_add_macro(s, "%s", "");
 	}
@@ -138,6 +168,41 @@ unserializer* unserializer_new(const char *data, size_t len) {
 	return u;
 }
 
+char* unserializer_unescape(const char *data)
+{
+	char *unescaped, *write_ptr;
+	const char *read_ptr;
+	size_t len;
+	char last = '\0';
+
+	for (len = 0, read_ptr = data; *read_ptr; read_ptr++) {
+		len++;
+		if (*read_ptr == '"' && last == '\\') {
+			len--;
+		}
+		last = *read_ptr;
+	}
+
+	last = '\0';
+	unescaped = malloc(len + 1);
+	for (write_ptr = unescaped, read_ptr = data; *read_ptr; read_ptr++) {
+		if (last == '\\') {
+			if (*read_ptr == '"') {
+				*write_ptr++ = '"';
+			} else {
+				*write_ptr++ = '\\';
+				*write_ptr++ = *read_ptr;
+			}
+		} else if (*read_ptr != '\\') {
+			*write_ptr++ = *read_ptr;
+		}
+		last = *read_ptr;
+	}
+	*write_ptr = '\0';
+
+	return unescaped;
+}
+
 int unserializer_start(unserializer *u)
 {
 	assert(u);
@@ -161,6 +226,8 @@ int unserializer_get_next(unserializer *u, char **dst, size_t *len)
 	assert(dst);
 	assert(len);
 
+	char *escaped;
+	char last = '\0';
 	char *a, *b;
 	for (a = u->cursor; a != u->end && *a++ != '"';)
 		;
@@ -169,18 +236,23 @@ int unserializer_get_next(unserializer *u, char **dst, size_t *len)
 		return -1;
 	}
 
-	for (b = a; b != u->end && *b != '"'; b++)
-		;
-
-	free(*dst);
-	*dst = malloc(b - a + 1);
-	if (!*dst) {
-		return -2;
+	for (b = a; b != u->end; b++) {
+		if (last != '\\' && *b == '"') {
+			break;
+		}
+		last = *b;
 	}
 
-	*len = b - a;
-	memcpy(*dst, a, *len);
-	(*dst)[*len] = '\0';
+	escaped = malloc(b - a + 1);
+	if (!escaped) {
+		return -2;
+	}
+	memcpy(escaped, a, b - a);
+	escaped[b - a] = '\0';
+
+	free(*dst);
+	*dst = unserializer_unescape(escaped);
+	*len = strlen(*dst);
 
 	u->cursor = ++b;
 	return 0;

@@ -298,6 +298,7 @@ void test_stringlist_join()
 {
 	char *joined = NULL;
 	stringlist *list = setup_stringlist("item1","item2","item3");
+	stringlist *empty = stringlist_new(NULL);
 
 	test("stringlist: Join stringlist with a delimiter");
 	free(joined);
@@ -313,7 +314,12 @@ void test_stringlist_join()
 	assert_str_equals("Check joined string with '' delimiter", "item1\nitem2\nitem3", joined);
 
 	free(joined);
+	joined = stringlist_join(empty, "!!");
+	assert_str_equals("Check empty join", "", joined);
+
+	free(joined);
 	stringlist_free(list);
+	stringlist_free(empty);
 }
 
 void test_stringlist_split()
@@ -333,6 +339,10 @@ void test_stringlist_split()
 
 	list = stringlist_split(single, strlen(single), "/");
 	assert_stringlist(list, "split single-entry list string", 1, "loganberry");
+	stringlist_free(list);
+
+	list = stringlist_split(single, strlen(""), "/");
+	assert_stringlist(list, "split empty list string", 0);
 	stringlist_free(list);
 }
 

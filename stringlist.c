@@ -274,6 +274,10 @@ char* stringlist_join(stringlist *list, const char *delim)
 	size_t i, len = 0, delim_len = strlen(delim);
 	char *joined, *ptr;
 
+	if (list->num == 0) {
+		return strdup("");
+	}
+
 	for (i = 0; i < list->num; i++) {
 		len += strlen(list->strings[i]);
 	}

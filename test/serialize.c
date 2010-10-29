@@ -2,6 +2,7 @@
 #include <string.h>
 
 #include "test.h"
+#include "../mem.h"
 #include "../serialize.h"
 
 void test_serialize_string_escape_primitive()
@@ -10,20 +11,26 @@ void test_serialize_string_escape_primitive()
 	const char *str2 = "";
 	const char *str3 = "a \"quoted\" string";
 
-	char *escaped;
+	char *escaped = NULL;
 
 	test("SERIALIZE: escaping strings (primitive)");
+
+	free(escaped);
 	escaped = serializer_escape(str1);
 	assert_not_null("serializer_escape(str1) returns a string", escaped);
 	assert_str_equals("serializer_escape(str1)", "this is a regular old string", escaped);
 
+	free(escaped);
 	escaped = serializer_escape(str2);
 	assert_not_null("serializer_escape(str2) returns a string", escaped);
 	assert_str_equals("serializer_escape(str2)", "", escaped);
 
+	free(escaped);
 	escaped = serializer_escape(str3);
 	assert_not_null("serializer_escape(str3) returns a string", escaped);
 	assert_str_equals("serializer_escape(str3)", "a \\\"quoted\\\" string", escaped);
+
+	free(escaped);
 }
 
 void test_serialize_string_unescape_primitive()
@@ -35,32 +42,41 @@ void test_serialize_string_unescape_primitive()
 	const char *str5 = "\\tTabbed Newline\\r\\n";
 	const char *str6 = "C:\\path\\to\\file";
 
-	char *unescaped;
+	char *unescaped = NULL;
 
 	test("SERIALIZE: unescaping strings (primitive)");
+
+	free(unescaped);
 	unescaped = unserializer_unescape(str1);
 	assert_not_null("unserializer_unescape(str1) returns a string", unescaped);
 	assert_str_equals("unserializer_unescape(str1)", "this is a regular old string", unescaped);
 
+	free(unescaped);
 	unescaped = unserializer_unescape(str2);
 	assert_not_null("unserializer_unescape(str2) returns a string", unescaped);
 	assert_str_equals("unserializer_unescape(str2)", "", unescaped);
 
+	free(unescaped);
 	unescaped = unserializer_unescape(str3);
 	assert_not_null("unserializer_unescape(str3) returns a string", unescaped);
 	assert_str_equals("unserializer_unescape(str3)", "a \"quoted\" string", unescaped);
 
+	free(unescaped);
 	unescaped = unserializer_unescape(str4);
 	assert_not_null("unserializer_unescape(str4) returns a string", unescaped);
 	assert_str_equals("unserializer_unescape(str4)", "\tTabbed Newline\r\n", unescaped);
 
+	free(unescaped);
 	unescaped = unserializer_unescape(str5);
 	assert_not_null("unserializer_unescape(str5) returns a string", unescaped);
 	assert_str_equals("unserializer_unescape(str5)", "\\tTabbed Newline\\r\\n", unescaped);
 
+	free(unescaped);
 	unescaped = unserializer_unescape(str6);
 	assert_not_null("unserializer_unescape(str6) returns a string", unescaped);
 	assert_str_equals("unserializer_unescape(str6)", "C:\\path\\to\\file", unescaped);
+
+	free(unescaped);
 }
 
 void test_serialize_serialization()
@@ -89,13 +105,14 @@ void test_serialize_serialization()
 	assert_str_equals("Serialized string", expected, actual);
 
 	free(actual);
+	serializer_free(s);
 }
 
 void test_serialize_unserialization()
 {
 	unserializer *u;
 	const char *serialized = "{\"a string\":\"\":\"-42\":\"42\":\"c\"}";
-	char *token = strdup("invalid value");
+	char *token = NULL;
 	size_t len;
 
 	test("SERIALIZE: Unserializer creation");
@@ -103,27 +120,35 @@ void test_serialize_unserialization()
 	assert_not_null("unserializer_new should return a non-null value", u);
 	assert_int_equals("unserializer_start should return 0", 0, unserializer_start(u));
 
+	xfree(token);
 	assert_int_equals("unserialize_get_next should return 0", 0, unserializer_get_next(u, &token, &len));
 	assert_int_equals("length of token[0] should be 8", 8, len);
 	assert_str_equals("token[0] should be 'a string'", "a string", token);
 
+	xfree(token);
 	assert_int_equals("unserialize_get_next should return 0", 0, unserializer_get_next(u, &token, &len));
 	assert_int_equals("length of token[1] should be 0", 0, len);
 	assert_str_equals("token[1] should be ''", "", token);
 
+	xfree(token);
 	assert_int_equals("unserialize_get_next should return 0", 0, unserializer_get_next(u, &token, &len));
 	assert_int_equals("length of token[2] should be 3", 3, len);
 	assert_str_equals("token[2] should be '-42'", "-42", token);
 
+	xfree(token);
 	assert_int_equals("unserialize_get_next should return 0", 0, unserializer_get_next(u, &token, &len));
 	assert_int_equals("length of token[3] should be 2", 2, len);
 	assert_str_equals("token[3] should be '42'", "42", token);
 
+	xfree(token);
 	assert_int_equals("unserialize_get_next should return 0", 0, unserializer_get_next(u, &token, &len));
 	assert_int_equals("length of token[4] should be 1", 1, len);
 	assert_str_equals("token[4] should be 'c'", "c", token);
 
+	xfree(token);
 	assert_int_not_equal("unserialize_get_next should not return 0", 0, unserializer_get_next(u, &token, &len));
+
+	unserializer_free(u);
 }
 
 void test_serialize_magic_characters()
@@ -132,7 +157,7 @@ void test_serialize_magic_characters()
 	unserializer *u;
 
 	const char *expected = "{\"a \\\"quoted\\\" string\"}";
-	char *actual, *token;
+	char *actual = NULL, *token = NULL;
 	size_t len;
 
 	test("SERIALIZE: Escaping double-quote field delimiter during serialization");
@@ -143,6 +168,7 @@ void test_serialize_magic_characters()
 	assert_int_equals("adding quoted string works", 0, serializer_add_string(s, "a \"quoted\" string"));
 	assert_int_equals("serializer_finish should return 0", 0, serializer_finish(s));
 
+	xfree(actual);
 	assert_int_equals("extracting serialized data", 0, serializer_data(s, &actual, &len));
 	assert_int_equals("Length of serialized string", strlen(expected), len);
 	assert_str_equals("Serialized string", expected, actual);
@@ -152,13 +178,18 @@ void test_serialize_magic_characters()
 	assert_not_null("unserializer_new should return a non-null value", u);
 	assert_int_equals("unserializer_start should return 0", 0, unserializer_start(u));
 
-	assert_int_equals("unserialize_get_next should return 0", 0, unserializer_get_next(u, &actual, &len));
+	xfree(token);
+	assert_int_equals("unserialize_get_next should return 0", 0, unserializer_get_next(u, &token, &len));
 	assert_int_equals("length of token[0] should be 17", 17, len);
-	assert_str_equals("token[0] should be 'a \"quoted\" string'", "a \"quoted\" string", actual);
+	assert_str_equals("token[0] should be 'a \"quoted\" string'", "a \"quoted\" string", token);
 
-	assert_int_not_equal("unserialize_get_next should not return 0", 0, unserializer_get_next(u, &actual, &len));
+	xfree(token);
+	assert_int_not_equal("unserialize_get_next should not return 0", 0, unserializer_get_next(u, &token, &len));
 
-	free(actual);
+	xfree(actual);
+	xfree(token);
+	serializer_free(s);
+	unserializer_free(u);
 }
 
 void test_suite_serialize() {

@@ -40,6 +40,11 @@ serializer* serializer_new() {
 	s->cursor = s->buf;
 }
 
+void serializer_free(serializer *s)
+{
+	free(s);
+}
+
 int serializer_data(const serializer *s, char **dst, size_t *len)
 {
 	assert(s);
@@ -114,14 +119,13 @@ int serializer_finish(serializer *s)
 	} \
 	s->len += nwritten; \
 	s->cursor += nwritten; \
-	return 0; \
 } while (0);
 
 int serializer_add_string(serializer *s, const char *data)
 {
 	assert(s);
 
-	char *escaped;
+	char *escaped = NULL;
 	if (data) {
 		escaped = serializer_escape(data);
 		/* FIXME: check escaped == NULL */
@@ -130,24 +134,28 @@ int serializer_add_string(serializer *s, const char *data)
 	} else {
 		serializer_add_macro(s, "%s", "");
 	}
+	return 0;
 }
 
 int serializer_add_character(serializer *s, unsigned char data)
 {
 	assert(s);
 	serializer_add_macro(s, "%c", data);
+	return 0;
 }
 
 int serializer_add_unsigned_integer(serializer *s, unsigned long data)
 {
 	assert(s);
 	serializer_add_macro(s, "%lu", data);
+	return 0;
 }
 
 int serializer_add_signed_integer(serializer *s, signed long data)
 {
 	assert(s);
 	serializer_add_macro(s, "%li", data);
+	return 0;
 }
 
 unserializer* unserializer_new(const char *data, size_t len) {
@@ -166,6 +174,16 @@ unserializer* unserializer_new(const char *data, size_t len) {
 	u->end = u->data + len;
 
 	return u;
+}
+
+void unserializer_free(unserializer *u)
+{
+	if (!u) {
+		return;
+	}
+
+	free(u->data);
+	free(u);
 }
 
 char* unserializer_unescape(const char *data)
@@ -250,8 +268,8 @@ int unserializer_get_next(unserializer *u, char **dst, size_t *len)
 	memcpy(escaped, a, b - a);
 	escaped[b - a] = '\0';
 
-	free(*dst);
 	*dst = unserializer_unescape(escaped);
+	free(escaped);
 	*len = strlen(*dst);
 
 	u->cursor = ++b;

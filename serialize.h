@@ -10,7 +10,6 @@ serializer* serializer_new(void);
 void serializer_free(serializer *s);
 int serializer_data(const serializer *s, char **dst, size_t *len);
 
-int serializer_start(serializer *s);
 int serializer_finish(serializer *s);
 char* serializer_escape(const char *data);
 
@@ -26,7 +25,6 @@ int serializer_add_int32(serializer *s, int32_t data);
 unserializer* unserializer_new(const char *data, size_t len);
 void unserializer_free(unserializer *u);
 
-int unserializer_start(unserializer *u);
 char* unserializer_unescape(const char *data);
 
 int unserializer_next_string(unserializer *u, char **data, size_t *len);

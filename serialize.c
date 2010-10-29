@@ -38,6 +38,9 @@ serializer* serializer_new() {
 	s->len = 0;
 	memset(s->buf, '\0', SERIALIZER_BUF_MAX);
 	s->cursor = s->buf;
+
+	*(s->cursor++) = '{';
+	s->len++;
 }
 
 void serializer_free(serializer *s)
@@ -79,17 +82,6 @@ char* serializer_escape(const char *data)
 	*write_ptr = '\0';
 
 	return escaped;
-}
-
-int serializer_start(serializer *s)
-{
-	if (serializer_buffer_full(s)) {
-		return -1;
-	}
-	*(s->cursor++) = '{';
-	s->len++;
-
-	return 0;
 }
 
 int serializer_finish(serializer *s)
@@ -190,6 +182,7 @@ unserializer* unserializer_new(const char *data, size_t len) {
 	assert(data);
 
 	unserializer *u;
+	char *p;
 
 	u = malloc(sizeof(unserializer));
 	if (!u) {
@@ -200,6 +193,14 @@ unserializer* unserializer_new(const char *data, size_t len) {
 	u->data = strndup(data, len + 1);
 	u->cursor = u->data;
 	u->end = u->data + len;
+
+	for (p = u->data; p != u->end && *p != '{'; p++)
+		;
+	if (p == u->end) {
+		unserializer_free(u);
+		return NULL;
+	}
+	u->cursor = p;
 
 	return u;
 }
@@ -247,23 +248,6 @@ char* unserializer_unescape(const char *data)
 	*write_ptr = '\0';
 
 	return unescaped;
-}
-
-int unserializer_start(unserializer *u)
-{
-	assert(u);
-
-	char *p;
-
-	for (p = u->data; p != u->end && *p != '{'; p++)
-		;
-
-	if (p == u->end) {
-		return -1;
-	}
-
-	u->cursor = p;
-	return 0;
 }
 
 int unserializer_next_string(unserializer *u, char **dst, size_t *len)
@@ -340,6 +324,8 @@ int unserializer_next_uint8(unserializer *u, uint8_t *data)
 	}
 
 	*data = strtoul(raw, NULL, 10);
+	free(raw);
+
 	return 0;
 }
 
@@ -361,6 +347,8 @@ int unserializer_next_uint16(unserializer *u, uint16_t *data)
 	}
 
 	*data = strtoul(raw, NULL, 10);
+	free(raw);
+
 	return 0;
 }
 
@@ -382,6 +370,8 @@ int unserializer_next_uint32(unserializer *u, uint32_t *data)
 	}
 
 	*data = strtoul(raw, NULL, 10);
+	free(raw);
+
 	return 0;
 }
 
@@ -403,6 +393,8 @@ int unserializer_next_int8(unserializer *u, int8_t *data)
 	}
 
 	*data = strtoll(raw, NULL, 10);
+	free(raw);
+
 	return 0;
 }
 
@@ -424,6 +416,8 @@ int unserializer_next_int16(unserializer *u, int16_t *data)
 	}
 
 	*data = strtoll(raw, NULL, 10);
+	free(raw);
+
 	return 0;
 }
 
@@ -445,6 +439,8 @@ int unserializer_next_int32(unserializer *u, int32_t *data)
 	}
 
 	*data = strtoll(raw, NULL, 10);
+	free(raw);
+
 	return 0;
 }
 

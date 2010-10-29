@@ -89,7 +89,6 @@ void test_serialize_serialization()
 	test("SERIALIZE: Serializer creation");
 	s = serializer_new();
 	assert_not_null("serializer_new should return a non-null value", s);
-	assert_int_equals("serializer_start should return 0", 0, serializer_start(s));
 
 	test("SERIALIZE: Serializing base types");
 	assert_int_equals("adding a string works", 0, serializer_add_string(s, "a string"));
@@ -123,7 +122,6 @@ void test_serialize_unserialization()
 	test("SERIALIZE: Unserializer creation");
 	u = unserializer_new(serialized, strlen(serialized));
 	assert_not_null("unserializer_new should return a non-null value", u);
-	assert_int_equals("unserializer_start should return 0", 0, unserializer_start(u));
 
 	assert_int_equals("unserialize_next_string should return 0", 0, unserializer_next_string(u, &string, &len));
 	assert_int_equals("length of token[0] should be 8", 8, len);
@@ -161,7 +159,6 @@ void test_serialize_magic_characters()
 	test("SERIALIZE: Escaping double-quote field delimiter during serialization");
 	s = serializer_new();
 	assert_not_null("serializer_new should return a non-null value", s);
-	assert_int_equals("serializer_start should return 0", 0, serializer_start(s));
 
 	assert_int_equals("adding quoted string works", 0, serializer_add_string(s, "a \"quoted\" string"));
 	assert_int_equals("serializer_finish should return 0", 0, serializer_finish(s));
@@ -174,7 +171,6 @@ void test_serialize_magic_characters()
 	test("SERIALIZE: Un-escaping double-quote field delimiter during unserialization");
 	u = unserializer_new(actual, len);
 	assert_not_null("unserializer_new should return a non-null value", u);
-	assert_int_equals("unserializer_start should return 0", 0, unserializer_start(u));
 
 	xfree(token);
 	assert_int_equals("unserialize_next_string should return 0", 0, unserializer_next_string(u, &token, &len));

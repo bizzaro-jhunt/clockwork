@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <string.h>
 
 #include "test.h"
 #include "../res_group.h"
@@ -198,9 +199,80 @@ void test_res_group_remediate_new()
 	sgdb_free(sgdb);
 }
 
+void test_res_group_serialize()
+{
+	struct res_group rg;
+	char *serialized;
+	size_t len;
+	const char *expected;
+
+	res_group_init(&rg);
+
+	res_group_set_name(&rg, "staff");
+	res_group_set_passwd(&rg, "sesame");
+	res_group_set_gid(&rg, 1415);
+	res_group_add_member(&rg, "admin1");
+	res_group_add_member(&rg, "admin2");
+	res_group_add_member(&rg, "admin3");
+	res_group_add_member(&rg, "admin4");
+	res_group_remove_member(&rg, "user");
+	res_group_add_admin(&rg, "admin1");
+
+	test("RES_GROUP: group serialization");
+	res_group_serialize(&rg, &serialized, &len);
+	expected = "{"
+			    "\"staff\""
+			":" "\"sesame\""
+			":" "\"1415\""
+			":" "\"admin1.admin2.admin3.admin4\""
+			":" "\"user\""
+			":" "\"admin1\""
+			":" "\"\""
+		"}";
+	assert_str_equals("serializes properly (normal case)", expected, serialized);
+
+	res_group_free(&rg);
+	free(serialized);
+}
+
+void test_res_group_unserialize()
+{
+	struct res_group rg;
+	char *serialized;
+	size_t len;
+
+	serialized = "{"
+			    "\"staff\""
+			":" "\"sesame\""
+			":" "\"1415\""
+			":" "\"admin1.admin2.admin3.admin4\""
+			":" "\"user\""
+			":" "\"admin1\""
+			":" "\"\""
+		"}";
+	len = strlen(serialized);
+
+	res_group_init(&rg);
+
+	test("RES_GROUP: Unserialization");
+	assert_int_equals("res_group_unserialize succeeds", 0, res_group_unserialize(&rg, serialized, len));
+	assert_str_equals("res_group->rg_name is \"staff\"", "staff", rg.rg_name);
+	assert_str_equals("res_group->rg_passwd is \"sesame\"", "sesame", rg.rg_passwd);
+	assert_int_equals("res_group->rg_gid is 1415", 1415, rg.rg_gid);
+	assert_stringlist(rg.rg_mem_add, "res_group->rg_mem_add", 4, "admin1", "admin2", "admin3", "admin4");
+	assert_stringlist(rg.rg_mem_rm,  "res_group->rg_mem_rm",  1, "user");
+	assert_stringlist(rg.rg_adm_add, "res_group->rg_adm_add", 1, "admin1");
+	assert_stringlist(rg.rg_adm_rm,  "res_group->rg_adm_rm",  0);
+
+	res_group_free(&rg);
+}
+
 void test_suite_res_group() {
 	test_res_group_enforcement();
 	test_res_group_merge();
 	test_res_group_diffstat_remediation();
 	test_res_group_remediate_new();
+
+	test_res_group_serialize();
+	test_res_group_unserialize();
 }

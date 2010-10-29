@@ -144,17 +144,45 @@ int serializer_add_character(serializer *s, unsigned char data)
 	return 0;
 }
 
-int serializer_add_unsigned_integer(serializer *s, unsigned long data)
+int serializer_add_uint8(serializer *s, uint8_t data)
 {
 	assert(s);
-	serializer_add_macro(s, "%lu", data);
+	serializer_add_macro(s, "%u", data);
 	return 0;
 }
 
-int serializer_add_signed_integer(serializer *s, signed long data)
+int serializer_add_uint16(serializer *s, uint16_t data)
 {
 	assert(s);
-	serializer_add_macro(s, "%li", data);
+	serializer_add_macro(s, "%u", data);
+	return 0;
+}
+
+int serializer_add_uint32(serializer *s, uint32_t data)
+{
+	assert(s);
+	serializer_add_macro(s, "%u", data);
+	return 0;
+}
+
+int serializer_add_int8(serializer *s, int8_t data)
+{
+	assert(s);
+	serializer_add_macro(s, "%i", data);
+	return 0;
+}
+
+int serializer_add_int16(serializer *s, int16_t data)
+{
+	assert(s);
+	serializer_add_macro(s, "%i", data);
+	return 0;
+}
+
+int serializer_add_int32(serializer *s, int32_t data)
+{
+	assert(s);
+	serializer_add_macro(s, "%i", data);
 	return 0;
 }
 
@@ -238,7 +266,7 @@ int unserializer_start(unserializer *u)
 	return 0;
 }
 
-int unserializer_get_next(unserializer *u, char **dst, size_t *len)
+int unserializer_next_string(unserializer *u, char **dst, size_t *len)
 {
 	assert(u);
 	assert(dst);
@@ -273,6 +301,150 @@ int unserializer_get_next(unserializer *u, char **dst, size_t *len)
 	*len = strlen(*dst);
 
 	u->cursor = ++b;
+	return 0;
+}
+
+int unserializer_next_character(unserializer *u, char *data)
+{
+	assert(u);
+	assert(data);
+
+	char *raw;
+	size_t len;
+
+	if (unserializer_next_string(u, &raw, &len) != 0) {
+		return -1;
+	}
+
+	*data = raw[0];
+	free(raw);
+
+	return 0;
+}
+
+int unserializer_next_uint8(unserializer *u, uint8_t *data)
+{
+	assert(u);
+	assert(data);
+
+	char *raw;
+	size_t len;
+
+	if (unserializer_next_string(u, &raw, &len) != 0) {
+		return -1;
+	}
+
+	if (len <= 0) {
+		*data = 0;
+		return 0;
+	}
+
+	*data = strtoul(raw, NULL, 10);
+	return 0;
+}
+
+int unserializer_next_uint16(unserializer *u, uint16_t *data)
+{
+	assert(u);
+	assert(data);
+
+	char *raw;
+	size_t len;
+
+	if (unserializer_next_string(u, &raw, &len) != 0) {
+		return -1;
+	}
+
+	if (len <= 0) {
+		*data = 0;
+		return 0;
+	}
+
+	*data = strtoul(raw, NULL, 10);
+	return 0;
+}
+
+int unserializer_next_uint32(unserializer *u, uint32_t *data)
+{
+	assert(u);
+	assert(data);
+
+	char *raw;
+	size_t len;
+
+	if (unserializer_next_string(u, &raw, &len) != 0) {
+		return -1;
+	}
+
+	if (len <= 0) {
+		*data = 0;
+		return 0;
+	}
+
+	*data = strtoul(raw, NULL, 10);
+	return 0;
+}
+
+int unserializer_next_int8(unserializer *u, int8_t *data)
+{
+	assert(u);
+	assert(data);
+
+	char *raw;
+	size_t len;
+
+	if (unserializer_next_string(u, &raw, &len) != 0) {
+		return -1;
+	}
+
+	if (len <= 0) {
+		*data = 0;
+		return 0;
+	}
+
+	*data = strtoll(raw, NULL, 10);
+	return 0;
+}
+
+int unserializer_next_int16(unserializer *u, int16_t *data)
+{
+	assert(u);
+	assert(data);
+
+	char *raw;
+	size_t len;
+
+	if (unserializer_next_string(u, &raw, &len) != 0) {
+		return -1;
+	}
+
+	if (len <= 0) {
+		*data = 0;
+		return 0;
+	}
+
+	*data = strtoll(raw, NULL, 10);
+	return 0;
+}
+
+int unserializer_next_int32(unserializer *u, int32_t *data)
+{
+	assert(u);
+	assert(data);
+
+	char *raw;
+	size_t len;
+
+	if (unserializer_next_string(u, &raw, &len) != 0) {
+		return -1;
+	}
+
+	if (len <= 0) {
+		*data = 0;
+		return 0;
+	}
+
+	*data = strtoll(raw, NULL, 10);
 	return 0;
 }
 

@@ -94,8 +94,8 @@ void test_serialize_serialization()
 	test("SERIALIZE: Serializing base types");
 	assert_int_equals("adding a string works", 0, serializer_add_string(s, "a string"));
 	assert_int_equals("adding a NULL string works", 0, serializer_add_string(s, NULL));
-	assert_int_equals("adding a negative integer works", 0, serializer_add_signed_integer(s, -42));
-	assert_int_equals("adding a positive integer works", 0, serializer_add_unsigned_integer(s, 42));
+	assert_int_equals("adding a negative integer works", 0, serializer_add_int8(s, -42));
+	assert_int_equals("adding a positive integer works", 0, serializer_add_uint8(s, 42));
 	assert_int_equals("adding a character works", 0, serializer_add_character(s, 'c'));
 
 	assert_int_equals("serializer_finish should return 0", 0, serializer_finish(s));
@@ -112,41 +112,39 @@ void test_serialize_unserialization()
 {
 	unserializer *u;
 	const char *serialized = "{\"a string\":\"\":\"-42\":\"42\":\"c\"}";
-	char *token = NULL;
+
+	char *string = NULL;
 	size_t len;
+
+	uint8_t u8 = 0;
+	int8_t  i8 = 0;
+	char c = '\0';
 
 	test("SERIALIZE: Unserializer creation");
 	u = unserializer_new(serialized, strlen(serialized));
 	assert_not_null("unserializer_new should return a non-null value", u);
 	assert_int_equals("unserializer_start should return 0", 0, unserializer_start(u));
 
-	xfree(token);
-	assert_int_equals("unserialize_get_next should return 0", 0, unserializer_get_next(u, &token, &len));
+	assert_int_equals("unserialize_next_string should return 0", 0, unserializer_next_string(u, &string, &len));
 	assert_int_equals("length of token[0] should be 8", 8, len);
-	assert_str_equals("token[0] should be 'a string'", "a string", token);
+	assert_str_equals("token[0] should be 'a string'", "a string", string);
+	xfree(string);
 
-	xfree(token);
-	assert_int_equals("unserialize_get_next should return 0", 0, unserializer_get_next(u, &token, &len));
+	assert_int_equals("unserialize_next_string should return 0", 0, unserializer_next_string(u, &string, &len));
 	assert_int_equals("length of token[1] should be 0", 0, len);
-	assert_str_equals("token[1] should be ''", "", token);
+	assert_str_equals("token[1] should be ''", "", string);
+	xfree(string);
 
-	xfree(token);
-	assert_int_equals("unserialize_get_next should return 0", 0, unserializer_get_next(u, &token, &len));
-	assert_int_equals("length of token[2] should be 3", 3, len);
-	assert_str_equals("token[2] should be '-42'", "-42", token);
+	assert_int_equals("unserialize_next_int8 should return 0", 0, unserializer_next_int8(u, &i8));
+	assert_int_equals("token[2] should be -42", -42, i8);
 
-	xfree(token);
-	assert_int_equals("unserialize_get_next should return 0", 0, unserializer_get_next(u, &token, &len));
-	assert_int_equals("length of token[3] should be 2", 2, len);
-	assert_str_equals("token[3] should be '42'", "42", token);
+	assert_int_equals("unserialize_next_uint8 should return 0", 0, unserializer_next_uint8(u, &u8));
+	assert_int_equals("token[3] should be 42", 42, u8);
 
-	xfree(token);
-	assert_int_equals("unserialize_get_next should return 0", 0, unserializer_get_next(u, &token, &len));
-	assert_int_equals("length of token[4] should be 1", 1, len);
-	assert_str_equals("token[4] should be 'c'", "c", token);
+	assert_int_equals("unserialize_next_character should return 0", 0, unserializer_next_character(u, &c));
+	assert_int_equals("token[4] should be 'c'", 'c', c);
 
-	xfree(token);
-	assert_int_not_equal("unserialize_get_next should not return 0", 0, unserializer_get_next(u, &token, &len));
+	assert_int_not_equal("unserialize_next_string should not return 0", 0, unserializer_next_string(u, &string, &len));
 
 	unserializer_free(u);
 }
@@ -179,12 +177,12 @@ void test_serialize_magic_characters()
 	assert_int_equals("unserializer_start should return 0", 0, unserializer_start(u));
 
 	xfree(token);
-	assert_int_equals("unserialize_get_next should return 0", 0, unserializer_get_next(u, &token, &len));
+	assert_int_equals("unserialize_next_string should return 0", 0, unserializer_next_string(u, &token, &len));
 	assert_int_equals("length of token[0] should be 17", 17, len);
 	assert_str_equals("token[0] should be 'a \"quoted\" string'", "a \"quoted\" string", token);
 
 	xfree(token);
-	assert_int_not_equal("unserialize_get_next should not return 0", 0, unserializer_get_next(u, &token, &len));
+	assert_int_not_equal("unserialize_next_string should not return 0", 0, unserializer_next_string(u, &token, &len));
 
 	xfree(actual);
 	xfree(token);

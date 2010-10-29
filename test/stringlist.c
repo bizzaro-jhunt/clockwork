@@ -294,6 +294,48 @@ void test_stringlist_diff_single_string()
 	stringlist_free(sl2);
 }
 
+void test_stringlist_join()
+{
+	char *joined = NULL;
+	stringlist *list = setup_stringlist("item1","item2","item3");
+
+	test("stringlist: Join stringlist with a delimiter");
+	free(joined);
+	joined = stringlist_join(list, "::");
+	assert_str_equals("Check joined string with '::' delimiter", "item1::item2::item3", joined);
+
+	free(joined);
+	joined = stringlist_join(list, "");
+	assert_str_equals("Check joined string with '' delimiter", "item1item2item3", joined);
+
+	free(joined);
+	joined = stringlist_join(list, "\n");
+	assert_str_equals("Check joined string with '' delimiter", "item1\nitem2\nitem3", joined);
+
+	free(joined);
+	stringlist_free(list);
+}
+
+void test_stringlist_split()
+{
+	stringlist *list;
+	char *joined = "apple--mango--pear";
+	char *single = "loganberry";
+
+	test("stringlist: Split strings with delimiters");
+	list = stringlist_split(joined, strlen(joined), "--");
+	assert_stringlist(list, "split by '--'", 3, "apple", "mango","pear");
+	stringlist_free(list);
+
+	list = stringlist_split(joined, strlen(joined), "-");
+	assert_stringlist(list, "split by '-'", 5, "apple", "", "mango", "", "pear");
+	stringlist_free(list);
+
+	list = stringlist_split(single, strlen(single), "/");
+	assert_stringlist(list, "split single-entry list string", 1, "loganberry");
+	stringlist_free(list);
+}
+
 void test_suite_stringlist()
 {
 	test_stringlist_init();
@@ -309,4 +351,7 @@ void test_suite_stringlist()
 	test_stringlist_diff();
 	test_stringlist_diff_non_uniq();
 	test_stringlist_diff_single_string();
+
+	test_stringlist_join();
+	test_stringlist_split();
 }

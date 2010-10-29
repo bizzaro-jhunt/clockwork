@@ -265,3 +265,73 @@ int stringlist_diff(stringlist* a, stringlist* b)
 
 	return -1; /* equivalent */
 }
+
+char* stringlist_join(stringlist *list, const char *delim)
+{
+	assert(list);
+	assert(delim);
+
+	size_t i, len = 0, delim_len = strlen(delim);
+	char *joined, *ptr;
+
+	for (i = 0; i < list->num; i++) {
+		len += strlen(list->strings[i]);
+	}
+	len += (list->num - 1) * delim_len;
+
+	joined = malloc(len + 1);
+	if (!joined) {
+		return NULL;
+	}
+
+	ptr = joined;
+	for (i = 0; i < list->num; i++) {
+		if (i != 0) {
+			memcpy(ptr, delim, delim_len);
+			ptr += delim_len;
+		}
+
+		len = strlen(list->strings[i]);
+		memcpy(ptr, list->strings[i], len);
+		ptr += len;
+	}
+	*ptr = '\0';
+
+	return joined;
+}
+
+stringlist* stringlist_split(const char *str, size_t len, const char *delim)
+{
+	stringlist *list = stringlist_new(NULL);
+	char *a, *b, *end = str + len;
+	size_t delim_len = strlen(delim);
+	char *item;
+
+	a = str;
+	while (a < end) {
+		for (b = a; b < end; b++) {
+			if (strncmp(b, delim, delim_len) == 0) {
+				break;
+			}
+		}
+
+		item = malloc(b - a + 1);
+		if (!item) {
+			stringlist_free(list);
+			return NULL;
+		}
+		memcpy(item, a, b - a);
+		item[b-a] = '\0';
+
+		if (stringlist_add(list, item) != 0) {
+			stringlist_free(list);
+			return NULL;
+		}
+
+		free(item);
+		a = b + delim_len;
+	}
+
+	return list;
+}
+

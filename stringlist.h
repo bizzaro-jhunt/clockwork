@@ -34,4 +34,7 @@ int stringlist_remove_all(stringlist*, stringlist*);
 
 int stringlist_diff(stringlist*, stringlist*);
 
+char* stringlist_join(stringlist*, const char*);
+stringlist* stringlist_split(const char*, size_t, const char*);
+
 #endif /* STRINGLIST_H */

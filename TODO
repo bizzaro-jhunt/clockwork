@@ -8,5 +8,8 @@ misc::
   policy framework
   policy version detection
   resource serialization / unserialization
+    res_file  (outstanding)
+    res_group SER / UNSER
+    res_user  SER / UNSER
   policy serialization / unserialization
   policy support in proto

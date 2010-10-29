@@ -241,10 +241,92 @@ void test_res_user_remediation_new()
 	spdb_free(spdb);
 }
 
+void test_res_user_serialize()
+{
+	struct res_user ru;
+	char *serialized;
+	size_t len;
+	const char *expected;
+
+	res_user_init(&ru);
+
+	res_user_set_uid(&ru, 123);
+	res_user_set_gid(&ru, 999);
+	res_user_set_name(&ru, "user");
+	res_user_set_passwd(&ru, "sooper.seecret");
+	res_user_set_dir(&ru, "/home/user");
+	res_user_set_gecos(&ru, "GECOS for user");
+	res_user_set_shell(&ru, "/sbin/nologin");
+	res_user_set_makehome(&ru, 1, "/etc/skel.oper");
+	res_user_set_pwmin(&ru, 4);
+	res_user_set_pwmax(&ru, 90);
+	res_user_set_pwwarn(&ru, 14);
+	res_user_set_inact(&ru, 1000);
+	res_user_set_expire(&ru, 2000);
+	res_user_set_lock(&ru, 0);
+
+	test("RES_USER: Serialization");
+	res_user_serialize(&ru, &serialized, &len);
+	expected = "{"
+			    "\"user\""
+			":" "\"sooper.seecret\""
+			":" "\"123\""
+			":" "\"999\""
+			":" "\"GECOS for user\""
+			":" "\"/home/user\":\"/sbin/nologin\":\"1\":\"/etc/skel.oper\":\"0\""
+			":" "\"4\""
+			":" "\"90\""
+			":" "\"14\""
+			":" "\"1000\""
+			":" "\"2000\""
+		"}";
+	assert_str_equals("serializes properly (normal case)", expected, serialized);
+
+	res_user_free(&ru);
+	free(serialized);
+}
+
+void test_res_user_unserialize()
+{
+	struct res_user ru;
+	char *serialized;
+	size_t len;
+
+	serialized = "{\"user\":\"secret\":\"45\":\"90\":\"GECOS\""
+	              ":\"/home/user\":\"/bin/bash\":\"1\":\"/etc/skel.oper\":\"0\""
+	              ":\"4\":\"50\":\"7\":\"6000\":\"9000\"}";
+	len = strlen(serialized);
+
+	res_user_init(&ru);
+
+	test("RES_USER: Unserialization");
+	assert_int_equals("res_user_unserialize succeeds", 0, res_user_unserialize(&ru, serialized, len));
+	assert_str_equals("res_user->ru_name is \"user\"", "user", ru.ru_name);
+	assert_str_equals("res_user->ru_passwd is \"secret\"", "secret", ru.ru_passwd);
+	assert_int_equals("res_user->ru_uid is 45", 45, ru.ru_uid);
+	assert_int_equals("res_user->ru_gid is 90", 90, ru.ru_gid);
+	assert_str_equals("res_user->ru_gecos is \"GECOS\"", "GECOS", ru.ru_gecos);
+	assert_str_equals("res_user->ru_dir is \"/home/user\"", "/home/user", ru.ru_dir);
+	assert_str_equals("res_user->ru_shell is \"/bin/bash\"", "/bin/bash", ru.ru_shell);
+	assert_int_equals("res_user->ru_mkhome is 1", 1, ru.ru_mkhome);
+	assert_str_equals("res_user->ru_skel is \"/etc/skel.oper\"", "/etc/skel.oper", ru.ru_skel);
+	assert_int_equals("res_user->ru_lock is 0", 0, ru.ru_lock);
+	assert_int_equals("res_user->ru_pwmin is 4", 4, ru.ru_pwmin);
+	assert_int_equals("res_user->ru_pwmax is 50", 50, ru.ru_pwmax);
+	assert_int_equals("res_user->ru_pwwarn is 7", 7, ru.ru_pwwarn);
+	assert_int_equals("res_user->ru_inact is 6000", 6000, ru.ru_inact);
+	assert_int_equals("res_user->ru_expire is 9000", 9000, ru.ru_expire);
+
+	res_user_free(&ru);
+}
+
 void test_suite_res_user()
 {
 	test_res_user_enforcement();
 	test_res_user_merge();
 	test_res_user_diffstat_remediation();
 	test_res_user_remediation_new();
+
+	test_res_user_serialize();
+	test_res_user_unserialize();
 }

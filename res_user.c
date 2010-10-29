@@ -7,6 +7,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include "serialize.h"
 #include "res_user.h"
 #include "mem.h"
 
@@ -113,8 +114,8 @@ void res_user_init(struct res_user *ru)
 	ru->ru_gecos = NULL;
 	ru->ru_dir = NULL;
 	ru->ru_shell = NULL;
-	ru->ru_mkhome = 1;
-	ru->ru_skel = strdup("/etc/skel");
+	ru->ru_mkhome = 0;
+	ru->ru_skel = NULL;
 
 	ru->ru_lock = 1;
 
@@ -577,3 +578,72 @@ int res_user_remediate(struct res_user *ru, struct pwdb *pwdb, struct spdb *spdb
 
 	return 0;
 }
+
+int res_user_serialize(struct res_user *ru, char **dst, size_t *len)
+{
+	assert(ru);
+	assert(dst);
+	assert(len);
+
+	serializer *s;
+	if (!(s = serializer_new())
+	 || serializer_add_string(s, ru->ru_name)   != 0
+	 || serializer_add_string(s, ru->ru_passwd) != 0
+	 || serializer_add_uint32(s, ru->ru_uid)    != 0
+	 || serializer_add_uint32(s, ru->ru_gid)    != 0
+	 || serializer_add_string(s, ru->ru_gecos)  != 0
+	 || serializer_add_string(s, ru->ru_dir)    != 0
+	 || serializer_add_string(s, ru->ru_shell)  != 0
+	 || serializer_add_uint8(s,  ru->ru_mkhome) != 0
+	 || serializer_add_string(s, ru->ru_skel)   != 0
+	 || serializer_add_uint8(s,  ru->ru_lock)   != 0
+	 || serializer_add_int32(s,  ru->ru_pwmin)  != 0
+	 || serializer_add_int32(s,  ru->ru_pwmax)  != 0
+	 || serializer_add_int32(s,  ru->ru_pwwarn) != 0
+	 || serializer_add_int32(s,  ru->ru_inact)  != 0
+	 || serializer_add_int32(s,  ru->ru_expire) != 0
+	 || serializer_finish(s) != 0
+	 || serializer_data(s, dst, len) != 0) {
+		serializer_free(s);
+		return -1;
+	}
+
+	serializer_free(s);
+	return 0;
+}
+
+int res_user_unserialize(struct res_user *ru, char *src, size_t len)
+{
+	assert(ru);
+	assert(src);
+
+	unserializer *u;
+	size_t l;
+
+	u = unserializer_new(src, len);
+	if (!u) {
+		return -1;
+	}
+
+	if (unserializer_next_string(u, &(ru->ru_name), &l)        != 0
+	 || unserializer_next_string(u, &(ru->ru_passwd), &l)      != 0
+	 || unserializer_next_uint32(u,  (uint32_t*)&ru->ru_uid)   != 0
+	 || unserializer_next_uint32(u,  (uint32_t*)&ru->ru_gid)   != 0
+	 || unserializer_next_string(u, &(ru->ru_gecos), &l)       != 0
+	 || unserializer_next_string(u, &(ru->ru_dir), &l)         != 0
+	 || unserializer_next_string(u, &(ru->ru_shell), &l)       != 0
+	 || unserializer_next_uint8(u,   (uint8_t*)&ru->ru_mkhome) != 0
+	 || unserializer_next_string(u, &(ru->ru_skel), &l)        != 0
+	 || unserializer_next_uint8(u,   (uint8_t*)&ru->ru_lock)   != 0
+	 || unserializer_next_int32(u,   (int32_t*)&ru->ru_pwmin)  != 0
+	 || unserializer_next_int32(u,   (int32_t*)&ru->ru_pwmax)  != 0
+	 || unserializer_next_int32(u,   (int32_t*)&ru->ru_pwwarn) != 0
+	 || unserializer_next_int32(u,   (int32_t*)&ru->ru_inact)  != 0
+	 || unserializer_next_int32(u,   (int32_t*)&ru->ru_expire) != 0) {
+		return -1;
+	}
+
+	unserializer_free(u);
+	return 0;
+}
+

@@ -154,10 +154,70 @@ void test_res_file_remedy()
 	res_file_free(&rf);
 }
 
+void test_res_file_serialize()
+{
+	struct res_file rf;
+	char *serialized;
+	size_t len;
+	const char *expected;
+
+	res_file_init(&rf);
+
+	res_file_set_uid(&rf, 101);
+	res_file_set_gid(&rf, 202);
+	res_file_set_mode(&rf, 0644);
+	res_file_set_source(&rf, "http://example.com/sudoers");
+
+	test("RES_FILE: file serialization");
+	res_file_serialize(&rf, &serialized, &len);
+	expected = "{"
+			    "\"\""
+			":" "\"http://example.com/sudoers\""
+			":" "\"101\""
+			":" "\"202\""
+			":" "\"420\""
+		"}";
+	assert_str_equals("serialized properly (normal case)", expected, serialized);
+
+	res_file_free(&rf);
+	free(serialized);
+}
+
+void test_res_file_unserialize()
+{
+	struct res_file rf;
+	char *serialized;
+	size_t len;
+
+	serialized = "{"
+			    "\"/etc/sudoers\""
+			":" "\"http://example.com/sudoers\""
+			":" "\"101\""
+			":" "\"202\""
+			":" "\"420\""
+		"}";
+	len = strlen(serialized);
+
+	res_file_init(&rf);
+
+	test("RES_FILE: file unserialization");
+	assert_int_equals("res_file_unserialize succeeds", 0, res_file_unserialize(&rf, serialized, len));
+	assert_str_equals("res_file->rf_lpath is \"/etc/sudoers\"", "/etc/sudoers", rf.rf_lpath);
+	assert_str_equals("res_file->rf_rpath is \"http://example.com/sudoers\"", "/etc/sudoers", rf.rf_lpath);
+	assert_int_equals("res_file->rf_uid is 101", 101, rf.rf_uid);
+	assert_int_equals("res_file->rf_gid is 202", 202, rf.rf_gid);
+	assert_int_equals("res_file->rf_mode is 0644", 0644, rf.rf_mode);
+
+	res_file_free(&rf);
+}
+
 void test_suite_res_file()
 {
 	test_res_file_enforcement();
 	test_res_file_merge();
 	test_res_file_diffstat();
 	test_res_file_remedy();
+
+	test_res_file_serialize();
+	test_res_file_unserialize();
 }

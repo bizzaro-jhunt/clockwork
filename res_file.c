@@ -334,3 +334,52 @@ int res_file_remediate(struct res_file *rf)
 
 	return 0;
 }
+
+int res_file_serialize(struct res_file *rf, char **dst, size_t *len)
+{
+	assert(rf);
+	assert(dst);
+	assert(len);
+
+	serializer *s;
+	if (!(s = serializer_new())
+	 || serializer_add_string(s, rf->rf_lpath) != 0
+	 || serializer_add_string(s, rf->rf_rpath) != 0
+	 || serializer_add_uint32(s, rf->rf_uid) != 0
+	 || serializer_add_uint32(s, rf->rf_gid) != 0
+	 || serializer_add_uint32(s, rf->rf_mode) != 0
+	 || serializer_finish(s) != 0
+	 || serializer_data(s, dst, len) != 0) {
+		serializer_free(s);
+		return -1;
+	}
+
+	serializer_free(s);
+	return 0;
+}
+
+int res_file_unserialize(struct res_file *rf, char *src, size_t len)
+{
+	assert(rf);
+	assert(src);
+
+	unserializer *u;
+	size_t l;
+
+	u = unserializer_new(src, len);
+	if (!u) {
+		return -1;
+	}
+
+	if (unserializer_next_string(u, &(rf->rf_lpath), &l) != 0
+	 || unserializer_next_string(u, &(rf->rf_rpath), &l) != 0
+	 || unserializer_next_uint32(u, &(rf->rf_uid)) != 0
+	 || unserializer_next_uint32(u, &(rf->rf_gid)) != 0) {
+		unserializer_free(u);
+		return -1;
+	}
+
+	unserializer_free(u);
+	return 0;
+}
+

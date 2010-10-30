@@ -19,6 +19,8 @@ int _stringlist_strcmp_asc(const void*, const void*);
 int _stringlist_strcmp_desc(const void*, const void*);
 
 stringlist* stringlist_new(char **src);
+int stringlist_init(stringlist *list, char **src);
+void stringlist_deinit(stringlist*);
 void stringlist_free(stringlist*);
 
 void stringlist_sort(stringlist*, sl_comparator);

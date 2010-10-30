@@ -79,12 +79,23 @@ int _stringlist_strcmp_desc(const void *a, const void *b)
 stringlist* stringlist_new(char **src)
 {
 	stringlist *sl;
-	char **t;
 
 	sl = malloc(sizeof(stringlist));
 	if (!sl) {
 		return NULL;
 	}
+
+	if (stringlist_init(sl, src) != 0) {
+		free(sl);
+		return NULL;
+	}
+
+	return sl;
+}
+
+int stringlist_init(stringlist *sl, char **src)
+{
+	char **t;
 
 	if (src) {
 		t = src;
@@ -99,8 +110,7 @@ stringlist* stringlist_new(char **src)
 
 	sl->strings = calloc(sl->len, sizeof(char *));
 	if (!sl->strings) {
-		free(sl);
-		return NULL;
+		return -1;
 	}
 
 	if (src) {
@@ -109,20 +119,30 @@ stringlist* stringlist_new(char **src)
 		}
 	}
 
-	return sl;
+	return 0;
+}
+
+void stringlist_deinit(stringlist *sl)
+{
+	assert(sl);
+
+	size_t i;
+
+
+	for (i = 0; i < sl->num; i++) {
+		free(sl->strings[i]);
+	}
+	free(sl->strings);
+
+	sl->num = 0;
+	sl->len = 0;
 }
 
 void stringlist_free(stringlist *sl)
 {
 	assert(sl);
 
-	size_t i;
-
-	for (i = 0; i < sl->num; i++) {
-		free(sl->strings[i]);
-	}
-
-	free(sl->strings);
+	stringlist_deinit(sl);
 	free(sl);
 }
 

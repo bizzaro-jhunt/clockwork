@@ -20,3 +20,60 @@ function will be freed, so that future usage results in undefined behavior.
 
 SOLVED: The passwd member of struct pwdb is now a pointer
         The spwd member of struct spdb is now also a pointer
+
+Object Lifecycle and Memory Management
+--------------------------------------
+The internal APIs between modules (stringlist, res_*, policy, etc.) need
+to exhibit consistent behavior with respect to object (struct) creation,
+initialization, and memory management.  To adhere to the Principle of
+Least Surprise, the following conventions must be upheld:
+
+int OBJECT_init(OBJECT*, ...)
+	Initializes the members of the OBJECT with sane defaults
+	Does not perform memmory allocation
+	Returns non-zero if initialization fails
+	Accepts other arguments for initialization, as needed
+
+OBJECT* OBJECT_new(...)
+	Dynamically allocates memory for an OBJECT
+	Calls OBJECT_init to initialize the OBJECT
+	Returns NULL if allocation or initialization fails
+	Accepts the same arguments as OBJECT_init, for initialization
+
+void OBJECT_deinit(OBJECT*)
+	De-initializes members of OBJECT
+	OBJECT is in an undefined state after this call
+
+void OBJECT_free(OBJECT*)
+	Calls OBJECT_deinit to de-initialize the OBJECT
+	Frees dynamically allocated memory
+
+These functions operate in pairs:
+	OBJECT_init ----> (do stuff with object) ---> OBJECT_deinit
+	OBJECT_new  ----> (do stuff with object) ---> OBJECT_free
+
+Additionally, the following guidelines with respect to memory management
+should be followed whenever possible, unless there is good reason not to.
+
+ 1. An object is responsible for all memory it allocates
+
+	If a module (like stringlist) allocates an area of memory, either
+	because it was asked to (stringlist_add) or as part of its integral
+	operation, that module is responsible for freeing that memory.  It
+	should not be left to the caller to fre memory allocated on their
+	behalf.
+
+ 2. An object must not take responsibility for memory areas presented to
+	it by callers.
+
+	Callers should be able to live by guideline 1, above.  Ergo, modules
+	should not take responsibility for memory away from a caller.  For
+	example, stringlist_add takes a pointer to a null-terminated character
+	array as its first argument, and adds it a list.  The module must
+	allocate a copy of that string for storage in the stringlist struct,
+	thereby leaving the caller responsible for the pointer they passed.
+
+(These guidelines were laid down to maintain clearer code, and ensure that
+memory leaks are easier to find, since responsibility for memory management
+is clear and obvious.)
+

@@ -8,8 +8,8 @@
 #include "../list.h"
 
 struct test_struct {
-	struct list entry;
 	int value;
+	struct list entry;
 };
 
 static struct test_struct *new_test_struct(int value)

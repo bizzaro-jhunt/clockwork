@@ -26,17 +26,17 @@ void test_policy_creation()
 void test_policy_user_addition()
 {
 	struct policy *pol;
-	struct res_user ru;
+	struct res_user *ru;
 	struct res_user *ptr;
 	size_t n = 0;
 
 	pol = policy_new("user policy", 1234);
 
 	test("POLICY: addition of users to policy");
-	res_user_init(&ru);
-	res_user_set_name(&ru, "user1");
-	assert_str_equals("User details are correct (before addition)", "user1", ru.ru_name);
-	policy_add_user_resource(pol, &ru);
+	ru = res_user_new(ru);
+	res_user_set_name(ru, "user1");
+	assert_str_equals("User details are correct (before addition)", "user1", ru->ru_name);
+	policy_add_user_resource(pol, ru);
 
 	n = 0;
 	for_each_node(ptr, &pol->res_users, res) {
@@ -46,7 +46,7 @@ void test_policy_user_addition()
 	}
 	assert_int_equals("Only one user in the list", 1, n);
 
-	res_user_free(&ru);
+	res_user_free(ru);
 	policy_free(pol);
 }
 
@@ -110,7 +110,7 @@ void test_policy_serialization()
 	char *policy_str;
 	size_t len;
 
-	struct res_user ru1;
+	struct res_user *ru1;
 	struct res_group rg1;
 	struct res_file rf1;
 
@@ -122,11 +122,11 @@ void test_policy_serialization()
 
 	test("POLICY: Serialization with one user, one group and one file");
 	/* The George Thoroughgood test */
-	res_user_init(&ru1);
-	res_user_set_uid(&ru1, 101);
-	res_user_set_gid(&ru1, 2000);
-	res_user_set_name(&ru1, "user1");
-	policy_add_user_resource(pol, &ru1);
+	ru1 = res_user_new();
+	res_user_set_uid(ru1, 101);
+	res_user_set_gid(ru1, 2000);
+	res_user_set_name(ru1, "user1");
+	policy_add_user_resource(pol, ru1);
 
 	res_group_init(&rg1);
 	res_group_set_gid(&rg1, 2000);
@@ -148,7 +148,7 @@ void test_policy_serialization()
 		policy_str);
 
 	policy_free(pol);
-	res_user_free(&ru1);
+	res_user_free(ru1);
 	res_group_free(&rg1);
 	res_file_free(&rf1);
 	xfree(policy_str);
@@ -184,7 +184,7 @@ void test_policy_unserialization()
 	assert_true("res_groups is NOT an empty list head", !list_empty(&pol->res_groups));
 	assert_true("res_users is NOT an empty list head", !list_empty(&pol->res_users));
 
-	for_each_node_safe(ru, ru_tmp, &pol->res_users,  res) { res_user_free(ru);  free(ru); }
+	for_each_node_safe(ru, ru_tmp, &pol->res_users,  res) { res_user_free(ru); }
 	for_each_node_safe(rg, rg_tmp, &pol->res_groups, res) { res_group_free(rg); free(rg); }
 	for_each_node_safe(rf, rf_tmp, &pol->res_files,  res) { res_file_free(rf);  free(rf); }
 	policy_free(pol);

@@ -58,10 +58,12 @@ struct res_user {
 	unsigned int   ru_enf;     /* enforce-compliance flags */
 	unsigned int   ru_diff;    /* out-of-compliance flags */
 
-	struct list    res;       /* Node in policy list */
+	struct list    res;        /* Node in policy list */
 };
 
-void res_user_init(struct res_user *ru);
+struct res_user* res_user_new();
+int  res_user_init(struct res_user *ru);
+void res_user_deinit(struct res_user *ru);
 void res_user_free(struct res_user *ru);
 
 int res_user_set_name(struct res_user *ru, const char *name);

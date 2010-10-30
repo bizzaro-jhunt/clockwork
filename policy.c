@@ -161,12 +161,7 @@ int policy_unserialize(struct policy *pol, char *src, size_t len)
 	for (i = 0; i < serialized_objects->num; i++) {
 		serial = serialized_objects->strings[i];
 		if (strncmp(serial, "res_user ", 9) == 0) {
-			ru = malloc(sizeof(struct res_user));
-			if (!ru) {
-				return -1;
-			}
-
-			res_user_init(ru);
+			ru = res_user_new();
 			if (res_user_unserialize(ru, serial, strlen(serial)) != 0) {
 				res_user_free(ru);
 				return -1;

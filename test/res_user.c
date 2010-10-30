@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include "test.h"
 #include "../env.h"
 #include "../res_user.h"

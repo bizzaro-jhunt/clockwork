@@ -307,7 +307,7 @@ char* stringlist_join(stringlist *list, const char *delim)
 stringlist* stringlist_split(const char *str, size_t len, const char *delim)
 {
 	stringlist *list = stringlist_new(NULL);
-	char *a, *b, *end = str + len;
+	const char *a, *b, *end = str + len;
 	size_t delim_len = strlen(delim);
 	char *item;
 

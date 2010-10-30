@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include "test.h"
 #include "sha1_files.h"
 #include "../res_file.h"

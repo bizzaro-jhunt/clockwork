@@ -147,6 +147,114 @@ void test_serialize_unserialization()
 	unserializer_free(u);
 }
 
+/* Warning: this macro really only makes sense in test_serialize_int_uint_sizes() */
+#define test_serializer_numeric_bounds(u,from,to,sign,var,min,max) do { \
+	(var) = 42; /* non-min, non-max value */ \
+	assert_int_equals("unserializer_next_" #to " returns 0", 0, unserializer_next_ ## to ((u), &(var))); \
+	assert_ ## sign ## _equals("min(" #from "_t) -> " #to "_t", (min), (var));\
+	(var) = 42; /* non-min, non-max value */ \
+	assert_int_equals("unserializer_next_" #to " returns 0", 0, unserializer_next_ ## to ((u), &(var))); \
+	assert_ ## sign ## _equals("max(" #from "_t) -> " #to "_t", (max), (var));\
+} while(0)
+
+void test_serialize_int_uint_sizes()
+{
+	uint8_t  u8,  u8_min  = 0U, u8_max  = 255U;
+	uint16_t u16, u16_min = 0U, u16_max = 65535U;
+	uint32_t u32, u32_min = 0U, u32_max = 4294967295U;
+
+	int8_t   i8,  i8_min  = -128,   i8_max  = 127;
+	int16_t  i16, i16_min = -32768, i16_max = 32767;
+	/* to avoid 'warning: this decimal constant is unsigned only in ISO C90',
+	   we have to dance around the minimum value of a 32-bit signed integer,
+	   by subtracting one from the almost-minimum value.
+
+	   Yeah, I don't really get it either.  Need to brush up on my
+	   C standards.
+	 */
+	int32_t  i32, i32_min = -2147483647 - 1, i32_max = 2147483647;
+
+	serializer *s;
+	unserializer *u;
+
+	char *serialized;
+	size_t len;
+
+	test("serialize: unsigned integer tests setup");
+	s = serializer_new();
+	serializer_add_uint8(s, u8_min);
+	serializer_add_uint8(s, u8_max);
+	serializer_add_uint16(s, u16_min);
+	serializer_add_uint16(s, u16_max);
+	serializer_add_uint32(s, u32_min);
+	serializer_add_uint32(s, u32_max);
+	serializer_finish(s);
+	serializer_data(s, &serialized, &len);
+	serializer_free(s);
+
+	assert_str_equals("serialization worked (test sanity test)",
+		"{\"0\":\"255\":\"0\":\"65535\":\"0\":\"4294967295\"}",
+		serialized);
+
+	test("serialize: unsigned 8-bit integers");
+	u = unserializer_new(serialized, len);
+	test_serializer_numeric_bounds(u, uint8,  uint8,  unsigned, u8,  u8_min,  u8_max);
+	test_serializer_numeric_bounds(u, uint16, uint8,  unsigned, u8,  u8_min,  u8_max);
+	test_serializer_numeric_bounds(u, uint32, uint8,  unsigned, u8,  u8_min,  u8_max);
+	unserializer_free(u);
+
+	test("serialize: unsigned 16-bit integers");
+	u = unserializer_new(serialized, len);
+	test_serializer_numeric_bounds(u, uint8,  uint16, unsigned, u16, u8_min,  u8_max);
+	test_serializer_numeric_bounds(u, uint16, uint16, unsigned, u16, u16_min, u16_max);
+	test_serializer_numeric_bounds(u, uint32, uint16, unsigned, u16, u16_min, u16_max);
+	unserializer_free(u);
+
+	test("serialize: unsigned 32-bit integers");
+	u = unserializer_new(serialized, len);
+	test_serializer_numeric_bounds(u, uint8,  uint32, unsigned, u32, u8_min,  u8_max);
+	test_serializer_numeric_bounds(u, uint16, uint32, unsigned, u32, u16_min, u16_max);
+	test_serializer_numeric_bounds(u, uint32, uint32, unsigned, u32, u32_min, u32_max);
+	unserializer_free(u);
+
+	test("serialize: unsigned integer tests setup");
+	s = serializer_new();
+	serializer_add_int8(s, i8_min);
+	serializer_add_int8(s, i8_max);
+	serializer_add_int16(s, i16_min);
+	serializer_add_int16(s, i16_max);
+	serializer_add_int32(s, i32_min);
+	serializer_add_int32(s, i32_max);
+	serializer_finish(s);
+	serializer_data(s, &serialized, &len);
+	serializer_free(s);
+
+	assert_str_equals("serialization worked (test sanity test)",
+		"{\"-128\":\"127\":\"-32768\":\"32767\":\"-2147483648\":\"2147483647\"}",
+		serialized);
+
+	test("serialize: signed 8-bit integers");
+	u = unserializer_new(serialized, len);
+	test_serializer_numeric_bounds(u, int8,  int8,  signed, i8,  i8_min,  i8_max);
+	test_serializer_numeric_bounds(u, int16, int8,  signed, i8,  i8_min,  i8_max);
+	test_serializer_numeric_bounds(u, int32, int8,  signed, i8,  i8_min,  i8_max);
+	unserializer_free(u);
+
+	test("serialize: signed 16-bit integers");
+	u = unserializer_new(serialized, len);
+	test_serializer_numeric_bounds(u, int8,  int16, signed, i16, i8_min,  i8_max);
+	test_serializer_numeric_bounds(u, int16, int16, signed, i16, i16_min, i16_max);
+	test_serializer_numeric_bounds(u, int32, int16, signed, i16, i16_min, i16_max);
+	unserializer_free(u);
+
+	test("serialize: signed 32-bit integers");
+	u = unserializer_new(serialized, len);
+	test_serializer_numeric_bounds(u, int8,  int32, signed, i32, i8_min,  i8_max);
+	test_serializer_numeric_bounds(u, int16, int32, signed, i32, i16_min, i16_max);
+	test_serializer_numeric_bounds(u, int32, int32, signed, i32, i32_min, i32_max);
+	unserializer_free(u);
+}
+
 void test_serialize_magic_characters()
 {
 	serializer *s;
@@ -192,6 +300,8 @@ void test_suite_serialize() {
 
 	test_serialize_serialization();
 	test_serialize_unserialization();
+
+	test_serialize_int_uint_sizes();
 
 	test_serialize_magic_characters();
 }

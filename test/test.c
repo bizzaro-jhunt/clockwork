@@ -19,7 +19,7 @@ static inline void __test_failed(void)
 
 /**********************************************************/
 
-inline void test(const char *s)
+void test(const char *s)
 {
 	__STATUS = 1;
 	++__TESTS;
@@ -107,7 +107,32 @@ void assert_null(const char *s, void *ptr)
 	}
 }
 
-void assert_int_equals(const char *s, int actual, int expected)
+#define _assert_numeric_equals(s, fmt, expected, actual) do {\
+	++__ASSERTIONS; \
+	if (expected == actual) { \
+		if (TEST_PRINT_PASS) { printf(" - %s: PASS\n", s); } \
+	} else { \
+		__test_failed(); \
+		if (TEST_PRINT_FAIL) { \
+			printf(" - %s: FAIL:\n" \
+			       "\t\texpected " fmt "\n" \
+			       "\t\t but got " fmt "\n", \
+			       s, expected, actual); \
+		} \
+	} \
+} while (0)
+
+void assert_unsigned_equals(const char *s, unsigned long int expected, unsigned long int actual)
+{
+	_assert_numeric_equals(s, "%lu", expected, actual);
+}
+
+void assert_signed_equals(const char *s, signed long int expected, signed long int actual)
+{
+	_assert_numeric_equals(s, "%li", expected, actual);
+}
+
+void assert_int_equals(const char *s, int expected, int actual)
 {
 	++__ASSERTIONS;
 	if (expected == actual) {

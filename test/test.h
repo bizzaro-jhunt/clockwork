@@ -1,7 +1,9 @@
 #ifndef TEST_H
 #define TEST_H
 
-inline void test(const char *s);
+#include <stdint.h>
+
+void test(const char *s);
 int test_status(void);
 int test_setup(int argc, char **argv);
 
@@ -13,6 +15,9 @@ void assert_true(const char *s, int value);
 void assert_false(const char *s, int value);
 void assert_not_null(const char *s, void *ptr);
 void assert_null(const char *s, void *ptr);
+
+void assert_unsigned_equals(const char *s, unsigned long int, unsigned long int actual);
+void assert_signed_equals(const char *s, signed long int expected, signed long int actual);
 
 void assert_int_equals(const char *s, int expected, int actual);
 void assert_int_not_equal(const char *s, int unexpected, int actual);

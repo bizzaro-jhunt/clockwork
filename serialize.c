@@ -380,6 +380,7 @@ int unserializer_next_int8(unserializer *u, int8_t *data)
 	assert(u);
 	assert(data);
 
+	int32_t num;
 	char *raw;
 	size_t len;
 
@@ -392,8 +393,15 @@ int unserializer_next_int8(unserializer *u, int8_t *data)
 		return 0;
 	}
 
-	*data = strtoll(raw, NULL, 10);
+	num = strtoll(raw, NULL, 10);
 	free(raw);
+	if (num > 127) {
+		*data = 127;
+	} else if (num < -128) {
+		*data = -128;
+	} else {
+		*data = num;
+	}
 
 	return 0;
 }
@@ -403,6 +411,7 @@ int unserializer_next_int16(unserializer *u, int16_t *data)
 	assert(u);
 	assert(data);
 
+	int32_t num;
 	char *raw;
 	size_t len;
 
@@ -415,8 +424,16 @@ int unserializer_next_int16(unserializer *u, int16_t *data)
 		return 0;
 	}
 
-	*data = strtoll(raw, NULL, 10);
+	num = strtoll(raw, NULL, 10);
 	free(raw);
+
+	if (num > 32767) {
+		*data = 32767;
+	} else if (num < -32768) {
+		*data = -32768;
+	} else {
+		*data = num;
+	}
 
 	return 0;
 }

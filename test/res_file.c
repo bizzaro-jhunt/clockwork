@@ -172,7 +172,7 @@ void test_res_file_serialize()
 
 	test("RES_FILE: file serialization");
 	res_file_serialize(&rf, &serialized, &len);
-	expected = "{"
+	expected = "res_file {"
 			    "\"\""
 			":" "\"http://example.com/sudoers\""
 			":" "\"101\""
@@ -191,7 +191,7 @@ void test_res_file_unserialize()
 	char *serialized;
 	size_t len;
 
-	serialized = "{"
+	serialized = "res_file {"
 			    "\"/etc/sudoers\""
 			":" "\"http://example.com/sudoers\""
 			":" "\"101\""

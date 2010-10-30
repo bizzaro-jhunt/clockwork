@@ -269,7 +269,7 @@ void test_res_user_serialize()
 
 	test("RES_USER: Serialization");
 	res_user_serialize(&ru, &serialized, &len);
-	expected = "{"
+	expected = "res_user {"
 			    "\"user\""
 			":" "\"sooper.seecret\""
 			":" "\"123\""
@@ -294,7 +294,7 @@ void test_res_user_unserialize()
 	char *serialized;
 	size_t len;
 
-	serialized = "{\"user\":\"secret\":\"45\":\"90\":\"GECOS\""
+	serialized = "res_user {\"user\":\"secret\":\"45\":\"90\":\"GECOS\""
 	              ":\"/home/user\":\"/bin/bash\":\"1\":\"/etc/skel.oper\":\"0\""
 	              ":\"4\":\"50\":\"7\":\"6000\":\"9000\"}";
 	len = strlen(serialized);

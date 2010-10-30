@@ -82,12 +82,12 @@ void test_serialize_string_unescape_primitive()
 void test_serialize_serialization()
 {
 	serializer *s;
-	const char *expected = "{\"a string\":\"\":\"-42\":\"42\":\"c\"}";
+	const char *expected = "tagged {\"a string\":\"\":\"-42\":\"42\":\"c\"}";
 	char *actual;
 	size_t len;
 
 	test("SERIALIZE: Serializer creation");
-	s = serializer_new();
+	s = serializer_new("tagged");
 	assert_not_null("serializer_new should return a non-null value", s);
 
 	test("SERIALIZE: Serializing base types");
@@ -181,7 +181,7 @@ void test_serialize_int_uint_sizes()
 	size_t len;
 
 	test("serialize: unsigned integer tests setup");
-	s = serializer_new();
+	s = serializer_new("uints");
 	serializer_add_uint8(s, u8_min);
 	serializer_add_uint8(s, u8_max);
 	serializer_add_uint16(s, u16_min);
@@ -193,7 +193,7 @@ void test_serialize_int_uint_sizes()
 	serializer_free(s);
 
 	assert_str_equals("serialization worked (test sanity test)",
-		"{\"0\":\"255\":\"0\":\"65535\":\"0\":\"4294967295\"}",
+		"uints {\"0\":\"255\":\"0\":\"65535\":\"0\":\"4294967295\"}",
 		serialized);
 
 	test("serialize: unsigned 8-bit integers");
@@ -217,8 +217,8 @@ void test_serialize_int_uint_sizes()
 	test_serializer_numeric_bounds(u, uint32, uint32, unsigned, u32, u32_min, u32_max);
 	unserializer_free(u);
 
-	test("serialize: unsigned integer tests setup");
-	s = serializer_new();
+	test("serialize: signed integer tests setup");
+	s = serializer_new("ints");
 	serializer_add_int8(s, i8_min);
 	serializer_add_int8(s, i8_max);
 	serializer_add_int16(s, i16_min);
@@ -230,7 +230,7 @@ void test_serialize_int_uint_sizes()
 	serializer_free(s);
 
 	assert_str_equals("serialization worked (test sanity test)",
-		"{\"-128\":\"127\":\"-32768\":\"32767\":\"-2147483648\":\"2147483647\"}",
+		"ints {\"-128\":\"127\":\"-32768\":\"32767\":\"-2147483648\":\"2147483647\"}",
 		serialized);
 
 	test("serialize: signed 8-bit integers");
@@ -260,12 +260,12 @@ void test_serialize_magic_characters()
 	serializer *s;
 	unserializer *u;
 
-	const char *expected = "{\"a \\\"quoted\\\" string\"}";
+	const char *expected = "magic {\"a \\\"quoted\\\" string\"}";
 	char *actual = NULL, *token = NULL;
 	size_t len;
 
 	test("SERIALIZE: Escaping double-quote field delimiter during serialization");
-	s = serializer_new();
+	s = serializer_new("magic");
 	assert_not_null("serializer_new should return a non-null value", s);
 
 	assert_int_equals("adding quoted string works", 0, serializer_add_string(s, "a \"quoted\" string"));

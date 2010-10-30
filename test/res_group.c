@@ -220,7 +220,7 @@ void test_res_group_serialize()
 
 	test("RES_GROUP: group serialization");
 	res_group_serialize(&rg, &serialized, &len);
-	expected = "{"
+	expected = "res_group {"
 			    "\"staff\""
 			":" "\"sesame\""
 			":" "\"1415\""
@@ -241,7 +241,7 @@ void test_res_group_unserialize()
 	char *serialized;
 	size_t len;
 
-	serialized = "{"
+	serialized = "res_group {"
 			    "\"staff\""
 			":" "\"sesame\""
 			":" "\"1415\""

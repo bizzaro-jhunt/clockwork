@@ -6,7 +6,7 @@
 typedef struct _serializer   serializer;
 typedef struct _unserializer unserializer;
 
-serializer* serializer_new(void);
+serializer* serializer_new(const char *tag);
 void serializer_free(serializer *s);
 int serializer_data(const serializer *s, char **dst, size_t *len);
 

@@ -13,6 +13,7 @@ struct _serializer {
 	char *cursor;
 
 	size_t len;
+	uint8_t first;
 };
 
 struct _unserializer {
@@ -27,8 +28,9 @@ struct _unserializer {
 #define serializer_buffer_left(s) (SERIALIZER_BUF_MAX - (s)->len)
 #define serializer_buffer_full(s) (serializer_buffer_left(s) == 0)
 
-serializer* serializer_new() {
+serializer* serializer_new(const char *tag) {
 	serializer *s;
+	size_t len;
 
 	s = malloc(sizeof(serializer));
 	if (!s) {
@@ -39,8 +41,11 @@ serializer* serializer_new() {
 	memset(s->buf, '\0', SERIALIZER_BUF_MAX);
 	s->cursor = s->buf;
 
-	*(s->cursor++) = '{';
-	s->len++;
+	len = snprintf(s->cursor, SERIALIZER_BUF_MAX, "%s {", tag);
+	s->cursor += len;
+	s->len += len;
+
+	s->first = 1;
 }
 
 void serializer_free(serializer *s)
@@ -99,7 +104,8 @@ int serializer_finish(serializer *s)
 #define serializer_add_macro(s,fmt,d) do { \
 	int nwritten; \
 	size_t space = serializer_buffer_left(s); \
-	if ((s)->len == 1) { \
+	if ((s)->first == 1) { \
+		(s)->first = 0; \
 		nwritten = snprintf((s)->cursor, space,  "\"" fmt "\"", (d)); \
 	} else { \
 		nwritten = snprintf((s)->cursor, space, ":\"" fmt "\"", (d)); \

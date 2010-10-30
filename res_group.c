@@ -368,7 +368,7 @@ int res_group_serialize(struct res_group *rg, char **dst, size_t *len)
 		return -1;
 	}
 
-	if (!(s = serializer_new())
+	if (!(s = serializer_new("res_group"))
 	 || serializer_add_string(s, rg->rg_name)   != 0
 	 || serializer_add_string(s, rg->rg_passwd) != 0
 	 || serializer_add_uint32(s, rg->rg_gid)    != 0

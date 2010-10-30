@@ -342,7 +342,7 @@ int res_file_serialize(struct res_file *rf, char **dst, size_t *len)
 	assert(len);
 
 	serializer *s;
-	if (!(s = serializer_new())
+	if (!(s = serializer_new("res_file"))
 	 || serializer_add_string(s, rf->rf_lpath) != 0
 	 || serializer_add_string(s, rf->rf_rpath) != 0
 	 || serializer_add_uint32(s, rf->rf_uid) != 0

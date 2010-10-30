@@ -586,7 +586,7 @@ int res_user_serialize(struct res_user *ru, char **dst, size_t *len)
 	assert(len);
 
 	serializer *s;
-	if (!(s = serializer_new())
+	if (!(s = serializer_new("res_user"))
 	 || serializer_add_string(s, ru->ru_name)   != 0
 	 || serializer_add_string(s, ru->ru_passwd) != 0
 	 || serializer_add_uint32(s, ru->ru_uid)    != 0

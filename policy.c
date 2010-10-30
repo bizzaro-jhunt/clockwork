@@ -162,6 +162,10 @@ int policy_unserialize(struct policy *pol, char *src, size_t len)
 		serial = serialized_objects->strings[i];
 		if (strncmp(serial, "res_user ", 9) == 0) {
 			ru = res_user_new();
+			if (!ru) {
+				return NULL;
+			}
+
 			if (res_user_unserialize(ru, serial, strlen(serial)) != 0) {
 				res_user_free(ru);
 				return -1;
@@ -169,12 +173,11 @@ int policy_unserialize(struct policy *pol, char *src, size_t len)
 
 			policy_add_user_resource(pol, ru);
 		} else if (strncmp(serial, "res_group ", 10) == 0) {
-			rg = malloc(sizeof(struct res_group));
+			rg = res_group_new();
 			if (!rg) {
 				return -1;
 			}
 
-			res_group_init(rg);
 			if (res_group_unserialize(rg, serial, strlen(serial)) != 0) {
 				res_group_free(rg);
 				stringlist_free(serialized_objects);
@@ -183,13 +186,11 @@ int policy_unserialize(struct policy *pol, char *src, size_t len)
 
 			policy_add_group_resource(pol, rg);
 		} else if (strncmp(serial, "res_file ", 9) == 0) {
-			rf = malloc(sizeof(struct res_file));
+			rf = res_file_new();
 			if (!rf) {
-				stringlist_free(serialized_objects);
-				return -1;
+				return NULL;
 			}
 
-			res_file_init(rf);
 			if (res_file_unserialize(rf, serial, strlen(serial)) != 0) {
 				res_file_free(rf);
 				stringlist_free(serialized_objects);

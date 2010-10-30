@@ -8,3 +8,6 @@ misc::
   policy framework
   policy version detection
   policy support in proto
+
+policy::
+  Memory Management Changes

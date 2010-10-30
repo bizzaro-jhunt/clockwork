@@ -38,7 +38,9 @@ struct res_file {
 	struct list  res;       /* Node in policy list */
 };
 
-void res_file_init(struct res_file *rf);
+struct res_file* res_file_new();
+int  res_file_init(struct res_file *rf);
+void res_file_deinit(struct res_file *rf);
 void res_file_free(struct res_file *rf);
 
 int res_file_set_uid(struct res_file *rf, uid_t uid);

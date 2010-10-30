@@ -73,7 +73,24 @@ static int _res_file_set_sha1_and_source(struct res_file *rf, const sha1 *cksum,
 
 /*****************************************************************/
 
-void res_file_init(struct res_file *rf)
+struct res_file* res_file_new(void)
+{
+	struct res_file *rf;
+
+	rf = malloc(sizeof(struct res_file));
+	if (!rf) {
+		return NULL;
+	}
+
+	if (res_file_init(rf) != 0) {
+		free(rf);
+		return NULL;
+	}
+
+	return rf;
+}
+
+int  res_file_init(struct res_file *rf)
 {
 	assert(rf);
 
@@ -93,9 +110,11 @@ void res_file_init(struct res_file *rf)
 
 	sha1_init(&(rf->rf_lsha1));
 	sha1_init(&(rf->rf_rsha1));
+
+	return 0;
 }
 
-void res_file_free(struct res_file *rf)
+void res_file_deinit(struct res_file *rf)
 {
 	assert(rf);
 
@@ -103,6 +122,12 @@ void res_file_free(struct res_file *rf)
 
 	xfree(rf->rf_rpath);
 	xfree(rf->rf_lpath);
+}
+
+void res_file_free(struct res_file *rf)
+{
+	res_file_deinit(rf);
+	free(rf);
 }
 
 /*

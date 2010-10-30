@@ -71,8 +71,27 @@ static int _group_update(stringlist *add, stringlist *rm, const char *user)
 
 /*****************************************************************/
 
-void res_group_init(struct res_group *rg)
+struct res_group* res_group_new(void)
 {
+	struct res_group *rg;
+
+	rg = malloc(sizeof(struct res_group));
+	if (!rg) {
+		return NULL;
+	}
+
+	if (res_group_init(rg) != 0) {
+		free(rg);
+		return NULL;
+	}
+
+	return rg;
+}
+
+int  res_group_init(struct res_group *rg)
+{
+	assert(rg);
+
 	rg->rg_prio = 0;
 	list_init(&rg->res);
 
@@ -91,12 +110,16 @@ void res_group_init(struct res_group *rg)
 	rg->rg_adm_add = stringlist_new(NULL);
 	rg->rg_adm_rm  = stringlist_new(NULL);
 
-	rg->rg_enf = RES_GROUP_NONE;
+	rg->rg_enf  = RES_GROUP_NONE;
 	rg->rg_diff = RES_GROUP_NONE;
+
+	return 0;
 }
 
-void res_group_free(struct res_group *rg)
+void res_group_deinit(struct res_group *rg)
 {
+	assert(rg);
+
 	xfree(rg->rg_name);
 	xfree(rg->rg_passwd);
 
@@ -113,6 +136,14 @@ void res_group_free(struct res_group *rg)
 	}
 	stringlist_free(rg->rg_adm_add);
 	stringlist_free(rg->rg_adm_rm);
+}
+
+void res_group_free(struct res_group *rg)
+{
+	assert(rg);
+
+	res_group_deinit(rg);
+	free(rg);
 }
 
 int res_group_set_name(struct res_group *rg, const char *name)

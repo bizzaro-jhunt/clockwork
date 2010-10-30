@@ -216,6 +216,7 @@ void test_serialize_int_uint_sizes()
 	test_serializer_numeric_bounds(u, uint16, uint32, unsigned, u32, u16_min, u16_max);
 	test_serializer_numeric_bounds(u, uint32, uint32, unsigned, u32, u32_min, u32_max);
 	unserializer_free(u);
+	free(serialized);
 
 	test("serialize: signed integer tests setup");
 	s = serializer_new("ints");
@@ -253,6 +254,7 @@ void test_serialize_int_uint_sizes()
 	test_serializer_numeric_bounds(u, int16, int32, signed, i32, i16_min, i16_max);
 	test_serializer_numeric_bounds(u, int32, int32, signed, i32, i32_min, i32_max);
 	unserializer_free(u);
+	free(serialized);
 }
 
 void test_serialize_magic_characters()

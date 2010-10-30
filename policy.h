@@ -16,7 +16,9 @@ struct policy {
 	struct list  res_users;
 };
 
-void policy_init(struct policy *pol, const char *name, uint32_t version);
+struct policy* policy_new(const char *name, uint32_t version);
+int  policy_init(struct policy *pol, const char *name, uint32_t version);
+void policy_deinit(struct policy *pol);
 void policy_free(struct policy *pol);
 
 int policy_add_file_resource(struct policy *pol, struct res_file *rf);

@@ -4,7 +4,24 @@
 #include "policy.h"
 #include "mem.h"
 
-void policy_init(struct policy *pol, const char *name, uint32_t version)
+struct policy* policy_new(const char *name, uint32_t version)
+{
+	struct policy *pol;
+
+	pol = calloc(1, sizeof(struct policy));
+	if (!pol) {
+		return NULL;
+	}
+
+	if (policy_init(pol, name, version) != 0) {
+		free(pol);
+		return NULL;
+	}
+
+	return pol;
+}
+
+int policy_init(struct policy *pol, const char *name, uint32_t version)
 {
 	assert(pol);
 
@@ -14,11 +31,24 @@ void policy_init(struct policy *pol, const char *name, uint32_t version)
 	list_init(&pol->res_files);
 	list_init(&pol->res_groups);
 	list_init(&pol->res_users);
+
+	return 0;
+}
+
+void policy_deinit(struct policy *pol)
+{
+	xfree(pol->name);
+	pol->version = 0;
+
+	list_init(&pol->res_files);
+	list_init(&pol->res_groups);
+	list_init(&pol->res_users);
 }
 
 void policy_free(struct policy *pol)
 {
-	xfree(pol->name);
+	policy_deinit(pol);
+	free(pol);
 }
 
 int policy_add_file_resource(struct policy *pol, struct res_file *rf)

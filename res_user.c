@@ -98,7 +98,7 @@ static unsigned char _res_user_home_exists(struct res_user *ru)
 
 /*****************************************************************/
 
-struct res_user* res_user_new()
+struct res_user* res_user_new(void)
 {
 	struct res_user *ru;
 

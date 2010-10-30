@@ -61,7 +61,7 @@ struct res_user {
 	struct list    res;        /* Node in policy list */
 };
 
-struct res_user* res_user_new();
+struct res_user* res_user_new(void);
 int  res_user_init(struct res_user *ru);
 void res_user_deinit(struct res_user *ru);
 void res_user_free(struct res_user *ru);

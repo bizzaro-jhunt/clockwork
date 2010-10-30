@@ -7,5 +7,4 @@ userdb::
 misc::
   policy framework
   policy version detection
-  policy serialization / unserialization
   policy support in proto

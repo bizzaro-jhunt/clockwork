@@ -23,4 +23,7 @@ int policy_add_file_resource(struct policy *pol, struct res_file *rf);
 int policy_add_group_resource(struct policy *pol, struct res_group *rg);
 int policy_add_user_resource(struct policy *pol, struct res_user *ru);
 
+int policy_serialize(struct policy *pol, char **dst, size_t *len);
+int policy_unserialize(struct policy *pol, char *src, size_t len);
+
 #endif /* _POLICY_H */

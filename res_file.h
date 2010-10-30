@@ -64,7 +64,7 @@ void res_file_merge(struct res_file *rf1, struct res_file *rf2);
 int res_file_stat(struct res_file *rf);
 int res_file_remediate(struct res_file *rf);
 
-int res_user_serialize(struct res_file *rf, char **dst, size_t *len);
-int res_user_unesrialize(struct res_file *rf, char *src, size_t len);
+int res_file_serialize(struct res_file *rf, char **dst, size_t *len);
+int res_file_unesrialize(struct res_file *rf, char *src, size_t len);
 
 #endif

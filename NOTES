@@ -77,3 +77,39 @@ should be followed whenever possible, unless there is good reason not to.
 memory leaks are easier to find, since responsibility for memory management
 is clear and obvious.)
 
+PACK As An Alternative to serializer/unserializer
+-------------------------------------------------
+
+The serializer / unserializer interface (serialize.o) is a bit clunky.  In
+essence, it is a stupid string parser with some numeric conversion routines
+built in.  The biggest problem is the workload placed on the user of the
+serialize module; serialize knows nothing about the actual contents of a
+serialized string, and the API forces the caller to build up or pull apart
+a serialized representation by hand.
+
+Let's take a lesson from the Perl playbook, and implement a (slightly) simpler
+version of the pack / unpack pair of functions.  Variadic functions can be
+made so that the API is familiar to C programmers used to printf and scanf.
+
+Example: packing a res_user object ...
+
+  if (pack("aaLLaaaCaCLLLLL",
+           ru->ru_name, ru->ru_passwd, ru->uid, ru->gid,
+           ru->gecos, ru->shell, ru->mkhome, ru->skel,
+           ru->lock, ru->pwmin, ru->pwmax, ru->pwwarn,
+           ru->inact, ru->expire) != 0) {
+
+        return -1; /* some sort of failure code */
+  }
+
+... and then unpacking it ...
+
+  if (unpack("aaLLaaaCaCLLLLL",
+             &ru->ru_name, &ru->ru_passwd, &ru->uid, &ru->gid,
+             &ru->gecos, &ru->shell, &ru->mkhome, &ru->skel,
+             &ru->lock, &ru->pwmin, &ru->pwmax, &ru->pwwarn,
+             &ru->inact, &ru->expire) != 0) {
+
+        return -1; /* some sort of failure code */
+  }
+

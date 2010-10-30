@@ -124,6 +124,12 @@ void res_user_init(struct res_user *ru)
 
 	ru->ru_enf = RES_USER_NONE;
 	ru->ru_diff = RES_USER_NONE;
+
+	ru->ru_pwmin  = 0;
+	ru->ru_pwmax  = 0;
+	ru->ru_pwwarn = 0;
+	ru->ru_inact  = 0;
+	ru->ru_expire = 0;
 }
 
 void res_user_free(struct res_user *ru)

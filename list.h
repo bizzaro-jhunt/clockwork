@@ -24,7 +24,7 @@ struct list {
 #define list_init(n) ((n)->next = (n)->prev = (n))
 
 /* Retrieve data node (type t) from list l, in member m */
-#define list_node(l,t,m) ((t*)(l - offsetof(t,m)))
+#define list_node(l,t,m) ((t*)((char*)(l) - offsetof(t,m)))
 
 /* Retrieve first data node (type t).  See list_node */
 #define list_head(l,t,m) list_node((l)->next, t, m)

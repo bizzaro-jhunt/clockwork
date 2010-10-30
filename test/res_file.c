@@ -99,7 +99,7 @@ void test_res_file_diffstat()
 	struct res_file rf;
 
 	res_file_init(&rf);
-	rf.rf_lpath = "test/data/res_file/sudoers"; /* FIXME: should we have a _set_ function for this? */
+	rf.rf_lpath = strdup("test/data/res_file/sudoers"); /* FIXME: should we have a _set_ function for this? */
 
 	res_file_set_uid(&rf, 42);
 	res_file_set_gid(&rf, 42);
@@ -134,7 +134,7 @@ void test_res_file_remedy()
 	assert_int_not_equal("Pre-remediation: file permissions are not 0754", st.st_mode & 07777, 0754);
 
 	res_file_init(&rf);
-	rf.rf_lpath = "test/data/res_file/fstab"; /* FIXME: should we have a _set_ function for this? */
+	rf.rf_lpath = strdup("test/data/res_file/fstab"); /* FIXME: should we have a _set_ function for this? */
 
 	res_file_set_uid(&rf, 42);
 	res_file_set_gid(&rf, 42);
@@ -205,7 +205,7 @@ void test_res_file_unserialize()
 	test("RES_FILE: file unserialization");
 	assert_int_equals("res_file_unserialize succeeds", 0, res_file_unserialize(&rf, serialized, len));
 	assert_str_equals("res_file->rf_lpath is \"/etc/sudoers\"", "/etc/sudoers", rf.rf_lpath);
-	assert_str_equals("res_file->rf_rpath is \"http://example.com/sudoers\"", "/etc/sudoers", rf.rf_lpath);
+	assert_str_equals("res_file->rf_rpath is \"http://example.com/sudoers\"", "http://example.com/sudoers", rf.rf_rpath);
 	assert_int_equals("res_file->rf_uid is 101", 101, rf.rf_uid);
 	assert_int_equals("res_file->rf_gid is 202", 202, rf.rf_gid);
 	assert_int_equals("res_file->rf_mode is 0644", 0644, rf.rf_mode);

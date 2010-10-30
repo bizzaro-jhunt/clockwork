@@ -84,6 +84,10 @@ void res_file_init(struct res_file *rf)
 	rf->rf_diff = 0;
 	memset(&rf->rf_stat, 0, sizeof(struct stat));
 
+	rf->rf_uid = 0;
+	rf->rf_gid = 0;
+	rf->rf_mode = 0600; /* sane default... */
+
 	rf->rf_lpath = NULL;
 	rf->rf_rpath = NULL;
 
@@ -98,6 +102,7 @@ void res_file_free(struct res_file *rf)
 	list_del(&rf->res);
 
 	xfree(rf->rf_rpath);
+	xfree(rf->rf_lpath);
 }
 
 /*
@@ -374,7 +379,8 @@ int res_file_unserialize(struct res_file *rf, char *src, size_t len)
 	if (unserializer_next_string(u, &(rf->rf_lpath), &l) != 0
 	 || unserializer_next_string(u, &(rf->rf_rpath), &l) != 0
 	 || unserializer_next_uint32(u, &(rf->rf_uid)) != 0
-	 || unserializer_next_uint32(u, &(rf->rf_gid)) != 0) {
+	 || unserializer_next_uint32(u, &(rf->rf_gid)) != 0
+	 || unserializer_next_uint32(u, &(rf->rf_mode)) != 0) {
 		unserializer_free(u);
 		return -1;
 	}

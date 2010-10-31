@@ -421,7 +421,7 @@ char *res_group_pack(struct res_group *rg)
 		mem_add, mem_rm, adm_add, adm_rm);
 
 	packed = malloc(pack_len + RES_GROUP_PACK_OFFSET);
-	strncpy(packed, RES_GROUP_PACK_PREFIX, pack_len);
+	strncpy(packed, RES_GROUP_PACK_PREFIX, RES_GROUP_PACK_OFFSET);
 
 	pack(packed + RES_GROUP_PACK_OFFSET, pack_len, RES_GROUP_PACK_FORMAT,
 		rg->rg_name, rg->rg_passwd, rg->rg_gid,

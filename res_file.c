@@ -361,7 +361,7 @@ char* res_file_pack(struct res_file *rf)
 		rf->rf_lpath, rf->rf_rpath, rf->rf_uid, rf->rf_gid, rf->rf_mode);
 
 	packed = malloc(pack_len + RES_FILE_PACK_OFFSET);
-	strncpy(packed, RES_FILE_PACK_PREFIX, pack_len);
+	strncpy(packed, RES_FILE_PACK_PREFIX, RES_FILE_PACK_OFFSET);
 
 	pack(packed + RES_FILE_PACK_OFFSET, pack_len, RES_FILE_PACK_FORMAT,
 		rf->rf_lpath, rf->rf_rpath, rf->rf_uid, rf->rf_gid, rf->rf_mode);

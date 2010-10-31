@@ -660,7 +660,7 @@ char* res_user_pack(const struct res_user *ru)
 		ru->ru_pwwarn, ru->ru_inact,  ru->ru_expire);
 
 	packed = malloc(pack_len + RES_USER_PACK_OFFSET);
-	strncpy(packed, RES_USER_PACK_PREFIX, pack_len);
+	strncpy(packed, RES_USER_PACK_PREFIX, RES_USER_PACK_OFFSET);
 
 	pack(packed + RES_USER_PACK_OFFSET, pack_len, RES_USER_PACK_FORMAT,
 		ru->ru_name,   ru->ru_passwd, ru->ru_uid,    ru->ru_gid,

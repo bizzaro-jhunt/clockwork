@@ -680,12 +680,15 @@ struct res_user* res_user_unpack(const char *packed)
 	}
 
 	ru = res_user_new();
-	/* FIXME: check return value of unpack */
-	unpack(packed + RES_USER_PACK_OFFSET, RES_USER_PACK_FORMAT,
+	if (unpack(packed + RES_USER_PACK_OFFSET, RES_USER_PACK_FORMAT,
 		&ru->ru_name,   &ru->ru_passwd, &ru->ru_uid,    &ru->ru_gid,
 		&ru->ru_gecos,  &ru->ru_shell,  &ru->ru_dir,    &ru->ru_mkhome,
 		&ru->ru_skel,   &ru->ru_lock,   &ru->ru_pwmin,  &ru->ru_pwmax,
-		&ru->ru_pwwarn, &ru->ru_inact,  &ru->ru_expire);
+		&ru->ru_pwwarn, &ru->ru_inact,  &ru->ru_expire) != 0) {
+
+		res_user_free(ru);
+		return NULL;
+	}
 
 	return ru;
 }

@@ -408,9 +408,12 @@ struct res_file* res_file_unpack(const char *packed)
 	}
 
 	rf = res_file_new();
-	/* FIXME: check the return value of unpack */
-	unpack(packed + RES_FILE_PACK_OFFSET, RES_FILE_PACK_FORMAT,
-		&rf->rf_lpath, &rf->rf_rpath, &rf->rf_uid, &rf->rf_gid, &rf->rf_mode);
+	if (unpack(packed + RES_FILE_PACK_OFFSET, RES_FILE_PACK_FORMAT,
+		&rf->rf_lpath, &rf->rf_rpath, &rf->rf_uid, &rf->rf_gid, &rf->rf_mode) != 0) {
+
+		res_file_free(rf);
+		return NULL;
+	}
 
 	return rf;
 }

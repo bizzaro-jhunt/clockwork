@@ -444,10 +444,13 @@ struct res_group* res_group_unpack(const char *packed)
 	}
 
 	rg = res_group_new();
-	/* FIXME: check the return value of unpack */
-	unpack(packed + RES_GROUP_PACK_OFFSET, RES_GROUP_PACK_FORMAT,
+	if (unpack(packed + RES_GROUP_PACK_OFFSET, RES_GROUP_PACK_FORMAT,
 		&rg->rg_name, &rg->rg_passwd, &rg->rg_gid,
-		&mem_add, &mem_rm, &adm_add, &adm_rm);
+		&mem_add, &mem_rm, &adm_add, &adm_rm)) {
+
+		res_group_free(rg);
+		return NULL;
+	}
 
 	stringlist_free(rg->rg_mem_add);
 	rg->rg_mem_add = stringlist_split(mem_add, strlen(mem_add), ".");

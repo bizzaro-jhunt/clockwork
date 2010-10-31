@@ -4,10 +4,8 @@ List of Things To Do
 userdb::
   File locking (shadow)
 
-misc::
-  policy framework
-  policy version detection
-  policy support in proto
-
 policy::
   Memory Management Changes
+  name / version in packed format
+  policy version detection
+  policy support in proto

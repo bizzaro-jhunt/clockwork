@@ -14,6 +14,8 @@ extern void test_suite_res_group();
 
 extern void test_suite_policy();
 
+extern void test_suite_host_registry();
+
 int main(int argc, char **argv)
 {
 	test_setup(argc, argv);
@@ -31,6 +33,8 @@ int main(int argc, char **argv)
 	test_suite_res_group();
 
 	test_suite_policy();
+
+	test_suite_host_registry();
 
 	return test_status();
 }

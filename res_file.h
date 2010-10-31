@@ -51,6 +51,9 @@ int res_file_unset_gid(struct res_file *rf);
 int res_file_set_mode(struct res_file *rf, mode_t mode);
 int res_file_unset_mode(struct res_file *rf);
 
+int res_file_set_path(struct res_file *rf, const char *path);
+int res_file_unset_path(struct res_file *rf);
+
 int res_file_set_source(struct res_file *rf, const char *path);
 int res_file_unset_source(struct res_file *rf);
 

@@ -34,6 +34,19 @@ static void assert_rf_source_enforcement(struct res_file *rf)
 	assert_str_equals("rf_rpath re-set properly", rf->rf_rpath, src2);
 }
 
+static void assert_rf_path_enforcement(struct res_file *rf)
+{
+	const char *src1 = "test/data/sha1/file1";
+	const char *src2 = "test/data/sha1/file2";
+
+	res_file_set_path(rf, src1);
+	assert_str_equals("rf_lpath set properly", rf->rf_lpath, src1);
+
+	res_file_unset_path(rf);
+	res_file_set_path(rf, src2);
+	assert_str_equals("rf_lpath re-set properly", rf->rf_lpath, src2);
+}
+
 void test_res_file_enforcement()
 {
 	struct res_file *rf;
@@ -56,6 +69,9 @@ void test_res_file_enforcement()
 
 	test("RES_FILE: SHA1 / rpath enforcement");
 	assert_rf_source_enforcement(rf);
+
+	test("RES_FILE: SHA1 / lpath 'enforcement'");
+	assert_rf_path_enforcement(rf);
 
 	res_file_free(rf);
 }
@@ -97,8 +113,7 @@ void test_res_file_diffstat()
 	struct res_file *rf;
 
 	rf = res_file_new();
-	rf->rf_lpath = strdup("test/data/res_file/sudoers"); /* FIXME: should we have a _set_ function for this? */
-
+	res_file_set_path(rf, "test/data/res_file/sudoers");
 	res_file_set_uid(rf, 42);
 	res_file_set_gid(rf, 42);
 	res_file_set_mode(rf, 0440);
@@ -132,8 +147,7 @@ void test_res_file_remedy()
 	assert_int_not_equal("Pre-remediation: file permissions are not 0754", st.st_mode & 07777, 0754);
 
 	rf = res_file_new();
-	rf->rf_lpath = strdup("test/data/res_file/fstab"); /* FIXME: should we have a _set_ function for this? */
-
+	res_file_set_path(rf, "test/data/res_file/fstab");
 	res_file_set_uid(rf, 42);
 	res_file_set_gid(rf, 42);
 	res_file_set_mode(rf, 0754);

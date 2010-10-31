@@ -212,6 +212,27 @@ int res_file_unset_mode(struct res_file *rf)
 	return 0;
 }
 
+int res_file_set_path(struct res_file *rf, const char *file)
+{
+	assert(rf);
+	size_t len = strlen(file) + 1;
+
+	xfree(rf->rf_lpath);
+	rf->rf_lpath = malloc(len);
+	if (!rf->rf_lpath) { return -1; }
+	strncpy(rf->rf_lpath, file, len);
+
+	return 0;
+}
+
+int res_file_unset_path(struct res_file *rf)
+{
+	assert(rf);
+	/* no op for now */
+
+	return 0;
+}
+
 int res_file_set_source(struct res_file *rf, const char *file)
 {
 	assert(rf);

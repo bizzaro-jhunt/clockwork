@@ -142,9 +142,8 @@ void test_policy_serialization()
 
 	assert_int_equals("policy_serialize returns 0", 0, policy_serialize(pol, &policy_str, &len));
 	assert_str_equals("Serialized policy with 1 user, 1 group, and 1 file",
-//		"res_user {\"user1\":\"\":\"101\":\"2000\":\"\":\"\":\"\":\"0\":\"\":\"1\":\"0\":\"0\":\"0\":\"0\":\"0\"}\n"
 		"res_user::\"user1\"\"\"" "00000065" "000007d0" "\"\"\"\"\"\"" "00" "\"\"" "01" "00000000" "00000000" "00000000" "00000000" "00000000\n"
-		"res_group {\"staff\":\"\":\"2000\":\"\":\"\":\"\":\"\"}\n"
+		"res_group::\"staff\"\"\"000007d0\"\"\"\"\"\"\"\"\n"
 		"res_file::\"\"\"cfm://etc/sudoers\"" "00000065" "000007d0" "00000180",
 		policy_str);
 
@@ -160,7 +159,7 @@ void test_policy_unserialization()
 	struct policy *pol;
 	char *policy_str = \
 		"res_user::\"user1\"\"\"" "00000065" "000007d0" "\"\"\"\"\"\"" "00" "\"\"" "01" "00000000" "00000000" "00000000" "00000000" "00000000\n"
-		"res_group {\"staff\":\"\":\"2000\":\"\":\"\":\"\":\"\"}\n"
+		"res_group::\"staff\"\"\"000007d0\"\"\"\"\"\"\"\"\n"
 		"res_file::\"\"\"cfm://etc/sudoers\"" "00000065" "000007d0" "00000180";
 
 	size_t len = strlen(policy_str);

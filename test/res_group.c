@@ -199,11 +199,10 @@ void test_res_group_remediate_new()
 	sgdb_free(sgdb);
 }
 
-void test_res_group_serialize()
+void test_res_group_pack()
 {
 	struct res_group *rg;
-	char *serialized;
-	size_t len;
+	char *packed;
 	const char *expected;
 
 	rg = res_group_new();
@@ -218,44 +217,25 @@ void test_res_group_serialize()
 	res_group_remove_member(rg, "user");
 	res_group_add_admin(rg, "admin1");
 
-	test("RES_GROUP: group serialization");
-	res_group_serialize(rg, &serialized, &len);
-	expected = "res_group {"
-			    "\"staff\""
-			":" "\"sesame\""
-			":" "\"1415\""
-			":" "\"admin1.admin2.admin3.admin4\""
-			":" "\"user\""
-			":" "\"admin1\""
-			":" "\"\""
-		"}";
-	assert_str_equals("serializes properly (normal case)", expected, serialized);
+	test("RES_GROUP: pack res_group");
+	packed = res_group_pack(rg);
+	expected = "res_group::\"staff\"\"sesame\"00000587\"admin1.admin2.admin3.admin4\"\"user\"\"admin1\"\"\"";
+	assert_str_equals("packs properly (normal case)", expected, packed);
 
 	res_group_free(rg);
-	free(serialized);
+	free(packed);
 }
 
-void test_res_group_unserialize()
+void test_res_group_unpack()
 {
 	struct res_group *rg;
-	char *serialized;
-	size_t len;
+	char *packed;
 
-	serialized = "res_group {"
-			    "\"staff\""
-			":" "\"sesame\""
-			":" "\"1415\""
-			":" "\"admin1.admin2.admin3.admin4\""
-			":" "\"user\""
-			":" "\"admin1\""
-			":" "\"\""
-		"}";
-	len = strlen(serialized);
-
-	rg = res_group_new();
+	packed = "res_group::\"staff\"\"sesame\"00000587\"admin1.admin2.admin3.admin4\"\"user\"\"admin1\"\"\"";
 
 	test("RES_GROUP: Unserialization");
-	assert_int_equals("res_group_unserialize succeeds", 0, res_group_unserialize(rg, serialized, len));
+	rg = res_group_unpack(packed);
+	assert_not_null("res_group_pack succeeds", rg);
 	assert_str_equals("res_group->rg_name is \"staff\"", "staff", rg->rg_name);
 	assert_str_equals("res_group->rg_passwd is \"sesame\"", "sesame", rg->rg_passwd);
 	assert_int_equals("res_group->rg_gid is 1415", 1415, rg->rg_gid);
@@ -273,6 +253,6 @@ void test_suite_res_group() {
 	test_res_group_diffstat_remediation();
 	test_res_group_remediate_new();
 
-	test_res_group_serialize();
-	test_res_group_unserialize();
+	test_res_group_pack();
+	test_res_group_unpack();
 }

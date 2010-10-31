@@ -68,7 +68,8 @@ void res_group_merge(struct res_group *rg1, struct res_group *rg2);
 
 int res_group_stat(struct res_group *rg, struct grdb *grdb, struct sgdb *sgdb);
 int res_group_remediate(struct res_group *rg, struct grdb *grdb, struct sgdb *sgdb);
-int res_group_serialize(struct res_group *rg, char **dst, size_t *len);
-int res_group_unserialize(struct res_group *rg, char *src, size_t len);
+
+char *res_group_pack(struct res_group *rg);
+struct res_group* res_group_unpack(const char *packed);
 
 #endif

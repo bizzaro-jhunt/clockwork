@@ -6,6 +6,21 @@
 #include "serialize.h"
 #include "mem.h"
 
+
+#define RES_GROUP_PACK_PREFIX "res_group::"
+#define RES_GROUP_PACK_OFFSET 11
+/* Pack format for res_group structure:
+     a - rg_name
+     a - rg_passwd
+     L - rg_gid
+     a - rg_mem_add (joined stringlist)
+     a - rg_mem_rm  (joined stringlist)
+     a - rg_adm_add (joined stringlist)
+     a - rg_adm_rm  (joined stringlist)
+ */
+#define RES_GROUP_PACK_FORMAT "aaLaaaa"
+
+
 static int _res_group_diff(struct res_group*);
 static int _group_update(stringlist*, stringlist*, const char*);
 
@@ -380,13 +395,10 @@ int res_group_remediate(struct res_group *rg, struct grdb *grdb, struct sgdb *sg
 	return 0;
 }
 
-int res_group_serialize(struct res_group *rg, char **dst, size_t *len)
+char *res_group_pack(struct res_group *rg)
 {
-	assert(rg);
-	assert(dst);
-	assert(len);
-
-	serializer *s;
+	char *packed;
+	size_t pack_len;
 	char *mem_add = NULL, *mem_rm = NULL,
 	     *adm_add = NULL, *adm_rm = NULL;
 
@@ -396,55 +408,37 @@ int res_group_serialize(struct res_group *rg, char **dst, size_t *len)
 	 || !(adm_rm  = stringlist_join(rg->rg_adm_rm,  "."))) {
 		free(mem_add); free(mem_rm);
 		free(adm_add); free(adm_rm);
-		return -1;
+		return NULL;
 	}
 
-	if (!(s = serializer_new("res_group"))
-	 || serializer_add_string(s, rg->rg_name)   != 0
-	 || serializer_add_string(s, rg->rg_passwd) != 0
-	 || serializer_add_uint32(s, rg->rg_gid)    != 0
-	 || serializer_add_string(s, mem_add)       != 0
-	 || serializer_add_string(s, mem_rm)        != 0
-	 || serializer_add_string(s, adm_add)       != 0
-	 || serializer_add_string(s, adm_rm)        != 0
-	 || serializer_finish(s) != 0
-	 || serializer_data(s, dst, len) != 0) {
-		free(mem_add); free(mem_rm);
-		free(adm_add); free(adm_rm);
-		serializer_free(s);
-		return -1;
-	}
+	pack_len = pack(NULL, 0, RES_GROUP_PACK_FORMAT,
+		rg->rg_name, rg->rg_passwd, rg->rg_gid,
+		mem_add, mem_rm, adm_add, adm_rm);
 
-	free(mem_add); free(mem_rm);
-	free(adm_add); free(adm_rm);
-	serializer_free(s);
-	return 0;
+	packed = malloc(pack_len + RES_GROUP_PACK_OFFSET);
+	strncpy(packed, RES_GROUP_PACK_PREFIX, pack_len);
+
+	pack(packed + RES_GROUP_PACK_OFFSET, pack_len, RES_GROUP_PACK_FORMAT,
+		rg->rg_name, rg->rg_passwd, rg->rg_gid,
+		mem_add, mem_rm, adm_add, adm_rm);
+
+	return packed;
 }
 
-int res_group_unserialize(struct res_group *rg, char *src, size_t len)
+struct res_group* res_group_unpack(const char *packed)
 {
-	assert(rg);
-	assert(src);
-
-	unserializer *u;
+	struct res_group *rg;
 	char *mem_add = NULL, *mem_rm = NULL,
 	     *adm_add = NULL, *adm_rm = NULL;
 
-	size_t l;
-
-	if (!(u = unserializer_new(src, len))
-	 || unserializer_next_string(u, &(rg->rg_name), &l)   != 0
-	 || unserializer_next_string(u, &(rg->rg_passwd), &l) != 0
-	 || unserializer_next_uint32(u, &(rg->rg_gid))        != 0
-	 || unserializer_next_string(u, &mem_add, &l)         != 0
-	 || unserializer_next_string(u, &mem_rm, &l)          != 0
-	 || unserializer_next_string(u, &adm_add, &l)         != 0
-	 || unserializer_next_string(u, &adm_rm, &l)          != 0) {
-		free(mem_add); free(mem_rm);
-		free(adm_add); free(adm_rm);
-		unserializer_free(u);
-		return -1;
+	if (strncmp(packed, RES_GROUP_PACK_PREFIX, RES_GROUP_PACK_OFFSET) != 0) {
+		return NULL;
 	}
+
+	rg = res_group_new(); /* FIXME: probably need a res_group_allocate for memory concerns */
+	unpack(packed + RES_GROUP_PACK_OFFSET, RES_GROUP_PACK_FORMAT,
+		&rg->rg_name, &rg->rg_passwd, &rg->rg_gid,
+		&mem_add, &mem_rm, &adm_add, &adm_rm);
 
 	stringlist_free(rg->rg_mem_add);
 	rg->rg_mem_add = stringlist_split(mem_add, strlen(mem_add), ".");
@@ -460,7 +454,6 @@ int res_group_unserialize(struct res_group *rg, char *src, size_t len)
 
 	free(mem_add); free(mem_rm);
 	free(adm_add); free(adm_rm);
-	unserializer_free(u);
-	return 0;
-}
 
+	return rg;
+}

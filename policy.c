@@ -111,8 +111,8 @@ int policy_serialize(struct policy *pol, char **dst, size_t *len)
 
 	/* serialize res_group objects */
 	for_each_node(rg, &pol->res_groups, res) {
-		if (res_group_serialize(rg, &object, &l) != 0
-		 || stringlist_add(serialized_objects, object) != 0) {
+		object = res_group_pack(rg);
+		if (!object || stringlist_add(serialized_objects, object) != 0) {
 			/* how do we fail? */
 			xfree(object);
 			stringlist_free(serialized_objects);
@@ -167,18 +167,11 @@ int policy_unserialize(struct policy *pol, char *src, size_t len)
 			}
 			policy_add_user_resource(pol, ru);
 
-		} else if (strncmp(serial, "res_group ", 10) == 0) {
-			rg = res_group_new();
+		} else if (strncmp(serial, "res_group::", 11) == 0) {
+			rg = res_group_unpack(serial);
 			if (!rg) {
 				return -1;
 			}
-
-			if (res_group_unserialize(rg, serial, strlen(serial)) != 0) {
-				res_group_free(rg);
-				stringlist_free(serialized_objects);
-				return -1;
-			}
-
 			policy_add_group_resource(pol, rg);
 		} else if (strncmp(serial, "res_file::", 10) == 0) {
 			rf = res_file_unpack(serial);

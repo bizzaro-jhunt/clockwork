@@ -109,13 +109,16 @@ void test_policy_pack()
 	struct res_file  *rf1;
 
 	test("POLICY: pack empty policy");
-	pol = policy_new("pack test policy", 12346);
+	pol = policy_new("empty", 777); // 777 is 309 in hex
 	packed = policy_pack(pol);
 	assert_not_null("policy_pack succeeds", packed);
-	assert_str_equals("packed empty policy should be empty string", "", packed);
+	assert_str_equals("packed empty policy should be empty string",
+		"policy::\"empty\"00000309", packed);
+	policy_free(pol);
 	xfree(packed);
 
 	test("POLICY: pack policy with one user, one group and one file");
+	pol = policy_new("1 user, 1 group, and 1 file", 20101031);
 	/* The George Thoroughgood test */
 	ru1 = res_user_new();
 	res_user_set_uid(ru1, 101);
@@ -138,6 +141,7 @@ void test_policy_pack()
 	packed = policy_pack(pol);
 	assert_not_null("policy_pack succeeds", packed);
 	assert_str_equals("packed policy with 1 user, 1 group, and 1 file",
+		"policy::\"1 user, 1 group, and 1 file\"0132b7a7\n" /* 0132b7z7 = 20101031 decimal */
 		"res_user::\"user1\"\"\"" "00000065" "000007d0" "\"\"\"\"\"\"" "00" "\"\"" "01" "00000000" "00000000" "00000000" "00000000" "00000000\n"
 		"res_group::\"staff\"\"\"000007d0\"\"\"\"\"\"\"\"\n"
 		"res_file::\"\"\"cfm://etc/sudoers\"" "00000065" "000007d0" "00000180",
@@ -155,6 +159,7 @@ void test_policy_unpack()
 {
 	struct policy *pol;
 	char *packed = \
+		"policy::\"1 user, 1 group, and 1 file\"0132b7a7\n" /* 0132b7z7 = 20101031 decimal */
 		"res_user::\"user1\"\"\"" "00000065" "000007d0" "\"\"\"\"\"\"" "00" "\"\"" "01" "00000000" "00000000" "00000000" "00000000" "00000000\n"
 		"res_group::\"staff\"\"\"000007d0\"\"\"\"\"\"\"\"\n"
 		"res_file::\"\"\"cfm://etc/sudoers\"" "00000065" "000007d0" "00000180";
@@ -164,7 +169,7 @@ void test_policy_unpack()
 	struct res_file  *rf, *rf_tmp;
 
 	test("POLICY: unpack empty policy");
-	pol = policy_unpack("");
+	pol = policy_unpack("policy::\"empty\"00000309");
 	assert_not_null("policy_unpack succeeds", pol);
 	assert_true("res_files is an empty list head", list_empty(&pol->res_files));
 	assert_true("res_groups is an empty list head", list_empty(&pol->res_groups));
@@ -175,6 +180,8 @@ void test_policy_unpack()
 	/* The George Thoroughgood test */
 	pol = policy_unpack(packed);
 	assert_not_null("policy_unpack succeeds", pol);
+	assert_str_equals("policy name unpacked", "1 user, 1 group, and 1 file", pol->name);
+	assert_unsigned_equals("policy version unpacked", 20101031, pol->version);
 	assert_true("res_files is NOT an empty list head", !list_empty(&pol->res_files));
 	assert_true("res_groups is NOT an empty list head", !list_empty(&pol->res_groups));
 	assert_true("res_users is NOT an empty list head", !list_empty(&pol->res_users));

@@ -6,6 +6,5 @@ userdb::
 
 policy::
   Memory Management Changes
-  name / version in packed format
   policy version detection
   policy support in proto

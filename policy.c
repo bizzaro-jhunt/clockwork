@@ -4,6 +4,16 @@
 #include "policy.h"
 #include "mem.h"
 
+
+#define POLICY_PACK_PREFIX "policy::"
+#define POLICY_PACK_OFFSET 8
+/* Pack format for policy structure (first line):
+     a - name
+     L - version
+ */
+#define POLICY_PACK_FORMAT "aL"
+
+
 struct policy* policy_new(const char *name, uint32_t version)
 {
 	struct policy *pol;
@@ -84,6 +94,7 @@ char* policy_pack(struct policy *pol)
 
 	char *packed = NULL;
 	stringlist *pack_list;
+	size_t pack_len;
 
 	struct res_user  *ru;
 	struct res_group *rg;
@@ -93,6 +104,17 @@ char* policy_pack(struct policy *pol)
 	if (!pack_list) {
 		return NULL;
 	}
+
+	pack_len = pack(NULL, 0, POLICY_PACK_FORMAT, pol->name, pol->version);
+
+	packed = malloc(pack_len + POLICY_PACK_OFFSET);
+	strncpy(packed, POLICY_PACK_PREFIX, POLICY_PACK_OFFSET);
+
+	pack(packed + POLICY_PACK_OFFSET, pack_len, POLICY_PACK_FORMAT, pol->name, pol->version);
+	if (stringlist_add(pack_list, packed) != 0) {
+		goto policy_pack_failed;
+	}
+	xfree(packed);
 
 	/* pack res_user objects */
 	for_each_node(ru, &pol->res_users, res) {
@@ -141,21 +163,43 @@ struct policy* policy_unpack(const char *packed_policy)
 	char *packed;
 	size_t i;
 
+	char *pol_name;
+	uint32_t pol_version;
+
 	struct res_user *ru;
 	struct res_group *rg;
 	struct res_file *rf;
-
-	pol = policy_new("FAKE POLICY", 12345); /* FIXME: hard-coding values; need to be in pack policy */
-	if (!pol) {
-		return NULL;
-	}
 
 	pack_list = stringlist_split(packed_policy, strlen(packed_policy), "\n");
 	if (!pack_list) {
 		return NULL;
 	}
 
-	for (i = 0; i < pack_list->num; i++) {
+	if (pack_list->num == 0) {
+		stringlist_free(pack_list);
+		return NULL;
+	}
+
+	packed = pack_list->strings[0];
+	if (strncmp(packed, POLICY_PACK_PREFIX, POLICY_PACK_OFFSET) != 0) {
+		stringlist_free(pack_list);
+		return NULL;
+	}
+
+	if (unpack(packed + POLICY_PACK_OFFSET, POLICY_PACK_FORMAT,
+		&pol_name, &pol_version) != 0) {
+
+		stringlist_free(pack_list);
+		return NULL;
+	}
+
+	pol = policy_new(pol_name, pol_version);
+	if (!pol) {
+		return NULL;
+	}
+	free(pol_name); /* policy_new strdup's this */
+
+	for (i = 1; i < pack_list->num; i++) {
 		packed = pack_list->strings[i];
 		if (res_user_is_pack(packed) == 0) {
 			ru = res_user_unpack(packed);

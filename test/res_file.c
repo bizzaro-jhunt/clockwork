@@ -155,11 +155,10 @@ void test_res_file_remedy()
 	res_file_free(rf);
 }
 
-void test_res_file_serialize()
+void test_res_file_pack()
 {
 	struct res_file *rf;
-	char *serialized;
-	size_t len;
+	char *packed;
 	const char *expected;
 
 	rf = res_file_new();
@@ -170,39 +169,32 @@ void test_res_file_serialize()
 	res_file_set_source(rf, "http://example.com/sudoers");
 
 	test("RES_FILE: file serialization");
-	res_file_serialize(rf, &serialized, &len);
-	expected = "res_file {"
-			    "\"\""
-			":" "\"http://example.com/sudoers\""
-			":" "\"101\""
-			":" "\"202\""
-			":" "\"420\""
-		"}";
-	assert_str_equals("serialized properly (normal case)", expected, serialized);
+	packed = res_file_pack(rf);
+	expected = "res_file::\"\"\"http://example.com/sudoers\""
+		"00000065" /* rf_uid 101 */
+		"000000ca" /* rf_gid 202 */
+		"000001a4" /* rf_mode 0644 */
+		"";
+	assert_str_equals("packs properly (normal case)", expected, packed);
 
 	res_file_free(rf);
-	free(serialized);
+	free(packed);
 }
 
-void test_res_file_unserialize()
+void test_res_file_unpack()
 {
 	struct res_file *rf;
-	char *serialized;
-	size_t len;
+	char *packed;
 
-	serialized = "res_file {"
-			    "\"/etc/sudoers\""
-			":" "\"http://example.com/sudoers\""
-			":" "\"101\""
-			":" "\"202\""
-			":" "\"420\""
-		"}";
-	len = strlen(serialized);
-
-	rf = res_file_new();
+	packed = "res_file::\"/etc/sudoers\"\"http://example.com/sudoers\""
+		"00000065" /* rf_uid 101 */
+		"000000ca" /* rf_gid 202 */
+		"000001a4" /* rf_mode 0644 */
+		"";
 
 	test("RES_FILE: file unserialization");
-	assert_int_equals("res_file_unserialize succeeds", 0, res_file_unserialize(rf, serialized, len));
+	rf = res_file_unpack(packed);
+	assert_not_null("res_file_unpack succeeds", rf);
 	assert_str_equals("res_file->rf_lpath is \"/etc/sudoers\"", "/etc/sudoers", rf->rf_lpath);
 	assert_str_equals("res_file->rf_rpath is \"http://example.com/sudoers\"", "http://example.com/sudoers", rf->rf_rpath);
 	assert_int_equals("res_file->rf_uid is 101", 101, rf->rf_uid);
@@ -219,6 +211,6 @@ void test_suite_res_file()
 	test_res_file_diffstat();
 	test_res_file_remedy();
 
-	test_res_file_serialize();
-	test_res_file_unserialize();
+	test_res_file_pack();
+	test_res_file_unpack();
 }

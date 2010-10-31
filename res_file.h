@@ -8,7 +8,6 @@
 
 #include "list.h"
 #include "sha1.h"
-#include "serialize.h"
 
 #define RES_FILE_NONE 0000
 #define RES_FILE_UID  0001
@@ -66,7 +65,7 @@ void res_file_merge(struct res_file *rf1, struct res_file *rf2);
 int res_file_stat(struct res_file *rf);
 int res_file_remediate(struct res_file *rf);
 
-int res_file_serialize(struct res_file *rf, char **dst, size_t *len);
-int res_file_unesrialize(struct res_file *rf, char *src, size_t len);
+char* res_file_pack(struct res_file *rf);
+struct res_file* res_file_unpack(const char *packed);
 
 #endif

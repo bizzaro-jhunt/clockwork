@@ -9,6 +9,18 @@
 
 #define RF_FD2FD_CHUNKSIZE 16384
 
+#define RES_FILE_PACK_PREFIX "res_file::"
+#define RES_FILE_PACK_OFFSET 10
+/* Pack format for res_file structure:
+     a - rf_lpath
+     a - rf_rpath
+     L - rf_uid
+     L - rf_gid
+     L - rf_mode
+ */
+#define RES_FILE_PACK_FORMAT "aaLLL"
+
+
 static int _res_file_fd2fd(int dest, int src);
 static int _res_file_diff(struct res_file *rf);
 static int _res_file_set_sha1_and_source(struct res_file *rf, const sha1 *cksum, const char *path);
@@ -365,52 +377,35 @@ int res_file_remediate(struct res_file *rf)
 	return 0;
 }
 
-int res_file_serialize(struct res_file *rf, char **dst, size_t *len)
+char* res_file_pack(struct res_file *rf)
 {
-	assert(rf);
-	assert(dst);
-	assert(len);
+	char *packed;
+	size_t pack_len;
 
-	serializer *s;
-	if (!(s = serializer_new("res_file"))
-	 || serializer_add_string(s, rf->rf_lpath) != 0
-	 || serializer_add_string(s, rf->rf_rpath) != 0
-	 || serializer_add_uint32(s, rf->rf_uid) != 0
-	 || serializer_add_uint32(s, rf->rf_gid) != 0
-	 || serializer_add_uint32(s, rf->rf_mode) != 0
-	 || serializer_finish(s) != 0
-	 || serializer_data(s, dst, len) != 0) {
-		serializer_free(s);
-		return -1;
-	}
+	pack_len = pack(NULL, 0, RES_FILE_PACK_FORMAT,
+		rf->rf_lpath, rf->rf_rpath, rf->rf_uid, rf->rf_gid, rf->rf_mode);
 
-	serializer_free(s);
-	return 0;
+	packed = malloc(pack_len + RES_FILE_PACK_OFFSET);
+	strncpy(packed, RES_FILE_PACK_PREFIX, pack_len);
+
+	pack(packed + RES_FILE_PACK_OFFSET, pack_len, RES_FILE_PACK_FORMAT,
+		rf->rf_lpath, rf->rf_rpath, rf->rf_uid, rf->rf_gid, rf->rf_mode);
+
+	return packed;
 }
 
-int res_file_unserialize(struct res_file *rf, char *src, size_t len)
+struct res_file* res_file_unpack(const char *packed)
 {
-	assert(rf);
-	assert(src);
+	struct res_file *rf;
 
-	unserializer *u;
-	size_t l;
-
-	u = unserializer_new(src, len);
-	if (!u) {
-		return -1;
+	if (strncmp(packed, RES_FILE_PACK_PREFIX, RES_FILE_PACK_OFFSET) != 0) {
+		return NULL;
 	}
 
-	if (unserializer_next_string(u, &(rf->rf_lpath), &l) != 0
-	 || unserializer_next_string(u, &(rf->rf_rpath), &l) != 0
-	 || unserializer_next_uint32(u, &(rf->rf_uid)) != 0
-	 || unserializer_next_uint32(u, &(rf->rf_gid)) != 0
-	 || unserializer_next_uint32(u, &(rf->rf_mode)) != 0) {
-		unserializer_free(u);
-		return -1;
-	}
+	rf = res_file_new(); /* FIXME: probably need a res_file_allocate for memory concerns */
+	unpack(packed + RES_FILE_PACK_OFFSET, RES_FILE_PACK_FORMAT,
+		&rf->rf_lpath, &rf->rf_rpath, &rf->rf_uid, &rf->rf_gid, &rf->rf_mode);
 
-	unserializer_free(u);
-	return 0;
+	return rf;
 }
 

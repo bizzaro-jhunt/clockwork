@@ -106,7 +106,7 @@ dist: clean
 	rm -rf doc/coverage
 
 fixme:
-	find . -name '*.c' -o -name '*.c' | xargs grep -n FIXME:
+	find . -name '*.c' -o -name '*.c' | xargs grep -n FIXME: | sed -e 's/:[^:]*FIXME: /:/' -e 's/ *\*\///' | column -t -s :
 
 ############################################################
 # "Extra" Dependencies

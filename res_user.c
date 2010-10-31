@@ -679,7 +679,7 @@ struct res_user* res_user_unpack(const char *packed)
 		return NULL;
 	}
 
-	ru = res_user_new(); /* FIXME: probably need a res_user_allocate for memory concerns */
+	ru = res_user_new();
 	/* FIXME: check return value of unpack */
 	unpack(packed + RES_USER_PACK_OFFSET, RES_USER_PACK_FORMAT,
 		&ru->ru_name,   &ru->ru_passwd, &ru->ru_uid,    &ru->ru_gid,

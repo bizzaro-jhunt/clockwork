@@ -238,33 +238,6 @@ int res_file_unset_source(struct res_file *rf)
 	return 0;
 }
 
-#if 0
-/*
- * Set an enforcing SHA1 checksum for a res_file
- */
-int res_file_set_sha1(struct res_file *rf, sha1 *checksum)
-{
-	assert(rf);
-	assert(checksum);
-	memcpy(rf->rf_rsha1.raw, checksum->raw, SHA1_DIGEST_SIZE);
-	memcpy(rf->rf_rsha1.hex, checksum->hex, SHA1_HEX_DIGEST_SIZE + 1);
-	rf->rf_enf |= RES_FILE_SHA1;
-
-	return 0;
-}
-
-/*
- * Stop enforcing a SHA1 checksum for a res_file
- */
-int res_file_unset_sha1(struct res_file *rf)
-{
-	assert(rf);
-	rf->rf_enf ^= RES_FILE_SHA1;
-
-	return 0;
-}
-#endif
-
 /*
  * Merge two res_file structures, respecting priority.
  *
@@ -346,7 +319,6 @@ int res_file_remediate(struct res_file *rf)
 	if (res_file_different(rf, SHA1)) {
 		assert(rf->rf_lpath);
 		assert(rf->rf_rpath);
-		//printf("  - Remediating file checksums by copy (%s -> %s)\n", rf->rf_rpath, rf->rf_lpath);
 
 		local_fd = open(rf->rf_lpath, O_CREAT | O_RDWR | O_TRUNC, rf->rf_mode);
 		if (local_fd == -1) { return -1; }
@@ -360,7 +332,6 @@ int res_file_remediate(struct res_file *rf)
 	}
 
 	if (res_file_different(rf, UID) || res_file_different(rf, GID)) {
-		//printf("  - Remediating ownership via chown to %u:%u\n", uid, gid);
 		/* FIXME: on failure, do we return immediately, or later? */
 		if (chown(rf->rf_lpath, uid, gid) == -1) {
 			return -1;
@@ -368,7 +339,6 @@ int res_file_remediate(struct res_file *rf)
 	}
 
 	if (res_file_different(rf, MODE)) {
-		//printf("  - Remediating permissions via chmod to %04o\n", rf->rf_mode);
 		if (chmod(rf->rf_lpath, rf->rf_mode) == -1) {
 			return -1;
 		}

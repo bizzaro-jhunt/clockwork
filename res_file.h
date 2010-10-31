@@ -54,12 +54,6 @@ int res_file_unset_mode(struct res_file *rf);
 int res_file_set_source(struct res_file *rf, const char *path);
 int res_file_unset_source(struct res_file *rf);
 
-#if 0
-/* FIXME: is there a reason these are exported? */
-int res_file_set_sha1(struct res_file *rf, sha1 *checksum);
-int res_file_unset_sha1(struct res_file *rf);
-#endif
-
 void res_file_merge(struct res_file *rf1, struct res_file *rf2);
 
 int res_file_stat(struct res_file *rf);

@@ -104,6 +104,10 @@ void test_pack_multiple_strings()
 	assert_str_equals("string 1 should be 'username'", "username", str1);
 	assert_str_equals("string 2 should be 'passwd'", "passwd", str2);
 	assert_str_equals("string 3 should be '/home/directory'", "/home/directory", str3);
+
+	free(str1);
+	free(str2);
+	free(str3);
 }
 
 void test_pack_decoding_integers()

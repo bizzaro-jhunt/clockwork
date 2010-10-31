@@ -148,11 +148,12 @@ void test_policy_pack()
 		"res_file::\"\"\"cfm://etc/sudoers\"" "00000065" "000007d0" "00000180",
 		packed);
 
-	policy_free(pol);
+	free(packed);
+
 	res_user_free(ru1);
 	res_group_free(rg1);
 	res_file_free(rf1);
-	xfree(packed);
+	policy_free(pol);
 }
 
 void test_policy_unpack()

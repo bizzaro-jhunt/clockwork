@@ -426,6 +426,9 @@ char *res_group_pack(struct res_group *rg)
 		rg->rg_name, rg->rg_passwd, rg->rg_gid,
 		mem_add, mem_rm, adm_add, adm_rm);
 
+	free(mem_add); free(mem_rm);
+	free(adm_add); free(adm_rm);
+
 	return packed;
 }
 

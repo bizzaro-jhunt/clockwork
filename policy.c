@@ -2,6 +2,7 @@
 #include <string.h>
 
 #include "policy.h"
+#include "pack.h"
 #include "mem.h"
 
 

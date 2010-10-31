@@ -204,7 +204,7 @@ void test_res_user_remediation_new()
 	struct pwdb *pwdb;
 	struct spdb *spdb;
 
-	ru = res_user_new(ru);
+	ru = res_user_new();
 
 	res_user_set_name(ru, "new_user");
 	res_user_set_uid(ru, 7010);
@@ -243,66 +243,73 @@ void test_res_user_remediation_new()
 	spdb_free(spdb);
 }
 
-void test_res_user_serialize()
+void test_res_user_pack()
 {
 	struct res_user *ru;
-	char *serialized;
+	char *packed;
 	size_t len;
 	const char *expected;
 
-	ru = res_user_new(ru);
-
-	res_user_set_uid(ru, 123);
-	res_user_set_gid(ru, 999);
+	ru = res_user_new();
+	res_user_set_uid(ru, 123); // hex: 0000007b
+	res_user_set_gid(ru, 999); // hex: 000003e7
 	res_user_set_name(ru, "user");
 	res_user_set_passwd(ru, "sooper.seecret");
 	res_user_set_dir(ru, "/home/user");
 	res_user_set_gecos(ru, "GECOS for user");
 	res_user_set_shell(ru, "/sbin/nologin");
 	res_user_set_makehome(ru, 1, "/etc/skel.oper");
-	res_user_set_pwmin(ru, 4);
-	res_user_set_pwmax(ru, 90);
-	res_user_set_pwwarn(ru, 14);
-	res_user_set_inact(ru, 1000);
-	res_user_set_expire(ru, 2000);
+	res_user_set_pwmin(ru, 4);      // hex: 00000004
+	res_user_set_pwmax(ru, 90);     // hex: 0000005a
+	res_user_set_pwwarn(ru, 14);    // hex: 0000000e
+	res_user_set_inact(ru, 1000);   // hex: 000003e8
+	res_user_set_expire(ru, 2000);  // hex: 000007d0
 	res_user_set_lock(ru, 0);
 
-	test("RES_USER: Serialization");
-	res_user_serialize(ru, &serialized, &len);
-	expected = "res_user {"
-			    "\"user\""
-			":" "\"sooper.seecret\""
-			":" "\"123\""
-			":" "\"999\""
-			":" "\"GECOS for user\""
-			":" "\"/home/user\":\"/sbin/nologin\":\"1\":\"/etc/skel.oper\":\"0\""
-			":" "\"4\""
-			":" "\"90\""
-			":" "\"14\""
-			":" "\"1000\""
-			":" "\"2000\""
-		"}";
-	assert_str_equals("serializes properly (normal case)", expected, serialized);
+	test("RES_USER: pack res_user");
+	packed = res_user_pack(ru);
+	expected = "res_user::\"user\"\"sooper.seecret\""
+		"0000007b" /* uid 123 */
+		"000003e7" /* gid 999 */
+		"\"GECOS for user\"\"/sbin/nologin\"\"/home/user\""
+		"01" /* mkhome 1 */
+		"\"/etc/skel.oper\""
+		"00" /* lock 0 */
+		"00000004" /* pwmin 4 */
+		"0000005a" /* pwmax 90 */
+		"0000000e" /* pwwarn 14 */
+		"000003e8" /* inact 1000 */
+		"000007d0" /* expire 2000 */
+		"";
+	assert_str_equals("packs properly (normal case)", expected, packed);
 
 	res_user_free(ru);
-	free(serialized);
+	free(packed);
 }
 
-void test_res_user_unserialize()
+void test_res_user_unpack()
 {
 	struct res_user *ru;
-	char *serialized;
-	size_t len;
+	char *packed;
 
-	serialized = "res_user {\"user\":\"secret\":\"45\":\"90\":\"GECOS\""
-	              ":\"/home/user\":\"/bin/bash\":\"1\":\"/etc/skel.oper\":\"0\""
-	              ":\"4\":\"50\":\"7\":\"6000\":\"9000\"}";
-	len = strlen(serialized);
+	packed = "res_user::\"user\"\"secret\""
+		"0000002d" /* uid 45 */
+		"0000005a" /* gid 90 */
+		"\"GECOS\"\"/bin/bash\"\"/home/user\""
+		"01" /* mkhome 1 */
+		"\"/etc/skel.oper\""
+		"00" /* lock 0 */
+		"00000004" /* pwmin 4 */
+		"00000032" /* pwmax 50 */
+		"00000007" /* pwwarn 7 */
+		"00001770" /* inact 6000 */
+		"00002328" /* expire 9000 */
+		"";
 
-	ru = res_user_new();
+	ru = res_user_unpack(packed);
 
-	test("RES_USER: Unserialization");
-	assert_int_equals("res_user_unserialize succeeds", 0, res_user_unserialize(ru, serialized, len));
+	test("RES_USER: unpack res_user");
+	assert_not_null("res_user_unpack succeeds", ru);
 	assert_str_equals("res_user->ru_name is \"user\"", "user", ru->ru_name);
 	assert_str_equals("res_user->ru_passwd is \"secret\"", "secret", ru->ru_passwd);
 	assert_int_equals("res_user->ru_uid is 45", 45, ru->ru_uid);
@@ -329,6 +336,6 @@ void test_suite_res_user()
 	test_res_user_diffstat_remediation();
 	test_res_user_remediation_new();
 
-	test_res_user_serialize();
-	test_res_user_unserialize();
+	test_res_user_pack();
+	test_res_user_unpack();
 }

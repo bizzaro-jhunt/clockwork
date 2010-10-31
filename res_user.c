@@ -7,9 +7,33 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include "serialize.h"
 #include "res_user.h"
+#include "pack.h"
 #include "mem.h"
+
+
+#define RES_USER_PACK_PREFIX "res_user::"
+#define RES_USER_PACK_OFFSET 10
+
+/* Pack Format for res_user structure:
+     a - ru_name
+     a - ru_passwd
+     L - ru_uid
+     L - ru_gid
+     a - ru_gecos
+     a - ru_shell
+     a - ru_dir
+     C - ru_mkhome
+     a - ru_skel
+     C - ru_locked
+     L - ru_pwmin
+     L - ru_pwmax
+     L - ru_pwwarn
+     L - ru_inact
+     L - ru_expire
+ */
+#define RES_USER_PACK_FORMAT "aaLLaaaCaCLLLLL"
+
 
 static int _res_user_diff(struct res_user *ru);
 static unsigned char _res_user_home_exists(struct res_user *ru);
@@ -618,71 +642,44 @@ int res_user_remediate(struct res_user *ru, struct pwdb *pwdb, struct spdb *spdb
 	return 0;
 }
 
-int res_user_serialize(struct res_user *ru, char **dst, size_t *len)
+char* res_user_pack(const struct res_user *ru)
 {
-	assert(ru);
-	assert(dst);
-	assert(len);
+	char *packed;
+	size_t pack_len;
 
-	serializer *s;
-	if (!(s = serializer_new("res_user"))
-	 || serializer_add_string(s, ru->ru_name)   != 0
-	 || serializer_add_string(s, ru->ru_passwd) != 0
-	 || serializer_add_uint32(s, ru->ru_uid)    != 0
-	 || serializer_add_uint32(s, ru->ru_gid)    != 0
-	 || serializer_add_string(s, ru->ru_gecos)  != 0
-	 || serializer_add_string(s, ru->ru_dir)    != 0
-	 || serializer_add_string(s, ru->ru_shell)  != 0
-	 || serializer_add_uint8(s,  ru->ru_mkhome) != 0
-	 || serializer_add_string(s, ru->ru_skel)   != 0
-	 || serializer_add_uint8(s,  ru->ru_lock)   != 0
-	 || serializer_add_int32(s,  ru->ru_pwmin)  != 0
-	 || serializer_add_int32(s,  ru->ru_pwmax)  != 0
-	 || serializer_add_int32(s,  ru->ru_pwwarn) != 0
-	 || serializer_add_int32(s,  ru->ru_inact)  != 0
-	 || serializer_add_int32(s,  ru->ru_expire) != 0
-	 || serializer_finish(s) != 0
-	 || serializer_data(s, dst, len) != 0) {
-		serializer_free(s);
-		return -1;
-	}
+	pack_len = pack(NULL, 0, RES_USER_PACK_FORMAT,
+		ru->ru_name,   ru->ru_passwd, ru->ru_uid,    ru->ru_gid,
+		ru->ru_gecos,  ru->ru_shell,  ru->ru_dir,    ru->ru_mkhome,
+		ru->ru_skel,   ru->ru_lock,   ru->ru_pwmin,  ru->ru_pwmax,
+		ru->ru_pwwarn, ru->ru_inact,  ru->ru_expire);
 
-	serializer_free(s);
-	return 0;
+	packed = malloc(pack_len + RES_USER_PACK_OFFSET);
+	strncpy(packed, RES_USER_PACK_PREFIX, pack_len);
+
+	pack(packed + RES_USER_PACK_OFFSET, pack_len, RES_USER_PACK_FORMAT,
+		ru->ru_name,   ru->ru_passwd, ru->ru_uid,    ru->ru_gid,
+		ru->ru_gecos,  ru->ru_shell,  ru->ru_dir,    ru->ru_mkhome,
+		ru->ru_skel,   ru->ru_lock,   ru->ru_pwmin,  ru->ru_pwmax,
+		ru->ru_pwwarn, ru->ru_inact,  ru->ru_expire);
+
+	return packed;
 }
 
-int res_user_unserialize(struct res_user *ru, char *src, size_t len)
+struct res_user* res_user_unpack(const char *packed)
 {
-	assert(ru);
-	assert(src);
+	struct res_user *ru;
 
-	unserializer *u;
-	size_t l;
-
-	u = unserializer_new(src, len);
-	if (!u) {
-		return -1;
+	if (strncmp(packed, RES_USER_PACK_PREFIX, RES_USER_PACK_OFFSET) != 0) {
+		return NULL;
 	}
 
-	if (unserializer_next_string(u, &(ru->ru_name), &l)        != 0
-	 || unserializer_next_string(u, &(ru->ru_passwd), &l)      != 0
-	 || unserializer_next_uint32(u,  (uint32_t*)&ru->ru_uid)   != 0
-	 || unserializer_next_uint32(u,  (uint32_t*)&ru->ru_gid)   != 0
-	 || unserializer_next_string(u, &(ru->ru_gecos), &l)       != 0
-	 || unserializer_next_string(u, &(ru->ru_dir), &l)         != 0
-	 || unserializer_next_string(u, &(ru->ru_shell), &l)       != 0
-	 || unserializer_next_uint8(u,   (uint8_t*)&ru->ru_mkhome) != 0
-	 || unserializer_next_string(u, &(ru->ru_skel), &l)        != 0
-	 || unserializer_next_uint8(u,   (uint8_t*)&ru->ru_lock)   != 0
-	 || unserializer_next_int32(u,   (int32_t*)&ru->ru_pwmin)  != 0
-	 || unserializer_next_int32(u,   (int32_t*)&ru->ru_pwmax)  != 0
-	 || unserializer_next_int32(u,   (int32_t*)&ru->ru_pwwarn) != 0
-	 || unserializer_next_int32(u,   (int32_t*)&ru->ru_inact)  != 0
-	 || unserializer_next_int32(u,   (int32_t*)&ru->ru_expire) != 0) {
-		return -1;
-	}
+	ru = res_user_new();
+	/* FIXME: check return value of unpack */
+	unpack(packed + RES_USER_PACK_OFFSET, RES_USER_PACK_FORMAT,
+		&ru->ru_name,   &ru->ru_passwd, &ru->ru_uid,    &ru->ru_gid,
+		&ru->ru_gecos,  &ru->ru_shell,  &ru->ru_dir,    &ru->ru_mkhome,
+		&ru->ru_skel,   &ru->ru_lock,   &ru->ru_pwmin,  &ru->ru_pwmax,
+		&ru->ru_pwwarn, &ru->ru_inact,  &ru->ru_expire);
 
-	unserializer_free(u);
-	return 0;
+	return ru;
 }
-

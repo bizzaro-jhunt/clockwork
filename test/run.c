@@ -12,7 +12,6 @@ int main(int argc, char **argv)
 	test_suite_userdb();
 	test_suite_sha1();
 
-	test_suite_serialize();
 	test_suite_pack();
 
 	test_suite_res_file();

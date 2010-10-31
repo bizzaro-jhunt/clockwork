@@ -3,7 +3,6 @@
 #include <errno.h>
 
 #include "res_group.h"
-#include "serialize.h"
 #include "mem.h"
 
 

@@ -11,9 +11,3 @@ misc::
 
 policy::
   Memory Management Changes
-
-serialize::
-  Replace with pack/unpack (in mem?)
-    - pack/unpack functions implemented (pack.o)
-      Need to replace serializer_* / unseralizer_*
-      calls in other modules.

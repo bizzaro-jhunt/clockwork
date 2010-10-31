@@ -66,7 +66,6 @@ test/run: test/run.o test/test.o \
           test/list.o \
           test/stringlist.o stringlist.o \
           test/userdb.o userdb.o \
-          test/serialize.o serialize.o \
           test/pack.o pack.o \
           test/res_file.o res_file.o \
           test/res_group.o res_group.o \

@@ -94,7 +94,7 @@ char* policy_pack(struct policy *pol)
 		return NULL;
 	}
 
-	/* serialize res_user objects */
+	/* pack res_user objects */
 	for_each_node(ru, &pol->res_users, res) {
 		packed = res_user_pack(ru);
 		if (!packed || stringlist_add(pack_list, packed) != 0) {
@@ -103,7 +103,7 @@ char* policy_pack(struct policy *pol)
 		xfree(packed);
 	}
 
-	/* serialize res_group objects */
+	/* pack res_group objects */
 	for_each_node(rg, &pol->res_groups, res) {
 		packed = res_group_pack(rg);
 		if (!packed || stringlist_add(pack_list, packed) != 0) {
@@ -112,7 +112,7 @@ char* policy_pack(struct policy *pol)
 		xfree(packed);
 	}
 
-	/* serialize res_file objects */
+	/* pack res_file objects */
 	for_each_node(rf, &pol->res_files, res) {
 		packed = res_file_pack(rf);
 		if (!packed || stringlist_add(pack_list, packed) != 0) {

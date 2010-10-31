@@ -123,7 +123,7 @@ size_t pack(char *dst, size_t len, const char *format, ...)
 	va_list args;
 
 	union {
-		const char    *string;
+		char    *string;
 		unsigned char  u8;
 		unsigned short u16;
 		unsigned long  u32;

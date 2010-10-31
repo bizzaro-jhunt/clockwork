@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
+#include <arpa/inet.h>
 
 #include "host_registry.h"
 #include "mem.h"
@@ -11,7 +12,25 @@ int host_entry_find_by_fqdn(const struct host_entry *ent, const void *needle)
 	assert(needle);
 
 	const char *fqdn = (const char *)(needle);
-	return strcmp(ent->fqdn, fqdn);
+	return strcmp(ent->fqdn, fqdn) == 0 ? 0 : -1;
+}
+
+int host_entry_find_by_ipv4(const struct host_entry *ent, const void *needle)
+{
+	assert(ent);
+	assert(needle);
+
+	struct in_addr *ipv4 = (struct in_addr*)(needle);
+	return ipv4->s_addr == ent->ipv4.s_addr ? 0 : -1;
+}
+
+int host_entry_find_by_ipv6(const struct host_entry *ent, const void *needle)
+{
+	assert(ent);
+	assert(needle);
+
+	struct in6_addr *ipv6 = (struct in6_addr*)(needle);
+	return memcmp(ipv6->s6_addr, ent->ipv6.s6_addr, 16) == 0 ? 0 : -1;
 }
 
 struct host_registry* host_registry_new(void)
@@ -104,8 +123,19 @@ int host_entry_init(struct host_entry *ent, const char *fqdn, const char *ipv4, 
 {
 	assert(ent);
 
-	ent->fqdn = strdup(fqdn);
 	list_init(&ent->registry);
+
+	ent->fqdn = xstrdup(fqdn);
+
+	memset(&ent->ipv4, 0, sizeof(struct in_addr));
+	if (ipv4 && inet_pton(AF_INET, ipv4, &ent->ipv4) != 1) {
+		return -1;
+	}
+
+	memset(&ent->ipv6, 0, sizeof(struct in6_addr));
+	if (ipv6 && inet_pton(AF_INET6, ipv6, &ent->ipv6) != 1) {
+		return -1;
+	}
 
 	return 0;
 }

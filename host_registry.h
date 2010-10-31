@@ -18,6 +18,8 @@ struct host_entry {
 
 typedef int (*host_entry_filter)(const struct host_entry*, const void*);
 int host_entry_find_by_fqdn(const struct host_entry*, const void*);
+int host_entry_find_by_ipv4(const struct host_entry*, const void*);
+int host_entry_find_by_ipv6(const struct host_entry*, const void*);
 
 struct host_registry* host_registry_new(void);
 int host_registry_init(struct host_registry *reg);

@@ -155,6 +155,15 @@ void test_res_file_remedy()
 	res_file_free(rf);
 }
 
+void test_res_file_pack_detection()
+{
+	test("RES_FILE: pack detection based on tag");
+	assert_int_equals("With leading tag", 0, res_file_is_pack("res_file::"));
+	assert_int_not_equal("Bad tag (space issue)", 0, res_file_is_pack("res_file ::"));
+	assert_int_not_equal("Bad tag (res_user)", 0, res_file_is_pack("res_user::"));
+	assert_int_not_equal("Bad tag (random string)", 0, res_file_is_pack("this is an ARBITRARY string"));
+}
+
 void test_res_file_pack()
 {
 	struct res_file *rf;
@@ -211,6 +220,7 @@ void test_suite_res_file()
 	test_res_file_diffstat();
 	test_res_file_remedy();
 
+	test_res_file_pack_detection();
 	test_res_file_pack();
 	test_res_file_unpack();
 }

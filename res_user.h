@@ -113,6 +113,7 @@ void res_user_merge(struct res_user *ru1, struct res_user *ru2);
 int res_user_stat(struct res_user *ru, struct pwdb *pwdb, struct spdb *spdb);
 int res_user_remediate(struct res_user *ru, struct pwdb *pwdb, struct spdb *spdb);
 
+int res_user_is_pack(const char *packed);
 char* res_user_pack(const struct res_user *ru);
 struct res_user* res_user_unpack(const char *packed);
 

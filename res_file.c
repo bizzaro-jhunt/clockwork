@@ -377,6 +377,11 @@ int res_file_remediate(struct res_file *rf)
 	return 0;
 }
 
+int res_file_is_pack(const char *packed)
+{
+	return strncmp(packed, RES_FILE_PACK_PREFIX, RES_FILE_PACK_OFFSET);
+}
+
 char* res_file_pack(struct res_file *rf)
 {
 	char *packed;

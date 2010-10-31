@@ -199,6 +199,15 @@ void test_res_group_remediate_new()
 	sgdb_free(sgdb);
 }
 
+void test_res_group_pack_detection()
+{
+	test("RES_FILE: pack detection based on tag");
+	assert_int_equals("With leading tag", 0, res_group_is_pack("res_group::"));
+	assert_int_not_equal("Bad tag (space issue)", 0, res_group_is_pack("res_group ::"));
+	assert_int_not_equal("Bad tag (res_file)", 0, res_group_is_pack("res_file::"));
+	assert_int_not_equal("Bad tag (random string)", 0, res_group_is_pack("this is an ARBITRARY string"));
+}
+
 void test_res_group_pack()
 {
 	struct res_group *rg;
@@ -253,6 +262,7 @@ void test_suite_res_group() {
 	test_res_group_diffstat_remediation();
 	test_res_group_remediate_new();
 
+	test_res_group_pack_detection();
 	test_res_group_pack();
 	test_res_group_unpack();
 }

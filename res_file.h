@@ -65,6 +65,7 @@ void res_file_merge(struct res_file *rf1, struct res_file *rf2);
 int res_file_stat(struct res_file *rf);
 int res_file_remediate(struct res_file *rf);
 
+int res_file_is_pack(const char *packed);
 char* res_file_pack(struct res_file *rf);
 struct res_file* res_file_unpack(const char *packed);
 

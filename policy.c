@@ -157,21 +157,21 @@ struct policy* policy_unpack(const char *packed_policy)
 
 	for (i = 0; i < pack_list->num; i++) {
 		packed = pack_list->strings[i];
-		if (strncmp(packed, "res_user::", 10) == 0) {
+		if (res_user_is_pack(packed) == 0) {
 			ru = res_user_unpack(packed);
 			if (!ru) {
 				return NULL;
 			}
 			policy_add_user_resource(pol, ru);
 
-		} else if (strncmp(packed, "res_group::", 11) == 0) {
+		} else if (res_group_is_pack(packed) == 0) {
 			rg = res_group_unpack(packed);
 			if (!rg) {
 				return NULL;
 			}
 			policy_add_group_resource(pol, rg);
 
-		} else if (strncmp(packed, "res_file::", 10) == 0) {
+		} else if (res_file_is_pack(packed) == 0) {
 			rf = res_file_unpack(packed);
 			if (!rf) {
 				return NULL;

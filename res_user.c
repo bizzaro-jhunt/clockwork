@@ -642,6 +642,10 @@ int res_user_remediate(struct res_user *ru, struct pwdb *pwdb, struct spdb *spdb
 	return 0;
 }
 
+int res_user_is_pack(const char *packed)
+{
+	return strncmp(packed, RES_USER_PACK_PREFIX, RES_USER_PACK_OFFSET);
+}
 char* res_user_pack(const struct res_user *ru)
 {
 	char *packed;

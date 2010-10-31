@@ -394,6 +394,11 @@ int res_group_remediate(struct res_group *rg, struct grdb *grdb, struct sgdb *sg
 	return 0;
 }
 
+int res_group_is_pack(const char *packed)
+{
+	return strncmp(packed, RES_GROUP_PACK_PREFIX, RES_GROUP_PACK_OFFSET);
+}
+
 char *res_group_pack(struct res_group *rg)
 {
 	char *packed;

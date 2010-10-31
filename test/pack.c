@@ -88,6 +88,24 @@ void test_pack_encoding_strings()
 	assert_str_equals("packed representation", expected, buf);
 }
 
+void test_pack_multiple_strings()
+{
+	char buf[256];
+	size_t nbytes;
+	char *str1, *str2, *str3;
+
+	test("pack: Multiple, consecutive string encoding");
+	nbytes = pack(buf, sizeof(buf), "aaa", "username", "passwd", "/home/directory");
+	assert_int_equals("pack should return bytes written", 36, nbytes);
+	assert_str_equals("packed representation", "\"username\"\"passwd\"\"/home/directory\"", buf);
+
+	test("pack: Multple, consecutive string decoding");
+	assert_int_equals("unpack should return 0", 0, unpack(buf, "aaa", &str1, &str2, &str3));
+	assert_str_equals("string 1 should be 'username'", "username", str1);
+	assert_str_equals("string 2 should be 'passwd'", "passwd", str2);
+	assert_str_equals("string 3 should be '/home/directory'", "/home/directory", str3);
+}
+
 void test_pack_decoding_integers()
 {
 	uint8_t  u8; uint16_t u16; uint32_t u32;
@@ -165,8 +183,11 @@ void test_pack_size_querying()
 
 	/* more complicated tests */
 	assert_int_equals("pack('cCsSlL') needs 28+1 bytes", 29, pack(NULL, 0, "cCsSlL", 42, 42, 420, 420, 42000, 42000));
-
 	assert_int_equals("pack('') needs 1 byte", 1, pack(NULL, 0, ""));
+
+	test("pack: query-mode string deref segfault bug");
+	/* the quotes add two bytes per string, thus the extra 4 bytes */
+	assert_int_equals("pack('sala') needs 24+1 bytes", 25, pack(NULL, 0, "sala", 42, "aabb", 42, "bbaa"));
 }
 
 void test_pack_DECAFBAD()
@@ -379,6 +400,7 @@ void test_pack_interpretation()
 void test_suite_pack() {
 	test_pack_encoding_integers();
 	test_pack_encoding_strings();
+	test_pack_multiple_strings();
 
 	test_pack_decoding_integers();
 	test_pack_decoding_strings();

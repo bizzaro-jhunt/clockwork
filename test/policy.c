@@ -33,7 +33,7 @@ void test_policy_user_addition()
 	pol = policy_new("user policy", 1234);
 
 	test("POLICY: addition of users to policy");
-	ru = res_user_new(ru);
+	ru = res_user_new();
 	res_user_set_name(ru, "user1");
 	assert_str_equals("User details are correct (before addition)", "user1", ru->ru_name);
 	policy_add_user_resource(pol, ru);

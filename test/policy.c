@@ -104,23 +104,23 @@ void test_policy_file_addition()
 	policy_free(pol);
 }
 
-void test_policy_serialization()
+void test_policy_pack()
 {
 	struct policy *pol;
-	char *policy_str;
-	size_t len;
+	char *packed;
 
 	struct res_user  *ru1;
 	struct res_group *rg1;
 	struct res_file  *rf1;
 
-	test("POLICY: Serialization of empty policy");
-	pol = policy_new("serialized policy", 12346);
-	assert_int_equals("policy_serialize returns 0", 0, policy_serialize(pol, &policy_str, &len));
-	assert_str_equals("Serialized empty policy should be empty string", "", policy_str);
-	xfree(policy_str);
+	test("POLICY: pack empty policy");
+	pol = policy_new("pack test policy", 12346);
+	packed = policy_pack(pol);
+	assert_not_null("policy_pack succeeds", packed);
+	assert_str_equals("packed empty policy should be empty string", "", packed);
+	xfree(packed);
 
-	test("POLICY: Serialization with one user, one group and one file");
+	test("POLICY: pack policy with one user, one group and one file");
 	/* The George Thoroughgood test */
 	ru1 = res_user_new();
 	res_user_set_uid(ru1, 101);
@@ -140,46 +140,45 @@ void test_policy_serialization()
 	res_file_set_mode(rf1, 0600);
 	policy_add_file_resource(pol, rf1);
 
-	assert_int_equals("policy_serialize returns 0", 0, policy_serialize(pol, &policy_str, &len));
-	assert_str_equals("Serialized policy with 1 user, 1 group, and 1 file",
+	packed = policy_pack(pol);
+	assert_not_null("policy_pack succeeds", packed);
+	assert_str_equals("packed policy with 1 user, 1 group, and 1 file",
 		"res_user::\"user1\"\"\"" "00000065" "000007d0" "\"\"\"\"\"\"" "00" "\"\"" "01" "00000000" "00000000" "00000000" "00000000" "00000000\n"
 		"res_group::\"staff\"\"\"000007d0\"\"\"\"\"\"\"\"\n"
 		"res_file::\"\"\"cfm://etc/sudoers\"" "00000065" "000007d0" "00000180",
-		policy_str);
+		packed);
 
 	policy_free(pol);
 	res_user_free(ru1);
 	res_group_free(rg1);
 	res_file_free(rf1);
-	xfree(policy_str);
+	xfree(packed);
 }
 
-void test_policy_unserialization()
+void test_policy_unpack()
 {
 	struct policy *pol;
-	char *policy_str = \
+	char *packed = \
 		"res_user::\"user1\"\"\"" "00000065" "000007d0" "\"\"\"\"\"\"" "00" "\"\"" "01" "00000000" "00000000" "00000000" "00000000" "00000000\n"
 		"res_group::\"staff\"\"\"000007d0\"\"\"\"\"\"\"\"\n"
 		"res_file::\"\"\"cfm://etc/sudoers\"" "00000065" "000007d0" "00000180";
-
-	size_t len = strlen(policy_str);
 
 	struct res_user  *ru, *ru_tmp;
 	struct res_group *rg, *rg_tmp;
 	struct res_file  *rf, *rf_tmp;
 
-	test("POLICY: Unserialization of empty policy");
-	pol = policy_new("empty policy", 12346);
-	assert_int_equals("policy_unserialize returns 0", 0, policy_unserialize(pol, "", 0));
+	test("POLICY: unpack empty policy");
+	pol = policy_unpack("");
+	assert_not_null("policy_unpack succeeds", pol);
 	assert_true("res_files is an empty list head", list_empty(&pol->res_files));
 	assert_true("res_groups is an empty list head", list_empty(&pol->res_groups));
 	assert_true("res_users is an empty list head", list_empty(&pol->res_users));
 	policy_free(pol);
 
-	test("POLICY: Unserialization with one user, one group and one file");
+	test("POLICY: unpack policy with one user, one group and one file");
 	/* The George Thoroughgood test */
-	pol = policy_new("george thoroughgood policy", 12346);
-	assert_int_equals("policy_unserialize returns 0", 0, policy_unserialize(pol, policy_str, len));
+	pol = policy_unpack(packed);
+	assert_not_null("policy_unpack succeeds", pol);
 	assert_true("res_files is NOT an empty list head", !list_empty(&pol->res_files));
 	assert_true("res_groups is NOT an empty list head", !list_empty(&pol->res_groups));
 	assert_true("res_users is NOT an empty list head", !list_empty(&pol->res_users));
@@ -198,8 +197,8 @@ void test_suite_policy()
 	test_policy_group_addition();
 	test_policy_file_addition();
 
-	test_policy_serialization();
-	test_policy_unserialization();
+	test_policy_pack();
+	test_policy_unpack();
 }
 
 #endif

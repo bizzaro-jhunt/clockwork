@@ -78,114 +78,113 @@ int policy_add_user_resource(struct policy *pol, struct res_user *ru)
 	return 0;
 }
 
-int policy_serialize(struct policy *pol, char **dst, size_t *len)
+char* policy_pack(struct policy *pol)
 {
 	assert(pol);
-	assert(dst);
-	assert(len);
 
-	char *object = NULL;
-	size_t l; /* unused... FIXME: can we modify the serializer API? */
-	stringlist *serialized_objects;
+	char *packed = NULL;
+	stringlist *pack_list;
 
 	struct res_user  *ru;
 	struct res_group *rg;
 	struct res_file  *rf;
 
-	serialized_objects = stringlist_new(NULL);
-	if (!serialized_objects) {
-		return -1;
+	pack_list = stringlist_new(NULL);
+	if (!pack_list) {
+		return NULL;
 	}
 
 	/* serialize res_user objects */
 	for_each_node(ru, &pol->res_users, res) {
-		object = res_user_pack(ru);
-		if (!object || stringlist_add(serialized_objects, object) != 0) {
-			/* how do we fail? */
-			xfree(object);
-			stringlist_free(serialized_objects);
-			return -1; /* fail noisily! */
+		packed = res_user_pack(ru);
+		if (!packed || stringlist_add(pack_list, packed) != 0) {
+			goto policy_pack_failed;
 		}
-		xfree(object);
+		xfree(packed);
 	}
 
 	/* serialize res_group objects */
 	for_each_node(rg, &pol->res_groups, res) {
-		object = res_group_pack(rg);
-		if (!object || stringlist_add(serialized_objects, object) != 0) {
-			/* how do we fail? */
-			xfree(object);
-			stringlist_free(serialized_objects);
-			return -1; /* fail noisily! */
+		packed = res_group_pack(rg);
+		if (!packed || stringlist_add(pack_list, packed) != 0) {
+			goto policy_pack_failed;
 		}
-		xfree(object);
+		xfree(packed);
 	}
 
 	/* serialize res_file objects */
 	for_each_node(rf, &pol->res_files, res) {
-		object = res_file_pack(rf);
-		if (!object || stringlist_add(serialized_objects, object) != 0) {
-			/* how do we fail? */
-			xfree(object);
-			stringlist_free(serialized_objects);
-			return -1; /* fail noisily! */
+		packed = res_file_pack(rf);
+		if (!packed || stringlist_add(pack_list, packed) != 0) {
+			goto policy_pack_failed;
 		}
-		xfree(object);
+		xfree(packed);
 	}
 
-	*dst = stringlist_join(serialized_objects, "\n");
-	*len = strlen(*dst);
+	packed = stringlist_join(pack_list, "\n");
+	stringlist_free(pack_list);
 
-	stringlist_free(serialized_objects);
-	return 0;
+	return packed;
+
+policy_pack_failed:
+	xfree(packed);
+	stringlist_free(pack_list);
+	return NULL;
 }
 
-int policy_unserialize(struct policy *pol, char *src, size_t len)
+struct policy* policy_unpack(const char *packed_policy)
 {
-	assert(pol);
-	assert(src);
+	assert(packed_policy);
 
-	stringlist *serialized_objects;
-	char *serial;
+	struct policy *pol;
+	stringlist *pack_list;
+	char *packed;
 	size_t i;
 
 	struct res_user *ru;
 	struct res_group *rg;
 	struct res_file *rf;
 
-	serialized_objects = stringlist_split(src, len, "\n");
-	if (!serialized_objects) {
-		return -1;
+	pol = policy_new("FAKE POLICY", 12345); /* FIXME: hard-coding values; need to be in pack policy */
+	if (!pol) {
+		return NULL;
 	}
 
-	for (i = 0; i < serialized_objects->num; i++) {
-		serial = serialized_objects->strings[i];
-		if (strncmp(serial, "res_user::", 10) == 0) {
-			ru = res_user_unpack(serial);
+	pack_list = stringlist_split(packed_policy, strlen(packed_policy), "\n");
+	if (!pack_list) {
+		return NULL;
+	}
+
+	for (i = 0; i < pack_list->num; i++) {
+		packed = pack_list->strings[i];
+		if (strncmp(packed, "res_user::", 10) == 0) {
+			ru = res_user_unpack(packed);
 			if (!ru) {
-				return -1;
+				return NULL;
 			}
 			policy_add_user_resource(pol, ru);
 
-		} else if (strncmp(serial, "res_group::", 11) == 0) {
-			rg = res_group_unpack(serial);
+		} else if (strncmp(packed, "res_group::", 11) == 0) {
+			rg = res_group_unpack(packed);
 			if (!rg) {
-				return -1;
+				return NULL;
 			}
 			policy_add_group_resource(pol, rg);
-		} else if (strncmp(serial, "res_file::", 10) == 0) {
-			rf = res_file_unpack(serial);
+
+		} else if (strncmp(packed, "res_file::", 10) == 0) {
+			rf = res_file_unpack(packed);
 			if (!rf) {
-				return -1;
+				return NULL;
 			}
 			policy_add_file_resource(pol, rf);
 
 		} else {
-			stringlist_free(serialized_objects);
-			return -2; /* unknown policy object type! */
+			stringlist_free(pack_list);
+			return NULL; /* unknown policy object type! */
 		}
 	}
 
-	stringlist_free(serialized_objects);
-	return 0;
+	stringlist_free(pack_list);
+	return pol;
 }
+

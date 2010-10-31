@@ -1,10 +1,5 @@
-#ifndef _TEST_LIST_H
-#define _TEST_LIST_H
-
-#include <stdlib.h>
-#include <stdio.h>
-
 #include "test.h"
+#include "assertions.h"
 #include "../list.h"
 
 struct test_struct {
@@ -129,7 +124,6 @@ void test_list_removal()
 void test_list_iteration()
 {
 	LIST(l);
-	struct list *pos;
 	struct test_struct *ts;
 	int sum;
 
@@ -257,5 +251,3 @@ void test_suite_list()
 	test_list_moves();
 	test_list_replacements();
 }
-
-#endif /* _TEST_LIST_H */

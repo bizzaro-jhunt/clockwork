@@ -1,4 +1,5 @@
 #define _SVID_SOURCE
+#define _GNU_SOURCE
 
 #include <assert.h>
 #include <stdlib.h>
@@ -29,7 +30,6 @@ static void _passwd_free(struct passwd *passwd);
 static void _pwdb_entry_free(struct pwdb *entry);
 
 static struct spdb* _spdb_entry(struct spwd *spwd);
-static struct spdb* _spdb_fgetpwent(FILE *input);
 static void _shadow_free(struct spwd *spwd);
 static void _spdb_entry_free(struct spdb *entry);
 
@@ -39,7 +39,6 @@ static void _group_free(struct group *group);
 static void _grdb_entry_free(struct grdb *entry);
 
 static struct sgdb* _sgdb_entry(struct sgrp *sgrp);
-static struct sgdb* _sgdb_fgetgrent(FILE *input);
 static void _gshadow_free(struct sgrp *sgrp);
 static void _sgdb_entry_free(struct sgdb *entry);
 
@@ -243,7 +242,7 @@ struct pwdb* pwdb_init(const char *path)
 
 	db = cur = entry = NULL;
 	errno = 0;
-	while (entry = _pwdb_fgetpwent(input)) {
+	while ((entry = _pwdb_fgetpwent(input)) != NULL) {
 		if (!db) {
 			db = entry;
 		} else {
@@ -286,7 +285,6 @@ struct passwd* pwdb_new_entry(struct pwdb *db, const char *name)
 {
 	assert(name);
 
-	struct pwdb *ent;
 	struct passwd *pw;
 
 	if (!db) { return NULL; }
@@ -397,7 +395,7 @@ struct spdb* spdb_init(const char *path)
 
 	db = cur = entry = NULL;
 	errno = 0;
-	while (entry = _spdb_fgetspent(input)) {
+	while ((entry = _spdb_fgetspent(input)) != NULL) {
 		if (!db) {
 			db = entry;
 		} else {
@@ -428,7 +426,8 @@ struct spwd* spdb_get_by_name(struct spdb *db, const char *name)
 
 struct spwd* spdb_new_entry(struct spdb *db, const char *name)
 {
-	struct spdb *ent;
+	assert(name);
+
 	struct spwd *sp;
 
 	if (!db) { return NULL; }
@@ -539,7 +538,7 @@ struct grdb* grdb_init(const char *path)
 
 	db = cur = entry = NULL;
 	errno = 0;
-	while (entry = _grdb_fgetgrent(input)) {
+	while ((entry = _grdb_fgetgrent(input)) != NULL) {
 		if (!db) {
 			db = entry;
 		} else {
@@ -580,7 +579,8 @@ struct group* grdb_get_by_gid(struct grdb *db, gid_t gid)
 
 struct group* grdb_new_entry(struct grdb *db, const char *name)
 {
-	struct grdb *ent;
+	assert(name);
+
 	struct group *gr;
 
 	if (!db) { return NULL; }
@@ -688,7 +688,7 @@ struct sgdb* sgdb_init(const char *path)
 
 	db = cur = entry = NULL;
 	errno = 0;
-	while (entry = _sgdb_fgetsgent(input)) {
+	while ((entry = _sgdb_fgetsgent(input)) != NULL) {
 		if (!db) {
 			db = entry;
 		} else {
@@ -718,7 +718,8 @@ struct sgrp* sgdb_get_by_name(struct sgdb *db, const char *name)
 
 struct sgrp* sgdb_new_entry(struct sgdb *db, const char *name)
 {
-	struct sgdb *ent;
+	assert(name);
+
 	struct sgrp *sg;
 
 	if (!db) { return NULL; }

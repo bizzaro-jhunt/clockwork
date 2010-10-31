@@ -157,6 +157,8 @@ static int _res_user_init_params(struct res_user *ru)
 
 	ru->ru_enf = RES_USER_NONE;
 	ru->ru_diff = RES_USER_NONE;
+
+	return 0;
 }
 
 int  res_user_init(struct res_user *ru)

@@ -3,6 +3,7 @@
 #include <errno.h>
 
 #include "res_group.h"
+#include "pack.h"
 #include "mem.h"
 
 

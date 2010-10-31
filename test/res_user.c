@@ -1,6 +1,5 @@
-#include <string.h>
-
 #include "test.h"
+#include "assertions.h"
 #include "../env.h"
 #include "../res_user.h"
 
@@ -256,7 +255,6 @@ void test_res_user_pack()
 {
 	struct res_user *ru;
 	char *packed;
-	size_t len;
 	const char *expected;
 
 	ru = res_user_new();

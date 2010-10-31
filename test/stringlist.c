@@ -1,8 +1,3 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdarg.h>
-
 #include "test.h"
 #include "assertions.h"
 #include "../stringlist.h"
@@ -130,7 +125,7 @@ void test_stringlist_remove_all()
 void test_stringlist_expansion()
 {
 	stringlist *sl;
-	size_t max, i, len;
+	size_t max, i;
 	char buf[32];
 	char assertion[128];
 

@@ -1,6 +1,5 @@
-#include <string.h>
-
 #include "test.h"
+#include "assertions.h"
 #include "../pack.h"
 
 void test_pack_encoding_integers()
@@ -138,7 +137,7 @@ void test_pack_decoding_integers()
 
 	test("pack: unpack unsigned 32-bit integer");
 	assert_int_equals("unpack should return 0", 0, unpack("deadbeef", "L", &u32));
-	assert_unsigned_equals("deadbeef should unpack to unsigned 32-bit integer 3735928559", 3735928559, u32);
+	assert_unsigned_equals("deadbeef should unpack to unsigned 32-bit integer 3735928559", 0xdeadbeef, u32);
 }
 
 void test_pack_decoding_strings()
@@ -221,7 +220,7 @@ void test_pack_DECAFBAD()
 	assert_str_equals("packed representation of 57034 64429", "decafbad", buf);
 
 	test("pack: Packing 0xDECAFBAD as 1 unsigned 32-bit integers");
-	nbytes = pack(buf, sizeof(buf), "L", 3737844653);
+	nbytes = pack(buf, sizeof(buf), "L", 3737844653UL);
 	assert_int_equals("pack should return 9 bytes written", 9, nbytes);
 	assert_str_equals("packed representation of 3737844653", "decafbad", buf);
 
@@ -260,7 +259,7 @@ void test_pack_DECAFBAD()
 	assert_str_equals("packed representation of -8502 -1107", "decafbad", buf);
 
 	test("pack: Packing 0xDECAFBAD as 1 signed 32-bit integers");
-	nbytes = pack(buf, sizeof(buf), "l", (signed long)3737844653);
+	nbytes = pack(buf, sizeof(buf), "l", 0xDECAFBAD);
 	assert_int_equals("pack should return 9 bytes written", 9, nbytes);
 	assert_str_equals("packed representation of 3737844653", "decafbad", buf);
 

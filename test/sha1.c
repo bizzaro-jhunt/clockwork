@@ -1,6 +1,5 @@
-#include <string.h>
-
 #include "test.h"
+#include "assertions.h"
 #include "../sha1.h"
 
 #define FIPS1_IN "abc"
@@ -29,7 +28,7 @@ void test_sha1_FIPS()
 	/* it's hard to define a string constant for 1 mil 'a's... */
 	sha1_ctx_init(&ctx);
 	for (i = 0; i < 1000000; ++i) {
-		sha1_ctx_update(&ctx, "a", 1);
+		sha1_ctx_update(&ctx, (unsigned char *)"a", 1);
 	}
 	sha1_ctx_final(&ctx, cksum.raw);
 	sha1_hexdigest(&cksum);

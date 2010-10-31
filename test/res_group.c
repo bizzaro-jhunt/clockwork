@@ -1,7 +1,5 @@
-#include <stdlib.h>
-#include <string.h>
-
 #include "test.h"
+#include "assertions.h"
 #include "../res_group.h"
 
 #define ASSERT_ENFORCEMENT(o,f,c,t,v1,v2) do {\

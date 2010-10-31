@@ -206,7 +206,8 @@ static char* _extract_string(const char *start)
 	for (last = '\0', b = a; *b && !(last != '\\' && *b == '"'); last = *b, b++)
 		;
 
-	if (buf = malloc(b - a + 1)) {
+	buf = malloc(b - a + 1);
+	if (buf) {
 		memcpy(buf, a, b - a);
 		buf[b-a] = '\0';
 	}

@@ -5,6 +5,7 @@
 #include <fcntl.h>
 
 #include "res_file.h"
+#include "pack.h"
 #include "mem.h"
 
 #define RF_FD2FD_CHUNKSIZE 16384
@@ -339,7 +340,6 @@ int res_file_remediate(struct res_file *rf)
 	/* UID and GID to chown to */
 	uid_t uid = (res_file_enforced(rf, UID) ? rf->rf_uid : rf->rf_stat.st_uid);
 	gid_t gid = (res_file_enforced(rf, GID) ? rf->rf_gid : rf->rf_stat.st_gid);
-	struct stat st;
 	int local_fd; int remote_fd;
 
 	/* FIXME: if ENOENT, have to create the file first!!!! */

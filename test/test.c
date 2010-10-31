@@ -53,6 +53,7 @@ int test_setup(int argc, char **argv)
 			TEST_PRINT_FAIL = 0;
 		}
 	}
+	return 0;
 }
 
 /** ASSERTIONS **/

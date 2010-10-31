@@ -1,10 +1,5 @@
-#ifndef _TEST_POLICY_H
-#define _TEST_POLICY_H
-
-#include <string.h>
-#include <stdio.h>
-
 #include "test.h"
+#include "assertions.h"
 #include "../policy.h"
 #include "../mem.h"
 
@@ -201,5 +196,3 @@ void test_suite_policy()
 	test_policy_pack();
 	test_policy_unpack();
 }
-
-#endif

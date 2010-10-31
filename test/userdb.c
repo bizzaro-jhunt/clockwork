@@ -1,8 +1,7 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <unistd.h>
 
 #include "test.h"
+#include "assertions.h"
 #include "../userdb.h"
 
 /*********************************************************/
@@ -210,7 +209,6 @@ void test_pwdb_init()
 void test_pwdb_get()
 {
 	struct pwdb *db;
-	struct passwd *pw;
 
 	db = open_passwd(PWFILE);
 
@@ -354,7 +352,6 @@ void test_spdb_init()
 void test_spdb_get()
 {
 	struct spdb *db;
-	struct spwd *sp;
 
 	db = open_shadow(SPFILE);
 
@@ -501,7 +498,6 @@ void test_grdb_init()
 void test_grdb_get()
 {
 	struct grdb *db;
-	struct group *gr;
 
 	db = open_group(GRFILE);
 
@@ -675,7 +671,6 @@ void test_sgdb_init()
 void test_sgdb_get()
 {
 	struct sgdb *db;
-	struct sgrp *sp;
 
 	db = open_gshadow(SGFILE);
 

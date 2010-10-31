@@ -2,6 +2,7 @@
 #define TEST_H
 
 #include <stdint.h>
+#include <stdio.h>
 
 void test(const char *s);
 int test_status(void);

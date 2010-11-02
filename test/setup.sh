@@ -17,14 +17,6 @@ setup_res_file() {
 	chmod 0660 $DATAROOT/res_file/sudoers
 }
 
-setup_res_group() {
-	:
-}
-
-setup_res_user() {
-	:
-}
-
 setup_userdb() {
 	rm -f test/tmp/passwd.new
 	rm -f test/tmp/shadow.new
@@ -35,7 +27,5 @@ setup_userdb() {
 ######################################################
 
 setup_res_file
-setup_res_group
-setup_res_user
 setup_userdb
 

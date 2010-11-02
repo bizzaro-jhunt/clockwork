@@ -113,3 +113,19 @@ Example: packing a res_user object ...
         return -1; /* some sort of failure code */
   }
 
+
+Fact Gathering Through External Scripts
+---------------------------------------
+The initial design of the fact module was to implement all fact gatherers
+as C routines inside of the client-side agent.  After implementing uname through
+the eponymous system call, and then adding LSB support via file parsing, it seems
+it would be easier and more flexible to use independent scripts.
+
+In this architecture, the fact gatherer would only need to exec multiple binaries
+(which could be Perl, Ruby or Bash scripts) and parse the output.  The parsing
+routines only need to be implemented once for the gatherer.  Since more scripts could
+be added later (perhaps as part of a policy) this approach gains flexibility.
+
+If the speed / optimization of C over external command interpreters is a concern,
+fact gatherers could be implemented as standalone C programs that speak the same
+serialization protocol that the gatherer understands.

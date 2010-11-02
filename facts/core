@@ -1,0 +1,60 @@
+#!/usr/bin/perl
+
+# Print out a single fact in the required line format
+sub fact($$)
+{
+	(my $name, my $value) = (@_);
+	print "$name=$value\n";
+}
+
+##
+## sys.* - System Properties
+##
+
+$UNAME="/bin/uname";
+
+## sys.platform - System Platform (Linux, FreeBSD, etc.)
+$_ = qx($UNAME -s); chomp;
+fact("sys.platform", $_);
+
+## sys.arch - Machine Hardware Architecture
+$_ = qx($UNAME -m); chomp;
+fact("sys.arch", $_);
+
+## sys.kernel.version - Full Kernel Version
+$_ = qx($UNAME -r); chomp;
+fact("sys.kernel.version", $_);
+
+## sys.kernel.major - Major Version number (2.4, 2.6, etc.)
+## sys.kernel.minor - Kernel version with minor component
+##                    (2.4.16, 2.6.32, etc.)
+($minor = $_) =~ s/-.*//;
+($major = $minor) =~ s/(\d+\.\d+)\..*/\1/;
+fact("sys.kernel.major", $major);
+fact("sys.kernel.minor", $minor);
+
+## sys.hostname - Node name, according to the kernel
+$_ = qx($UNAME -n); chomp;
+fact("sys.hostname", $_);
+
+## sys.hostid - Unique Host ID, from hostid(1)
+$_ = qx(/usr/bin/hostid); chomp;
+fact("sys.hostid", $_);
+
+
+##
+## lsb.* - Linux Standards Base facts
+##
+
+$LSB_RELEASE="/etc/lsb-release";
+
+open(LSBINFO, "$LSB_RELEASE");
+while (<LSBINFO>) {
+	chomp;
+	next if (! m/^DISTRIB_/);
+
+	my ($key, $val) = split(/=/);
+	$key =~ s/^DISTRIB_(.*)/lsb.distro.\L\1/;
+	$val =~ s/^["](.*)["]$/\1/;
+	fact($key, $val);
+}

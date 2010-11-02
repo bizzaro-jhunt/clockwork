@@ -103,7 +103,6 @@ int fact_read(struct list *facts, FILE *io)
 		/* FIXME: how do we test for long lines properly? */
 		fact = fact_parse(buf);
 		if (fact) {
-			fprintf(stderr, "PARSED %s = %s\n", fact->name, fact->value);
 			list_add_tail(&fact->facts, facts);
 			nfacts++;
 		}

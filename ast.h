@@ -7,10 +7,15 @@
 #include "res_file.h"
 
 #define AST_OP_NOOP                0
-#define AST_OP_DEFINE_POLICY       1
-#define AST_OP_DEFINE_RESOURCE     2
-#define AST_OP_SET_ATTRIBUTE       3
-#define AST_OP_IF_EQUAL            4
+
+/* Conditional Operators */
+#define AST_OP_IF_EQUAL            1
+#define AST_OP_IF_NOT_EQUAL        2
+
+/* Resource Definitions */
+#define AST_OP_DEFINE_POLICY       3
+#define AST_OP_DEFINE_RESOURCE     4
+#define AST_OP_SET_ATTRIBUTE       5
 
 struct ast {
 	unsigned int op;
@@ -26,9 +31,9 @@ struct ast* ast_new(unsigned int op, void *data1, void *data2);
 int ast_init(struct ast *ast, unsigned int op, void *data1, void *data2);
 int ast_deinit(struct ast *ast);
 void ast_free(struct ast *ast);
+void ast_free_all(struct ast *ast);
 
 int ast_add_child(struct ast *parent, struct ast *child);
-int ast_rm_child(struct ast *parent, struct ast *child);
 
 struct policy* ast_define_policy(struct ast *ast, struct list *facts);
 struct res_user* ast_define_res_user(struct ast *ast, struct list *facts);

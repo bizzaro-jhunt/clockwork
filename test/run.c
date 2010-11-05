@@ -16,6 +16,7 @@ extern void test_suite_policy();
 
 extern void test_suite_host_registry();
 extern void test_suite_fact();
+extern void test_suite_ast();
 
 int main(int argc, char **argv)
 {
@@ -37,6 +38,7 @@ int main(int argc, char **argv)
 
 	test_suite_host_registry();
 	test_suite_fact();
+	test_suite_ast();
 
 	return test_status();
 }

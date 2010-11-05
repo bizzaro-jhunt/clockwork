@@ -75,6 +75,7 @@ test/run: test/run.o test/test.o \
           test/policy.o policy.o \
           test/host_registry.o host_registry.o \
           test/fact.o fact.o \
+          test/ast.o ast.o \
           test/sha1.o sha1.o
 
 	$(CC) -o $@ $+
@@ -123,6 +124,9 @@ test_server: test_server.o proto.o
 	$(CC) -o $@ $+
 
 test_client: test_client.o proto.o
+	$(CC) -o $@ $+
+
+test_ast: test_ast.o ast.o policy.o res_user.o res_group.o res_file.o pack.o mem.o sha1.o stringlist.o userdb.o fact.o
 	$(CC) -o $@ $+
 
 ############################################################

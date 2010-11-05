@@ -39,7 +39,8 @@ int ast_init(struct ast *ast, unsigned int op, void *data1, void *data2)
 
 int ast_deinit(struct ast *ast)
 {
-	if (!ast || --ast->refs > 0) {
+	if (!ast || ast->refs > 0) {
+		ast->refs--;
 		return -1;
 	}
 
@@ -47,6 +48,7 @@ int ast_deinit(struct ast *ast)
 	ast->data2 = NULL;
 
 	ast->size = 0;
+	free(ast->nodes);
 
 	return 0;
 }
@@ -58,6 +60,21 @@ void ast_free(struct ast *ast)
 	}
 
 	free(ast);
+}
+
+void ast_free_all(struct ast *ast)
+{
+	if (!ast) {
+		return;
+	}
+
+	unsigned int i;
+
+	for (i = 0; i < ast->size; i++) {
+		ast_free_all(ast->nodes[i]);
+	}
+
+	ast_free(ast);
 }
 
 int ast_add_child(struct ast *parent, struct ast *child)
@@ -81,25 +98,9 @@ int ast_add_child(struct ast *parent, struct ast *child)
 	return 0;
 }
 
-int ast_rm_child(struct ast *parent, struct ast *child)
-{
-	assert(parent);
-
-	int i;
-
-	if (!child) {
-		return -1;
-	}
-
-	for (i = 0; i < parent->size; i++) {
-		if (parent->nodes[i] == child) {
-			parent->nodes[i] = NULL;
-			return 0;
-		}
-	}
-
-	return -1;
-}
+static struct ast* ast_eval(struct ast *ast, struct list *facts);
+static struct ast* ast_eval_if_equal(struct ast *ast, struct list *facts);
+static struct ast* ast_eval_if_not_equal(struct ast *ast, struct list *facts);
 
 static struct ast* ast_eval_if_equal(struct ast *ast, struct list *facts)
 {
@@ -124,6 +125,20 @@ static struct ast* ast_eval_if_equal(struct ast *ast, struct list *facts)
 	}
 }
 
+static struct ast* ast_eval_if_not_equal(struct ast *ast, struct list *facts)
+{
+	assert(ast);
+
+	struct ast *tmp;
+
+	tmp = ast->nodes[0];
+	ast->nodes[0] = ast->nodes[1];
+	ast->nodes[1] = tmp;
+	ast->op = AST_OP_IF_EQUAL;
+
+	return ast_eval(ast, facts);
+}
+
 static struct ast* ast_eval(struct ast *ast, struct list *facts)
 {
 	assert(ast);
@@ -132,6 +147,10 @@ again:
 	switch (ast->op) {
 	case AST_OP_IF_EQUAL:
 		ast = ast_eval_if_equal(ast, facts);
+		goto again;
+
+	case AST_OP_IF_NOT_EQUAL:
+		ast = ast_eval_if_not_equal(ast, facts);
 		goto again;
 	}
 
@@ -228,6 +247,8 @@ struct res_group* ast_define_res_group(struct ast *ast, struct list *facts)
 	assert(ast);
 
 	struct res_group *rg;
+	struct ast *next;
+	unsigned int i;
 
 	if (ast->op != AST_OP_DEFINE_RESOURCE
 	 && strcmp(ast->data1, "res_group") != 0) {
@@ -235,6 +256,23 @@ struct res_group* ast_define_res_group(struct ast *ast, struct list *facts)
 	}
 
 	rg = res_group_new();
+	for (i = 0; i < ast->size; i++) {
+		next = ast_eval(ast->nodes[i], facts);
+		switch (next->op) {
+		case AST_OP_NOOP: break;
+		case AST_OP_SET_ATTRIBUTE:
+			if (strcmp(next->data1, "name") == 0) {
+				res_group_set_name(rg, next->data2);
+			} else if (strcmp(next->data1, "gid") == 0) {
+				res_group_set_gid(rg, strtoll(next->data2, NULL, 10));
+			}
+			break;
+		default:
+			fprintf(stderr, "ast_define_res_group: SEMANTIC ERROR: unexpected op(%u)\n", next->op);
+			res_group_free(rg);
+			return NULL;
+		}
+	}
 
 	return rg;
 }

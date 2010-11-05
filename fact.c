@@ -53,6 +53,16 @@ void fact_free(struct fact *fact)
 	free(fact);
 }
 
+void fact_free_all(struct list *facts)
+{
+	struct fact *fact, *tmp;
+	for_each_node_safe(fact, tmp, facts, facts) {
+		fact_free(fact);
+	}
+
+	list_init(facts);
+}
+
 /**
   Parses a single fact from a line formatted as follows:
 

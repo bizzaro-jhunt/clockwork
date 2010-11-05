@@ -34,7 +34,7 @@ void test_fact_read_io()
 {
 	struct list facts;
 	FILE *io;
-	struct fact *fact, *tmp;
+	struct fact *fact;
 	int i = 0;
 
 	list_init(&facts);
@@ -71,10 +71,7 @@ void test_fact_read_io()
 
 	fclose(io);
 
-	/* free all facts */
-	for_each_node_safe(fact, tmp, &facts, facts) {
-		fact_free(fact);
-	}
+	fact_free_all(&facts);
 }
 
 void test_suite_fact()

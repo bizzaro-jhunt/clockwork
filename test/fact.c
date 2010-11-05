@@ -26,13 +26,15 @@ void test_fact_parsing()
 	assert_not_null("fact_parse should return a fact pointer", fact);
 	assert_str_equals("name parsed correctly", "sys.kernel.version", fact->name);
 	assert_str_equals("value parsed correctly", "2.6.32-194.distro5-generic", fact->value);
+
+	fact_free(fact);
 }
 
 void test_fact_read_io()
 {
 	struct list facts;
 	FILE *io;
-	struct fact *fact;
+	struct fact *fact, *tmp;
 	int i = 0;
 
 	list_init(&facts);
@@ -68,6 +70,11 @@ void test_fact_read_io()
 	}
 
 	fclose(io);
+
+	/* free all facts */
+	for_each_node_safe(fact, tmp, &facts, facts) {
+		fact_free(fact);
+	}
 }
 
 void test_suite_fact()

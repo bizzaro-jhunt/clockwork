@@ -20,6 +20,7 @@ struct policy* policy_new(const char *name, uint32_t version);
 int  policy_init(struct policy *pol, const char *name, uint32_t version);
 void policy_deinit(struct policy *pol);
 void policy_free(struct policy *pol);
+void policy_free_all(struct policy *pol);
 
 int policy_add_file_resource(struct policy *pol, struct res_file *rf);
 int policy_add_group_resource(struct policy *pol, struct res_group *rg);

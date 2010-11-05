@@ -62,6 +62,18 @@ void policy_free(struct policy *pol)
 	free(pol);
 }
 
+void policy_free_all(struct policy *pol)
+{
+	struct res_user  *ru, *ru_tmp;
+	struct res_group *rg, *rg_tmp;
+	struct res_file  *rf, *rf_tmp;
+
+	for_each_node_safe(ru, ru_tmp, &pol->res_users,  res) { res_user_free(ru);  }
+	for_each_node_safe(rg, rg_tmp, &pol->res_groups, res) { res_group_free(rg); }
+	for_each_node_safe(rf, rf_tmp, &pol->res_files,  res) { res_file_free(rf);  }
+	policy_free(pol);
+}
+
 int policy_add_file_resource(struct policy *pol, struct res_file *rf)
 {
 	assert(pol);

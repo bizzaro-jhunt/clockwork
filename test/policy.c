@@ -164,10 +164,6 @@ void test_policy_unpack()
 		"res_group::\"staff\"\"\"000007d0\"\"\"\"\"\"\"\"\n"
 		"res_file::\"\"\"cfm://etc/sudoers\"" "00000065" "000007d0" "00000180";
 
-	struct res_user  *ru, *ru_tmp;
-	struct res_group *rg, *rg_tmp;
-	struct res_file  *rf, *rf_tmp;
-
 	test("POLICY: unpack empty policy");
 	pol = policy_unpack("policy::\"empty\"00000309");
 	assert_not_null("policy_unpack succeeds", pol);
@@ -186,10 +182,7 @@ void test_policy_unpack()
 	assert_true("res_groups is NOT an empty list head", !list_empty(&pol->res_groups));
 	assert_true("res_users is NOT an empty list head", !list_empty(&pol->res_users));
 
-	for_each_node_safe(ru, ru_tmp, &pol->res_users,  res) { res_user_free(ru);  }
-	for_each_node_safe(rg, rg_tmp, &pol->res_groups, res) { res_group_free(rg); }
-	for_each_node_safe(rf, rf_tmp, &pol->res_files,  res) { res_file_free(rf);  }
-	policy_free(pol);
+	policy_free_all(pol);
 }
 
 void test_suite_policy()

@@ -37,6 +37,10 @@ fact("sys.kernel.minor", $minor);
 $_ = qx($UNAME -n); chomp;
 fact("sys.hostname", $_);
 
+## sys.fqdn - Fully Qualfied Domain Name (relies on /etc/hosts)
+$_ = qx(hostname -f); chomp;
+fact("sys.fqdn", $_);
+
 ## sys.hostid - Unique Host ID, from hostid(1)
 $_ = qx(/usr/bin/hostid); chomp;
 fact("sys.hostid", $_);

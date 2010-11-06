@@ -6,6 +6,19 @@
 #include "ast.h"
 #include "fact.h"
 
+struct ast_walker {
+	struct policy *policy;
+	struct list   *facts;
+	unsigned int   context;
+
+	union {
+		struct res_user  *user;
+		struct res_group *group;
+		struct res_file  *file;
+	} resource;
+};
+
+
 struct ast* ast_new(unsigned int op, void *data1, void *data2)
 {
 	struct ast *ast = malloc(sizeof(struct ast));
@@ -124,19 +137,16 @@ int ast_compare(struct ast *a, struct ast *b)
 	return 0;
 }
 
-static struct ast* ast_eval(struct ast *ast, struct list *facts);
-static struct ast* ast_eval_if_equal(struct ast *ast, struct list *facts);
-static struct ast* ast_eval_if_not_equal(struct ast *ast, struct list *facts);
-
-static struct ast* ast_eval_if_equal(struct ast *ast, struct list *facts)
+static struct ast* ast_eval_if_equal(struct ast *ast, struct ast_walker *ctx)
 {
 	assert(ast);
+	assert(ctx);
 
 	struct fact *fact;
 	const char *value = NULL;
 
-	if (facts) {
-		for_each_node(fact, facts, facts) {
+	if (ctx->facts) {
+		for_each_node(fact, ctx->facts, facts) {
 			if (strcmp(fact->name, ast->data1) == 0) {
 				value = fact->value;
 				break;
@@ -151,9 +161,10 @@ static struct ast* ast_eval_if_equal(struct ast *ast, struct list *facts)
 	}
 }
 
-static struct ast* ast_eval_if_not_equal(struct ast *ast, struct list *facts)
+static struct ast* ast_eval_if_not_equal(struct ast *ast,struct ast_walker *ctx)
 {
 	assert(ast);
+	assert(ctx);
 
 	struct ast *tmp;
 
@@ -162,187 +173,120 @@ static struct ast* ast_eval_if_not_equal(struct ast *ast, struct list *facts)
 	ast->nodes[1] = tmp;
 	ast->op = AST_OP_IF_EQUAL;
 
-	return ast_eval(ast, facts);
+	return ast_eval_if_equal(ast, ctx);
 }
 
-static struct ast* ast_eval(struct ast *ast, struct list *facts)
+static void ast_eval_set_attribute(struct ast *node, struct ast_walker *ctx)
 {
-	assert(ast);
+	assert(node);
+	assert(ctx);
+
+	switch (ctx->context) {
+	case AST_OP_DEFINE_RES_USER:
+		if (strcmp(node->data1, "uid") == 0) {
+			res_user_set_uid(ctx->resource.user, strtoll(node->data2, NULL, 10));
+		} else if (strcmp(node->data1, "gid") == 0) {
+			res_user_set_gid(ctx->resource.user, strtoll(node->data2, NULL, 10));
+		} else if (strcmp(node->data1, "home") == 0) {
+			res_user_set_dir(ctx->resource.user, node->data2);
+		}
+		break;
+
+	case AST_OP_DEFINE_RES_GROUP:
+		if (strcmp(node->data1, "name") == 0) {
+			res_group_set_name(ctx->resource.group, node->data2);
+		} else if (strcmp(node->data1, "gid") == 0) {
+			res_group_set_gid(ctx->resource.group, strtoll(node->data2, NULL, 10));
+		}
+		break;
+
+	case AST_OP_DEFINE_RES_FILE:
+		if (strcmp(node->data1, "owner") == 0) {
+			res_file_set_uid(ctx->resource.file, 0);
+		} else if (strcmp(node->data1, "group") == 0) {
+			res_file_set_gid(ctx->resource.file, 0);
+		} else if (strcmp(node->data1, "lpath") == 0) {
+			ctx->resource.file->rf_lpath = strdup(node->data2); /* FIXME: not the way to do this... */
+		} else if (strcmp(node->data1, "mode") == 0) {
+			res_file_set_mode(ctx->resource.file, strtoll(node->data2, NULL, 0));
+		} else if (strcmp(node->data1, "source") == 0) {
+			ctx->resource.file->rf_rpath = strdup(node->data2); /* FIXME: not the way to do this... */
+		}
+		break;
+	}
+}
+
+static int ast_evaluate_subtree(struct ast *node, struct ast_walker *ctx)
+{
+	assert(node);
+	assert(ctx);
+
+	unsigned int i;
 
 again:
-	switch (ast->op) {
+	switch (node->op) {
 	case AST_OP_IF_EQUAL:
-		ast = ast_eval_if_equal(ast, facts);
+		node = ast_eval_if_equal(node, ctx);
 		goto again;
 
 	case AST_OP_IF_NOT_EQUAL:
-		ast = ast_eval_if_not_equal(ast, facts);
+		node = ast_eval_if_not_equal(node, ctx);
 		goto again;
+
+	case AST_OP_DEFINE_RES_USER:
+		ctx->context = AST_OP_DEFINE_RES_USER;
+		ctx->resource.user = res_user_new();
+		list_add_tail(&(ctx->resource.user->res), &(ctx->policy->res_users));
+		break;
+
+	case AST_OP_DEFINE_RES_GROUP:
+		ctx->context = AST_OP_DEFINE_RES_GROUP;
+		ctx->resource.group = res_group_new();
+		list_add_tail(&(ctx->resource.group->res), &(ctx->policy->res_groups));
+		break;
+	
+	case AST_OP_DEFINE_RES_FILE:
+		ctx->context = AST_OP_DEFINE_RES_FILE;
+		ctx->resource.file = res_file_new();
+		list_add_tail(&(ctx->resource.file->res), &(ctx->policy->res_files));
+		break;
+
+	case AST_OP_SET_ATTRIBUTE:
+		ast_eval_set_attribute(node, ctx);
+		break;
+
+	case AST_OP_PROG:
+		break;
+
+	case AST_OP_NOOP:
+		break;
 	}
 
-	return ast;
-}
-
-struct policy* ast_define_policy(struct ast *ast, struct list *facts)
-{
-	assert(ast);
-
-	struct policy *policy;
-	struct ast *next;
-	unsigned int i;
-	struct res_user *ru;
-	struct res_group *rg;
-	struct res_file *rf;
-
-	if (ast->op != AST_OP_DEFINE_POLICY) {
-		return NULL;
-	}
-
-	policy = policy_new(ast->data1, policy_latest_version());
-
-	for (i = 0; i < ast->size; i++) {
-		next = ast_eval(ast->nodes[i], facts);
-		switch (next->op) {
-		case AST_OP_NOOP:
-			break;
-		case AST_OP_DEFINE_RESOURCE:
-			if (strcmp(next->data1, "res_user") == 0) {
-				ru = ast_define_res_user(next, facts);
-				if (ru) {
-					list_add_tail(&ru->res, &policy->res_users);
-				}
-			} else if (strcmp(next->data1, "res_group") == 0) {
-				rg = ast_define_res_group(next, facts);
-				if (rg) {
-					list_add_tail(&rg->res, &policy->res_groups);
-				}
-			} else if (strcmp(next->data1, "res_file") == 0) {
-				rf = ast_define_res_file(next, facts);
-				if (rf) {
-					list_add_tail(&rf->res, &policy->res_files);
-				}
-			} else {
-				fprintf(stderr, "SEMANTIC ERROR: Unknown resource type '%s'\n", (const char*)next->data1);
-			}
+	for (i = 0; i < node->size; i++) {
+		if (ast_evaluate_subtree(node->nodes[i], ctx) != 0) {
+			return -1;
 		}
 	}
 
-	return policy;
+	return 0;
 }
 
-struct res_user* ast_define_res_user(struct ast *ast, struct list *facts)
+struct policy *ast_evaluate(struct ast *ast, struct list *facts)
 {
 	assert(ast);
 
-	struct res_user *ru;
-	struct ast *next;
+	struct ast_walker ctx;
 	unsigned int i;
 
-	if (ast->op != AST_OP_DEFINE_RESOURCE
-	 && strcmp(ast->data1, "res_user") != 0) {
-		return NULL;
-	}
+	ctx.facts = facts;
+	ctx.policy = policy_new(ast->data1, policy_latest_version());
+	ctx.context = AST_OP_DEFINE_POLICY;
 
-	ru = res_user_new();
-
-	for (i = 0; i < ast->size; i++) {
-		next = ast_eval(ast->nodes[i], facts);
-		switch (next->op) {
-		case AST_OP_NOOP: break;
-		case AST_OP_SET_ATTRIBUTE:
-			if (strcmp(next->data1, "uid") == 0) {
-				res_user_set_uid(ru, strtoll(next->data2, NULL, 10));
-			} else if (strcmp(next->data1, "gid") == 0) {
-				res_user_set_gid(ru, strtoll(next->data2, NULL, 10));
-			} else if (strcmp(next->data1, "home") == 0) {
-				res_user_set_dir(ru, next->data2);
-			}
-			break;
-		default:
-			fprintf(stderr, "ast_define_res_user: SEMANTIC ERROR: unexpected op(%u)\n", next->op);
-			res_user_free(ru);
-			return NULL;
-		}
-	}
-
-	return ru;
-}
-
-struct res_group* ast_define_res_group(struct ast *ast, struct list *facts)
-{
-	assert(ast);
-
-	struct res_group *rg;
-	struct ast *next;
-	unsigned int i;
-
-	if (ast->op != AST_OP_DEFINE_RESOURCE
-	 && strcmp(ast->data1, "res_group") != 0) {
-		return NULL;
-	}
-
-	rg = res_group_new();
-	for (i = 0; i < ast->size; i++) {
-		next = ast_eval(ast->nodes[i], facts);
-		switch (next->op) {
-		case AST_OP_NOOP: break;
-		case AST_OP_SET_ATTRIBUTE:
-			if (strcmp(next->data1, "name") == 0) {
-				res_group_set_name(rg, next->data2);
-			} else if (strcmp(next->data1, "gid") == 0) {
-				res_group_set_gid(rg, strtoll(next->data2, NULL, 10));
-			}
-			break;
-		default:
-			fprintf(stderr, "ast_define_res_group: SEMANTIC ERROR: unexpected op(%u)\n", next->op);
-			res_group_free(rg);
-			return NULL;
-		}
-	}
-
-	return rg;
-}
-
-struct res_file* ast_define_res_file(struct ast *ast, struct list *facts)
-{
-	assert(ast);
-
-	struct res_file *rf;
-	struct ast *next;
-	unsigned int i;
-
-	if (ast->op != AST_OP_DEFINE_RESOURCE
-	 && strcmp(ast->data1, "res_file") != 0) {
-		return NULL;
-	}
-
-	rf = res_file_new();
+	/* FIXME: check result of policy_new */
 
 	for (i = 0; i < ast->size; i++) {
-		next = ast_eval(ast->nodes[i], facts);
-		switch (next->op) {
-		case AST_OP_NOOP: break;
-		case AST_OP_SET_ATTRIBUTE:
-			if (strcmp(next->data1, "owner") == 0) {
-				res_file_set_uid(rf, 0);
-			} else if (strcmp(next->data1, "group") == 0) {
-				res_file_set_gid(rf, 0);
-			} else if (strcmp(next->data1, "lpath") == 0) {
-				rf->rf_lpath = strdup(next->data2);
-			} else if (strcmp(next->data1, "mode") == 0) {
-				res_file_set_mode(rf, strtoll(next->data2, NULL, 0));
-			} else if (strcmp(next->data1, "source") == 0) {
-				rf->rf_rpath = strdup(next->data2); /* FIXME: not the way to do this... */
-			}
-			break;
-		default:
-			fprintf(stderr, "ast_define_res_file: SEMANTIC ERROR: unexpected op(%u)\n", next->op);
-			res_file_free(rf);
-			return NULL;
-
-		}
+		ast_evaluate_subtree(ast->nodes[i], &ctx);
 	}
 
-	return rf;
+	return ctx.policy;
 }
-

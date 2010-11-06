@@ -101,19 +101,19 @@ static struct ast* static_policy_ast()
 		return NULL;
 	}
 
-	node = new_child_node(root, AST_OP_DEFINE_RESOURCE, "res_file", NULL);
+	node = new_child_node(root, AST_OP_DEFINE_RES_FILE, NULL, NULL);
 	new_child_node(node, AST_OP_SET_ATTRIBUTE, "lpath", "/etc/sudoers");
 	new_child_node(node, AST_OP_SET_ATTRIBUTE, "owner", "root");
 	new_child_node(node, AST_OP_SET_ATTRIBUTE, "group", "root");
 	new_child_node(node, AST_OP_SET_ATTRIBUTE, "mode",  "0600");
 	new_child_node(node, AST_OP_SET_ATTRIBUTE, "source", "std/etc-sudoers");
 
-	node = new_child_node(root, AST_OP_DEFINE_RESOURCE, "res_user", NULL);
+	node = new_child_node(root, AST_OP_DEFINE_RES_USER, NULL, NULL);
 	new_child_node(node, AST_OP_SET_ATTRIBUTE, "uid", "411");
 	new_child_node(node, AST_OP_SET_ATTRIBUTE, "gid", "1089");
 	new_child_node(node, AST_OP_SET_ATTRIBUTE, "home", "/srv/oper/info");
 
-	node = new_child_node(root, AST_OP_DEFINE_RESOURCE, "res_group", NULL);
+	node = new_child_node(root, AST_OP_DEFINE_RES_GROUP, NULL, NULL);
 	new_child_node(node, AST_OP_SET_ATTRIBUTE, "gid", "5454");
 	new_child_node(node, AST_OP_SET_ATTRIBUTE, "name", "group54");
 
@@ -125,6 +125,7 @@ void test_ast_static_policy_generation()
 	struct policy *pol;
 	struct ast *root;
 	struct list facts;
+	unsigned int i;
 
 	struct res_user *user;
 	struct res_file *file;
@@ -135,29 +136,50 @@ void test_ast_static_policy_generation()
 	assert_not_null("(test sanity) static_policy_ast should return an AST pointer", root);
 
 	list_init(&facts);
-	pol = ast_define_policy(root, &facts);
+	pol = ast_evaluate(root, &facts);
 	assert_not_null("policy defined successfully from AST", pol);
 
 	assert_true("policy defined has user resources",  !list_empty(&pol->res_users));
 	assert_true("policy defined has group resources", !list_empty(&pol->res_groups));
 	assert_true("policy defined has file resources",  !list_empty(&pol->res_files));
 
-	user = list_node(pol->res_users.next, struct res_user, res);
-	assert_not_null("got the first res_user defined", user);
-	assert_int_equals("user->ru_uid == 411", 411, user->ru_uid);
-	assert_int_equals("user->ru_gid == 1089", 1089, user->ru_gid);
-	assert_str_equals("user->ru_dir is /srv/oper/info", "/srv/oper/info", user->ru_dir);
+	i = 0;
+	for_each_node(user, &pol->res_users, res) {
+		switch (i++) {
+		case 0:
+			assert_not_null("got the first res_user defined", user);
+			assert_int_equals("user->ru_uid == 411", 411, user->ru_uid);
+			assert_int_equals("user->ru_gid == 1089", 1089, user->ru_gid);
+			assert_str_equals("user->ru_dir is /srv/oper/info", "/srv/oper/info", user->ru_dir);
+			break;
+		}
+	}
+	assert_int_equals("Only found 1 user", 1, i);
 
-	file = list_node(pol->res_files.next, struct res_file, res);
-	assert_not_null("got the first res_file defined", file);
-	assert_int_equals("file->rf_mode == 0600", file->rf_mode, 0600);
-	assert_str_equals("file->rf_rpath is std/etc-sudoers", "std/etc-sudoers", file->rf_rpath);
-	assert_str_equals("file->rf_lpath is /etc/sudoers", "/etc/sudoers", file->rf_lpath);
+	i = 0;
+	for_each_node(file, &pol->res_files, res) {
+		switch (i++) {
+		case 0:
+			assert_not_null("got the first res_file defined", file);
+			assert_int_equals("file->rf_mode == 0600", file->rf_mode, 0600);
+			assert_str_equals("file->rf_rpath is std/etc-sudoers", "std/etc-sudoers", file->rf_rpath);
+			assert_str_equals("file->rf_lpath is /etc/sudoers", "/etc/sudoers", file->rf_lpath);
+			break;
+		}
+	}
+	assert_int_equals("Only found 1 file", 1, i);
 
-	group = list_node(pol->res_groups.next, struct res_group, res);
-	assert_not_null("got the first res_group defined", group);
-	assert_int_equals("group->rg_gid == 5454", 5454, group->rg_gid);
-	assert_str_equals("group->rg_name is group54", "group54", group->rg_name);
+	i = 0;
+	for_each_node(group, &pol->res_groups, res) {
+		switch (i++) {
+		case 0:
+			assert_not_null("got the first res_group defined", group);
+			assert_int_equals("group->rg_gid == 5454", 5454, group->rg_gid);
+			assert_str_equals("group->rg_name is group54", "group54", group->rg_name);
+			break;
+		}
+	}
+	assert_int_equals("Only found 1 group", 1, i);
 
 	policy_free_all(pol);
 	ast_free_all(root);
@@ -172,7 +194,7 @@ static struct ast* conditional_policy_ast()
 		return NULL;
 	}
 
-	node = new_child_node(root, AST_OP_DEFINE_RESOURCE, "res_file", NULL);
+	node = new_child_node(root, AST_OP_DEFINE_RES_FILE, NULL, NULL);
 	new_child_node(node, AST_OP_SET_ATTRIBUTE, "lpath", "snmpd.conf");
 	new_child_node(node, AST_OP_SET_ATTRIBUTE, "owner", "root");
 	new_child_node(node, AST_OP_SET_ATTRIBUTE, "group", "root");
@@ -184,7 +206,7 @@ static struct ast* conditional_policy_ast()
 
 	node = new_child_node(root, AST_OP_IF_EQUAL, "lsb.distro.codename", "lucid");
 	/* if lucid... */
-	tmp = new_child_node(node, AST_OP_DEFINE_RESOURCE, "res_user", NULL);
+	tmp = new_child_node(node, AST_OP_DEFINE_RES_USER, NULL, NULL);
 	new_child_node(tmp, AST_OP_SET_ATTRIBUTE, "uid", "20050");
 	new_child_node(tmp, AST_OP_SET_ATTRIBUTE, "gid", "20051");
 	new_child_node(tmp, AST_OP_SET_ATTRIBUTE, "home", "/srv/oper/ubuntu");
@@ -192,7 +214,7 @@ static struct ast* conditional_policy_ast()
 	/* if karmic... */
 	node = new_child_node(node, AST_OP_IF_EQUAL, "lsb.distro.codename", "karmic");
 	/* HACK: duplicate the same code as the branch; need better free mechanism */
-	tmp = new_child_node(node, AST_OP_DEFINE_RESOURCE, "res_user", NULL);
+	tmp = new_child_node(node, AST_OP_DEFINE_RES_USER, NULL, NULL);
 	new_child_node(tmp, AST_OP_SET_ATTRIBUTE, "uid", "20050");
 	new_child_node(tmp, AST_OP_SET_ATTRIBUTE, "gid", "20051");
 	new_child_node(tmp, AST_OP_SET_ATTRIBUTE, "home", "/srv/oper/ubuntu");
@@ -240,7 +262,7 @@ void test_ast_conditional_policy_generation()
 
 	test("AST: conditional policy generation for Lucid/2.6");
 	list_init(&facts); facts_for_lucid26(&facts);
-	pol = ast_define_policy(root, &facts);
+	pol = ast_evaluate(root, &facts);
 	assert_not_null("policy defined successfully from AST", pol);
 
 	assert_true("policy defined has user resources",  !list_empty(&pol->res_users));
@@ -263,7 +285,7 @@ void test_ast_conditional_policy_generation()
 
 	test("AST: conditional policy generation for Tikanga/2.4");
 	fact_free_all(&facts); facts_for_tikanga24(&facts);
-	pol = ast_define_policy(root, &facts);
+	pol = ast_evaluate(root, &facts);
 	assert_not_null("policy defined successfully from AST", pol);
 
 	assert_true("policy defined has no users resources", list_empty(&pol->res_users));
@@ -278,6 +300,111 @@ void test_ast_conditional_policy_generation()
 
 	fact_free_all(&facts);
 	policy_free_all(pol);
+	ast_free_all(root);
+}
+
+static struct ast* prog_policy_ast()
+{
+	struct ast *root, *node, *res, *prog;
+
+	root = ast_new(AST_OP_DEFINE_POLICY, "prog-test", NULL);
+	if (!root) {
+		return NULL;
+	}
+
+	/* if test.users == "2" */
+	node = new_child_node(root, AST_OP_IF_EQUAL, "test.users", "2");
+	prog = new_child_node(node, AST_OP_PROG, NULL, NULL);
+
+		/* define group103 */
+	res = new_child_node(prog, AST_OP_DEFINE_RES_GROUP, NULL, NULL);
+	new_child_node(res, AST_OP_SET_ATTRIBUTE, "name", "group103");
+	new_child_node(res, AST_OP_SET_ATTRIBUTE, "gid", "103");
+
+		/* define group104 */
+	res = new_child_node(prog, AST_OP_DEFINE_RES_GROUP, NULL, NULL);
+	new_child_node(res, AST_OP_SET_ATTRIBUTE, "name", "group104");
+	new_child_node(res, AST_OP_SET_ATTRIBUTE, "gid", "104");
+
+	/* else */
+	prog = new_child_node(node, AST_OP_PROG, NULL, NULL);
+
+		/* define group101 */
+	res = new_child_node(prog, AST_OP_DEFINE_RES_GROUP, NULL, NULL);
+	new_child_node(res, AST_OP_SET_ATTRIBUTE, "name", "group101");
+	new_child_node(res, AST_OP_SET_ATTRIBUTE, "gid", "101");
+
+	return root;
+}
+
+void facts_for_prog1(struct list *facts)
+{
+	struct fact *fact;
+
+	fact = fact_parse("test.users=1\n");
+	list_add_tail(&fact->facts, facts);
+}
+
+void facts_for_prog2(struct list *facts)
+{
+	struct fact *fact;
+
+	fact = fact_parse("test.users=2\n");
+	list_add_tail(&fact->facts, facts);
+}
+
+void test_ast_prog_policy_generation()
+{
+	struct policy *pol;
+	struct ast *root;
+	struct list facts;
+	unsigned int i;
+
+	struct res_group *group;
+
+	test("AST: prog(resssion) AST generates policies based on facts");
+	root = prog_policy_ast();
+	assert_not_null("(test sanity) prog_policy_ast should return an AST pointer", root);
+
+	test("AST: prog(ression) policy generation for 1 group");
+	list_init(&facts); facts_for_prog1(&facts);
+	pol = ast_evaluate(root, &facts);
+	assert_not_null("policy defined successfully from AST", pol);
+	assert_true("policy defined has group resources", !list_empty(&pol->res_groups));
+	i = 0;
+	for_each_node(group, &pol->res_groups, res) {
+		switch (i++) {
+		case 0:
+			assert_not_null("got the first res_group defined", group);
+			assert_int_equals("group->rg_gid == 101", 101, group->rg_gid);
+			break;
+		}
+	}
+	assert_int_equals("Found 1 group", 1, i);
+	policy_free_all(pol);
+
+	test("AST: prog(ression) policy generation for 2 groups");
+	fact_free_all(&facts); facts_for_prog2(&facts);
+	pol = ast_evaluate(root, &facts);
+	assert_not_null("policy defined successfully from AST", pol);
+	assert_true("policy defined has group resources", !list_empty(&pol->res_groups));
+	i = 0;
+	for_each_node(group, &pol->res_groups, res) {
+		switch (i++) {
+		case 0:
+			assert_not_null("got the first res_group defined", group);
+			assert_int_equals("group->rg_gid == 103", 103, group->rg_gid);
+			break;
+		case 1:
+			assert_not_null("got the second res_group defined", group);
+			assert_int_equals("group->rg_gid == 104", 104, group->rg_gid);
+			break;
+		}
+	}
+	assert_int_equals("Found 2 groups", 2, i);
+	policy_free_all(pol);
+
+	fact_free_all(&facts);
 	ast_free_all(root);
 }
 
@@ -311,6 +438,7 @@ void test_suite_ast()
 
 	test_ast_static_policy_generation();
 	test_ast_conditional_policy_generation();
+	test_ast_prog_policy_generation();
 
 	test_ast_comparison();
 }

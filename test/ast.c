@@ -297,6 +297,10 @@ void test_ast_comparison()
 	assert_int_equals("AST(a) == AST(b)", 0, ast_compare(a,b));
 	assert_int_not_equal("AST(b) != AST(c)", 0, ast_compare(b,c));
 	assert_int_not_equal("AST(a) != AST(c)", 0, ast_compare(a,c));
+
+	ast_free_all(a);
+	ast_free_all(b);
+	ast_free_all(c);
 }
 
 void test_suite_ast()

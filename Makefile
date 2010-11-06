@@ -14,7 +14,21 @@ CC_FLAGS += -lssl
 CC_FLAGS += -lpthread
 
 CC := gcc $(CC_FLAGS)
-CC := gcc $(CC_FLAGS)
+
+LEX_FLAGS :=
+#LEX_FLAGS += --debug
+LEX_FLAGS += --verbose
+LEX_FLAGS += --header-file
+LEX_FLAGS += --yylineno
+LEX := flex $(LEX_FLAGS)
+
+YACC_FLAGS :=
+YACC_FLAGS += -Wall
+#YACC_FLAGS += --debug
+YACC_FLAGS += --token-table
+YACC_FLAGS += --defines
+YACC_FLAGS += --report=all
+YACC := bison $(YACC_FLAGS)
 
 VG := valgrind --leak-check=full --show-reachable=yes --read-var-info=yes --track-origins=yes
 
@@ -27,6 +41,13 @@ MOG := ./mog
 
 UTILS := d sha1sum sizes
 
+# Resource types
+RESOURCE_OBJECTS := res_user.o res_group.o res_file.o
+RESOURCE_HEADERS := res_user.h res_group.h res_file.h
+
+# Supporting object files
+CORE_OBJECTS := mem.o sha1.o pack.o stringlist.o userdb.o
+
 ############################################################
 # Default Target
 
@@ -35,13 +56,13 @@ all: test $(UTILS)
 ############################################################
 # Utilities
 
-d: main.o sha1.o res_file.o mem.o res_user.o res_group.o userdb.o
+d: main.o $(CORE_OBJECTS) $(RESOURCE_OBJECTS)
 	$(CC) -o $@ $+
 
 sha1sum: sha1.o sha1sum.o
 	$(CC) -o $@ $+
 
-sizes: sizes.c res_user.h res_file.h res_group.h userdb.h
+sizes: sizes.c $(RESOURCE_HEADERS) userdb.h
 	$(CC) -o $@ $<
 
 ############################################################
@@ -104,6 +125,7 @@ clean:
 	find . -name '*.o' -o -name '*.gc??' | xargs rm -f
 	rm -f lcov.info
 	rm -f $(UTILS) test/userdb
+	rm -f spec/lexer.c spec/parser.c spec/parser.h spec/*.output
 
 dist: clean
 	rm -rf doc/coverage
@@ -114,7 +136,7 @@ fixme:
 ############################################################
 # "Extra" Dependencies
 
-main.o: main.c res_file.h res_group.h res_user.h
+main.o: main.c $(RESOURCE_HEADERS)
 	$(CC) -c -o $@ $<
 
 ############################################################
@@ -126,7 +148,11 @@ test_server: test_server.o proto.o
 test_client: test_client.o proto.o
 	$(CC) -o $@ $+
 
-test_ast: test_ast.o ast.o policy.o res_user.o res_group.o res_file.o pack.o mem.o sha1.o stringlist.o userdb.o fact.o
+polspec: spec/lexer.o spec/parser.o \
+         policy.o ast.o \
+         $(RESOURCE_OBJECTS) \
+         $(CORE_OBJECTS) \
+         polspec.o
 	$(CC) -o $@ $+
 
 ############################################################
@@ -135,3 +161,11 @@ test_ast: test_ast.o ast.o policy.o res_user.o res_group.o res_file.o pack.o mem
 %.o: %.c %.h
 	$(CC) -c -o $@ $<
 
+spec/lexer.c: spec/lexer.l spec/parser.h
+	$(LEX) --outfile=$@ $<
+
+spec/parser.h: spec/parser.y
+	$(YACC) --output-file=$@ $<
+
+spec/parser.c: spec/parser.y
+	$(YACC) --output-file=$@ $<

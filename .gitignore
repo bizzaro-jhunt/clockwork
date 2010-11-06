@@ -7,6 +7,11 @@ upstream
 sizes
 test_server
 test_client
+polspec
 doc/proto.png
 test/run
 test/sha1_files.h
+spec/lexer.c
+spec/parser.c
+spec/parser.h
+spec/*.output

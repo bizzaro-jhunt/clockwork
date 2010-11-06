@@ -4,42 +4,41 @@
 #
 
 # A standard with some conditional behavior.
-profile standard {
+policy "standard" {
 
 	file "/etc/sudoers" {
-		owner: root
-		group: root
+		owner: "root"
+		group: "root"
 		mode: 0600
 	}
 
 	file "/etc/snmpd/snmpd.conf" {
-		owner: root
-		group: root
+		owner: "root"
+		group: "root"
 		mode:  0644
 		# Change the source file based on the sys.kernel.major fact
-		source = ((for sys.kernel.major:
+		source: map(sys.kernel.major) {
 			"2.6": "clockwork:///standard/snmpd.conf";
-			"2.4": "clockwork:///legacy/snmpd.conf"))
+			"2.4": "clockwork:///legacy/snmpd.conf";
+		}
 	}
 
 	# Only define this user for Ubuntu Lucid Lynx or Karmic Koala
-	((if lsb.distro.codename is ["lucid", "karmic"]:
-
+	if (lsb.distro.codename is ["lucid", "karmic"]) {
 		user "ubuntu-recent" {
 			uid: 20050; gid: 20050
 			home: "/srv/oper/ubuntu"
 		}
-
-	))
-
-	# Otherwise, the username should be "ubuntu-legacy"
-	((unless lsb.distro.codename is ["lucid", "karmic"]:
-
+	} else {
 		user "ubuntu-legacy" {
-			uid: 20050; gid: 20050
+			uid: 20050; gid: 2089
 			home: "/srv/oper/ubuntu"
 		}
-	))
+
+		group "legacy" {
+			gid: 2089
+		}
+	}
 }
 
 # vim:ft=conf

@@ -198,7 +198,7 @@ struct policy* ast_define_policy(struct ast *ast, struct list *facts)
 		return NULL;
 	}
 
-	policy = policy_new(ast->data1, 0);
+	policy = policy_new(ast->data1, policy_latest_version());
 
 	for (i = 0; i < ast->size; i++) {
 		next = ast_eval(ast->nodes[i], facts);

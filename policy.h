@@ -22,6 +22,8 @@ void policy_deinit(struct policy *pol);
 void policy_free(struct policy *pol);
 void policy_free_all(struct policy *pol);
 
+uint32_t policy_latest_version(void);
+
 int policy_add_file_resource(struct policy *pol, struct res_file *rf);
 int policy_add_group_resource(struct policy *pol, struct res_group *rg);
 int policy_add_user_resource(struct policy *pol, struct res_user *ru);

@@ -7,7 +7,7 @@ void test_policy_creation()
 {
 	struct policy *pol;
 
-	test("POLICY: Initialization of policy structure");
+	test("policy: Initialization of policy structure");
 	pol = policy_new("policy name", 12345);
 	assert_str_equals("Policy name is set correctly", pol->name, "policy name");
 	assert_int_equals("Policy version is set correctly", pol->version, 12345);
@@ -16,6 +16,22 @@ void test_policy_creation()
 	assert_true("res_users is an empty list head", list_empty(&pol->res_users));
 
 	policy_free(pol);
+}
+
+void test_policy_latest_version()
+{
+	struct policy *pol;
+	struct timeval tv;
+
+	test("policy: generating latest version as a timestamp");
+
+	pol = policy_new("current", policy_latest_version());
+	gettimeofday(&tv, NULL);
+
+	assert_unsigned_equals("Latest version is seconds since epoch (var)", tv.tv_sec, pol->version);
+
+	policy_free(pol);
+
 }
 
 void test_policy_user_addition()
@@ -27,7 +43,7 @@ void test_policy_user_addition()
 
 	pol = policy_new("user policy", 1234);
 
-	test("POLICY: addition of users to policy");
+	test("policy: addition of users to policy");
 	ru = res_user_new();
 	res_user_set_name(ru, "user1");
 	assert_str_equals("User details are correct (before addition)", "user1", ru->ru_name);
@@ -54,7 +70,7 @@ void test_policy_group_addition()
 
 	pol = policy_new("group policy", 1234);
 
-	test("POLICY: addition of groups to policy");
+	test("policy: addition of groups to policy");
 	rg = res_group_new();
 	res_group_set_name(rg, "group1");
 	assert_str_equals("Group details are correct (before addition)", "group1", rg->rg_name);
@@ -81,7 +97,7 @@ void test_policy_file_addition()
 
 	pol = policy_new("file policy", 1234);
 
-	test("POLICY: addition of files to policy");
+	test("policy: addition of files to policy");
 	rf = res_file_new();
 	res_file_set_source(rf, "file1");
 	assert_str_equals("File details are correct (before addition)", "file1", rf->rf_rpath);
@@ -108,7 +124,7 @@ void test_policy_pack()
 	struct res_group *rg1;
 	struct res_file  *rf1;
 
-	test("POLICY: pack empty policy");
+	test("policy: pack empty policy");
 	pol = policy_new("empty", 777); // 777 is 309 in hex
 	packed = policy_pack(pol);
 	assert_not_null("policy_pack succeeds", packed);
@@ -117,7 +133,7 @@ void test_policy_pack()
 	policy_free(pol);
 	xfree(packed);
 
-	test("POLICY: pack policy with one user, one group and one file");
+	test("policy: pack policy with one user, one group and one file");
 	pol = policy_new("1 user, 1 group, and 1 file", 20101031);
 	/* The George Thoroughgood test */
 	ru1 = res_user_new();
@@ -164,7 +180,7 @@ void test_policy_unpack()
 		"res_group::\"staff\"\"\"000007d0\"\"\"\"\"\"\"\"\n"
 		"res_file::\"\"\"cfm://etc/sudoers\"" "00000065" "000007d0" "00000180";
 
-	test("POLICY: unpack empty policy");
+	test("policy: unpack empty policy");
 	pol = policy_unpack("policy::\"empty\"00000309");
 	assert_not_null("policy_unpack succeeds", pol);
 	assert_true("res_files is an empty list head", list_empty(&pol->res_files));
@@ -172,7 +188,7 @@ void test_policy_unpack()
 	assert_true("res_users is an empty list head", list_empty(&pol->res_users));
 	policy_free(pol);
 
-	test("POLICY: unpack policy with one user, one group and one file");
+	test("policy: unpack policy with one user, one group and one file");
 	/* The George Thoroughgood test */
 	pol = policy_unpack(packed);
 	assert_not_null("policy_unpack succeeds", pol);
@@ -188,6 +204,7 @@ void test_policy_unpack()
 void test_suite_policy()
 {
 	test_policy_creation();
+	test_policy_latest_version();
 
 	test_policy_user_addition();
 	test_policy_group_addition();

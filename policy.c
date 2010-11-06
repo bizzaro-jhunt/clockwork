@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <string.h>
+#include <sys/time.h>
 
 #include "policy.h"
 #include "pack.h"
@@ -13,7 +14,6 @@
      L - version
  */
 #define POLICY_PACK_FORMAT "aL"
-
 
 struct policy* policy_new(const char *name, uint32_t version)
 {
@@ -73,6 +73,18 @@ void policy_free_all(struct policy *pol)
 	for_each_node_safe(rf, rf_tmp, &pol->res_files,  res) { res_file_free(rf);  }
 	policy_free(pol);
 }
+
+uint32_t policy_latest_version(void)
+{
+	struct timeval tv;
+
+	if (gettimeofday(&tv, NULL) != 0) {
+		return 0; /* "invalid" current version */
+	}
+
+	return (uint32_t)(tv.tv_sec);
+}
+
 
 int policy_add_file_resource(struct policy *pol, struct res_file *rf)
 {

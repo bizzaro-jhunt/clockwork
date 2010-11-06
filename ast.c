@@ -98,6 +98,32 @@ int ast_add_child(struct ast *parent, struct ast *child)
 	return 0;
 }
 
+int ast_compare(struct ast *a, struct ast *b)
+{
+	unsigned int i;
+
+	if (!a || !b) {
+		return 1;
+	}
+
+	if (a->op != b->op
+	 || a->size != b->size
+	 || (a->data1 && !b->data1) || (!a->data1 && b->data1)
+	 || (a->data2 && !b->data2) || (!a->data2 && b->data2)
+	 || (a->data1 && strcmp(a->data1, b->data1) != 0)
+	 || (a->data2 && strcmp(a->data2, b->data2) != 0)) {
+		return 1;
+	}
+
+	for (i = 0; i < a->size; i++) {
+		if (ast_compare(a->nodes[i], b->nodes[i]) != 0) {
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
 static struct ast* ast_eval(struct ast *ast, struct list *facts);
 static struct ast* ast_eval_if_equal(struct ast *ast, struct list *facts);
 static struct ast* ast_eval_if_not_equal(struct ast *ast, struct list *facts);

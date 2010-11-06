@@ -281,6 +281,24 @@ void test_ast_conditional_policy_generation()
 	ast_free_all(root);
 }
 
+void test_ast_comparison()
+{
+	struct ast *a, *b, *c;
+
+	a = static_policy_ast();
+	b = static_policy_ast();
+	c = conditional_policy_ast();
+
+	test("AST: abstract syntax tree comparison");
+	assert_not_null("(test sanity) AST a isn't null", a);
+	assert_not_null("(test sanity) AST b isn't null", b);
+	assert_not_null("(test sanity) AST c isn't null", c);
+
+	assert_int_equals("AST(a) == AST(b)", 0, ast_compare(a,b));
+	assert_int_not_equal("AST(b) != AST(c)", 0, ast_compare(b,c));
+	assert_int_not_equal("AST(a) != AST(c)", 0, ast_compare(a,c));
+}
+
 void test_suite_ast()
 {
 	test_ast_init();
@@ -289,4 +307,6 @@ void test_suite_ast()
 
 	test_ast_static_policy_generation();
 	test_ast_conditional_policy_generation();
+
+	test_ast_comparison();
 }

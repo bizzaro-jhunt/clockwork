@@ -19,7 +19,7 @@
 
 struct ast {
 	unsigned int op;
-	void *data1, *data2;
+	char *data1, *data2;
 
 	unsigned int size;
 	struct ast **nodes;
@@ -34,6 +34,7 @@ void ast_free(struct ast *ast);
 void ast_free_all(struct ast *ast);
 
 int ast_add_child(struct ast *parent, struct ast *child);
+int ast_compare(struct ast *a, struct ast *b);
 
 struct policy* ast_define_policy(struct ast *ast, struct list *facts);
 struct res_user* ast_define_res_user(struct ast *ast, struct list *facts);

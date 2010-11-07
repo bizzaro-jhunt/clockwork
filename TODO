@@ -22,3 +22,8 @@ policy::
   policy version detection
   policy support in proto
   conditionals / host facts
+
+parser::
+  'include' functionality
+  if-else-if-else construct
+  host definition support

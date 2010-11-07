@@ -2,6 +2,7 @@
 #include <string.h>
 
 #include "private.h"
+#include "parser.h"
 
 struct ast* parse_file(const char *path)
 {

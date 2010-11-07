@@ -149,7 +149,7 @@ test_client: test_client.o proto.o
 	$(CC) -o $@ $+
 
 polspec: spec/lexer.o spec/parser.o \
-         policy.o ast.o \
+         policy.o fact.o ast.o \
          $(RESOURCE_OBJECTS) \
          $(CORE_OBJECTS) \
          polspec.o
@@ -164,8 +164,5 @@ polspec: spec/lexer.o spec/parser.o \
 spec/lexer.c: spec/lexer.l spec/parser.h
 	$(LEX) --outfile=$@ $<
 
-spec/parser.h: spec/parser.y
-	$(YACC) --output-file=$@ $<
-
-spec/parser.c: spec/parser.y
-	$(YACC) --output-file=$@ $<
+spec/parser.c spec/parser.h: spec/parser.y
+	$(YACC) --output-file=spec/parser.c $<

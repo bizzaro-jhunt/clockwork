@@ -23,7 +23,7 @@
 
 struct ast {
 	unsigned int op;
-	char *data1, *data2;
+	const char *data1, *data2;
 
 	unsigned int size;
 	struct ast **nodes;
@@ -31,8 +31,8 @@ struct ast {
 	unsigned int refs; /* reference counter; when it reaches 0 we can free the structure */
 };
 
-struct ast* ast_new(unsigned int op, void *data1, void *data2);
-int ast_init(struct ast *ast, unsigned int op, void *data1, void *data2);
+struct ast* ast_new(unsigned int op, const void *data1, const void *data2);
+int ast_init(struct ast *ast, unsigned int op, const void *data1, const void *data2);
 int ast_deinit(struct ast *ast);
 void ast_free(struct ast *ast);
 void ast_free_all(struct ast *ast);

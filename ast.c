@@ -19,7 +19,7 @@ struct ast_walker {
 };
 
 
-struct ast* ast_new(unsigned int op, void *data1, void *data2)
+struct ast* ast_new(unsigned int op, const void *data1, const void *data2)
 {
 	struct ast *ast = malloc(sizeof(struct ast));
 	if (!ast) {
@@ -34,7 +34,7 @@ struct ast* ast_new(unsigned int op, void *data1, void *data2)
 	return ast;
 }
 
-int ast_init(struct ast *ast, unsigned int op, void *data1, void *data2)
+int ast_init(struct ast *ast, unsigned int op, const void *data1, const void *data2)
 {
 	assert(ast);
 
@@ -202,15 +202,15 @@ static void ast_eval_set_attribute(struct ast *node, struct ast_walker *ctx)
 
 	case AST_OP_DEFINE_RES_FILE:
 		if (strcmp(node->data1, "owner") == 0) {
-			res_file_set_uid(ctx->resource.file, 0);
+			res_file_set_uid(ctx->resource.file, 0); /* FIXME: hard-coded UID */
 		} else if (strcmp(node->data1, "group") == 0) {
-			res_file_set_gid(ctx->resource.file, 0);
+			res_file_set_gid(ctx->resource.file, 0); /* FIXME: hard-coded GID */
 		} else if (strcmp(node->data1, "lpath") == 0) {
-			ctx->resource.file->rf_lpath = strdup(node->data2); /* FIXME: not the way to do this... */
+			res_file_set_path(ctx->resource.file, node->data2);
 		} else if (strcmp(node->data1, "mode") == 0) {
 			res_file_set_mode(ctx->resource.file, strtoll(node->data2, NULL, 0));
 		} else if (strcmp(node->data1, "source") == 0) {
-			ctx->resource.file->rf_rpath = strdup(node->data2); /* FIXME: not the way to do this... */
+			res_file_set_source(ctx->resource.file, node->data2);
 		}
 		break;
 	}
@@ -236,18 +236,21 @@ again:
 	case AST_OP_DEFINE_RES_USER:
 		ctx->context = AST_OP_DEFINE_RES_USER;
 		ctx->resource.user = res_user_new();
+		res_user_set_name(ctx->resource.user, node->data1);
 		list_add_tail(&(ctx->resource.user->res), &(ctx->policy->res_users));
 		break;
 
 	case AST_OP_DEFINE_RES_GROUP:
 		ctx->context = AST_OP_DEFINE_RES_GROUP;
 		ctx->resource.group = res_group_new();
+		res_group_set_name(ctx->resource.group, node->data1);
 		list_add_tail(&(ctx->resource.group->res), &(ctx->policy->res_groups));
 		break;
 	
 	case AST_OP_DEFINE_RES_FILE:
 		ctx->context = AST_OP_DEFINE_RES_FILE;
 		ctx->resource.file = res_file_new();
+		res_file_set_path(ctx->resource.file, node->data1);
 		list_add_tail(&(ctx->resource.file->res), &(ctx->policy->res_files));
 		break;
 

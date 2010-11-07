@@ -20,6 +20,7 @@ LEX_FLAGS :=
 LEX_FLAGS += --verbose
 LEX_FLAGS += --header-file
 LEX_FLAGS += --yylineno
+LEX_FLAGS += --noline
 LEX := flex $(LEX_FLAGS)
 
 YACC_FLAGS :=
@@ -148,12 +149,21 @@ test_server: test_server.o proto.o
 test_client: test_client.o proto.o
 	$(CC) -o $@ $+
 
-polspec: spec/lexer.o spec/grammar.o \
+polspec: spec/lexer.o spec/grammar.o spec/parser.o \
          policy.o fact.o ast.o \
          $(RESOURCE_OBJECTS) \
          $(CORE_OBJECTS) \
          polspec.o
 	$(CC) -o $@ $+
+
+spec/lexer.c: spec/lexer.l spec/grammar.h spec/lexer_impl.c spec/parser.h spec/private.h
+	$(LEX) --outfile=$@ $<
+
+spec/grammar.c spec/grammar.h: spec/grammar.y spec/grammar_impl.c spec/parser.c spec/parser.h spec/private.h
+	$(YACC) --output-file=spec/grammar.c $<
+
+spec/parser.o: spec/parser.c spec/parser.h spec/private.h
+	$(CC) -c -o $@ $<
 
 ############################################################
 # Pattern Rules
@@ -161,8 +171,3 @@ polspec: spec/lexer.o spec/grammar.o \
 %.o: %.c %.h
 	$(CC) -c -o $@ $<
 
-spec/lexer.c: spec/lexer.l spec/grammar.h spec/parser.h
-	$(LEX) --outfile=$@ $<
-
-spec/grammar.c spec/grammar.h: spec/grammar.y spec/parser.c spec/parser.h
-	$(YACC) --output-file=spec/grammar.c $<

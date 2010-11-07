@@ -1,17 +1,8 @@
 %{
-#include "parser.h"
+#include "private.h"
 %}
 
-%union {
-	char           *string;
-	stringlist     *strings;
-	struct ast     *node;
-	stringlist     *string_hash[2];
-	char           *string_pair[2];
-
-	parser_branch  *branch;
-	parser_map     *map;
-}
+%pure-parser
 
 %token T_KEYWORD_POLICY
 %token T_KEYWORD_IF
@@ -49,18 +40,15 @@
 %type <string_pair> mapped_value
 %type <string>      mapped_value_default
 %{
-
-#include "parser.c"
-struct ast *spec_result = NULL;
-
+#include "grammar_impl.c"
 %}
 
 %%
 
 policies:
-	{ spec_result = ast_new(AST_OP_PROG, NULL, NULL); }
+	{ ((spec_parser_context*)ctx)->root = ast_new(AST_OP_PROG, NULL, NULL); }
 	| policies policy
-	{ ast_add_child(spec_result, $2); }
+	{ ast_add_child(((spec_parser_context*)ctx)->root, $2); }
 	;
 
 policy: T_KEYWORD_POLICY qstring '{' blocks '}'

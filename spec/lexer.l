@@ -1,16 +1,13 @@
 %{
 #include <stdio.h>
 
-#include "parser.h"
+#include "private.h"
 #include "grammar.h"
-
-int parse_success = 1;
-/*
-int yywrap(void);
-void yyerror(const char*);
-*/
-
 %}
+%option reentrant
+%option bison-bridge
+%option noyywrap noinput nounput
+%option yylineno
 %%
 
 #.* { /* ignore comments */ }
@@ -28,37 +25,29 @@ void yyerror(const char*);
 [{}\(\)\[\],:] { return yytext[0]; }
 
 ([a-z]+\.)+[a-z]+ { /* fact */
-	yylval.string = strdup(yytext);
+	yylval->string = strdup(yytext);
 	return T_FACT;
 }
 [a-z]+ { /* identifier */
-	yylval.string = strdup(yytext);
+	yylval->string = strdup(yytext);
 	return T_IDENTIFIER;
 }
 [0-9]+ { /* numeric */
-	yylval.string = strdup(yytext);
+	yylval->string = strdup(yytext);
 	return T_NUMERIC;
 }
 \"[^\"\n]*[\"\n] { /* quoted string */
-	yylval.string = strdup(yytext + 1);
-	if (yylval.string[yyleng-2] != '\"') {
-		yyerror("unterminated string literal");
+	yylval->string = strdup(yytext + 1);
+	if (yylval->string[yyleng-2] != '\"') {
+		parse_error("unterminated string literal", yyget_extra(yyscanner));
 		/* recoverable error */
 		yyless(yyleng-1);
 	} else {
-		yylval.string[yyleng-2] = '\0';
+		yylval->string[yyleng-2] = '\0';
 	}
 	return T_QSTRING;
 }
-. { yyerror("unexpected character"); }
+. { parse_error("unexpected character", yyget_extra(yyscanner)); }
 
 %%
-
-int yywrap(void) {
-	return -1;
-}
-
-void yyerror(const char *str) {
-	fprintf(stderr, "FILE:%u: %s\n", yylineno, str);
-	parse_success = 0;
-}
+#include "lexer_impl.c"

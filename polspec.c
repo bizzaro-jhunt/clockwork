@@ -4,14 +4,7 @@
 
 #include "ast.h"
 #include "fact.h"
-
-/* defined in spec/parser.y */
-extern struct ast *spec_result;
-extern int yyparse(void);
-extern int parse_success;
-
-/* defined in spec/lexer.l */
-extern FILE *yyin;
+#include "spec/parser.h"
 
 static const char *OP_NAMES[] = {
 	"NOOP",
@@ -40,25 +33,6 @@ static void traverse(struct ast *node, unsigned int depth)
 	for (i = 0; i < node->size; i++) {
 		traverse(node->nodes[i], depth + 1);
 	}
-}
-
-static struct ast* parse_file(const char *path)
-{
-	FILE *io;
-
-	io = fopen(path, "r");
-	if (!io) {
-		fprintf(stderr, "Unable to parse %s: ", path);
-		perror(NULL);
-		return NULL;
-	}
-
-	yyin = io;
-	yyparse();
-	if (parse_success == 1) {
-		return spec_result;
-	}
-	return NULL;
 }
 
 static int get_the_facts(struct list *facts, const char *path)

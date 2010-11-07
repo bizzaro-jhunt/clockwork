@@ -101,21 +101,19 @@ static struct ast* static_policy_ast()
 		return NULL;
 	}
 
-	node = new_child_node(root, AST_OP_DEFINE_RES_FILE, NULL, NULL);
-	new_child_node(node, AST_OP_SET_ATTRIBUTE, "lpath", "/etc/sudoers");
+	node = new_child_node(root, AST_OP_DEFINE_RES_FILE, "/etc/sudoers", NULL);
 	new_child_node(node, AST_OP_SET_ATTRIBUTE, "owner", "root");
 	new_child_node(node, AST_OP_SET_ATTRIBUTE, "group", "root");
 	new_child_node(node, AST_OP_SET_ATTRIBUTE, "mode",  "0600");
 	new_child_node(node, AST_OP_SET_ATTRIBUTE, "source", "std/etc-sudoers");
 
-	node = new_child_node(root, AST_OP_DEFINE_RES_USER, NULL, NULL);
+	node = new_child_node(root, AST_OP_DEFINE_RES_USER, "user1", NULL);
 	new_child_node(node, AST_OP_SET_ATTRIBUTE, "uid", "411");
 	new_child_node(node, AST_OP_SET_ATTRIBUTE, "gid", "1089");
 	new_child_node(node, AST_OP_SET_ATTRIBUTE, "home", "/srv/oper/info");
 
-	node = new_child_node(root, AST_OP_DEFINE_RES_GROUP, NULL, NULL);
+	node = new_child_node(root, AST_OP_DEFINE_RES_GROUP, "group54", NULL);
 	new_child_node(node, AST_OP_SET_ATTRIBUTE, "gid", "5454");
-	new_child_node(node, AST_OP_SET_ATTRIBUTE, "name", "group54");
 
 	return root;
 }
@@ -194,8 +192,7 @@ static struct ast* conditional_policy_ast()
 		return NULL;
 	}
 
-	node = new_child_node(root, AST_OP_DEFINE_RES_FILE, NULL, NULL);
-	new_child_node(node, AST_OP_SET_ATTRIBUTE, "lpath", "snmpd.conf");
+	node = new_child_node(root, AST_OP_DEFINE_RES_FILE, "snmpd.conf", NULL);
 	new_child_node(node, AST_OP_SET_ATTRIBUTE, "owner", "root");
 	new_child_node(node, AST_OP_SET_ATTRIBUTE, "group", "root");
 	new_child_node(node, AST_OP_SET_ATTRIBUTE, "mode",  "0644");
@@ -206,7 +203,7 @@ static struct ast* conditional_policy_ast()
 
 	node = new_child_node(root, AST_OP_IF_EQUAL, "lsb.distro.codename", "lucid");
 	/* if lucid... */
-	tmp = new_child_node(node, AST_OP_DEFINE_RES_USER, NULL, NULL);
+	tmp = new_child_node(node, AST_OP_DEFINE_RES_USER, "ubuntu", NULL);
 	new_child_node(tmp, AST_OP_SET_ATTRIBUTE, "uid", "20050");
 	new_child_node(tmp, AST_OP_SET_ATTRIBUTE, "gid", "20051");
 	new_child_node(tmp, AST_OP_SET_ATTRIBUTE, "home", "/srv/oper/ubuntu");
@@ -214,7 +211,7 @@ static struct ast* conditional_policy_ast()
 	/* if karmic... */
 	node = new_child_node(node, AST_OP_IF_EQUAL, "lsb.distro.codename", "karmic");
 	/* HACK: duplicate the same code as the branch; need better free mechanism */
-	tmp = new_child_node(node, AST_OP_DEFINE_RES_USER, NULL, NULL);
+	tmp = new_child_node(node, AST_OP_DEFINE_RES_USER, "ubuntu", NULL);
 	new_child_node(tmp, AST_OP_SET_ATTRIBUTE, "uid", "20050");
 	new_child_node(tmp, AST_OP_SET_ATTRIBUTE, "gid", "20051");
 	new_child_node(tmp, AST_OP_SET_ATTRIBUTE, "home", "/srv/oper/ubuntu");
@@ -317,21 +314,18 @@ static struct ast* prog_policy_ast()
 	prog = new_child_node(node, AST_OP_PROG, NULL, NULL);
 
 		/* define group103 */
-	res = new_child_node(prog, AST_OP_DEFINE_RES_GROUP, NULL, NULL);
-	new_child_node(res, AST_OP_SET_ATTRIBUTE, "name", "group103");
+	res = new_child_node(prog, AST_OP_DEFINE_RES_GROUP, "group103", NULL);
 	new_child_node(res, AST_OP_SET_ATTRIBUTE, "gid", "103");
 
 		/* define group104 */
-	res = new_child_node(prog, AST_OP_DEFINE_RES_GROUP, NULL, NULL);
-	new_child_node(res, AST_OP_SET_ATTRIBUTE, "name", "group104");
+	res = new_child_node(prog, AST_OP_DEFINE_RES_GROUP, "group104", NULL);
 	new_child_node(res, AST_OP_SET_ATTRIBUTE, "gid", "104");
 
 	/* else */
 	prog = new_child_node(node, AST_OP_PROG, NULL, NULL);
 
 		/* define group101 */
-	res = new_child_node(prog, AST_OP_DEFINE_RES_GROUP, NULL, NULL);
-	new_child_node(res, AST_OP_SET_ATTRIBUTE, "name", "group101");
+	res = new_child_node(prog, AST_OP_DEFINE_RES_GROUP, "group101", NULL);
 	new_child_node(res, AST_OP_SET_ATTRIBUTE, "gid", "101");
 
 	return root;

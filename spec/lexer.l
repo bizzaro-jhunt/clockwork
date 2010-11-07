@@ -1,12 +1,17 @@
 %{
-
 #include <stdio.h>
+
+/* Have to include these for the stringlist union member
+   in YYSTYPE (parser.h) */
+#include "../ast.h"
+#include "../stringlist.h"
 
 #include "parser.h"
 
+int yywrap(void);
+void yyerror(const char*);
+
 %}
-
-
 %%
 
 #.*[\r\n] { /* ignore comments */ }
@@ -19,6 +24,7 @@
 "else"   { return T_KEYWORD_ELSE; }
 "map"    { return T_KEYWORD_MAP; }
 "is"     { return T_KEYWORD_IS; }
+"not"    { return T_KEYWORD_NOT; }
 
 [{}\(\)\[\],:] { return yytext[0]; }
 
@@ -44,10 +50,7 @@
 		return T_QSTRING;
 	}
 }
-
-. { fprintf(stderr, "Unexpected input on %u: %c\n", yylineno, yytext[0]);
-    exit(56);
-}
+. { yyerror("unexpected character"); exit(56); }
 
 %%
 
@@ -56,6 +59,5 @@ int yywrap(void) {
 }
 
 void yyerror(const char *str) {
-	fprintf(stderr, "polspec lexer error: %s on line %u\n", str, yylineno);
-	fprintf(stderr, "            context: %s\n", yytext);
+	fprintf(stderr, "lexer error on line %u: %s\n", yylineno, str);
 }

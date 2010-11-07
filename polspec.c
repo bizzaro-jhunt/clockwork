@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "ast.h"
+#include "fact.h"
 
 /* defined in spec/parser.y */
 extern struct ast *spec_result;
@@ -56,9 +57,29 @@ static struct ast* parse_file(const char *path)
 	return spec_result;
 }
 
+static int get_the_facts(struct list *facts, const char *path)
+{
+	FILE *io;
+	int nfacts;
+
+	io = fopen(path, "r");
+	if (!io) {
+		fprintf(stderr, "Unable to read facts from %s: ", path);
+		perror(NULL);
+		return 0;
+	}
+
+	nfacts = fact_read(facts, io);
+	fclose(io);
+
+	return nfacts;
+}
+
 int main(int argc, char **argv)
 {
 	struct ast *root;
+	struct policy *policy;
+	struct list facts;
 
 	printf("POL:SPEC   A Policy Specification Compiler\n" \
 	       "\n" \
@@ -66,13 +87,24 @@ int main(int argc, char **argv)
 	       "by the lex/yacc parser allowing you to verify correctness\n" \
 	       "\n");
 
-	if (argc != 2) {
-		fprintf(stderr, "USAGE: %s /path/to/file\n", argv[0]);
+	if (argc != 3) {
+		fprintf(stderr, "USAGE: %s /path/to/config /path/to/facts\n", argv[0]);
 		exit(1);
 	}
 
 	root = parse_file(argv[1]);
 	traverse(root, 0);
+
+
+	list_init(&facts);
+	if (get_the_facts(&facts, argv[2]) <= 0) {
+		return 2;
+	}
+
+	policy = ast_evaluate(root->nodes[0], &facts);
+	printf("Policy in packed format:\n" \
+	       "------------------------\n%s\n",
+	       policy_pack(policy));
 
 	return 0;
 }

@@ -3,7 +3,7 @@ void parse_error(const char *s, void *user_data)
 {
 	spec_parser_context *ctx = (spec_parser_context*)user_data;
 
-	fprintf(stderr, "FILE:%u: %s\n", yyget_lineno(ctx->scanner), s);
+	fprintf(stderr, "%s:%u: %s\n", ctx->file, yyget_lineno(ctx->scanner), s);
 }
 
 int lexer_new_buffer(FILE *io, spec_parser_context *ctx)

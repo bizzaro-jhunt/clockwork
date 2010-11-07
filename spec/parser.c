@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <string.h>
 
 #include "private.h"
 #include "parser.h"
@@ -16,12 +15,11 @@ struct ast* parse_file(const char *path)
 	}
 
 	yylex_init_extra(&ctx, &ctx.scanner);
+	ctx.file = path; /* FIXME: should we strdup this? */
 	lexer_new_buffer(io, &ctx);
 
-fprintf(stderr, "Commence parsing\n");
 	yyparse(&ctx);
 
-fprintf(stderr, "Done parsing; grabbing root element.\n");
 	root = ctx.root;
 	yylex_destroy(ctx.scanner);
 

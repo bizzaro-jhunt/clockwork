@@ -81,6 +81,8 @@ typedef struct {
 
 	struct ast *root; /* root node of the syntax tree parsed */
 	void *buf1;       /* Current buffer in use by yylex */
+
+	const char *file; /* Name of the current file being parsed */
 } spec_parser_context;
 
 #define YY_EXTRA_TYPE spec_parser_context*

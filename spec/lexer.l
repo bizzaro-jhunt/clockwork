@@ -1,20 +1,19 @@
 %{
 #include <stdio.h>
 
-/* Have to include these for the stringlist union member
-   in YYSTYPE (parser.h) */
-#include "../ast.h"
-#include "../stringlist.h"
-
 #include "parser.h"
+#include "grammar.h"
 
+int parse_success = 1;
+/*
 int yywrap(void);
 void yyerror(const char*);
+*/
 
 %}
 %%
 
-#.*[\r\n] { /* ignore comments */ }
+#.* { /* ignore comments */ }
 [\t \r\n]+ { /* ignore whitespace */ }
 
 "policy" { return T_KEYWORD_POLICY; }
@@ -43,14 +42,15 @@ void yyerror(const char*);
 \"[^\"\n]*[\"\n] { /* quoted string */
 	yylval.string = strdup(yytext + 1);
 	if (yylval.string[yyleng-2] != '\"') {
-		fprintf(stderr, "Warning: unterminated string literal\n");
-		exit(42);
+		yyerror("unterminated string literal");
+		/* recoverable error */
+		yyless(yyleng-1);
 	} else {
 		yylval.string[yyleng-2] = '\0';
-		return T_QSTRING;
 	}
+	return T_QSTRING;
 }
-. { yyerror("unexpected character"); exit(56); }
+. { yyerror("unexpected character"); }
 
 %%
 
@@ -59,5 +59,6 @@ int yywrap(void) {
 }
 
 void yyerror(const char *str) {
-	fprintf(stderr, "lexer error on line %u: %s\n", yylineno, str);
+	fprintf(stderr, "FILE:%u: %s\n", yylineno, str);
+	parse_success = 0;
 }

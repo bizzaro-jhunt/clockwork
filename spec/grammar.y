@@ -1,38 +1,16 @@
 %{
-#include <stdio.h>
-#include <string.h>
-
-#include "../ast.h"
-#include "../stringlist.h"
-
-struct branch {
-	const char     *fact;
-	stringlist     *values;
-	unsigned char   affirmative;
-	struct ast     *then;
-	struct ast     *otherwise;
-};
-
-struct map {
-	const char     *fact;
-	const char     *attribute;
-
-	stringlist     *fact_values;
-	stringlist     *attr_values;
-
-	const char     *default_value;
-};
-
+#include "parser.h"
 %}
 
 %union {
 	char           *string;
 	stringlist     *strings;
 	struct ast     *node;
-	struct branch  *branch;
-	struct map     *map;
 	stringlist     *string_hash[2];
 	char           *string_pair[2];
+
+	parser_branch  *branch;
+	parser_map     *map;
 }
 
 %token T_KEYWORD_POLICY
@@ -64,119 +42,15 @@ struct map {
 %type <strings> value_list
 %type <strings> explicit_value_list
 
+%type <string> qstring
+
 %type <map>         conditional_inline
 %type <string_hash> mapped_value_set
 %type <string_pair> mapped_value
 %type <string>      mapped_value_default
 %{
 
-/* defined in spec/lexer.l */
-extern int yylex(void);
-extern void yyerror(const char*);
-
-static struct ast* parser_new_resource_node(const char *type, const char *id)
-{
-	struct ast *node = ast_new(AST_OP_NOOP, id, NULL);
-	if (!node) {
-		return NULL;
-	}
-
-	if (strcmp(type, "user") == 0) {
-		node->op = AST_OP_DEFINE_RES_USER;
-	} else if (strcmp(type, "group") == 0) {
-		node->op = AST_OP_DEFINE_RES_GROUP;
-	} else if (strcmp(type, "file") == 0) {
-		node->op = AST_OP_DEFINE_RES_FILE;
-	} else {
-		fprintf(stderr, "Unknown resource type: '%s'\n", type);
-	}
-
-	return node;
-}
-
-static struct branch* branch_new(const char *fact, stringlist *values, unsigned char affirmative)
-{
-	struct branch *branch;
-
-	branch = malloc(sizeof(struct branch));
-	/* FIXME: what if malloc returns NULL? */
-	branch->fact = fact;
-	branch->values = values;
-	branch->affirmative = affirmative;
-	branch->then = NULL;
-	branch->otherwise = NULL;
-
-	return branch;
-}
-
-static void branch_connect(struct branch *branch, struct ast *then, struct ast *otherwise)
-{
-	if (branch->affirmative) {
-		branch->then = then;
-		branch->otherwise = otherwise;
-	} else {
-		branch->then = otherwise;
-		branch->otherwise = then;
-	}
-}
-
-static struct ast* branch_expand_nodes(struct branch *branch)
-{
-	struct ast *top = NULL, *current = NULL;
-	unsigned int i;
-
-	for (i = 0; i < branch->values->num; i++) {
-		current = ast_new(AST_OP_IF_EQUAL, branch->fact, branch->values->strings[i]);
-		ast_add_child(current, branch->then);
-		if (!top) {
-			ast_add_child(current, branch->otherwise);
-		} else {
-			ast_add_child(current, top);
-		}
-		top = current;
-	}
-	return top;
-}
-
-static struct map* map_new(const char *fact, const char *attr, stringlist *fact_values, stringlist *attr_values, const char *default_value)
-{
-	struct map *map;
-
-	map = malloc(sizeof(struct map));
-	/* FIXME: what if malloc returns NULL? */
-	map->fact = fact;
-	map->attribute = attr;
-	map->fact_values = fact_values;
-	map->attr_values = attr_values;
-	map->default_value = default_value;
-
-	return map;
-}
-
-static struct ast* map_expand_nodes(struct map *map)
-{
-	struct ast *top = NULL, *current = NULL;
-	unsigned int i;
-
-	/* FIXME: what if fact_values->num != attr_values->num */
-	for (i = 0; i < map->fact_values->num; i++) {
-		current = ast_new(AST_OP_IF_EQUAL, map->fact, map->fact_values->strings[i]);
-		ast_add_child(current, ast_new(AST_OP_SET_ATTRIBUTE, map->attribute, map->attr_values->strings[i]));
-		if (!top) {
-			if (map->default_value) {
-				ast_add_child(current, ast_new(AST_OP_SET_ATTRIBUTE, map->attribute, map->default_value));
-			} else {
-				ast_add_child(current, ast_new(AST_OP_NOOP, NULL, NULL));
-			}
-		} else {
-			ast_add_child(current, top);
-		}
-		top = current;
-	}
-
-	return top;
-}
-
+#include "parser.c"
 struct ast *spec_result = NULL;
 
 %}
@@ -189,7 +63,7 @@ policies:
 	{ ast_add_child(spec_result, $2); }
 	;
 
-policy: T_KEYWORD_POLICY T_QSTRING '{' blocks '}'
+policy: T_KEYWORD_POLICY qstring '{' blocks '}'
       { $$ = ast_new(AST_OP_DEFINE_POLICY, $2, NULL);
         ast_add_child($$, $4); }
       ;
@@ -222,7 +96,7 @@ attribute_spec: T_IDENTIFIER ':' value
 	        $$ = map_expand_nodes($3); }
 	      ;
 
-value: T_QSTRING
+value: qstring 
      | T_NUMERIC
      ;
 
@@ -266,7 +140,7 @@ mapped_value_set:
 		  stringlist_add($$[1], $2[1]); }
 		;
 
-mapped_value: T_QSTRING ':' value
+mapped_value: qstring ':' value
 	    { $$[0] = $1;
 	      $$[1] = $3; }
 	    ;
@@ -277,3 +151,7 @@ mapped_value_default:
 		    { $$ = $3; }
 		    ;
 
+qstring: T_QSTRING
+       | T_IDENTIFIER
+       { yyerror("unexpected identifier; expected quoted string literal"); }
+       ;

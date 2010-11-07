@@ -125,7 +125,7 @@ clean:
 	find . -name '*.o' -o -name '*.gc??' | xargs rm -f
 	rm -f lcov.info
 	rm -f $(UTILS) test/userdb
-	rm -f spec/lexer.c spec/parser.c spec/parser.h spec/*.output
+	rm -f spec/lexer.c spec/grammar.c spec/grammar.h spec/*.output
 
 dist: clean
 	rm -rf doc/coverage
@@ -148,7 +148,7 @@ test_server: test_server.o proto.o
 test_client: test_client.o proto.o
 	$(CC) -o $@ $+
 
-polspec: spec/lexer.o spec/parser.o \
+polspec: spec/lexer.o spec/grammar.o \
          policy.o fact.o ast.o \
          $(RESOURCE_OBJECTS) \
          $(CORE_OBJECTS) \
@@ -161,8 +161,8 @@ polspec: spec/lexer.o spec/parser.o \
 %.o: %.c %.h
 	$(CC) -c -o $@ $<
 
-spec/lexer.c: spec/lexer.l spec/parser.h
+spec/lexer.c: spec/lexer.l spec/grammar.h spec/parser.h
 	$(LEX) --outfile=$@ $<
 
-spec/parser.c spec/parser.h: spec/parser.y
-	$(YACC) --output-file=spec/parser.c $<
+spec/grammar.c spec/grammar.h: spec/grammar.y spec/parser.c spec/parser.h
+	$(YACC) --output-file=spec/grammar.c $<

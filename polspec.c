@@ -8,6 +8,7 @@
 /* defined in spec/parser.y */
 extern struct ast *spec_result;
 extern int yyparse(void);
+extern int parse_success;
 
 /* defined in spec/lexer.l */
 extern FILE *yyin;
@@ -54,7 +55,10 @@ static struct ast* parse_file(const char *path)
 
 	yyin = io;
 	yyparse();
-	return spec_result;
+	if (parse_success == 1) {
+		return spec_result;
+	}
+	return NULL;
 }
 
 static int get_the_facts(struct list *facts, const char *path)
@@ -93,6 +97,9 @@ int main(int argc, char **argv)
 	}
 
 	root = parse_file(argv[1]);
+	if (!root) {
+		exit(2);
+	}
 	traverse(root, 0);
 
 
@@ -101,10 +108,14 @@ int main(int argc, char **argv)
 		return 2;
 	}
 
-	policy = ast_evaluate(root->nodes[0], &facts);
-	printf("Policy in packed format:\n" \
-	       "------------------------\n%s\n",
-	       policy_pack(policy));
+	if (root->size > 0) {
+		policy = ast_evaluate(root->nodes[0], &facts);
+		printf("Policy in packed format:\n" \
+		       "------------------------\n%s\n",
+		       policy_pack(policy));
+	} else {
+		fprintf(stderr, "No policy defined...\n");
+	}
 
 	return 0;
 }

@@ -6,22 +6,24 @@
 struct ast* parse_file(const char *path)
 {
 	spec_parser_context ctx;
-	FILE *io;
 	struct ast *root;
 
-	io = fopen(path, "r");
-	if (!io) {
-		return NULL;
-	}
+	/* FIXME: move to spec_parser_new() contructor */
+	ctx.file = NULL;
+	ctx.files = stringlist_new(NULL);
+	list_init(&ctx.fseen);
 
 	yylex_init_extra(&ctx, &ctx.scanner);
-	ctx.file = path; /* FIXME: should we strdup this? */
-	lexer_new_buffer(io, &ctx);
-
+	/*
+	lexer_init_file(path, &ctx);
+	*/
+	lexer_include_file(path, &ctx);
 	yyparse(&ctx);
 
 	root = ctx.root;
+
 	yylex_destroy(ctx.scanner);
+	stringlist_free(ctx.files);
 
 	return root;
 }

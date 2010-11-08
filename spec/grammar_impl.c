@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -26,12 +27,13 @@ static parser_branch* branch_new(const char *fact, stringlist *values, unsigned 
 	parser_branch *branch;
 
 	branch = malloc(sizeof(parser_branch));
-	/* FIXME: what if malloc returns NULL? */
-	branch->fact = fact;
-	branch->values = values;
-	branch->affirmative = affirmative;
-	branch->then = NULL;
-	branch->otherwise = NULL;
+	if (branch) {
+		branch->fact = fact;
+		branch->values = values;
+		branch->affirmative = affirmative;
+		branch->then = NULL;
+		branch->otherwise = NULL;
+	}
 
 	return branch;
 }
@@ -70,22 +72,26 @@ static parser_map* map_new(const char *fact, const char *attr, stringlist *fact_
 	parser_map *map;
 
 	map = malloc(sizeof(parser_map));
-	/* FIXME: what if malloc returns NULL? */
-	map->fact = fact;
-	map->attribute = attr;
-	map->fact_values = fact_values;
-	map->attr_values = attr_values;
-	map->default_value = default_value;
+	if (map) {
+		map->fact = fact;
+		map->attribute = attr;
+		map->fact_values = fact_values;
+		map->attr_values = attr_values;
+		map->default_value = default_value;
+	}
 
 	return map;
 }
 
 static struct ast* map_expand_nodes(parser_map *map)
 {
+	assert(map->fact_values);
+	assert(map->attr_values);
+	assert(map->fact_values->num == map->attr_values->num);
+
 	struct ast *top = NULL, *current = NULL;
 	unsigned int i;
 
-	/* FIXME: what if fact_values->num != attr_values->num */
 	for (i = 0; i < map->fact_values->num; i++) {
 		current = ast_new(AST_OP_IF_EQUAL, map->fact, map->fact_values->strings[i]);
 		ast_add_child(current, ast_new(AST_OP_SET_ATTRIBUTE, map->attribute, map->attr_values->strings[i]));

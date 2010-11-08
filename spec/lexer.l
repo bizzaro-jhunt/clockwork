@@ -24,14 +24,15 @@
   These options are defined to quell GCC compiler warnings related
   to defined but unused functions:
 
-    noyywrap      - Do not define yywrap (not currently used)
     noinput       - Do not define input (not currently used)
     nounput       - Do not define yyunpuy (not currently used)
  */
 %}
 %option reentrant bison-bridge
 %option yylineno
-%option noyywrap noinput nounput
+%option noinput nounput
+
+%x INCLUDE
 %%
 
 #.* { /* ignore comments */ }
@@ -44,6 +45,21 @@
 "map"    { return T_KEYWORD_MAP; }
 "is"     { return T_KEYWORD_IS; }
 "not"    { return T_KEYWORD_NOT; }
+
+include  { BEGIN(INCLUDE); }
+<INCLUDE>\"[^\"\n]*[\"\n] { 
+	yylval->string = strdup(yytext + 1);
+	if (yylval->string[yyleng-2] != '\"') {
+		parse_error("unterminated string literal in include", yyget_extra(yyscanner));
+		/* recoverable error */
+		yyless(yyleng-1);
+	} else {
+		yylval->string[yyleng-2] = '\0';
+	}
+
+	lexer_include_file(yylval->string, yyget_extra(yyscanner));
+	BEGIN(INITIAL);
+}
 
 [{}\(\)\[\],:] { return yytext[0]; }
 

@@ -1,12 +1,15 @@
 #ifndef _SPEC_PRIVATE_H
 #define _SPEC_PRIVATE_H
 
+#include <sys/stat.h>
+
 /* This headers is "private" and includes structure definitions
    and function prototypes that are ONLY of interest to the
    internals of the lexer and grammar modules, spec/lexer.o
    and spec/grammar.o.
  */
 
+#include "../list.h"
 #include "../ast.h"
 #include "../stringlist.h"
 
@@ -61,6 +64,12 @@ typedef struct {
 	const char     *default_value; /* Default value (else clause) for attribute */
 } parser_map;
 
+typedef struct {
+	dev_t st_dev;
+	ino_t st_ino;
+	struct list ls;
+} parser_file;
+
 /**
   spec_parser_context - User data for reentrant lexer / parser
 
@@ -80,9 +89,11 @@ typedef struct {
 	void *scanner;    /* lexer variable store; used instead of globals */
 
 	struct ast *root; /* root node of the syntax tree parsed */
-	void *buf1;       /* Current buffer in use by yylex */
-
 	const char *file; /* Name of the current file being parsed */
+
+	stringlist *files; /* "Stack" of file names processed so far */
+
+	struct list fseen; /* List of device ID / inode pairs already include'd */
 } spec_parser_context;
 
 #define YY_EXTRA_TYPE spec_parser_context*
@@ -149,8 +160,7 @@ void parse_error(const char *error, void *user_data);
  */
 #define yyerror(s) parse_error(s, YYPARSE_PARAM)
 
-/* Create a new YY_BUFFER_STATE object and set it up to
-   read from the FILE pointer given. */
-int lexer_new_buffer(FILE*, spec_parser_context*);
+void lexer_include_file(const char *path, spec_parser_context*);
+int lexer_include_return(spec_parser_context*);
 
 #endif

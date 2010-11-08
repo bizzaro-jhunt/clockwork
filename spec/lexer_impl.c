@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <glob.h>
 #include <sys/stat.h>
+#include <stdarg.h>
 
 /** STATIC functions used only by other, non-static functions in this file **/
 
@@ -11,12 +12,14 @@ static int lexer_check_file(const char *path, spec_parser_context *ctx)
 	parser_file *seen;
 
 	if (stat(path, &st) != 0) {
-		parse_error("Unable to stat a file %s: %s", ctx);
+		/* FIXME: errstr support here */
+		spec_parser_error(ctx, "can't stat %s: %s", path, "ERROR UNKNOWN");
 		return -1;
 	}
 
 	if (!S_ISREG(st.st_mode)) {
-		parse_error("Unable to open file %s: %s", ctx);
+		/* FIXME: errstr support here */
+		spec_parser_error(ctx, "can't open %s: %s", path, "ERROR UNKNOWN");
 		return -1;
 	}
 
@@ -25,14 +28,14 @@ static int lexer_check_file(const char *path, spec_parser_context *ctx)
 	for_each_node(seen, &ctx->fseen, ls) {
 		if (seen->st_dev == st.st_dev
 		 && seen->st_ino == st.st_ino) {
-			parse_error("Ignoring duplicate inclusion of %s", ctx);
+			spec_parser_warning(ctx, "skipping %s (already seen)", path);
 			return -1;
 		}
 	}
 
 	seen = malloc(sizeof(parser_file));
 	if (!seen) {
-		parse_error("out of memory", ctx);
+		spec_parser_error(ctx, "out of memory");
 		return -1;
 	}
 
@@ -53,7 +56,8 @@ static void lexer_process_file(const char *path, spec_parser_context *ctx)
 
 	io = fopen(path, "r");
 	if (!io) {
-		parse_error("Unable to open file %s: %s", ctx);
+		/* FIXME: errstr support here */
+		spec_parser_error(ctx, "can't open %s: %s", path, "ERROR UNKNOWN");
 		return;
 	}
 
@@ -101,7 +105,39 @@ static char* lexer_resolve_path_spec(const char *current_file, const char *path)
 	return full_path;
 }
 
-/* FIXME: make parse_error variadic, and break out into warning and error */
+void spec_parser_error(void *user, const char *fmt, ...)
+{
+	char buf[256];
+	va_list args;
+	spec_parser_context *ctx = (spec_parser_context*)user;
+
+	va_start(args, fmt);
+	if (vsnprintf(buf, 256, fmt, args) < 0) {
+		fprintf(stderr, "%s:%u: error: vsnprintf failed in spec_parser_error\n",
+		                ctx->file, yyget_lineno(ctx->scanner));
+	} else {
+		fprintf(stderr, "%s:%u: error: %s\n", ctx->file, yyget_lineno(ctx->scanner), buf);
+	}
+	ctx->errors++;
+}
+
+void spec_parser_warning(void *user, const char *fmt, ...)
+{
+	char buf[256];
+	va_list args;
+	spec_parser_context *ctx = (spec_parser_context*)user;
+
+	va_start(args, fmt);
+	if (vsnprintf(buf, 256, fmt, args) < 0) {
+		fprintf(stderr, "%s:%u: error: vsnprintf failed in spec_parser_warning\n",
+		                ctx->file, yyget_lineno(ctx->scanner));
+		ctx->errors++; /* treat this as an error */
+	} else {
+		fprintf(stderr, "%s:%u: warning: %s\n", ctx->file, yyget_lineno(ctx->scanner), buf);
+		ctx->warnings++; 
+	}
+}
+
 void parse_error(const char *s, void *user_data)
 {
 	spec_parser_context *ctx = (spec_parser_context*)user_data;
@@ -118,7 +154,7 @@ void lexer_include_file(const char *path, spec_parser_context *ctx)
 
 	full_path = lexer_resolve_path_spec(ctx->file, path);
 	if (!full_path) {
-		parse_error("Unable to resolve absolute path of %s", ctx);
+		spec_parser_error(ctx, "Unable to resolve absolute path of %s", path);
 		return;
 	}
 
@@ -131,10 +167,10 @@ void lexer_include_file(const char *path, spec_parser_context *ctx)
 		lexer_process_file(path, ctx);
 		return;
 	case GLOB_NOSPACE:
-		parse_error("out of memory in glob expansion", ctx);
+		spec_parser_error(ctx, "out of memory in glob expansion");
 		return;
 	case GLOB_ABORTED:
-		parse_error("read aborted during glob expansion", ctx);
+		spec_parser_error(ctx, "read aborted during glob expansion");
 		return;
 	}
 

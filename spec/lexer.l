@@ -12,6 +12,11 @@
 #include "private.h"
 #include "grammar.h"
 
+/* The following two macros are a convenience only, and CANNOT
+   be used outside of a token action rule. */
+#define lexer_error(s) spec_parser_error(yyget_extra(yyscanner), s);
+#define lexer_warning(s) spec_parser_warning(yyget_extra(yyscanner), s);
+
 /*
   The following flex options are necessary for proper operation
   of the generated lexer code:
@@ -50,7 +55,7 @@ include  { BEGIN(INCLUDE); }
 <INCLUDE>\"[^\"\n]*[\"\n] { 
 	yylval->string = strdup(yytext + 1);
 	if (yylval->string[yyleng-2] != '\"') {
-		parse_error("unterminated string literal in include", yyget_extra(yyscanner));
+		lexer_warning("unterminated string literal in include");
 		/* recoverable error */
 		yyless(yyleng-1);
 	} else {
@@ -78,7 +83,7 @@ include  { BEGIN(INCLUDE); }
 \"[^\"\n]*[\"\n] { /* quoted string */
 	yylval->string = strdup(yytext + 1);
 	if (yylval->string[yyleng-2] != '\"') {
-		parse_error("unterminated string literal", yyget_extra(yyscanner));
+		lexer_warning("unterminated string literal in include");
 		/* recoverable error */
 		yyless(yyleng-1);
 	} else {
@@ -86,7 +91,7 @@ include  { BEGIN(INCLUDE); }
 	}
 	return T_QSTRING;
 }
-. { parse_error("unexpected character", yyget_extra(yyscanner)); }
+. { spec_parser_error(yyget_extra(yyscanner), "unexpected character '%c'", yytext[0]); }
 
 %%
 /* lexer_impl.c contains the implementation for routines used

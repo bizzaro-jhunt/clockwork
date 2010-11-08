@@ -9,6 +9,7 @@ struct ast* parse_file(const char *path)
 	struct ast *root;
 
 	ctx.file = NULL;
+	ctx.warnings = ctx.errors = 0;
 	ctx.files = stringlist_new(NULL);
 	list_init(&ctx.fseen);
 
@@ -21,6 +22,10 @@ struct ast* parse_file(const char *path)
 	yylex_destroy(ctx.scanner);
 	stringlist_free(ctx.files);
 
+	if (ctx.errors > 0) {
+		fprintf(stderr, "Errors encountered; aborting...\n");
+		return NULL;
+	}
 	return root;
 }
 

@@ -86,14 +86,16 @@ typedef struct {
   policy generators and host definitions found while parsing.
  */
 typedef struct {
-	void *scanner;    /* lexer variable store; used instead of globals */
+	void *scanner;         /* lexer variable store; used instead of globals */
 
-	struct ast *root; /* root node of the syntax tree parsed */
-	const char *file; /* Name of the current file being parsed */
+	unsigned int warnings; /* Number of times spec_parser_warning called */
+	unsigned int errors;   /* Number of times spec_parser_error called */
 
-	stringlist *files; /* "Stack" of file names processed so far */
+	const char *file;      /* Name of the current file being parsed */
+	stringlist *files;     /* "Stack" of file names processed so far */
+	struct list fseen;     /* List of device ID / inode pairs already include'd */
 
-	struct list fseen; /* List of device ID / inode pairs already include'd */
+	struct ast *root;      /* root node of the syntax tree parsed */
 } spec_parser_context;
 
 #define YY_EXTRA_TYPE spec_parser_context*
@@ -141,8 +143,9 @@ void yyset_extra(YY_EXTRA_TYPE, yyscan_t);
 int yyparse(void*);
 
 /* Defined in lexer.l */
-void parse_error(const char *error, void *user_data);
-/* Define yyerror as a macro that invokes parse_error
+void spec_parser_error(void *ctx, const char *fmt, ...);
+void spec_parser_warning(void *ctx, const char *fmt, ...);
+/* Define yyerror as a macro that invokes spec_parser_error
 
    Because the Flex-generated C code contains calls to
    yyerror with the following signature:
@@ -158,7 +161,7 @@ void parse_error(const char *error, void *user_data);
    only ever calls yyerror from within yylex, this assumption
    is safe insofar as generated code is concerned.
  */
-#define yyerror(s) parse_error(s, YYPARSE_PARAM)
+#define yyerror(s) spec_parser_error(YYPARSE_PARAM, s);
 
 void lexer_include_file(const char *path, spec_parser_context*);
 int lexer_include_return(spec_parser_context*);

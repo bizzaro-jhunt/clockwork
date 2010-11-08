@@ -173,5 +173,5 @@ mapped_value_default:
 
 qstring: T_QSTRING
        | T_IDENTIFIER
-       { yyerror("unexpected identifier; expected quoted string literal"); }
+       { spec_parser_warning(YYPARSE_PARAM, "unexpected identifier '%s', expected quoted string literal", $1); }
        ;

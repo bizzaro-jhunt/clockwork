@@ -36,7 +36,13 @@
 %option reentrant bison-bridge
 %option yylineno
 %option noinput nounput
-
+%{
+/*
+  Define an exclusive start state for 'include "file"' statements,
+  so that the lexer can handle them, and the parser can remain blissfully
+  unaware of what is going on.
+ */
+%}
 %x INCLUDE
 %%
 
@@ -51,7 +57,7 @@
 "is"     { return T_KEYWORD_IS; }
 "not"    { return T_KEYWORD_NOT; }
 
-include  { BEGIN(INCLUDE); }
+include[ \t]+  { BEGIN(INCLUDE); }
 <INCLUDE>\"[^\"\n]*[\"\n] { 
 	yylval->string = strdup(yytext + 1);
 	if (yylval->string[yyleng-2] != '\"') {
@@ -65,6 +71,7 @@ include  { BEGIN(INCLUDE); }
 	lexer_include_file(yylval->string, yyget_extra(yyscanner));
 	BEGIN(INITIAL);
 }
+<INCLUDE>. { spec_parser_error(yyget_extra(yyscanner), "unexpected character '%c'", yytext[0]); }
 
 [{}\(\)\[\],:] { return yytext[0]; }
 

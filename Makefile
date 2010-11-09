@@ -20,7 +20,7 @@ LEX_FLAGS :=
 LEX_FLAGS += --verbose
 LEX_FLAGS += --header-file
 LEX_FLAGS += --yylineno
-LEX_FLAGS += --noline
+#LEX_FLAGS += --noline
 LEX := flex $(LEX_FLAGS)
 
 YACC_FLAGS :=
@@ -34,6 +34,7 @@ YACC := bison $(YACC_FLAGS)
 VG := valgrind --leak-check=full --show-reachable=yes --read-var-info=yes --track-origins=yes
 
 LCOV := lcov --directory . --base-directory .
+GENHTML := genhtml --prefix $(shell dirname `pwd`)
 
 MOG := ./mog
 
@@ -48,6 +49,12 @@ RESOURCE_HEADERS := res_user.h res_group.h res_file.h
 
 # Supporting object files
 CORE_OBJECTS := mem.o sha1.o pack.o stringlist.o userdb.o
+
+# Policy object files
+POLICY_OBJECTS := policy.o fact.o ast.o
+
+# Parser object files
+PARSER_OBJECTS := spec/lexer.o spec/grammar.o spec/parser.o
 
 ############################################################
 # Default Target
@@ -69,20 +76,25 @@ sizes: sizes.c $(RESOURCE_HEADERS) userdb.h
 ############################################################
 # Unit Tests
 
-test: tests
+test: unit_tests functional_tests
 	test/setup.sh
+	@echo;
+	@echo;
 	test/run
+	@echo;
+	@echo;
+	test/functional/run
 
-memtest: tests
+memtest: unit_tests
 	test/setup.sh
 	$(VG) test/run
 
-coverage: lcov.info tests
+coverage: lcov.info unit_tests functional_tests
 	rm -rf doc/coverage
 	mkdir -p doc/coverage
-	genhtml -o doc/coverage lcov.info
+	$(GENHTML) -o doc/coverage lcov.info
 
-tests: test/run
+unit_tests: test/run
 
 test/run: test/run.o test/test.o \
           test/assertions.o \
@@ -105,12 +117,13 @@ test/run: test/run.o test/test.o \
 test/%.o: test/%.c test/test.h
 	$(CC) -c -o $@ $<
 
-lcov.info: tests
+lcov.info: unit_tests functional_tests
 	find . -name '*.gcda' | xargs rm -f
 	test/setup.sh
 	test/run
+	test/functional/run
 	$(LCOV) --capture -o $@.tmp
-	$(LCOV) --remove $@.tmp test/* > $@
+	$(LCOV) --remove $@.tmp test/* spec/grammar.c spec/lexer.c > $@
 	rm -f $@.tmp
 
 test/res_file.o: test/res_file.c res_file.h test/sha1_files.h
@@ -118,6 +131,19 @@ test/res_file.o: test/res_file.c res_file.h test/sha1_files.h
 
 test/sha1_files.h:
 	$(MOG) sha1_tests
+
+############################################################
+# Functional Tests
+
+functional_tests: test/util/includer
+
+test/util/includer: test/util/includer.o \
+                    $(CORE_OBJECTS) $(PARSER_OBJECTS) \
+                    $(RESOURCE_OBJECTS) $(POLICY_OBJECTS)
+	$(CC) -o $@ $+
+
+test/util/includer.o: test/util/includer.c spec/lexer.l
+	$(CC) -c -o $@ $<
 
 ############################################################
 # Maintenance
@@ -149,10 +175,9 @@ test_server: test_server.o proto.o
 test_client: test_client.o proto.o
 	$(CC) -o $@ $+
 
-polspec: spec/lexer.o spec/grammar.o spec/parser.o \
-         policy.o fact.o ast.o \
-         $(RESOURCE_OBJECTS) \
-         $(CORE_OBJECTS) \
+polspec: $(CORE_OBJECTS) \
+         $(RESOURCE_OBJECTS) $(POLICY_OBJECTS) \
+         $(PARSER_OBJECTS) \
          polspec.o
 	$(CC) -o $@ $+
 

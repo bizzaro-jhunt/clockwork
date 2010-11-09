@@ -1,0 +1,8 @@
+# looping policy definition
+# a includes b, which includes a, which includes b ...
+
+include		"b.pol"
+
+policy "a" {
+	# empty on purpose
+}

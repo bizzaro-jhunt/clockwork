@@ -1,0 +1,111 @@
+#!/usr/bin/perl
+
+our $FAILURES = 0;
+our $TESTS = 0;
+our $ASSERTIONS = 0;
+
+sub finish_tests()
+{
+	print  "--------------------\n";
+	print  "TEST RESULTS SUMMARY\n";
+	print  "--------------------\n";
+	printf("%4d test(s)\n", $TESTS);
+	printf("%4d assertion(s)\n", $ASSERTIONS);
+	print  "\n";
+	printf("%4d FAILURES(s)\n", $FAILURES);
+
+	exit ($FAILURES);
+}
+
+sub run($)
+{
+	my $command = shift;
+
+	my $output = qx($command);
+	chomp($output);
+
+	return $output;
+}
+
+sub assert_str_equals($$$)
+{
+	(my $msg, my $expected, my $actual) = (@_);
+
+	$ASSERTIONS++;
+
+	if ($actual ne $expected) {
+		print "$msg: FAIL\n";
+		print "      actual:   '$actual' !=\n";
+		print "      expected: '$expected'\n";
+		$FAILURES++;
+	}
+}
+
+sub assert_str_match($$$)
+{
+	(my $msg, my $regex, my $actual) = (@_);
+
+	$ASSERTIONS++;
+
+	if ($actual !~ m/($regex)/) {
+		print "$msg: FAIL\n";
+		print "      actual:   '$actual' !~ <regex> $regex\n";
+		$FAILURES++;
+	}
+}
+
+sub test_assertions()
+{
+	$TESTS++;
+	print "test: assertion testing\n";
+
+	assert_str_equals("  basic string equality assertions",
+		"string value 42",
+		"string value 42");
+
+	assert_str_match("  basic string matching assertions",
+		"ing [a-z]+ [0-9]+",
+		"string value 42");
+}
+
+sub test_parser_inclusion()
+{
+	$TESTS++;
+	print "parser: inclusion tests\n";
+
+	my $includer = "./test/util/includer";
+	my $root = "test/functional/includer";
+
+	my $no_stderr = "2>/dev/null";
+	my $stderr_only = "2>&1 >/dev/null";
+
+	assert_str_equals("parser_incl: Duplicates", "duplicate",
+		run(qq($includer "$root/dup.pol" $no_stderr)));
+
+	assert_str_equals("parser_incl: Loop Detection", "b::a",
+		run(qq($includer "$root/loop/a.pol" $no_stderr)));
+
+	assert_str_equals("parser_incl: Glob Inclusion",
+		"common::base-gentoo-dev::base-ubuntu-dev::base-gentoo-test::base-ubuntu-test",
+		run(qq($includer "$root/glob-dev.pol" $no_stderr)));
+
+	assert_str_match("parser_incl: Non-existent file inclusion",
+		"error: can't stat .*: No such file or directory",
+		run(qq($includer "$root/enoent.pol" $stderr_only)));
+
+	assert_str_match("parser_incl: Inclusion of anything but regular files fails",
+		"error: can't open /tmp/: not a regular file",
+		run(qq($includer "$root/dir.pol" $stderr_only)));
+
+	assert_str_match("parser_incl: Unterminated string literal in include statement",
+		"warning: unterminated string literal",
+		run(qq($includer "$root/unterminated.pol" $stderr_only)));
+
+	assert_str_equals("parser_incl: Unterminated string listeral works anyway", "simple",
+		run(qq($includer "$root/unterminated.pol" $no_stderr)));
+
+}
+
+test_assertions();
+test_parser_inclusion();
+finish_tests();

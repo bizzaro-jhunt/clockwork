@@ -1,0 +1,2 @@
+include "globs/*-dev.pol"
+include "globs/*-test.pol"

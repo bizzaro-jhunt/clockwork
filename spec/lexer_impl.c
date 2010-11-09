@@ -12,14 +12,13 @@ static int lexer_check_file(const char *path, spec_parser_context *ctx)
 	parser_file *seen;
 
 	if (stat(path, &st) != 0) {
-		/* FIXME: errstr support here */
-		spec_parser_error(ctx, "can't stat %s: %s", path, "ERROR UNKNOWN");
+		/* NOTE: strerror not reentrant */
+		spec_parser_error(ctx, "can't stat %s: %s", path, strerror(errno));
 		return -1;
 	}
 
 	if (!S_ISREG(st.st_mode)) {
-		/* FIXME: errstr support here */
-		spec_parser_error(ctx, "can't open %s: %s", path, "ERROR UNKNOWN");
+		spec_parser_error(ctx, "can't open %s: not a regular file", path);
 		return -1;
 	}
 

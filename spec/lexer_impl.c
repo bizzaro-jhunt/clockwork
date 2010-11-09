@@ -174,8 +174,13 @@ void lexer_include_file(const char *path, spec_parser_context *ctx)
 		return;
 	}
 
-	for (i = 0; i < expansion.gl_pathc; i++) {
-		lexer_process_file(expansion.gl_pathv[i], ctx);
+	/* Process each the sorted list in gl_pathv, in reverse, so
+	   that when buffers are popped off the stack, they come out
+	   in alphabetical order.
+
+	   n.b. size_t is unsigned; (size_t)(-1) > 0 */
+	for (i = expansion.gl_pathc; i > 0; i--) {
+		lexer_process_file(expansion.gl_pathv[i-1], ctx);
 	}
 	globfree(&expansion);
 }

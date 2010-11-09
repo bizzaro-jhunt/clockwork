@@ -27,3 +27,9 @@ parser::
   if-else-if-else construct
   support in grammar for unless keyword
   host definition support
+
+
+COLLAPSE MODULES:
+  POLICY:     fact + policy + ast
+  RESOURCES:  res_user + res_file + res_group
+  CORE:       mem + stringlist + list

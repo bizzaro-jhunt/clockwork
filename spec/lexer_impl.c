@@ -138,13 +138,6 @@ void spec_parser_warning(void *user, const char *fmt, ...)
 	}
 }
 
-void parse_error(const char *s, void *user_data)
-{
-	spec_parser_context *ctx = (spec_parser_context*)user_data;
-
-	fprintf(stderr, "%s:%u: %s\n", ctx->file, yyget_lineno(ctx->scanner), s);
-}
-
 void lexer_include_file(const char *path, spec_parser_context *ctx)
 {
 	glob_t expansion;

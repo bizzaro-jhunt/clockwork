@@ -3,6 +3,7 @@
 #include "../../policy.h"
 #include "../../ast.h"
 #include "../../spec/parser.h"
+#include "../../fact.h"
 
 /** factchecker - a test utility
 

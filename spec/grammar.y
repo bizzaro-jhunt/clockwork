@@ -126,6 +126,14 @@ conditional: T_KEYWORD_IF '(' conditional_test ')' '{' blocks '}'
 	   | T_KEYWORD_IF '(' conditional_test ')' '{' blocks '}' T_KEYWORD_ELSE '{' blocks '}'
 	   { branch_connect($3, $6, $10);
 	     $$ = branch_expand_nodes($3); }
+	   | T_KEYWORD_UNLESS '(' conditional_test ')' '{' blocks '}'
+	   { $3->affirmative = ($3->affirmative == 1 ? 0 : 1);
+	     branch_connect($3, $6, ast_new(AST_OP_NOOP, NULL, NULL));
+	     $$ = branch_expand_nodes($3); }
+	   | T_KEYWORD_UNLESS '(' conditional_test ')' '{' blocks '}' T_KEYWORD_ELSE '{' blocks '}'
+	   { $3->affirmative = ($3->affirmative == 1 ? 0 : 1);
+	     branch_connect($3, $6, $10);
+	     $$ = branch_expand_nodes($3); }
 	   ;
 
 conditional_test: T_FACT T_KEYWORD_IS value_list

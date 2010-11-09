@@ -142,6 +142,13 @@ sub test_fact_checking()
 	assert_str_equals("factchecker: [if-not] else branch followed", "res_user:jade-user:1500:1400",
 		run(qq(echo "sys.hostname=jade" | $factchecker "$root/if-not.pol" 2>/dev/null)));
 
+	# unless (syntactic sugar for if-not)
+	assert_str_equals("factchecker: [unless] if branch followed", "res_user:user:2125:3125",
+		run(qq(echo "sys.hostname=topaz" | $factchecker "$root/unless.pol" 2>/dev/null)));
+
+	assert_str_equals("factchecker: [unless] else branch followed", "res_user:jade-user:1500:1400",
+		run(qq(echo "sys.hostname=jade" | $factchecker "$root/unless.pol" 2>/dev/null)));
+
 	# if-not-list
 	assert_str_equals("factchecker: [if-not-list] else branch followed for 'lucid'", "res_user:ubuntu:2125:3125",
 		run(qq(echo "lsb.distro.codename=lucid" | $factchecker "$root/if-not-list.pol" 2>/dev/null)));
@@ -158,6 +165,13 @@ sub test_fact_checking()
 
 	assert_str_equals("factchecker: [if-only] no users defined", "no users defined!",
 		run(qq(echo "sys.hostname=emerald" | $factchecker "$root/if-only.pol" 2>/dev/null)));
+
+	# unless-only
+	assert_str_equals("factchecker: [unless-only] not-jade defined", "res_user:not-jade:2125:3125",
+		run(qq(echo "sys.hostname=topaz" | $factchecker "$root/unless-only.pol" 2>/dev/null)));
+
+	assert_str_equals("factchecker: [unless-only] no users defined", "no users defined!",
+		run(qq(echo "sys.hostname=jade" | $factchecker "$root/unless-only.pol" 2>/dev/null)));
 
 	# map
 	assert_str_equals("factchecker: [map] UID is 2125 for fact '2xxx'", "res_user:guest:2125:3125",

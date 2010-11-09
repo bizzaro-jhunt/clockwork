@@ -61,6 +61,7 @@ include[ \t]+  { BEGIN(INCLUDE); }
 <INCLUDE>\"[^\"\n]*[\"\n] { 
 	yylval->string = strdup(yytext + 1);
 	if (yylval->string[yyleng-2] != '\"') {
+		yylval->string[yyleng-2] = '\0';
 		lexer_warning("unterminated string literal in include");
 		/* recoverable error */
 		yyless(yyleng-1);

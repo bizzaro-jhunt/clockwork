@@ -76,11 +76,11 @@ include[ \t]+  { BEGIN(INCLUDE); }
 
 [{}\(\)\[\],:] { return yytext[0]; }
 
-([a-z]+\.)+[a-z]+ { /* fact */
+([a-z_]+\.)+[a-z_]+ { /* fact */
 	yylval->string = strdup(yytext);
 	return T_FACT;
 }
-[a-z]+ { /* identifier */
+[a-z_]+ { /* identifier */
 	yylval->string = strdup(yytext);
 	return T_IDENTIFIER;
 }
@@ -91,7 +91,7 @@ include[ \t]+  { BEGIN(INCLUDE); }
 \"[^\"\n]*[\"\n] { /* quoted string */
 	yylval->string = strdup(yytext + 1);
 	if (yylval->string[yyleng-2] != '\"') {
-		lexer_warning("unterminated string literal in include");
+		lexer_warning("unterminated string literal");
 		/* recoverable error */
 		yyless(yyleng-1);
 	} else {

@@ -1,0 +1,12 @@
+
+policy "map-no-else" {
+
+	user "guest" {
+		uid: map(test.use_uid) {
+			"2xxx": 2125
+			"3xxx": 3378
+		}
+		gid: 3125
+	}
+
+}

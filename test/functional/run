@@ -101,11 +101,89 @@ sub test_parser_inclusion()
 		"warning: unterminated string literal",
 		run(qq($includer "$root/unterminated.pol" $stderr_only)));
 
-	assert_str_equals("parser_incl: Unterminated string listeral works anyway", "simple",
+	assert_str_equals("parser_incl: Unterminated string literal works anyway", "simple",
 		run(qq($includer "$root/unterminated.pol" $no_stderr)));
 
+	assert_str_equals("parser_incl: Multi-level relative path resolution",
+		"level2::level1::level0",
+		run(qq($includer "$root/levels.pol" $no_stderr)));
+
+}
+
+sub test_fact_checking()
+{
+	$TESTS++;
+	print "parser: fact checking (if and map)\n";
+
+	my $factchecker = "./test/util/factchecker";
+	my $root = "test/functional/factchecker";
+
+	# if
+	assert_str_equals("factchecker: [if] if branch followed", "res_user:jade-user:2125:3125",
+		run(qq(echo "sys.hostname=jade" | $factchecker "$root/if.pol" 2>/dev/null)));
+
+	assert_str_equals("factchecker: [if] else branch followed", "res_user:unknown:1500:1400",
+		run(qq(echo "sys.hostname=quartz" | $factchecker "$root/if.pol" 2>/dev/null)));
+
+	# if-list
+	assert_str_equals("factchecker: [if-list] if branch followed for 'lucid'", "res_user:ubuntu:2125:3125",
+		run(qq(echo "lsb.distro.codename=lucid" | $factchecker "$root/if-list.pol" 2>/dev/null)));
+
+	assert_str_equals("factchecker: [if-list] if branch followed for 'karmic'", "res_user:ubuntu:2125:3125",
+		run(qq(echo "lsb.distro.codename=karmic" | $factchecker "$root/if-list.pol" 2>/dev/null)));
+
+	assert_str_equals("factchecker: [if-list] else branch followed for 'gentoo'", "res_user:other:2125:3125",
+		run(qq(echo "lsb.distro.codename=gentoo" | $factchecker "$root/if-list.pol" 2>/dev/null)));
+
+	# if-not
+	assert_str_equals("factchecker: [if-not] if branch followed", "res_user:user:2125:3125",
+		run(qq(echo "sys.hostname=topaz" | $factchecker "$root/if-not.pol" 2>/dev/null)));
+
+	assert_str_equals("factchecker: [if-not] else branch followed", "res_user:jade-user:1500:1400",
+		run(qq(echo "sys.hostname=jade" | $factchecker "$root/if-not.pol" 2>/dev/null)));
+
+	# if-not-list
+	assert_str_equals("factchecker: [if-not-list] else branch followed for 'lucid'", "res_user:ubuntu:2125:3125",
+		run(qq(echo "lsb.distro.codename=lucid" | $factchecker "$root/if-not-list.pol" 2>/dev/null)));
+
+	assert_str_equals("factchecker: [if-not-list] else branch followed for 'karmic'", "res_user:ubuntu:2125:3125",
+		run(qq(echo "lsb.distro.codename=karmic" | $factchecker "$root/if-not-list.pol" 2>/dev/null)));
+
+	assert_str_equals("factchecker: [if-not-list] if branch followed for 'intrepid'", "res_user:other:2125:3125",
+		run(qq(echo "lsb.distro.codename=intrepid" | $factchecker "$root/if-list.pol" 2>/dev/null)));
+
+	# if-only
+	assert_str_equals("factchecker: [if-only] jade-user defined", "res_user:jade-user:2125:3125",
+		run(qq(echo "sys.hostname=jade" | $factchecker "$root/if-only.pol" 2>/dev/null)));
+
+	assert_str_equals("factchecker: [if-only] no users defined", "no users defined!",
+		run(qq(echo "sys.hostname=emerald" | $factchecker "$root/if-only.pol" 2>/dev/null)));
+
+	# map
+	assert_str_equals("factchecker: [map] UID is 2125 for fact '2xxx'", "res_user:guest:2125:3125",
+		run(qq(echo "test.use_uid=2xxx" | $factchecker "$root/map.pol" 2>/dev/null)));
+
+	assert_str_equals("factchecker: [map] UID is 3378 for fact '3xxx'", "res_user:guest:3378:3125",
+		run(qq(echo "test.use_uid=3xxx" | $factchecker "$root/map.pol" 2>/dev/null)));
+
+	assert_str_equals("factchecker: [map] UID is 4002 for fact '4xxx'", "res_user:guest:4002:3125",
+		run(qq(echo "test.use_uid=4xxx" | $factchecker "$root/map.pol" 2>/dev/null)));
+
+	assert_str_equals("factchecker: [map] UID is 999 for fact '1x'", "res_user:guest:999:3125",
+		run(qq(echo "test.use_uid=1x" | $factchecker "$root/map.pol" 2>/dev/null)));
+
+	# map-no-else
+	assert_str_equals("factchecker: [map-no-else] UID is 2125 for fact '2xxx'", "res_user:guest:2125:3125",
+		run(qq(echo "test.use_uid=2xxx" | $factchecker "$root/map-no-else.pol" 2>/dev/null)));
+
+	assert_str_equals("factchecker: [map-no-else] UID is 3378 for fact '3xxx'", "res_user:guest:3378:3125",
+		run(qq(echo "test.use_uid=3xxx" | $factchecker "$root/map-no-else.pol" 2>/dev/null)));
+
+	assert_str_equals("factchecker: [map-no-else] UID is 0 (default) for fact '1x'", "res_user:guest:0:3125",
+		run(qq(echo "test.use_uid=1x" | $factchecker "$root/map-no-else.pol" 2>/dev/null)));
 }
 
 test_assertions();
 test_parser_inclusion();
+test_fact_checking();
 finish_tests();

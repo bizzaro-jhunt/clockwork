@@ -1,0 +1,13 @@
+
+policy "if-only" {
+
+	if (sys.hostname is "jade") {
+
+		user "jade-user" {
+			uid: 2125
+			gid: 3125
+		}
+
+	}
+
+}

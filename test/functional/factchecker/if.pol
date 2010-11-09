@@ -1,0 +1,20 @@
+
+policy "if" {
+
+	if (sys.hostname is "jade") {
+
+		user "jade-user" {
+			uid: 2125
+			gid: 3125
+		}
+
+	} else {
+
+		user "unknown" {
+			uid: 1500
+			gid: 1400
+		}
+
+	}
+
+}

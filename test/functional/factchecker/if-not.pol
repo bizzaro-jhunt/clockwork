@@ -1,0 +1,20 @@
+
+policy "if-not" {
+
+	if (sys.hostname is not "jade") {
+
+		user "user" {
+			uid: 2125
+			gid: 3125
+		}
+
+	} else {
+
+		user "jade-user" {
+			uid: 1500
+			gid: 1400
+		}
+
+	}
+
+}

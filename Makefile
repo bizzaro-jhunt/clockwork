@@ -135,7 +135,8 @@ test/sha1_files.h:
 ############################################################
 # Functional Tests
 
-functional_tests: test/util/includer
+functional_tests: test/util/includer \
+                  test/util/factchecker
 
 test/util/includer: test/util/includer.o \
                     $(CORE_OBJECTS) $(PARSER_OBJECTS) \
@@ -144,6 +145,15 @@ test/util/includer: test/util/includer.o \
 
 test/util/includer.o: test/util/includer.c spec/lexer.l
 	$(CC) -c -o $@ $<
+
+test/util/factchecker: test/util/factchecker.o \
+                    $(CORE_OBJECTS) $(PARSER_OBJECTS) \
+                    $(RESOURCE_OBJECTS) $(POLICY_OBJECTS)
+	$(CC) -o $@ $+
+
+test/util/factchecker.o: test/util/factchecker.c spec/lexer.l
+	$(CC) -c -o $@ $<
+
 
 ############################################################
 # Maintenance

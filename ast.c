@@ -161,21 +161,6 @@ static struct ast* ast_eval_if_equal(struct ast *ast, struct ast_walker *ctx)
 	}
 }
 
-static struct ast* ast_eval_if_not_equal(struct ast *ast,struct ast_walker *ctx)
-{
-	assert(ast);
-	assert(ctx);
-
-	struct ast *tmp;
-
-	tmp = ast->nodes[0];
-	ast->nodes[0] = ast->nodes[1];
-	ast->nodes[1] = tmp;
-	ast->op = AST_OP_IF_EQUAL;
-
-	return ast_eval_if_equal(ast, ctx);
-}
-
 static void ast_eval_set_attribute(struct ast *node, struct ast_walker *ctx)
 {
 	assert(node);
@@ -229,10 +214,6 @@ again:
 		node = ast_eval_if_equal(node, ctx);
 		goto again;
 
-	case AST_OP_IF_NOT_EQUAL:
-		node = ast_eval_if_not_equal(node, ctx);
-		goto again;
-
 	case AST_OP_DEFINE_RES_USER:
 		ctx->context = AST_OP_DEFINE_RES_USER;
 		ctx->resource.user = res_user_new();
@@ -272,6 +253,48 @@ again:
 	}
 
 	return 0;
+}
+
+static struct ast* ast_find_define_policy_node(struct ast *root, const char *name)
+{
+	/* All policies WILL be defined in the top progn that root points to */
+	unsigned i;
+
+	for (i = 0; i < root->size; i++) {
+		if (root->nodes[i]->op == AST_OP_DEFINE_POLICY
+		 && strcmp(root->nodes[i]->data1, name) == 0) {
+			return root->nodes[i];
+		}
+	}
+
+	return NULL;
+}
+
+static int ast_expand_subtree_includes(struct ast *root, struct ast *subtree)
+{
+	int expands = 0;
+	unsigned int i;
+	struct ast *pol;
+
+	if (subtree->op == AST_OP_INCLUDE) {
+		pol = ast_find_define_policy_node(root, subtree->data1);
+		if (pol) {
+			expands++;
+			subtree->op = AST_OP_PROG; /* 3-levels of progression */
+			ast_add_child(subtree, pol->nodes[0]); /* FIXME: assuming... */
+		}
+	}
+
+	for (i = 0; i < subtree->size; i++) {
+		expands += ast_expand_subtree_includes(root, subtree->nodes[i]);
+	}
+
+	return expands;
+}
+
+int ast_expand_includes(struct ast *root)
+{
+	return ast_expand_subtree_includes(root, root);
 }
 
 struct policy *ast_evaluate(struct ast *ast, struct list *facts)

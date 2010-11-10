@@ -133,6 +133,11 @@ void assert_signed_equals(const char *s, signed long int expected, signed long i
 	_assert_numeric_equals(s, "%li", expected, actual);
 }
 
+void assert_ptr(const char *s, void *expected, void *actual)
+{
+	_assert_numeric_equals(s, "%lu", (unsigned long)expected, (unsigned long)actual);
+}
+
 void assert_int_equals(const char *s, int expected, int actual)
 {
 	++__ASSERTIONS;

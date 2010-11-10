@@ -8,18 +8,18 @@
 
 #define AST_OP_NOOP                0
 #define AST_OP_PROG                1
-
-/* Conditional Operators */
 #define AST_OP_IF_EQUAL            2
-#define AST_OP_IF_NOT_EQUAL        3
+#define AST_OP_INCLUDE             3
+#define AST_OP_ENFORCE             4
 
 /* Resource Definitions */
-#define AST_OP_DEFINE_POLICY       4
-#define AST_OP_DEFINE_RES_USER     5
-#define AST_OP_DEFINE_RES_GROUP    6
-#define AST_OP_DEFINE_RES_FILE     7
+#define AST_OP_DEFINE_POLICY       5
+#define AST_OP_DEFINE_HOST         6
+#define AST_OP_DEFINE_RES_USER     7
+#define AST_OP_DEFINE_RES_GROUP    8
+#define AST_OP_DEFINE_RES_FILE     9
 
-#define AST_OP_SET_ATTRIBUTE       8
+#define AST_OP_SET_ATTRIBUTE      10
 
 struct ast {
 	unsigned int op;
@@ -40,6 +40,7 @@ void ast_free_all(struct ast *ast);
 int ast_add_child(struct ast *parent, struct ast *child);
 int ast_compare(struct ast *a, struct ast *b);
 
+int ast_expand_includes(struct ast *root);
 struct policy *ast_evaluate(struct ast *ast, struct list *facts);
 
 struct policy* ast_define_policy(struct ast *ast, struct list *facts);

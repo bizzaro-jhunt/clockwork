@@ -22,6 +22,8 @@ void assert_null(const char *s, void *ptr);
 void assert_unsigned_equals(const char *s, unsigned long int, unsigned long int actual);
 void assert_signed_equals(const char *s, signed long int expected, signed long int actual);
 
+void assert_ptr(const char *s, void *expected, void *actual);
+
 void assert_int_equals(const char *s, int expected, int actual);
 void assert_int_not_equal(const char *s, int unexpected, int actual);
 void assert_int_greater_than(const char *s, int actual, int threshold);

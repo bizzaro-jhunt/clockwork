@@ -197,9 +197,9 @@ static struct ast* conditional_policy_ast()
 	new_child_node(node, AST_OP_SET_ATTRIBUTE, "group", "root");
 	new_child_node(node, AST_OP_SET_ATTRIBUTE, "mode",  "0644");
 
-	tmp = new_child_node(node, AST_OP_IF_NOT_EQUAL, "sys.kernel.major", "2.6");
-	new_child_node(tmp, AST_OP_SET_ATTRIBUTE, "source", "std/2.4.conf");
+	tmp = new_child_node(node, AST_OP_IF_EQUAL, "sys.kernel.major", "2.6");
 	new_child_node(tmp, AST_OP_SET_ATTRIBUTE, "source", "std/2.6.conf");
+	new_child_node(tmp, AST_OP_SET_ATTRIBUTE, "source", "std/2.4.conf");
 
 	node = new_child_node(root, AST_OP_IF_EQUAL, "lsb.distro.codename", "lucid");
 	/* if lucid... */
@@ -402,6 +402,43 @@ void test_ast_prog_policy_generation()
 	ast_free_all(root);
 }
 
+void test_ast_include_expansion()
+{
+	struct ast *root;
+	struct ast *pol1,  *pol2,  *pol3;
+	struct ast *prog1, *prog2, *prog3;
+	struct ast *ext1, *ext2;
+
+	test("AST: include expansion");
+	root  = ast_new(AST_OP_PROG, NULL, NULL);
+
+	pol1  = new_child_node(root, AST_OP_DEFINE_POLICY, "pol1", NULL);
+	prog1 = new_child_node(pol1, AST_OP_PROG, NULL, NULL);
+
+	pol2  = new_child_node(root, AST_OP_DEFINE_POLICY, "pol2", NULL);
+	prog2 = new_child_node(pol2, AST_OP_PROG, NULL, NULL);
+
+	pol3  = new_child_node(root, AST_OP_DEFINE_POLICY, "pol3", NULL);
+	prog3 = new_child_node(pol3, AST_OP_PROG, NULL, NULL);
+
+	ext1  = new_child_node(prog3, AST_OP_INCLUDE, "pol2", NULL);
+	ext2  = new_child_node(prog3, AST_OP_INCLUDE, "pol1", NULL);
+
+	assert_int_equals("Go through 2 expansions", 2, ast_expand_includes(root));
+
+	assert_int_equals("ext1->size should be 1 (prog)", 1, ext1->size);
+	assert_ptr("ext1->nodes[0] is prog2", prog2, ext1->nodes[0]);
+
+	assert_int_equals("ext2->size should be 1 (prog)", 1, ext2->size);
+	assert_ptr("ext2->nodes[0] is prog1", prog1, ext2->nodes[0]);
+
+	ast_free(root);
+	ast_free(pol1); ast_free(prog1);
+	ast_free(pol2); ast_free(prog2);
+	ast_free(pol3); ast_free(prog3);
+	ast_free(ext1); ast_free(ext2);
+}
+
 void test_ast_comparison()
 {
 	struct ast *a, *b, *c;
@@ -433,6 +470,7 @@ void test_suite_ast()
 	test_ast_static_policy_generation();
 	test_ast_conditional_policy_generation();
 	test_ast_prog_policy_generation();
+	test_ast_include_expansion();
 
 	test_ast_comparison();
 }

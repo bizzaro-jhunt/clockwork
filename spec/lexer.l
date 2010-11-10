@@ -50,12 +50,16 @@
 [\t \r\n]+ { /* ignore whitespace */ }
 
 "policy" { return T_KEYWORD_POLICY; }
+"host"   { return T_KEYWORD_HOST; }
 "if"     { return T_KEYWORD_IF; }
 "unless" { return T_KEYWORD_UNLESS; }
 "else"   { return T_KEYWORD_ELSE; }
 "map"    { return T_KEYWORD_MAP; }
 "is"     { return T_KEYWORD_IS; }
 "not"    { return T_KEYWORD_NOT; }
+
+enforce { return T_KEYWORD_ENFORCE; }
+extend  { return T_KEYWORD_EXTEND; }
 
 include[ \t]+  { BEGIN(INCLUDE); }
 <INCLUDE>\"[^\"\n]*[\"\n] { 

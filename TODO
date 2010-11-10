@@ -25,7 +25,6 @@ policy::
 
 parser::
   if-else-if-else construct
-  host definition support
 
 
 COLLAPSE MODULES:

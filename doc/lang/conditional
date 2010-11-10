@@ -3,8 +3,28 @@
 # of conditionals based on client host facts
 #
 
+host "test1.rd.niftylogic.net" {
+	enforce "standard"
+}
+
+policy "base" {
+
+	user "jrhunt" {
+		uid: 1000
+		gid: 1001
+		home: "/home/jrhunt"
+	}
+
+	group "staff" {
+		gid: 1001
+	}
+
+}
+
 # A standard with some conditional behavior.
 policy "standard" {
+
+	extend "base"
 
 	file "/etc/sudoers" {
 		owner: "root"

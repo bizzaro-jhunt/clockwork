@@ -10,8 +10,10 @@ static const char *OP_NAMES[] = {
 	"NOOP",
 	"PROG",
 	"IF_EQUAL",
-	"IF_NOT_EQUAL",
+	"INCLUDE",
+	"ENFORCE",
 	"DEFINE_POLICY",
+	"DEFINE_HOST",
 	"DEFINE_RES_USER",
 	"DEFINE_RES_GROUP",
 	"DEFINE_RES_FILE",
@@ -35,29 +37,10 @@ static void traverse(struct ast *node, unsigned int depth)
 	}
 }
 
-static int get_the_facts(struct list *facts, const char *path)
-{
-	FILE *io;
-	int nfacts;
-
-	io = fopen(path, "r");
-	if (!io) {
-		fprintf(stderr, "Unable to read facts from %s: ", path);
-		perror(NULL);
-		return 0;
-	}
-
-	nfacts = fact_read(facts, io);
-	fclose(io);
-
-	return nfacts;
-}
-
 int main(int argc, char **argv)
 {
 	struct ast *root;
-	struct policy *policy;
-	struct list facts;
+	int expands;
 
 	printf("POL:SPEC   A Policy Specification Compiler\n" \
 	       "\n" \
@@ -65,8 +48,8 @@ int main(int argc, char **argv)
 	       "by the lex/yacc parser allowing you to verify correctness\n" \
 	       "\n");
 
-	if (argc != 3) {
-		fprintf(stderr, "USAGE: %s /path/to/config /path/to/facts\n", argv[0]);
+	if (argc != 2) {
+		fprintf(stderr, "USAGE: %s /path/to/config\n", argv[0]);
 		exit(1);
 	}
 
@@ -74,22 +57,9 @@ int main(int argc, char **argv)
 	if (!root) {
 		exit(2);
 	}
+
+	expands = ast_expand_includes(root);
 	traverse(root, 0);
-
-
-	list_init(&facts);
-	if (get_the_facts(&facts, argv[2]) <= 0) {
-		return 2;
-	}
-
-	if (root->size > 0) {
-		policy = ast_evaluate(root->nodes[0], &facts);
-		printf("Policy in packed format:\n" \
-		       "------------------------\n%s\n",
-		       policy_pack(policy));
-	} else {
-		fprintf(stderr, "No policy defined...\n");
-	}
-
+	printf("\nperformed %u expand(s)\n", expands);
 	return 0;
 }

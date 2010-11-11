@@ -43,9 +43,4 @@ int ast_compare(struct ast *a, struct ast *b);
 int ast_expand_includes(struct ast *root);
 struct policy *ast_evaluate(struct ast *ast, struct list *facts);
 
-struct policy* ast_define_policy(struct ast *ast, struct list *facts);
-struct res_user* ast_define_res_user(struct ast *ast, struct list *facts);
-struct res_group* ast_define_res_group(struct ast *ast, struct list *facts);
-struct res_file* ast_define_res_file(struct ast *ast, struct list *facts);
-
 #endif

@@ -3,7 +3,6 @@
 #include <string.h>
 
 #include "policy.h"
-#include "fact.h"
 #include "spec/parser.h"
 
 static const char *OP_NAMES[] = {

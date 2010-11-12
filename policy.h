@@ -2,7 +2,6 @@
 #define _POLICY_H
 
 #include "list.h"
-#include "fact.h"
 #include "res_file.h"
 #include "res_group.h"
 #include "res_user.h"
@@ -44,6 +43,14 @@ struct host {
 	struct stree *policy;
 };
 
+struct fact {
+	char *name;
+	char *value;
+
+	struct list facts;
+};
+
+
 struct policy {
 	char        *name;       /* User-assigned name of policy */
 	uint32_t     version;    /* Policy version number */
@@ -62,6 +69,10 @@ struct stree* manifest_new_stree(struct manifest *m, enum oper op, const char *d
 int stree_add(struct stree *parent, struct stree *child);
 int stree_expand(struct stree *root);
 int stree_compare(const struct stree *a, const struct stree *b);
+
+void fact_free_all(struct list *facts);
+struct fact *fact_parse(const char *line);
+int fact_read(struct list *facts, FILE *io);
 
 struct policy* policy_generate(struct stree *root, struct list *facts);
 

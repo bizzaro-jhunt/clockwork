@@ -1,21 +1,7 @@
 #include "test.h"
 #include "assertions.h"
-#include "../fact.h"
-
-void test_fact_init_deinit()
-{
-	struct fact *fact;
-
-	test("fact: initialization");
-	fact = fact_new("test.fact", "yes sir");
-	assert_not_null("fact_new returns a valid fact pointer", fact);
-	if (fact) {
-		assert_str_equals("fact->name is 'test.fact'", "test.fact", fact->name);
-		assert_str_equals("fact->value is 'yes sir'", "yes sir", fact->value);
-	}
-
-	fact_free(fact);
-}
+#include "../policy.h"
+#include "../mem.h"
 
 void test_fact_parsing()
 {
@@ -27,7 +13,9 @@ void test_fact_parsing()
 	assert_str_equals("name parsed correctly", "sys.kernel.version", fact->name);
 	assert_str_equals("value parsed correctly", "2.6.32-194.distro5-generic", fact->value);
 
-	fact_free(fact);
+	xfree(fact->name);
+	xfree(fact->value);
+	xfree(fact);
 }
 
 void test_fact_read_io()
@@ -76,7 +64,6 @@ void test_fact_read_io()
 
 void test_suite_fact()
 {
-	test_fact_init_deinit();
 	test_fact_parsing();
 	test_fact_read_io();
 }

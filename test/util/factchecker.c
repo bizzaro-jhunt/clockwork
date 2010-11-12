@@ -37,7 +37,6 @@ int main(int argc, char **argv)
 {
 	struct list facts;
 	struct manifest *manifest;
-	struct stree *root;
 	struct policy *pol;
 
 	if (argc != 2) {

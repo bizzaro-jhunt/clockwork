@@ -15,6 +15,11 @@ char* xstrdup(const char *s)
 	return (s ? strdup(s) : NULL);
 }
 
+int xstrcmp(const char *a, const char *b)
+{
+	return ((!a || !b) ? -1 : strcmp(a,b));
+}
+
 char** xarrdup(char **a)
 {
 	char **n, **t;

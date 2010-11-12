@@ -73,6 +73,7 @@ int stree_compare(const struct stree *a, const struct stree *b);
 void fact_free_all(struct list *facts);
 struct fact *fact_parse(const char *line);
 int fact_read(struct list *facts, FILE *io);
+const char *fact_lookup(struct list *facts, const char *name);
 
 struct policy* policy_generate(struct stree *root, struct list *facts);
 

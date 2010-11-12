@@ -7,6 +7,7 @@
 void __xfree(void **ptr2ptr);
 
 char* xstrdup(const char *s);
+int xstrcmp(const char *a, const char *b);
 char** xarrdup(char **a);
 void xarrfree(char **a);
 

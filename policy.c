@@ -283,28 +283,20 @@ int fact_read(struct list *facts, FILE *io)
 	return nfacts;
 }
 
-static struct stree* _stree_eval_if(struct stree *node, struct policy_generator *pgen)
+const char *fact_lookup(struct list *facts, const char *name)
 {
-	assert(node);
-	assert(pgen);
+	struct fact *f;
 
-	struct fact *fact;
-	const char *value = NULL;
+	if (!facts) {
+		return NULL;
+	}
 
-	if (pgen->facts) {
-		for_each_node(fact, pgen->facts, facts) {
-			if (strcmp(fact->name, node->data1) == 0) {
-				value = fact->value;
-				break;
-			}
+	for_each_node(f, facts, facts) {
+		if (strcmp(f->name, name) == 0) {
+			return f->value;
 		}
 	}
-
-	if (value && strcmp(value, node->data2) == 0) {
-		return node->nodes[0];
-	} else {
-		return node->nodes[1];
-	}
+	return NULL;
 }
 
 static void _stree_set_attribute(struct stree *node, struct policy_generator *pgen)
@@ -359,7 +351,11 @@ int _policy_generate(struct stree *node, struct policy_generator *pgen)
 again:
 	switch(node->op) {
 	case IF:
-		node = _stree_eval_if(node, pgen);
+		if (xstrcmp(fact_lookup(pgen->facts, node->data1), node->data2) == 0) {
+			node = node->nodes[0];
+		} else {
+			node = node->nodes[1];
+		}
 		goto again;
 
 	case RESOURCE:
@@ -419,16 +415,13 @@ struct policy* policy_generate(struct stree *root, struct list *facts)
 	assert(root);
 
 	struct policy_generator pgen;
-	unsigned int i;
 
 	pgen.facts = facts;
 	pgen.policy = policy_new(root->data1, policy_latest_version());
 
-	for (i = 0; i < root->size; i++) {
-		if (_policy_generate(root->nodes[i], &pgen) != 0) {
-			policy_free(pgen.policy);
-			return NULL;
-		}
+	if (_policy_generate(root, &pgen) != 0) {
+		policy_free(pgen.policy);
+		return NULL;
 	}
 
 	return pgen.policy;

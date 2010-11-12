@@ -1,9 +1,7 @@
 #include <stdio.h>
 
 #include "../../policy.h"
-#include "../../ast.h"
 #include "../../spec/parser.h"
-#include "../../fact.h"
 
 /** factchecker - a test utility
 
@@ -38,7 +36,8 @@ void print_users(struct policy *pol)
 int main(int argc, char **argv)
 {
 	struct list facts;
-	struct ast *root;
+	struct manifest *manifest;
+	struct stree *root;
 	struct policy *pol;
 
 	if (argc != 2) {
@@ -48,15 +47,15 @@ int main(int argc, char **argv)
 
 	list_init(&facts);
 	fact_read(&facts, stdin);
-	root = parse_file(argv[1]);
-	if (!root) {
+	manifest = parse_file(argv[1]);
+	if (!manifest) {
 		printf("unable to parse_file!\n");
 		return 2;
 	}
 
-	pol = ast_evaluate(root, &facts);
+	pol = policy_generate(manifest->root->nodes[0], &facts);
 	if (!pol) {
-		printf("unable to ast_evaluate!\n");
+		printf("unable to policy_generate!\n");
 		return 3;
 	}
 

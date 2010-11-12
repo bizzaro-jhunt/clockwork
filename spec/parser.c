@@ -3,10 +3,10 @@
 #include "private.h"
 #include "parser.h"
 
-struct ast* parse_file(const char *path)
+struct manifest* parse_file(const char *path)
 {
 	spec_parser_context ctx;
-	struct ast *root;
+	struct manifest *root;
 
 	ctx.file = NULL;
 	ctx.warnings = ctx.errors = 0;

@@ -51,7 +51,7 @@ RESOURCE_HEADERS := res_user.h res_group.h res_file.h
 CORE_OBJECTS := mem.o sha1.o pack.o stringlist.o userdb.o
 
 # Policy object files
-POLICY_OBJECTS := policy.o fact.o ast.o
+POLICY_OBJECTS := policy.o fact.o
 
 # Parser object files
 PARSER_OBJECTS := spec/lexer.o spec/grammar.o spec/parser.o
@@ -106,10 +106,9 @@ test/run: test/run.o test/test.o \
           test/res_file.o res_file.o \
           test/res_group.o res_group.o \
           test/res_user.o res_user.o \
-          test/policy.o policy.o \
+          test/policy.o test/stree.o policy.o \
           test/host_registry.o host_registry.o \
           test/fact.o fact.o \
-          test/ast.o ast.o \
           test/sha1.o sha1.o
 
 	$(CC) -o $@ $+

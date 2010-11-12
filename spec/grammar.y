@@ -50,19 +50,13 @@
 /* Define the lvalue types of non-terminal productions.
    These definitions are necessary so that the $1..$n and $$ "magical"
    variables work in the generated C code. */
-%type <node> definitions         /* AST_OP_PROG */
-%type <node> definition          /* AST_OP_DEFINE_POLICY or AST_OP_DEFINE_HOST */
-%type <node> policy              /* AST_OP_DEFINE_POLICY */
-%type <node> host                /* AST_OP_DEFINE_HOST */
-%type <node> enforcements        /* AST_OP_PROG */
-%type <node> enforcement         /* AST_OP_ENFORCE */
-%type <node> blocks              /* AST_OP_PROG */
-%type <node> block               /* depends on type of block */
-%type <node> conditional         /* AST_OP_IF_* */
-%type <node> resource            /* AST_OP_RES_* */
-%type <node> extension           /* AST_OP_INCLUDE */
-%type <node> attributes          /* AST_OP_PROG */
-%type <node> attribute_spec      /* AST_OP_SET_ATTRIBUTE */
+/*%type <node> definitions         /* AST_OP_PROG */
+%type <manifest> manifest
+%type <stree> define host policy
+%type <stree> enforcing enforce
+%type <stree> blocks block
+%type <stree> resource conditional extension
+%type <stree> attributes attribute
 
 %type <branch> conditional_test
 
@@ -81,137 +75,136 @@
    of abstract syntax trees, like if branches and map constructs.  They
    exist in a separate C file to keep this file clean and focues. */
 #include "grammar_impl.c"
+
+#define MANIFEST(ctx) (((spec_parser_context*)ctx)->root)
+#define NODE(op,d1,d2) (manifest_new_stree(MANIFEST(ctx), (op), (d1), (d2)))
 %}
 
 %%
 
-definitions:
-           { ((spec_parser_context*)ctx)->root = ast_new(AST_OP_PROG, NULL, NULL); }
-           | definitions definition
-           { ast_add_child(((spec_parser_context*)ctx)->root, $2); }
-           ;
+manifest:
+		{ MANIFEST(ctx) = manifest_new(); }
+	| manifest define
+		{ stree_add(MANIFEST(ctx)->root, $2); }
+	;
 
-definition: host
-          | policy
-          ;
+define: host | policy
+	;
 
-host: T_KEYWORD_HOST qstring '{' enforcements '}'
-    { $$ = ast_new(AST_OP_DEFINE_HOST, $2, NULL);
-      ast_add_child($$, $4); }
-    ;
+host: T_KEYWORD_HOST qstring '{' enforcing '}'
+		{ $$ = NODE(HOST, $2, NULL);
+		  stree_add($$, $4); }
+	;
 
-enforcements:
-            { $$ = ast_new(AST_OP_PROG, NULL, NULL); }
-            | enforcements enforcement
-            { ast_add_child($$, $2); }
-            ;
+enforcing:
+		{ $$ = NODE(PROG, NULL, NULL); }
+	| enforcing enforce
+		{ stree_add($$, $2); }
+	;
 
-enforcement: T_KEYWORD_ENFORCE qstring
-           { $$ = ast_new(AST_OP_ENFORCE, $2, NULL); }
-           ;
+enforce: T_KEYWORD_ENFORCE qstring
+		{ $$ = NODE(ENFORCE, $2, NULL); }
+	;
 
 policy: T_KEYWORD_POLICY qstring '{' blocks '}'
-      { $$ = ast_new(AST_OP_DEFINE_POLICY, $2, NULL);
-        ast_add_child($$, $4); }
-      ;
+		{ $$ = NODE(POLICY, $2, NULL);
+		  stree_add($$, $4); }
+	;
 
 blocks:
-      { $$ = ast_new(AST_OP_PROG, NULL, NULL); }
-      | blocks block
-      { ast_add_child($$, $2); }
-      ;
+		{ $$ = NODE(PROG, NULL, NULL); }
+	| blocks block
+		{ stree_add($$, $2); }
+	;
 
-block: resource
-     | conditional
-     | extension
-     ;
+block: resource | conditional | extension
+	;
 
 resource: T_IDENTIFIER value '{' attributes '}'
-	{ $$ = parser_new_resource_node($1, $2);
-	  ast_add_child($$, $4); }
+		{ $$ = NODE(RESOURCE, $1, $2);
+		  stree_add($$, $4); }
 	;
 
 attributes:
-	  { $$ = ast_new(AST_OP_PROG, NULL, NULL); }
-	  | attributes attribute_spec
-	  { ast_add_child($$, $2); }
-	  ;
+		{ $$ = NODE(PROG, NULL, NULL); }
+	| attributes attribute
+		{ stree_add($$, $2); }
+	;
 
-attribute_spec: T_IDENTIFIER ':' value
-	      { $$ = ast_new(AST_OP_SET_ATTRIBUTE, $1, $3); }
-	      | T_IDENTIFIER ':' conditional_inline
-	      { $3->attribute = $1;
-	        $$ = map_expand_nodes($3); }
-	      ;
+attribute: T_IDENTIFIER ':' value
+		{ $$ = NODE(ATTR, $1, $3); }
+	| T_IDENTIFIER ':' conditional_inline
+		{ $3->attribute = $1;
+		  $$ = map_expand(MANIFEST(ctx),$3); }
+	;
 
-value: qstring 
-     | T_NUMERIC
-     ;
+value: qstring | T_NUMERIC
+	;
 
 conditional: T_KEYWORD_IF '(' conditional_test ')' '{' blocks '}'
-	   { branch_connect($3, $6, ast_new(AST_OP_NOOP, NULL,  NULL));
-	     $$ = branch_expand_nodes($3); }
-	   | T_KEYWORD_IF '(' conditional_test ')' '{' blocks '}' T_KEYWORD_ELSE '{' blocks '}'
-	   { branch_connect($3, $6, $10);
-	     $$ = branch_expand_nodes($3); }
-	   | T_KEYWORD_UNLESS '(' conditional_test ')' '{' blocks '}'
-	   { $3->affirmative = ($3->affirmative == 1 ? 0 : 1);
-	     branch_connect($3, $6, ast_new(AST_OP_NOOP, NULL, NULL));
-	     $$ = branch_expand_nodes($3); }
-	   | T_KEYWORD_UNLESS '(' conditional_test ')' '{' blocks '}' T_KEYWORD_ELSE '{' blocks '}'
-	   { $3->affirmative = ($3->affirmative == 1 ? 0 : 1);
-	     branch_connect($3, $6, $10);
-	     $$ = branch_expand_nodes($3); }
-	   ;
+		{ branch_connect($3, $6, NODE(NOOP, NULL,  NULL));
+		  $$ = branch_expand(MANIFEST(ctx), $3); }
+	| T_KEYWORD_IF '(' conditional_test ')' '{' blocks '}' T_KEYWORD_ELSE '{' blocks '}'
+		{ branch_connect($3, $6, $10);
+		  $$ = branch_expand(MANIFEST(ctx), $3); }
+	| T_KEYWORD_UNLESS '(' conditional_test ')' '{' blocks '}'
+		{ $3->affirmative = ($3->affirmative == 1 ? 0 : 1);
+		  branch_connect($3, $6, NODE(NOOP, NULL, NULL));
+		  $$ = branch_expand(MANIFEST(ctx), $3); }
+	| T_KEYWORD_UNLESS '(' conditional_test ')' '{' blocks '}' T_KEYWORD_ELSE '{' blocks '}'
+		{ $3->affirmative = ($3->affirmative == 1 ? 0 : 1);
+		  branch_connect($3, $6, $10);
+		  $$ = branch_expand(MANIFEST(ctx), $3); }
+	;
 
 conditional_test: T_FACT T_KEYWORD_IS value_list
 		{ $$ = branch_new($1, $3, 1); }
-		| T_FACT T_KEYWORD_IS T_KEYWORD_NOT value_list
+	| T_FACT T_KEYWORD_IS T_KEYWORD_NOT value_list
 		{ $$ = branch_new($1, $4, 0); }
-		;
+	;
 
-value_list : value
-	   { $$ = stringlist_new(NULL);
-	     stringlist_add($$, $1); }
-	   | '[' explicit_value_list ']'
-	   { $$ = $2; }
-	   ;
+value_list: value
+		{ $$ = stringlist_new(NULL);
+		  stringlist_add($$, $1); }
+	| '[' explicit_value_list ']'
+		{ $$ = $2; }
+	;
 
 explicit_value_list: value
-		   { $$ = stringlist_new(NULL);
-		     stringlist_add($$, $1); }
-		   | explicit_value_list ',' value
-		   { stringlist_add($$, $3); }
-		   ;
+		{ $$ = stringlist_new(NULL);
+		  stringlist_add($$, $1); }
+	| explicit_value_list ',' value
+		{ stringlist_add($$, $3); }
+	;
 
 extension: T_KEYWORD_EXTEND qstring
-         { $$ = ast_new(AST_OP_INCLUDE, $2, NULL); }
-         ;
+		{ $$ = NODE(INCLUDE, $2, NULL); }
+	;
 
 conditional_inline: T_KEYWORD_MAP '(' T_FACT ')' '{' mapped_value_set mapped_value_default '}'
-		  { $$ = map_new($3, NULL, $6[0], $6[1], $7); }
-		  ;
+		{ $$ = map_new($3, NULL, $6[0], $6[1], $7); }
+	;
 
 mapped_value_set:
 		{ $$[0] = stringlist_new(NULL);
 		  $$[1] = stringlist_new(NULL); }
-		| mapped_value_set mapped_value
+	| mapped_value_set mapped_value
 		{ stringlist_add($$[0], $2[0]);
 		  stringlist_add($$[1], $2[1]); }
-		;
+	;
 
 mapped_value: qstring ':' value
-	    { $$[0] = $1;
-	      $$[1] = $3; }
-	    ;
+		{ $$[0] = $1;
+		  $$[1] = $3; }
+		;
 
 mapped_value_default:
-		    { $$ = NULL }
-		    | T_KEYWORD_ELSE ':' value
-		    { $$ = $3; }
-		    ;
+		{ $$ = NULL }
+	| T_KEYWORD_ELSE ':' value
+		{ $$ = $3; }
+	;
 
 qstring: T_QSTRING
-       | T_IDENTIFIER
-       { spec_parser_warning(YYPARSE_PARAM, "unexpected identifier '%s', expected quoted string literal", $1); }
-       ;
+	| T_IDENTIFIER
+		{ spec_parser_warning(YYPARSE_PARAM, "unexpected identifier '%s', expected quoted string literal", $1); }
+	;

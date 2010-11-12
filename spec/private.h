@@ -10,7 +10,7 @@
  */
 
 #include "../list.h"
-#include "../ast.h"
+#include "../policy.h"
 #include "../stringlist.h"
 
 /**
@@ -36,8 +36,8 @@ typedef struct {
 	const char     *fact;         /* Name of fact to test */
 	stringlist     *values;       /* List of values to check */
 	unsigned char   affirmative;  /* see above */
-	struct ast     *then;         /* The 'then' node, used in syntax tree conversion */
-	struct ast     *otherwise;    /* The 'else' node, used in syntax tree conversion */
+	struct stree   *then;         /* The 'then' node, used in syntax tree conversion */
+	struct stree   *otherwise;    /* The 'else' node, used in syntax tree conversion */
 } parser_branch;
 
 /**
@@ -95,16 +95,18 @@ typedef struct {
 	stringlist *files;     /* "Stack" of file names processed so far */
 	struct list fseen;     /* List of device ID / inode pairs already include'd */
 
-	struct ast *root;      /* root node of the syntax tree parsed */
+	struct manifest *root;
 } spec_parser_context;
 
 #define YY_EXTRA_TYPE spec_parser_context*
 typedef union {
 	char           *string;
 	stringlist     *strings;
-	struct ast     *node;
 	stringlist     *string_hash[2];
 	char           *string_pair[2];
+
+	struct stree    *stree;
+	struct manifest *manifest;
 
 	parser_branch  *branch;
 	parser_map     *map;

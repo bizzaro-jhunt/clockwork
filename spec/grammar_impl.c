@@ -2,26 +2,6 @@
 #include <stdio.h>
 #include <string.h>
 
-static struct ast* parser_new_resource_node(const char *type, const char *id)
-{
-	struct ast *node = ast_new(AST_OP_NOOP, id, NULL);
-	if (!node) {
-		return NULL;
-	}
-
-	if (strcmp(type, "user") == 0) {
-		node->op = AST_OP_DEFINE_RES_USER;
-	} else if (strcmp(type, "group") == 0) {
-		node->op = AST_OP_DEFINE_RES_GROUP;
-	} else if (strcmp(type, "file") == 0) {
-		node->op = AST_OP_DEFINE_RES_FILE;
-	} else {
-		fprintf(stderr, "Unknown resource type: '%s'\n", type);
-	}
-
-	return node;
-}
-
 static parser_branch* branch_new(const char *fact, stringlist *values, unsigned char affirmative)
 {
 	parser_branch *branch;
@@ -38,7 +18,7 @@ static parser_branch* branch_new(const char *fact, stringlist *values, unsigned 
 	return branch;
 }
 
-static void branch_connect(parser_branch *branch, struct ast *then, struct ast *otherwise)
+static void branch_connect(parser_branch *branch, struct stree *then, struct stree *otherwise)
 {
 	if (branch->affirmative) {
 		branch->then = then;
@@ -49,18 +29,18 @@ static void branch_connect(parser_branch *branch, struct ast *then, struct ast *
 	}
 }
 
-static struct ast* branch_expand_nodes(parser_branch *branch)
+static struct stree* branch_expand(struct manifest *m, parser_branch *branch)
 {
-	struct ast *top = NULL, *current = NULL;
+	struct stree *top = NULL, *current = NULL;
 	unsigned int i;
 
 	for (i = 0; i < branch->values->num; i++) {
-		current = ast_new(AST_OP_IF_EQUAL, branch->fact, branch->values->strings[i]);
-		ast_add_child(current, branch->then);
+		current = manifest_new_stree(m, IF, branch->fact, branch->values->strings[i]);
+		stree_add(current, branch->then);
 		if (!top) {
-			ast_add_child(current, branch->otherwise);
+			stree_add(current, branch->otherwise);
 		} else {
-			ast_add_child(current, top);
+			stree_add(current, top);
 		}
 		top = current;
 	}
@@ -83,26 +63,26 @@ static parser_map* map_new(const char *fact, const char *attr, stringlist *fact_
 	return map;
 }
 
-static struct ast* map_expand_nodes(parser_map *map)
+static struct stree* map_expand(struct manifest *m, parser_map *map)
 {
 	assert(map->fact_values);
 	assert(map->attr_values);
 	assert(map->fact_values->num == map->attr_values->num);
 
-	struct ast *top = NULL, *current = NULL;
+	struct stree *top = NULL, *current = NULL;
 	unsigned int i;
 
 	for (i = 0; i < map->fact_values->num; i++) {
-		current = ast_new(AST_OP_IF_EQUAL, map->fact, map->fact_values->strings[i]);
-		ast_add_child(current, ast_new(AST_OP_SET_ATTRIBUTE, map->attribute, map->attr_values->strings[i]));
+		current = manifest_new_stree(m, IF, map->fact, map->fact_values->strings[i]);
+		stree_add(current, manifest_new_stree(m, ATTR, map->attribute, map->attr_values->strings[i]));
 		if (!top) {
 			if (map->default_value) {
-				ast_add_child(current, ast_new(AST_OP_SET_ATTRIBUTE, map->attribute, map->default_value));
+				stree_add(current, manifest_new_stree(m, ATTR, map->attribute, map->default_value));
 			} else {
-				ast_add_child(current, ast_new(AST_OP_NOOP, NULL, NULL));
+				stree_add(current, manifest_new_stree(m, NOOP, NULL, NULL));
 			}
 		} else {
-			ast_add_child(current, top);
+			stree_add(current, top);
 		}
 		top = current;
 	}

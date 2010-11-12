@@ -6,6 +6,7 @@
 #include "res_group.h"
 #include "res_user.h"
 #include "userdb.h"
+#include "policy.h"
 
 #define SIZEOF(x,pad) printf("sizeof(" #x "): " pad "%u\n", sizeof(x))
 
@@ -31,6 +32,10 @@ int main(int argc, char **arg)
 	SIZEOF(struct spwd, "       ");
 	SIZEOF(struct group, "      ");
 	SIZEOF(struct sgrp, "       ");
+	printf("\n");
+
+	SIZEOF(struct policy, "     ");
+	SIZEOF(struct stree, "      ");
 	printf("\n");
 
 	SIZEOF(struct res_file, "   ");

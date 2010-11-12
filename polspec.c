@@ -2,26 +2,24 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "ast.h"
+#include "policy.h"
 #include "fact.h"
 #include "spec/parser.h"
 
 static const char *OP_NAMES[] = {
 	"NOOP",
 	"PROG",
-	"IF_EQUAL",
+	"IF",
 	"INCLUDE",
 	"ENFORCE",
-	"DEFINE_POLICY",
-	"DEFINE_HOST",
-	"DEFINE_RES_USER",
-	"DEFINE_RES_GROUP",
-	"DEFINE_RES_FILE",
-	"SET_ATTRIBUTE",
+	"POLICY",
+	"HOST",
+	"RESOURCE",
+	"ATTR",
 	NULL
 };
 
-static void traverse(struct ast *node, unsigned int depth)
+static void traverse(struct stree *node, unsigned int depth)
 {
 	char *buf;
 	unsigned int i;
@@ -39,7 +37,7 @@ static void traverse(struct ast *node, unsigned int depth)
 
 int main(int argc, char **argv)
 {
-	struct ast *root;
+	struct manifest *manifest;
 	int expands;
 
 	printf("POL:SPEC   A Policy Specification Compiler\n" \
@@ -53,13 +51,13 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
-	root = parse_file(argv[1]);
-	if (!root) {
+	manifest = parse_file(argv[1]);
+	if (!manifest) {
 		exit(2);
 	}
 
-	expands = ast_expand_includes(root);
-	traverse(root, 0);
+	expands = stree_expand(manifest->root);
+	traverse(manifest->root, 0);
 	printf("\nperformed %u expand(s)\n", expands);
 	return 0;
 }

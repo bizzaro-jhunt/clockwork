@@ -25,9 +25,9 @@ policy::
 
 parser::
   if-else-if-else construct
+  resource overrides
 
 
 COLLAPSE MODULES:
-  POLICY:     fact + policy + ast
   RESOURCES:  res_user + res_file + res_group
   CORE:       mem + stringlist + list

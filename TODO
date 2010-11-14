@@ -27,4 +27,4 @@ parser::
 
 COLLAPSE MODULES:
   RESOURCES:  res_user + res_file + res_group
-  CORE:       mem + stringlist + list
+  LIST:       hash + stringlist + list

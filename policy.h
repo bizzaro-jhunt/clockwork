@@ -30,9 +30,7 @@ struct stree {
 
 struct manifest {
 	struct hash *policies;  /* POLICY stree nodes, hashed by name */
-
-	struct host **hosts;
-	size_t hosts_len;
+	struct hash *hosts;     /* HOST stree nodes, hashed by FQDN */
 
 	struct stree **nodes;
 	size_t nodes_len;
@@ -73,7 +71,6 @@ struct policy {
 
 struct manifest* manifest_new(void);
 void manifest_free(struct manifest *m);
-struct host*  manifest_new_host(struct manifest *m, const char *name, struct stree *node);
 struct stree* manifest_new_stree(struct manifest *m, enum oper op, const char *data1, const char *data2);
 
 int stree_add(struct stree *parent, struct stree *child);

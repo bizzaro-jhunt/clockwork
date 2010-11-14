@@ -44,9 +44,7 @@ struct manifest* manifest_new(void)
 	m = malloc(sizeof(struct manifest));
 	if (m) {
 		m->policies = hash_new();
-
-		m->hosts = NULL;
-		m->hosts_len = 0;
+		m->hosts    = hash_new();
 
 		m->nodes = NULL;
 		m->nodes_len = 0;
@@ -70,10 +68,8 @@ void manifest_free(struct manifest *m)
 			free(m->nodes[i]);
 		}
 		free(m->nodes);
-
-		free(m->hosts);
-		free(m);
 	}
+	free(m);
 }
 
 struct stree* manifest_new_stree(struct manifest *m, enum oper op, const char *data1, const char *data2)
@@ -97,28 +93,6 @@ struct stree* manifest_new_stree(struct manifest *m, enum oper op, const char *d
 	m->nodes = list;
 
 	return stree;
-}
-
-struct host* manifest_new_host(struct manifest *m, const char *name, struct stree *node)
-{
-	struct host *host;
-	struct host **list;
-
-	list = realloc(m->hosts, sizeof(struct host*) * (m->hosts_len + 1));
-	host = malloc(sizeof(struct host));
-	if (!host || !list) {
-		free(host);
-		free(list);
-		return NULL;
-	}
-
-	strncpy(host->name, name, HOST_NAME_MAX);
-	host->policy = node;
-
-	list[m->hosts_len++] = host;
-	m->hosts = list;
-
-	return host;
 }
 
 int stree_add(struct stree *parent, struct stree *child)

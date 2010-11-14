@@ -85,7 +85,8 @@
 manifest:
 		{ MANIFEST(ctx) = manifest_new(); }
 	| manifest host
-		{ stree_add(MANIFEST(ctx)->root, $2); }
+		{ stree_add(MANIFEST(ctx)->root, $2);
+		  hash_insert(MANIFEST(ctx)->hosts, $2->data1, $2); }
 	| manifest policy
 		{ stree_add(MANIFEST(ctx)->root, $2);
 		  hash_insert(MANIFEST(ctx)->policies, $2->data1, $2); }

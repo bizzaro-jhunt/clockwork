@@ -129,3 +129,25 @@ be added later (perhaps as part of a policy) this approach gains flexibility.
 If the speed / optimization of C over external command interpreters is a concern,
 fact gatherers could be implemented as standalone C programs that speak the same
 serialization protocol that the gatherer understands.
+
+
+Testing System-Level Remediation
+--------------------------------
+Configuration management software is difficult to write tests for because it strives
+to update system-level configuration items like user accounts and software packages.
+
+Functional tests need to be written to verify that, given a current system state, and
+a policy definition, the software can correctly bring the system to its target state.
+In order to do this many times, with different starting system states, we need to
+use some sort of temporary system state, set up by the test harness, for each test.
+
+The main problem lies in the conflicting desires of the tester / programmer; the
+software must be tested, but the development system should not be modified in the
+process.
+
+Throw-away chroot environments may be the answer: each test scenario can generate a
+new root directory (probably under test/) and set it up with all of the "system-level"
+files and configurations it needs to simulate as the "current state".  The test harness
+can then chroot into the new root directory and execute in a sandbox.
+
+Question: can normal users chroot?

@@ -43,6 +43,8 @@ struct manifest* manifest_new(void)
 
 	m = malloc(sizeof(struct manifest));
 	if (m) {
+		m->policies = hash_new();
+
 		m->hosts = NULL;
 		m->hosts_len = 0;
 
@@ -137,50 +139,31 @@ int stree_add(struct stree *parent, struct stree *child)
 	return 0;
 }
 
-static struct stree* _stree_find_policy_by_name(struct stree *root, const char *name)
+int stree_expand(struct stree *root, struct hash *policies)
 {
 	assert(root);
-	assert(name);
-
-	unsigned int i;
-	for (i = 0; i < root->size; i++) {
-		if (root->nodes[i]->op == POLICY
-		 && strcmp(root->nodes[i]->data1, name) == 0) {
-			return root->nodes[i];
-		}
-	}
-
-	return NULL;
-}
-
-static int _stree_expand(struct stree *root, struct stree *sub)
-{
-	assert(root);
-	assert(sub);
+	assert(policies);
 
 	int expands = 0;
 	unsigned int i;
 	struct stree *pol;
 
-	if (sub->op == INCLUDE) {
-		pol = _stree_find_policy_by_name(root, sub->data1);
+	if (root->op == INCLUDE) {
+		pol = hash_lookup(policies, root->data1);
 		if (pol) {
 			expands++;
-			sub->op = PROG;
-			stree_add(sub, pol->nodes[0]); /* FIXME: assumes that pol has nodes... */
+			root->op = PROG;
+			stree_add(root, pol->nodes[0]); /* FIXME: assumes that pol has nodes... */
+		} else {
+			/* FIXME: need to err */
 		}
 	}
 
-	for (i = 0; i < sub->size; i++) {
-		expands += _stree_expand(root, sub->nodes[i]);
+	for (i = 0; i < root->size; i++) {
+		expands += stree_expand(root->nodes[i], policies);
 	}
 
 	return expands;
-}
-
-int stree_expand(struct stree *root)
-{
-	return _stree_expand(root, root);
 }
 
 int stree_compare(const struct stree *a, const struct stree *b)

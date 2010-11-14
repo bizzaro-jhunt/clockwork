@@ -355,6 +355,7 @@ void test_stree_include_expansion()
 	struct stree *pol1,  *pol2,  *pol3;
 	struct stree *prog1, *prog2, *prog3;
 	struct stree *ext1, *ext2;
+	struct hash *h;
 
 	test("stree: include expansion");
 	root  = NODE(PROG, NULL, NULL);
@@ -371,7 +372,12 @@ void test_stree_include_expansion()
 	ext1  = child_of(prog3, NODE(INCLUDE, "pol2", NULL));
 	ext2  = child_of(prog3, NODE(INCLUDE, "pol1", NULL));
 
-	assert_int_equals("Go through 2 expansions", 2, stree_expand(root));
+	h = hash_new();
+	hash_insert(h, "pol1", pol1);
+	hash_insert(h, "pol2", pol2);
+	hash_insert(h, "pol3", pol3);
+
+	assert_int_equals("Go through 2 expansions", 2, stree_expand(root, h));
 
 	assert_int_equals("ext1->size should be 1 (prog)", 1, ext1->size);
 	assert_ptr("ext1->nodes[0] is prog2", prog2, ext1->nodes[0]);

@@ -52,7 +52,7 @@
    variables work in the generated C code. */
 /*%type <node> definitions         /* AST_OP_PROG */
 %type <manifest> manifest
-%type <stree> define host policy
+%type <stree> host policy
 %type <stree> enforcing enforce
 %type <stree> blocks block
 %type <stree> resource conditional extension
@@ -84,11 +84,11 @@
 
 manifest:
 		{ MANIFEST(ctx) = manifest_new(); }
-	| manifest define
+	| manifest host
 		{ stree_add(MANIFEST(ctx)->root, $2); }
-	;
-
-define: host | policy
+	| manifest policy
+		{ stree_add(MANIFEST(ctx)->root, $2);
+		  hash_insert(MANIFEST(ctx)->policies, $2->data1, $2); }
 	;
 
 host: T_KEYWORD_HOST qstring '{' enforcing '}'

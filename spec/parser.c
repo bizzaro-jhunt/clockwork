@@ -6,7 +6,7 @@
 struct manifest* parse_file(const char *path)
 {
 	spec_parser_context ctx;
-	struct manifest *root;
+	struct manifest *manifest;
 
 	ctx.file = NULL;
 	ctx.warnings = ctx.errors = 0;
@@ -17,7 +17,7 @@ struct manifest* parse_file(const char *path)
 	lexer_include_file(path, &ctx);
 	yyparse(&ctx);
 
-	root = ctx.root;
+	manifest = ctx.root;
 
 	yylex_destroy(ctx.scanner);
 	stringlist_free(ctx.files);
@@ -27,7 +27,7 @@ struct manifest* parse_file(const char *path)
 		return NULL;
 	}
 
-	stree_expand(root->root);
-	return root;
+	stree_expand(manifest->root, manifest->policies);
+	return manifest;
 }
 

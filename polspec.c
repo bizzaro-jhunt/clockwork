@@ -37,7 +37,6 @@ static void traverse(struct stree *node, unsigned int depth)
 int main(int argc, char **argv)
 {
 	struct manifest *manifest;
-	int expands;
 
 	printf("POL:SPEC   A Policy Specification Compiler\n" \
 	       "\n" \
@@ -45,7 +44,7 @@ int main(int argc, char **argv)
 	       "by the lex/yacc parser allowing you to verify correctness\n" \
 	       "\n");
 
-	if (argc != 2) {
+	if (argc < 2) {
 		fprintf(stderr, "USAGE: %s /path/to/config\n", argv[0]);
 		exit(1);
 	}
@@ -55,8 +54,16 @@ int main(int argc, char **argv)
 		exit(2);
 	}
 
-	expands = stree_expand(manifest->root);
 	traverse(manifest->root, 0);
-	printf("\nperformed %u expand(s)\n", expands);
+
+	if (argc > 2) {
+		int i;
+		struct stree *p;
+		for (i = 2; i < argc; i++) {
+			printf("Checking policy '%s': ", argv[i]);
+			p = hash_lookup(manifest->policies, argv[i]);
+			printf("%p\n", p);
+		}
+	}
 	return 0;
 }

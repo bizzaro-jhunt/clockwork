@@ -44,6 +44,18 @@ struct host {
 	struct stree *policy;
 };
 
+/** policy - Defines a single, independent policy
+
+  A policy consists of a set of resources, and the attributes that
+  must be enforced for each.
+
+  Resources are stored in two ways: a sequential list (by type) that
+  reflects the order in which the resources were defined, and a hash
+  table containing all resources (keyed by "TYPE:pkey").
+
+  The lists are there so that each resource type can be walked, and
+  the hash exists to ease searching.
+ */
 struct policy {
 	char        *name;       /* User-assigned name of policy */
 	uint32_t     version;    /* Policy version number */
@@ -52,6 +64,8 @@ struct policy {
 	struct list  res_files;
 	struct list  res_groups;
 	struct list  res_users;
+
+	struct hash *resources;  /* Searchable hash table, keyed "TYPE:pkey" */
 };
 
 struct manifest* manifest_new(void);
@@ -76,9 +90,9 @@ void policy_free_all(struct policy *pol);
 
 uint32_t policy_latest_version(void);
 
-int policy_add_file_resource(struct policy *pol, struct res_file *rf);
-int policy_add_group_resource(struct policy *pol, struct res_group *rg);
-int policy_add_user_resource(struct policy *pol, struct res_user *ru);
+int policy_add_file_resource(struct policy *pol, const char *key, struct res_file *rf);
+int policy_add_group_resource(struct policy *pol, const char *key, struct res_group *rg);
+int policy_add_user_resource(struct policy *pol, const char *key, struct res_user *ru);
 
 char* policy_pack(struct policy *pol);
 struct policy* policy_unpack(const char *packed);

@@ -49,50 +49,6 @@ void test_res_group_enforcement()
 	res_group_free(rg);
 }
 
-void test_res_group_merge()
-{
-	struct res_group *rg1, *rg2;
-
-	rg1 = res_group_new();
-	rg1->rg_prio = 10;
-
-	rg2 = res_group_new();
-	rg2->rg_prio = 20;
-
-	res_group_set_gid(rg1, 909);
-	res_group_set_name(rg1, "grp9");
-
-	res_group_set_name(rg2, "fake-grp9");
-	res_group_set_passwd(rg2, "grp9password");
-
-	res_group_enforce_members(rg1, 1);
-	res_group_add_member(rg1, "rg1-add1");
-	res_group_add_member(rg1, "rg1-add2");
-
-	res_group_enforce_members(rg2, 1);
-	res_group_add_member(rg2, "rg2-add1");
-	res_group_remove_member(rg2, "rg2-rm1");
-
-	res_group_enforce_admins(rg2, 1);
-	res_group_add_admin(rg2, "rg2-admin1");
-	res_group_add_admin(rg2, "rg2-admin2");
-	res_group_remove_admin(rg2, "former-admin");
-
-	test("RES_GROUP: Merging group resources together");
-	res_group_merge(rg1, rg2);
-	assert_str_equals("NAME is set properly after merge", rg1->rg_name, "grp9");
-	assert_str_equals("PASSWD is set properly after merge", rg1->rg_passwd, "grp9password");
-	assert_int_equals("GID is set properly after merge", rg1->rg_gid, 909);
-
-	assert_stringlist(rg1->rg_mem_add, "post-merge rg1->rg_mem_add", 3, "rg1-add1", "rg1-add2", "rg2-add1");
-	assert_stringlist(rg1->rg_mem_rm,  "post-merge rg1->rg_mem_rm",  1, "rg2-rm1");
-	assert_stringlist(rg1->rg_adm_add, "post-merge rg1->rg_adm_add", 2, "rg2-admin1", "rg2-admin2");
-	assert_stringlist(rg1->rg_adm_rm,  "post-merge rg1->rg_adm_rm",  1, "former-admin");
-
-	res_group_free(rg1);
-	res_group_free(rg2);
-}
-
 void test_res_group_diffstat_remediation()
 {
 	struct res_group *rg;
@@ -256,7 +212,6 @@ void test_res_group_unpack()
 
 void test_suite_res_group() {
 	test_res_group_enforcement();
-	test_res_group_merge();
 	test_res_group_diffstat_remediation();
 	test_res_group_remediate_new();
 

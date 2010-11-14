@@ -21,12 +21,9 @@ policy::
   Memory Management Changes
   policy version detection
   policy support in proto
-  redo res_* lists as hash (need general purpose hash)
 
 parser::
   if-else-if-else construct
-  resource overrides
-  re-implement resources as a hash of "TYPE:pkey" keys
 
 COLLAPSE MODULES:
   RESOURCES:  res_user + res_file + res_group

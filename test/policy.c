@@ -39,7 +39,7 @@ void test_policy_latest_version()
 void test_policy_user_addition()
 {
 	struct policy *pol;
-	struct res_user *ru;
+	struct res_user *ru, *other;
 	struct res_user *ptr;
 	size_t n = 0;
 
@@ -49,24 +49,36 @@ void test_policy_user_addition()
 	ru = res_user_new();
 	res_user_set_name(ru, "user1");
 	assert_str_equals("User details are correct (before addition)", "user1", ru->ru_name);
-	policy_add_user_resource(pol, ru);
+	policy_add_user_resource(pol, "user1", ru);
+
+	other = res_user_new();
+	res_user_set_name(other, "other");
+	assert_str_equals("User details are correct (before addition)", "other", other->ru_name);
+	policy_add_user_resource(pol, "other", other);
 
 	n = 0;
 	for_each_node(ptr, &pol->res_users, res) {
-		if (n++ == 0) {
+		switch (n++) {
+		case 0:
 			assert_str_equals("User details are correct", "user1", ptr->ru_name);
+			break;
+
+		case 1:
+			assert_str_equals("User details are correct", "other", ptr->ru_name);
+			break;
 		}
 	}
-	assert_int_equals("Only one user in the list", 1, n);
+	assert_int_equals("Only two users in the list", 2, n);
 
 	res_user_free(ru);
+	res_user_free(other);
 	policy_free(pol);
 }
 
 void test_policy_group_addition()
 {
 	struct policy *pol;
-	struct res_group *rg;
+	struct res_group *rg, *other;
 	struct res_group *ptr;
 	size_t n = 0;
 
@@ -76,24 +88,35 @@ void test_policy_group_addition()
 	rg = res_group_new();
 	res_group_set_name(rg, "group1");
 	assert_str_equals("Group details are correct (before addition)", "group1", rg->rg_name);
-	policy_add_group_resource(pol, rg);
+	policy_add_group_resource(pol, "group1", rg);
+
+	other = res_group_new();
+	res_group_set_name(other, "other");
+	assert_str_equals("Group details are correct (before addition)", "other", other->rg_name);
+	policy_add_group_resource(pol, "other", other);
 
 	n = 0;
 	for_each_node(ptr, &pol->res_groups, res) {
-		if (n++ == 0) {
+		switch (n++) {
+		case 0:
 			assert_str_equals("Group details are correct", "group1", ptr->rg_name);
+			break;
+		case 1:
+			assert_str_equals("Group details are correct", "other", ptr->rg_name);
+			break;
 		}
 	}
-	assert_int_equals("Only one group in the list", 1, n);
+	assert_int_equals("Only two groups in the list", 2, n);
 
 	res_group_free(rg);
+	res_group_free(other);
 	policy_free(pol);
 }
 
 void test_policy_file_addition()
 {
 	struct policy *pol;
-	struct res_file *rf;
+	struct res_file *rf, *other;
 	struct res_file *ptr;
 	size_t n = 0;
 
@@ -103,17 +126,29 @@ void test_policy_file_addition()
 	rf = res_file_new();
 	res_file_set_source(rf, "file1");
 	assert_str_equals("File details are correct (before addition)", "file1", rf->rf_rpath);
-	policy_add_file_resource(pol, rf);
+	policy_add_file_resource(pol, "file1", rf);
+
+	other = res_file_new();
+	res_file_set_source(other, "other");
+	assert_str_equals("File details are correct (before addition)", "other", other->rf_rpath);
+	policy_add_file_resource(pol, "other", other);
 
 	n = 0;
 	for_each_node(ptr, &pol->res_files, res) {
-		if (n++ == 0) {
+		switch (n++) {
+		case 0:
 			assert_str_equals("File details are correct", "file1", ptr->rf_rpath);
+			break;
+
+		case 1:
+			assert_str_equals("File details are correct", "other", ptr->rf_rpath);
+			break;
 		}
 	}
-	assert_int_equals("Only one file in the list", 1, n);
+	assert_int_equals("Only two files in the list", 2, n);
 
 	res_file_free(rf);
+	res_file_free(other);
 	policy_free(pol);
 }
 
@@ -142,19 +177,19 @@ void test_policy_pack()
 	res_user_set_uid(ru1, 101);
 	res_user_set_gid(ru1, 2000);
 	res_user_set_name(ru1, "user1");
-	policy_add_user_resource(pol, ru1);
+	policy_add_user_resource(pol, "user1", ru1);
 
 	rg1 = res_group_new();
 	res_group_set_gid(rg1, 2000);
 	res_group_set_name(rg1, "staff");
-	policy_add_group_resource(pol, rg1);
+	policy_add_group_resource(pol, "staff", rg1);
 
 	rf1 = res_file_new();
 	res_file_set_source(rf1, "cfm://etc/sudoers");
 	res_file_set_uid(rf1, 101);
 	res_file_set_gid(rf1, 2000);
 	res_file_set_mode(rf1, 0600);
-	policy_add_file_resource(pol, rf1);
+	policy_add_file_resource(pol, "sudoers file", rf1);
 
 	packed = policy_pack(pol);
 	assert_not_null("policy_pack succeeds", packed);

@@ -54,7 +54,6 @@ struct res_user {
 
 	char          *ru_skel;    /* Path to skeleton dir (for ru_mkhome) */
 
-	unsigned int   ru_prio;
 	unsigned int   ru_enf;     /* enforce-compliance flags */
 	unsigned int   ru_diff;    /* out-of-compliance flags */
 
@@ -109,8 +108,6 @@ int res_user_unset_expire(struct res_user *ru);
 
 int res_user_set_lock(struct res_user *ru, unsigned char locked);
 int res_user_unset_lock(struct res_user *ru);
-
-void res_user_merge(struct res_user *ru1, struct res_user *ru2);
 
 int res_user_stat(struct res_user *ru, struct pwdb *pwdb, struct spdb *spdb);
 int res_user_remediate(struct res_user *ru, struct pwdb *pwdb, struct spdb *spdb);

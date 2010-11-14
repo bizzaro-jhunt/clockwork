@@ -76,38 +76,6 @@ void test_res_file_enforcement()
 	res_file_free(rf);
 }
 
-void test_res_file_merge()
-{
-	struct res_file *rf1, *rf2;
-
-	rf1 = res_file_new();
-	rf1->rf_prio =  10;
-
-	rf2 = res_file_new();
-	rf2->rf_prio = 100;
-
-	/* rf1 is our "base" policy,
-	   to be overridden by rf2 */
-	res_file_set_uid(rf1, 42);
-	res_file_set_gid(rf1, 42);
-
-	res_file_set_source(rf2, "test/data/sha1/file1");
-	res_file_set_uid(rf2, 199);
-	res_file_set_gid(rf2, 199);
-	res_file_set_mode(rf2, 0700);
-
-	test("RES_FILE: Merging file resources together");
-	res_file_merge(rf1, rf2);
-	assert_int_equals("UID set properly after merge", rf1->rf_uid, 42);
-	assert_int_equals("GID set properly after merge", rf1->rf_gid, 42);
-	assert_int_equals("MODE set properly after merge", rf1->rf_mode, 0700);
-	assert_str_equals("LPATH set properly after merge", rf1->rf_rpath, "test/data/sha1/file1");
-	assert_str_equals("LSHA1 set properly after merge", rf1->rf_rsha1.hex, TESTFILE_SHA1_file1);
-
-	res_file_free(rf1);
-	res_file_free(rf2);
-}
-
 void test_res_file_diffstat()
 {
 	struct res_file *rf;
@@ -229,7 +197,6 @@ void test_res_file_unpack()
 void test_suite_res_file()
 {
 	test_res_file_enforcement();
-	test_res_file_merge();
 	test_res_file_diffstat();
 	test_res_file_remedy();
 

@@ -24,7 +24,6 @@
 
 static int _res_file_fd2fd(int dest, int src);
 static int _res_file_diff(struct res_file *rf);
-static int _res_file_set_sha1_and_source(struct res_file *rf, const sha1 *cksum, const char *path);
 
 /*****************************************************************/
 
@@ -66,24 +65,6 @@ static int _res_file_diff(struct res_file *rf)
 	return 0;
 }
 
-static int _res_file_set_sha1_and_source(struct res_file *rf, const sha1 *cksum, const char *path)
-{
-	assert(rf);
-
-	size_t len = strlen(path) + 1;
-
-	xfree(rf->rf_rpath);
-	rf->rf_rpath = malloc(len);
-	if (!rf->rf_rpath) { return -1; }
-
-	if (!memcpy(rf->rf_rpath, path, len)) { return -1; }
-	if (!memcpy(&(rf->rf_rsha1), cksum, sizeof(sha1))) { return -1; }
-
-	rf->rf_enf |= RES_FILE_SHA1;
-
-	return 0;
-}
-
 /*****************************************************************/
 
 struct res_file* res_file_new(void)
@@ -107,7 +88,6 @@ int  res_file_init(struct res_file *rf)
 {
 	assert(rf);
 
-	rf->rf_prio = 0;
 	list_init(&rf->res);
 
 	rf->rf_enf = 0;
@@ -274,51 +254,6 @@ int res_file_unset_source(struct res_file *rf)
 	rf->rf_enf ^= RES_FILE_SHA1;
 
 	return 0;
-}
-
-/*
- * Merge two res_file structures, respecting priority.
- *
- * rf1 is expected to have a higher priority (lower rf_prio value)
- * than rf2; if not, the pointers are swapped locally.
- *
- * If rf1 and rf2 have the same priority value, rf1 takes priority
- * over rf2 (arbitrarily).
- */
-void res_file_merge(struct res_file *rf1, struct res_file *rf2)
-{
-	assert(rf1);
-	assert(rf2);
-
-	struct res_file *tmp;
-
-	if (rf1->rf_prio > rf2->rf_prio) {
-		/* out-of-order, swap pointers */
-		tmp = rf1; rf1 = rf2; rf2 = tmp; tmp = NULL;
-	}
-
-	/* rf1 has a priority over rf2 */
-	assert(rf1->rf_prio <= rf2->rf_prio);
-
-	if ( res_file_enforced(rf2, UID) &&
-	    !res_file_enforced(rf1, UID)) {
-		res_file_set_uid(rf1, rf2->rf_uid);
-	}
-
-	if ( res_file_enforced(rf2, GID) &&
-	    !res_file_enforced(rf1, GID)) {
-		res_file_set_gid(rf1, rf2->rf_gid);
-	}
-
-	if ( res_file_enforced(rf2, MODE) &&
-	    !res_file_enforced(rf1, MODE)) {
-		res_file_set_mode(rf1, rf2->rf_mode);
-	}
-
-	if ( res_file_enforced(rf2, SHA1) &&
-	    !res_file_enforced(rf1, SHA1)) {
-		_res_file_set_sha1_and_source(rf1, &(rf2->rf_rsha1), rf2->rf_rpath);
-	}
 }
 
 /*

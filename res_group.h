@@ -35,7 +35,6 @@ struct res_group {
 	struct group  *rg_grp;     /* pointer to an entry in grdb */
 	struct sgrp   *rg_sg;      /* pointer to an entry in sgdb */
 
-	unsigned int   rg_prio;
 	unsigned int   rg_enf;     /* enforce-compliance flags */
 	unsigned int   rg_diff;    /* out-of-compliance flags */
 
@@ -65,8 +64,6 @@ int res_group_remove_member(struct res_group *rg, const char *user);
 int res_group_enforce_admins(struct res_group *rg, int enforce);
 int res_group_add_admin(struct res_group *rg, const char *user);
 int res_group_remove_admin(struct res_group *rg, const char *user);
-
-void res_group_merge(struct res_group *rg1, struct res_group *rg2);
 
 int res_group_stat(struct res_group *rg, struct grdb *grdb, struct sgdb *sgdb);
 int res_group_remediate(struct res_group *rg, struct grdb *grdb, struct sgdb *sgdb);

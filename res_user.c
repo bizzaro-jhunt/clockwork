@@ -143,8 +143,6 @@ static int _res_user_init_params(struct res_user *ru)
 {
 	assert(ru);
 
-	ru->ru_prio = 0;
-
 	ru->ru_uid    = 0;
 	ru->ru_uid    = 0;
 	ru->ru_mkhome = 0;
@@ -483,92 +481,6 @@ int res_user_unset_lock(struct res_user *ru)
 
 	ru->ru_enf ^= RES_USER_LOCK;
 	return 0;
-}
-
-void res_user_merge(struct res_user *ru1, struct res_user *ru2)
-{
-	assert(ru1);
-	assert(ru2);
-
-	struct res_user *tmp;
-
-	if (ru1->ru_prio > ru2->ru_prio) {
-		/* out-of-order, swap pointers */
-		tmp = ru1; ru1 = ru2; ru2 = ru1; tmp = NULL;
-	}
-
-	/* ru1 as priority over ru2 */
-	assert(ru1->ru_prio <= ru2->ru_prio);
-
-	if ( res_user_enforced(ru2, NAME) &&
-	    !res_user_enforced(ru1, NAME)) {
-		res_user_set_name(ru1, ru2->ru_name);
-	}
-
-	if ( res_user_enforced(ru2, PASSWD) &&
-	    !res_user_enforced(ru1, PASSWD)) {
-		res_user_set_passwd(ru1, ru2->ru_passwd);
-	}
-
-	if ( res_user_enforced(ru2, UID) &&
-	    !res_user_enforced(ru1, UID)) {
-		res_user_set_uid(ru1, ru2->ru_uid);
-	}
-
-	if ( res_user_enforced(ru2, GID) &&
-	    !res_user_enforced(ru1, GID)) {
-		res_user_set_gid(ru1, ru2->ru_gid);
-	}
-
-	if ( res_user_enforced(ru2, GECOS) &&
-	    !res_user_enforced(ru1, GECOS)) {
-		res_user_set_gecos(ru1, ru2->ru_gecos);
-	}
-
-	if ( res_user_enforced(ru2, DIR) &&
-	    !res_user_enforced(ru1, DIR)) {
-		res_user_set_dir(ru1, ru2->ru_dir);
-	}
-
-	if ( res_user_enforced(ru2, SHELL) &&
-	    !res_user_enforced(ru1, SHELL)) {
-		res_user_set_shell(ru1, ru2->ru_shell);
-	}
-
-	if ( res_user_enforced(ru2, MKHOME) &&
-	    !res_user_enforced(ru1, MKHOME)) {
-		res_user_set_makehome(ru1, ru2->ru_mkhome, ru2->ru_skel);
-	}
-
-	if ( res_user_enforced(ru2, PWMIN) &&
-	    !res_user_enforced(ru1, PWMIN)) {
-		res_user_set_pwmin(ru1, ru2->ru_pwmin);
-	}
-
-	if ( res_user_enforced(ru2, PWMAX) &&
-	    !res_user_enforced(ru1, PWMAX)) {
-		res_user_set_pwmax(ru1, ru2->ru_pwmax);
-	}
-
-	if ( res_user_enforced(ru2, PWWARN) &&
-	    !res_user_enforced(ru1, PWWARN)) {
-		res_user_set_pwwarn(ru1, ru2->ru_pwwarn);
-	}
-
-	if ( res_user_enforced(ru2, INACT) &&
-	    !res_user_enforced(ru1, INACT)) {
-		res_user_set_inact(ru1, ru2->ru_inact);
-	}
-
-	if ( res_user_enforced(ru2, EXPIRE) &&
-	    !res_user_enforced(ru1, EXPIRE)) {
-		res_user_set_expire(ru1, ru2->ru_expire);
-	}
-
-	if ( res_user_enforced(ru2, LOCK) &&
-	    !res_user_enforced(ru1, LOCK)) {
-		res_user_set_lock(ru1, ru2->ru_lock);
-	}
 }
 
 int res_user_stat(struct res_user *ru, struct pwdb *pwdb, struct spdb *spdb)

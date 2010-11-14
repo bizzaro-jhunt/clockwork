@@ -52,7 +52,7 @@ static struct stree* static_policy()
 {
 	struct stree *root, *node;
 
-	root = NODE(POLICY, "standard", NULL);
+	root = NODE(PROG, NULL, NULL);
 	if (!root) {
 		return NULL;
 	}
@@ -78,7 +78,7 @@ static struct stree* conditional_policy()
 {
 	struct stree *root, *node, *tmp;
 
-	root = NODE(POLICY, "standard", NULL);
+	root = NODE(PROG, NULL, NULL);
 	if (!root) {
 		return NULL;
 	}
@@ -250,7 +250,7 @@ static struct stree* prog_policy()
 {
 	struct stree *root, *node, *res, *prog;
 
-	root = NODE(POLICY, "prog-test", NULL);
+	root = NODE(PROG, NULL, NULL);
 	if (!root) {
 		return NULL;
 	}

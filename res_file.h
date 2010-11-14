@@ -19,7 +19,6 @@
 #define res_file_different(rf, flag) (((rf)->rf_diff & RES_FILE_ ## flag) == RES_FILE_ ## flag)
 
 struct res_file {
-	unsigned int rf_prio;   /* Priority (0 = highest) */
 	char        *rf_lpath;  /* Local path to the file */
 	char        *rf_rpath;  /* Path to desired file */
 
@@ -58,8 +57,6 @@ int res_file_unset_path(struct res_file *rf);
 
 int res_file_set_source(struct res_file *rf, const char *path);
 int res_file_unset_source(struct res_file *rf);
-
-void res_file_merge(struct res_file *rf1, struct res_file *rf2);
 
 int res_file_stat(struct res_file *rf);
 int res_file_remediate(struct res_file *rf);

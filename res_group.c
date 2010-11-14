@@ -107,7 +107,6 @@ int  res_group_init(struct res_group *rg)
 {
 	assert(rg);
 
-	rg->rg_prio = 0;
 	list_init(&rg->res);
 
 	rg->rg_name = NULL;
@@ -288,49 +287,6 @@ int res_group_remove_admin(struct res_group *rg, const char *user)
 
 	/* add to rg_adm_rm, remove from rg_adm_add */
 	return _group_update(rg->rg_adm_rm, rg->rg_adm_add, user);
-}
-
-void res_group_merge(struct res_group *rg1, struct res_group *rg2)
-{
-	assert(rg1);
-	assert(rg2);
-
-	struct res_group *tmp;
-
-	if (rg1->rg_prio > rg2->rg_prio) {
-		/* out-of-order, swap pointers */
-		tmp = rg1; rg1 = rg2; rg2 = tmp; tmp = NULL;
-	}
-
-	/* rg1 has priority over rg2 */
-	assert(rg1->rg_prio <= rg2->rg_prio);
-
-	if ( res_group_enforced(rg2, NAME) &&
-	    !res_group_enforced(rg1, NAME)) {
-		res_group_set_name(rg1, rg2->rg_name);
-	}
-
-	if ( res_group_enforced(rg2, PASSWD) &&
-	    !res_group_enforced(rg1, PASSWD)) {
-		res_group_set_passwd(rg1, rg2->rg_passwd);
-	}
-
-	if ( res_group_enforced(rg2, GID) &&
-	    !res_group_enforced(rg1, GID)) {
-		res_group_set_gid(rg1, rg2->rg_gid);
-	}
-
-	if (res_group_enforced(rg2, MEMBERS)) {
-		stringlist_add_all(rg1->rg_mem_add, rg2->rg_mem_add);
-		stringlist_add_all(rg1->rg_mem_rm,  rg2->rg_mem_rm);
-		res_group_enforce_members(rg1, 1);
-	}
-
-	if (res_group_enforced(rg2, ADMINS)) {
-		stringlist_add_all(rg1->rg_adm_add, rg2->rg_adm_add);
-		stringlist_add_all(rg1->rg_adm_rm,  rg2->rg_adm_rm);
-		res_group_enforce_admins(rg1, 1);
-	}
 }
 
 int res_group_stat(struct res_group *rg, struct grdb *grdb, struct sgdb *sgdb)

@@ -26,6 +26,8 @@ struct manifest* parse_file(const char *path)
 		fprintf(stderr, "Errors encountered; aborting...\n");
 		return NULL;
 	}
+
+	stree_expand(root->root);
 	return root;
 }
 

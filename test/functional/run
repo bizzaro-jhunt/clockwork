@@ -197,7 +197,26 @@ sub test_fact_checking()
 		run(qq(echo "test.use_uid=1x" | $factchecker "$root/map-no-else.pol" 2>/dev/null)));
 }
 
+sub test_overrides()
+{
+	$TESTS++;
+	print "parser: resource overrides\n";
+
+	my $checker = "echo \"sys.hostname=test\" | ./test/util/factchecker";
+	my $root = "test/functional/overrides";
+
+	assert_str_equals("overrides: user GID value overridden in same policy", "res_user:override:2125:3125",
+		run(qq($checker "$root/same-policy.pol" 2>/dev/null)));
+
+	assert_str_match("overrides: Same policy, but not in succession", "res_user:override:2125:3125",
+		run(qq($checker "$root/same-interim.pol" 2>/dev/null)));
+
+	assert_str_equals("overrides: UID value overridden from a different policy", "res_user:override:4815:100",
+		run(qq($checker "$root/diff-policy.pol" 2>/dev/null)));
+}
+
 test_assertions();
 test_parser_inclusion();
 test_fact_checking();
+test_overrides();
 finish_tests();

@@ -65,7 +65,7 @@ all: test $(UTILS)
 ############################################################
 # Main Binaries
 
-clockworkd: clockworkd.o $(CORE_OBJECTS) $(RESOURCE_OBJECTS) $(POLICY_OBJECTS) $(PARSER_OBJECTS) proto.o
+clockworkd: clockworkd.o $(CORE_OBJECTS) $(RESOURCE_OBJECTS) $(POLICY_OBJECTS) $(PARSER_OBJECTS) proto.o daemon.o
 	$(CC) -o $@ $+
 
 ############################################################

@@ -3,13 +3,11 @@
 #include "threads.h"
 #include "proto.h"
 #include "log.h"
+#include "daemon.h"
 
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
 
 //#define DEFAULT_POLICY_FILE "/etc/clockwork/policies.pol"
 #define DEFAULT_POLICY_FILE "policy.pol"
@@ -19,8 +17,9 @@
 #define CONFIG_CERTFILE "certs/CA/cacert.pem"
 #define CONFIG_KEYFILE  "certs/CA/private/cakey.pem"
 
-#define CONFIG_PORT     "7890"
+#define CONFIG_PORT      "7890"
 #define CONFIG_LOCK_FILE "/var/lock/clockworkd"
+#define CONFIG_PID_FILE  "/var/run/clockworkd.pid"
 
 /**************************************************************/
 
@@ -31,12 +30,13 @@ struct server {
 	SSL         *ssl;
 	SSL_CTX     *ssl_ctx;
 	THREAD_TYPE  tid;
+	const char  *lock_file;
+	const char  *pid_file;
 };
 
 static void usage();
 static void server_setup(struct server *s);
 static void server_bind(struct server *s);
-static void server_daemonize(struct server *s, const char *lock_file);
 static void server_loop(struct server *s);
 static void server_teardown(struct server *s);
 
@@ -53,7 +53,10 @@ int main(int argc, char **argv)
 	s.manifest = parse_file(DEFAULT_POLICY_FILE);
 
 	server_setup(&s);
-	server_daemonize(&s, CONFIG_LOCK_FILE);
+	s.lock_file = CONFIG_LOCK_FILE;
+	s.pid_file  = CONFIG_PID_FILE;
+
+	daemonize(s.lock_file, s.pid_file);
 	server_bind(&s);
 	server_loop(&s);
 	server_teardown(&s);
@@ -94,65 +97,6 @@ static void server_bind(struct server *s)
 		int_error("Error binding server socket");
 		exit(2);
 	}
-}
-
-static void server_daemonize(struct server *s, const char *lock)
-{
-	assert(s);
-
-	pid_t pid, sid;
-	int lock_fd = -1;
-
-	if (getppid() == 1) {
-		return; /* already a child of init */
-	}
-
-	/* Open the lock file. We don't need O_EXCL; we will lock the
-	   file with a POSIX lockf(3) in the child process. */
-	if (lock && lock[0]) {
-		lock_fd = open(lock, O_CREAT | O_RDWR, 0640);
-		if (lock_fd < 0) {
-			ERROR("unable to open lock file %s: %s", lock, strerror(errno));
-			exit(2);
-		}
-	}
-
-	pid = fork();
-	if (pid < 0) {
-		ERROR("unable to fork: %s", strerror(errno));
-		exit(2);
-	}
-
-	if (pid > 0) { /* parent process */
-		_exit(0);
-	}
-
-	/* child process */
-
-	if (lock_fd >= 0) { /* lock the lok */
-		if (lockf(lock_fd, F_TLOCK, 0) < 0) {
-			ERROR("unable to lock %s; daemon already running?", lock);
-			exit(2);
-		}
-	}
-
-	umask(0); /* reset the file umask */
-
-	sid = setsid(); /* new process session / group */
-	if (sid < 0 && errno != EPERM) {
-		ERROR("unable to create new process group: %s", strerror(errno));
-		exit(2);
-	}
-
-	if (chdir("/") < 0) {
-		ERROR("unable to chdir to /: %s", strerror(errno));
-		exit(2);
-	}
-
-	/* redirect standard fds */
-	freopen("/dev/null", "r", stdin);
-	freopen("/dev/null", "w", stdout);
-	freopen("/dev/null", "w", stderr);
 }
 
 static void server_loop(struct server *s)

@@ -5,61 +5,35 @@
 
 void test_fact_parsing()
 {
-	struct fact *fact;
+	char *name, *value;
 
 	test("fact: parsing a string fact");
-	fact = fact_parse("sys.kernel.version=2.6.32-194.distro5-generic\n");
-	assert_not_null("fact_parse should return a fact pointer", fact);
-	assert_str_equals("name parsed correctly", "sys.kernel.version", fact->name);
-	assert_str_equals("value parsed correctly", "2.6.32-194.distro5-generic", fact->value);
+	fact_parse("sys.kernel.version=2.6.32-194.distro5-generic\n", &name, &value);
+	assert_str_equals("name parsed correctly", "sys.kernel.version", name);
+	assert_str_equals("value parsed correctly", "2.6.32-194.distro5-generic", value);
 
-	xfree(fact->name);
-	xfree(fact->value);
-	xfree(fact);
+	xfree(name);
+	xfree(value);
 }
 
 void test_fact_read_io()
 {
-	struct list facts;
+	struct hash *facts;
 	FILE *io;
-	struct fact *fact;
-	int i = 0;
-
-	list_init(&facts);
 
 	test("fact: reading facts from a FILE*");
-	assert_true("(test sanity) list 'facts' should be empty before we start", list_empty(&facts));
 	io = fopen("test/data/facts/good.facts", "r");
 	assert_not_null("(test sanity) good.facts file opened successfully", io);
 
-	assert_int_equals("fact_read() returns 3 facts", 3, fact_read(&facts, io));
-	for_each_node(fact, &facts, facts) {
-		switch (i) {
-		case 0:
-			assert_not_null("fact[0] shoul not be NULL", fact);
-			assert_str_equals("fact[0]->name should be 'test.fact1'", "test.fact1", fact->name);
-			assert_str_equals("fact[0]->value should be 'fact1'", "fact1", fact->value);
-			break;
-		case 1:
-			assert_not_null("fact[1] shoul not be NULL", fact);
-			assert_str_equals("fact[1]->name should be 'test.fact2'", "test.fact2", fact->name);
-			assert_str_equals("fact[1]->value should be 'fact2'", "fact2", fact->value);
-			break;
-		case 2:
-			assert_not_null("fact[2] shoul not be NULL", fact);
-			assert_str_equals("fact[2]->name should be 'test.multi.level.fact'", "test.multi.level.fact", fact->name);
-			assert_str_equals("fact[2]->value should be 'multilevel fact'", "multilevel fact", fact->value);
-			break;
-		default:
-			assert_fail("Unexpected fact found in the list");
-		}
+	facts = fact_read(io);
+	assert_not_null("fact_read() succeeds", fact_read(io));
 
-		i++;
-	}
-
+	assert_str_equals("Checking test.fact1", "fact1", hash_lookup(facts, "test.fact1"));
+	assert_str_equals("Checking test.fact2", "fact2", hash_lookup(facts, "test.fact2"));
+	assert_str_equals("Checking test.multi.level.fact", "multilevel fact", hash_lookup(facts, "test.multi.level.fact"));
 	fclose(io);
 
-	fact_free_all(&facts);
+	hash_free(facts);
 }
 
 void test_suite_fact()

@@ -52,7 +52,7 @@ RESOURCE_HEADERS := res_user.h res_group.h res_file.h
 CORE_OBJECTS := mem.o sha1.o pack.o stringlist.o userdb.o
 
 # Policy object files
-POLICY_OBJECTS := policy.o
+POLICY_OBJECTS := policy.o hash.o
 
 # Parser object files
 PARSER_OBJECTS := spec/lexer.o spec/grammar.o spec/parser.o

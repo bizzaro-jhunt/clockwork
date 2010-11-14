@@ -26,7 +26,7 @@ enum restype {
 
 struct policy_generator {
 	struct policy *policy;
-	struct list   *facts;
+	struct hash   *facts;
 	enum restype   type;
 
 	union {
@@ -209,28 +209,10 @@ int stree_compare(const struct stree *a, const struct stree *b)
 	return 0;
 }
 
-void fact_free_all(struct list *facts)
-{
-	struct fact *fact, *tmp;
-	for_each_node_safe(fact, tmp, facts, facts) {
-		xfree(fact->name);
-		xfree(fact->value);
-		free(fact);
-	}
-
-	list_init(facts);
-}
-
-/**
-  Parses a single fact from a line formatted as follows:
-
-  full.fact.name=value\n
- */
-struct fact *fact_parse(const char *line)
+int fact_parse(const char *line, char **k, char **v)
 {
 	assert(line);
 
-	struct fact *fact;
 	char *buf, *name, *value;
 	char *stp; /* string traversal pointer */
 
@@ -244,59 +226,43 @@ struct fact *fact_parse(const char *line)
 		;
 	*stp = '\0';
 
-	fact = malloc(sizeof(struct fact));
-	if (fact) {
-		fact->name  = xstrdup(name);
-		fact->value = xstrdup(value);
-	}
+	*k = xstrdup(name);
+	*v = xstrdup(value);
 
 	free(buf);
-	return fact;
+	return 0;
 }
 
-int fact_read(struct list *facts, FILE *io)
+struct hash* fact_read(FILE *io)
 {
-	assert(facts);
 	assert(io);
 
-	struct fact *fact;
+	struct hash *facts;
 	char buf[8192] = {0};
-	int nfacts = 0;
+	char *k, *v;
 
-	while (!feof(io)) {
-		errno = 0;
-		if (!fgets(buf, 8192, io)) {
-			if (errno == 0) {
-				break;
-			}
-			return -1;
-		}
-
-		/* FIXME: how do we test for long lines properly? */
-		fact = fact_parse(buf);
-		if (fact) {
-			list_add_tail(&fact->facts, facts);
-			nfacts++;
-		}
-	}
-
-	return nfacts;
-}
-
-const char *fact_lookup(struct list *facts, const char *name)
-{
-	struct fact *f;
-
+	facts = hash_new();
 	if (!facts) {
 		return NULL;
 	}
 
-	for_each_node(f, facts, facts) {
-		if (strcmp(f->name, name) == 0) {
-			return f->value;
+	while (!feof(io)) {
+		errno = 0;
+		if (!fgets(buf, 8192, io)) {
+			if (errno != 0) {
+				hash_free(facts);
+				facts = NULL;
+			}
+			break;
+		}
+
+		if (fact_parse(buf, &k, &v) == 0) {
+			hash_insert(facts, k, v);
+			free(k);
 		}
 	}
-	return NULL;
+
+	return facts;
 }
 
 int _policy_generate(struct stree *node, struct policy_generator *pgen)
@@ -309,7 +275,7 @@ int _policy_generate(struct stree *node, struct policy_generator *pgen)
 again:
 	switch(node->op) {
 	case IF:
-		if (xstrcmp(fact_lookup(pgen->facts, node->data1), node->data2) == 0) {
+		if (xstrcmp(hash_lookup(pgen->facts, node->data1), node->data2) == 0) {
 			node = node->nodes[0];
 		} else {
 			node = node->nodes[1];
@@ -384,7 +350,7 @@ again:
 	return 0;
 }
 
-struct policy* policy_generate(struct stree *root, struct list *facts)
+struct policy* policy_generate(struct stree *root, struct hash *facts)
 {
 	assert(root);
 

@@ -26,7 +26,6 @@ policy::
 parser::
   if-else-if-else construct
   resource overrides
-  re-implement fact list as a hash
   re-implement resources as a hash of "TYPE:pkey" keys
 
 COLLAPSE MODULES:

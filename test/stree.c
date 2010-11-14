@@ -108,26 +108,24 @@ static struct stree* conditional_policy()
 	return root;
 }
 
-static void facts_for_lucid26(struct list *facts)
+static struct hash* facts_for_lucid26(void)
 {
-	struct fact *fact;
-
-	fact = fact_parse("lsb.distro.codename=lucid\n");
-	list_add_tail(&fact->facts, facts);
-
-	fact = fact_parse("sys.kernel.major=2.6\n");
-	list_add_tail(&fact->facts, facts);
+	struct hash *h = hash_new();
+	if (h) {
+		hash_insert(h, "lsb.distro.codename", "lucid");
+		hash_insert(h, "sys.kernel.major",    "2.6");
+	}
+	return h;
 }
 
-static void facts_for_tikanga24(struct list *facts)
+static struct hash* facts_for_tikanga24(void)
 {
-	struct fact *fact;
-
-	fact = fact_parse("sys.kernel.major=2.4\n");
-	list_add_tail(&fact->facts, facts);
-
-	fact = fact_parse("lsb.distro.codename=tikanga\n");
-	list_add_tail(&fact->facts, facts);
+	struct hash *h = hash_new();
+	if (h) {
+		hash_insert(h, "sys.kernel.major",    "2.4");
+		hash_insert(h, "lsb.distro.codename", "tikanga");
+	}
+	return h;
 }
 
 
@@ -135,7 +133,6 @@ void test_stree_static_policy_generation()
 {
 	struct policy *pol;
 	struct stree *root;
-	struct list facts;
 	unsigned int i;
 
 	struct res_user *user;
@@ -146,8 +143,7 @@ void test_stree_static_policy_generation()
 	root = static_policy();
 	assert_not_null("(test sanity) static_policy() should return an stree pointer", root);
 
-	list_init(&facts);
-	pol = policy_generate(root, &facts);
+	pol = policy_generate(root, NULL);
 	assert_not_null("policy defined successfully from stree", pol);
 
 	assert_true("policy defined has user resources",  !list_empty(&pol->res_users));
@@ -199,7 +195,7 @@ void test_stree_conditional_policy_generation()
 {
 	struct policy *pol;
 	struct stree *root;
-	struct list facts;
+	struct hash *facts;
 
 	struct res_user *user;
 	struct res_file *file;
@@ -209,8 +205,8 @@ void test_stree_conditional_policy_generation()
 	assert_not_null("(test sanity) conditional_policy() should return an stree pointer", root);
 
 	test("stree: conditional policy generation for Lucid/2.6");
-	list_init(&facts); facts_for_lucid26(&facts);
-	pol = policy_generate(root, &facts);
+	facts = facts_for_lucid26();
+	pol = policy_generate(root, facts);
 	assert_not_null("policy defined successfully from stree", pol);
 
 	assert_true("policy defined has user resources",  !list_empty(&pol->res_users));
@@ -232,8 +228,8 @@ void test_stree_conditional_policy_generation()
 	policy_free_all(pol);
 
 	test("stree: conditional policy generation for Tikanga/2.4");
-	fact_free_all(&facts); facts_for_tikanga24(&facts);
-	pol = policy_generate(root, &facts);
+	facts = facts_for_tikanga24();
+	pol = policy_generate(root, facts);
 	assert_not_null("policy defined successfully from stree", pol);
 
 	assert_true("policy defined has no users resources", list_empty(&pol->res_users));
@@ -246,7 +242,7 @@ void test_stree_conditional_policy_generation()
 	assert_str_equals("file->rf_rpath is std/2.4.conf", "std/2.4.conf", file->rf_rpath);
 	assert_str_equals("file->rf_lpath is snmpd.conf", "snmpd.conf", file->rf_lpath);
 
-	fact_free_all(&facts);
+	hash_free(facts);
 	policy_free_all(pol);
 }
 
@@ -281,27 +277,29 @@ static struct stree* prog_policy()
 	return root;
 }
 
-void facts_for_prog1(struct list *facts)
+struct hash* facts_for_prog1(void)
 {
-	struct fact *fact;
-
-	fact = fact_parse("test.users=1\n");
-	list_add_tail(&fact->facts, facts);
+	struct hash *h = hash_new();
+	if (h) {
+		hash_insert(h, "test.users", "1");
+	}
+	return h;
 }
 
-void facts_for_prog2(struct list *facts)
+struct hash* facts_for_prog2(void)
 {
-	struct fact *fact;
-
-	fact = fact_parse("test.users=2\n");
-	list_add_tail(&fact->facts, facts);
+	struct hash *h = hash_new();
+	if (h) {
+		hash_insert(h, "test.users", "2");
+	}
+	return h;
 }
 
 void test_stree_prog_policy_generation()
 {
 	struct policy *pol;
 	struct stree *root;
-	struct list facts;
+	struct hash *facts;
 	unsigned int i;
 
 	struct res_group *group;
@@ -311,8 +309,8 @@ void test_stree_prog_policy_generation()
 	assert_not_null("(test sanity) prog_policy should return an stree pointer", root);
 
 	test("stree: prog(ression) policy generation for 1 group");
-	list_init(&facts); facts_for_prog1(&facts);
-	pol = policy_generate(root, &facts);
+	facts = facts_for_prog1();
+	pol = policy_generate(root, facts);
 	assert_not_null("policy defined successfully from stree", pol);
 	assert_true("policy defined has group resources", !list_empty(&pol->res_groups));
 	i = 0;
@@ -328,8 +326,8 @@ void test_stree_prog_policy_generation()
 	policy_free_all(pol);
 
 	test("stree: prog(ression) policy generation for 2 groups");
-	fact_free_all(&facts); facts_for_prog2(&facts);
-	pol = policy_generate(root, &facts);
+	facts = facts_for_prog2();
+	pol = policy_generate(root, facts);
 	assert_not_null("policy defined successfully from stree", pol);
 	assert_true("policy defined has group resources", !list_empty(&pol->res_groups));
 	i = 0;
@@ -348,7 +346,7 @@ void test_stree_prog_policy_generation()
 	assert_int_equals("Found 2 groups", 2, i);
 	policy_free_all(pol);
 
-	fact_free_all(&facts);
+	hash_free(facts);
 }
 
 void test_stree_include_expansion()

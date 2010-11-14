@@ -35,7 +35,7 @@ void print_users(struct policy *pol)
 
 int main(int argc, char **argv)
 {
-	struct list facts;
+	struct hash *facts;
 	struct manifest *manifest;
 	struct policy *pol;
 
@@ -44,15 +44,14 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	list_init(&facts);
-	fact_read(&facts, stdin);
+	facts = fact_read(stdin);
 	manifest = parse_file(argv[1]);
 	if (!manifest) {
 		printf("unable to parse_file!\n");
 		return 2;
 	}
 
-	pol = policy_generate(manifest->root->nodes[0], &facts);
+	pol = policy_generate(manifest->root->nodes[0], facts);
 	if (!pol) {
 		printf("unable to policy_generate!\n");
 		return 3;

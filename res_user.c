@@ -7,6 +7,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include "resource.h"
 #include "res_user.h"
 #include "pack.h"
 #include "mem.h"
@@ -122,7 +123,7 @@ static unsigned char _res_user_home_exists(struct res_user *ru)
 
 /*****************************************************************/
 
-struct res_user* res_user_new(void)
+struct res_user* res_user_new(const char *key)
 {
 	struct res_user *ru;
 
@@ -135,6 +136,9 @@ struct res_user* res_user_new(void)
 		free(ru);
 		return NULL;
 	}
+
+	res_user_set_name(ru, key);
+	ru->key = resource_key("res_user", key);
 
 	return ru;
 }
@@ -201,6 +205,8 @@ void res_user_free(struct res_user *ru)
 	assert(ru);
 
 	res_user_deinit(ru);
+
+	free(ru->key);
 	free(ru);
 }
 
@@ -604,7 +610,7 @@ struct res_user* res_user_unpack(const char *packed)
 		return NULL;
 	}
 
-	ru = res_user_new();
+	ru = res_user_new("FIXME");
 	if (unpack(packed + RES_USER_PACK_OFFSET, RES_USER_PACK_FORMAT,
 		&ru->ru_name,   &ru->ru_passwd, &ru->ru_uid,    &ru->ru_gid,
 		&ru->ru_gecos,  &ru->ru_shell,  &ru->ru_dir,    &ru->ru_mkhome,

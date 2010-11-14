@@ -2,6 +2,7 @@
 #include <string.h>
 #include <errno.h>
 
+#include "resource.h"
 #include "res_group.h"
 #include "pack.h"
 #include "mem.h"
@@ -86,7 +87,7 @@ static int _group_update(stringlist *add, stringlist *rm, const char *user)
 
 /*****************************************************************/
 
-struct res_group* res_group_new(void)
+struct res_group* res_group_new(const char *key)
 {
 	struct res_group *rg;
 
@@ -99,6 +100,9 @@ struct res_group* res_group_new(void)
 		free(rg);
 		return NULL;
 	}
+
+	res_group_set_name(rg, key);
+	rg->key = resource_key("res_group", key);
 
 	return rg;
 }
@@ -408,7 +412,7 @@ struct res_group* res_group_unpack(const char *packed)
 		return NULL;
 	}
 
-	rg = res_group_new();
+	rg = res_group_new("FIXME");
 	if (unpack(packed + RES_GROUP_PACK_OFFSET, RES_GROUP_PACK_FORMAT,
 		&rg->rg_name, &rg->rg_passwd, &rg->rg_gid,
 		&mem_add, &mem_rm, &adm_add, &adm_rm)) {

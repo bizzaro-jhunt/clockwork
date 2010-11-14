@@ -3,6 +3,7 @@
 
 #include "list.h"
 #include "hash.h"
+#include "resource.h"
 #include "res_file.h"
 #include "res_group.h"
 #include "res_user.h"
@@ -92,9 +93,9 @@ void policy_free_all(struct policy *pol);
 
 uint32_t policy_latest_version(void);
 
-int policy_add_file_resource(struct policy *pol, const char *key, struct res_file *rf);
-int policy_add_group_resource(struct policy *pol, const char *key, struct res_group *rg);
-int policy_add_user_resource(struct policy *pol, const char *key, struct res_user *ru);
+int policy_add_file_resource(struct policy *pol, struct res_file *rf);
+int policy_add_group_resource(struct policy *pol, struct res_group *rg);
+int policy_add_user_resource(struct policy *pol, struct res_user *ru);
 
 char* policy_pack(struct policy *pol);
 struct policy* policy_unpack(const char *packed);

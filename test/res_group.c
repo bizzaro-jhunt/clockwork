@@ -18,12 +18,12 @@
 void test_res_group_enforcement()
 {
 	struct res_group *rg;
-	rg = res_group_new();
+	rg = res_group_new("group1");
 
 	test("RES_GROUP: Default Enforcements");
-	assert_true("NAME not enforced", !res_group_enforced(rg, NAME));
+	assert_true("NAME enforced",        res_group_enforced(rg, NAME));
 	assert_true("PASSWD not enforced", !res_group_enforced(rg, PASSWD));
-	assert_true("GID not enforced", !res_group_enforced(rg, GID));
+	assert_true("GID not enforced",    !res_group_enforced(rg, GID));
 
 	test("RES_GROUP: NAME enforcement");
 	ASSERT_ENFORCEMENT(rg,name,NAME,str,"name1","name2");
@@ -56,9 +56,7 @@ void test_res_group_diffstat_remediation()
 	struct sgdb *sgdb;
 	stringlist *list; /* for gr_mem / sg_mem / sg_adm tests */
 
-	rg = res_group_new();
-
-	res_group_set_name(rg, "service");
+	rg = res_group_new("service");
 	res_group_set_gid(rg, 6000);
 
 	/* real membership: account1, account2 */
@@ -122,9 +120,7 @@ void test_res_group_remediate_new()
 	struct grdb *grdb;
 	struct sgdb *sgdb;
 
-	rg = res_group_new();
-
-	res_group_set_name(rg, "new_group");
+	rg = res_group_new("new_group");
 	res_group_set_gid(rg, 6010);
 
 	grdb = grdb_init("test/data/group");
@@ -168,9 +164,7 @@ void test_res_group_pack()
 	char *packed;
 	const char *expected;
 
-	rg = res_group_new();
-
-	res_group_set_name(rg, "staff");
+	rg = res_group_new("staff");
 	res_group_set_passwd(rg, "sesame");
 	res_group_set_gid(rg, 1415);
 	res_group_add_member(rg, "admin1");

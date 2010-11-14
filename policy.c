@@ -248,24 +248,6 @@ struct hash* fact_read(FILE *io)
 	return facts;
 }
 
-static char* _resource_key(const char *type, const char *id)
-{
-	assert(type);
-	assert(id);
-
-	char *key;
-	size_t keylen;
-
-	/* type + ":" + id */
-	keylen = strlen(type) + 1 + strlen(id);
-	key = malloc((keylen + 1) * sizeof(char));
-	if (key) {
-		snprintf(key, keylen + 1, "%s:%s", type, id);
-	}
-
-	return key;
-}
-
 static void * _policy_find_resource(struct policy_generator *pgen, const char *type, const char *id)
 {
 	assert(pgen);
@@ -273,7 +255,7 @@ static void * _policy_find_resource(struct policy_generator *pgen, const char *t
 	char *key;
 	void *resource = NULL;
 
-	key = _resource_key(type, id);
+	key = resource_key(type, id);
 	if (key) {
 		resource = hash_lookup(pgen->policy->resources, key);
 		free(key);
@@ -304,27 +286,24 @@ again:
 			pgen->type = RES_USER;
 			pgen->resource.user = _policy_find_resource(pgen, "res_user", node->data2);
 			if (!pgen->resource.user) {
-				pgen->resource.user = res_user_new();
-				res_user_set_name(pgen->resource.user, node->data2);
-				policy_add_user_resource(pgen->policy, node->data2, pgen->resource.user);
+				pgen->resource.user = res_user_new(node->data2);
+				policy_add_user_resource(pgen->policy, pgen->resource.user);
 			}
 
 		} else if (strcmp(node->data1, "file") == 0) {
 			pgen->type = RES_FILE;
 			pgen->resource.file = _policy_find_resource(pgen, "res_file", node->data2);
 			if (!pgen->resource.file) {
-				pgen->resource.file = res_file_new();
-				res_file_set_path(pgen->resource.file, node->data2);
-				policy_add_file_resource(pgen->policy, node->data2, pgen->resource.file);
+				pgen->resource.file = res_file_new(node->data2);
+				policy_add_file_resource(pgen->policy, pgen->resource.file);
 			}
 
 		} else if (strcmp(node->data1, "group") == 0) {
 			pgen->type = RES_GROUP;
 			pgen->resource.group = _policy_find_resource(pgen, "res_group", node->data2);
 			if (!pgen->resource.group) {
-				pgen->resource.group = res_group_new();
-				res_group_set_name(pgen->resource.group, node->data2);
-				policy_add_group_resource(pgen->policy, node->data2, pgen->resource.group);
+				pgen->resource.group = res_group_new(node->data2);
+				policy_add_group_resource(pgen->policy, pgen->resource.group);
 			}
 
 		} else {
@@ -468,45 +447,33 @@ uint32_t policy_latest_version(void)
 }
 
 
-int policy_add_file_resource(struct policy *pol, const char *id, struct res_file *rf)
+int policy_add_file_resource(struct policy *pol, struct res_file *rf)
 {
 	assert(pol);
 	assert(rf);
 
-	char *key = _resource_key("res_file", id);
-
 	list_add_tail(&rf->res, &pol->res_files);
-	hash_insert(pol->resources, key, rf);
-
-	free(key);
+	hash_insert(pol->resources, rf->key, rf);
 	return 0;
 }
 
-int policy_add_group_resource(struct policy *pol, const char *id, struct res_group *rg)
+int policy_add_group_resource(struct policy *pol, struct res_group *rg)
 {
 	assert(pol);
 	assert(rg);
 
-	char *key = _resource_key("res_group", id);
-
 	list_add_tail(&rg->res, &pol->res_groups);
-	hash_insert(pol->resources, key, rg);
-
-	free(key);
+	hash_insert(pol->resources, rg->key, rg);
 	return 0;
 }
 
-int policy_add_user_resource(struct policy *pol, const char *id, struct res_user *ru)
+int policy_add_user_resource(struct policy *pol, struct res_user *ru)
 {
 	assert(pol);
 	assert(ru);
 
-	char *key = _resource_key("res_user", id);
-
 	list_add_tail(&ru->res, &pol->res_users);
-	hash_insert(pol->resources, key, ru);
-
-	free(key);
+	hash_insert(pol->resources, ru->key, ru);
 	return 0;
 }
 
@@ -628,21 +595,21 @@ struct policy* policy_unpack(const char *packed_policy)
 			if (!ru) {
 				return NULL;
 			}
-			policy_add_user_resource(pol, ru->ru_name, ru);
+			policy_add_user_resource(pol, ru);
 
 		} else if (res_group_is_pack(packed) == 0) {
 			rg = res_group_unpack(packed);
 			if (!rg) {
 				return NULL;
 			}
-			policy_add_group_resource(pol, rg->rg_name, rg);
+			policy_add_group_resource(pol, rg);
 
 		} else if (res_file_is_pack(packed) == 0) {
 			rf = res_file_unpack(packed);
 			if (!rf) {
 				return NULL;
 			}
-			policy_add_file_resource(pol, rf->rf_lpath, rf);
+			policy_add_file_resource(pol, rf);
 
 		} else {
 			stringlist_free(pack_list);

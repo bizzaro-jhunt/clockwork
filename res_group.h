@@ -20,6 +20,8 @@
 #define res_group_different(rg, flag) (((rg)->rg_diff & RES_GROUP_ ## flag) == RES_GROUP_ ## flag)
 
 struct res_group {
+	char          *key;        /* Unique Identifier; starts with "res_group:" */
+
 	char          *rg_name;    /* Group name */
 	char          *rg_passwd;  /* Group membership password (encrypted) */
 	gid_t          rg_gid;     /* Numeric Group ID */
@@ -41,7 +43,7 @@ struct res_group {
 	struct list    res;       /* Node in policy list */
 };
 
-struct res_group *res_group_new(void);
+struct res_group *res_group_new(const char *key);
 int  res_group_init(struct res_group *rg);
 void res_group_deinit(struct res_group *rg);
 void res_group_free(struct res_group *rg);

@@ -46,15 +46,13 @@ void test_policy_user_addition()
 	pol = policy_new("user policy", 1234);
 
 	test("policy: addition of users to policy");
-	ru = res_user_new();
-	res_user_set_name(ru, "user1");
+	ru = res_user_new("user1");
 	assert_str_equals("User details are correct (before addition)", "user1", ru->ru_name);
-	policy_add_user_resource(pol, "user1", ru);
+	policy_add_user_resource(pol, ru);
 
-	other = res_user_new();
-	res_user_set_name(other, "other");
+	other = res_user_new("other");
 	assert_str_equals("User details are correct (before addition)", "other", other->ru_name);
-	policy_add_user_resource(pol, "other", other);
+	policy_add_user_resource(pol, other);
 
 	n = 0;
 	for_each_node(ptr, &pol->res_users, res) {
@@ -85,15 +83,13 @@ void test_policy_group_addition()
 	pol = policy_new("group policy", 1234);
 
 	test("policy: addition of groups to policy");
-	rg = res_group_new();
-	res_group_set_name(rg, "group1");
+	rg = res_group_new("group1");
 	assert_str_equals("Group details are correct (before addition)", "group1", rg->rg_name);
-	policy_add_group_resource(pol, "group1", rg);
+	policy_add_group_resource(pol, rg);
 
-	other = res_group_new();
-	res_group_set_name(other, "other");
+	other = res_group_new("other");
 	assert_str_equals("Group details are correct (before addition)", "other", other->rg_name);
-	policy_add_group_resource(pol, "other", other);
+	policy_add_group_resource(pol, other);
 
 	n = 0;
 	for_each_node(ptr, &pol->res_groups, res) {
@@ -123,25 +119,23 @@ void test_policy_file_addition()
 	pol = policy_new("file policy", 1234);
 
 	test("policy: addition of files to policy");
-	rf = res_file_new();
-	res_file_set_source(rf, "file1");
-	assert_str_equals("File details are correct (before addition)", "file1", rf->rf_rpath);
-	policy_add_file_resource(pol, "file1", rf);
+	rf = res_file_new("/file1");
+	assert_str_equals("File details are correct (before addition)", "/file1", rf->rf_lpath);
+	policy_add_file_resource(pol, rf);
 
-	other = res_file_new();
-	res_file_set_source(other, "other");
-	assert_str_equals("File details are correct (before addition)", "other", other->rf_rpath);
-	policy_add_file_resource(pol, "other", other);
+	other = res_file_new("/other");
+	assert_str_equals("File details are correct (before addition)", "/other", other->rf_lpath);
+	policy_add_file_resource(pol, other);
 
 	n = 0;
 	for_each_node(ptr, &pol->res_files, res) {
 		switch (n++) {
 		case 0:
-			assert_str_equals("File details are correct", "file1", ptr->rf_rpath);
+			assert_str_equals("File details are correct", "/file1", ptr->rf_lpath);
 			break;
 
 		case 1:
-			assert_str_equals("File details are correct", "other", ptr->rf_rpath);
+			assert_str_equals("File details are correct", "/other", ptr->rf_lpath);
 			break;
 		}
 	}
@@ -173,31 +167,29 @@ void test_policy_pack()
 	test("policy: pack policy with one user, one group and one file");
 	pol = policy_new("1 user, 1 group, and 1 file", 20101031);
 	/* The George Thoroughgood test */
-	ru1 = res_user_new();
+	ru1 = res_user_new("bourbon");
 	res_user_set_uid(ru1, 101);
 	res_user_set_gid(ru1, 2000);
-	res_user_set_name(ru1, "user1");
-	policy_add_user_resource(pol, "user1", ru1);
+	policy_add_user_resource(pol, ru1);
 
-	rg1 = res_group_new();
+	rg1 = res_group_new("scotch");
 	res_group_set_gid(rg1, 2000);
-	res_group_set_name(rg1, "staff");
-	policy_add_group_resource(pol, "staff", rg1);
+	policy_add_group_resource(pol, rg1);
 
-	rf1 = res_file_new();
+	rf1 = res_file_new("beer");
 	res_file_set_source(rf1, "cfm://etc/sudoers");
 	res_file_set_uid(rf1, 101);
 	res_file_set_gid(rf1, 2000);
 	res_file_set_mode(rf1, 0600);
-	policy_add_file_resource(pol, "sudoers file", rf1);
+	policy_add_file_resource(pol, rf1);
 
 	packed = policy_pack(pol);
 	assert_not_null("policy_pack succeeds", packed);
 	assert_str_equals("packed policy with 1 user, 1 group, and 1 file",
 		"policy::\"1 user, 1 group, and 1 file\"0132b7a7\n" /* 0132b7z7 = 20101031 decimal */
-		"res_user::\"user1\"\"\"" "00000065" "000007d0" "\"\"\"\"\"\"" "00" "\"\"" "01" "00000000" "00000000" "00000000" "00000000" "00000000\n"
-		"res_group::\"staff\"\"\"000007d0\"\"\"\"\"\"\"\"\n"
-		"res_file::\"\"\"cfm://etc/sudoers\"" "00000065" "000007d0" "00000180",
+		"res_user::\"bourbon\"\"\"" "00000065" "000007d0" "\"\"\"\"\"\"" "00" "\"\"" "01" "00000000" "00000000" "00000000" "00000000" "00000000\n"
+		"res_group::\"scotch\"\"\"000007d0\"\"\"\"\"\"\"\"\n"
+		"res_file::\"beer\"\"cfm://etc/sudoers\"" "00000065" "000007d0" "00000180",
 		packed);
 
 	free(packed);

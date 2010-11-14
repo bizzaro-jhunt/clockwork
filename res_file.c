@@ -4,6 +4,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#include "resource.h"
 #include "res_file.h"
 #include "pack.h"
 #include "mem.h"
@@ -67,7 +68,7 @@ static int _res_file_diff(struct res_file *rf)
 
 /*****************************************************************/
 
-struct res_file* res_file_new(void)
+struct res_file* res_file_new(const char *key)
 {
 	struct res_file *rf;
 
@@ -80,6 +81,9 @@ struct res_file* res_file_new(void)
 		free(rf);
 		return NULL;
 	}
+
+	res_file_set_path(rf, key);
+	rf->key = resource_key("res_file", key);
 
 	return rf;
 }
@@ -120,6 +124,8 @@ void res_file_deinit(struct res_file *rf)
 void res_file_free(struct res_file *rf)
 {
 	res_file_deinit(rf);
+
+	free(rf->key);
 	free(rf);
 }
 
@@ -350,7 +356,7 @@ struct res_file* res_file_unpack(const char *packed)
 		return NULL;
 	}
 
-	rf = res_file_new();
+	rf = res_file_new("FIXME");
 	if (unpack(packed + RES_FILE_PACK_OFFSET, RES_FILE_PACK_FORMAT,
 		&rf->rf_lpath, &rf->rf_rpath, &rf->rf_uid, &rf->rf_gid, &rf->rf_mode) != 0) {
 

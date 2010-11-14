@@ -50,7 +50,7 @@ static void assert_rf_path_enforcement(struct res_file *rf)
 void test_res_file_enforcement()
 {
 	struct res_file *rf;
-	rf = res_file_new();
+	rf = res_file_new("sudoers");
 
 	test("RES_FILE: Default Enforcements");
 	assert_true("UID not enforced",  !res_file_enforced(rf, UID));
@@ -80,7 +80,7 @@ void test_res_file_diffstat()
 {
 	struct res_file *rf;
 
-	rf = res_file_new();
+	rf = res_file_new("sudoers");
 	res_file_set_path(rf, "test/data/res_file/sudoers");
 	res_file_set_uid(rf, 42);
 	res_file_set_gid(rf, 42);
@@ -114,7 +114,7 @@ void test_res_file_remedy()
 	assert_int_not_equal("Pre-remediation: file group GID is not 42", st.st_gid, 42);
 	assert_int_not_equal("Pre-remediation: file permissions are not 0754", st.st_mode & 07777, 0754);
 
-	rf = res_file_new();
+	rf = res_file_new("fstab");
 	res_file_set_path(rf, "test/data/res_file/fstab");
 	res_file_set_uid(rf, 42);
 	res_file_set_gid(rf, 42);
@@ -151,7 +151,7 @@ void test_res_file_pack()
 	char *packed;
 	const char *expected;
 
-	rf = res_file_new();
+	rf = res_file_new("/etc/sudoers");
 
 	res_file_set_uid(rf, 101);
 	res_file_set_gid(rf, 202);
@@ -160,7 +160,7 @@ void test_res_file_pack()
 
 	test("RES_FILE: file serialization");
 	packed = res_file_pack(rf);
-	expected = "res_file::\"\"\"http://example.com/sudoers\""
+	expected = "res_file::\"/etc/sudoers\"\"http://example.com/sudoers\""
 		"00000065" /* rf_uid 101 */
 		"000000ca" /* rf_gid 202 */
 		"000001a4" /* rf_mode 0644 */

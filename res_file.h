@@ -19,6 +19,8 @@
 #define res_file_different(rf, flag) (((rf)->rf_diff & RES_FILE_ ## flag) == RES_FILE_ ## flag)
 
 struct res_file {
+	char        *key;        /* Unique Identifier; starts with "res_file:" */
+
 	char        *rf_lpath;  /* Local path to the file */
 	char        *rf_rpath;  /* Path to desired file */
 
@@ -36,7 +38,7 @@ struct res_file {
 	struct list  res;       /* Node in policy list */
 };
 
-struct res_file* res_file_new(void);
+struct res_file* res_file_new(const char *key);
 int  res_file_init(struct res_file *rf);
 void res_file_deinit(struct res_file *rf);
 void res_file_free(struct res_file *rf);

@@ -19,10 +19,10 @@
 void test_res_user_enforcement()
 {
 	struct res_user *ru;
-	ru = res_user_new();
+	ru = res_user_new("user1");
 
 	test("RES_USER: Default Enforcements");
-	assert_true("NAME not enforced",   !res_user_enforced(ru, NAME));
+	assert_true("NAME enforced",        res_user_enforced(ru, NAME));
 	assert_true("PASSWD not enforced", !res_user_enforced(ru, PASSWD));
 	assert_true("UID not enforced",    !res_user_enforced(ru, UID));
 	assert_true("GID not enforced",    !res_user_enforced(ru, GID));
@@ -94,9 +94,7 @@ void test_res_user_diffstat_remediation()
 	struct pwdb *pwdb;
 	struct spdb *spdb;
 
-	ru = res_user_new();
-
-	res_user_set_name(ru, "svc");
+	ru = res_user_new("svc");
 	res_user_set_uid(ru, 7001);
 	res_user_set_gid(ru, 8001);
 	res_user_set_gecos(ru, "SVC service account");
@@ -157,9 +155,7 @@ void test_res_user_remediation_new()
 	struct pwdb *pwdb;
 	struct spdb *spdb;
 
-	ru = res_user_new();
-
-	res_user_set_name(ru, "new_user");
+	ru = res_user_new("new_user");
 	res_user_set_uid(ru, 7010);
 	res_user_set_gid(ru, 20);
 	res_user_set_gecos(ru, "New Account");
@@ -211,10 +207,9 @@ void test_res_user_pack()
 	char *packed;
 	const char *expected;
 
-	ru = res_user_new();
+	ru = res_user_new("user");
 	res_user_set_uid(ru, 123); // hex: 0000007b
 	res_user_set_gid(ru, 999); // hex: 000003e7
-	res_user_set_name(ru, "user");
 	res_user_set_passwd(ru, "sooper.seecret");
 	res_user_set_dir(ru, "/home/user");
 	res_user_set_gecos(ru, "GECOS for user");

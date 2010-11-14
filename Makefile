@@ -45,8 +45,8 @@ MOG := ./mog
 UTILS := d sha1sum sizes
 
 # Resource types
-RESOURCE_OBJECTS := res_user.o res_group.o res_file.o
-RESOURCE_HEADERS := res_user.h res_group.h res_file.h
+RESOURCE_OBJECTS := resource.o res_user.o res_group.o res_file.o
+RESOURCE_HEADERS := resource.h res_user.h res_group.h res_file.h
 
 # Supporting object files
 CORE_OBJECTS := mem.o sha1.o pack.o stringlist.o userdb.o
@@ -99,7 +99,7 @@ unit_tests: test/run
 
 test/run: test/run.o test/test.o \
           test/assertions.o \
-          mem.o \
+          mem.o resource.o \
           test/list.o \
           test/stringlist.o stringlist.o \
           test/hash.o hash.o \
@@ -161,8 +161,9 @@ test/util/factchecker.o: test/util/factchecker.c spec/lexer.l
 clean:
 	find . -name '*.o' -o -name '*.gc??' | xargs rm -f
 	rm -f lcov.info
-	rm -f $(UTILS) test/userdb
+	rm -f $(UTILS) test/run polspec
 	rm -f spec/lexer.c spec/grammar.c spec/grammar.h spec/*.output
+	rm -f test/util/includer test/util/factchecker
 
 dist: clean
 	rm -rf doc/coverage

@@ -349,43 +349,6 @@ void test_stree_prog_policy_generation()
 	hash_free(facts);
 }
 
-void test_stree_include_expansion()
-{
-	struct stree *root;
-	struct stree *pol1,  *pol2,  *pol3;
-	struct stree *prog1, *prog2, *prog3;
-	struct stree *ext1, *ext2;
-	struct hash *h;
-
-	test("stree: include expansion");
-	root  = NODE(PROG, NULL, NULL);
-
-	pol1  = child_of(root, NODE(POLICY, "pol1", NULL));
-	prog1 = child_of(pol1, NODE(PROG, NULL, NULL));
-
-	pol2  = child_of(root, NODE(POLICY, "pol2", NULL));
-	prog2 = child_of(pol2, NODE(PROG, NULL, NULL));
-
-	pol3  = child_of(root, NODE(POLICY, "pol3", NULL));
-	prog3 = child_of(pol3, NODE(PROG, NULL, NULL));
-
-	ext1  = child_of(prog3, NODE(INCLUDE, "pol2", NULL));
-	ext2  = child_of(prog3, NODE(INCLUDE, "pol1", NULL));
-
-	h = hash_new();
-	hash_insert(h, "pol1", pol1);
-	hash_insert(h, "pol2", pol2);
-	hash_insert(h, "pol3", pol3);
-
-	assert_int_equals("Go through 2 expansions", 2, stree_expand(root, h));
-
-	assert_int_equals("ext1->size should be 1 (prog)", 1, ext1->size);
-	assert_ptr("ext1->nodes[0] is prog2", prog2, ext1->nodes[0]);
-
-	assert_int_equals("ext2->size should be 1 (prog)", 1, ext2->size);
-	assert_ptr("ext2->nodes[0] is prog1", prog1, ext2->nodes[0]);
-}
-
 void test_stree_comparison()
 {
 	struct stree *a, *b, *c;
@@ -413,7 +376,6 @@ void test_suite_stree()
 	test_stree_static_policy_generation();
 	test_stree_conditional_policy_generation();
 	test_stree_prog_policy_generation();
-	test_stree_include_expansion();
 
 	test_stree_comparison();
 

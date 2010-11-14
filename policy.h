@@ -77,7 +77,6 @@ struct host*  manifest_new_host(struct manifest *m, const char *name, struct str
 struct stree* manifest_new_stree(struct manifest *m, enum oper op, const char *data1, const char *data2);
 
 int stree_add(struct stree *parent, struct stree *child);
-int stree_expand(struct stree *root, struct hash *policies); /* FIXME: maybe move this into spec/parser.c as a static */
 int stree_compare(const struct stree *a, const struct stree *b);
 
 struct hash* fact_read(FILE *io);

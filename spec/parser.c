@@ -3,6 +3,27 @@
 #include "private.h"
 #include "parser.h"
 
+static void _manifest_expand(struct stree *root, struct hash *policies)
+{
+	unsigned int i;
+	struct stree *pol;
+
+	if (root->op == INCLUDE) {
+		pol = hash_lookup(policies, root->data1);
+		if (pol) {
+			root->op = PROG;
+			stree_add(root, pol->nodes[0]); /* FIXME: assumes that pol has nodes... */
+		} else {
+			/* FIXME: need to err */
+		}
+	}
+
+	for (i = 0; i < root->size; i++) {
+		_manifest_expand(root->nodes[i], policies);
+	}
+}
+
+
 struct manifest* parse_file(const char *path)
 {
 	spec_parser_context ctx;
@@ -27,7 +48,7 @@ struct manifest* parse_file(const char *path)
 		return NULL;
 	}
 
-	stree_expand(manifest->root, manifest->policies);
+	_manifest_expand(manifest->root, manifest->policies);
 	return manifest;
 }
 

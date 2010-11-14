@@ -139,33 +139,6 @@ int stree_add(struct stree *parent, struct stree *child)
 	return 0;
 }
 
-int stree_expand(struct stree *root, struct hash *policies)
-{
-	assert(root);
-	assert(policies);
-
-	int expands = 0;
-	unsigned int i;
-	struct stree *pol;
-
-	if (root->op == INCLUDE) {
-		pol = hash_lookup(policies, root->data1);
-		if (pol) {
-			expands++;
-			root->op = PROG;
-			stree_add(root, pol->nodes[0]); /* FIXME: assumes that pol has nodes... */
-		} else {
-			/* FIXME: need to err */
-		}
-	}
-
-	for (i = 0; i < root->size; i++) {
-		expands += stree_expand(root->nodes[i], policies);
-	}
-
-	return expands;
-}
-
 int stree_compare(const struct stree *a, const struct stree *b)
 {
 	unsigned int i;

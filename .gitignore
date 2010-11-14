@@ -15,3 +15,5 @@ spec/lexer.c
 spec/grammar.c
 spec/grammar.h
 spec/*.output
+
+clockworkd

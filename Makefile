@@ -49,7 +49,7 @@ RESOURCE_OBJECTS := resource.o res_user.o res_group.o res_file.o
 RESOURCE_HEADERS := resource.h res_user.h res_group.h res_file.h
 
 # Supporting object files
-CORE_OBJECTS := mem.o sha1.o pack.o stringlist.o userdb.o
+CORE_OBJECTS := mem.o sha1.o pack.o stringlist.o userdb.o log.o
 
 # Policy object files
 POLICY_OBJECTS := policy.o hash.o
@@ -61,6 +61,12 @@ PARSER_OBJECTS := spec/lexer.o spec/grammar.o spec/parser.o
 # Default Target
 
 all: test $(UTILS)
+
+############################################################
+# Main Binaries
+
+clockworkd: clockworkd.o $(CORE_OBJECTS) $(RESOURCE_OBJECTS) $(POLICY_OBJECTS) $(PARSER_OBJECTS) proto.o
+	$(CC) -o $@ $+
 
 ############################################################
 # Utilities

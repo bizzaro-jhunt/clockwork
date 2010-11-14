@@ -66,6 +66,8 @@ int  res_user_init(struct res_user *ru);
 void res_user_deinit(struct res_user *ru);
 void res_user_free(struct res_user *ru);
 
+int res_user_setattr(struct res_user *ru, const char *name, const char *value);
+
 int res_user_set_name(struct res_user *ru, const char *name);
 int res_user_unset_name(struct res_user *ru);
 

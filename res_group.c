@@ -161,6 +161,15 @@ void res_group_free(struct res_group *rg)
 	free(rg);
 }
 
+int res_group_setattr(struct res_group *rg, const char *name, const char *value)
+{
+	if (strcmp(name, "gid") == 0) {
+		return res_group_set_gid(rg, strtoll(value, NULL, 10));
+	}
+
+	return -1;
+}
+
 int res_group_set_name(struct res_group *rg, const char *name)
 {
 	assert(rg);

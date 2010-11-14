@@ -206,6 +206,19 @@ void res_user_free(struct res_user *ru)
 	free(ru);
 }
 
+int res_user_setattr(struct res_user *ru, const char *name, const char *value)
+{
+	if (strcmp(name, "uid") == 0) {
+		return res_user_set_uid(ru, strtoll(value, NULL, 10));
+	} else if (strcmp(name, "gid") == 0) {
+		return res_user_set_gid(ru, strtoll(value, NULL, 10));
+	} else if (strcmp(name, "home") == 0) {
+		return res_user_set_dir(ru, value);
+	} else {
+		return -1;
+	}
+}
+
 int res_user_set_name(struct res_user *ru, const char *name)
 {
 	assert(ru);

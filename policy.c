@@ -299,48 +299,6 @@ const char *fact_lookup(struct list *facts, const char *name)
 	return NULL;
 }
 
-static void _stree_set_attribute(struct stree *node, struct policy_generator *pgen)
-{
-	assert(node);
-	assert(pgen);
-
-	switch (pgen->type) {
-	case RES_USER:
-		if (strcmp(node->data1, "uid") == 0) {
-			res_user_set_uid(pgen->resource.user, strtoll(node->data2, NULL, 10));
-		} else if (strcmp(node->data1, "gid") == 0) {
-			res_user_set_gid(pgen->resource.user, strtoll(node->data2, NULL, 10));
-		} else if (strcmp(node->data1, "home") == 0) {
-			res_user_set_dir(pgen->resource.user, node->data2);
-		}
-		break;
-
-	case RES_FILE:
-		if (strcmp(node->data1, "owner") == 0) {
-			res_file_set_uid(pgen->resource.file, 0); /* FIXME: hard-coded UID */
-		} else if (strcmp(node->data1, "group") == 0) {
-			res_file_set_gid(pgen->resource.file, 0); /* FIXME: hard-coded GID */
-		} else if (strcmp(node->data1, "lpath") == 0) {
-			res_file_set_path(pgen->resource.file, node->data2);
-		} else if (strcmp(node->data1, "mode") == 0) {
-			res_file_set_mode(pgen->resource.file, strtoll(node->data2, NULL, 0));
-		} else if (strcmp(node->data1, "source") == 0) {
-			res_file_set_source(pgen->resource.file, node->data2);
-		}
-		break;
-
-	case RES_GROUP:
-		if (strcmp(node->data1, "gid") == 0) {
-			res_group_set_gid(pgen->resource.group, strtoll(node->data2, NULL, 10));
-		}
-		break;
-
-	default:
-		fprintf(stderr, "error: trying to set attribute %s = '%s' on unknown type %u\n",
-				node->data1, node->data2, pgen->type);
-	}
-}
-
 int _policy_generate(struct stree *node, struct policy_generator *pgen)
 {
 	assert(node);
@@ -386,7 +344,23 @@ again:
 		break;
 
 	case ATTR:
-		_stree_set_attribute(node, pgen);
+		switch (pgen->type) {
+		case RES_USER:
+			res_user_setattr(pgen->resource.user, node->data1, node->data2);
+			break;
+
+		case RES_FILE:
+			res_file_setattr(pgen->resource.file, node->data1, node->data2);
+			break;
+
+		case RES_GROUP:
+			res_group_setattr(pgen->resource.group, node->data1, node->data2);
+			break;
+
+		default:
+			fprintf(stderr, "error: trying to set attribute %s = '%s' on unknown type %u\n",
+					node->data1, node->data2, pgen->type);
+		}
 		break;
 
 	case PROG:

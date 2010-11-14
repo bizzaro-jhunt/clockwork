@@ -143,6 +143,23 @@ void res_file_free(struct res_file *rf)
 	free(rf);
 }
 
+int res_file_setattr(struct res_file *rf, const char *name, const char *value)
+{
+	if (strcmp(name, "owner") == 0) {
+		return res_file_set_uid(rf, 0); /* FIXME: hard-coded UID */
+	} else if (strcmp(name, "group") == 0) {
+		return res_file_set_gid(rf, 0); /* FIXME: hard-coded GID */
+	} else if (strcmp(name, "lpath") == 0) {
+		return res_file_set_path(rf, value);
+	} else if (strcmp(name, "mode") == 0) {
+		return res_file_set_mode(rf, strtoll(value, NULL, 0));
+	} else if (strcmp(name, "source") == 0) {
+		return res_file_set_source(rf, value);
+	}
+
+	return -1;
+}
+
 /*
  * Set an enforcing UID for a res_file
  */

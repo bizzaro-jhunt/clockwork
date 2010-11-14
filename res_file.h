@@ -42,6 +42,8 @@ int  res_file_init(struct res_file *rf);
 void res_file_deinit(struct res_file *rf);
 void res_file_free(struct res_file *rf);
 
+int res_file_setattr(struct res_file *rf, const char *name, const char *value);
+
 int res_file_set_uid(struct res_file *rf, uid_t uid);
 int res_file_unset_uid(struct res_file *rf);
 

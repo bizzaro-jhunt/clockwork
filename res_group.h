@@ -47,6 +47,8 @@ int  res_group_init(struct res_group *rg);
 void res_group_deinit(struct res_group *rg);
 void res_group_free(struct res_group *rg);
 
+int res_group_setattr(struct res_group *rg, const char *name, const char *value);
+
 int res_group_set_name(struct res_group *rg, const char *name);
 int res_group_unset_name(struct res_group *rg);
 

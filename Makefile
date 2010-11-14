@@ -102,6 +102,7 @@ test/run: test/run.o test/test.o \
           mem.o \
           test/list.o \
           test/stringlist.o stringlist.o \
+          test/hash.o hash.o \
           test/userdb.o userdb.o \
           test/pack.o pack.o \
           test/res_file.o res_file.o \

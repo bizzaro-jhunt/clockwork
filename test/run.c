@@ -2,6 +2,7 @@
 
 extern void test_suite_list();
 extern void test_suite_stringlist();
+extern void test_suite_hash();
 
 extern void test_suite_userdb();
 extern void test_suite_sha1();
@@ -24,6 +25,7 @@ int main(int argc, char **argv)
 
 	test_suite_list();
 	test_suite_stringlist();
+	test_suite_hash();
 
 	test_suite_userdb();
 	test_suite_sha1();

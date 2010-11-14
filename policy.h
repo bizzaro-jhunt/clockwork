@@ -86,8 +86,6 @@ int fact_parse(const char *line, char **k, char **v);
 struct policy* policy_generate(struct stree *root, struct hash *facts);
 
 struct policy* policy_new(const char *name, uint32_t version);
-int  policy_init(struct policy *pol, const char *name, uint32_t version);
-void policy_deinit(struct policy *pol);
 void policy_free(struct policy *pol);
 void policy_free_all(struct policy *pol);
 

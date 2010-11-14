@@ -39,8 +39,6 @@ struct res_file {
 };
 
 struct res_file* res_file_new(const char *key);
-int  res_file_init(struct res_file *rf);
-void res_file_deinit(struct res_file *rf);
 void res_file_free(struct res_file *rf);
 
 int res_file_setattr(struct res_file *rf, const char *name, const char *value);

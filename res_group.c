@@ -96,21 +96,6 @@ struct res_group* res_group_new(const char *key)
 		return NULL;
 	}
 
-	if (res_group_init(rg) != 0) {
-		free(rg);
-		return NULL;
-	}
-
-	res_group_set_name(rg, key);
-	rg->key = resource_key("res_group", key);
-
-	return rg;
-}
-
-int  res_group_init(struct res_group *rg)
-{
-	assert(rg);
-
 	list_init(&rg->res);
 
 	rg->rg_name = NULL;
@@ -131,36 +116,32 @@ int  res_group_init(struct res_group *rg)
 	rg->rg_enf  = RES_GROUP_NONE;
 	rg->rg_diff = RES_GROUP_NONE;
 
-	return 0;
-}
+	rg->key = resource_key("res_group", key);
+	res_group_set_name(rg, key);
 
-void res_group_deinit(struct res_group *rg)
-{
-	assert(rg);
-
-	xfree(rg->rg_name);
-	xfree(rg->rg_passwd);
-
-	list_del(&rg->res);
-
-	if (rg->rg_mem) {
-		stringlist_free(rg->rg_mem);
-	}
-	stringlist_free(rg->rg_mem_add);
-	stringlist_free(rg->rg_mem_rm);
-
-	if (rg->rg_adm) {
-		stringlist_free(rg->rg_adm);
-	}
-	stringlist_free(rg->rg_adm_add);
-	stringlist_free(rg->rg_adm_rm);
+	return rg;
 }
 
 void res_group_free(struct res_group *rg)
 {
-	assert(rg);
+	if (rg) {
+		free(rg->rg_name);
+		free(rg->rg_passwd);
 
-	res_group_deinit(rg);
+		list_del(&rg->res);
+
+		if (rg->rg_mem) {
+			stringlist_free(rg->rg_mem);
+		}
+		stringlist_free(rg->rg_mem_add);
+		stringlist_free(rg->rg_mem_rm);
+
+		if (rg->rg_adm) {
+			stringlist_free(rg->rg_adm);
+		}
+		stringlist_free(rg->rg_adm_add);
+		stringlist_free(rg->rg_adm_rm);
+	}
 	free(rg);
 }
 

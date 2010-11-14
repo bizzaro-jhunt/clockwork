@@ -132,21 +132,6 @@ struct res_user* res_user_new(const char *key)
 		return NULL;
 	}
 
-	if (res_user_init(ru) != 0) {
-		free(ru);
-		return NULL;
-	}
-
-	res_user_set_name(ru, key);
-	ru->key = resource_key("res_user", key);
-
-	return ru;
-}
-
-static int _res_user_init_params(struct res_user *ru)
-{
-	assert(ru);
-
 	ru->ru_uid    = 0;
 	ru->ru_uid    = 0;
 	ru->ru_mkhome = 0;
@@ -160,14 +145,6 @@ static int _res_user_init_params(struct res_user *ru)
 	ru->ru_enf = RES_USER_NONE;
 	ru->ru_diff = RES_USER_NONE;
 
-	return 0;
-}
-
-int  res_user_init(struct res_user *ru)
-{
-	assert(ru);
-
-	_res_user_init_params(ru);
 	list_init(&ru->res);
 
 	ru->ru_name   = NULL;
@@ -180,33 +157,26 @@ int  res_user_init(struct res_user *ru)
 	ru->ru_pw     = NULL;
 	ru->ru_sp     = NULL;
 
-	return 0;
-}
+	res_user_set_name(ru, key);
+	ru->key = resource_key("res_user", key);
 
-void res_user_deinit(struct res_user *ru)
-{
-	assert(ru);
-	_res_user_init_params(ru);
-	list_del(&ru->res);
-
-	xfree(ru->ru_name);
-	xfree(ru->ru_passwd);
-	xfree(ru->ru_gecos);
-	xfree(ru->ru_dir);
-	xfree(ru->ru_shell);
-	xfree(ru->ru_skel);
-
-	ru->ru_pw = NULL;
-	ru->ru_sp = NULL;
+	return ru;
 }
 
 void res_user_free(struct res_user *ru)
 {
-	assert(ru);
+	if (ru) {
+		list_del(&ru->res);
 
-	res_user_deinit(ru);
+		free(ru->ru_name);
+		free(ru->ru_passwd);
+		free(ru->ru_gecos);
+		free(ru->ru_dir);
+		free(ru->ru_shell);
+		free(ru->ru_skel);
 
-	free(ru->key);
+		free(ru->key);
+	}
 	free(ru);
 }
 

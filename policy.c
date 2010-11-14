@@ -381,18 +381,6 @@ struct policy* policy_new(const char *name, uint32_t version)
 		return NULL;
 	}
 
-	if (policy_init(pol, name, version) != 0) {
-		free(pol);
-		return NULL;
-	}
-
-	return pol;
-}
-
-int policy_init(struct policy *pol, const char *name, uint32_t version)
-{
-	assert(pol);
-
 	pol->name = xstrdup(name);
 	pol->version = version;
 
@@ -402,24 +390,14 @@ int policy_init(struct policy *pol, const char *name, uint32_t version)
 
 	pol->resources = hash_new();
 
-	return 0;
-}
-
-void policy_deinit(struct policy *pol)
-{
-	xfree(pol->name);
-	pol->version = 0;
-
-	list_init(&pol->res_files);
-	list_init(&pol->res_groups);
-	list_init(&pol->res_users);
-
-	hash_free(pol->resources);
+	return pol;
 }
 
 void policy_free(struct policy *pol)
 {
-	policy_deinit(pol);
+	if (pol) {
+		hash_free(pol->resources);
+	}
 	free(pol);
 }
 

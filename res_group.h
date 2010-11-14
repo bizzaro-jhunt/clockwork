@@ -44,8 +44,6 @@ struct res_group {
 };
 
 struct res_group *res_group_new(const char *key);
-int  res_group_init(struct res_group *rg);
-void res_group_deinit(struct res_group *rg);
 void res_group_free(struct res_group *rg);
 
 int res_group_setattr(struct res_group *rg, const char *name, const char *value);

@@ -77,21 +77,6 @@ struct res_file* res_file_new(const char *key)
 		return NULL;
 	}
 
-	if (res_file_init(rf) != 0) {
-		free(rf);
-		return NULL;
-	}
-
-	res_file_set_path(rf, key);
-	rf->key = resource_key("res_file", key);
-
-	return rf;
-}
-
-int  res_file_init(struct res_file *rf)
-{
-	assert(rf);
-
 	list_init(&rf->res);
 
 	rf->rf_enf = 0;
@@ -108,24 +93,23 @@ int  res_file_init(struct res_file *rf)
 	sha1_init(&(rf->rf_lsha1));
 	sha1_init(&(rf->rf_rsha1));
 
-	return 0;
-}
+	res_file_set_path(rf, key);
+	rf->key = resource_key("res_file", key);
 
-void res_file_deinit(struct res_file *rf)
-{
-	assert(rf);
-
-	list_del(&rf->res);
-
-	xfree(rf->rf_rpath);
-	xfree(rf->rf_lpath);
+	return rf;
 }
 
 void res_file_free(struct res_file *rf)
 {
-	res_file_deinit(rf);
+	if (rf) {
+		list_del(&rf->res);
 
-	free(rf->key);
+		free(rf->rf_rpath);
+		free(rf->rf_lpath);
+
+		free(rf->key);
+	}
+
 	free(rf);
 }
 

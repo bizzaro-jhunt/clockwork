@@ -63,8 +63,6 @@ struct res_user {
 };
 
 struct res_user* res_user_new(const char *key);
-int  res_user_init(struct res_user *ru);
-void res_user_deinit(struct res_user *ru);
 void res_user_free(struct res_user *ru);
 
 int res_user_setattr(struct res_user *ru, const char *name, const char *value);

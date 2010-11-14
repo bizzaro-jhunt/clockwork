@@ -42,35 +42,16 @@ struct host_registry* host_registry_new(void)
 		return NULL;
 	}
 
-	if (host_registry_init(reg) != 0) {
-		free(reg);
-		return NULL;
-	}
-
-	return reg;
-}
-
-int host_registry_init(struct host_registry *reg)
-{
-	assert(reg);
-
 	list_init(&reg->hosts);
 
-	return 0;
-}
-
-void host_registry_deinit(struct host_registry *reg)
-{
-	assert(reg);
-
-	/* no-op for now; do we handle memory for hosts list? */
+	return reg;
 }
 
 void host_registry_free(struct host_registry *reg)
 {
 	struct host_entry *ent, *tmp;
 
-	host_registry_deinit(reg);
+	/* FIXME: do we handle memory for hosts list? */
 
 	for_each_node_safe(ent, tmp, &reg->hosts, registry) {
 		host_entry_free(ent);
@@ -111,48 +92,30 @@ struct host_entry* host_entry_new(const char *fqdn, const char *ipv4, const char
 		return NULL;
 	}
 
-	if (host_entry_init(ent, fqdn, ipv4, ipv6) != 0) {
-		free(ent);
+	list_init(&ent->registry);
+	ent->fqdn = xstrdup(fqdn);
+
+	memset(&ent->ipv4, 0, sizeof(struct in_addr));
+	if (ipv4 && inet_pton(AF_INET, ipv4, &ent->ipv4) != 1) {
+		host_entry_free(ent);
+		return NULL;
+	}
+
+	memset(&ent->ipv6, 0, sizeof(struct in6_addr));
+	if (ipv6 && inet_pton(AF_INET6, ipv6, &ent->ipv6) != 1) {
+		host_entry_free(ent);
 		return NULL;
 	}
 
 	return ent;
 }
 
-int host_entry_init(struct host_entry *ent, const char *fqdn, const char *ipv4, const char *ipv6)
-{
-	assert(ent);
-
-	list_init(&ent->registry);
-
-	ent->fqdn = xstrdup(fqdn);
-
-	memset(&ent->ipv4, 0, sizeof(struct in_addr));
-	if (ipv4 && inet_pton(AF_INET, ipv4, &ent->ipv4) != 1) {
-		return -1;
-	}
-
-	memset(&ent->ipv6, 0, sizeof(struct in6_addr));
-	if (ipv6 && inet_pton(AF_INET6, ipv6, &ent->ipv6) != 1) {
-		return -1;
-	}
-
-	return 0;
-}
-
-void host_entry_deinit(struct host_entry *ent)
-{
-	assert(ent);
-
-	xfree(ent->fqdn);
-	list_del(&ent->registry);
-}
-
 void host_entry_free(struct host_entry *ent)
 {
-	assert(ent);
-
-	host_entry_deinit(ent);
+	if (ent) {
+		free(ent->fqdn);
+		list_del(&ent->registry);
+	}
 	free(ent);
 }
 

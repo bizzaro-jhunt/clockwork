@@ -1,6 +1,8 @@
 *.o
 *.gc??
 lcov.info
+gmon.out
+
 d
 sha1sum
 upstream
@@ -8,7 +10,11 @@ sizes
 test_server
 test_client
 polspec
+
 doc/proto.png
+
+certs
+
 test/run
 test/sha1_files.h
 

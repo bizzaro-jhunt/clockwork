@@ -10,14 +10,14 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-void daemonize(const char *lock_file, const char *pid_file)
+void daemonize(const struct daemon *d)
 {
 	/* are we already a child of init? */
 	if (getppid() == 1) { return; }
 
-	daemon_acquire_lock(lock_file);
 	daemon_fork1();
-	daemon_fork2(pid_file);
+	daemon_fork2(d->pid_file);
+	daemon_acquire_lock(d->lock_file);
 	daemon_settle();
 }
 

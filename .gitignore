@@ -11,9 +11,15 @@ polspec
 doc/proto.png
 test/run
 test/sha1_files.h
+
+config/lexer.c
+config/grammar.c
+config/grammar.h
+config/*.output
+
 spec/lexer.c
 spec/grammar.c
 spec/grammar.h
 spec/*.output
 
-clockworkd
+policyd

@@ -49,13 +49,14 @@ RESOURCE_OBJECTS := resource.o res_user.o res_group.o res_file.o
 RESOURCE_HEADERS := resource.h res_user.h res_group.h res_file.h
 
 # Supporting object files
-CORE_OBJECTS := mem.o sha1.o pack.o stringlist.o userdb.o log.o
+CORE_OBJECTS := mem.o sha1.o pack.o hash.o stringlist.o userdb.o log.o
 
 # Policy object files
-POLICY_OBJECTS := policy.o hash.o
+POLICY_OBJECTS := policy.o
 
 # Parser object files
-PARSER_OBJECTS := spec/lexer.o spec/grammar.o spec/parser.o
+SPEC_PARSER_OBJECTS := spec/lexer.o spec/grammar.o spec/parser.o
+CONFIG_PARSER_OBJECTS := config/lexer.o config/grammar.o config/parser.o
 
 ############################################################
 # Default Target
@@ -65,7 +66,7 @@ all: test $(UTILS)
 ############################################################
 # Main Binaries
 
-clockworkd: clockworkd.o $(CORE_OBJECTS) $(RESOURCE_OBJECTS) $(POLICY_OBJECTS) $(PARSER_OBJECTS) proto.o daemon.o
+policyd: policyd.o $(CORE_OBJECTS) $(RESOURCE_OBJECTS) $(POLICY_OBJECTS) $(SPEC_PARSER_OBJECTS) $(CONFIG_PARSER_OBJECTS) proto.o daemon.o config.o
 	$(CC) -o $@ $+
 
 ############################################################
@@ -129,7 +130,7 @@ lcov.info: unit_tests functional_tests
 	test/run
 	test/functional/run
 	$(LCOV) --capture -o $@.tmp
-	$(LCOV) --remove $@.tmp test/* spec/grammar.c spec/lexer.c > $@
+	$(LCOV) --remove $@.tmp test/* spec/grammar.c spec/lexer.c confg/grammar.c config/lexer.c > $@
 	rm -f $@.tmp
 
 test/res_file.o: test/res_file.c res_file.h test/sha1_files.h
@@ -142,10 +143,11 @@ test/sha1_files.h:
 # Functional Tests
 
 functional_tests: test/util/includer \
-                  test/util/factchecker
+                  test/util/factchecker \
+                  test/util/daemoncfg
 
 test/util/includer: test/util/includer.o \
-                    $(CORE_OBJECTS) $(PARSER_OBJECTS) \
+                    $(CORE_OBJECTS) $(SPEC_PARSER_OBJECTS) \
                     $(RESOURCE_OBJECTS) $(POLICY_OBJECTS)
 	$(CC) -o $@ $+
 
@@ -153,11 +155,18 @@ test/util/includer.o: test/util/includer.c spec/lexer.l
 	$(CC) -c -o $@ $<
 
 test/util/factchecker: test/util/factchecker.o \
-                    $(CORE_OBJECTS) $(PARSER_OBJECTS) \
+                    $(CORE_OBJECTS) $(SPEC_PARSER_OBJECTS) \
                     $(RESOURCE_OBJECTS) $(POLICY_OBJECTS)
 	$(CC) -o $@ $+
 
 test/util/factchecker.o: test/util/factchecker.c spec/lexer.l
+	$(CC) -c -o $@ $<
+
+test/util/daemoncfg: test/util/daemoncfg.o \
+                    $(CORE_OBJECTS) $(CONFIG_PARSER_OBJECTS)
+	$(CC) -o $@ $+
+
+test/util/daemoncfg.o: test/util/daemoncfg.c config/lexer.l
 	$(CC) -c -o $@ $<
 
 
@@ -194,7 +203,7 @@ test_client: test_client.o proto.o
 
 polspec: $(CORE_OBJECTS) \
          $(RESOURCE_OBJECTS) $(POLICY_OBJECTS) \
-         $(PARSER_OBJECTS) \
+         $(SPEC_PARSER_OBJECTS) \
          polspec.o
 	$(CC) -o $@ $+
 
@@ -205,6 +214,16 @@ spec/grammar.c spec/grammar.h: spec/grammar.y spec/grammar_impl.c spec/parser.c 
 	$(YACC) --output-file=spec/grammar.c $<
 
 spec/parser.o: spec/parser.c spec/parser.h spec/private.h
+	$(CC) -c -o $@ $<
+
+
+config/lexer.c: config/lexer.l config/grammar.h config/lexer_impl.c config/private.h
+	$(LEX) --outfile=$@ $<
+
+config/grammar.c config/grammar.h: config/grammar.y config/parser.c config/parser.h config/private.h
+	$(YACC) -p yyconfig --output-file=config/grammar.c $<
+
+config/parser.o: config/parser.c config/parser.h config/private.h
 	$(CC) -c -o $@ $<
 
 ############################################################

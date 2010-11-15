@@ -3,7 +3,13 @@
 
 #include <sys/types.h>
 
-void daemonize(const char *lock_file, const char *pid_file);
+struct daemon {
+	const char *name;
+	const char *lock_file;
+	const char *pid_file;
+};
+
+void daemonize(const struct daemon *d);
 
 void daemon_acquire_lock(const char *path);
 void daemon_fork1(void);

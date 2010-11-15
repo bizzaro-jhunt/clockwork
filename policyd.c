@@ -1,37 +1,31 @@
 #include "policy.h"
 #include "spec/parser.h"
+#include "config/parser.h"
 #include "threads.h"
 #include "proto.h"
 #include "log.h"
 #include "daemon.h"
+#include "config.h"
 
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
 
-//#define DEFAULT_POLICY_FILE "/etc/clockwork/policies.pol"
-#define DEFAULT_POLICY_FILE "policy.pol"
-
-/* FIXME: put these in configuration */
-#define CONFIG_CAFILE   "certs/CA/cacert.pem"
-#define CONFIG_CERTFILE "certs/CA/cacert.pem"
-#define CONFIG_KEYFILE  "certs/CA/private/cakey.pem"
-
-#define CONFIG_PORT      "7890"
-#define CONFIG_LOCK_FILE "/var/lock/clockworkd"
-#define CONFIG_PID_FILE  "/var/run/clockworkd.pid"
+/* Default config file; overridden by the -c argument */
+//#define POLICYD_DOT_CONF "/etc/clockwork/policyd.conf"
+#define POLICYD_DOT_CONF "policyd.conf"
 
 /**************************************************************/
 
 /* just an idea at this point... */
 struct server {
 	struct manifest *manifest;
+	struct hash *config;
+
 	BIO         *socket;
 	SSL         *ssl;
 	SSL_CTX     *ssl_ctx;
 	THREAD_TYPE  tid;
-	const char  *lock_file;
-	const char  *pid_file;
 };
 
 static void usage();
@@ -49,14 +43,26 @@ static void* server_thread(void *arg);
 int main(int argc, char **argv)
 {
 	struct server s;
+	struct daemon d;
 
-	s.manifest = parse_file(DEFAULT_POLICY_FILE);
+	s.config   = parse_config(POLICYD_DOT_CONF);
+	if (!s.config) {
+		fprintf(stderr, "error: unable to stat %s: %s\n", POLICYD_DOT_CONF, strerror(errno));
+		exit(3);
+	}
+	s.manifest = parse_file(config_manifest_file(s.config));
+	if (!s.manifest) {
+		fprintf(stderr, "error: unable to parse manifest file %s: %s\n", config_manifest_file(s.config), strerror(errno));
+		exit(3);
+	}
+
+	d.lock_file = config_lock_file(s.config);
+	d.pid_file  = config_pid_file(s.config);
 
 	server_setup(&s);
-	s.lock_file = CONFIG_LOCK_FILE;
-	s.pid_file  = CONFIG_PID_FILE;
 
-	daemonize(s.lock_file, s.pid_file);
+	daemonize(&d);
+	INFO("Clockwork policyd starting up");
 	server_bind(&s);
 	server_loop(&s);
 	server_teardown(&s);
@@ -68,16 +74,19 @@ int main(int argc, char **argv)
 
 static void usage()
 {
-	printf("Usage: clockworkd\n");
+	printf("Usage: policyd\n");
 }
 
 static void server_setup(struct server *s)
 {
 	assert(s);
 
-	log_init("clockworkd");
+	log_init("policyd");
 	protocol_ssl_init();
-	s->ssl_ctx = protocol_ssl_default_context(CONFIG_CAFILE, CONFIG_CERTFILE, CONFIG_KEYFILE);
+	s->ssl_ctx = protocol_ssl_default_context(
+			config_ca_cert_file(s->config),
+			config_ca_cert_file(s->config),
+			config_ca_key_file(s->config));
 	if (!s->ssl_ctx) {
 		int_error("Error setting up SSL context");
 	}
@@ -87,7 +96,7 @@ static void server_bind(struct server *s)
 {
 	assert(s);
 
-	s->socket = BIO_new_accept(CONFIG_PORT);
+	s->socket = BIO_new_accept(config_port(s->config));
 	if (!s->socket) {
 		int_error("Error creating server socket");
 		exit(2);

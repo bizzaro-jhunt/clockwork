@@ -3,9 +3,7 @@
 lcov.info
 gmon.out
 
-d
 sha1sum
-upstream
 sizes
 test_server
 test_client

@@ -42,7 +42,7 @@ MOG := ./mog
 ############################################################
 # Object Group Variables
 
-UTILS := d sha1sum sizes
+UTILS := sha1sum sizes
 
 # Resource types
 RESOURCE_OBJECTS := resource.o res_user.o res_group.o res_file.o
@@ -71,9 +71,6 @@ policyd: policyd.o $(CORE_OBJECTS) $(RESOURCE_OBJECTS) $(POLICY_OBJECTS) $(SPEC_
 
 ############################################################
 # Utilities
-
-d: main.o $(CORE_OBJECTS) $(RESOURCE_OBJECTS)
-	$(CC) -o $@ $+
 
 sha1sum: sha1.o sha1sum.o
 	$(CC) -o $@ $+

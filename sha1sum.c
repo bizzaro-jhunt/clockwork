@@ -6,7 +6,6 @@
 
 int main(int argc, char **argv)
 {
-	int i;
 	sha1 cksum;
 	char err[ERR_BUFSIZ + 1];
 
@@ -19,4 +18,5 @@ int main(int argc, char **argv)
 		}
 	}
 
+	return 0;
 }

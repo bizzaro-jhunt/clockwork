@@ -40,6 +40,9 @@ static void* server_thread(void *arg);
 
 /**************************************************************/
 
+#define EXIT_BAD_CONFIG   100
+#define EXIT_BAD_MANIFEST 101
+
 int main(int argc, char **argv)
 {
 	struct server s;
@@ -48,12 +51,12 @@ int main(int argc, char **argv)
 	s.config   = parse_config(POLICYD_DOT_CONF);
 	if (!s.config) {
 		fprintf(stderr, "error: unable to stat %s: %s\n", POLICYD_DOT_CONF, strerror(errno));
-		exit(3);
+		exit(EXIT_BAD_CONFIG);
 	}
 	s.manifest = parse_file(config_manifest_file(s.config));
 	if (!s.manifest) {
 		fprintf(stderr, "error: unable to parse manifest file %s: %s\n", config_manifest_file(s.config), strerror(errno));
-		exit(3);
+		exit(EXIT_BAD_MANIFEST);
 	}
 
 	d.lock_file = config_lock_file(s.config);
@@ -62,8 +65,9 @@ int main(int argc, char **argv)
 	server_setup(&s);
 
 	daemonize(&d);
-	INFO("Clockwork policyd starting up");
 	server_bind(&s);
+	INFO("Clockwork policyd starting up");
+	INFO("managing X policies for Y hosts");
 	server_loop(&s);
 	server_teardown(&s);
 
@@ -157,11 +161,13 @@ static void* server_thread(void *arg)
 		int_error("Error accepting SSL connection");
 	}
 
+	INFO("incoming SSL connection");
+
 	/* FIXME FcR IPv4 lookup here */
 	if ((err = protocol_ssl_verify_peer(ssl, "cfm1.niftylogic.net")) != X509_V_OK) {
-		fprintf(stderr, "-Error: peer certificate: %s\n", X509_verify_cert_error_string(err));
+		ERROR("problem with peer certificate: %s", X509_verify_cert_error_string(err));
 		/* send some sort of IDENT error back */
-		ERR_print_errors_fp(stderr);
+		ERR_print_errors_fp(stderr); /* FIXME: send to syslog somehow */
 		SSL_clear(ssl);
 
 		SSL_free(ssl);
@@ -169,7 +175,7 @@ static void* server_thread(void *arg)
 		return NULL;
 	}
 
-	INFO("SSL connection opened");
+	INFO("SSL connection established");
 	protocol_session_init(&session, ssl);
 
 	server_dispatch(&session);

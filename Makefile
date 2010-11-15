@@ -42,7 +42,8 @@ MOG := ./mog
 ############################################################
 # Object Group Variables
 
-UTILS := sha1sum sizes
+UTILS := sha1sum sizes test_client test_server host
+CORE  := policyd
 
 # Resource types
 RESOURCE_OBJECTS := resource.o res_user.o res_group.o res_file.o
@@ -61,7 +62,7 @@ CONFIG_PARSER_OBJECTS := config/lexer.o config/grammar.o config/parser.o
 ############################################################
 # Default Target
 
-all: test $(UTILS)
+all: test $(UTILS) $(CORE)
 
 ############################################################
 # Main Binaries
@@ -173,8 +174,9 @@ test/util/daemoncfg.o: test/util/daemoncfg.c config/lexer.l
 clean:
 	find . -name '*.o' -o -name '*.gc??' | xargs rm -f
 	rm -f lcov.info
-	rm -f $(UTILS) test/run polspec
+	rm -f $(UTILS) $(CORE) test/run polspec
 	rm -f spec/lexer.c spec/grammar.c spec/grammar.h spec/*.output
+	rm -f config/lexer.c config/grammar.c config/grammar.h config/*.output
 	rm -f test/util/includer test/util/factchecker
 
 dist: clean

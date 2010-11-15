@@ -14,11 +14,11 @@
 
   This structure bundles a bunch of variables that we need to keep
   track of while lexing and parsing.  An instance of this structure
-  gets passed to yyparse, which propagates it through to yylex.
+  gets passed to yyconfigparse, which propagates it through to yyconfiglex.
 
-  The scanner member is an opaque pointer, allocated by yylex_init and
-  freed by yylex_destroy.  It contains whatever Flex needs it to, and is
-  used in place of global variables (like yylineno, yyleng, and friends).
+  The scanner member is an opaque pointer, allocated by yyconfiglex_init and
+  freed by yyconfiglex_destroy.  It contains whatever Flex needs it to, and is
+  used in place of global variables (like yyconfiglineno, yyconfigleng, and friends).
  */
 typedef struct {
 	void *scanner;         /* lexer variable store; used instead of globals */
@@ -47,48 +47,48 @@ typedef void* yyscan_t;
   Set up parser and lexer parameters.
 
   YYPARSE_PARAM contains the name of the user data parameter
-  of yyparse.  Bison will generate C code like this:
+  of yyconfigparse.  Bison will generate C code like this:
 
-    void yyparse(void *YYPARSE_PARAM)
+    void yyconfigparse(void *YYPARSE_PARAM)
 
   This allow us to pass our config_parser_context pointer around
   and keep track of the lexer scanner state.
 
   YYLEX_PARAM is defined as a way to extract the lexer state
   variable (the scanner member of config_parser_context) so that
-  it can be passed to yylex.  Flex doesn't care about the
+  it can be passed to yyconfiglex.  Flex doesn't care about the
   config_parser_context structure at all.
  */
 #define YYPARSE_PARAM ctx
 #define YYLEX_PARAM   ((config_parser_context*)ctx)->scanner
 
 /* Defined in lexer.c */
-int yylex(YYSTYPE*, yyscan_t);
-int yylex_init_extra(YY_EXTRA_TYPE, yyscan_t*);
-int yylex_destroy(yyscan_t);
-void yyset_extra(YY_EXTRA_TYPE, yyscan_t);
-int yyparse(void*);
+int yyconfiglex(YYSTYPE*, yyscan_t);
+int yyconfiglex_init_extra(YY_EXTRA_TYPE, yyscan_t*);
+int yyconfiglex_destroy(yyscan_t);
+void yyconfigset_extra(YY_EXTRA_TYPE, yyscan_t);
+int yyconfigparse(void*);
 
 /* Defined in lexer.l */
 void config_parser_error(void *ctx, const char *fmt, ...);
 void config_parser_warning(void *ctx, const char *fmt, ...);
-/* Define yyerror as a macro that invokes config_parser_error
+/* Define yyconfigerror as a macro that invokes config_parser_error
 
    Because the Flex-generated C code contains calls to
-   yyerror with the following signature:
+   yyconfigerror with the following signature:
 
-     void yyerror(const char*)
+     void yyconfigerror(const char*)
 
    This is the cleanest way to get error reporting with
    line numbers and other useful information.  It is
    worth pointing out that this definition will only work
-   if yyerror is called from yylex; otherwise the macro
+   if yyconfigerror is called from yyconfiglex; otherwise the macro
    expansion of YYPARSE_PARAM is potentially invalid (there
    may not be a ctx variable to dereference).  Sine Flex
-   only ever calls yyerror from within yylex, this assumption
+   only ever calls yyconfigerror from within yyconfiglex, this assumption
    is safe insofar as generated code is concerned.
  */
-#define yyerror(s) config_parser_error(YYPARSE_PARAM, s);
+#define yyconfigerror(s) config_parser_error(YYPARSE_PARAM, s);
 int config_parser_use_file(const char *path, config_parser_context *ctx);
 
 #endif

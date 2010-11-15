@@ -4,6 +4,8 @@
 #include <string.h>
 #include <stdio.h>
 
+#include <arpa/inet.h>
+
 #include "proto.h"
 
 
@@ -69,7 +71,7 @@ int server_dispatch(protocol_session *session)
 			break;
 
 		case PROTOCOL_OP_GET_POLICY:
-			if (pdu_send_SEND_POLICY(session, "POLICY\nPOLICY\nPOLICY", 20) < 0) {
+			if (pdu_send_SEND_POLICY(session, (uint8_t*)"POLICY\nPOLICY\nPOLICY", 20) < 0) {
 				fprintf(stderr, "Unable to send GET_VERSION\n");
 				exit(42);
 			}
@@ -84,7 +86,7 @@ int server_dispatch(protocol_session *session)
 
 		default:
 			snprintf(errbuf, 256, "Unrecognized PDU OP: %u", session->recv_pdu.op);
-			if (pdu_send_ERROR(session, 405, errbuf, strlen(errbuf)) < 0) {
+			if (pdu_send_ERROR(session, 405, (uint8_t*)errbuf, strlen(errbuf)) < 0) {
 				fprintf(stderr, "Unable to send ERROR\n");
 				exit(42);
 			}

@@ -89,6 +89,10 @@ sub test_parser_inclusion()
 		"common::base-gentoo-dev::base-ubuntu-dev::base-gentoo-test::base-ubuntu-test",
 		run(qq($includer "$root/glob-dev.pol" $no_stderr)));
 
+	assert_str_equals("parser_incl: Non-existent first file inclusion",
+		"unable to parse_file!",
+		run(qq($includer "/no/such/file.pol" $no_stderr)));
+
 	assert_str_match("parser_incl: Non-existent file inclusion",
 		"error: can't stat .*: No such file or directory",
 		run(qq($includer "$root/enoent.pol" $stderr_only)));

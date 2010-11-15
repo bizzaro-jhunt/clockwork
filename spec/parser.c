@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <sys/stat.h>
 
 #include "private.h"
 #include "parser.h"
@@ -23,11 +24,16 @@ static void _manifest_expand(struct stree *root, struct hash *policies)
 	}
 }
 
-
 struct manifest* parse_file(const char *path)
 {
 	spec_parser_context ctx;
 	struct manifest *manifest;
+	struct stat init_stat;
+
+	/* check the file first. */
+	if (stat(path, &init_stat) != 0) {
+		return NULL;
+	}
 
 	ctx.file = NULL;
 	ctx.warnings = ctx.errors = 0;

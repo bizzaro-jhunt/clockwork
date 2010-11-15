@@ -38,13 +38,6 @@ struct manifest {
 	struct stree *root;
 };
 
-/* According to RFC 1034 */
-#define HOST_NAME_MAX 256
-struct host {
-	char name[HOST_NAME_MAX];
-	struct stree *policy;
-};
-
 /** policy - Defines a single, independent policy
 
   A policy consists of a set of resources, and the attributes that

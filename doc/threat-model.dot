@@ -1,0 +1,42 @@
+#!/usr/bin/neato -Tps
+digraph threats {
+
+	root=network
+	node [shape=rect];
+
+	{
+		node [fontsize=9,shape=oval]
+		policies [label="Policy\nDefinitions"]
+		cache    [label="Policy\nCache"]
+	}
+
+	{
+		server   [label="Server"]
+		network  [label="Shared\nNetwork",fontsize=9]
+		client   [label="Client"]
+	}
+
+	{
+		node [fontsize=8]
+		server_exec  [label="Execution\nStack"]
+		server_mem   [label="Memory\nSpace"]
+		client_exec  [label="Execution\nStack"]
+		client_mem   [label="Memory\nSpace"]
+	}
+
+	{
+		edge [dir=none]
+		client -> client_exec
+		client -> client_mem
+		client -> cache
+
+		server -> server_exec
+		server -> server_mem
+		server -> policies
+
+		edge[style=dashed]
+		network -> server
+		network -> client
+	}
+
+}

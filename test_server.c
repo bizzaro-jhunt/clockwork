@@ -41,7 +41,7 @@ void* server_thread(void *arg)
 
 		SSL_free(ssl);
 		ERR_remove_state(0);
-		return;
+		return NULL;
 	}
 
 	fprintf(stderr, "SSL Connection opened.\n");
@@ -55,6 +55,8 @@ void* server_thread(void *arg)
 	protocol_session_deinit(&session);
 	SSL_free(ssl);
 	ERR_remove_state(0);
+
+	return NULL;
 }
 
 int main(int argc, char **argv)

@@ -215,8 +215,38 @@ sub test_overrides()
 		run(qq($checker "$root/diff-policy.pol" 2>/dev/null)));
 }
 
+sub test_daemon_config()
+{
+	$TESTS++;
+	print "config: basic parsing scenarios\n";
+
+	my $checker = "./test/util/daemoncfg";
+	my $root = "test/functional/daemoncfg";
+
+	assert_str_equals("unable to parse non-existent file", "unable to parse file!",
+		run(qq($checker "$root/enoent.conf" directive 2>/dev/null)));
+
+	assert_str_equals("ca_cert_file should be parsed from the file", "/path/to/ca.pem",
+		run(qq($checker "$root/good.conf" ca_cert_file 2>/dev/null)));
+
+	assert_str_equals("ca_key_file should be parsed from the file", "/path/to/ca.key",
+		run(qq($checker "$root/good.conf" ca_key_file 2>/dev/null)));
+
+	assert_str_equals("port should be parsed from the file", "7890",
+		run(qq($checker "$root/good.conf" port 2>/dev/null)));
+
+	assert_str_equals("ca_key_file (w/unterm string literal) should be parsed from the file", "/path/to/ca.key",
+		run(qq($checker "$root/unterm.conf" ca_key_file 2>/dev/null)));
+
+	assert_str_match("errors for bad formats",
+		"error: syntax error",
+		run(qq($checker "$root/errors.conf" directive 2>&1 >/dev/null)));
+}
+
+
 test_assertions();
 test_parser_inclusion();
 test_fact_checking();
 test_overrides();
+test_daemon_config();
 finish_tests();

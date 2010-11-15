@@ -151,3 +151,52 @@ files and configurations it needs to simulate as the "current state".  The test 
 can then chroot into the new root directory and execute in a sandbox.
 
 Question: can normal users chroot?
+
+
+Sending Generated Policy vs. Sending Policy Generators
+------------------------------------------------------
+During design / development of policyd, I had to decide whether to generate the policy
+every time a client connects, and send the full policy definition, or just send the
+syntax tree that the client could run against its set of facts and get a policy.
+
+Here is a list of pros and cons for each approach
+
+Option 1: Send the Full Policy
+
+  Pros                                           Cons
+  ============================================   ======================================
+  Need-to-know: Client only gets the policy      More Complex Server: Policy Master
+     that they need, and nothing more.              must be able to generate a policy
+                                                    from a syntax tree, based on the
+  Simpler Client: Agent logic only needs to         facts given by the client
+     know how to receive and enforce
+
+  Less Data Transfer (potentially): Client
+     does not need to send its facts to the
+     policy host.
+
+  Pack Code Done: The pack / unpack code for
+     a policy and its constituent resources
+     is already written and tested.
+
+
+Options 2: Send the Policy Generator
+
+  Pros                                           Cons
+  ============================================   ======================================
+  Simpler Server: Policy Master only needs to    More Complex Client: Agent logic needs
+     be able to map a host to a syntax tree         to be able to traverse a syntax tree
+     root node.                                     and create a policy / resources.
+
+  Less Data Transfer (potentially): If policy    Packing Nodes: Need to write code to
+     definition has not changed, but facts          pack and unpack a syntax tree for
+     have (locally) there is no need to send        wire transfer.  This will require
+     a new policy to the client.                    pointer swizzling.
+
+                                                 Information Leaks: Client will get entire
+                                                    syntax tree, complete with alternate
+                                                    conditionals.
+
+
+Given the above list, it seems that sending the full policy, generated server-side,
+has the most positive benefits and the fewest downsides.

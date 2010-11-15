@@ -70,10 +70,17 @@ void test_hash_double_insert()
 	hash_free(h);
 }
 
+void test_hash_lookup_null()
+{
+	test("hash: Lookups against a NULL hash pointer");
+	assert_null("Lookup('test') always returns NULL", hash_lookup(NULL, "test"));
+}
+
 void test_suite_hash()
 {
 	test_hash_functions();
 	test_hash_basics();
 	test_hash_collisions();
 	test_hash_double_insert();
+	test_hash_lookup_null();
 }

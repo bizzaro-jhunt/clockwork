@@ -42,6 +42,9 @@ static void *lookup(struct hash_list *hl, const char *k)
 
 void* hash_lookup(struct hash *h, const char *k)
 {
+	if (!h) {
+		return NULL;
+	}
 	return lookup(&h->entries[H64(k)], k);
 }
 

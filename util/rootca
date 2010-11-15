@@ -1,0 +1,82 @@
+#!/bin/bash
+
+ROOT=$PWD/certs;
+
+if [ "$DESTRUCTIVE" != "" ]; then
+	rm -rf $ROOT
+else
+	if [ -d $ROOT ]; then
+		echo "$ROOT already exists..."
+		echo "Looks like a test CA has already been set up!"
+		exit 1
+	fi
+fi
+
+set -xe
+
+mkdir $ROOT
+mkdir $ROOT/CA
+mkdir $ROOT/CA/certs
+mkdir $ROOT/CA/private
+
+chmod 0700 $ROOT/CA/certs
+chmod 0700 $ROOT/CA/private
+
+echo '01' > $ROOT/CA/serial
+touch $ROOT/CA/index.txt
+
+export OPENSSL_CONF=$ROOT/CA/openssl.conf
+cat > $OPENSSL_CONF <<EOF
+[ ca ]
+default_ca             = prime
+
+[ prime ]
+dir                    = $ROOT/CA
+certificate            = \$dir/cacert.pem
+database               = \$dir/index.txt
+new_certs_dir          = \$dir/certs
+private_key            = \$dir/private/cakey.pem
+serial                 = \$dir/serial
+
+default_crl_days       = 7
+default_days           = 365
+default_md             = sha1
+
+policy                 = prime_policy
+x509_extensions        = certificate_extensions
+
+[ prime_policy ]
+commonName             = supplied
+stateOrProvinceName    = supplied
+countryName            = supplied
+emailAddress           = supplied
+organizationName       = supplied
+organizationalUnitName = optional
+
+[ certificate_extensions ]
+basicConstraints       = CA:false
+
+# Self-Signed Root CA
+[ req ]
+default_bits           = 2048
+default_keyfile        = $ROOT/CA/private/cakey.pem
+default_md             = sha1
+
+prompt                 = no
+distinguished_name     = root_ca_distinguished_name
+
+x509_extensions        = root_ca_extensions
+
+[ root_ca_distinguished_name ]
+commonName             = cfm.niftylogic.net
+stateOrProvinceName    = Illinois
+countryName            = US
+emailAddress           = ca@cfm.niftylogic.net
+organizationName       = Test CFM Root Certification Authority
+
+[ root_ca_extensions ]
+basicConstraints       = CA:true
+EOF
+
+# Generate the CA private key
+openssl req -x509 -newkey rsa:2048 -out $ROOT/CA/cacert.pem -outform PEM

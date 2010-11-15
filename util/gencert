@@ -1,0 +1,20 @@
+#!/bin/bash
+
+CLIENT=$1
+ROOT=$PWD/certs/$CLIENT
+
+if [ "$CLIENT" = "" ]; then
+	echo "USAGE: $0 client.fqdn"
+	exit 1
+fi
+
+if [ -d "$ROOT" ]; then
+	echo "$ROOT already exists..."
+	echo "Looks like $CLIENT already has a request and / or certificate!"
+	exit 1
+fi
+
+set -xe
+
+mkdir $ROOT
+openssl req -newkey rsa:1024 -keyout $ROOT/key.pem -keyform PEM -out $ROOT/request.pem -outform PEM

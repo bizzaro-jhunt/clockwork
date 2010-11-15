@@ -1,0 +1,21 @@
+#!/bin/bash
+
+ROOT=$PWD/certs
+CLIENT=$1
+
+if [ "$CLIENT" = "" ]; then
+	echo "Usage: $0 client.fqdn"
+	exit 1
+fi
+
+set -xe
+
+CERT=$ROOT/CA/certs/$CLIENT.pem
+if [ ! -f $CERT ]; then
+	echo "$CERT does not exist..."
+	echo "$CLIENT does not seem to have a signed certificate!"
+	exit 1
+fi
+
+OPENSSL_CONF=$ROOT/CA/openssl.conf \
+	openssl ca -revoke $CERT

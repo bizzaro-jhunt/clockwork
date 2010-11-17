@@ -164,19 +164,19 @@ void test_res_group_pack()
 	char *packed;
 	const char *expected;
 
-	rg = res_group_new("staff");
-	res_group_set_passwd(rg, "sesame");
-	res_group_set_gid(rg, 1415);
-	res_group_add_member(rg, "admin1");
-	res_group_add_member(rg, "admin2");
-	res_group_add_member(rg, "admin3");
-	res_group_add_member(rg, "admin4");
-	res_group_remove_member(rg, "user");
-	res_group_add_admin(rg, "admin1");
+	rg = res_group_new("staff");         /* rg_enf == 0000 0001 */
+	res_group_set_passwd(rg, "sesame");  /* rg_enf == 0000 0011 */
+	res_group_set_gid(rg, 1415);         /* rg_enf == 0000 0111 */
+	res_group_add_member(rg, "admin1");  /* rg_enf == 0000 1111 */
+	res_group_add_member(rg, "admin2");  /* ... */
+	res_group_add_member(rg, "admin3");  /* ... */
+	res_group_add_member(rg, "admin4");  /* ... */
+	res_group_remove_member(rg, "user"); /* ... */
+	res_group_add_admin(rg, "admin1");   /* rg_enf == 0001 1111 */
 
 	test("RES_GROUP: pack res_group");
 	packed = res_group_pack(rg);
-	expected = "res_group::\"staff\"\"sesame\"00000587\"admin1.admin2.admin3.admin4\"\"user\"\"admin1\"\"\"";
+	expected = "res_group::0000001f\"staff\"\"sesame\"00000587\"admin1.admin2.admin3.admin4\"\"user\"\"admin1\"\"\"";
 	assert_str_equals("packs properly (normal case)", expected, packed);
 
 	res_group_free(rg);
@@ -188,18 +188,27 @@ void test_res_group_unpack()
 	struct res_group *rg;
 	char *packed;
 
-	packed = "res_group::\"staff\"\"sesame\"00000587\"admin1.admin2.admin3.admin4\"\"user\"\"admin1\"\"\"";
+	packed = "res_group::0000001d\"staff\"\"sesame\"00000587\"admin1.admin2.admin3.admin4\"\"user\"\"admin1\"\"\"";
 
 	test("RES_GROUP: Unserialization");
 	rg = res_group_unpack(packed);
-	assert_not_null("res_group_pack succeeds", rg);
+	assert_not_null("res_group_unpack succeeds", rg);
 	assert_str_equals("res_group->rg_name is \"staff\"", "staff", rg->rg_name);
+	assert_true("'name' is enforced", res_group_enforced(rg, NAME));
+
 	assert_str_equals("res_group->rg_passwd is \"sesame\"", "sesame", rg->rg_passwd);
-	assert_int_equals("res_group->rg_gid is 1415", 1415, rg->rg_gid);
+	assert_true("'password' is NOT enforced", !res_group_enforced(rg, PASSWD));
+
+	assert_int_equals("res_group->rg_gid is 1415", 1415, rg->rg_gid); // 1415(10) == 0587(16)
+	assert_true("'gid' is enforced", res_group_enforced(rg, GID));
+
 	assert_stringlist(rg->rg_mem_add, "res_group->rg_mem_add", 4, "admin1", "admin2", "admin3", "admin4");
 	assert_stringlist(rg->rg_mem_rm,  "res_group->rg_mem_rm",  1, "user");
+	assert_true("'members' is enforced", res_group_enforced(rg, MEMBERS));
+
 	assert_stringlist(rg->rg_adm_add, "res_group->rg_adm_add", 1, "admin1");
 	assert_stringlist(rg->rg_adm_rm,  "res_group->rg_adm_rm",  0);
+	assert_true("'admins' is enforced", res_group_enforced(rg, ADMINS));
 
 	res_group_free(rg);
 }

@@ -167,29 +167,29 @@ void test_policy_pack()
 	test("policy: pack policy with one user, one group and one file");
 	pol = policy_new("1 user, 1 group, and 1 file", 20101031);
 	/* The George Thoroughgood test */
-	ru1 = res_user_new("bourbon");
-	res_user_set_uid(ru1, 101);
-	res_user_set_gid(ru1, 2000);
+	ru1 = res_user_new("bourbon"); /* ru_enf == 0000 0001 */
+	res_user_set_uid(ru1, 101);    /* ru_enf == 0000 0101 */
+	res_user_set_gid(ru1, 2000);   /* ru_enf == 0000 1101 */
 	policy_add_user_resource(pol, ru1);
 
-	rg1 = res_group_new("scotch");
-	res_group_set_gid(rg1, 2000);
+	rg1 = res_group_new("scotch"); /* rg_enf == 0000 0001 */
+	res_group_set_gid(rg1, 2000);  /* rg_enf == 0000 0101 */
 	policy_add_group_resource(pol, rg1);
 
-	rf1 = res_file_new("beer");
-	res_file_set_source(rf1, "cfm://etc/sudoers");
-	res_file_set_uid(rf1, 101);
-	res_file_set_gid(rf1, 2000);
-	res_file_set_mode(rf1, 0600);
+	rf1 = res_file_new("beer");                    /* rf_enf == 0000 0000 */
+	res_file_set_source(rf1, "cfm://etc/sudoers"); /* rf_enf == 0000 1000 */
+	res_file_set_uid(rf1, 101);                    /* rf_enf == 0000 1001 */
+	res_file_set_gid(rf1, 2000);                   /* rf_enf == 0000 1011 */
+	res_file_set_mode(rf1, 0600);                  /* rf_enf == 0000 1111 */
 	policy_add_file_resource(pol, rf1);
 
 	packed = policy_pack(pol);
 	assert_not_null("policy_pack succeeds", packed);
 	assert_str_equals("packed policy with 1 user, 1 group, and 1 file",
 		"policy::\"1 user, 1 group, and 1 file\"0132b7a7\n" /* 0132b7z7 = 20101031 decimal */
-		"res_user::\"bourbon\"\"\"" "00000065" "000007d0" "\"\"\"\"\"\"" "00" "\"\"" "01" "00000000" "00000000" "00000000" "00000000" "00000000\n"
-		"res_group::\"scotch\"\"\"000007d0\"\"\"\"\"\"\"\"\n"
-		"res_file::\"beer\"\"cfm://etc/sudoers\"" "00000065" "000007d0" "00000180",
+		"res_user::0000000d\"bourbon\"\"\"" "00000065" "000007d0" "\"\"\"\"\"\"" "00" "\"\"" "01" "00000000" "00000000" "00000000" "00000000" "00000000\n"
+		"res_group::00000005\"scotch\"\"\"000007d0\"\"\"\"\"\"\"\"\n"
+		"res_file::0000000f\"beer\"\"cfm://etc/sudoers\"" "00000065" "000007d0" "00000180",
 		packed);
 
 	free(packed);
@@ -205,9 +205,9 @@ void test_policy_unpack()
 	struct policy *pol;
 	char *packed = \
 		"policy::\"1 user, 1 group, and 1 file\"0132b7a7\n" /* 0132b7z7 = 20101031 decimal */
-		"res_user::\"user1\"\"\"" "00000065" "000007d0" "\"\"\"\"\"\"" "00" "\"\"" "01" "00000000" "00000000" "00000000" "00000000" "00000000\n"
-		"res_group::\"staff\"\"\"000007d0\"\"\"\"\"\"\"\"\n"
-		"res_file::\"\"\"cfm://etc/sudoers\"" "00000065" "000007d0" "00000180";
+		"res_user::00003fff\"user1\"\"\"" "00000065" "000007d0" "\"\"\"\"\"\"" "00" "\"\"" "01" "00000000" "00000000" "00000000" "00000000" "00000000\n"
+		"res_group::0000000f\"staff\"\"\"000007d0\"\"\"\"\"\"\"\"\n"
+		"res_file::00000007\"\"\"cfm://etc/sudoers\"" "00000065" "000007d0" "00000180";
 
 	test("policy: unpack empty policy");
 	pol = policy_unpack("policy::\"empty\"00000309");

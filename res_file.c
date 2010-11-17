@@ -14,13 +14,14 @@
 #define RES_FILE_PACK_PREFIX "res_file::"
 #define RES_FILE_PACK_OFFSET 10
 /* Pack format for res_file structure:
+     L - rf_enf
      a - rf_lpath
      a - rf_rpath
      L - rf_uid
      L - rf_gid
      L - rf_mode
  */
-#define RES_FILE_PACK_FORMAT "aaLLL"
+#define RES_FILE_PACK_FORMAT "LaaLLL"
 
 
 static int _res_file_fd2fd(int dest, int src);
@@ -225,14 +226,14 @@ int res_file_set_source(struct res_file *rf, const char *file)
 	assert(rf);
 	size_t len = strlen(file) + 1;
 
+	rf->rf_enf |= RES_FILE_SHA1;
+
 	xfree(rf->rf_rpath);
 	rf->rf_rpath = malloc(len);
 	if (!rf->rf_rpath) { return -1; }
 
 	strncpy(rf->rf_rpath, file, len);
 	if (sha1_file(rf->rf_rpath, &(rf->rf_rsha1)) == -1) { return -1; }
-
-	rf->rf_enf |= RES_FILE_SHA1;
 
 	return 0;
 }
@@ -321,12 +322,14 @@ char* res_file_pack(struct res_file *rf)
 	size_t pack_len;
 
 	pack_len = pack(NULL, 0, RES_FILE_PACK_FORMAT,
+		rf->rf_enf,
 		rf->rf_lpath, rf->rf_rpath, rf->rf_uid, rf->rf_gid, rf->rf_mode);
 
 	packed = malloc(pack_len + RES_FILE_PACK_OFFSET);
 	strncpy(packed, RES_FILE_PACK_PREFIX, RES_FILE_PACK_OFFSET);
 
 	pack(packed + RES_FILE_PACK_OFFSET, pack_len, RES_FILE_PACK_FORMAT,
+		rf->rf_enf,
 		rf->rf_lpath, rf->rf_rpath, rf->rf_uid, rf->rf_gid, rf->rf_mode);
 
 	return packed;
@@ -342,6 +345,7 @@ struct res_file* res_file_unpack(const char *packed)
 
 	rf = res_file_new("FIXME");
 	if (unpack(packed + RES_FILE_PACK_OFFSET, RES_FILE_PACK_FORMAT,
+		&rf->rf_enf,
 		&rf->rf_lpath, &rf->rf_rpath, &rf->rf_uid, &rf->rf_gid, &rf->rf_mode) != 0) {
 
 		res_file_free(rf);

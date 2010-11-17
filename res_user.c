@@ -17,6 +17,7 @@
 #define RES_USER_PACK_OFFSET 10
 
 /* Pack Format for res_user structure:
+     L - ru_enf
      a - ru_name
      a - ru_passwd
      L - ru_uid
@@ -33,7 +34,7 @@
      L - ru_inact
      L - ru_expire
  */
-#define RES_USER_PACK_FORMAT "aaLLaaaCaCLLLLL"
+#define RES_USER_PACK_FORMAT "LaaLLaaaCaCLLLLL"
 
 
 static int _res_user_diff(struct res_user *ru);
@@ -555,6 +556,7 @@ char* res_user_pack(const struct res_user *ru)
 	size_t pack_len;
 
 	pack_len = pack(NULL, 0, RES_USER_PACK_FORMAT,
+		ru->ru_enf,
 		ru->ru_name,   ru->ru_passwd, ru->ru_uid,    ru->ru_gid,
 		ru->ru_gecos,  ru->ru_shell,  ru->ru_dir,    ru->ru_mkhome,
 		ru->ru_skel,   ru->ru_lock,   ru->ru_pwmin,  ru->ru_pwmax,
@@ -564,6 +566,7 @@ char* res_user_pack(const struct res_user *ru)
 	strncpy(packed, RES_USER_PACK_PREFIX, RES_USER_PACK_OFFSET);
 
 	pack(packed + RES_USER_PACK_OFFSET, pack_len, RES_USER_PACK_FORMAT,
+		ru->ru_enf,
 		ru->ru_name,   ru->ru_passwd, ru->ru_uid,    ru->ru_gid,
 		ru->ru_gecos,  ru->ru_shell,  ru->ru_dir,    ru->ru_mkhome,
 		ru->ru_skel,   ru->ru_lock,   ru->ru_pwmin,  ru->ru_pwmax,
@@ -582,6 +585,7 @@ struct res_user* res_user_unpack(const char *packed)
 
 	ru = res_user_new("FIXME");
 	if (unpack(packed + RES_USER_PACK_OFFSET, RES_USER_PACK_FORMAT,
+		&ru->ru_enf,
 		&ru->ru_name,   &ru->ru_passwd, &ru->ru_uid,    &ru->ru_gid,
 		&ru->ru_gecos,  &ru->ru_shell,  &ru->ru_dir,    &ru->ru_mkhome,
 		&ru->ru_skel,   &ru->ru_lock,   &ru->ru_pwmin,  &ru->ru_pwmax,

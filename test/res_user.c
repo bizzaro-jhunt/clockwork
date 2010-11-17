@@ -224,7 +224,9 @@ void test_res_user_pack()
 
 	test("RES_USER: pack res_user");
 	packed = res_user_pack(ru);
-	expected = "res_user::\"user\"\"sooper.seecret\""
+	expected = "res_user::"
+		"00003fff" /* RES_USER_*, all OR'ed together */
+		"\"user\"\"sooper.seecret\""
 		"0000007b" /* uid 123 */
 		"000003e7" /* gid 999 */
 		"\"GECOS for user\"\"/sbin/nologin\"\"/home/user\""
@@ -248,7 +250,9 @@ void test_res_user_unpack()
 	struct res_user *ru;
 	char *packed;
 
-	packed = "res_user::\"user\"\"secret\""
+	packed = "res_user::"
+		"00003001" /* NAME, EXPIRE and LOCK only */
+		"\"user\"\"secret\""
 		"0000002d" /* uid 45 */
 		"0000005a" /* gid 90 */
 		"\"GECOS\"\"/bin/bash\"\"/home/user\""
@@ -267,20 +271,47 @@ void test_res_user_unpack()
 	test("RES_USER: unpack res_user");
 	assert_not_null("res_user_unpack succeeds", ru);
 	assert_str_equals("res_user->ru_name is \"user\"", "user", ru->ru_name);
+	assert_true("NAME is enforced", res_user_enforced(ru, NAME));
+
 	assert_str_equals("res_user->ru_passwd is \"secret\"", "secret", ru->ru_passwd);
+	assert_true("PASSWD is NOT enforced", !res_user_enforced(ru, PASSWD));
+
 	assert_int_equals("res_user->ru_uid is 45", 45, ru->ru_uid);
+	assert_true("UID is NOT enforced", !res_user_enforced(ru, UID));
+
 	assert_int_equals("res_user->ru_gid is 90", 90, ru->ru_gid);
+	assert_true("GID is NOT enforced", !res_user_enforced(ru, GID));
+
 	assert_str_equals("res_user->ru_gecos is \"GECOS\"", "GECOS", ru->ru_gecos);
+	assert_true("GECOS is NOT enforced", !res_user_enforced(ru, GECOS));
+
 	assert_str_equals("res_user->ru_dir is \"/home/user\"", "/home/user", ru->ru_dir);
+	assert_true("DIR is NOT enforced", !res_user_enforced(ru, DIR));
+
 	assert_str_equals("res_user->ru_shell is \"/bin/bash\"", "/bin/bash", ru->ru_shell);
+	assert_true("SHELL is NOT enforced", !res_user_enforced(ru, SHELL));
+
 	assert_int_equals("res_user->ru_mkhome is 1", 1, ru->ru_mkhome);
 	assert_str_equals("res_user->ru_skel is \"/etc/skel.oper\"", "/etc/skel.oper", ru->ru_skel);
+	assert_true("MKHOME is NOT enforced", !res_user_enforced(ru, MKHOME));
+
 	assert_int_equals("res_user->ru_lock is 0", 0, ru->ru_lock);
+	assert_true("LOCK is enforced", res_user_enforced(ru, LOCK));
+
 	assert_int_equals("res_user->ru_pwmin is 4", 4, ru->ru_pwmin);
+	assert_true("PWMIN is NOT enforced", !res_user_enforced(ru, PWMIN));
+
 	assert_int_equals("res_user->ru_pwmax is 50", 50, ru->ru_pwmax);
+	assert_true("PWMAX is NOT enforced", !res_user_enforced(ru, PWMAX));
+
 	assert_int_equals("res_user->ru_pwwarn is 7", 7, ru->ru_pwwarn);
+	assert_true("PWWARN is NOT enforced", !res_user_enforced(ru, PWWARN));
+
 	assert_int_equals("res_user->ru_inact is 6000", 6000, ru->ru_inact);
+	assert_true("INACT is NOT enforced", !res_user_enforced(ru, INACT));
+
 	assert_int_equals("res_user->ru_expire is 9000", 9000, ru->ru_expire);
+	assert_true("EXPIRE is enforced", res_user_enforced(ru, EXPIRE));
 
 	res_user_free(ru);
 }

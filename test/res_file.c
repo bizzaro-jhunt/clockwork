@@ -151,16 +151,18 @@ void test_res_file_pack()
 	char *packed;
 	const char *expected;
 
-	rf = res_file_new("/etc/sudoers");
+	rf = res_file_new("/etc/sudoers");                      /* rf_enf == 0000 0000 */
 
-	res_file_set_uid(rf, 101);
-	res_file_set_gid(rf, 202);
-	res_file_set_mode(rf, 0644);
-	res_file_set_source(rf, "http://example.com/sudoers");
+	res_file_set_uid(rf, 101);                              /* rf_enf == 0000 0001 */
+	res_file_set_gid(rf, 202);                              /* rf_enf == 0000 0011 */
+	res_file_set_mode(rf, 0644);                            /* rf_enf == 0000 0111 */
+	res_file_set_source(rf, "http://example.com/sudoers");  /* rf_enf == 0000 1111 */
 
 	test("RES_FILE: file serialization");
 	packed = res_file_pack(rf);
-	expected = "res_file::\"/etc/sudoers\"\"http://example.com/sudoers\""
+	expected = "res_file::"
+		"0000000f" /* RES_FILE_*, all OR'ed together */
+		"\"/etc/sudoers\"\"http://example.com/sudoers\""
 		"00000065" /* rf_uid 101 */
 		"000000ca" /* rf_gid 202 */
 		"000001a4" /* rf_mode 0644 */
@@ -176,7 +178,9 @@ void test_res_file_unpack()
 	struct res_file *rf;
 	char *packed;
 
-	packed = "res_file::\"/etc/sudoers\"\"http://example.com/sudoers\""
+	packed = "res_file::"
+		"00000003" /* UID and GID only */
+		"\"/etc/sudoers\"\"http://example.com/sudoers\""
 		"00000065" /* rf_uid 101 */
 		"000000ca" /* rf_gid 202 */
 		"000001a4" /* rf_mode 0644 */
@@ -187,9 +191,16 @@ void test_res_file_unpack()
 	assert_not_null("res_file_unpack succeeds", rf);
 	assert_str_equals("res_file->rf_lpath is \"/etc/sudoers\"", "/etc/sudoers", rf->rf_lpath);
 	assert_str_equals("res_file->rf_rpath is \"http://example.com/sudoers\"", "http://example.com/sudoers", rf->rf_rpath);
+	assert_true("SHA1 is NOT enforced", !res_file_enforced(rf, SHA1));
+
 	assert_int_equals("res_file->rf_uid is 101", 101, rf->rf_uid);
+	assert_true("UID is enforced", res_file_enforced(rf, UID));
+
 	assert_int_equals("res_file->rf_gid is 202", 202, rf->rf_gid);
+	assert_true("GID is enforced", res_file_enforced(rf, GID));
+
 	assert_int_equals("res_file->rf_mode is 0644", 0644, rf->rf_mode);
+	assert_true("MODE is NOT enforced", !res_file_enforced(rf, MODE));
 
 	res_file_free(rf);
 }

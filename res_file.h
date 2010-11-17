@@ -9,11 +9,11 @@
 #include "list.h"
 #include "sha1.h"
 
-#define RES_FILE_NONE 0000
-#define RES_FILE_UID  0001
-#define RES_FILE_GID  0002
-#define RES_FILE_MODE 0004
-#define RES_FILE_SHA1 0010
+#define RES_FILE_NONE  0x00
+#define RES_FILE_UID   0x01
+#define RES_FILE_GID   0x02
+#define RES_FILE_MODE  0x04
+#define RES_FILE_SHA1  0x08
 
 #define res_file_enforced(rf, flag)  (((rf)->rf_enf  & RES_FILE_ ## flag) == RES_FILE_ ## flag)
 #define res_file_different(rf, flag) (((rf)->rf_diff & RES_FILE_ ## flag) == RES_FILE_ ## flag)

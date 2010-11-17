@@ -11,6 +11,7 @@
 #define RES_GROUP_PACK_PREFIX "res_group::"
 #define RES_GROUP_PACK_OFFSET 11
 /* Pack format for res_group structure:
+     L - rg_enf
      a - rg_name
      a - rg_passwd
      L - rg_gid
@@ -19,7 +20,7 @@
      a - rg_adm_add (joined stringlist)
      a - rg_adm_rm  (joined stringlist)
  */
-#define RES_GROUP_PACK_FORMAT "aaLaaaa"
+#define RES_GROUP_PACK_FORMAT "LaaLaaaa"
 
 
 static int _res_group_diff(struct res_group*);
@@ -229,6 +230,7 @@ int res_group_add_member(struct res_group *rg, const char *user)
 	assert(rg);
 	assert(user);
 
+	res_group_enforce_members(rg, 1);
 	/* add to rg_mem_add, remove from rg_mem_rm */
 	return _group_update(rg->rg_mem_add, rg->rg_mem_rm, user);
 }
@@ -238,6 +240,7 @@ int res_group_remove_member(struct res_group *rg, const char *user)
 	assert(rg);
 	assert(user);
 
+	res_group_enforce_members(rg, 1);
 	/* add to rg_mem_rm, remove from rg_mem_add */
 	return _group_update(rg->rg_mem_rm, rg->rg_mem_add, user);
 }
@@ -260,6 +263,7 @@ int res_group_add_admin(struct res_group *rg, const char *user)
 	assert(rg);
 	assert(user);
 
+	res_group_enforce_admins(rg, 1);
 	/* add to rg_adm_add, remove from rg_adm_rm */
 	return _group_update(rg->rg_adm_add, rg->rg_adm_rm, user);
 }
@@ -270,6 +274,7 @@ int res_group_remove_admin(struct res_group *rg, const char *user)
 	assert(rg);
 	assert(user);
 
+	res_group_enforce_admins(rg, 1);
 	/* add to rg_adm_rm, remove from rg_adm_add */
 	return _group_update(rg->rg_adm_rm, rg->rg_adm_add, user);
 }
@@ -367,6 +372,7 @@ char *res_group_pack(struct res_group *rg)
 	}
 
 	pack_len = pack(NULL, 0, RES_GROUP_PACK_FORMAT,
+		rg->rg_enf,
 		rg->rg_name, rg->rg_passwd, rg->rg_gid,
 		mem_add, mem_rm, adm_add, adm_rm);
 
@@ -374,6 +380,7 @@ char *res_group_pack(struct res_group *rg)
 	strncpy(packed, RES_GROUP_PACK_PREFIX, RES_GROUP_PACK_OFFSET);
 
 	pack(packed + RES_GROUP_PACK_OFFSET, pack_len, RES_GROUP_PACK_FORMAT,
+		rg->rg_enf,
 		rg->rg_name, rg->rg_passwd, rg->rg_gid,
 		mem_add, mem_rm, adm_add, adm_rm);
 
@@ -395,6 +402,7 @@ struct res_group* res_group_unpack(const char *packed)
 
 	rg = res_group_new("FIXME");
 	if (unpack(packed + RES_GROUP_PACK_OFFSET, RES_GROUP_PACK_FORMAT,
+		&rg->rg_enf,
 		&rg->rg_name, &rg->rg_passwd, &rg->rg_gid,
 		&mem_add, &mem_rm, &adm_add, &adm_rm)) {
 

@@ -9,21 +9,21 @@
 #include "list.h"
 #include "userdb.h"
 
-#define RES_USER_NONE          0
-#define RES_USER_NAME    1 <<  0
-#define RES_USER_PASSWD  1 <<  1
-#define RES_USER_UID     1 <<  2
-#define RES_USER_GID     1 <<  3
-#define RES_USER_GECOS   1 <<  4
-#define RES_USER_DIR     1 <<  5
-#define RES_USER_SHELL   1 <<  6
-#define RES_USER_MKHOME  1 <<  7
-#define RES_USER_PWMIN   1 <<  8
-#define RES_USER_PWMAX   1 <<  9
-#define RES_USER_PWWARN  1 << 10
-#define RES_USER_INACT   1 << 11
-#define RES_USER_EXPIRE  1 << 12
-#define RES_USER_LOCK    1 << 13
+#define RES_USER_NONE     0x0000
+#define RES_USER_NAME     0x0001
+#define RES_USER_PASSWD   0x0002
+#define RES_USER_UID      0x0004
+#define RES_USER_GID      0x0008
+#define RES_USER_GECOS    0x0010
+#define RES_USER_DIR      0x0020
+#define RES_USER_SHELL    0x0040
+#define RES_USER_MKHOME   0x0080
+#define RES_USER_PWMIN    0x0100
+#define RES_USER_PWMAX    0x0200
+#define RES_USER_PWWARN   0x0400
+#define RES_USER_INACT    0x0800
+#define RES_USER_EXPIRE   0x1000
+#define RES_USER_LOCK     0x2000
 
 #define res_user_enforced(ru, flag)  (((ru)->ru_enf  & RES_USER_ ## flag) == RES_USER_ ## flag)
 #define res_user_different(ru, flag) (((ru)->ru_diff & RES_USER_ ## flag) == RES_USER_ ## flag)

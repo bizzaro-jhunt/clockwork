@@ -9,12 +9,12 @@
 #include "userdb.h"
 #include "stringlist.h"
 
-#define RES_GROUP_NONE          0
-#define RES_GROUP_NAME     1 << 1
-#define RES_GROUP_PASSWD   1 << 2
-#define RES_GROUP_GID      1 << 3
-#define RES_GROUP_MEMBERS  1 << 4
-#define RES_GROUP_ADMINS   1 << 5
+#define RES_GROUP_NONE     0x00
+#define RES_GROUP_NAME     0x01
+#define RES_GROUP_PASSWD   0x02
+#define RES_GROUP_GID      0x04
+#define RES_GROUP_MEMBERS  0x08
+#define RES_GROUP_ADMINS   0x10
 
 #define res_group_enforced(rg, flag)  (((rg)->rg_enf  & RES_GROUP_ ## flag) == RES_GROUP_ ## flag)
 #define res_group_different(rg, flag) (((rg)->rg_diff & RES_GROUP_ ## flag) == RES_GROUP_ ## flag)

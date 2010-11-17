@@ -59,6 +59,11 @@ POLICY_OBJECTS := policy.o
 SPEC_PARSER_OBJECTS := spec/lexer.o spec/grammar.o spec/parser.o
 CONFIG_PARSER_OBJECTS := config/lexer.o config/grammar.o config/parser.o
 
+NO_LCOV := test/*
+NO_LCOV += spec/grammar.c   spec/lexer.c
+NO_LCOV += config/grammar.c config/lexer.c
+NO_LCOV += log.c # Can't easily test syslog-based logging methods
+
 ############################################################
 # Default Target
 
@@ -128,7 +133,7 @@ lcov.info: unit_tests functional_tests
 	test/run
 	test/functional/run
 	$(LCOV) --capture -o $@.tmp
-	$(LCOV) --remove $@.tmp test/* spec/grammar.c spec/lexer.c confg/grammar.c config/lexer.c > $@
+	$(LCOV) --remove $@.tmp $(NO_LCOV) > $@
 	rm -f $@.tmp
 
 test/res_file.o: test/res_file.c res_file.h test/sha1_files.h

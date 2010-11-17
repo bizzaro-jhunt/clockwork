@@ -530,7 +530,7 @@ long protocol_ssl_verify_peer(SSL *ssl, const char *host)
 		int i;
 
 		for (i = 0; i < extcount; i++) {
-			const unsigned char *extstr;
+			const char *extstr;
 			X509_EXTENSION *ext;
 
 			ext = X509_get_ext(cert, i);

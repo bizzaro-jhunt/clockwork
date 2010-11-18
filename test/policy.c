@@ -215,7 +215,7 @@ void test_policy_unpack()
 	assert_true("res_files is an empty list head", list_empty(&pol->res_files));
 	assert_true("res_groups is an empty list head", list_empty(&pol->res_groups));
 	assert_true("res_users is an empty list head", list_empty(&pol->res_users));
-	policy_free(pol);
+	policy_free_all(pol);
 
 	test("policy: unpack policy with one user, one group and one file");
 	/* The George Thoroughgood test */

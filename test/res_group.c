@@ -201,6 +201,8 @@ void test_res_group_remediate_remove_existing()
 	assert_null("No group entry exists after remediation", rg->rg_grp);
 	assert_null("No gshadow entry exists after remediation", rg->rg_sg);
 
+	res_group_free(rg);
+
 	grdb_free(grdb);
 	sgdb_free(sgdb);
 	grdb_free(grdb_after);
@@ -258,6 +260,8 @@ void test_res_group_remediate_remove_nonexistent()
 	assert_int_equals("res_group_stat returns zero (after)", res_group_stat(rg, grdb_after, sgdb_after), 0);
 	assert_null("No group entry exists after remediation", rg->rg_grp);
 	assert_null("No gshadow entry exists after remediation", rg->rg_sg);
+
+	res_group_free(rg);
 
 	grdb_free(grdb);
 	sgdb_free(sgdb);

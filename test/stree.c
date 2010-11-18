@@ -225,6 +225,7 @@ void test_stree_conditional_policy_generation()
 	assert_int_equals("user->ru_gid == 20051", 20051, user->ru_gid);
 	assert_str_equals("user->ru_dir is /srv/oper/ubuntu", "/srv/oper/ubuntu", user->ru_dir);
 
+	hash_free(facts);
 	policy_free_all(pol);
 
 	test("stree: conditional policy generation for Tikanga/2.4");
@@ -323,6 +324,8 @@ void test_stree_prog_policy_generation()
 		}
 	}
 	assert_int_equals("Found 1 group", 1, i);
+
+	hash_free(facts);
 	policy_free_all(pol);
 
 	test("stree: prog(ression) policy generation for 2 groups");
@@ -344,9 +347,9 @@ void test_stree_prog_policy_generation()
 		}
 	}
 	assert_int_equals("Found 2 groups", 2, i);
-	policy_free_all(pol);
 
 	hash_free(facts);
+	policy_free_all(pol);
 }
 
 void test_stree_comparison()

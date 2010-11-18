@@ -68,6 +68,9 @@ void manifest_free(struct manifest *m)
 			free(m->nodes[i]);
 		}
 		free(m->nodes);
+
+		hash_free(m->policies);
+		hash_free(m->hosts);
 	}
 	free(m);
 }
@@ -344,6 +347,7 @@ void policy_free(struct policy *pol)
 {
 	if (pol) {
 		hash_free(pol->resources);
+		free(pol->name);
 	}
 	free(pol);
 }

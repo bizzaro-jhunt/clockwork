@@ -158,8 +158,12 @@ struct res_user* res_user_new(const char *key)
 	ru->ru_pw     = NULL;
 	ru->ru_sp     = NULL;
 
-	res_user_set_name(ru, key);
-	ru->key = resource_key("res_user", key);
+	if (key) {
+		res_user_set_name(ru, key);
+		ru->key = resource_key("res_user", key);
+	} else {
+		ru->key = NULL;
+	}
 
 	return ru;
 }
@@ -606,7 +610,7 @@ struct res_user* res_user_unpack(const char *packed)
 		return NULL;
 	}
 
-	ru = res_user_new("FIXME");
+	ru = res_user_new(NULL);
 	if (unpack(packed + RES_USER_PACK_OFFSET, RES_USER_PACK_FORMAT,
 		&ru->ru_enf,
 		&ru->ru_name,   &ru->ru_passwd, &ru->ru_uid,    &ru->ru_gid,
@@ -617,6 +621,8 @@ struct res_user* res_user_unpack(const char *packed)
 		res_user_free(ru);
 		return NULL;
 	}
+
+	ru->key = resource_key("res_user", ru->ru_name);
 
 	return ru;
 }

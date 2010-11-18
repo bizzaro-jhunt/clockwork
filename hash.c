@@ -26,6 +26,15 @@ struct hash *hash_new(void)
 
 void hash_free(struct hash *h)
 {
+	size_t i, j;
+	for (i = 0; i < 64; i++) {
+		for (j = 0; j < h->entries[i].len; j++) {
+			free(h->entries[i].keys[j]);
+		}
+		free(h->entries[i].keys);
+
+		free(h->entries[i].values);
+	}
 	free(h);
 }
 

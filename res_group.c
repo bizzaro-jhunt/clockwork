@@ -117,8 +117,12 @@ struct res_group* res_group_new(const char *key)
 	rg->rg_enf  = RES_GROUP_NONE;
 	rg->rg_diff = RES_GROUP_NONE;
 
-	rg->key = resource_key("res_group", key);
-	res_group_set_name(rg, key);
+	if (key) {
+		rg->key = resource_key("res_group", key);
+		res_group_set_name(rg, key);
+	} else {
+		rg->key = NULL;
+	}
 
 	return rg;
 }
@@ -126,6 +130,8 @@ struct res_group* res_group_new(const char *key)
 void res_group_free(struct res_group *rg)
 {
 	if (rg) {
+		free(rg->key);
+
 		free(rg->rg_name);
 		free(rg->rg_passwd);
 
@@ -423,7 +429,7 @@ struct res_group* res_group_unpack(const char *packed)
 		return NULL;
 	}
 
-	rg = res_group_new("FIXME");
+	rg = res_group_new(NULL);
 	if (unpack(packed + RES_GROUP_PACK_OFFSET, RES_GROUP_PACK_FORMAT,
 		&rg->rg_enf,
 		&rg->rg_name, &rg->rg_passwd, &rg->rg_gid,
@@ -432,6 +438,8 @@ struct res_group* res_group_unpack(const char *packed)
 		res_group_free(rg);
 		return NULL;
 	}
+
+	rg->key = resource_key("res_group", rg->rg_name);
 
 	stringlist_free(rg->rg_mem_add);
 	rg->rg_mem_add = stringlist_split(mem_add, strlen(mem_add), ".");

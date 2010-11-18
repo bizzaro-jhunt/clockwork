@@ -95,8 +95,12 @@ struct res_file* res_file_new(const char *key)
 	sha1_init(&(rf->rf_lsha1));
 	sha1_init(&(rf->rf_rsha1));
 
-	res_file_set_path(rf, key);
-	rf->key = resource_key("res_file", key);
+	if (key) {
+		res_file_set_path(rf, key);
+		rf->key = resource_key("res_file", key);
+	} else {
+		rf->key = NULL;
+	}
 
 	return rf;
 }
@@ -378,7 +382,7 @@ struct res_file* res_file_unpack(const char *packed)
 		return NULL;
 	}
 
-	rf = res_file_new("FIXME");
+	rf = res_file_new(NULL);
 	if (unpack(packed + RES_FILE_PACK_OFFSET, RES_FILE_PACK_FORMAT,
 		&rf->rf_enf,
 		&rf->rf_lpath, &rf->rf_rpath, &rf->rf_uid, &rf->rf_gid, &rf->rf_mode) != 0) {
@@ -386,6 +390,8 @@ struct res_file* res_file_unpack(const char *packed)
 		res_file_free(rf);
 		return NULL;
 	}
+
+	rf->key = resource_key("res_file", rf->rf_lpath);
 
 	return rf;
 }

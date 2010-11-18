@@ -149,6 +149,122 @@ void test_res_group_remediate_new()
 	sgdb_free(sgdb);
 }
 
+void test_res_group_remediate_remove_existing()
+{
+	struct res_group *rg;
+	struct grdb *grdb, *grdb_after;
+	struct sgdb *sgdb, *sgdb_after;
+
+	rg = res_group_new("daemon");
+	res_group_set_presence(rg, 0); /* Remove the group */
+
+	grdb = grdb_init("test/data/group");
+	if (!grdb) {
+		assert_fail("Unable to init grdb");
+		return;
+	}
+
+	sgdb = sgdb_init("test/data/gshadow");
+	if (!sgdb) {
+		assert_fail("Unable to init gshadow");
+		grdb_free(grdb);
+		return;
+	}
+
+	test("RES_GROUP: Remediation (remove existing account)");
+	assert_int_equals("res_group_stat returns 0", res_group_stat(rg, grdb, sgdb), 0);
+	assert_not_null("(test sanity) group found in group file",   rg->rg_grp);
+	assert_not_null("(test sanity) group found in gshadow file", rg->rg_sg);
+
+	assert_int_equals("res_group_remediate returns 0", res_group_remediate(rg, grdb, sgdb), 0);
+
+	assert_int_equals("grdb_write succeeds", 0, grdb_write(grdb, "test/tmp/group.new"));
+	assert_int_equals("sgdb_write succeeds", 0, sgdb_write(sgdb, "test/tmp/gshadow.new"));
+
+	grdb_after = grdb_init("test/tmp/group.new");
+	if (!grdb_after) {
+		assert_fail("Unable to init grdb_after");
+		return;
+	}
+
+	sgdb_after = sgdb_init("test/tmp/gshadow.new");
+	if (!sgdb_after) {
+		assert_fail("Unable to init sgdb_after");
+		grdb_free(grdb_after);
+		return;
+	}
+
+	res_group_free(rg);
+	rg = res_group_new("non_existent_group");
+
+	assert_int_equals("res_group_stat returns zero (after)", res_group_stat(rg, grdb_after, sgdb_after), 0);
+	assert_null("No group entry exists after remediation", rg->rg_grp);
+	assert_null("No gshadow entry exists after remediation", rg->rg_sg);
+
+	grdb_free(grdb);
+	sgdb_free(sgdb);
+	grdb_free(grdb_after);
+	sgdb_free(sgdb_after);
+}
+
+void test_res_group_remediate_remove_nonexistent()
+{
+	struct res_group *rg;
+	struct grdb *grdb, *grdb_after;
+	struct sgdb *sgdb, *sgdb_after;
+
+	rg = res_group_new("non_existent_group");
+	res_group_set_presence(rg, 0); /* Remove the group */
+
+	grdb = grdb_init("test/data/group");
+	if (!grdb) {
+		assert_fail("Unable to init grdb");
+		return;
+	}
+
+	sgdb = sgdb_init("test/data/gshadow");
+	if (!sgdb) {
+		assert_fail("Unable to init gshadow");
+		grdb_free(grdb);
+		return;
+	}
+
+	test("RES_GROUP: Remediation (remove nonexistent account)");
+	assert_int_equals("res_group_stat returns 0", res_group_stat(rg, grdb, sgdb), 0);
+	assert_null("(test sanity) group not found in group file",   rg->rg_grp);
+	assert_null("(test sanity) group not found in gshadow file", rg->rg_sg);
+
+	assert_int_equals("res_group_remediate returns 0", res_group_remediate(rg, grdb, sgdb), 0);
+
+	assert_int_equals("grdb_write succeeds", 0, grdb_write(grdb, "test/tmp/group.new"));
+	assert_int_equals("sgdb_write succeeds", 0, sgdb_write(sgdb, "test/tmp/gshadow.new"));
+
+	grdb_after = grdb_init("test/tmp/group.new");
+	if (!grdb_after) {
+		assert_fail("Unable to init grdb_after");
+		return;
+	}
+
+	sgdb_after = sgdb_init("test/tmp/gshadow.new");
+	if (!sgdb_after) {
+		assert_fail("Unable to init sgdb_after");
+		grdb_free(grdb_after);
+		return;
+	}
+
+	res_group_free(rg);
+	rg = res_group_new("non_existent_group");
+
+	assert_int_equals("res_group_stat returns zero (after)", res_group_stat(rg, grdb_after, sgdb_after), 0);
+	assert_null("No group entry exists after remediation", rg->rg_grp);
+	assert_null("No gshadow entry exists after remediation", rg->rg_sg);
+
+	grdb_free(grdb);
+	sgdb_free(sgdb);
+	grdb_free(grdb_after);
+	sgdb_free(sgdb_after);
+}
+
 void test_res_group_pack_detection()
 {
 	test("RES_FILE: pack detection based on tag");
@@ -217,6 +333,8 @@ void test_suite_res_group() {
 	test_res_group_enforcement();
 	test_res_group_diffstat_remediation();
 	test_res_group_remediate_new();
+	test_res_group_remediate_remove_existing();
+	test_res_group_remediate_remove_nonexistent();
 
 	test_res_group_pack_detection();
 	test_res_group_pack();

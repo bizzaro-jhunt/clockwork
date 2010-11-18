@@ -9,6 +9,8 @@
 #include "userdb.h"
 #include "stringlist.h"
 
+#define RES_GROUP_ABSENT   0x80000000
+
 #define RES_GROUP_NONE     0x00
 #define RES_GROUP_NAME     0x01
 #define RES_GROUP_PASSWD   0x02
@@ -47,6 +49,8 @@ struct res_group *res_group_new(const char *key);
 void res_group_free(struct res_group *rg);
 
 int res_group_setattr(struct res_group *rg, const char *name, const char *value);
+
+int res_group_set_presence(struct res_group *rg, int presence);
 
 int res_group_set_name(struct res_group *rg, const char *name);
 int res_group_unset_name(struct res_group *rg);

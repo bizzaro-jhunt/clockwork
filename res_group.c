@@ -155,6 +155,19 @@ int res_group_setattr(struct res_group *rg, const char *name, const char *value)
 	return -1;
 }
 
+int res_group_set_presence(struct res_group *rg, int presence)
+{
+	assert(rg);
+
+	if (presence) {
+		rg->rg_enf ^= RES_GROUP_ABSENT;
+	} else {
+		rg->rg_enf |= RES_GROUP_ABSENT;
+	}
+
+	return 0;
+}
+
 int res_group_set_name(struct res_group *rg, const char *name)
 {
 	assert(rg);
@@ -312,6 +325,16 @@ int res_group_remediate(struct res_group *rg, struct grdb *grdb, struct sgdb *sg
 	assert(rg);
 	assert(grdb);
 	assert(sgdb);
+
+	/* Remove the group if RES_GROUP_ABSENT */
+	if (res_group_enforced(rg, ABSENT)) {
+		if ((rg->rg_grp && grdb_rm(grdb, rg->rg_grp) != 0)
+		 || (rg->rg_sg && sgdb_rm(sgdb, rg->rg_sg) != 0)) {
+			return -1;
+		}
+
+		return 0;
+	}
 
 	if (!rg->rg_grp) {
 		rg->rg_grp = grdb_new_entry(grdb, rg->rg_name);

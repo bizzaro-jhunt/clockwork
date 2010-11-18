@@ -247,10 +247,36 @@ sub test_daemon_config()
 		run(qq($checker "$root/errors.conf" directive 2>&1 >/dev/null)));
 }
 
+sub test_presence()
+{
+	$TESTS++;
+	print "config: presence / absence\n";
+
+	my $checker = "./test/util/presence";
+	my $root = "test/functional/presence";
+
+	assert_str_equals("implicitly, users are defined as 'present'",
+		"present:user1:user2:user3\nabsent:none",
+		run(qq($checker "$root/implicit.conf" 2>/dev/null)));
+
+	assert_str_equals("users can be set explicitly to 'absent'",
+		"present:user1:user2\nabsent:missing1:missing2",
+		run(qq($checker "$root/explicit.conf" 2>/dev/null)));
+
+	assert_str_equals("presence can be overridden",
+		"present:none\nabsent:override",
+		run(qq($checker "$root/override-absent.conf" 2>/dev/null)));
+
+	assert_str_equals("absence can be overridden",
+		"present:override\nabsent:none",
+		run(qq($checker "$root/override-present.conf" 2>/dev/null)));
+}
+
 
 test_assertions();
 test_parser_inclusion();
 test_fact_checking();
 test_overrides();
 test_daemon_config();
+test_presence();
 finish_tests();

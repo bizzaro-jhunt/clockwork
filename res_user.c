@@ -193,9 +193,11 @@ int res_user_setattr(struct res_user *ru, const char *name, const char *value)
 		return res_user_set_gid(ru, strtoll(value, NULL, 10));
 	} else if (strcmp(name, "home") == 0) {
 		return res_user_set_dir(ru, value);
-	} else {
-		return -1;
+	} else if (strcmp(name, "present") == 0) {
+		return res_user_set_presence(ru, strcmp(value, "no"));
 	}
+
+	return -1;
 }
 
 int res_user_set_presence(struct res_user *ru, int presence)

@@ -131,6 +131,8 @@ int res_file_setattr(struct res_file *rf, const char *name, const char *value)
 		return res_file_set_mode(rf, strtoll(value, NULL, 0));
 	} else if (strcmp(name, "source") == 0) {
 		return res_file_set_source(rf, value);
+	} else if (strcmp(name, "present") == 0) {
+		return res_file_set_presence(rf, strcmp(value, "no"));
 	}
 
 	return -1;

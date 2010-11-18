@@ -156,6 +156,8 @@ int res_group_setattr(struct res_group *rg, const char *name, const char *value)
 {
 	if (strcmp(name, "gid") == 0) {
 		return res_group_set_gid(rg, strtoll(value, NULL, 10));
+	} else if (strcmp(name, "present") == 0) {
+		return res_group_set_presence(rg, strcmp(value, "no"));
 	}
 
 	return -1;

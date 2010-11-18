@@ -147,7 +147,8 @@ test/sha1_files.h:
 
 functional_tests: test/util/includer \
                   test/util/factchecker \
-                  test/util/daemoncfg
+                  test/util/daemoncfg \
+                  test/util/presence
 
 test/util/includer: test/util/includer.o \
                     $(CORE_OBJECTS) $(SPEC_PARSER_OBJECTS) \
@@ -170,6 +171,14 @@ test/util/daemoncfg: test/util/daemoncfg.o \
 	$(CC) -o $@ $+
 
 test/util/daemoncfg.o: test/util/daemoncfg.c config/lexer.l
+	$(CC) -c -o $@ $<
+
+test/util/presence: test/util/presence.o \
+                    $(CORE_OBJECTS) $(SPEC_PARSER_OBJECTS) \
+                    $(RESOURCE_OBJECTS) $(POLICY_OBJECTS)
+	$(CC) -o $@ $+
+
+test/util/presence.o: test/util/presence.c spec/lexer.l
 	$(CC) -c -o $@ $<
 
 

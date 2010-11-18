@@ -192,6 +192,116 @@ void test_res_user_remediation_new()
 	spdb_free(spdb);
 }
 
+void test_res_user_remediation_remove_existing()
+{
+	struct res_user *ru;
+	struct pwdb *pwdb, *pwdb_after;
+	struct spdb *spdb, *spdb_after;
+
+	ru = res_user_new("sys");
+	res_user_set_presence(ru, 0); /* Remove the user */
+
+	pwdb = pwdb_init("test/data/passwd");
+	if (!pwdb) {
+		assert_fail("Unable to init pwdb");
+		return;
+	}
+
+	spdb = spdb_init("test/data/shadow");
+	if (!spdb) {
+		assert_fail("Unable to init spdb");
+		return;
+	}
+
+	test("RES_USER: Remediation (remove existing account)");
+	assert_int_equals("res_user_stat returns zero", res_user_stat(ru, pwdb, spdb), 0);
+	assert_not_null("(test sanity) user found in passwd file", ru->ru_pw);
+	assert_not_null("(test sanity) user found in shadow file", ru->ru_sp);
+	assert_int_equals("res_user_remediate returns zero", res_user_remediate(ru, pwdb, spdb), 0);
+
+	assert_int_equals("pwdb_write succeeds", 0, pwdb_write(pwdb, "test/tmp/passwd.new"));
+	assert_int_equals("spdb_write succeeds", 0, spdb_write(spdb, "test/tmp/shadow.new"));
+
+	pwdb_after = pwdb_init("test/tmp/passwd.new");
+	if (!pwdb_after) {
+		assert_fail("Unable to init pwdb_after");
+		return;
+	}
+
+	spdb_after = spdb_init("test/tmp/shadow.new");
+	if (!spdb_after) {
+		assert_fail("Unable to init spdb_after");
+		return;
+	}
+
+	res_user_free(ru);
+	ru = res_user_new("sys");
+	assert_int_equals("res_user_stat returns zero (after)", res_user_stat(ru, pwdb_after, spdb_after), 0);
+	assert_null("No passwd entry exists after remediation", ru->ru_pw);
+	assert_null("No shadow entry exists after remediation", ru->ru_sp);
+
+	res_user_free(ru);
+	pwdb_free(pwdb);
+	spdb_free(spdb);
+	pwdb_free(pwdb_after);
+	spdb_free(spdb_after);
+}
+
+void test_res_user_remediation_remove_nonexistent()
+{
+	struct res_user *ru;
+	struct pwdb *pwdb, *pwdb_after;
+	struct spdb *spdb, *spdb_after;
+
+	ru = res_user_new("non_existent_user");
+	res_user_set_presence(ru, 0); /* Remove the user */
+
+	pwdb = pwdb_init("test/data/passwd");
+	if (!pwdb) {
+		assert_fail("Unable to init pwdb");
+		return;
+	}
+
+	spdb = spdb_init("test/data/shadow");
+	if (!spdb) {
+		assert_fail("Unable to init spdb");
+		return;
+	}
+
+	test("RES_USER: Remediation (remove non-existent account)");
+	assert_int_equals("res_user_stat returns zero", res_user_stat(ru, pwdb, spdb), 0);
+	assert_null("(test sanity) user not found in passwd file", ru->ru_pw);
+	assert_null("(test sanity) user not found in shadow file", ru->ru_sp);
+	assert_int_equals("res_user_remediate returns zero", res_user_remediate(ru, pwdb, spdb), 0);
+
+	assert_int_equals("pwdb_write succeeds", 0, pwdb_write(pwdb, "test/tmp/passwd.new"));
+	assert_int_equals("spdb_write succeeds", 0, spdb_write(spdb, "test/tmp/shadow.new"));
+
+	pwdb_after = pwdb_init("test/tmp/passwd.new");
+	if (!pwdb_after) {
+		assert_fail("Unable to init pwdb_after");
+		return;
+	}
+
+	spdb_after = spdb_init("test/tmp/shadow.new");
+	if (!spdb_after) {
+		assert_fail("Unable to init spdb_after");
+		return;
+	}
+
+	res_user_free(ru);
+	ru = res_user_new("non_existent_user");
+	assert_int_equals("res_user_stat returns zero (after)", res_user_stat(ru, pwdb_after, spdb_after), 0);
+	assert_null("No passwd entry exists after remediation", ru->ru_pw);
+	assert_null("No shadow entry exists after remediation", ru->ru_sp);
+
+	res_user_free(ru);
+	pwdb_free(pwdb);
+	spdb_free(spdb);
+	pwdb_free(pwdb_after);
+	spdb_free(spdb_after);
+}
+
 void test_res_user_pack_detection()
 {
 	test("RES_USER: pack detection based on tag");
@@ -321,6 +431,8 @@ void test_suite_res_user()
 	test_res_user_enforcement();
 	test_res_user_diffstat_remediation();
 	test_res_user_remediation_new();
+	test_res_user_remediation_remove_existing();
+	test_res_user_remediation_remove_nonexistent();
 
 	test_res_user_pack_detection();
 	test_res_user_pack();

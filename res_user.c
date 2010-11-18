@@ -194,6 +194,19 @@ int res_user_setattr(struct res_user *ru, const char *name, const char *value)
 	}
 }
 
+int res_user_set_presence(struct res_user *ru, int presence)
+{
+	assert(ru);
+
+	if (presence) {
+		ru->ru_enf ^= RES_USER_ABSENT;
+	} else {
+		ru->ru_enf |= RES_USER_ABSENT;
+	}
+
+	return 0;
+}
+
 int res_user_set_name(struct res_user *ru, const char *name)
 {
 	assert(ru);
@@ -481,6 +494,16 @@ int res_user_remediate(struct res_user *ru, struct pwdb *pwdb, struct spdb *spdb
 	assert(ru);
 	assert(pwdb);
 	assert(spdb);
+
+	/* Remove the user if RES_USER_ABSENT */
+	if (res_user_enforced(ru, ABSENT)) {
+		if ((ru->ru_pw && pwdb_rm(pwdb, ru->ru_pw) != 0)
+		 || (ru->ru_sp && spdb_rm(spdb, ru->ru_sp) != 0)) {
+			return -1;
+		}
+
+		return 0;
+	}
 
 	if (!ru->ru_pw) {
 		ru->ru_pw = pwdb_new_entry(pwdb, ru->ru_name);

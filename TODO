@@ -4,9 +4,6 @@ List of Things To Do
 userdb::
   File locking (shadow)
 
-res_user::
-  presence / absence disposition
-
 res_file::
   presence / absence disposition
 

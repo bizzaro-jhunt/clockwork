@@ -9,6 +9,8 @@
 #include "list.h"
 #include "userdb.h"
 
+#define RES_USER_ABSENT   0x80000000
+
 #define RES_USER_NONE     0x0000
 #define RES_USER_NAME     0x0001
 #define RES_USER_PASSWD   0x0002
@@ -66,6 +68,8 @@ struct res_user* res_user_new(const char *key);
 void res_user_free(struct res_user *ru);
 
 int res_user_setattr(struct res_user *ru, const char *name, const char *value);
+
+int res_user_set_presence(struct res_user *ru, int presence);
 
 int res_user_set_name(struct res_user *ru, const char *name);
 int res_user_unset_name(struct res_user *ru);

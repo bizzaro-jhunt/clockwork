@@ -4,9 +4,6 @@ List of Things To Do
 userdb::
   File locking (shadow)
 
-res_file::
-  presence / absence disposition
-
 host_registry::
   support for Roles (POLICY_HOST, CLIENT, REPORT_HOST, etc.)
   support for policy association

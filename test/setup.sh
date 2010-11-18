@@ -12,6 +12,9 @@ SAFE_GID=100
 setup_res_file() {
 	cp -a $DATAROOT/res_file/ORIG/* $DATAROOT/res_file/
 
+	# remove file created by previous run of test_res_file_remediate_new
+	rm $DATAROOT/res_file/new_file
+
 	chown $SAFE_UID:$SAFE_GID $DATAROOT/res_file/fstab
 	chmod 0644 $DATAROOT/res_file/fstab
 	chmod 0660 $DATAROOT/res_file/sudoers

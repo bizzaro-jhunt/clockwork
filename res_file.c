@@ -83,6 +83,7 @@ struct res_file* res_file_new(const char *key)
 	rf->rf_enf = 0;
 	rf->rf_diff = 0;
 	memset(&rf->rf_stat, 0, sizeof(struct stat));
+	rf->rf_exists = 0;
 
 	rf->rf_uid = 0;
 	rf->rf_gid = 0;
@@ -129,6 +130,19 @@ int res_file_setattr(struct res_file *rf, const char *name, const char *value)
 	}
 
 	return -1;
+}
+
+int res_file_set_presence(struct res_file *rf, int presence)
+{
+	assert(rf);
+
+	if (presence) {
+		rf->rf_enf ^= RES_FILE_ABSENT;
+	} else {
+		rf->rf_enf |= RES_FILE_ABSENT;
+	}
+
+	return 0;
 }
 
 /*
@@ -256,9 +270,13 @@ int res_file_stat(struct res_file *rf)
 	assert(rf);
 	assert(rf->rf_lpath);
 
-	if (stat(rf->rf_lpath, &rf->rf_stat) == -1) {
-		return -1;
+	if (stat(rf->rf_lpath, &rf->rf_stat) == -1) { /* new file */
+		rf->rf_diff = rf->rf_enf;
+		rf->rf_exists = 0;
+		return 0;
 	}
+
+	rf->rf_exists = 1;
 
 	/* only generate sha1 checksums if necessary */
 	if (res_file_enforced(rf, SHA1)) {
@@ -279,7 +297,25 @@ int res_file_remediate(struct res_file *rf)
 	gid_t gid = (res_file_enforced(rf, GID) ? rf->rf_gid : rf->rf_stat.st_gid);
 	int local_fd; int remote_fd;
 
-	/* FIXME: if ENOENT, have to create the file first!!!! */
+	/* Remove the file */
+	if (res_file_enforced(rf, ABSENT)) {
+		if (rf->rf_exists == 1) {
+			return unlink(rf->rf_lpath);
+		}
+
+		return 0;
+	}
+
+	if (!rf->rf_exists) {
+		local_fd = creat(rf->rf_lpath, rf->rf_mode);
+		if (local_fd < 0) {
+			return local_fd;
+		}
+
+		/* No need to chmod the file again */
+		rf->rf_enf ^= RES_FILE_MODE;
+	}
+
 	if (res_file_different(rf, SHA1)) {
 		assert(rf->rf_lpath);
 		assert(rf->rf_rpath);
@@ -296,7 +332,6 @@ int res_file_remediate(struct res_file *rf)
 	}
 
 	if (res_file_different(rf, UID) || res_file_different(rf, GID)) {
-		/* FIXME: on failure, do we return immediately, or later? */
 		if (chown(rf->rf_lpath, uid, gid) == -1) {
 			return -1;
 		}

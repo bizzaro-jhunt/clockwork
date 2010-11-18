@@ -9,11 +9,13 @@
 #include "list.h"
 #include "sha1.h"
 
-#define RES_FILE_NONE  0x00
-#define RES_FILE_UID   0x01
-#define RES_FILE_GID   0x02
-#define RES_FILE_MODE  0x04
-#define RES_FILE_SHA1  0x08
+#define RES_FILE_ABSENT   0x80000000
+
+#define RES_FILE_NONE     0x00
+#define RES_FILE_UID      0x01
+#define RES_FILE_GID      0x02
+#define RES_FILE_MODE     0x04
+#define RES_FILE_SHA1     0x08
 
 #define res_file_enforced(rf, flag)  (((rf)->rf_enf  & RES_FILE_ ## flag) == RES_FILE_ ## flag)
 #define res_file_different(rf, flag) (((rf)->rf_diff & RES_FILE_ ## flag) == RES_FILE_ ## flag)
@@ -32,6 +34,8 @@ struct res_file {
 	sha1         rf_rsha1;  /* Remote (expected) checksum */
 
 	struct stat  rf_stat;   /* stat(2) of local file */
+	short        rf_exists; /* Whether or not the file exists */
+
 	unsigned int rf_enf;    /* enforce-compliance flags */
 	unsigned int rf_diff;   /* out-of-compliance flags */
 
@@ -42,6 +46,8 @@ struct res_file* res_file_new(const char *key);
 void res_file_free(struct res_file *rf);
 
 int res_file_setattr(struct res_file *rf, const char *name, const char *value);
+
+int res_file_set_presence(struct res_file *rf, int presence);
 
 int res_file_set_uid(struct res_file *rf, uid_t uid);
 int res_file_unset_uid(struct res_file *rf);

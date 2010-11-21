@@ -4,6 +4,9 @@
 #include "proto.h"
 
 #define CAFILE   "certs/CA/cacert.pem"
+//#define CERTFILE "certs/CA/certs/jade.niftylogic.net.pem"
+//#define KEYFILE  "certs/jade.niftylogic.net/key.pem"
+
 #define CERTFILE "certs/CA/certs/client.niftylogic.net.pem"
 #define KEYFILE  "certs/client.niftylogic.net/key.pem"
 

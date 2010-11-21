@@ -11,9 +11,15 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <netdb.h>
+
 /* Default config file; overridden by the -c argument */
 //#define POLICYD_DOT_CONF "/etc/clockwork/policyd.conf"
 #define POLICYD_DOT_CONF "policyd.conf"
+
+#define SA(s) (struct sockaddr*)(s)
 
 /**************************************************************/
 
@@ -28,7 +34,6 @@ struct server {
 	THREAD_TYPE  tid;
 };
 
-static void usage();
 static void server_setup(struct server *s);
 static void server_bind(struct server *s);
 static void server_loop(struct server *s);
@@ -144,11 +149,38 @@ static void handle_error(const char *file, int lineno, const char *msg)
 	exit(1);
 }
 
+static int fcrdns_ipv4_lookup(int sockfd, char *addr, size_t len)
+{
+	struct sockaddr_in ipv4;
+	socklen_t ipv4_len;
+
+	ipv4_len = sizeof(ipv4);
+	memset(&ipv4, 0, ipv4_len);
+
+	if (getpeername(sockfd, SA(&ipv4), &ipv4_len) != 0) {
+		return -1;
+	}
+
+	/*
+	if (!inet_ntop(AF_INET, &ipv4.sin_addr, addr, len)) {
+		return -1;
+	}
+	*/
+
+	if (getnameinfo(SA(&ipv4), ipv4_len, addr, len, NULL, 0, NI_NAMEREQD) != 0) {
+		return -1;
+	}
+
+	return 0;
+}
+
 static void* server_thread(void *arg)
 {
 	SSL *ssl = (SSL*)arg;
 	protocol_session session;
 	long err;
+	int sock;
+	char addr[256];
 
 	pthread_detach(pthread_self());
 
@@ -156,12 +188,20 @@ static void* server_thread(void *arg)
 		int_error("Error accepting SSL connection");
 	}
 
-	INFO("incoming SSL connection");
+	sock = SSL_get_fd(ssl);
+	INFO("incoming SSL connection on socket %i", sock);
+	if (fcrdns_ipv4_lookup(sock, addr, 256) != 0) {
+		ERROR("fcrdns_ipv4_lookup failed: %s", strerror(errno));
+		return NULL;
+	}
+	INFO("connection on socket %u from '%s'", sock, addr);
 
-	/* FIXME FcR IPv4 lookup here */
-	if ((err = protocol_ssl_verify_peer(ssl, "cfm1.niftylogic.net")) != X509_V_OK) {
-		ERROR("problem with peer certificate: %s", X509_verify_cert_error_string(err));
-		/* send some sort of IDENT error back */
+	if ((err = protocol_ssl_verify_peer(ssl, addr)) != X509_V_OK) {
+		if (err == X509_V_ERR_APPLICATION_VERIFICATION) {
+			ERROR("peer certificate did not match fcrdns fqdn");
+		} else {
+			ERROR("problem with peer certificate: %s", X509_verify_cert_error_string(err));
+		}
 		ERR_print_errors_fp(stderr); /* FIXME: send to syslog somehow */
 		SSL_clear(ssl);
 
@@ -170,9 +210,7 @@ static void* server_thread(void *arg)
 		return NULL;
 	}
 
-	INFO("SSL connection established");
 	protocol_session_init(&session, ssl);
-
 	server_dispatch(&session);
 
 	SSL_shutdown(ssl);

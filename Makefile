@@ -191,7 +191,7 @@ clean:
 	rm -f $(UTILS) $(CORE) test/run polspec
 	rm -f spec/lexer.c spec/grammar.c spec/grammar.h spec/*.output
 	rm -f config/lexer.c config/grammar.c config/grammar.h config/*.output
-	rm -f test/util/includer test/util/factchecker
+	rm -f test/util/includer test/util/factchecker test/util/presence test/util/daemoncfg
 
 dist: clean
 	rm -rf doc/coverage

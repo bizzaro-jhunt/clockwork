@@ -76,11 +76,6 @@ int main(int argc, char **argv)
 
 /**************************************************************/
 
-static void usage()
-{
-	printf("Usage: policyd\n");
-}
-
 static void server_setup(struct server *s)
 {
 	assert(s);

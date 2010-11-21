@@ -13,27 +13,34 @@ void test_hash_basics()
 {
 	struct hash *h;
 
+	char *path = strdup("/some/path/some/where");
+	char *name = strdup("staff");
+
 	test("hash: Insertion and Lookup");
 	assert_int_not_equal("no H64 collision", H64("path"), H64("name"));
 
 	h = hash_new();
 	assert_not_null("hash_new returns a pointer", h);
 
-	assert_null("Search for 'path' fails prior to insertion", hash_lookup(h, "path"));
-	assert_null("Search for 'name' fails prior to insertion", hash_lookup(h, "name"));
+	assert_null("get 'path' fails prior to set", hash_get(h, "path"));
+	assert_null("get 'name' fails prior to set", hash_get(h, "name"));
 
-	assert_int_equals("insertion of 'path' succeeds", 0, hash_insert(h, "path", "/some/path/some/where"));
-	assert_int_equals("insertion of 'name' succeeds", 0, hash_insert(h, "name", "staff"));
+	assert_ptr("set 'path' succeeds", path, hash_set(h, "path", path));
+	assert_ptr("set 'name' succeeds", name, hash_set(h, "name", name));
 
-	assert_str_equals("Search for 'path' succeeds", "/some/path/some/where", hash_lookup(h, "path"));
-	assert_str_equals("Search for 'name' succeeds", "staff", hash_lookup(h, "name"));
+	assert_str_equals("get 'path' succeeds", path, hash_get(h, "path"));
+	assert_str_equals("get 'name' succeeds", name, hash_get(h, "name"));
 
 	hash_free(h);
+	free(path);
+	free(name);
 }
 
 void test_hash_collisions()
 {
 	struct hash *h;
+	char *path  = strdup("/some/path/some/where");
+	char *group = strdup("staff");
 
 	test("hash: Handling of Keyspace Collisions");
 	assert_int_equals("H64 collision", H64("path"), H64("group"));
@@ -41,39 +48,52 @@ void test_hash_collisions()
 	h = hash_new();
 	assert_not_null("hash_new returns a pointer", h);
 
-	assert_null("Search for 'path' fails prior to insertion", hash_lookup(h, "path"));
-	assert_null("Search for 'group' fails prior to insertion", hash_lookup(h, "group"));
+	assert_null("get 'path' fails prior to set",  hash_get(h, "path"));
+	assert_null("get 'group' fails prior to set", hash_get(h, "group"));
 
-	assert_int_equals("insertion of 'path' succeeds", 0, hash_insert(h, "path", "/some/path/some/where"));
-	assert_int_equals("insertion of 'group' succeeds", 0, hash_insert(h, "group", "staff"));
+	assert_ptr("set 'path' succeeds",  path,  hash_set(h, "path",  path));
+	assert_ptr("set 'group' succeeds", group, hash_set(h, "group", group));
 
-	assert_str_equals("Search for 'path' succeeds", "/some/path/some/where", hash_lookup(h, "path"));
-	assert_str_equals("Search for 'group' succeeds", "staff", hash_lookup(h, "group"));
+	assert_str_equals("get 'path' succeeds",  path,  hash_get(h, "path"));
+	assert_str_equals("get 'group' succeeds", group, hash_get(h, "group"));
 
 	hash_free(h);
+	free(path);
+	free(group);
 }
 
-void test_hash_double_insert()
+void test_hash_overrides()
 {
 	struct hash *h;
 
-	test("hash: Duplicate value insertion");
+	char *value1 = strdup("value1");
+	char *value2 = strdup("value2");
+
+	test("hash: value overriding");
 
 	h = hash_new();
 	assert_not_null("hash_new returns a pointer", h);
 
-	assert_int_equals("first insertion succeeds",  0, hash_insert(h, "key", "value1"));
-	assert_int_not_equal("second insertion fails", 0, hash_insert(h, "key", "value2"));
+	assert_ptr("set (1st) succeeds", value1, hash_set(h, "key", value1));
+	assert_str_equals("get (1st) succeeds", "value1", hash_get(h, "key"));
 
-	assert_str_equals("retrieval returns first value", "value1", hash_lookup(h, "key"));
+	assert_ptr("set (2nd) succeeds (returning prev. value ptr)", value1, hash_set(h, "key", value2));
+	assert_str_equals("get (2nd) succeeds", "value2", hash_get(h, "key"));
 
 	hash_free(h);
+	free(value1);
+	free(value2);
 }
 
-void test_hash_lookup_null()
+void test_hash_get_null()
 {
+	struct hash *h = NULL;
+
 	test("hash: Lookups against a NULL hash pointer");
-	assert_null("Lookup('test') always returns NULL", hash_lookup(NULL, "test"));
+	assert_null("get('test') always returns NULL", hash_get(h, "test"));
+
+	test("hash: Lookup a NULL key against a valid hash");
+	assert_null("get(NULL) always returns NULL", hash_get(h, "test"));
 }
 
 void test_suite_hash()
@@ -81,6 +101,6 @@ void test_suite_hash()
 	test_hash_functions();
 	test_hash_basics();
 	test_hash_collisions();
-	test_hash_double_insert();
-	test_hash_lookup_null();
+	test_hash_overrides();
+	test_hash_get_null();
 }

@@ -6,7 +6,7 @@
 struct hash_list {
 	char **keys;
 	void **values;
-	size_t len;
+	ssize_t len;
 };
 
 //typedef unsigned char (*hashf)(const char*);
@@ -20,7 +20,7 @@ unsigned char H64(const char *s);
 struct hash *hash_new(void);
 void hash_free(struct hash *h);
 
-void* hash_lookup(struct hash *h, const char *k);
-int hash_insert(struct hash *h, const char *k, void *v);
+void* hash_get(const struct hash *h, const char *k);
+void* hash_set(struct hash *h, const char *k, void *v);
 
 #endif

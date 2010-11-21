@@ -190,7 +190,7 @@ struct hash* fact_read(FILE *io)
 		}
 
 		if (fact_parse(buf, &k, &v) == 0) {
-			hash_insert(facts, k, v);
+			hash_set(facts, k, v);
 			free(k);
 		}
 	}
@@ -207,7 +207,7 @@ static void * _policy_find_resource(struct policy_generator *pgen, const char *t
 
 	key = resource_key(type, id);
 	if (key) {
-		resource = hash_lookup(pgen->policy->resources, key);
+		resource = hash_get(pgen->policy->resources, key);
 		free(key);
 	}
 
@@ -224,7 +224,7 @@ static int _policy_generate(struct stree *node, struct policy_generator *pgen)
 again:
 	switch(node->op) {
 	case IF:
-		if (xstrcmp(hash_lookup(pgen->facts, node->data1), node->data2) == 0) {
+		if (xstrcmp(hash_get(pgen->facts, node->data1), node->data2) == 0) {
 			node = node->nodes[0];
 		} else {
 			node = node->nodes[1];
@@ -382,7 +382,7 @@ int policy_add_file_resource(struct policy *pol, struct res_file *rf)
 	assert(rf);
 
 	list_add_tail(&rf->res, &pol->res_files);
-	hash_insert(pol->resources, rf->key, rf);
+	hash_set(pol->resources, rf->key, rf);
 	return 0;
 }
 
@@ -392,7 +392,7 @@ int policy_add_group_resource(struct policy *pol, struct res_group *rg)
 	assert(rg);
 
 	list_add_tail(&rg->res, &pol->res_groups);
-	hash_insert(pol->resources, rg->key, rg);
+	hash_set(pol->resources, rg->key, rg);
 	return 0;
 }
 
@@ -402,7 +402,7 @@ int policy_add_user_resource(struct policy *pol, struct res_user *ru)
 	assert(ru);
 
 	list_add_tail(&ru->res, &pol->res_users);
-	hash_insert(pol->resources, ru->key, ru);
+	hash_set(pol->resources, ru->key, ru);
 	return 0;
 }
 

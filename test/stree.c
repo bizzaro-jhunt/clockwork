@@ -111,20 +111,16 @@ static struct stree* conditional_policy()
 static struct hash* facts_for_lucid26(void)
 {
 	struct hash *h = hash_new();
-	if (h) {
-		hash_insert(h, "lsb.distro.codename", "lucid");
-		hash_insert(h, "sys.kernel.major",    "2.6");
-	}
+	hash_set(h, "lsb.distro.codename", "lucid");
+	hash_set(h, "sys.kernel.major",    "2.6");
 	return h;
 }
 
 static struct hash* facts_for_tikanga24(void)
 {
 	struct hash *h = hash_new();
-	if (h) {
-		hash_insert(h, "sys.kernel.major",    "2.4");
-		hash_insert(h, "lsb.distro.codename", "tikanga");
-	}
+	hash_set(h, "sys.kernel.major",    "2.4");
+	hash_set(h, "lsb.distro.codename", "tikanga");
 	return h;
 }
 
@@ -281,18 +277,14 @@ static struct stree* prog_policy()
 struct hash* facts_for_prog1(void)
 {
 	struct hash *h = hash_new();
-	if (h) {
-		hash_insert(h, "test.users", "1");
-	}
+	hash_set(h, "test.users", "1");
 	return h;
 }
 
 struct hash* facts_for_prog2(void)
 {
 	struct hash *h = hash_new();
-	if (h) {
-		hash_insert(h, "test.users", "2");
-	}
+	hash_set(h, "test.users", "2");
 	return h;
 }
 

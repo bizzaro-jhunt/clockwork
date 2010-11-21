@@ -10,7 +10,7 @@ static void _manifest_expand(struct stree *root, struct hash *policies)
 	struct stree *pol;
 
 	if (root->op == INCLUDE) {
-		pol = hash_lookup(policies, root->data1);
+		pol = hash_get(policies, root->data1);
 		if (pol) {
 			root->op = PROG;
 			stree_add(root, pol->nodes[0]); /* FIXME: assumes that pol has nodes... */

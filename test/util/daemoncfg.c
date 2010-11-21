@@ -26,7 +26,7 @@ int main(int argc, char **argv)
 		return 2;
 	}
 
-	value = hash_lookup(config, argv[2]);
+	value = hash_get(config, argv[2]);
 	if (!value) {
 		printf("USE DEFAULT\n");
 	} else {

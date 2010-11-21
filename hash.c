@@ -1,5 +1,6 @@
 #include "hash.h"
 
+#include <assert.h>
 #include <string.h>
 #include <stdlib.h>
 
@@ -26,7 +27,7 @@ struct hash *hash_new(void)
 
 void hash_free(struct hash *h)
 {
-	size_t i, j;
+	ssize_t i, j;
 	for (i = 0; i < 64; i++) {
 		for (j = 0; j < h->entries[i].len; j++) {
 			free(h->entries[i].keys[j]);
@@ -38,23 +39,15 @@ void hash_free(struct hash *h)
 	free(h);
 }
 
-static void *lookup(struct hash_list *hl, const char *k)
+static ssize_t get_index(const struct hash_list *hl, const char *k)
 {
-	size_t i;
+	ssize_t i;
 	for (i = 0; i < hl->len; i++) {
 		if (strcmp(hl->keys[i], k) == 0) {
-			return hl->values[i];
+			return i;
 		}
 	}
-	return NULL;
-}
-
-void* hash_lookup(struct hash *h, const char *k)
-{
-	if (!h) {
-		return NULL;
-	}
-	return lookup(&h->entries[H64(k)], k);
+	return (ssize_t)-1;
 }
 
 static int insert(struct hash_list *hl, const char *k, void *v)
@@ -76,12 +69,35 @@ static int insert(struct hash_list *hl, const char *k, void *v)
 	return 0;
 }
 
-int hash_insert(struct hash *h, const char *k, void *v)
+void* hash_get(const struct hash *h, const char *k)
 {
-	unsigned char idx = H64(k);
-	if (lookup(&h->entries[idx], k)) {
-		return -1; /* can't insert, already exists */
-	}
+	ssize_t i;
+	const struct hash_list *hl;
 
-	return insert(&h->entries[idx], k, v);
+	if (!h || !k) { return NULL; }
+
+	hl = &h->entries[H64(k)];
+	i = get_index(hl, k);
+	return (i < 0 ? NULL : hl->values[i]);
+}
+
+void* hash_set(struct hash *h, const char *k, void *v)
+{
+	ssize_t i;
+	void *existing;
+	struct hash_list *hl;
+
+	if (!h || !k) { return NULL; }
+
+	hl = &h->entries[H64(k)];
+	i = get_index(hl, k);
+
+	if (i < 0) {
+		insert(hl, k, v);
+		return v;
+	} else {
+		existing = hl->values[i];
+		hl->values[i] = v;
+		return existing;
+	}
 }

@@ -5,7 +5,7 @@
 static const char *_config(struct hash *cfg, const char *key, const char *def)
 {
 	const char *v;
-	v = hash_lookup(cfg, key);
+	v = hash_get(cfg, key);
 	return (v ? v : def);
 }
 

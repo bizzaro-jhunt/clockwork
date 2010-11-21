@@ -82,7 +82,7 @@ void assert_false(const char *s, int value)
 	assert_true(s, !value);
 }
 
-void assert_not_null(const char *s, void *ptr)
+void assert_not_null(const char *s, const void *ptr)
 {
 	++__ASSERTIONS;
 	if (ptr != NULL) {
@@ -95,7 +95,7 @@ void assert_not_null(const char *s, void *ptr)
 	}
 }
 
-void assert_null(const char *s, void *ptr)
+void assert_null(const char *s, const void *ptr)
 {
 	++__ASSERTIONS;
 	if (ptr == NULL) {
@@ -133,9 +133,9 @@ void assert_signed_equals(const char *s, signed long int expected, signed long i
 	_assert_numeric_equals(s, "%li", expected, actual);
 }
 
-void assert_ptr(const char *s, void *expected, void *actual)
+void assert_ptr(const char *s, const void *expected, const void *actual)
 {
-	_assert_numeric_equals(s, "%lu", (unsigned long)expected, (unsigned long)actual);
+	_assert_numeric_equals(s, "0x%lx", (unsigned long)expected, (unsigned long)actual);
 }
 
 void assert_int_equals(const char *s, int expected, int actual)

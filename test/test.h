@@ -16,13 +16,13 @@ void assert_fail(const char *s);
 void assert_pass(const char *s);
 void assert_true(const char *s, int value);
 void assert_false(const char *s, int value);
-void assert_not_null(const char *s, void *ptr);
-void assert_null(const char *s, void *ptr);
+void assert_not_null(const char *s, const void *ptr);
+void assert_null(const char *s, const void *ptr);
 
 void assert_unsigned_equals(const char *s, unsigned long int, unsigned long int actual);
 void assert_signed_equals(const char *s, signed long int expected, signed long int actual);
 
-void assert_ptr(const char *s, void *expected, void *actual);
+void assert_ptr(const char *s, const void *expected, const void *actual);
 
 void assert_int_equals(const char *s, int expected, int actual);
 void assert_int_not_equal(const char *s, int unexpected, int actual);

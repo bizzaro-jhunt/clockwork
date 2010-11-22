@@ -52,7 +52,6 @@ struct manifest {
  */
 struct policy {
 	char        *name;       /* User-assigned name of policy */
-	uint32_t     version;    /* Policy version number */
 
 	/* Components */
 	struct list  res_files;
@@ -74,11 +73,9 @@ int fact_parse(const char *line, char **k, char **v);
 
 struct policy* policy_generate(struct stree *root, struct hash *facts);
 
-struct policy* policy_new(const char *name, uint32_t version);
+struct policy* policy_new(const char *name);
 void policy_free(struct policy *pol);
 void policy_free_all(struct policy *pol);
-
-uint32_t policy_latest_version(void);
 
 int policy_add_file_resource(struct policy *pol, struct res_file *rf);
 int policy_add_group_resource(struct policy *pol, struct res_group *rg);

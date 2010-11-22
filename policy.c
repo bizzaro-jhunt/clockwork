@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
-#include <sys/time.h>
 
 #include "policy.h"
 #include "pack.h"
@@ -13,9 +12,8 @@
 #define POLICY_PACK_OFFSET 8
 /* Pack format for policy structure (first line):
      a - name
-     L - version
  */
-#define POLICY_PACK_FORMAT "aL"
+#define POLICY_PACK_FORMAT "a"
 
 enum restype {
 	RES_UNKNOWN = 0,
@@ -312,7 +310,7 @@ struct policy* policy_generate(struct stree *root, struct hash *facts)
 	struct policy_generator pgen;
 
 	pgen.facts = facts;
-	pgen.policy = policy_new(root->data1, policy_latest_version());
+	pgen.policy = policy_new(root->data1);
 
 	if (_policy_generate(root, &pgen) != 0) {
 		policy_free(pgen.policy);
@@ -322,7 +320,7 @@ struct policy* policy_generate(struct stree *root, struct hash *facts)
 	return pgen.policy;
 }
 
-struct policy* policy_new(const char *name, uint32_t version)
+struct policy* policy_new(const char *name)
 {
 	struct policy *pol;
 
@@ -332,7 +330,6 @@ struct policy* policy_new(const char *name, uint32_t version)
 	}
 
 	pol->name = xstrdup(name);
-	pol->version = version;
 
 	list_init(&pol->res_files);
 	list_init(&pol->res_groups);
@@ -363,18 +360,6 @@ void policy_free_all(struct policy *pol)
 	for_each_node_safe(rf, rf_tmp, &pol->res_files,  res) { res_file_free(rf);  }
 	policy_free(pol);
 }
-
-uint32_t policy_latest_version(void)
-{
-	struct timeval tv;
-
-	if (gettimeofday(&tv, NULL) != 0) {
-		return 0; /* "invalid" current version */
-	}
-
-	return (uint32_t)(tv.tv_sec);
-}
-
 
 int policy_add_file_resource(struct policy *pol, struct res_file *rf)
 {
@@ -423,12 +408,12 @@ char* policy_pack(struct policy *pol)
 		return NULL;
 	}
 
-	pack_len = pack(NULL, 0, POLICY_PACK_FORMAT, pol->name, pol->version);
+	pack_len = pack(NULL, 0, POLICY_PACK_FORMAT, pol->name);
 
 	packed = malloc(pack_len + POLICY_PACK_OFFSET);
 	strncpy(packed, POLICY_PACK_PREFIX, POLICY_PACK_OFFSET);
 
-	pack(packed + POLICY_PACK_OFFSET, pack_len, POLICY_PACK_FORMAT, pol->name, pol->version);
+	pack(packed + POLICY_PACK_OFFSET, pack_len, POLICY_PACK_FORMAT, pol->name);
 	if (stringlist_add(pack_list, packed) != 0) {
 		goto policy_pack_failed;
 	}
@@ -482,7 +467,6 @@ struct policy* policy_unpack(const char *packed_policy)
 	size_t i;
 
 	char *pol_name;
-	uint32_t pol_version;
 
 	struct res_user *ru;
 	struct res_group *rg;
@@ -504,14 +488,13 @@ struct policy* policy_unpack(const char *packed_policy)
 		return NULL;
 	}
 
-	if (unpack(packed + POLICY_PACK_OFFSET, POLICY_PACK_FORMAT,
-		&pol_name, &pol_version) != 0) {
+	if (unpack(packed + POLICY_PACK_OFFSET, POLICY_PACK_FORMAT, &pol_name) != 0) {
 
 		stringlist_free(pack_list);
 		return NULL;
 	}
 
-	pol = policy_new(pol_name, pol_version);
+	pol = policy_new(pol_name);
 	if (!pol) {
 		return NULL;
 	}

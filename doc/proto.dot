@@ -1,40 +1,25 @@
 digraph protocol {
 
-	node [shape=ellipse];
-	connect;
-	disconnect;
-	main [label="wait for command"];
-
-	{ rank=same;
-		known_client [label="Known\nClient"];
-		unknown_client [label="Unknown\nClient"];
-	};
-	{ rank=same;
-		known_command [label="Known\nCommand"];
-		unknown_command [label="Unknown\nCommand"];
-	};
-
 	node [shape=rect];
-	HELLO;
+	ACK1 [label="ACK"];
+	ACK2 [label="ACK"];
+	ACK3 [label="ACK"];
 
-	{ rank=same;
-		IDENTIFY;
+	BYE1 [label="BYE"];
+	BYE2 [label="BYE"];
 
-		BYE;
-		QUERY;
-		RETRIEVE;
-		REPORT;
-	};
+	{node [shape=none,label="Client"]; C1; C2; C3;}
+	{node [shape=none,label="Server"]; S1; S2;}
+	C1 -> S1 -> C2 -> S2 -> C3;
 
-	connect -> HELLO;
-	HELLO -> known_client -> main;
-	HELLO -> unknown_client -> IDENTIFY -> disconnect;
+	GET_POLICY -> SEND_POLICY -> ACK1        -> BYE1;
+	PUT_REPORT -> ACK2        -> SEND_REPORT -> ACK3 -> BYE2;
 
-	main -> unknown_command -> disconnect;
-	main -> known_command;
+	{rank=same; C1; GET_POLICY;  PUT_REPORT;}
+	{rank=same; S1; SEND_POLICY; ACK2;}
+	{rank=same; C2; ACK1; SEND_REPORT;}
+	{rank=same; S2; BYE1; ACK3;}
+	{rank=same; C3; BYE2;}
 
-	known_command -> BYE -> disconnect;
-	known_command -> QUERY -> main;
-	known_command -> RETRIEVE -> main;
-	known_command -> REPORT -> main;
+
 }

@@ -28,7 +28,6 @@ int main(int argc, char **argv)
 	SSL_CTX *ctx;
 	long err;
 	protocol_session session;
-	uint32_t version;
 
 	protocol_ssl_init();
 	ctx = protocol_ssl_default_context(CAFILE, CERTFILE, KEYFILE);
@@ -60,13 +59,6 @@ int main(int argc, char **argv)
 	fprintf(stderr, "SSL Connection opened\n");
 	protocol_session_init(&session, ssl);
 
-	version = client_get_policy_version(&session);
-	if (version == 0) {
-		client_disconnect(&session);
-		SSL_clear(ssl);
-		exit(1);
-	}
-	fprintf(stderr, ">> server has version %lu; newer than ours\n", (long unsigned int)version);
 	client_disconnect(&session);
 
 	SSL_shutdown(ssl);

@@ -19,12 +19,9 @@
 #include <openssl/x509v3.h>
 
 typedef enum {
-	PROTOCOL_OP_NOOP = 1,
-	PROTOCOL_OP_ERROR,
+	PROTOCOL_OP_ERROR = 1,
 	PROTOCOL_OP_ACK,
 	PROTOCOL_OP_BYE,
-	PROTOCOL_OP_GET_VERSION,
-	PROTOCOL_OP_SEND_VERSION,
 	PROTOCOL_OP_GET_POLICY,
 	PROTOCOL_OP_SEND_POLICY,
 	PROTOCOL_OP_PUT_REPORT,
@@ -77,7 +74,6 @@ SSL_CTX* protocol_ssl_default_context(const char *ca_cert_file,
 
 int server_dispatch(protocol_session *session);
 
-uint32_t client_get_policy_version(protocol_session *session);
 int client_disconnect(protocol_session *session);
 
 /**********************************************************/
@@ -85,10 +81,6 @@ int client_disconnect(protocol_session *session);
 int pdu_read(SSL *io, protocol_data_unit *pdu);
 int pdu_write(SSL *io, protocol_data_unit *pdu);
 int pdu_receive(protocol_session *session);
-
-int pdu_send_NOOP(protocol_session *session);
-int pdu_encode_NOOP(protocol_data_unit *pdu);
-int pdu_decode_NOOP(protocol_data_unit *pdu);
 
 int pdu_send_ERROR(protocol_session *pdu, uint16_t err_code, const uint8_t *str, size_t len);
 int pdu_encode_ERROR(protocol_data_unit *pdu, uint16_t err_code, const uint8_t *str, size_t len);
@@ -101,14 +93,6 @@ int pdu_decode_ACK(protocol_data_unit *pdu);
 int pdu_send_BYE(protocol_session *session);
 int pdu_encode_BYE(protocol_data_unit *pdu);
 int pdu_decode_BYE(protocol_data_unit *pdu);
-
-int pdu_send_GET_VERSION(protocol_session *session);
-int pdu_encode_GET_VERSION(protocol_data_unit *pdu);
-int pdu_decode_GET_VERSION(protocol_data_unit *pdu);
-
-int pdu_send_SEND_VERSION(protocol_session *session, uint32_t version);
-int pdu_encode_SEND_VERSION(protocol_data_unit *pdu, uint32_t version);
-int pdu_decode_SEND_VERSION(protocol_data_unit *pdu, uint32_t *version);
 
 int pdu_send_GET_POLICY(protocol_session *session);
 int pdu_encode_GET_POLICY(protocol_data_unit *pdu);

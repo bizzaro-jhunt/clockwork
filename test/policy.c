@@ -10,30 +10,13 @@ void test_policy_creation()
 	struct policy *pol;
 
 	test("policy: Initialization of policy structure");
-	pol = policy_new("policy name", 12345);
+	pol = policy_new("policy name");
 	assert_str_equals("Policy name is set correctly", pol->name, "policy name");
-	assert_int_equals("Policy version is set correctly", pol->version, 12345);
 	assert_true("res_files is an empty list head", list_empty(&pol->res_files));
 	assert_true("res_groups is an empty list head", list_empty(&pol->res_groups));
 	assert_true("res_users is an empty list head", list_empty(&pol->res_users));
 
 	policy_free(pol);
-}
-
-void test_policy_latest_version()
-{
-	struct policy *pol;
-	struct timeval tv;
-
-	test("policy: generating latest version as a timestamp");
-
-	pol = policy_new("current", policy_latest_version());
-	gettimeofday(&tv, NULL);
-
-	assert_unsigned_equals("Latest version is seconds since epoch (var)", tv.tv_sec, pol->version);
-
-	policy_free(pol);
-
 }
 
 void test_policy_user_addition()
@@ -43,7 +26,7 @@ void test_policy_user_addition()
 	struct res_user *ptr;
 	size_t n = 0;
 
-	pol = policy_new("user policy", 1234);
+	pol = policy_new("user policy");
 
 	test("policy: addition of users to policy");
 	ru = res_user_new("user1");
@@ -80,7 +63,7 @@ void test_policy_group_addition()
 	struct res_group *ptr;
 	size_t n = 0;
 
-	pol = policy_new("group policy", 1234);
+	pol = policy_new("group policy");
 
 	test("policy: addition of groups to policy");
 	rg = res_group_new("group1");
@@ -116,7 +99,7 @@ void test_policy_file_addition()
 	struct res_file *ptr;
 	size_t n = 0;
 
-	pol = policy_new("file policy", 1234);
+	pol = policy_new("file policy");
 
 	test("policy: addition of files to policy");
 	rf = res_file_new("/file1");
@@ -156,16 +139,16 @@ void test_policy_pack()
 	struct res_file  *rf1;
 
 	test("policy: pack empty policy");
-	pol = policy_new("empty", 777); // 777 is 309 in hex
+	pol = policy_new("empty");
 	packed = policy_pack(pol);
 	assert_not_null("policy_pack succeeds", packed);
 	assert_str_equals("packed empty policy should be empty string",
-		"policy::\"empty\"00000309", packed);
+		"policy::\"empty\"", packed);
 	policy_free(pol);
 	xfree(packed);
 
 	test("policy: pack policy with one user, one group and one file");
-	pol = policy_new("1 user, 1 group, and 1 file", 20101031);
+	pol = policy_new("1 user, 1 group, and 1 file");
 	/* The George Thoroughgood test */
 	ru1 = res_user_new("bourbon"); /* ru_enf == 0000 0001 */
 	res_user_set_uid(ru1, 101);    /* ru_enf == 0000 0101 */
@@ -186,7 +169,7 @@ void test_policy_pack()
 	packed = policy_pack(pol);
 	assert_not_null("policy_pack succeeds", packed);
 	assert_str_equals("packed policy with 1 user, 1 group, and 1 file",
-		"policy::\"1 user, 1 group, and 1 file\"0132b7a7\n" /* 0132b7z7 = 20101031 decimal */
+		"policy::\"1 user, 1 group, and 1 file\"\n"
 		"res_user::0000000d\"bourbon\"\"\"" "00000065" "000007d0" "\"\"\"\"\"\"" "00" "\"\"" "01" "00000000" "00000000" "00000000" "00000000" "00000000\n"
 		"res_group::00000005\"scotch\"\"\"000007d0\"\"\"\"\"\"\"\"\n"
 		"res_file::0000000f\"beer\"\"cfm://etc/sudoers\"" "00000065" "000007d0" "00000180",
@@ -204,7 +187,7 @@ void test_policy_unpack()
 {
 	struct policy *pol;
 	char *packed = \
-		"policy::\"1 user, 1 group, and 1 file\"0132b7a7\n" /* 0132b7z7 = 20101031 decimal */
+		"policy::\"1 user, 1 group, and 1 file\"\n"
 		"res_user::00003fff\"user1\"\"\"" "00000065" "000007d0" "\"\"\"\"\"\"" "00" "\"\"" "01" "00000000" "00000000" "00000000" "00000000" "00000000\n"
 		"res_group::0000000f\"staff\"\"\"000007d0\"\"\"\"\"\"\"\"\n"
 		"res_file::00000007\"\"\"cfm://etc/sudoers\"" "00000065" "000007d0" "00000180";
@@ -222,7 +205,6 @@ void test_policy_unpack()
 	pol = policy_unpack(packed);
 	assert_not_null("policy_unpack succeeds", pol);
 	assert_str_equals("policy name unpacked", "1 user, 1 group, and 1 file", pol->name);
-	assert_unsigned_equals("policy version unpacked", 20101031, pol->version);
 	assert_true("res_files is NOT an empty list head", !list_empty(&pol->res_files));
 	assert_true("res_groups is NOT an empty list head", !list_empty(&pol->res_groups));
 	assert_true("res_users is NOT an empty list head", !list_empty(&pol->res_users));
@@ -233,7 +215,6 @@ void test_policy_unpack()
 void test_suite_policy()
 {
 	test_policy_creation();
-	test_policy_latest_version();
 
 	test_policy_user_addition();
 	test_policy_group_addition();

@@ -10,7 +10,6 @@ host_registry::
 
 policy::
   Memory Management Changes
-  policy version detection
   policy support in proto
 
 parser::

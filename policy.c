@@ -164,15 +164,19 @@ int fact_parse(const char *line, char **k, char **v)
 	return 0;
 }
 
-struct hash* fact_read(FILE *io)
+struct hash* fact_read(FILE *io, struct hash *facts)
 {
 	assert(io);
 
-	struct hash *facts;
 	char buf[8192] = {0};
 	char *k, *v;
+	int allocated = 0;
 
-	facts = hash_new();
+	if (!facts) {
+		facts = hash_new();
+		allocated = 1;
+	}
+
 	if (!facts) {
 		return NULL;
 	}
@@ -181,7 +185,9 @@ struct hash* fact_read(FILE *io)
 		errno = 0;
 		if (!fgets(buf, 8192, io)) {
 			if (errno != 0) {
-				hash_free(facts);
+				if (allocated) {
+					hash_free(facts);
+				}
 				facts = NULL;
 			}
 			break;

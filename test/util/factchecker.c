@@ -44,7 +44,7 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	facts = fact_read(stdin);
+	facts = fact_read(stdin, NULL);
 	manifest = parse_file(argv[1]);
 	if (!manifest) {
 		printf("unable to parse_file!\n");

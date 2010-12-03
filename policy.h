@@ -68,7 +68,7 @@ struct stree* manifest_new_stree(struct manifest *m, enum oper op, const char *d
 int stree_add(struct stree *parent, struct stree *child);
 int stree_compare(const struct stree *a, const struct stree *b);
 
-struct hash* fact_read(FILE *io);
+struct hash* fact_read(FILE *io, struct hash *facts);
 int fact_parse(const char *line, char **k, char **v);
 
 struct policy* policy_generate(struct stree *root, struct hash *facts);

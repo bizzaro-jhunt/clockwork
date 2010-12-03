@@ -101,3 +101,47 @@ void* hash_set(struct hash *h, const char *k, void *v)
 		return existing;
 	}
 }
+
+/*
+   Advance a hash_cursor until a key-value pair is found, or
+   the end of the hash_list array is seen.
+ */
+static int _cursor_next(const struct hash *h, struct hash_cursor *c)
+{
+	assert(h);
+	assert(c);
+
+	const struct hash_list *hl;
+
+	c->l2++;
+	while (c->l1 < 64) {
+		hl = &h->entries[c->l1];
+		if (hl->len == 0 || c->l2 == hl->len) {
+			c->l1++;
+			c->l2 = 0;
+			continue;
+		}
+		return 0;
+	}
+
+	return -1;
+}
+
+void *hash_next(const struct hash *h, struct hash_cursor *c, char **key, void **val)
+{
+	assert(h); assert(c);
+	assert(key); assert(val);
+
+	const struct hash_list *hl;
+
+	*key = NULL;
+	*val = NULL;
+	if (_cursor_next(h, c) == 0) {
+		hl = &h->entries[c->l1];
+		*key = hl->keys[c->l2];
+		*val = hl->values[c->l2];
+	}
+
+	return *key;
+}
+

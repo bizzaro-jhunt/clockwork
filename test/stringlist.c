@@ -349,6 +349,7 @@ void test_suite_stringlist()
 	test_stringlist_add_all();
 	test_stringlist_remove_all();
 	test_stringlist_expansion();
+	test_stringlist_remove_nonexistent();
 	test_stringlist_qsort();
 	test_stringlist_uniq();
 	test_stringlist_uniq_already();

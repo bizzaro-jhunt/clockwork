@@ -59,7 +59,8 @@ POLICY_OBJECTS := policy.o
 SPEC_PARSER_OBJECTS := spec/lexer.o spec/grammar.o spec/parser.o
 CONFIG_PARSER_OBJECTS := config/lexer.o config/grammar.o config/parser.o
 
-NO_LCOV := test/*
+NO_LCOV :=
+NO_LCOV += test/test.c
 NO_LCOV += spec/grammar.c   spec/lexer.c
 NO_LCOV += config/grammar.c config/lexer.c
 NO_LCOV += log.c # Can't easily test syslog-based logging methods

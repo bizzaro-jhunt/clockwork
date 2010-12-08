@@ -119,7 +119,6 @@ test/run: test/run.o test/test.o \
           test/res_group.o res_group.o \
           test/res_user.o res_user.o \
           test/policy.o test/stree.o test/fact.o policy.o \
-          test/host_registry.o host_registry.o \
           test/sha1.o sha1.o
 
 	$(CC) -o $@ $+

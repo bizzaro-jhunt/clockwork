@@ -4,10 +4,6 @@ List of Things To Do
 userdb::
   File locking (shadow)
 
-host_registry::
-  support for Roles (POLICY_HOST, CLIENT, REPORT_HOST, etc.)
-  support for policy association
-
 policy::
   Memory Management Changes
   policy support in proto

@@ -129,6 +129,7 @@ void test_hash_for_each()
 			assert_fail("Unexpected value found during for_each_key_value");
 		}
 	}
+	hash_free(h);
 }
 
 void test_suite_hash()

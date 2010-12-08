@@ -10,7 +10,3 @@ policy::
 
 parser::
   if-else-if-else construct
-
-COLLAPSE MODULES:
-  RESOURCES:  res_user + res_file + res_group
-  LIST:       hash + stringlist + list

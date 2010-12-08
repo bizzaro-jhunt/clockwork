@@ -10,9 +10,6 @@ static const char *OP_NAMES[] = {
 	"PROG",
 	"IF",
 	"INCLUDE",
-	"ENFORCE",
-	"POLICY",
-	"HOST",
 	"RESOURCE",
 	"ATTR",
 	NULL

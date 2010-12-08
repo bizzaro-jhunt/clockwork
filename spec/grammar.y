@@ -93,7 +93,7 @@ manifest:
 	;
 
 host: T_KEYWORD_HOST qstring '{' enforcing '}'
-		{ $$ = NODE(HOST, $2, NULL);
+		{ $$ = NODE(NOOP, $2, NULL);
 		  stree_add($$, $4); }
 	;
 
@@ -104,11 +104,11 @@ enforcing:
 	;
 
 enforce: T_KEYWORD_ENFORCE qstring
-		{ $$ = NODE(ENFORCE, $2, NULL); }
+		{ $$ = NODE(INCLUDE, $2, NULL); }
 	;
 
 policy: T_KEYWORD_POLICY qstring '{' blocks '}'
-		{ $$ = NODE(POLICY, $2, NULL);
+		{ $$ = NODE(NOOP, $2, NULL);
 		  stree_add($$, $4); }
 	;
 

@@ -211,7 +211,7 @@ main.o: main.c $(RESOURCE_HEADERS)
 test_server: test_server.o proto.o
 	$(CC) -o $@ $+
 
-test_client: test_client.o proto.o
+test_client: test_client.o proto.o $(CORE_OBJECTS) $(POLICY_OBJECTS) $(RESOURCE_OBJECTS)
 	$(CC) -o $@ $+
 
 polspec: $(CORE_OBJECTS) \

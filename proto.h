@@ -18,6 +18,9 @@
 #include <openssl/ssl.h>
 #include <openssl/x509v3.h>
 
+#include "hash.h"
+#include "policy.h"
+
 typedef enum {
 	PROTOCOL_OP_ERROR = 1,
 	PROTOCOL_OP_ACK,
@@ -51,6 +54,9 @@ typedef struct {
 typedef struct {
 	SSL                *io;        /* IO stream to read from / write to */
 
+	struct manifest    *manifest;  /* Parsed manifest (all policies and host defs) */
+	char                fqdn[256]; /* Client's fully qualified domain name */
+
 	protocol_data_unit  send_pdu;  /* PDU to send to the other side */
 	protocol_data_unit  recv_pdu;  /* PDU received from other side */
 
@@ -60,7 +66,7 @@ typedef struct {
 
 /**********************************************************/
 
-int protocol_session_init(protocol_session *session, SSL *io);
+int protocol_session_init(protocol_session *session, SSL *io, const char *client_fqdn);
 int protocol_session_deinit(protocol_session *session);
 
 void protocol_ssl_init(void);
@@ -74,6 +80,7 @@ SSL_CTX* protocol_ssl_default_context(const char *ca_cert_file,
 
 int server_dispatch(protocol_session *session);
 
+struct policy* client_get_policy(protocol_session *session, const struct hash *facts);
 int client_disconnect(protocol_session *session);
 
 /**********************************************************/
@@ -94,12 +101,12 @@ int pdu_send_BYE(protocol_session *session);
 int pdu_encode_BYE(protocol_data_unit *pdu);
 int pdu_decode_BYE(protocol_data_unit *pdu);
 
-int pdu_send_GET_POLICY(protocol_session *session);
-int pdu_encode_GET_POLICY(protocol_data_unit *pdu);
-int pdu_decode_GET_POLICY(protocol_data_unit *pdu);
+int pdu_send_GET_POLICY(protocol_session *session, const struct hash *facts);
+int pdu_encode_GET_POLICY(protocol_data_unit *pdu, const struct hash *facts);
+int pdu_decode_GET_POLICY(protocol_data_unit *pdu, struct hash *facts);
 
-int pdu_send_SEND_POLICY(protocol_session *session, const uint8_t *policy, size_t len);
-int pdu_encode_SEND_POLICY(protocol_data_unit *pdu, const uint8_t *policy, size_t len);
-int pdu_decode_SEND_POLICY(protocol_data_unit *pdu, uint8_t **policy, size_t *len);
+int pdu_send_SEND_POLICY(protocol_session *session, const struct policy *policy);
+int pdu_encode_SEND_POLICY(protocol_data_unit *pdu, const struct policy *policy);
+int pdu_decode_SEND_POLICY(protocol_data_unit *pdu, struct policy *policy);
 
 #endif

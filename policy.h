@@ -13,9 +13,6 @@ enum oper {
 	PROG,
 	IF,
 	INCLUDE,
-	ENFORCE,
-	POLICY,
-	HOST,
 	RESOURCE,
 	ATTR
 };
@@ -29,8 +26,8 @@ struct stree {
 };
 
 struct manifest {
-	struct hash *policies;  /* POLICY stree nodes, hashed by name */
-	struct hash *hosts;     /* HOST stree nodes, hashed by FQDN */
+	struct hash *policies;  /* policy stree nodes, hashed by name */
+	struct hash *hosts;     /* host stree nodes, hashed by FQDN */
 
 	struct stree **nodes;
 	size_t nodes_len;
@@ -81,7 +78,7 @@ int policy_add_file_resource(struct policy *pol, struct res_file *rf);
 int policy_add_group_resource(struct policy *pol, struct res_group *rg);
 int policy_add_user_resource(struct policy *pol, struct res_user *ru);
 
-char* policy_pack(struct policy *pol);
+char* policy_pack(const struct policy *pol);
 struct policy* policy_unpack(const char *packed);
 
 #endif /* _POLICY_H */

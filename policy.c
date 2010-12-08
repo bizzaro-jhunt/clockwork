@@ -397,7 +397,7 @@ int policy_add_user_resource(struct policy *pol, struct res_user *ru)
 	return 0;
 }
 
-char* policy_pack(struct policy *pol)
+char* policy_pack(const struct policy *pol)
 {
 	assert(pol);
 

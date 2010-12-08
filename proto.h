@@ -107,6 +107,6 @@ int pdu_decode_GET_POLICY(protocol_data_unit *pdu, struct hash *facts);
 
 int pdu_send_SEND_POLICY(protocol_session *session, const struct policy *policy);
 int pdu_encode_SEND_POLICY(protocol_data_unit *pdu, const struct policy *policy);
-int pdu_decode_SEND_POLICY(protocol_data_unit *pdu, struct policy *policy);
+int pdu_decode_SEND_POLICY(protocol_data_unit *pdu, struct policy **policy);
 
 #endif

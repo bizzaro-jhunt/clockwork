@@ -3,25 +3,29 @@
 
 #include "private.h"
 #include "parser.h"
+#include "../policy.h"
 
-static void _manifest_expand(struct stree *root, struct hash *policies)
+static int _manifest_expand(struct manifest *manifest)
 {
 	unsigned int i;
-	struct stree *pol;
+	struct stree *pol, *node;
 
-	if (root->op == INCLUDE) {
-		pol = hash_get(policies, root->data1);
-		if (pol) {
-			root->op = PROG;
-			stree_add(root, pol->nodes[0]); /* FIXME: assumes that pol has nodes... */
-		} else {
-			/* FIXME: need to err */
+	for (i = 0; i < manifest->nodes_len; i++) {
+		node = manifest->nodes[i];
+
+		if (node->op == INCLUDE) {
+			pol = hash_get(manifest->policies, node->data1);
+			if (pol) {
+				node->op = PROG;
+				stree_add(node, pol);
+				pol = NULL;
+			} else {
+				return -1;
+			}
 		}
 	}
 
-	for (i = 0; i < root->size; i++) {
-		_manifest_expand(root->nodes[i], policies);
-	}
+	return 0;
 }
 
 struct manifest* parse_file(const char *path)
@@ -54,7 +58,11 @@ struct manifest* parse_file(const char *path)
 		return NULL;
 	}
 
-	_manifest_expand(manifest->root, manifest->policies);
+	if (_manifest_expand(manifest) != 0) {
+		manifest_free(manifest);
+		return NULL;
+	}
+
 	return manifest;
 }
 

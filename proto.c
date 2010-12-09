@@ -5,6 +5,7 @@
 #include <stdio.h>
 
 #include <arpa/inet.h>
+#include <netdb.h>
 
 #include "log.h"
 #include "proto.h"
@@ -654,3 +655,18 @@ void protocol_ssl_backtrace(void)
 	}
 }
 
+int protocol_reverse_lookup_verify(int sockfd, char *buf, size_t len)
+{
+	struct sockaddr_in ipv4;
+	socklen_t ipv4_len;
+
+	ipv4_len = sizeof(ipv4);
+	memset(&ipv4, 0, ipv4_len);
+
+	if (getpeername(sockfd, (struct sockaddr*)(&ipv4), &ipv4_len) != 0
+	 || getnameinfo((struct sockaddr*)(&ipv4), ipv4_len, buf, len, NULL, 0, NI_NAMEREQD) != 0) {
+		return -1;
+	}
+
+	return 0;
+}

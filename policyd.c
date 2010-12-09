@@ -1,3 +1,5 @@
+#include "clockwork.h"
+
 #include "policy.h"
 #include "spec/parser.h"
 #include "config/parser.h"
@@ -13,17 +15,17 @@
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
-#include <netdb.h>
 
 #include <signal.h>
+
+#define EXIT_BAD_CONFIG   100
+#define EXIT_BAD_MANIFEST 101
 
 /* Default config file; overridden by the -c argument */
 //#define POLICYD_DOT_CONF "/etc/clockwork/policyd.conf"
 #define POLICYD_DOT_CONF "policyd.conf"
 
 #define SA(s) (struct sockaddr*)(s)
-
-/**************************************************************/
 
 /* just an idea at this point... */
 struct server {
@@ -33,8 +35,11 @@ struct server {
 	THREAD_TYPE  tid;
 };
 
+/**************************************************************/
+
 struct hash     *config = NULL;
 pthread_mutex_t  config_mutex = PTHREAD_MUTEX_INITIALIZER;
+
 struct manifest *manifest = NULL;
 pthread_mutex_t  manifest_mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -45,47 +50,12 @@ static void server_teardown(struct server *s);
 static void* server_thread(void *arg);
 static void* policy_manager_thread(void *arg);
 
-static void reread_config()
-{
-	struct hash *new_config;
-
-	new_config = parse_config(POLICYD_DOT_CONF);
-	if (new_config) {
-		DEBUG("%s:%u in %s: updating global config", __FILE__, __LINE__, __func__);
-
-		pthread_mutex_lock(&config_mutex);
-		config = new_config;
-		pthread_mutex_unlock(&config_mutex);
-	} else {
-		WARNING("Unable to stat %s: %s", POLICYD_DOT_CONF, strerror(errno));
-	}
-}
-
-static void reread_manifest()
-{
-	struct manifest *new_manifest;
-
-	pthread_mutex_lock(&config_mutex);
-	new_manifest = parse_file(config_manifest_file(config));
-	pthread_mutex_unlock(&config_mutex);
-
-	if (new_manifest) {
-		DEBUG("%s:%u in %s: updating global manifest", __FILE__, __LINE__, __func__);
-
-		pthread_mutex_lock(&manifest_mutex);
-		manifest = new_manifest;
-		pthread_mutex_unlock(&manifest_mutex);
-	} else {
-		WARNING("Unable to parse manifest... Leaving existing manifest in place");
-	}
-}
+static void reread_config(void);
+static void reread_manifest(void);
 
 void sig_hup_handler(int, siginfo_t*, void*);
 
 /**************************************************************/
-
-#define EXIT_BAD_CONFIG   100
-#define EXIT_BAD_MANIFEST 101
 
 int main(int argc, char **argv)
 {
@@ -113,8 +83,8 @@ int main(int argc, char **argv)
 	server_setup(&s);
 	INFO("Clockwork policyd starting up");
 
-	INFO("Setting up signal handlers");
 	/* Set up signal handlers */
+	INFO("Setting up signal handlers");
 	sig.sa_sigaction = sig_hup_handler;
 	sig.sa_flags = SA_SIGINFO;
 	if (sigaction(SIGHUP, &sig, NULL) != 0) {
@@ -127,8 +97,8 @@ int main(int argc, char **argv)
 	//daemonize(&d);
 
 	/* Bind socket */
-	s->socket = BIO_new_accept( strdup(config_port(config)) );
-	if (!s->socket || BIO_do_accept(s->socket) <= 0) {
+	s.socket = BIO_new_accept( strdup(config_port(config)) );
+	if (!s.socket || BIO_do_accept(s.socket) <= 0) {
 		CRITICAL("Error binding server socket");
 		protocol_ssl_backtrace();
 		exit(2);
@@ -192,22 +162,6 @@ static void server_teardown(struct server *s)
 	BIO_free(s->socket);
 }
 
-static int fcrdns_ipv4_lookup(int sockfd, char *addr, size_t len)
-{
-	struct sockaddr_in ipv4;
-	socklen_t ipv4_len;
-
-	ipv4_len = sizeof(ipv4);
-	memset(&ipv4, 0, ipv4_len);
-
-	if (getpeername(sockfd, SA(&ipv4), &ipv4_len) != 0
-	 || getnameinfo(SA(&ipv4), ipv4_len, addr, len, NULL, 0, NI_NAMEREQD) != 0) {
-		return -1;
-	}
-
-	return 0;
-}
-
 static void* server_thread(void *arg)
 {
 	SSL* ssl = (SSL*)arg;
@@ -226,8 +180,8 @@ static void* server_thread(void *arg)
 
 	sock = SSL_get_fd(ssl);
 	INFO("incoming SSL connection on socket %i", sock);
-	if (fcrdns_ipv4_lookup(sock, addr, 256) != 0) {
-		ERROR("fcrdns_ipv4_lookup failed: %s", strerror(errno));
+	if (protocol_reverse_lookup_verify(sock, addr, 256) != 0) {
+		ERROR("FCrDNS lookup (ipv4) failed: %s", strerror(errno));
 		return NULL;
 	}
 	INFO("connection on socket %u from '%s'", sock, addr);
@@ -278,6 +232,41 @@ static void* policy_manager_thread(void *arg)
 	reread_config();
 	reread_manifest();
 	return NULL;
+}
+
+static void reread_config()
+{
+	struct hash *new_config;
+
+	new_config = parse_config(POLICYD_DOT_CONF);
+	if (new_config) {
+		DEBUG("%s:%u in %s: updating global config", __FILE__, __LINE__, __func__);
+
+		pthread_mutex_lock(&config_mutex);
+		config = new_config;
+		pthread_mutex_unlock(&config_mutex);
+	} else {
+		WARNING("Unable to stat %s: %s", POLICYD_DOT_CONF, strerror(errno));
+	}
+}
+
+static void reread_manifest()
+{
+	struct manifest *new_manifest;
+
+	pthread_mutex_lock(&config_mutex);
+	new_manifest = parse_file(config_manifest_file(config));
+	pthread_mutex_unlock(&config_mutex);
+
+	if (new_manifest) {
+		DEBUG("%s:%u in %s: updating global manifest", __FILE__, __LINE__, __func__);
+
+		pthread_mutex_lock(&manifest_mutex);
+		manifest = new_manifest;
+		pthread_mutex_unlock(&manifest_mutex);
+	} else {
+		WARNING("Unable to parse manifest... Leaving existing manifest in place");
+	}
 }
 
 void sig_hup_handler(int signum, siginfo_t *info, void *u)

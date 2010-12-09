@@ -84,6 +84,7 @@ struct policy* client_get_policy(protocol_session *session, const struct hash *f
 int client_disconnect(protocol_session *session);
 
 void protocol_ssl_backtrace(void);
+int protocol_reverse_lookup_verify(int sockfd, char *buf, size_t len);
 
 /**********************************************************/
 

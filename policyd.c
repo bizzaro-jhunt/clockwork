@@ -39,7 +39,6 @@ struct manifest *manifest = NULL;
 pthread_mutex_t  manifest_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static void server_setup(struct server *s);
-static void server_bind(struct server *s);
 static void server_loop(struct server *s);
 static void server_teardown(struct server *s);
 
@@ -126,7 +125,15 @@ int main(int argc, char **argv)
 	d.pid_file  = config_pid_file(config);
 
 	//daemonize(&d);
-	server_bind(&s);
+
+	/* Bind socket */
+	s->socket = BIO_new_accept( strdup(config_port(config)) );
+	if (!s->socket || BIO_do_accept(s->socket) <= 0) {
+		CRITICAL("Error binding server socket");
+		protocol_ssl_backtrace();
+		exit(2);
+	}
+
 	INFO("managing X policies for Y hosts");
 	server_loop(&s);
 	server_teardown(&s);
@@ -150,24 +157,6 @@ static void server_setup(struct server *s)
 		CRITICAL("SSL: error initializing SSL");
 		protocol_ssl_backtrace();
 		exit(1);
-	}
-}
-
-static void server_bind(struct server *s)
-{
-	assert(s);
-
-	s->socket = BIO_new_accept( strdup(config_port(config)) );
-	if (!s->socket) {
-		CRITICAL("Error creating server socket");
-		protocol_ssl_backtrace();
-		exit(2);
-	}
-
-	if (BIO_do_accept(s->socket) <= 0) {
-		CRITICAL("Error binding server socket");
-		protocol_ssl_backtrace();
-		exit(2);
 	}
 }
 

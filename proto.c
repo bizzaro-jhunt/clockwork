@@ -6,6 +6,7 @@
 
 #include <arpa/inet.h>
 
+#include "log.h"
 #include "proto.h"
 #include "policy.h"
 #include "stringlist.h"
@@ -61,35 +62,35 @@ int server_dispatch(protocol_session *session)
 		case PROTOCOL_OP_GET_POLICY:
 			facts = hash_new();
 			if (!facts) {
-				fprintf(stderr, "Unable to allocate memory for facts hash\n");
+				CRITICAL("Unable to allocate memory for facts hash");
 				exit(42);
 			}
 
 			if (pdu_decode_GET_POLICY(RECV_PDU(session), facts) != 0) {
-				fprintf(stderr, "Unable to decode GET_POLICY\n");
+				CRITICAL("Unable to decode GET_POLICY");
 				exit(42);
 			}
 
 			stree = hash_get(session->manifest->hosts, session->fqdn);
 			if (!stree) {
-				fprintf(stderr, "No such host... %s\n", session->fqdn);
+				CRITICAL("No such host... %s", session->fqdn);
 				exit(42);
 			}
 
 			pol = policy_generate(stree, facts);
 			if (!pol) {
-				fprintf(stderr, "Unable to generate policy for host %s\n", session->fqdn);
+				CRITICAL("Unable to generate policy for host %s", session->fqdn);
 				exit(42);
 			}
 
 			packed = policy_pack(pol);
 			if (!packed) {
-				fprintf(stderr, "Unable to pack policy into a string\n");
+				CRITICAL("Unable to pack policy into a string");
 				exit(42);
 			}
 
 			if (pdu_send_SEND_POLICY(session, pol) < 0) {
-				fprintf(stderr, "Unable to send SEND_POLICY\n");
+				CRITICAL("Unable to send SEND_POLICY");
 				exit(42);
 			}
 
@@ -100,7 +101,7 @@ int server_dispatch(protocol_session *session)
 
 		case PROTOCOL_OP_PUT_REPORT:
 			if (pdu_send_ACK(session) < 0) {
-				fprintf(stderr, "Unable to send ACK\n");
+				CRITICAL("Unable to send ACK");
 				exit(42);
 			}
 			break;
@@ -108,7 +109,7 @@ int server_dispatch(protocol_session *session)
 		default:
 			snprintf(errbuf, 256, "Unrecognized PDU OP: %u", session->recv_pdu.op);
 			if (pdu_send_ERROR(session, 405, (uint8_t*)errbuf, strlen(errbuf)) < 0) {
-				fprintf(stderr, "Unable to send ERROR\n");
+				CRITICAL("Unable to send ERROR");
 				exit(42);
 			}
 			return -1;
@@ -387,7 +388,7 @@ int pdu_read(SSL *io, protocol_data_unit *pdu)
 		}
 	}
 
-	fprintf(stderr, "pdu_read:  OP:%04u; LEN:%04u\n", pdu->op, pdu->len);
+	DEVELOPER("pdu_read:  OP:%04u; LEN:%04u", pdu->op, pdu->len);
 	return 0;
 }
 
@@ -419,7 +420,7 @@ int pdu_write(SSL *io, protocol_data_unit *pdu)
 		}
 	}
 
-	fprintf(stderr, "pdu_write: OP:%04u; LEN:%04u\n", pdu->op, pdu->len);
+	DEVELOPER("pdu_write: OP:%04u; LEN:%04u", pdu->op, pdu->len);
 	return 0;
 }
 
@@ -436,7 +437,7 @@ int pdu_receive(protocol_session *session)
 
 	rc = pdu_read(session->io, pdu);
 	if (rc < 0) {
-		fprintf(stderr, "pdu_receive: pdu_read returned %i\n", rc);
+		DEVELOPER("pdu_receive: pdu_read returned %i", rc);
 		exit(42);
 	}
 
@@ -448,29 +449,33 @@ int pdu_receive(protocol_session *session)
 			exit(42);
 		}
 
-		fprintf(stderr, "Received an ERROR: %u - %s\n", session->errnum, session->errstr);
+		DEVELOPER("Received an ERROR: %u - %s", session->errnum, session->errstr);
 		return -1;
 	}
 
 	return 0;
 }
 
-static void pdu_dump(FILE *io, protocol_data_unit *pdu)
+#ifdef DEVEL
+static void pdu_dump(protocol_data_unit *pdu)
 {
 	pdu->data[pdu->len] = '\0';
-	fprintf(io, "----[ PDU ]-------------------------------------\n");
-	fprintf(io, "OP:  %u\n", pdu->op);
-	fprintf(io, "LEN: %u\n", pdu->len);
-	fprintf(io, "%s\n", pdu->data);
-	fprintf(io, "------------------------------------------------\n");
+	DEVELOPER("----[ PDU ]-------------------------------------");
+	DEVELOPER("OP:  %u", pdu->op);
+	DEVELOPER("LEN: %u", pdu->len);
+	DEVELOPER("%s", pdu->data);
+	DEVELOPER("------------------------------------------------");
 }
+#else
+#  define pdu_dump(x)
+#endif
 
 /**********************************************************/
 
 void protocol_ssl_init(void)
 {
 	if (!SSL_library_init()) {
-		fprintf(stderr, "protocol_ssl_init: Failed to initialize OpenSSL\n");
+		CRITICAL("protocol_ssl_init: Failed to initialize OpenSSL");
 		exit(1);
 	}
 	SSL_load_error_strings();
@@ -520,7 +525,7 @@ long protocol_ssl_verify_peer(SSL *ssl, const char *host)
 	int ok = 0;
 
 	if (!(cert = SSL_get_peer_certificate(ssl)) || !host) {
-		fprintf(stderr, "Unable to get certificate in SSL_get_peer_certificate (for host '%s')\n", host);
+		ERROR("Unable to get certificate in SSL_get_peer_certificate (for host '%s')", host);
 		goto err_occurred;
 	}
 
@@ -607,20 +612,20 @@ struct policy* client_get_policy(protocol_session *session, const struct hash *f
 	struct policy *pol;
 
 	if (pdu_send_GET_POLICY(session, facts) < 0) {
-		fprintf(stderr, "Unable to GET_POLICY\n");
+		CRITICAL("Unable to GET_POLICY");
 		exit(42);
 	}
-	pdu_dump(stderr, SEND_PDU(session));
+	pdu_dump(SEND_PDU(session));
 
 	pdu_receive(session);
 	if (session->recv_pdu.op != PROTOCOL_OP_SEND_POLICY) {
-		fprintf(stderr, "Unexpected op from server: %u\n", session->recv_pdu.op);
+		CRITICAL("Unexpected op from server: %u", session->recv_pdu.op);
 		exit(42);
 	}
-	pdu_dump(stderr, RECV_PDU(session));
+	pdu_dump(RECV_PDU(session));
 
 	if (pdu_decode_SEND_POLICY(RECV_PDU(session), &pol) != 0) {
-		fprintf(stderr, "Unable to decode SEND_POLICY PDU\n");
+		CRITICAL("Unable to decode SEND_POLICY PDU");
 		exit(42);
 	}
 
@@ -633,10 +638,10 @@ int client_disconnect(protocol_session *session)
 		perror("client_disconnect");
 		return -1;
 	}
-	pdu_dump(stderr, SEND_PDU(session));
+	pdu_dump(SEND_PDU(session));
 
 	pdu_receive(session);
-	pdu_dump(stderr, RECV_PDU(session));
+	pdu_dump(RECV_PDU(session));
 	return 0;
 }
 

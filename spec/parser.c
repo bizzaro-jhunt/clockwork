@@ -4,6 +4,7 @@
 #include "private.h"
 #include "parser.h"
 #include "../policy.h"
+#include "../log.h"
 
 static int _manifest_expand(struct manifest *manifest)
 {
@@ -54,7 +55,7 @@ struct manifest* parse_file(const char *path)
 	stringlist_free(ctx.files);
 
 	if (ctx.errors > 0) {
-		fprintf(stderr, "Errors encountered; aborting...\n");
+		ERROR("Manifest parse errors encountered; aborting...");
 		return NULL;
 	}
 

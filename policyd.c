@@ -43,8 +43,7 @@ static void server_bind(struct server *s);
 static void server_loop(struct server *s);
 static void server_teardown(struct server *s);
 
-#define int_error(msg) handle_error(__FILE__, __LINE__, msg)
-static void handle_error(const char *file, int lineno, const char *msg);
+static void handle_error(const char *msg);
 static void* server_thread(void *arg);
 static void* policy_manager_thread(void *arg);
 
@@ -98,13 +97,18 @@ int main(int argc, char **argv)
 
 	config = parse_config(POLICYD_DOT_CONF);
 	if (!config) {
-		fprintf(stderr, "error: unable to stat %s: %s\n", POLICYD_DOT_CONF, strerror(errno));
+		ERROR("Unable to stat %s: %s", POLICYD_DOT_CONF, strerror(errno));
 		exit(EXIT_BAD_CONFIG);
 	}
 
+	errno = 0;
 	manifest = parse_file(config_manifest_file(config));
 	if (!manifest) {
-		fprintf(stderr, "error: unable to parse manifest file %s: %s\n", config_manifest_file(config), strerror(errno));
+		if (errno != 0) {
+			ERROR("Unable to parse manifest file %s: %s", config_manifest_file(config), strerror(errno));
+		} else {
+			ERROR("Unable to parse manifest file %s: bad reference", config_manifest_file(config));
+		}
 		exit(EXIT_BAD_MANIFEST);
 	}
 
@@ -144,7 +148,7 @@ static void server_setup(struct server *s)
 			config_ca_cert_file(config),
 			config_ca_key_file(config));
 	if (!s->ssl_ctx) {
-		int_error("Error setting up SSL context");
+		handle_error("Error setting up SSL context");
 	}
 }
 
@@ -154,12 +158,12 @@ static void server_bind(struct server *s)
 
 	s->socket = BIO_new_accept( strdup(config_port(config)) );
 	if (!s->socket) {
-		int_error("Error creating server socket");
+		handle_error("Error creating server socket");
 		exit(2);
 	}
 
 	if (BIO_do_accept(s->socket) <= 0) {
-		int_error("Error binding server socket");
+		handle_error("Error binding server socket");
 		exit(2);
 	}
 }
@@ -171,13 +175,13 @@ static void server_loop(struct server *s)
 
 	for (;;) {
 		if (BIO_do_accept(s->socket) <= 0) {
-			int_error("Error accepting connection");
+			handle_error("Error accepting connection");
 			continue;
 		}
 
 		conn = BIO_pop(s->socket);
 		if (!(s->ssl = SSL_new(s->ssl_ctx))) {
-			int_error("Error creating SSL context");
+			handle_error("Error creating SSL context");
 			continue;
 		}
 
@@ -194,10 +198,16 @@ static void server_teardown(struct server *s)
 	BIO_free(s->socket);
 }
 
-static void handle_error(const char *file, int lineno, const char *msg)
+static void handle_error(const char *msg)
 {
-	fprintf(stderr, "** %s:%i %s\n", file, lineno, msg);
-	ERR_print_errors_fp(stderr); /* FIXME: send to syslog somehow */
+	unsigned long ssl_error;
+
+	if (msg) {
+		CRITICAL("SSL: %s", msg);
+	}
+	while ( (ssl_error = ERR_get_error()) != 0) {
+		DEBUG("SSL: %s", ERR_reason_error_string(ssl_error));
+	}
 	exit(1);
 }
 
@@ -228,7 +238,7 @@ static void* server_thread(void *arg)
 	pthread_detach(pthread_self());
 
 	if (SSL_accept(ssl) <= 0) {
-		int_error("Error accepting SSL connection");
+		handle_error("Error accepting SSL connection");
 	}
 
 	sock = SSL_get_fd(ssl);
@@ -241,11 +251,11 @@ static void* server_thread(void *arg)
 
 	if ((err = protocol_ssl_verify_peer(ssl, addr)) != X509_V_OK) {
 		if (err == X509_V_ERR_APPLICATION_VERIFICATION) {
-			ERROR("peer certificate did not match fcrdns fqdn");
+			handle_error("Peer certificate FQDN did not match FCrDNS lookup");
 		} else {
-			ERROR("problem with peer certificate: %s", X509_verify_cert_error_string(err));
+			ERROR("SSL: problem with peer certificate: %s", X509_verify_cert_error_string(err));
+			handle_error(NULL);
 		}
-		ERR_print_errors_fp(stderr); /* FIXME: send to syslog somehow */
 		SSL_clear(ssl);
 
 		SSL_free(ssl);

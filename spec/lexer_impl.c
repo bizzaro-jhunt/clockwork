@@ -4,6 +4,8 @@
 #include <sys/stat.h>
 #include <stdarg.h>
 
+#include "../log.h"
+
 /** STATIC functions used only by other, non-static functions in this file **/
 
 static int lexer_check_file(const char *path, spec_parser_context *ctx)
@@ -112,10 +114,10 @@ void spec_parser_error(void *user, const char *fmt, ...)
 
 	va_start(args, fmt);
 	if (vsnprintf(buf, 256, fmt, args) < 0) {
-		fprintf(stderr, "%s:%u: error: vsnprintf failed in spec_parser_error\n",
+		CRITICAL("%s:%u: error: vsnprintf failed in spec_parser_error",
 		                ctx->file, yyget_lineno(ctx->scanner));
 	} else {
-		fprintf(stderr, "%s:%u: error: %s\n", ctx->file, yyget_lineno(ctx->scanner), buf);
+		CRITICAL("%s:%u: error: %s", ctx->file, yyget_lineno(ctx->scanner), buf);
 	}
 	ctx->errors++;
 }
@@ -128,11 +130,11 @@ void spec_parser_warning(void *user, const char *fmt, ...)
 
 	va_start(args, fmt);
 	if (vsnprintf(buf, 256, fmt, args) < 0) {
-		fprintf(stderr, "%s:%u: error: vsnprintf failed in spec_parser_warning\n",
+		CRITICAL("%s:%u: error: vsnprintf failed in spec_parser_warning",
 		                ctx->file, yyget_lineno(ctx->scanner));
 		ctx->errors++; /* treat this as an error */
 	} else {
-		fprintf(stderr, "%s:%u: warning: %s\n", ctx->file, yyget_lineno(ctx->scanner), buf);
+		CRITICAL("%s:%u: warning: %s", ctx->file, yyget_lineno(ctx->scanner), buf);
 		ctx->warnings++; 
 	}
 }

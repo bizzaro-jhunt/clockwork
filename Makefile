@@ -14,6 +14,8 @@ CC_FLAGS += -Wall #                    Warn on everything
 CC_FLAGS += -lssl
 CC_FLAGS += -lpthread
 
+CC_FLAGS += -DDEVEL
+
 CC := gcc $(CC_FLAGS)
 
 LEX_FLAGS :=

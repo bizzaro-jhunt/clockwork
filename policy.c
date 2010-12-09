@@ -6,6 +6,7 @@
 #include "policy.h"
 #include "pack.h"
 #include "mem.h"
+#include "log.h"
 
 
 #define POLICY_PACK_PREFIX "policy::"
@@ -262,8 +263,7 @@ again:
 
 		} else {
 			pgen->type = RES_UNKNOWN;
-			fprintf(stderr, "error: trying to define unknown resource type '%s'\n", node->data1);
-			/* FIXME: asked to define an unknown resource */
+			WARNING("trying to define unknown resource type '%s'", node->data1);
 		}
 
 		break;
@@ -283,7 +283,7 @@ again:
 			break;
 
 		default:
-			fprintf(stderr, "error: trying to set attribute %s = '%s' on unknown type %u\n",
+			WARNING("trying to set attribute %s = '%s' on unknown type %u",
 					node->data1, node->data2, pgen->type);
 		}
 		break;
@@ -294,8 +294,7 @@ again:
 		break;
 
 	default:
-		/* FIXME: unexpected node type */
-		fprintf(stderr, "error: unexpected node in syntax tree: (%u %s/%s)\n", node->op, node->data1, node->data2);
+		WARNING("unexpected node in syntax tree: (%u %s/%s)", node->op, node->data1, node->data2);
 		break;
 
 	}

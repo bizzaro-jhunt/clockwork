@@ -4,6 +4,7 @@
 
 #include "private.h"
 #include "parser.h"
+#include "../log.h"
 
 struct hash* parse_config(const char *path)
 {
@@ -23,7 +24,7 @@ struct hash* parse_config(const char *path)
 	yyconfiglex_destroy(ctx.scanner);
 
 	if (ctx.errors > 0) {
-		fprintf(stderr, "Errors encountered; aborting...\n");
+		ERROR("Errors encountered; aborting...");
 		return NULL;
 	}
 

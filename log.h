@@ -3,6 +3,7 @@
 
 void log_init(const char *ident);
 
+void DEVELOPER(const char *format, ...);
 void DEBUG(const char *format, ...);
 
 void INFO(const char *format, ...);

@@ -43,7 +43,6 @@ static void server_bind(struct server *s);
 static void server_loop(struct server *s);
 static void server_teardown(struct server *s);
 
-static void handle_error(const char *msg);
 static void* server_thread(void *arg);
 static void* policy_manager_thread(void *arg);
 
@@ -148,7 +147,9 @@ static void server_setup(struct server *s)
 			config_ca_cert_file(config),
 			config_ca_key_file(config));
 	if (!s->ssl_ctx) {
-		handle_error("Error setting up SSL context");
+		CRITICAL("SSL: error initializing SSL");
+		protocol_ssl_backtrace();
+		exit(1);
 	}
 }
 
@@ -158,12 +159,14 @@ static void server_bind(struct server *s)
 
 	s->socket = BIO_new_accept( strdup(config_port(config)) );
 	if (!s->socket) {
-		handle_error("Error creating server socket");
+		CRITICAL("Error creating server socket");
+		protocol_ssl_backtrace();
 		exit(2);
 	}
 
 	if (BIO_do_accept(s->socket) <= 0) {
-		handle_error("Error binding server socket");
+		CRITICAL("Error binding server socket");
+		protocol_ssl_backtrace();
 		exit(2);
 	}
 }
@@ -175,13 +178,15 @@ static void server_loop(struct server *s)
 
 	for (;;) {
 		if (BIO_do_accept(s->socket) <= 0) {
-			handle_error("Error accepting connection");
+			WARNING("Couldn't accept inbound connection");
+			protocol_ssl_backtrace();
 			continue;
 		}
 
 		conn = BIO_pop(s->socket);
 		if (!(s->ssl = SSL_new(s->ssl_ctx))) {
-			handle_error("Error creating SSL context");
+			WARNING("Error creating SSL handler for inbound connection");
+			protocol_ssl_backtrace();
 			continue;
 		}
 
@@ -196,19 +201,6 @@ static void server_teardown(struct server *s)
 
 	SSL_CTX_free(s->ssl_ctx);
 	BIO_free(s->socket);
-}
-
-static void handle_error(const char *msg)
-{
-	unsigned long ssl_error;
-
-	if (msg) {
-		CRITICAL("SSL: %s", msg);
-	}
-	while ( (ssl_error = ERR_get_error()) != 0) {
-		DEBUG("SSL: %s", ERR_reason_error_string(ssl_error));
-	}
-	exit(1);
 }
 
 static int fcrdns_ipv4_lookup(int sockfd, char *addr, size_t len)
@@ -238,7 +230,9 @@ static void* server_thread(void *arg)
 	pthread_detach(pthread_self());
 
 	if (SSL_accept(ssl) <= 0) {
-		handle_error("Error accepting SSL connection");
+		ERROR("Error establishin SSL connection");
+		protocol_ssl_backtrace();
+		return NULL;
 	}
 
 	sock = SSL_get_fd(ssl);
@@ -251,10 +245,10 @@ static void* server_thread(void *arg)
 
 	if ((err = protocol_ssl_verify_peer(ssl, addr)) != X509_V_OK) {
 		if (err == X509_V_ERR_APPLICATION_VERIFICATION) {
-			handle_error("Peer certificate FQDN did not match FCrDNS lookup");
+			ERROR("Peer certificate FQDN did not match FCrDNS lookup");
 		} else {
 			ERROR("SSL: problem with peer certificate: %s", X509_verify_cert_error_string(err));
-			handle_error(NULL);
+			protocol_ssl_backtrace();
 		}
 		SSL_clear(ssl);
 

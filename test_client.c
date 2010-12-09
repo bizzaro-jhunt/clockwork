@@ -9,6 +9,7 @@
 
 #include "proto.h"
 #include "policy.h"
+#include "log.h"
 
 #define CAFILE   "certs/CA/cacert.pem"
 
@@ -26,14 +27,6 @@
 #define PORT   "7890"
 
 #define FACTS "facts/*"
-
-#define int_error(msg) handle_error(__FILE__, __LINE__, msg)
-void handle_error(const char *file, int lineno, const char *msg)
-{
-	fprintf(stderr, "** %s:%i %s\n", file, lineno, msg);
-	ERR_print_errors_fp(stderr);
-	exit(1);
-}
 
 int get_facts_from_script(const char *script, struct hash *facts)
 {
@@ -118,7 +111,8 @@ struct hash* get_the_facts(const char *dir)
 	return facts;
 }
 
-static void verify_facts(const struct hash *facts)
+#ifdef DEVEL
+static void DEVELOPER_verify_facts(const struct hash *facts)
 {
 	struct hash_cursor cur;
 	char *key, *val;
@@ -129,6 +123,9 @@ static void verify_facts(const struct hash *facts)
 	}
 	fprintf(stderr, "\n");
 }
+#else
+#  define DEVELOPER_verify_facts(x)
+#endif
 
 static void dump_policy(struct policy *pol)
 {
@@ -151,33 +148,44 @@ int main(int argc, char **argv)
 	printf("SSL Connection opened\n");
 	printf("  > gathering facts\n");
 	facts = get_the_facts(FACTS);
-	verify_facts(facts);
+	DEVELOPER_verify_facts(facts);
 
 	protocol_ssl_init();
 	ctx = protocol_ssl_default_context(CAFILE, CERTFILE, KEYFILE);
 	if (!ctx) {
-		int_error("Error setting up SSL context");
+		CRITICAL("Error setting up SSL context");
+		protocol_ssl_backtrace();
+		exit(1);
 	}
 
 	sock = BIO_new_connect(SERVER ":" PORT);
 	if (!sock) {
-		int_error("Error creating connection BIO");
+		CRITICAL("Error creating connection BIO");
+		protocol_ssl_backtrace();
+		exit(1);
 	}
 
 	if (BIO_do_connect(sock) <= 0) {
-		int_error("Error connecting to remote server");
+		CRITICAL("Error connecting to remote server");
+		protocol_ssl_backtrace();
+		exit(1);
 	}
 
 	if (!(ssl = SSL_new(ctx))) {
-		int_error("Error creating an SSL context");
+		CRITICAL("Error creating an SSL context");
+		protocol_ssl_backtrace();
+		exit(1);
 	}
 	SSL_set_bio(ssl, sock, sock);
 	if (SSL_connect(ssl) <= 0) {
-		int_error("Error connecting SSL object");
+		CRITICAL("Error connecting SSL object");
+		protocol_ssl_backtrace();
+		exit(1);
 	}
 	if ((err = protocol_ssl_verify_peer(ssl, SERVER)) != X509_V_OK) {
-		fprintf(stderr, "-Error: peer certificate: %s\n", X509_verify_cert_error_string(err));
-		int_error("Error checking SSL object ater connection");
+		CRITICAL("Server certificate verification failed: %s", X509_verify_cert_error_string(err));
+		protocol_ssl_backtrace();
+		exit(1);
 	}
 
 	protocol_session_init(&session, ssl, NULL);

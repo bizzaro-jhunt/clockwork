@@ -645,3 +645,12 @@ int client_disconnect(protocol_session *session)
 	return 0;
 }
 
+void protocol_ssl_backtrace(void)
+{
+	unsigned long e;
+
+	while ( (e = ERR_get_error()) != 0 ) {
+		DEBUG("SSL: %s", ERR_reason_error_string(e));
+	}
+}
+

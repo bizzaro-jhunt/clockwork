@@ -83,6 +83,8 @@ int server_dispatch(protocol_session *session);
 struct policy* client_get_policy(protocol_session *session, const struct hash *facts);
 int client_disconnect(protocol_session *session);
 
+void protocol_ssl_backtrace(void);
+
 /**********************************************************/
 
 int pdu_read(SSL *io, protocol_data_unit *pdu);

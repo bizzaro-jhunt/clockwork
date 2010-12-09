@@ -25,8 +25,6 @@
 //#define POLICYD_DOT_CONF "/etc/clockwork/policyd.conf"
 #define POLICYD_DOT_CONF "policyd.conf"
 
-#define SA(s) (struct sockaddr*)(s)
-
 /* just an idea at this point... */
 struct server {
 	BIO         *socket;

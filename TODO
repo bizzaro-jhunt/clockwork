@@ -1,12 +1,48 @@
 List of Things To Do
 ====================
 
-userdb::
-  File locking (shadow)
+chroot testing
+  Need to be able to run full-sim tests in chroot environments,
+  so that functional tests can be reproduced, without requiring
+  specific build machine system changes, or root access.
 
-policy::
-  Memory Management Changes
-  policy support in proto
+test_client -> cwa
+  Re-write the test_client as the cwa (Clockwork Agent).
 
-parser::
-  if-else-if-else construct
+clean up .gitignore
+  I know there are pattern matches in there for test binaries
+  that don't need to be there anymore.
+
+man pages / documentation
+  Write man pages for policyd, cwa and clockwork in general.
+
+Reporting
+  Design and implement the reporting generation, submission,
+  storage and analysis parts.  Might want to look into database
+  backends.
+
+More resources
+  Check the RESOURCE file for the most up-to-date information.
+  Definitely need to implement res_package and res_service.
+
+Sample Configs and Policy Manifests
+  Write documented sample config files and policy / manifest
+  files, in a new subdirectory (samples/).
+
+VIm syntax rules
+  Write a syntax definition for the daemon / client configuration
+  files, and one for the manifest definitions.  For the config
+  syntax, make sure that all keywords are highlighted properly,
+  to aid administrators in configuration.
+
+Logo / Branding
+  Get the logo drawn and vectorized.  Determine what legal stuff
+  needs to happen for Trademarks, Copyright etc.
+
+Website
+  Need an overall design workup, in addition to ideas for content.
+
+Infrastructure
+  Identify needs for bug tracking, community support (forums, mailing
+  lists, etc.) and collaborative development (i.e. ReviewBoard).
+

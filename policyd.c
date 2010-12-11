@@ -18,6 +18,9 @@
 
 #include <signal.h>
 
+#include <unistd.h>
+#include <getopt.h>
+
 #define EXIT_BAD_CONFIG   100
 #define EXIT_BAD_MANIFEST 101
 
@@ -33,6 +36,15 @@ struct server {
 	THREAD_TYPE  tid;
 };
 
+struct options {
+	int   daemonize;
+	int   debug;
+	int   verbosity;
+
+	char *config_path;
+	char *port;
+};
+
 /**************************************************************/
 
 struct hash     *config = NULL;
@@ -40,6 +52,9 @@ pthread_mutex_t  config_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 struct manifest *manifest = NULL;
 pthread_mutex_t  manifest_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+static void evaluate_arguments(struct options *opts, int argc, char **argv);
+static void show_help(void);
 
 static void server_setup(struct server *s);
 static void server_loop(struct server *s);
@@ -61,9 +76,19 @@ int main(int argc, char **argv)
 	struct sigaction sig;
 	struct daemon d;
 
-	config = parse_config(POLICYD_DOT_CONF);
+	struct options opts = {
+		.daemonize   = 1,
+		.debug       = 0,
+		.verbosity   = 3,
+		.config_path = strdup(POLICYD_DOT_CONF),
+		.port        = strdup("7890")
+	};
+
+	evaluate_arguments(&opts, argc, argv);
+
+	config = parse_config(opts.config_path);
 	if (!config) {
-		ERROR("Unable to stat %s: %s", POLICYD_DOT_CONF, strerror(errno));
+		ERROR("Unable to stat %s: %s", opts.config_path, strerror(errno));
 		exit(EXIT_BAD_CONFIG);
 	}
 
@@ -78,6 +103,9 @@ int main(int argc, char **argv)
 		exit(EXIT_BAD_MANIFEST);
 	}
 
+	if (!opts.debug) {
+		log_init("policyd");
+	}
 	server_setup(&s);
 	INFO("Clockwork policyd starting up");
 
@@ -89,12 +117,15 @@ int main(int argc, char **argv)
 		ERROR("Unable to set signal handlers: %s", strerror(errno));
 	}
 
-	d.lock_file = config_lock_file(config);
-	d.pid_file  = config_pid_file(config);
+	if (opts.daemonize == 1) {
+		d.lock_file = config_lock_file(config);
+		d.pid_file  = config_pid_file(config);
 
-	//daemonize(&d);
+		daemonize(&d);
+	}
 
 	/* Bind socket */
+	/* FIXME: support for CLI -p flag */
 	s.socket = BIO_new_accept( strdup(config_port(config)) );
 	if (!s.socket || BIO_do_accept(s.socket) <= 0) {
 		CRITICAL("Error binding server socket");
@@ -111,11 +142,91 @@ int main(int argc, char **argv)
 
 /**************************************************************/
 
+static void evaluate_arguments(struct options *opts, int argc, char **argv)
+{
+	const char *short_opts = "h?FDvqQc:p:";
+	struct option long_opts[] = {
+		{ "help",         no_argument,       NULL, 'h' },
+		{ "no-daemonize", no_argument,       NULL, 'F' },
+		{ "foreground",   no_argument,       NULL, 'F' },
+		{ "debug",        no_argument,       NULL, 'D' },
+		{ "silent",       no_argument,       NULL, 'Q' },
+		{ "config",       required_argument, NULL, 'c' },
+		{ "port",         required_argument, NULL, 'p' },
+		{ 0, 0, 0, 0 },
+	};
+
+	int opt, idx = 0;
+
+	while ( (opt = getopt_long(argc, argv, short_opts, long_opts, &idx)) != -1 ) {
+		switch (opt) {
+		case 'h':
+		case '?':
+			show_help();
+			exit(0);
+		case 'F':
+			opts->daemonize = 0;
+			break;
+		case 'D':
+			opts->debug = 1;
+			opts->daemonize = 0; /* implies -F */
+			break;
+		case 'v':
+			opts->verbosity++;
+			break;
+		case 'q':
+			opts->verbosity--;
+			break;
+		case 'Q':
+			opts->verbosity = 3;
+			break;
+		case 'c':
+			free(opts->config_path);
+			opts->config_path = strdup(optarg);
+			break;
+		case 'p':
+			free(opts->port);
+			opts->port = strdup(optarg);
+			break;
+		}
+	}
+}
+
+static void show_help(void)
+{
+	printf( "USAGE: policyd [OPTIONS]\n"
+	       "\n"
+	       "  -h, --help            Show this helpful message.\n"
+	       "                        (for more in-depth help, check the man pages.)\n"
+	       "\n"
+	       "  -F, --foreground      Do not fork into the background.\n"
+	       "                        Useful for debugging with -D\n"
+	       "\n"
+	       "  -D, --debug           Run in debug mode; log to stderr instead of\n"
+	       "                        syslog.  Implies -F.\n"
+	       "\n"
+	       "  -v[vvv...]            Increase verbosity by one level.  Can be used\n"
+	       "                        more than once.  See -Q and -q.\n"
+	       "\n"
+	       "  -q[qqq...]            Decrease verbosity by one level.  Can be used\n"
+	       "                        more than once.  See -v and -Q.\n"
+	       "\n"
+	       "  -Q, --silent          Reset verbosity to the default setting, such that\n"
+	       "                        EMERGENCY, ALERT and CRITICAL messages are logged,\n"
+	       "                        and all others are discarded.  See -q and -v.\n"
+	       "\n"
+	       "  -c, --config          Specify the path to an alternate configuration file.\n"
+	       "                        If not given, defaults to " POLICYD_DOT_CONF "\n"
+	       "\n"
+	       "  -p, --port            Override the TCP port number that policyd should\n"
+	       "                        bind to and listen on.\n"
+	       "\n");
+}
+
 static void server_setup(struct server *s)
 {
 	assert(s);
 
-	log_init("policyd");
 	protocol_ssl_init();
 	s->ssl_ctx = protocol_ssl_default_context(
 			config_ca_cert_file(config),

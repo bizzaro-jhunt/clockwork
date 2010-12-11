@@ -44,7 +44,7 @@ MOG := ./mog
 ############################################################
 # Object Group Variables
 
-UTILS := sha1sum sizes test_client test_server host
+UTILS := sha1sum sizes test_client host
 CORE  := policyd
 
 # Resource types
@@ -113,6 +113,7 @@ unit_tests: test/run
 test/run: test/run.o test/test.o \
           test/assertions.o \
           mem.o resource.o \
+          log.o \
           test/list.o \
           test/stringlist.o stringlist.o \
           test/hash.o hash.o \
@@ -209,9 +210,6 @@ main.o: main.c $(RESOURCE_HEADERS)
 
 ############################################################
 # EXPERIMENTAL
-
-test_server: test_server.o proto.o
-	$(CC) -o $@ $+
 
 test_client: test_client.o proto.o $(CORE_OBJECTS) $(POLICY_OBJECTS) $(RESOURCE_OBJECTS)
 	$(CC) -o $@ $+

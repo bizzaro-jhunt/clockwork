@@ -7,7 +7,6 @@ host
 polspec
 sha1sum
 sizes
-test_server
 test_client
 
 doc/proto.png

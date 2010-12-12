@@ -44,7 +44,7 @@ MOG := ./mog
 ############################################################
 # Object Group Variables
 
-UTILS := sha1sum sizes test_client host
+UTILS := sha1sum sizes test_client
 CORE  := policyd
 
 # Resource types
@@ -77,6 +77,21 @@ all: test $(UTILS) $(CORE)
 
 policyd: policyd.o $(CORE_OBJECTS) $(RESOURCE_OBJECTS) $(POLICY_OBJECTS) $(SPEC_PARSER_OBJECTS) $(CONFIG_PARSER_OBJECTS) proto.o daemon.o config.o
 	$(CC) -o $@ $+
+
+############################################################
+# Documentation
+
+docs: apidocs
+
+APIDOC_CONF := doc/doxy.api.conf
+APIDOC_ROOT := doc/api
+DOXYGEN := doxygen
+
+apidocs:
+	rm -rf $(APIDOC_ROOT)/*
+	$(DOXYGEN) $(APIDOC_CONF)
+
+# Main Binaries
 
 ############################################################
 # Utilities

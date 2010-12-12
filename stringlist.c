@@ -64,13 +64,13 @@ static size_t _stringlist_capacity(stringlist* sl)
 
 /*****************************************************************/
 
-int _stringlist_strcmp_asc(const void *a, const void *b)
+int STRINGLIST_SORT_ASC(const void *a, const void *b)
 {
 	/* params are pointers to char* */
 	return strcmp(* (char * const *) a, * (char * const *) b);
 }
 
-int _stringlist_strcmp_desc(const void *a, const void *b)
+int STRINGLIST_SORT_DESC(const void *a, const void *b)
 {
 	/* params are pointers to char* */
 	return -1 * strcmp(* (char * const *) a, * (char * const *) b);
@@ -79,23 +79,12 @@ int _stringlist_strcmp_desc(const void *a, const void *b)
 stringlist* stringlist_new(char **src)
 {
 	stringlist *sl;
+	char **t;
 
 	sl = malloc(sizeof(stringlist));
 	if (!sl) {
 		return NULL;
 	}
-
-	if (stringlist_init(sl, src) != 0) {
-		free(sl);
-		return NULL;
-	}
-
-	return sl;
-}
-
-int stringlist_init(stringlist *sl, char **src)
-{
-	char **t;
 
 	if (src) {
 		t = src;
@@ -110,7 +99,8 @@ int stringlist_init(stringlist *sl, char **src)
 
 	sl->strings = calloc(sl->len, sizeof(char *));
 	if (!sl->strings) {
-		return -1;
+		free(sl);
+		return NULL;
 	}
 
 	if (src) {
@@ -119,15 +109,14 @@ int stringlist_init(stringlist *sl, char **src)
 		}
 	}
 
-	return 0;
+	return sl;
 }
 
-void stringlist_deinit(stringlist *sl)
+void stringlist_free(stringlist *sl)
 {
 	assert(sl);
 
 	size_t i;
-
 
 	for (i = 0; i < sl->num; i++) {
 		free(sl->strings[i]);
@@ -136,13 +125,6 @@ void stringlist_deinit(stringlist *sl)
 
 	sl->num = 0;
 	sl->len = 0;
-}
-
-void stringlist_free(stringlist *sl)
-{
-	assert(sl);
-
-	stringlist_deinit(sl);
 	free(sl);
 }
 
@@ -173,7 +155,7 @@ void stringlist_uniq(stringlist *sl)
 	_stringlist_reduce(sl);
 }
 
-int stringlist_search(stringlist *sl, const char* needle)
+int stringlist_search(const stringlist *sl, const char* needle)
 {
 	assert(sl);
 	assert(needle);
@@ -203,7 +185,7 @@ int stringlist_add(stringlist *sl, const char* str)
 	return 0;
 }
 
-int stringlist_add_all(stringlist *dst, stringlist *src)
+int stringlist_add_all(stringlist *dst, const stringlist *src)
 {
 	assert(src);
 	assert(dst);

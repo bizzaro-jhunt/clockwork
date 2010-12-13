@@ -8,6 +8,10 @@
 #include "res_group.h"
 #include "res_user.h"
 
+/** @file policy.h
+ */
+
+/** Abstract Syntax Tree node types */
 enum oper {
 	NOOP = 0,
 	PROG,
@@ -17,25 +21,58 @@ enum oper {
 	ATTR
 };
 
-struct stree {
-	enum oper op;
-	char *data1, *data2;
+/**
+  Abstract Syntax Tree Node
 
+  This structure defines a single node, root or otherwise, in an abstract
+  syntax tree.  These are used to represent the operations necessary to
+  build a manifest of policy and host definitions, and serve as an integral
+  step between the policy specification parser and a policy structure.
+ */
+struct stree {
+	/** The operation represented by this node */
+	enum oper op;
+
+	/** Operation specific data. */
+	char *data1;
+	/** Operation specific data. */
+	char *data2;
+
+	/** Number of child nodes underneath this one. */
 	unsigned int size;
+	/** Array of child nodes underneath this one. */
 	struct stree **nodes;
 };
 
-struct manifest {
-	struct hash *policies;  /* policy stree nodes, hashed by name */
-	struct hash *hosts;     /* host stree nodes, hashed by FQDN */
+/**
+  Manifest of all known Host and Policy Definitions
 
+  This structure pulls together the abstract syntax trees for all host
+  and policy definitions, and organizes them in such a way that they
+  can be easily located.
+ */
+struct manifest {
+	/** Policy definitions (stree nodes), hashed by policy name */
+	struct hash *policies;
+
+	/** Host definitions (stree nodes), hashed by FQDN */
+	struct hash *hosts;
+
+	/** Collapsed list of all nodes in both the manifest::policies
+	    and manifest::hosts members, to avoid loops while freeing
+	    memory used by the manifest structure. */
 	struct stree **nodes;
+
+	/** Number of nodes in the manifest::nodes member. */
 	size_t nodes_len;
 
+	/** Pointer to the root abstract syntax tree node representing
+	    the entire set of host and policy definitions parsed. */
 	struct stree *root;
 };
 
-/** policy - Defines a single, independent policy
+/**
+  Policy Definition
 
   A policy consists of a set of resources, and the attributes that
   must be enforced for each.
@@ -48,14 +85,20 @@ struct manifest {
   the hash exists to ease searching.
  */
 struct policy {
-	char        *name;       /* User-assigned name of policy */
+	/** User-assigned name of policy */
+	char *name;
 
-	/* Components */
-	struct list  res_files;
-	struct list  res_groups;
-	struct list  res_users;
+	/** List of file resources */
+	struct list res_files;
 
-	struct hash *resources;  /* Searchable hash table, keyed "TYPE:pkey" */
+	/** List of group resources */
+	struct list res_groups;
+
+	/** List of user resources */
+	struct list res_users;
+
+	/* Searchable hash table, keyed "TYPE:pkey" */
+	struct hash *resources;
 };
 
 struct manifest* manifest_new(void);

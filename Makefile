@@ -41,6 +41,12 @@ GENHTML := genhtml --prefix $(shell dirname `pwd`)
 
 MOG := ./mog
 
+APIDOC_CONF := doc/doxy.api.conf
+
+APIDOC_ROOT := doc/api
+
+DOXYGEN := doxygen
+
 ############################################################
 # Object Group Variables
 
@@ -82,10 +88,6 @@ policyd: policyd.o $(CORE_OBJECTS) $(RESOURCE_OBJECTS) $(POLICY_OBJECTS) $(SPEC_
 # Documentation
 
 docs: apidocs
-
-APIDOC_CONF := doc/doxy.api.conf
-APIDOC_ROOT := doc/api
-DOXYGEN := doxygen
 
 apidocs:
 	rm -rf $(APIDOC_ROOT)/*
@@ -210,6 +212,8 @@ clean:
 	rm -f spec/lexer.c spec/grammar.c spec/grammar.h spec/*.output
 	rm -f config/lexer.c config/grammar.c config/grammar.h config/*.output
 	rm -f test/util/includer test/util/factchecker test/util/presence test/util/daemoncfg
+	rm -rf $(APIDOC_ROOT)/*
+	rm -rf doc/coverage/*
 
 dist: clean
 	rm -rf doc/coverage

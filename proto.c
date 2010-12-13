@@ -12,14 +12,6 @@
 #include "policy.h"
 #include "stringlist.h"
 
-
-#define SEND_PDU(session_ptr) (&(session_ptr)->send_pdu)
-#define RECV_PDU(session_ptr) (&(session_ptr)->recv_pdu)
-
-static int pdu_allocate(protocol_data_unit *pdu, uint16_t op, uint16_t len);
-
-/**********************************************************/
-
 static int pdu_allocate(protocol_data_unit *pdu, uint16_t op, uint16_t len)
 {
 	assert(pdu);
@@ -45,107 +37,11 @@ static void pdu_deallocate(protocol_data_unit *pdu)
 	pdu->data = NULL;
 }
 
-int server_dispatch(protocol_session *session)
-{
-	char errbuf[256] = {0};
-	struct stree  *stree;
-	struct policy *pol;
-	struct hash   *facts;
-	char *packed;
-
-	for (;;) {
-		pdu_receive(session);
-		switch (session->recv_pdu.op) {
-
-		case PROTOCOL_OP_BYE:
-			return 0;
-
-		case PROTOCOL_OP_GET_POLICY:
-			facts = hash_new();
-			if (!facts) {
-				CRITICAL("Unable to allocate memory for facts hash");
-				exit(42);
-			}
-
-			if (pdu_decode_GET_POLICY(RECV_PDU(session), facts) != 0) {
-				CRITICAL("Unable to decode GET_POLICY");
-				exit(42);
-			}
-
-			stree = hash_get(session->manifest->hosts, session->fqdn);
-			if (!stree) {
-				CRITICAL("No such host... %s", session->fqdn);
-				exit(42);
-			}
-
-			pol = policy_generate(stree, facts);
-			if (!pol) {
-				CRITICAL("Unable to generate policy for host %s", session->fqdn);
-				exit(42);
-			}
-
-			packed = policy_pack(pol);
-			if (!packed) {
-				CRITICAL("Unable to pack policy into a string");
-				exit(42);
-			}
-
-			if (pdu_send_SEND_POLICY(session, pol) < 0) {
-				CRITICAL("Unable to send SEND_POLICY");
-				exit(42);
-			}
-
-			free(packed);
-			pol = NULL; stree = NULL;
-			hash_free(facts);
-			break;
-
-		case PROTOCOL_OP_PUT_REPORT:
-			if (pdu_send_ACK(session) < 0) {
-				CRITICAL("Unable to send ACK");
-				exit(42);
-			}
-			break;
-
-		default:
-			snprintf(errbuf, 256, "Unrecognized PDU OP: %u", session->recv_pdu.op);
-			if (pdu_send_ERROR(session, 405, (uint8_t*)errbuf, strlen(errbuf)) < 0) {
-				CRITICAL("Unable to send ERROR");
-				exit(42);
-			}
-			return -1;
-		}
-
-#if 0
-	} else if (strcmp(session->line, "REPORT") == 0) {
-		network_printf(session->nbuf, "301 Go Ahead\r\n");
-		__proto_readline(session);
-		while (strcmp(session->line, "DONE") != 0) {
-			__proto_readline(session);
-		}
-		network_printf(session->nbuf, "200 OK\r\n");
-		return 0;
-
-	}
-#endif
-	} /* for (;;) */
-}
-
 int pdu_send_ERROR(protocol_session *session, uint16_t err_code, const uint8_t *str, size_t len)
 {
 	assert(session);
 
-	int rc = pdu_encode_ERROR(SEND_PDU(session), err_code, str, len);
-	if (rc < 0) {
-		return 0;
-	}
-
-	return pdu_write(session->io, SEND_PDU(session));
-}
-
-int pdu_encode_ERROR(protocol_data_unit *pdu, uint16_t err_code, const uint8_t *str, size_t len)
-{
-	assert(pdu);
+	protocol_data_unit *pdu = SEND_PDU(session);
 
 	err_code = htons(err_code);
 
@@ -156,7 +52,7 @@ int pdu_encode_ERROR(protocol_data_unit *pdu, uint16_t err_code, const uint8_t *
 	memcpy(pdu->data, &err_code, sizeof(err_code));
 	memcpy(pdu->data + sizeof(err_code), str, len);
 
-	return 0;
+	return pdu_write(session->io, SEND_PDU(session));
 }
 
 int pdu_decode_ERROR(protocol_data_unit *pdu, uint16_t *err_code, uint8_t **str, size_t *len)
@@ -190,73 +86,34 @@ int pdu_send_ACK(protocol_session *session)
 {
 	assert(session);
 
-	int rc = pdu_encode_ACK(SEND_PDU(session));
-	if (rc < 0) {
-		return 0;
+	protocol_data_unit *pdu = SEND_PDU(session);
+
+	if (pdu_allocate(pdu, PROTOCOL_OP_ACK, 0) < 0) {
+		return -1;
 	}
 
 	return pdu_write(session->io, SEND_PDU(session));
-}
-
-int pdu_encode_ACK(protocol_data_unit *pdu)
-{
-	return pdu_allocate(pdu, PROTOCOL_OP_ACK, 0);
-}
-
-int pdu_decode_ACK(protocol_data_unit *pdu)
-{
-	assert(pdu);
-	assert(pdu->op == PROTOCOL_OP_ACK);
-
-	/* no special processing for ACK PDUs */
-
-	return 0;
 }
 
 int pdu_send_BYE(protocol_session *session)
 {
 	assert(session);
 
-	int rc = pdu_encode_BYE(SEND_PDU(session));
-	if (rc < 0) {
-		return 0;
+	protocol_data_unit *pdu = SEND_PDU(session);
+
+	if (pdu_allocate(pdu, PROTOCOL_OP_BYE, 0) < 0) {
+		return -1;
 	}
 
 	return pdu_write(session->io, SEND_PDU(session));
-}
-
-int pdu_encode_BYE(protocol_data_unit *pdu)
-{
-	return pdu_allocate(pdu, PROTOCOL_OP_BYE, 0);
-}
-
-int pdu_decode_BYE(protocol_data_unit *pdu)
-{
-	assert(pdu);
-	assert(pdu->op == PROTOCOL_OP_BYE);
-
-	/* no special processing for BYE PDUs */
-
-	return 0;
 }
 
 int pdu_send_GET_POLICY(protocol_session *session, const struct hash *facts)
 {
 	assert(session);
-
-	int rc = pdu_encode_GET_POLICY(SEND_PDU(session), facts);
-	if (rc < 0) {
-		return 0;
-	}
-
-	return pdu_write(session->io, SEND_PDU(session));
-}
-
-int pdu_encode_GET_POLICY(protocol_data_unit *pdu, const struct hash *facts)
-{
-	assert(pdu);
 	assert(facts);
 
+	protocol_data_unit *pdu = SEND_PDU(session);
 	stringlist *list = stringlist_new(NULL);
 	struct hash_cursor cur;
 
@@ -279,7 +136,8 @@ int pdu_encode_GET_POLICY(protocol_data_unit *pdu, const struct hash *facts)
 	}
 
 	memcpy(pdu->data, buf, len);
-	return 0;
+
+	return pdu_write(session->io, SEND_PDU(session));
 }
 
 int pdu_decode_GET_POLICY(protocol_data_unit *pdu, struct hash *facts)
@@ -311,19 +169,7 @@ int pdu_send_SEND_POLICY(protocol_session *session, const struct policy *policy)
 	assert(session);
 	assert(policy);
 
-	int rc = pdu_encode_SEND_POLICY(SEND_PDU(session), policy);
-	if (rc < 0) {
-		return 0;
-	}
-
-	return pdu_write(session->io, SEND_PDU(session));
-}
-
-int pdu_encode_SEND_POLICY(protocol_data_unit *pdu, const struct policy *policy)
-{
-	assert(pdu);
-	assert(policy);
-
+	protocol_data_unit *pdu = SEND_PDU(session);
 	char *packed;
 	size_t len;
 
@@ -341,7 +187,8 @@ int pdu_encode_SEND_POLICY(protocol_data_unit *pdu, const struct policy *policy)
 
 	memcpy(pdu->data, packed, len);
 	free(packed);
-	return 0;
+
+	return pdu_write(session->io, SEND_PDU(session));
 }
 
 int pdu_decode_SEND_POLICY(protocol_data_unit *pdu, struct policy **policy)
@@ -456,20 +303,6 @@ int pdu_receive(protocol_session *session)
 
 	return 0;
 }
-
-#ifdef DEVEL
-static void pdu_dump(protocol_data_unit *pdu)
-{
-	pdu->data[pdu->len] = '\0';
-	DEVELOPER("----[ PDU ]-------------------------------------");
-	DEVELOPER("OP:  %u", pdu->op);
-	DEVELOPER("LEN: %u", pdu->len);
-	DEVELOPER("%s", pdu->data);
-	DEVELOPER("------------------------------------------------");
-}
-#else
-#  define pdu_dump(x)
-#endif
 
 /**********************************************************/
 
@@ -606,44 +439,6 @@ SSL_CTX* protocol_ssl_default_context(const char *ca_cert_file, const char *cert
 	SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, NULL);
 	SSL_CTX_set_verify_depth(ctx, 4);
 	return ctx;
-}
-
-struct policy* client_get_policy(protocol_session *session, const struct hash *facts)
-{
-	struct policy *pol;
-
-	if (pdu_send_GET_POLICY(session, facts) < 0) {
-		CRITICAL("Unable to GET_POLICY");
-		exit(42);
-	}
-	pdu_dump(SEND_PDU(session));
-
-	pdu_receive(session);
-	if (session->recv_pdu.op != PROTOCOL_OP_SEND_POLICY) {
-		CRITICAL("Unexpected op from server: %u", session->recv_pdu.op);
-		exit(42);
-	}
-	pdu_dump(RECV_PDU(session));
-
-	if (pdu_decode_SEND_POLICY(RECV_PDU(session), &pol) != 0) {
-		CRITICAL("Unable to decode SEND_POLICY PDU");
-		exit(42);
-	}
-
-	return pol;
-}
-
-int client_disconnect(protocol_session *session)
-{
-	if (pdu_send_BYE(session) < 0) {
-		perror("client_disconnect");
-		return -1;
-	}
-	pdu_dump(SEND_PDU(session));
-
-	pdu_receive(session);
-	pdu_dump(RECV_PDU(session));
-	return 0;
 }
 
 void protocol_ssl_backtrace(void)

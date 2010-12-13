@@ -4,20 +4,62 @@
 #include <sys/types.h>
 
 /** @file hash.h
+
+  Hashes, or associative arrays, is a generalization of a primitive C
+  array, where strings are used for keys instead of integers.  Just like
+  an array, each key is associated with a single value.
+
+  A new hash is allocated and initialized with a call to hash_free, and
+  freed via hash_free.  hash_set and hash_get are used to set and get the
+  value for a specific key, respectively.
+
+  <h3>Examples</h3>
+
+  The following example illustrates the following core principles:
+
+    -# allocation and de-allocation
+    -# value storage / retrieval
+    -# uniqueness of values not necessary
+    -# uniqueness of keys is enforced
+
+  @verbatim
+  struct hash *h = hash_new();
+
+  // populate hash h with colors of various fruits,
+  // using the name of the fruit as a key.
+  hash_set(h, "Apple",  "red");
+  hash_set(h, "Banana", "yellow");
+  hash_set(h, "Grape",  "green");
+  hash_set(h, "Lemon",  "yellow");
+  hash_set(h, "Grape",  "purple");
+
+  // retrieve some values.
+  printf("%s\n", hash_get(h, "Banana")); // 'yellow'
+  printf("%s\n", hash_get(h, "Lemon"));  // 'yellow'
+  printf("%s\n", hash_get(h, "Grape"));  // 'purple'
+
+  hash_free(h);
+  @endverbatim
+
  */
+
+/** @cond false */
+struct hash_cursor {
+	ssize_t l1, l2;
+};
 
 struct hash_list {
 	char **keys;
 	void **values;
 	ssize_t len;
 };
+/** @endcond */
 
+/**
+  Hash table
+ */
 struct hash {
 	struct hash_list entries[64];
-};
-
-struct hash_cursor {
-	ssize_t l1, l2;
 };
 
 /**

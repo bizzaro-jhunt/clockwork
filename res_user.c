@@ -225,14 +225,6 @@ int res_user_set_name(struct res_user *ru, const char *name)
 	return 0;
 }
 
-int res_user_unset_name(struct res_user *ru)
-{
-	assert(ru);
-
-	ru->ru_enf ^= RES_USER_NAME;
-	return 0;
-}
-
 int res_user_set_passwd(struct res_user *ru, const char *passwd)
 {
 	assert(ru);
@@ -242,14 +234,6 @@ int res_user_set_passwd(struct res_user *ru, const char *passwd)
 	if (!ru->ru_passwd) { return -1; }
 
 	ru->ru_enf |= RES_USER_PASSWD;
-	return 0;
-}
-
-int res_user_unset_passwd(struct res_user *ru)
-{
-	assert(ru);
-
-	ru->ru_enf ^= RES_USER_PASSWD;
 	return 0;
 }
 
@@ -263,14 +247,6 @@ int res_user_set_uid(struct res_user *ru, uid_t uid)
 	return 0;
 }
 
-int res_user_unset_uid(struct res_user *ru)
-{
-	assert(ru);
-
-	ru->ru_enf ^= RES_USER_UID;
-	return 0;
-}
-
 int res_user_set_gid(struct res_user *ru, gid_t gid)
 {
 	assert(ru);
@@ -278,14 +254,6 @@ int res_user_set_gid(struct res_user *ru, gid_t gid)
 	ru->ru_gid = gid;
 
 	ru->ru_enf |= RES_USER_GID;
-	return 0;
-}
-
-int res_user_unset_gid(struct res_user *ru)
-{
-	assert(ru);
-
-	ru->ru_enf ^= RES_USER_GID;
 	return 0;
 }
 
@@ -301,14 +269,6 @@ int res_user_set_gecos(struct res_user *ru, const char *gecos)
 	return 0;
 }
 
-int res_user_unset_gecos(struct res_user *ru)
-{
-	assert(ru);
-
-	ru->ru_enf ^= RES_USER_GECOS;
-	return 0;
-}
-
 int res_user_set_dir(struct res_user *ru, const char *path)
 {
 	assert(ru);
@@ -321,14 +281,6 @@ int res_user_set_dir(struct res_user *ru, const char *path)
 	return 0;
 }
 
-int res_user_unset_dir(struct res_user *ru)
-{
-	assert(ru);
-
-	ru->ru_enf ^= RES_USER_DIR;
-	return 0;
-}
-
 int res_user_set_shell(struct res_user *ru, const char *shell)
 {
 	assert(ru);
@@ -338,14 +290,6 @@ int res_user_set_shell(struct res_user *ru, const char *shell)
 	if (!ru->ru_shell) { return -1; }
 
 	ru->ru_enf |= RES_USER_SHELL;
-	return 0;
-}
-
-int res_user_unset_shell(struct res_user *ru)
-{
-	assert(ru);
-
-	ru->ru_enf ^= RES_USER_SHELL;
 	return 0;
 }
 
@@ -363,14 +307,6 @@ int res_user_set_makehome(struct res_user *ru, unsigned char mkhome, const char 
 	return 0;
 }
 
-int res_user_unset_makehome(struct res_user *ru)
-{
-	assert(ru);
-
-	ru->ru_enf ^= RES_USER_MKHOME;
-	return 0;
-}
-
 int res_user_set_pwmin(struct res_user *ru, long days)
 {
 	assert(ru);
@@ -378,14 +314,6 @@ int res_user_set_pwmin(struct res_user *ru, long days)
 	ru->ru_pwmin = days;
 
 	ru->ru_enf |= RES_USER_PWMIN;
-	return 0;
-}
-
-int res_user_unset_pwmin(struct res_user *ru)
-{
-	assert(ru);
-
-	ru->ru_enf ^= RES_USER_PWMIN;
 	return 0;
 }
 
@@ -399,14 +327,6 @@ int res_user_set_pwmax(struct res_user *ru, long days)
 	return 0;
 }
 
-int res_user_unset_pwmax(struct res_user *ru)
-{
-	assert(ru);
-
-	ru->ru_enf ^= RES_USER_PWMAX;
-	return 0;
-}
-
 int res_user_set_pwwarn(struct res_user *ru, long days)
 {
 	assert(ru);
@@ -414,14 +334,6 @@ int res_user_set_pwwarn(struct res_user *ru, long days)
 	ru->ru_pwwarn = days;
 
 	ru->ru_enf |= RES_USER_PWWARN;
-	return 0;
-}
-
-int res_user_unset_pwwarn(struct res_user *ru)
-{
-	assert(ru);
-
-	ru->ru_enf ^= RES_USER_PWWARN;
 	return 0;
 }
 
@@ -435,14 +347,6 @@ int res_user_set_inact(struct res_user *ru, long days)
 	return 0;
 }
 
-int res_user_unset_inact(struct res_user *ru)
-{
-	assert(ru);
-
-	ru->ru_enf ^= RES_USER_INACT;
-	return 0;
-}
-
 int res_user_set_expire(struct res_user *ru, long days)
 {
 	assert(ru);
@@ -453,14 +357,6 @@ int res_user_set_expire(struct res_user *ru, long days)
 	return 0;
 }
 
-int res_user_unset_expire(struct res_user *ru)
-{
-	assert(ru);
-
-	ru->ru_enf ^= RES_USER_EXPIRE;
-	return 0;
-}
-
 int res_user_set_lock(struct res_user *ru, unsigned char locked)
 {
 	assert(ru);
@@ -468,14 +364,6 @@ int res_user_set_lock(struct res_user *ru, unsigned char locked)
 	ru->ru_lock = locked;
 
 	ru->ru_enf |= RES_USER_LOCK;
-	return 0;
-}
-
-int res_user_unset_lock(struct res_user *ru)
-{
-	assert(ru);
-
-	ru->ru_enf ^= RES_USER_LOCK;
 	return 0;
 }
 
@@ -571,6 +459,8 @@ int res_user_remediate(struct res_user *ru, struct pwdb *pwdb, struct spdb *spdb
 	if (res_user_enforced(ru, EXPIRE)) {
 		ru->ru_sp->sp_expire = ru->ru_expire;
 	}
+
+	/* FIXME: ru_lock support in res_user_remediate */
 
 	return 0;
 }

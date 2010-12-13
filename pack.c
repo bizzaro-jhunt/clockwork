@@ -72,47 +72,6 @@ static char* _unescape(const char *string)
 
 /************************************************************************/
 
-/**
-  Pack arbitrary data types into a string representation,
-  for persistent storage or communication to other hosts.
-
-  Formats:
-
-    a - Character string, null-terminated
-    c - Signed 8-bit integer
-    C - Unsigned 8-bit integer
-    s - Signed 16-bit integer
-    S - Unsigned 16-bit integer
-    l - Signed 32-bit integer
-    L - Unsigned 32-bit integer
-
-  All integer formats (cCsSlL) are resprented in hex, without
-  the leading '0x':
-
-  pack(&buf, 3, "c", 255);   // buf == "ff"
-  pack(&buf, 5, "s", 48879); // buf == "beef"
-  pack(&buf, 2, "c", 127);   // buf is undefined
-                             //  (because 2 bytes is not enough space
-                             //  to represent an 8-bit integer in hex,
-                             //  with the NULL terminator.
-
-  Signed integers (8-, 16- and 32-bit) are represented as hex
-  two's complements:
-
-  pack(&buf, 3, "C", -42);   // buf == "d6" (11010110b / 214d)
-
-  This function deliberately behaves like snprintf; the return
-  value is the number of bytes required in the dst buffer to
-  contain the complete packed representation.  This feature can
-  be used to size a buffer exactly to the requirements:
-
-  size_t len;
-  char *buf;
-  len = pack(NULL, 0, "c", 255);
-  buf = calloc(len, sizeof(char));
-  pack(&buf, len, "c", 255);
-
- */
 size_t pack(char *dst, size_t len, const char *format, ...)
 {
 	/* dst can be NULL, if we are trying to find

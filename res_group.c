@@ -187,14 +187,6 @@ int res_group_set_name(struct res_group *rg, const char *name)
 	return 0;
 }
 
-int res_group_unset_name(struct res_group *rg)
-{
-	assert(rg);
-
-	rg->rg_enf ^= RES_GROUP_NAME;
-	return 0;
-}
-
 int res_group_set_passwd(struct res_group *rg, const char *passwd)
 {
 	assert(rg);
@@ -207,14 +199,6 @@ int res_group_set_passwd(struct res_group *rg, const char *passwd)
 	return 0;
 }
 
-int res_group_unset_passwd(struct res_group *rg)
-{
-	assert(rg);
-
-	rg->rg_enf ^= RES_GROUP_PASSWD;
-	return 0;
-}
-
 int res_group_set_gid(struct res_group *rg, gid_t gid)
 {
 	assert(rg);
@@ -222,14 +206,6 @@ int res_group_set_gid(struct res_group *rg, gid_t gid)
 	rg->rg_gid = gid;
 
 	rg->rg_enf |= RES_GROUP_GID;
-	return 0;
-}
-
-int res_group_unset_gid(struct res_group *rg)
-{
-	assert(rg);
-
-	rg->rg_enf ^= RES_GROUP_GID;
 	return 0;
 }
 

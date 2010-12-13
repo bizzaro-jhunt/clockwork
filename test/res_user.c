@@ -3,17 +3,10 @@
 #include "../env.h"
 #include "../res_user.h"
 
-#define ASSERT_ENFORCEMENT(o,f,c,t,v1,v2) do {\
-	res_user_set_ ## f (o,v1); \
+#define ASSERT_ENFORCEMENT(o,f,c,t,v) do {\
+	res_user_set_ ## f (o,v); \
 	assert_true( #c " enforced", res_user_enforced(o,c)); \
-	assert_ ## t ## _equals( #c " set properly", (o)->ru_ ## f, v1); \
-	\
-	res_user_unset_ ## f (o); \
-	assert_true( #c " no longer enforced", !res_user_enforced(o,c)); \
-	\
-	res_user_set_ ## f (o,v2); \
-	assert_true( #c " re-enforced", res_user_enforced(o,c)); \
-	assert_ ## t ## _equals ( #c " re-set properly", (o)->ru_ ## f, v2); \
+	assert_ ## t ## _equals( #c " set properly", (o)->ru_ ## f, v); \
 } while(0)
 
 void test_res_user_enforcement()
@@ -28,25 +21,25 @@ void test_res_user_enforcement()
 	assert_true("GID not enforced",    !res_user_enforced(ru, GID));
 
 	test("RES_USER: NAME enforcement");
-	ASSERT_ENFORCEMENT(ru,name,NAME,str,"name1","name2");
+	ASSERT_ENFORCEMENT(ru,name,NAME,str,"name");
 
 	test("RES_USER: PASSWD enforcement");
-	ASSERT_ENFORCEMENT(ru,passwd,PASSWD,str,"pass1", "pass2");
+	ASSERT_ENFORCEMENT(ru,passwd,PASSWD,str,"pass");
 
 	test("RES_USER: UID enforcement");
-	ASSERT_ENFORCEMENT(ru,uid,UID,int,4,8);
+	ASSERT_ENFORCEMENT(ru,uid,UID,int,4);
 
 	test("RES_USER: GID enforcement");
-	ASSERT_ENFORCEMENT(ru,gid,GID,int,4,8);
+	ASSERT_ENFORCEMENT(ru,gid,GID,int,4);
 
 	test("RES_USER: GECOS enforcement");
-	ASSERT_ENFORCEMENT(ru,gecos,GECOS,str,"Comment 1","Another GECOS");
+	ASSERT_ENFORCEMENT(ru,gecos,GECOS,str,"Comment");
 
 	test("RES_USER: DIR enforcement");
-	ASSERT_ENFORCEMENT(ru,dir,DIR,str,"/home/user","/var/lib/subsys1");
+	ASSERT_ENFORCEMENT(ru,dir,DIR,str,"/home/user");
 
 	test("RES_USER: SHELL enforcement");
-	ASSERT_ENFORCEMENT(ru,shell,SHELL,str,"/bin/bash","/sbin/nologin");
+	ASSERT_ENFORCEMENT(ru,shell,SHELL,str,"/bin/bash");
 
 	test("RES_USER: MKHOME enforcement");
 	res_user_set_makehome(ru, 1, "/etc/skel.admin");
@@ -54,36 +47,28 @@ void test_res_user_enforcement()
 	assert_int_equals("MKHOME set properly", ru->ru_mkhome, 1);
 	assert_str_equals("SKEL set properly", ru->ru_skel, "/etc/skel.admin");
 
-	res_user_unset_makehome(ru);
-	assert_true("MKHOME no longer enforced", !res_user_enforced(ru, MKHOME));
-
-	res_user_set_makehome(ru, 1, "/etc/new.skel");
-	assert_true("MKHOME re-enforced", res_user_enforced(ru, MKHOME));
-	assert_int_equals("MKHOME re-set properly", ru->ru_mkhome, 1);
-	assert_str_equals("SKEL re-set properly", ru->ru_skel, "/etc/new.skel");
-
 	res_user_set_makehome(ru, 0, "/etc/skel");
 	assert_true("MKHOME re-re-enforced", res_user_enforced(ru, MKHOME));
 	assert_int_equals("MKHOME re-re-set properly", ru->ru_mkhome, 0);
 	assert_null("SKEL is NULL", ru->ru_skel);
 
 	test("RES_USER: PWMIN enforcement");
-	ASSERT_ENFORCEMENT(ru,pwmin,PWMIN,int,1,7);
+	ASSERT_ENFORCEMENT(ru,pwmin,PWMIN,int,7);
 
 	test("RES_USER: PWMAX enforcement");
-	ASSERT_ENFORCEMENT(ru,pwmax,PWMAX,int,45,99999);
+	ASSERT_ENFORCEMENT(ru,pwmax,PWMAX,int,45);
 
 	test("RES_USER: PWWARN enforcement");
-	ASSERT_ENFORCEMENT(ru,pwwarn,PWWARN,int,2,9);
+	ASSERT_ENFORCEMENT(ru,pwwarn,PWWARN,int,2);
 
 	test("RES_USER: INACT enforcement");
-	ASSERT_ENFORCEMENT(ru,inact,INACT,int,45,999);
+	ASSERT_ENFORCEMENT(ru,inact,INACT,int,999);
 
 	test("RES_USER: EXPIRE enforcement");
-	ASSERT_ENFORCEMENT(ru,expire,EXPIRE,int,100,8989);
+	ASSERT_ENFORCEMENT(ru,expire,EXPIRE,int,100);
 
 	test("RES_USER: LOCK enforcement");
-	ASSERT_ENFORCEMENT(ru,lock,LOCK,int,1,0);
+	ASSERT_ENFORCEMENT(ru,lock,LOCK,int,1);
 
 	res_user_free(ru);
 }

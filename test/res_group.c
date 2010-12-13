@@ -6,13 +6,6 @@
 	res_group_set_ ## f (o,v1); \
 	assert_true( #c " enforced", res_group_enforced(o,c)); \
 	assert_ ## t ## _equals( #c " set properly", (o)->rg_ ## f, v1); \
-	\
-	res_group_unset_ ## f (o); \
-	assert_true( #c " no longer enforced", !res_group_enforced(o,c)); \
-	\
-	res_group_set_ ## f (o,v2); \
-	assert_true( #c " re-enforced", res_group_enforced(o,c)); \
-	assert_ ## t ## _equals ( #c " re-set properly", (o)->rg_ ## f, v2); \
 } while(0)
 
 void test_res_group_enforcement()

@@ -63,6 +63,8 @@ static void server_teardown(struct server *s);
 static void* server_thread(void *arg);
 static void* policy_manager_thread(void *arg);
 
+static void server_dispatch(protocol_session *session);
+
 static void reread_config(void);
 static void reread_manifest(void);
 
@@ -341,6 +343,92 @@ static void* policy_manager_thread(void *arg)
 	reread_config();
 	reread_manifest();
 	return NULL;
+}
+
+static void server_dispatch(protocol_session *session)
+{
+	char errbuf[256] = {0};
+	struct stree  *stree;
+	struct policy *pol;
+	struct hash   *facts;
+	char *packed;
+
+	for (;;) {
+		pdu_receive(session);
+		switch (RECV_PDU(session)->op) {
+
+		case PROTOCOL_OP_BYE:
+			return;
+
+		case PROTOCOL_OP_GET_POLICY:
+			facts = hash_new();
+			if (!facts) {
+				CRITICAL("Unable to allocate memory for facts hash");
+				exit(42);
+			}
+
+			if (pdu_decode_GET_POLICY(RECV_PDU(session), facts) != 0) {
+				CRITICAL("Unable to decode GET_POLICY");
+				exit(42);
+			}
+
+			stree = hash_get(session->manifest->hosts, session->fqdn);
+			if (!stree) {
+				CRITICAL("No such host... %s", session->fqdn);
+				exit(42);
+			}
+
+			pol = policy_generate(stree, facts);
+			if (!pol) {
+				CRITICAL("Unable to generate policy for host %s", session->fqdn);
+				exit(42);
+			}
+
+			packed = policy_pack(pol);
+			if (!packed) {
+				CRITICAL("Unable to pack policy into a string");
+				exit(42);
+			}
+
+			if (pdu_send_SEND_POLICY(session, pol) < 0) {
+				CRITICAL("Unable to send SEND_POLICY");
+				exit(42);
+			}
+
+			free(packed);
+			pol = NULL; stree = NULL;
+			hash_free(facts);
+			break;
+
+		case PROTOCOL_OP_PUT_REPORT:
+			if (pdu_send_ACK(session) < 0) {
+				CRITICAL("Unable to send ACK");
+				exit(42);
+			}
+			break;
+
+		default:
+			snprintf(errbuf, 256, "Unrecognized PDU OP: %u", RECV_PDU(session)->op);
+			if (pdu_send_ERROR(session, 405, (uint8_t*)errbuf, strlen(errbuf)) < 0) {
+				CRITICAL("Unable to send ERROR");
+				exit(42);
+			}
+			return;
+		}
+
+#if 0
+	} else if (strcmp(session->line, "REPORT") == 0) {
+		network_printf(session->nbuf, "301 Go Ahead\r\n");
+		__proto_readline(session);
+		while (strcmp(session->line, "DONE") != 0) {
+			__proto_readline(session);
+		}
+		network_printf(session->nbuf, "200 OK\r\n");
+		return 0;
+
+	}
+#endif
+	} /* for (;;) */
 }
 
 static void reread_config()

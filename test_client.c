@@ -127,6 +127,30 @@ static void DEVELOPER_verify_facts(const struct hash *facts)
 #  define DEVELOPER_verify_facts(x)
 #endif
 
+static struct policy* get_policy(protocol_session *session, const struct hash *facts)
+{
+	struct policy *pol;
+
+	if (pdu_send_GET_POLICY(session, facts) < 0) {
+		CRITICAL("Unable to GET_POLICY");
+		exit(42);
+	}
+
+	pdu_receive(session);
+	if (RECV_PDU(session)->op != PROTOCOL_OP_SEND_POLICY) {
+		CRITICAL("Unexpected op from server: %u", RECV_PDU(session)->op);
+		exit(42);
+	}
+
+	if (pdu_decode_SEND_POLICY(RECV_PDU(session), &pol) != 0) {
+		CRITICAL("Unable to decode SEND_POLICY PDU");
+		exit(42);
+	}
+
+	return pol;
+}
+
+
 static void dump_policy(struct policy *pol)
 {
 	char *packed = policy_pack(pol);
@@ -190,9 +214,15 @@ int main(int argc, char **argv)
 
 	protocol_session_init(&session, ssl, NULL);
 
-	policy = client_get_policy(&session, facts);
+	policy = get_policy(&session, facts);
 	dump_policy(policy);
-	client_disconnect(&session);
+
+	/* disconnect */
+	if (pdu_send_BYE(&session) < 0) {
+		perror("client_disconnect");
+		return -1;
+	}
+	pdu_receive(&session);
 
 	SSL_shutdown(ssl);
 	protocol_session_deinit(&session);

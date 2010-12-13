@@ -151,9 +151,6 @@ int res_file_set_presence(struct res_file *rf, int presence)
 	return 0;
 }
 
-/*
- * Set an enforcing UID for a res_file
- */
 int res_file_set_uid(struct res_file *rf, uid_t uid)
 {
 	assert(rf);
@@ -163,20 +160,6 @@ int res_file_set_uid(struct res_file *rf, uid_t uid)
 	return 0;
 }
 
-/*
- * Stop enforcing a UID for a res_file
- */
-int res_file_unset_uid(struct res_file *rf)
-{
-	assert(rf);
-	rf->rf_enf ^= RES_FILE_UID;
-
-	return 0;
-}
-
-/*
- * Set an enforcing GID for a res_file
- */
 int res_file_set_gid(struct res_file *rf, gid_t gid)
 {
 	assert(rf);
@@ -186,36 +169,11 @@ int res_file_set_gid(struct res_file *rf, gid_t gid)
 	return 0;
 }
 
-/*
- * Stop enforcing a GID for a res_file
- */
-int res_file_unset_gid(struct res_file *rf)
-{
-	assert(rf);
-	rf->rf_enf ^= RES_FILE_GID;
-
-	return 0;
-}
-
-/*
- * Set an enforcing permissions mode for a res_file
- */
 int res_file_set_mode(struct res_file *rf, mode_t mode)
 {
 	assert(rf);
 	rf->rf_mode = mode & 07777; /* mask off non-perm bits */
 	rf->rf_enf |= RES_FILE_MODE;
-
-	return 0;
-}
-
-/*
- * Stop enforcing permissions for a res_file
- */
-int res_file_unset_mode(struct res_file *rf)
-{
-	assert(rf);
-	rf->rf_enf ^= RES_FILE_MODE;
 
 	return 0;
 }
@@ -233,14 +191,6 @@ int res_file_set_path(struct res_file *rf, const char *file)
 	return 0;
 }
 
-int res_file_unset_path(struct res_file *rf)
-{
-	assert(rf);
-	/* no op for now */
-
-	return 0;
-}
-
 int res_file_set_source(struct res_file *rf, const char *file)
 {
 	assert(rf);
@@ -254,15 +204,6 @@ int res_file_set_source(struct res_file *rf, const char *file)
 
 	strncpy(rf->rf_rpath, file, len);
 	if (sha1_file(rf->rf_rpath, &(rf->rf_rsha1)) == -1) { return -1; }
-
-	return 0;
-}
-
-int res_file_unset_source(struct res_file *rf)
-{
-	assert(rf);
-	sha1_init(&(rf->rf_rsha1));
-	rf->rf_enf ^= RES_FILE_SHA1;
 
 	return 0;
 }

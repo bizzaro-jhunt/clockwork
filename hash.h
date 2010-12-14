@@ -59,6 +59,8 @@ struct hash_list {
   Hash table
  */
 struct hash {
+	/** Hash buckets (64), used for fast indexing.
+	    Each hash_list can contain multiple keys and values. */
 	struct hash_list entries[64];
 };
 

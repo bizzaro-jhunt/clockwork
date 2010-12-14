@@ -18,27 +18,63 @@
 
  */
 
+/** Enforce absence of user / user is present. */
 #define RES_USER_ABSENT   0x80000000
 
+/** No fields to enforce / No fields are different. */
 #define RES_USER_NONE     0x0000
+/** Enforce username / username is different. */
 #define RES_USER_NAME     0x0001
+/** Enforce password / password is different. */
 #define RES_USER_PASSWD   0x0002
+/** Enforce UID / UID is different. */
 #define RES_USER_UID      0x0004
+/** Enforce primary group ID / GID is different. */
 #define RES_USER_GID      0x0008
+/** Enforce GECOS value / GECOS is different. */
 #define RES_USER_GECOS    0x0010
+/** Enforce home directory value / home directory is different. */
 #define RES_USER_DIR      0x0020
+/** Enforce user login shell / login shell is different. */
 #define RES_USER_SHELL    0x0040
+/** Enforce creation of user's home directory / home directory does not exist. */
 #define RES_USER_MKHOME   0x0080
+/** Enforce minimum password age / minimum password age is different. */
 #define RES_USER_PWMIN    0x0100
+/** Enforce maximum password age / maximum password age is different. */
 #define RES_USER_PWMAX    0x0200
+/** Enforce password warning period / password warning period is different. */
 #define RES_USER_PWWARN   0x0400
+/** Enforce password inactivity period / password inactivity period is different. */
 #define RES_USER_INACT    0x0800
+/** Enforce account expiration date / account expiration date is different. */
 #define RES_USER_EXPIRE   0x1000
+/** Enforce account lockout status / account lockout status is different. */
 #define RES_USER_LOCK     0x2000
 
-#define res_user_enforced(ru, flag)  (((ru)->ru_enf  & RES_USER_ ## flag) == RES_USER_ ## flag)
-#define res_user_different(ru, flag) (((ru)->ru_diff & RES_USER_ ## flag) == RES_USER_ ## flag)
+/**
+  Whether or not \a field is enforced on \a ru.
 
+  @param  ru       User resource to check.
+  @param  field    Part of a RES_USER_* constant, without the
+                   RES_USER_ prefix.
+  @returns non-zero if \a field is enforced; zero if not.
+ */
+#define res_user_enforced(ru, field)  (((ru)->ru_enf  & RES_USER_ ## field) == RES_USER_ ## field)
+
+/**
+  Whether or not \a field differs from the prescribed value in \a ru.
+
+  @param  ru       User resource to check.
+  @param  field    Part of a RES_USER_* constant, without the
+                   RES_USER_ prefix.
+  @returns non-zero if \a field differs; zero if not.
+ */
+#define res_user_different(ru, field) (((ru)->ru_diff & RES_USER_ ## field) == RES_USER_ ## field)
+
+/**
+  A system user resource.
+ */
 struct res_user {
 	/** Unique Identifier, starting with "res_user:" */
 	char *key;

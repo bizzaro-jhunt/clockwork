@@ -86,7 +86,22 @@ typedef struct {
 	unsigned char *errstr;
 } protocol_session;
 
+/**
+  Macro to retrieve a pointer to a session's send PDU buffer.
+
+  @param  session_ptr    Pointer to the current session.
+  @returns a pointer to the protocol_data_unit buffer used for
+           sending PDUs to the remote side.
+ */
 #define SEND_PDU(session_ptr) (&(session_ptr)->send_pdu)
+
+/**
+  Macro to retrieve a pointer to a session's receive PDU buffer.
+
+  @param  session_ptr    Pointer to the current session.
+  @returns a pointer to the protocol_data_unit buffer used for
+           receiving PDUs from the remote side.
+ */
 #define RECV_PDU(session_ptr) (&(session_ptr)->recv_pdu)
 
 /**********************************************************/
@@ -251,15 +266,6 @@ int pdu_decode_ERROR(protocol_data_unit *pdu, uint16_t *err_code, uint8_t **str,
 int pdu_send_ACK(protocol_session *session);
 
 /**
-  Decode an ACK PDU (no-op).
-
-  @param  pdu    PDU to decode.
-
-  @returns 0 always (no-op).
- */
-inline int pdu_decode_ACK(protocol_data_unit *pdu) { return 0; }
-
-/**
   Send a BYE PDU to the remote party.
 
   @param  session    The current session.  Contains the IO stream,
@@ -268,15 +274,6 @@ inline int pdu_decode_ACK(protocol_data_unit *pdu) { return 0; }
   @returns 0 on success, non-zero on failure.
  */
 int pdu_send_BYE(protocol_session *session);
-
-/**
-  Decode a BYE PDU (no-op).
-
-  @param  pdu    PDU to decode.
-
-  @returns 0 always (no-op).
- */
-inline int pdu_decode_BYE(protocol_data_unit *pdu) { return 0; }
 
 /**
   Send a GET_POLICY PDU to the server.

@@ -18,18 +18,45 @@
 
  */
 
+/** Enforce absence of group / group is present . */
 #define RES_GROUP_ABSENT   0x80000000
 
+/** No fields to enforce / No fields are different. */
 #define RES_GROUP_NONE     0x00
+/** Enforce group name / group name is different. */
 #define RES_GROUP_NAME     0x01
+/** Enforce group access password / password is different. */
 #define RES_GROUP_PASSWD   0x02
+/** Enforce group ID / GID is different. */
 #define RES_GROUP_GID      0x04
+/** Enforce group member roster / member roster is different. */
 #define RES_GROUP_MEMBERS  0x08
+/** Enforce group admin roster / admin roster is different. */
 #define RES_GROUP_ADMINS   0x10
 
-#define res_group_enforced(rg, flag)  (((rg)->rg_enf  & RES_GROUP_ ## flag) == RES_GROUP_ ## flag)
-#define res_group_different(rg, flag) (((rg)->rg_diff & RES_GROUP_ ## flag) == RES_GROUP_ ## flag)
+/**
+  Whether or not \a field is enforced on \a rg.
 
+  @param  rg       Group resource to check.
+  @param  field    Part of a RES_GROUP_* constant, without the
+                   RES_GROUP_ prefix.
+  @returns non-zero if \a field is enforced; zero if not.
+ */
+#define res_group_enforced(rg, field)  (((rg)->rg_enf  & RES_GROUP_ ## field) == RES_GROUP_ ## field)
+
+/**
+  Whether or not \a field differs from the prescribed value in \a rg.
+
+  @param  rg       Group resource to check.
+  @param  field    Part of a RES_GROUP_* constant, without the
+                   RES_GROUP_ prefix.
+  @returns non-zero if \a field differs; zero if not.
+ */
+#define res_group_different(rg, field) (((rg)->rg_diff & RES_GROUP_ ## field) == RES_GROUP_ ## field)
+
+/**
+  A system group resource.
+ */
 struct res_group {
 	/** Unique identifier, starting with "res_group:" */
 	char *key;

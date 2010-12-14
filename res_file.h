@@ -34,17 +34,43 @@
 
  */
 
+/** Enforce absence of file / file is absent. */
 #define RES_FILE_ABSENT   0x80000000
 
+/** No fields to enforce /  No fields are different. */
 #define RES_FILE_NONE     0x00
+/** Enforce UID / UID is different. */
 #define RES_FILE_UID      0x01
+/** Enforce GID / GID is different. */
 #define RES_FILE_GID      0x02
+/** Enforce file mode / file mode is different. */
 #define RES_FILE_MODE     0x04
+/** Enforce file contents / file contents are different. */
 #define RES_FILE_SHA1     0x08
 
-#define res_file_enforced(rf, flag)  (((rf)->rf_enf  & RES_FILE_ ## flag) == RES_FILE_ ## flag)
-#define res_file_different(rf, flag) (((rf)->rf_diff & RES_FILE_ ## flag) == RES_FILE_ ## flag)
+/**
+  Whether or not \a field is enforced on \a rf.
 
+  @param  rf       File resource to check.
+  @param  field    Part of a RES_FILE_* constant, without the
+                   RES_FILE_ prefix.
+  @returns non-zero if \a field is enforced; zero if not.
+ */
+#define res_file_enforced(rf, field)  (((rf)->rf_enf  & RES_FILE_ ## field) == RES_FILE_ ## field)
+
+/**
+  Whether or not \a field differs from the prescribed value in \a rf.
+
+  @param  rf       File resource to check.
+  @param  field    Part of a RES_FILE_* constant, without the
+                   RES_FILE_ prefix.
+  @returns non-zero if \a field differs; zero if not.
+ */
+#define res_file_different(rf, field) (((rf)->rf_diff & RES_FILE_ ## field) == RES_FILE_ ## field)
+
+/**
+  A filesystem resource (either a file or a directory).
+ */
 struct res_file {
 	/** Unique identifier, starting with "res_file:" */
 	char *key;

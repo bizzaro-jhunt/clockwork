@@ -16,6 +16,7 @@
  */
 #define POLICY_PACK_FORMAT "a"
 
+/** @cond false */
 enum restype {
 	RES_UNKNOWN = 0,
 	RES_USER,
@@ -34,6 +35,7 @@ struct policy_generator {
 		struct res_file  *file;
 	} resource;
 };
+/** @endcond */
 
 /* Allocate and initialize a new manifest structure */
 struct manifest* manifest_new(void)

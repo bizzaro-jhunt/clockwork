@@ -28,20 +28,34 @@
 //#define POLICYD_DOT_CONF "/etc/clockwork/policyd.conf"
 #define POLICYD_DOT_CONF "policyd.conf"
 
-/* just an idea at this point... */
+/**
+  A server thread.
+ */
 struct server {
+	/** Duplex socket for communication with the connected client. */
 	BIO         *socket;
+	/** SSL handle object. */
 	SSL         *ssl;
+	/** SSL Context, containing encryption parameters. */
 	SSL_CTX     *ssl_ctx;
+	/** Thread ID of this server thread. */
 	THREAD_TYPE  tid;
 };
 
+/**
+  Options for the policy master daemon.
+ */
 struct options {
+	/** Whether or not to daemonize the server process. */
 	int   daemonize;
+	/** Enable debug mode (if set to 1). */
 	int   debug;
+	/** Level of verbosity for log messages. */
 	int   verbosity;
 
+	/** Path to configuration file (policyd.conf) */
 	char *config_path;
+	/** TCP Port to listen on. */
 	char *port;
 };
 

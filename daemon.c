@@ -10,6 +10,12 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+static void daemon_acquire_lock(const char *path);
+static void daemon_fork1(void);
+static void daemon_fork2(const char *path);
+static void daemon_write_pid(pid_t pid, const char *path);
+static void daemon_settle(void);
+
 void daemonize(const struct daemon *d)
 {
 	/* are we already a child of init? */
@@ -21,7 +27,7 @@ void daemonize(const struct daemon *d)
 	daemon_settle();
 }
 
-void daemon_acquire_lock(const char *path)
+static void daemon_acquire_lock(const char *path)
 {
 
 	int lock_fd;
@@ -44,7 +50,7 @@ void daemon_acquire_lock(const char *path)
 
 }
 
-void daemon_fork1(void)
+static void daemon_fork1(void)
 {
 	pid_t pid = fork();
 
@@ -58,7 +64,7 @@ void daemon_fork1(void)
 	}
 }
 
-void daemon_fork2(const char *path)
+static void daemon_fork2(const char *path)
 {
 	pid_t pid, sessid;
 
@@ -82,7 +88,7 @@ void daemon_fork2(const char *path)
 	}
 }
 
-void  daemon_write_pid(pid_t pid, const char *path)
+static void daemon_write_pid(pid_t pid, const char *path)
 {
 	FILE *io;
 
@@ -95,7 +101,7 @@ void  daemon_write_pid(pid_t pid, const char *path)
 	fclose(io);
 }
 
-void  daemon_settle(void)
+static void daemon_settle(void)
 {
 	umask(0); /* reset the file umask */
 	if (chdir("/") < 0) {

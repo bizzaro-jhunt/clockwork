@@ -16,6 +16,7 @@ certs
 test/run
 test/sha1_files.h
 test/data/res_file/new_file
+test/chroot/*.chroot
 
 config/lexer.c
 config/grammar.c

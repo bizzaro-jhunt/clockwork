@@ -1,0 +1,108 @@
+#!/usr/bin/perl -w
+
+sub jail_file($$);
+sub jail_libdeps;
+sub mkdir_v($$);
+
+my $jail = $ARGV[0] . ".chroot";
+my $config = "$jail.conf";
+
+######################################################################
+
+if (! -f $config) {
+	print "Config $config does not exist.\n";
+	exit 1;
+}
+
+if (! -d $jail) { system("mkdir -p $jail"); }
+
+$jail =~ s/\/$//;
+my $prejail  = "$jail.pre/";
+$jail .= "/";
+
+if (-d $prejail) {
+	print "\n*** Initializing jail ***\n";
+	print "PRESEED $prejail -> $jail\n";
+	system("rsync -av $prejail $jail >/dev/null");
+
+	open my $find, "find $prejail -type f -perm -111 |";
+	while (<$find>) {
+		chomp;
+		$full_path = $_;
+
+		s/^$prejail//;
+		print "DEPS /$_\n";
+		jail_libdeps $jail, $full_path;
+	}
+	close $find;
+}
+
+print "\n*** Setting up / filesystem ***\n";
+mkdir_v $jail, "/dev";
+mkdir_v $jail, "/sys";
+mkdir_v $jail, "/proc";
+mkdir_v $jail, "/var/log";
+mkdir_v $jail, "/var/lock";
+mkdir_v $jail, "/var/run";
+mkdir_v $jail, "/tmp";
+mkdir_v $jail, "/home";
+
+print "\n*** Copying binaries and libraries ***\n";
+open CONFIG, $config;
+while (<CONFIG>) {
+	chomp;
+	my $file = $_;
+
+	print "COPY $file\n";
+	jail_libdeps $jail, $file;
+	jail_file $jail, $file;
+
+}
+close CONFIG;
+
+######################################################################
+
+sub mkdir_v($$) {
+	my $jail = shift;
+	my $dir = shift;
+
+	print "MKDIR $dir\n";
+	system("mkdir -p $jail/$dir");
+}
+
+sub jail_file($$) {
+	my $root = shift;
+	my $file = shift;
+
+	my $dirname = $file;
+	$dirname =~ s/\/[^\/]*$//;
+
+	system("mkdir -p $jail$dirname");
+	system("cp $file $jail$file");
+}
+
+my %LIBDEPS = ();
+
+sub jail_libdeps() {
+	my $root = shift;
+	my $file = shift;
+	my $prefix = shift || "   ";
+
+	open my $ldd, "ldd $file|";
+	while (<$ldd>) {
+		chomp;
+		if (! m/\/.*\.so[\.0-9]*/) { next; }
+
+		s/[^\/]*\//\//;
+		s/(\.so[\.0-9]*).*/$1/;
+		$libdep = $_;
+
+		if (exists $LIBDEPS{$libdep}) { next; }
+		print "COPY $prefix$libdep\n";
+
+		jail_file($root, $libdep);
+		$LIBDEPS{$libdep} = "moved";
+		jail_libdeps($root, $libdep, "$prefix   ");
+	}
+	close $ldd;
+}

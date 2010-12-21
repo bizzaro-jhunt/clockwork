@@ -18,4 +18,9 @@
 #define SYS_GROUP "/etc/group"
 #endif
 
+/** encrypted system group database **/
+#ifndef SYS_GSHADOW
+#define SYS_GSHADOW "/etc/gshadow"
+#endif
+
 #endif

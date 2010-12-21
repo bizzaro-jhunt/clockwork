@@ -10,6 +10,7 @@
 #include "proto.h"
 #include "policy.h"
 #include "log.h"
+#include "userdb.h"
 
 #define CAFILE   "certs/CA/cacert.pem"
 
@@ -158,6 +159,44 @@ static void dump_policy(struct policy *pol)
 	free(packed);
 }
 
+int policy_enforce(const struct policy *pol)
+{
+	struct pwdb *passwd;
+	struct spdb *shadow;
+	struct grdb *group;
+	struct sgdb *gshadow;
+
+	struct res_user *ru;
+	struct res_group *rg;
+	struct res_file *rf;
+
+	passwd  = pwdb_init(SYS_PASSWD);
+	shadow  = spdb_init(SYS_SHADOW);
+	group   = grdb_init(SYS_GROUP);
+	gshadow = sgdb_init(SYS_GSHADOW);
+	/* FIXME: check return values of userdb init calls. */
+
+	/* Remediate users */
+	for_each_node(ru, &pol->res_users, res) {
+		res_user_stat(ru, passwd, shadow);
+		res_user_remediate(ru, passwd, shadow);
+	}
+
+	/* Remediate groups */
+	for_each_node(rg, &pol->res_groups, res) {
+		res_group_stat(rg, group, gshadow);
+		res_group_remediate(rg, group, gshadow);
+	}
+
+	/* Remediate files */
+	for_each_node(rf, &pol->res_files, res) {
+		res_file_stat(rf);
+		res_file_remediate(rf);
+	}
+
+	return 0;
+}
+
 int main(int argc, char **argv)
 {
 	BIO *sock;
@@ -216,6 +255,9 @@ int main(int argc, char **argv)
 
 	policy = get_policy(&session, facts);
 	dump_policy(policy);
+
+	INFO("Enforcing policy on local system");
+	policy_enforce(policy);
 
 	/* disconnect */
 	if (pdu_send_BYE(&session) < 0) {

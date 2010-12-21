@@ -25,8 +25,7 @@
 #define EXIT_BAD_MANIFEST 101
 
 /* Default config file; overridden by the -c argument */
-//#define POLICYD_DOT_CONF "/etc/clockwork/policyd.conf"
-#define POLICYD_DOT_CONF "policyd.conf"
+#define POLICYD_DOT_CONF "/etc/clockwork/policyd.conf"
 
 /**
   A server thread.
@@ -298,7 +297,7 @@ static void* server_thread(void *arg)
 	pthread_detach(pthread_self());
 
 	if (SSL_accept(ssl) <= 0) {
-		ERROR("Error establishin SSL connection");
+		ERROR("Error establishing SSL connection");
 		protocol_ssl_backtrace();
 		return NULL;
 	}

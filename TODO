@@ -1,6 +1,10 @@
 List of Things To Do
 ====================
 
+Client / Server
+  - File server component for res_file
+  - Test remediation in chroot
+
 API documentation
   Use some sort of source-code documentation system (Doxygen)
   to build up a readable but succinct body of function docs

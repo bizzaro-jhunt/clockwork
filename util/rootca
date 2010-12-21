@@ -79,4 +79,4 @@ basicConstraints       = CA:true
 EOF
 
 # Generate the CA private key
-openssl req -x509 -newkey rsa:2048 -out $ROOT/CA/cacert.pem -outform PEM
+openssl req -x509 -newkey rsa:2048 -out $ROOT/CA/cacert.pem -outform PEM -days 365

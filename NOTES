@@ -200,3 +200,69 @@ Options 2: Send the Policy Generator
 
 Given the above list, it seems that sending the full policy, generated server-side,
 has the most positive benefits and the fewest downsides.
+
+
+File Remediation and the Remote File Server
+-------------------------------------------
+File Resources are "fixed" during policy enforcement (client-side) differently than
+most other resources; primarily, the contents of the file are really only known to
+the policy master, for security reasons.  To my knowledge, all other resource types
+are atomic -- everything the client needs to remediate is contained directly in the
+res_* structure, and retrieved from the policy master in the GET_POLICY PDU.
+
+My original thought was to stat all res_file objects immediately after GET_POLICY,
+and send out GET_FILE PDUs to the policy master for files that were non-compliant.
+Unfortunately, this necessitates storing the contents of the files in temporary
+areas, considering that some files could be very large.  This introduces a subtle
+vulnerability if the temporary storage area is not 100% secure -- an attacker could
+poison the files in the storage area before the client can remediate, essentially
+spoofing file contents from the master.  This is not good.
+
+The second idea was to keep the connection to the policy master open all the way
+through remediation, and ask the server for files via GET_FILE/SEND_FILE as
+necessary.  This would require not only keeping the TCP/SSL connection alive, but
+also modifying the res_file implementation to understand the core protocol.
+Considering that some remediation (i.e. the forthcoming res_package implementation)
+could take a long time to complete, keeping the connection open seems sub-optimal.
+On top of that, the coupling of proto.o and res_file.o doesn't sit right with me.
+
+Instead, why don't we implement a file server that can hand out file contents and
+SHA1 checksums.  The policy master can then ask the file server for checksums,
+based on remote source path, and the clients can ask the file server for contents,
+based on remote checksums.  While this complicates the deployment slightly (admins
+will have to manage a few different daemons) it provides more deployment options
+and flexibility; i.e. file server on a different machine (or set of machines) than
+the policy master.
+
+That brings us to the sticky problem of dynamic file contents.  Ideally, res_file
+will be able to generate files for clients based on their facts.  For example, the
+sshd_config for OpenSSH sshd could be tailored so that sshd only listens on the
+first network interface.  For each host, a different file.  Without the ability to
+generate a template, and insert the IP address of eth0 where needed, administrators
+need to proactively populate clockwork with tons of static files.  This then leads
+to hard-coded IP addresses.
+
+So how do we reconcile the need for files that change based on client facts?  The
+file server should not need to know about client facts -- to be flexible, it has
+to be dumb.
+
+One idea is to have the policy master generate the file, the checksum, store the
+file in the content server and send the checksum to the client.  This brings in a
+temporary storage area, but honestly, what is the difference between a temporary
+area dedicated to storing generated files and a directory of files?  If an attacker
+has compromised the box, they have access to both areas (and memory).
+
+Do we even need to split out the file server?  Probably not.  From a distributed
+deployment scenario, one would need multiple policy servers anyway, so why not
+implement the file server inside of policyd?  In a distributed deployment, the
+policy server could replicate the policies, static files and static templates.
+Files would only be valid after a policy had been generated.
+
+Final design decision: implement the file / content server as part of policyd.
+
+Access Control: How do we keep clients isolated, so that host A cannot request the
+information intended solely for host B?  For policy definitions, this is done by
+the hosts member of a manifest structure; when a host connects and issues a
+GET_POLICY, policy looks at manifest->hosts[HOSTNAME] to generate the policy.
+We could extend the idea, so that a manifest contains a unique set of pointers, for
+each host, into a master file server table.

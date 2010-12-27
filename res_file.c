@@ -92,8 +92,8 @@ struct res_file* res_file_new(const char *key)
 	rf->rf_lpath = NULL;
 	rf->rf_rpath = NULL;
 
-	sha1_init(&(rf->rf_lsha1));
-	sha1_init(&(rf->rf_rsha1));
+	sha1_init(&(rf->rf_lsha1), NULL);
+	sha1_init(&(rf->rf_rsha1), NULL);
 
 	if (key) {
 		res_file_set_path(rf, key);

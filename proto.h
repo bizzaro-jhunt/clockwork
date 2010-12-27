@@ -40,6 +40,8 @@ typedef enum {
 	PROTOCOL_OP_BYE,
 	PROTOCOL_OP_GET_POLICY,
 	PROTOCOL_OP_SEND_POLICY,
+	PROTOCOL_OP_GET_FILE,
+	PROTOCOL_OP_FILE_DATA,
 	PROTOCOL_OP_PUT_REPORT,
 	PROTOCOL_OP_SEND_REPORT,
 } protocol_op;
@@ -323,5 +325,11 @@ int pdu_send_SEND_POLICY(protocol_session *session, const struct policy *policy)
   @returns 0 on success, non-zero on failure.
  */
 int pdu_decode_SEND_POLICY(protocol_data_unit *pdu, struct policy **policy);
+
+int pdu_send_GET_FILE(protocol_session *session, sha1 *checksum);
+int pdu_decode_GET_FILE(protocol_data_unit *pdu, sha1 *checksum);
+
+int pdu_send_FILE_DATA(protocol_session *session, int srcfd);
+int pdu_decode_FILE_DATA(protocol_data_unit *pdu, int dstfd);
 
 #endif

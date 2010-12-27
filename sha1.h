@@ -49,9 +49,14 @@ void sha1_hexdigest(sha1 *sha1);
   to use the helper methods like sha1_file and sha1_data do not
   need to call this function explicitly.
 
+  If \a hex is specified, then \a checksum will be initialized so
+  that the hex member is a copy of \a hex, and the raw member
+  contains the raw checksum that \a hex represents.
+
   @param  checksum    Pointer to a sha1 to initialize.
+  @param  hex         Hex-encoded SHA1 checksum (optional)
  */
-void sha1_init(sha1* checksum);
+void sha1_init(sha1* checksum, const char *hex);
 
 /**
   Calculate the SHA1 checksum of data read from a file descriptor.

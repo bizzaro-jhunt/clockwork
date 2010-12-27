@@ -17,11 +17,11 @@ void test_sha1_FIPS()
 
 	test("SHA1: FIPS Pub 180-1 test vectors");
 
-	sha1_init(&cksum);
+	sha1_init(&cksum, NULL);
 	sha1_data(FIPS1_IN, strlen(FIPS1_IN), &cksum);
 	assert_str_equals("sha1(" FIPS1_IN ")", cksum.hex, FIPS1_OUT);
 
-	sha1_init(&cksum);
+	sha1_init(&cksum, NULL);
 	sha1_data(FIPS2_IN, strlen(FIPS2_IN), &cksum);
 	assert_str_equals("sha1(" FIPS2_IN ")", cksum.hex, FIPS2_OUT);
 
@@ -35,7 +35,30 @@ void test_sha1_FIPS()
 	assert_str_equals("sha1(<1,000,000 x s>)", cksum.hex, FIPS3_OUT);
 }
 
+void test_sha1_init()
+{
+	sha1 calc;
+	sha1 init;
+
+	sha1_init(&calc, NULL);
+	assert_str_equals("sha1()", calc.hex, "");
+	/* Borrow from FIPS checks */
+	sha1_data(FIPS1_IN, strlen(FIPS1_IN), &calc);
+	assert_str_equals("sha1(" FIPS1_IN ")", calc.hex, FIPS1_OUT);
+
+	sha1_init(&init, calc.hex);
+	assert_str_equals("init.hex == calc.hex", calc.hex, init.hex);
+
+	unsigned int i;
+	char buf[256];
+	for (i = 0; i < SHA1_DIGEST_SIZE; i++) {
+		snprintf(buf, 256, "octet[%i] equality", i);
+		assert_int_equals(buf, calc.raw[i], init.raw[i]);
+	}
+}
+
 void test_suite_sha1()
 {
 	test_sha1_FIPS();
+	test_sha1_init();
 }

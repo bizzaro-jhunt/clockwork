@@ -23,4 +23,13 @@
 #define SYS_GSHADOW "/etc/gshadow"
 #endif
 
+#include <assert.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+
+#include "sha1.h"
+#include "log.h"
+
 #endif

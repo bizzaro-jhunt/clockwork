@@ -9,6 +9,8 @@
     Saul Kravitz    <saul.kravitz@celera.com>
     Ralph Giles     <giles@ghostscript.com>
 
+  Updated by James Hunt <james@niftylogic.net>
+
  **/
 
 #include <unistd.h>
@@ -17,6 +19,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <stdlib.h>
 
 #include "sha1.h"
 
@@ -172,8 +175,25 @@ void sha1_hexdigest(sha1 *sha1)
 	*hex = '\0';
 }
 
-void sha1_init(sha1 *cksum)
+void sha1_init(sha1 *cksum, const char *hex)
 {
+	if (hex && strlen(hex) == SHA1_HEX_DIGEST_SIZE) {
+		memcpy(cksum->hex, hex, SHA1_HEX_DIGEST_SIZE);
+
+		unsigned int i;
+		char digit[3] = {0};
+		char *endptr = NULL; /* for strtol */
+		for (i = 0; i < SHA1_DIGEST_SIZE; i++) {
+			digit[0] = *hex++; digit[1] = *hex++;
+			cksum->raw[i] = strtol(digit, &endptr, 16);
+			if (endptr && *endptr != '\0') {
+				goto blank_init;
+			}
+		}
+		return;
+	}
+
+blank_init:
 	memset(cksum->raw, 0, SHA1_DIGEST_SIZE);
 	memset(cksum->hex, 0, SHA1_HEX_DIGEST_SIZE + 1);
 }
@@ -184,7 +204,7 @@ int sha1_fd(int fd, sha1 *cksum)
 	char buf[SHA1_FD_BUFSIZE];
 	ssize_t nread;
 
-	sha1_init(cksum);
+	sha1_init(cksum, NULL);
 	sha1_ctx_init(&ctx);
 	while ((nread = read(fd, buf, SHA1_FD_BUFSIZE)) != 0) {
 		sha1_ctx_update(&ctx, (uint8_t*)buf, nread);
@@ -199,7 +219,7 @@ int sha1_file(const char *path, sha1 *cksum) {
 	int fd;
 	struct stat st;
 
-	sha1_init(cksum);
+	sha1_init(cksum, NULL);
 	if (stat(path, &st) == -1) { return -1; };
 	if (S_ISDIR(st.st_mode)) {
 		errno = EISDIR;
@@ -219,7 +239,7 @@ int sha1_data(const void *data, size_t len, sha1 *cksum)
 {
 	sha1_ctx ctx;
 
-	sha1_init(cksum);
+	sha1_init(cksum, NULL);
 	sha1_ctx_init(&ctx);
 	sha1_ctx_update(&ctx, (uint8_t *)data, len);
 	sha1_ctx_final(&ctx, cksum->raw);

@@ -1,16 +1,13 @@
-#include <assert.h>
-
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
+#include "clockwork.h"
 
 #include <arpa/inet.h>
 #include <netdb.h>
 
-#include "log.h"
 #include "proto.h"
 #include "policy.h"
 #include "stringlist.h"
+
+#define FILE_DATA_BLOCK_SIZE 8192
 
 static int pdu_allocate(protocol_data_unit *pdu, uint16_t op, uint16_t len)
 {
@@ -188,7 +185,7 @@ int pdu_send_SEND_POLICY(protocol_session *session, const struct policy *policy)
 	memcpy(pdu->data, packed, len);
 	free(packed);
 
-	return pdu_write(session->io, SEND_PDU(session));
+	return pdu_write(session->io, pdu);
 }
 
 int pdu_decode_SEND_POLICY(protocol_data_unit *pdu, struct policy **policy)
@@ -203,6 +200,77 @@ int pdu_decode_SEND_POLICY(protocol_data_unit *pdu, struct policy **policy)
 	} else {
 		return -1;
 	}
+}
+
+int pdu_send_GET_FILE(protocol_session *session, sha1 *checksum)
+{
+	assert(session);
+	assert(checksum);
+
+	protocol_data_unit *pdu = SEND_PDU(session);
+
+	if (pdu_allocate(pdu, PROTOCOL_OP_GET_FILE, SHA1_HEX_DIGEST_SIZE) < 0) {
+		return -1;
+	}
+
+	memcpy(pdu->data, checksum->hex, pdu->len);
+
+	return pdu_write(session->io, pdu);
+}
+
+int pdu_decode_GET_FILE(protocol_data_unit *pdu, sha1 *checksum)
+{
+	assert(pdu);
+	assert(pdu->op == PROTOCOL_OP_GET_FILE);
+	assert(pdu->len == SHA1_HEX_DIGEST_SIZE);
+	assert(checksum);
+
+	char hex[SHA1_HEX_DIGEST_SIZE + 1] = {0};
+	memcpy(hex, pdu->data, SHA1_HEX_DIGEST_SIZE);
+
+	sha1_init(checksum, hex);
+
+	return 0;
+}
+
+int pdu_send_FILE_DATA(protocol_session *session, int srcfd)
+{
+	assert(session);
+
+	protocol_data_unit *pdu = SEND_PDU(session);
+
+	char chunk[FILE_DATA_BLOCK_SIZE];
+	size_t len = 0, nread = 0;
+	int write_status;
+
+	do {
+		nread = read(srcfd, chunk + len, FILE_DATA_BLOCK_SIZE - len);
+		len += nread;
+	} while (nread != 0 && len < FILE_DATA_BLOCK_SIZE);
+
+	if (pdu_allocate(pdu, PROTOCOL_OP_FILE_DATA, len) < 0) {
+		return -1;
+	}
+
+	memcpy(pdu->data, chunk, len); /* note: len could be 0 */
+
+	write_status = pdu_write(session->io, pdu);
+	if (write_status != 0) {
+		return write_status;
+	}
+
+	return len;
+}
+
+int pdu_decode_FILE_DATA(protocol_data_unit *pdu, int dstfd)
+{
+	assert(pdu);
+	assert(pdu->op == PROTOCOL_OP_FILE_DATA);
+
+	size_t len = pdu->len;
+
+	write(dstfd, pdu->data, len);
+	return len;
 }
 
 int pdu_read(SSL *io, protocol_data_unit *pdu)

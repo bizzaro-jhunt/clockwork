@@ -320,7 +320,7 @@ char* res_file_pack(struct res_file *rf)
 struct res_file* res_file_unpack(const char *packed)
 {
 	struct res_file *rf;
-	char *hex;
+	char *hex = NULL;
 
 	if (strncmp(packed, RES_FILE_PACK_PREFIX, RES_FILE_PACK_OFFSET) != 0) {
 		return NULL;
@@ -331,11 +331,14 @@ struct res_file* res_file_unpack(const char *packed)
 		&rf->rf_enf,
 		&rf->rf_lpath, &hex, &rf->rf_uid, &rf->rf_gid, &rf->rf_mode) != 0) {
 
+		free(hex);
 		res_file_free(rf);
 		return NULL;
 	}
 
 	sha1_init(&rf->rf_rsha1, hex);
+	free(hex);
+
 	rf->key = resource_key("res_file", rf->rf_lpath);
 
 	return rf;

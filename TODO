@@ -2,7 +2,6 @@ List of Things To Do
 ====================
 
 Client / Server
-  - File server component for res_file
   - Test remediation in chroot
 
 API documentation

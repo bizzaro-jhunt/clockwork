@@ -81,7 +81,7 @@ all: test $(UTILS) $(CORE)
 ############################################################
 # Main Binaries
 
-policyd: policyd.o $(CORE_OBJECTS) $(RESOURCE_OBJECTS) $(POLICY_OBJECTS) $(SPEC_PARSER_OBJECTS) $(CONFIG_PARSER_OBJECTS) proto.o daemon.o config.o
+policyd: policyd.o $(CORE_OBJECTS) $(RESOURCE_OBJECTS) $(POLICY_OBJECTS) $(SPEC_PARSER_OBJECTS) $(CONFIG_PARSER_OBJECTS) proto.o server.o
 	$(CC) -o $@ $+
 
 ############################################################

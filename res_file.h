@@ -1,13 +1,13 @@
 #ifndef RES_FILE_H
 #define RES_FILE_H
 
-#include <stdlib.h>
-#include <unistd.h>
+#include "clockwork.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 
 #include "list.h"
 #include "sha1.h"
+#include "hash.h"
 
 /** @file res_file.h
 
@@ -274,5 +274,20 @@ char* res_file_pack(struct res_file *rf);
            found in the \a packed string.
  */
 struct res_file* res_file_unpack(const char *packed);
+
+/**
+  Retrieve an open stdio FILE handle for a file resource.
+
+  This function will open the static file that \a rf represents
+  in read-only mode, and return the stdio FILE handle.  It is the
+  callers responsibility to fclose the returned FILE handle when
+  finished.
+
+  @params  rf     File Resource to "open"
+
+  @returns An open, read-only file handle to the server-side copy of
+           the file resource's contents on success, or NULL on failure.
+ */
+FILE* res_file_io(struct res_file *rf);
 
 #endif

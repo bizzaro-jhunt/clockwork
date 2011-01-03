@@ -198,6 +198,11 @@ blank_init:
 	memset(cksum->hex, 0, SHA1_HEX_DIGEST_SIZE + 1);
 }
 
+int sha1_cmp(const sha1 *a, const sha1 *b)
+{
+	return memcmp(a->raw, b->raw, SHA1_DIGEST_SIZE);
+}
+
 int sha1_fd(int fd, sha1 *cksum)
 {
 	sha1_ctx ctx;

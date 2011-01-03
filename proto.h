@@ -71,12 +71,6 @@ typedef struct {
 	/** OpenSSL IO stream to read from / write to */
 	SSL *io;
 
-	/** Parsed manifest (all policies and host defs) */
-	struct manifest *manifest;
-
-	/** Client's fully qualified domain name; only used server-side. */
-	char fqdn[256];
-
 	/** PDU to send to the remote party. */
 	protocol_data_unit send_pdu;
 	/** PDU received from remote party. */
@@ -117,11 +111,10 @@ typedef struct {
 
   @param  session        Pointer to the protocol_session to initialize.
   @param  io             OpenSSL IO stream for the duplex connection.
-  @param  client_fqdn    Fully-qualified domain name of the client.
 
   @returns 0 on success, non-zero on failure.
  */
-int protocol_session_init(protocol_session *session, SSL *io, const char *client_fqdn);
+int protocol_session_init(protocol_session *session, SSL *io);
 
 /**
   De-initialize a protocol_session structure.

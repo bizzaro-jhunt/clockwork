@@ -59,6 +59,22 @@ void sha1_hexdigest(sha1 *sha1);
 void sha1_init(sha1* checksum, const char *hex);
 
 /**
+  Compare two SHA1 checksums for equivalence.
+
+  This function uses memcmp under the hood, so it can be used
+  for sorting comparisons.
+
+  @note This function does not handle NULL parameters at all.
+
+  @param  a  A SHA1 checksum.
+  @param  b  Another SHA1 checksum.
+
+  @returns 0 if \a a and \a b represent the same checksum, or
+             non-zero if they are different.
+ */
+int sha1_cmp(const sha1* a, const sha1 *b);
+
+/**
   Calculate the SHA1 checksum of data read from a file descriptor.
 
   Data will be read until \a fd returns an EOF condition.

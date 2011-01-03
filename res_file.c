@@ -16,7 +16,7 @@
 /* Pack format for res_file structure:
      L - rf_enf
      a - rf_lpath
-     a - rf_rpath
+     a - rf_rsha1
      L - rf_uid
      L - rf_gid
      L - rf_mode
@@ -305,14 +305,14 @@ char* res_file_pack(struct res_file *rf)
 
 	pack_len = pack(NULL, 0, RES_FILE_PACK_FORMAT,
 		rf->rf_enf,
-		rf->rf_lpath, rf->rf_rpath, rf->rf_uid, rf->rf_gid, rf->rf_mode);
+		rf->rf_lpath, rf->rf_rsha1.hex, rf->rf_uid, rf->rf_gid, rf->rf_mode);
 
 	packed = malloc(pack_len + RES_FILE_PACK_OFFSET);
 	strncpy(packed, RES_FILE_PACK_PREFIX, RES_FILE_PACK_OFFSET);
 
 	pack(packed + RES_FILE_PACK_OFFSET, pack_len, RES_FILE_PACK_FORMAT,
 		rf->rf_enf,
-		rf->rf_lpath, rf->rf_rpath, rf->rf_uid, rf->rf_gid, rf->rf_mode);
+		rf->rf_lpath, rf->rf_rsha1.hex, rf->rf_uid, rf->rf_gid, rf->rf_mode);
 
 	return packed;
 }
@@ -320,6 +320,7 @@ char* res_file_pack(struct res_file *rf)
 struct res_file* res_file_unpack(const char *packed)
 {
 	struct res_file *rf;
+	char *hex;
 
 	if (strncmp(packed, RES_FILE_PACK_PREFIX, RES_FILE_PACK_OFFSET) != 0) {
 		return NULL;
@@ -328,14 +329,40 @@ struct res_file* res_file_unpack(const char *packed)
 	rf = res_file_new(NULL);
 	if (unpack(packed + RES_FILE_PACK_OFFSET, RES_FILE_PACK_FORMAT,
 		&rf->rf_enf,
-		&rf->rf_lpath, &rf->rf_rpath, &rf->rf_uid, &rf->rf_gid, &rf->rf_mode) != 0) {
+		&rf->rf_lpath, &hex, &rf->rf_uid, &rf->rf_gid, &rf->rf_mode) != 0) {
 
 		res_file_free(rf);
 		return NULL;
 	}
 
+	sha1_init(&rf->rf_rsha1, hex);
 	rf->key = resource_key("res_file", rf->rf_lpath);
 
 	return rf;
+}
+
+FILE* res_file_io(struct res_file *rf)
+{
+	FILE *io, *src;
+	char buf[8192];
+
+	io = fopen("/tmp/clockwork-file", "w+");
+	if (!io) {
+		return NULL;
+	}
+
+	src = fopen(rf->rf_rpath, "r");
+	if (!src) {
+		fclose(io);
+		return NULL;
+	}
+
+	while (fgets(buf, 8192, src)) {
+		fputs(buf, io);
+	}
+	fclose(src);
+
+	rewind(io);
+	return io;
 }
 

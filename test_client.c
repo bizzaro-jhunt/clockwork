@@ -159,6 +159,36 @@ static void dump_policy(struct policy *pol)
 	free(packed);
 }
 
+static int client_get_file(protocol_session *session, sha1 *checksum)
+{
+	size_t bytes = 0;
+
+	if (pdu_send_GET_FILE(session, checksum) != 0) {
+		fprintf(stderr, "FAILED GET_FILE %s\n", checksum->hex);
+		return -1;
+	}
+
+	do {
+		pdu_receive(session);
+		if (RECV_PDU(session)->op != PROTOCOL_OP_FILE_DATA) {
+			/* FIXME: send back an error */
+			return -1;
+		}
+
+		bytes = pdu_decode_FILE_DATA(RECV_PDU(session), 1);
+	} while(bytes > 0);
+
+	return bytes;
+}
+
+static void policy_check(struct policy *pol, protocol_session *session)
+{
+	struct res_file *rf;
+	for_each_node(rf, &pol->res_files, res) {
+		client_get_file(session, &rf->rf_rsha1);
+	}
+}
+
 int policy_enforce(const struct policy *pol)
 {
 	struct pwdb *passwd;
@@ -251,13 +281,14 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
-	protocol_session_init(&session, ssl, NULL);
+	protocol_session_init(&session, ssl);
 
 	policy = get_policy(&session, facts);
 	dump_policy(policy);
+	policy_check(policy, &session);
 
-	INFO("Enforcing policy on local system");
-	policy_enforce(policy);
+//	INFO("Enforcing policy on local system");
+//	policy_enforce(policy);
 
 	/* disconnect */
 	if (pdu_send_BYE(&session) < 0) {

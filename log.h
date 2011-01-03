@@ -1,6 +1,17 @@
 #ifndef _LOG_H
 #define _LOG_H
 
+#define LOG_LEVEL_ALL         9
+#define LOG_LEVEL_DEBUG       9
+#define LOG_LEVEL_INFO        8
+#define LOG_LEVEL_NOTICE      7
+#define LOG_LEVEL_WARNING     6
+#define LOG_LEVEL_ERROR       5
+#define LOG_LEVEL_CRITICAL    4
+#define LOG_LEVEL_ALERT       3
+#define LOG_LEVEL_EMERGENCY   2
+#define LOG_LEVEL_NONE        1
+
 /**
   @file log.h
 
@@ -18,6 +29,8 @@
   @param  ident    String to prefix all messages with; see syslog(3).
  */
 void log_init(const char *ident);
+
+void log_level(int level);
 
 /**
   Print messages helpful to developers.

@@ -37,6 +37,19 @@ struct policy_generator {
 };
 /** @endcond */
 
+static int _policy_normalize_files(struct policy *pol)
+{
+	assert(pol);
+
+	struct res_file *rf;
+
+	for_each_node(rf, &pol->res_files, res) {
+		sha1_file(rf->rf_rpath, &rf->rf_rsha1);
+	}
+
+	return 0;
+}
+
 /* Allocate and initialize a new manifest structure */
 struct manifest* manifest_new(void)
 {
@@ -323,6 +336,8 @@ struct policy* policy_generate(struct stree *root, struct hash *facts)
 		policy_free(pgen.policy);
 		return NULL;
 	}
+
+	_policy_normalize_files(pgen.policy);
 
 	return pgen.policy;
 }

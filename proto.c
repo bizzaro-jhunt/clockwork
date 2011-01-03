@@ -384,17 +384,12 @@ void protocol_ssl_init(void)
 	RAND_load_file("/dev/urandom", 1024);
 }
 
-int protocol_session_init(protocol_session *session, SSL *io, const char *client_fqdn)
+int protocol_session_init(protocol_session *session, SSL *io)
 {
 	session->io = io;
 
 	memset(SEND_PDU(session), 0, sizeof(protocol_data_unit));
 	memset(RECV_PDU(session), 0, sizeof(protocol_data_unit));
-
-	memset(session->fqdn, 0, 256);
-	if (client_fqdn) {
-		strncpy(session->fqdn, client_fqdn, 256);
-	}
 
 	session->errnum = 0;
 	session->errstr = NULL;

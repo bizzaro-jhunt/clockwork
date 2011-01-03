@@ -1,117 +1,49 @@
-#include <stdio.h>
-#include <stdlib.h>
+#include "clockwork.h"
 
-#include <glob.h>
-#include <unistd.h>
-#include <libgen.h>
-#include <sys/types.h>
-#include <sys/wait.h>
+#include <getopt.h>
 
+#include "config/parser.h"
 #include "proto.h"
 #include "policy.h"
-#include "log.h"
 #include "userdb.h"
+#include "client.h"
 
-#define CAFILE   "certs/CA/cacert.pem"
+static client default_opts = {
+	.log_level = LOG_LEVEL_CRITICAL,
 
-#define USE_JADE 1
+	.config_file = DEFAULT_CONFIG_FILE,
 
-#ifdef USE_JADE
-#  define CERTFILE "certs/CA/certs/jade.niftylogic.net.pem"
-#  define KEYFILE  "certs/jade.niftylogic.net/key.pem"
+	.ca_cert_file = "/etc/clockwork/ssl/CA.pem",
+	.cert_file    = "/etc/clockwork/ssl/cert.pem",
+	.key_file     = "/etc/clockwork/ssl/key.pem",
+
+	.gatherers = "/etc/clockwork/gather.d/*",
+
+	.s_address = "clockwork",
+	.s_port    = "7890"
+};
+
+static client* config_file_options(const char *path);
+static client* command_line_options(int argc, char **argv);
+static int merge_options(client *a, client *b);
+
+static void show_help(void);
+
+#ifndef NDEBUG
+static void dump_options(const char *prefix, client *c);
 #else
-#  define CERTFILE "certs/CA/certs/client.niftylogic.net.pem"
-#  define KEYFILE  "certs/client.niftylogic.net/key.pem"
+# define dump_optons(p,s)
 #endif
+static void show_help(void);
+
+/**************************************************************/
 
 #define SERVER "cfm.niftylogic.net"
 #define PORT   "7890"
 
 #define FACTS "facts/*"
 
-int get_facts_from_script(const char *script, struct hash *facts)
-{
-	pid_t pid;
-	int pipefd[2];
-	FILE *input;
-	char *path_copy, *arg0;
-
-	path_copy = strdup(script);
-	arg0 = basename(path_copy);
-	free(path_copy);
-
-	printf("Procesing script %s\n", script);
-
-	if (pipe(pipefd) != 0) {
-		perror("get_facts_from_script");
-		return -1;
-	}
-
-	pid = fork();
-	switch (pid) {
-	case -1:
-		perror("get_facts_from_script: fork");
-		return -1;
-
-	case 0: /* in child */
-		close(pipefd[0]);
-		close(0); close(1); close(2);
-
-		dup2(pipefd[1], 1); /* dup pipe as stdout */
-
-		execl(script, arg0, NULL);
-		exit(1); /* if execl returns, we failed */
-
-	default: /* in parent */
-		close(pipefd[1]);
-		input = fdopen(pipefd[0], "r");
-
-		fact_read(input, facts);
-		waitpid(pid, NULL, 0);
-		fclose(input);
-		close(pipefd[0]);
-
-		return 0;
-	}
-}
-
-/* Read a directory of scripts, execute them, and parse the output as facts */
-struct hash* get_the_facts(const char *dir)
-{
-	glob_t scripts;
-	size_t i;
-	struct hash *facts;
-
-	facts = hash_new();
-
-	switch(glob(dir, GLOB_MARK, NULL, &scripts)) {
-	case GLOB_NOMATCH:
-		globfree(&scripts);
-		if (get_facts_from_script(dir, facts) != 0) {
-			hash_free(facts);
-			return NULL;
-		}
-		return facts;
-
-	case GLOB_NOSPACE:
-	case GLOB_ABORTED:
-		hash_free(facts);
-		return NULL;
-
-	}
-
-	for (i = 0; i < scripts.gl_pathc; i++) {
-		if (get_facts_from_script(scripts.gl_pathv[i], facts) != 0) {
-			hash_free(facts);
-			globfree(&scripts);
-			return NULL;
-		}
-	}
-
-	globfree(&scripts);
-	return facts;
-}
-
+#if 0
 #ifdef DEVEL
 static void DEVELOPER_verify_facts(const struct hash *facts)
 {
@@ -127,58 +59,13 @@ static void DEVELOPER_verify_facts(const struct hash *facts)
 #else
 #  define DEVELOPER_verify_facts(x)
 #endif
-
-static struct policy* get_policy(protocol_session *session, const struct hash *facts)
-{
-	struct policy *pol;
-
-	if (pdu_send_GET_POLICY(session, facts) < 0) {
-		CRITICAL("Unable to GET_POLICY");
-		exit(42);
-	}
-
-	pdu_receive(session);
-	if (RECV_PDU(session)->op != PROTOCOL_OP_SEND_POLICY) {
-		CRITICAL("Unexpected op from server: %u", RECV_PDU(session)->op);
-		exit(42);
-	}
-
-	if (pdu_decode_SEND_POLICY(RECV_PDU(session), &pol) != 0) {
-		CRITICAL("Unable to decode SEND_POLICY PDU");
-		exit(42);
-	}
-
-	return pol;
-}
-
+#endif
 
 static void dump_policy(struct policy *pol)
 {
 	char *packed = policy_pack(pol);
 	fprintf(stderr, "%s\n", packed);
 	free(packed);
-}
-
-static int client_get_file(protocol_session *session, sha1 *checksum)
-{
-	size_t bytes = 0;
-
-	if (pdu_send_GET_FILE(session, checksum) != 0) {
-		fprintf(stderr, "FAILED GET_FILE %s\n", checksum->hex);
-		return -1;
-	}
-
-	do {
-		pdu_receive(session);
-		if (RECV_PDU(session)->op != PROTOCOL_OP_FILE_DATA) {
-			/* FIXME: send back an error */
-			return -1;
-		}
-
-		bytes = pdu_decode_FILE_DATA(RECV_PDU(session), 1);
-	} while(bytes > 0);
-
-	return bytes;
 }
 
 static void policy_check(struct policy *pol, protocol_session *session)
@@ -189,119 +76,173 @@ static void policy_check(struct policy *pol, protocol_session *session)
 	}
 }
 
-int policy_enforce(const struct policy *pol)
-{
-	struct pwdb *passwd;
-	struct spdb *shadow;
-	struct grdb *group;
-	struct sgdb *gshadow;
-
-	struct res_user *ru;
-	struct res_group *rg;
-	struct res_file *rf;
-
-	passwd  = pwdb_init(SYS_PASSWD);
-	shadow  = spdb_init(SYS_SHADOW);
-	group   = grdb_init(SYS_GROUP);
-	gshadow = sgdb_init(SYS_GSHADOW);
-	/* FIXME: check return values of userdb init calls. */
-
-	/* Remediate users */
-	for_each_node(ru, &pol->res_users, res) {
-		res_user_stat(ru, passwd, shadow);
-		res_user_remediate(ru, passwd, shadow);
-	}
-
-	/* Remediate groups */
-	for_each_node(rg, &pol->res_groups, res) {
-		res_group_stat(rg, group, gshadow);
-		res_group_remediate(rg, group, gshadow);
-	}
-
-	/* Remediate files */
-	for_each_node(rf, &pol->res_files, res) {
-		res_file_stat(rf);
-		res_file_remediate(rf);
-	}
-
-	return 0;
-}
-
 int main(int argc, char **argv)
 {
-	BIO *sock;
-	SSL *ssl;
-	SSL_CTX *ctx;
-	long err;
-	protocol_session session;
+	client *arg_opts, *cfg_opts;
 
-	struct hash *facts;
-	struct policy *policy;
+	arg_opts = command_line_options(argc, argv);
+	cfg_opts = config_file_options(arg_opts->config_file ? arg_opts->config_file : default_opts.config_file);
 
-	printf("SSL Connection opened\n");
-	printf("  > gathering facts\n");
-	facts = get_the_facts(FACTS);
-	DEVELOPER_verify_facts(facts);
+	dump_options("arg_opts",      arg_opts);
+	dump_options("cfg_opts",      cfg_opts);
+	dump_options("default_opts", &default_opts);
 
-	protocol_ssl_init();
-	ctx = protocol_ssl_default_context(CAFILE, CERTFILE, KEYFILE);
-	if (!ctx) {
-		CRITICAL("Error setting up SSL context");
-		protocol_ssl_backtrace();
+	if (merge_options(arg_opts, cfg_opts) != 0
+	 || merge_options(arg_opts, &default_opts) != 0) {
+		fprintf(stderr, "Unable to process server options");
+		exit(2);
+	}
+
+	/* arg_opts is a modifier to the base log level */
+	//arg_opts->log_level += (cfg_opts->log_level == 0 ? default_opts.log_level : cfg_opts->log_level);
+
+	dump_options("merged_opts", arg_opts);
+
+	if (client_init(arg_opts) != 0) {
 		exit(1);
 	}
 
-	sock = BIO_new_connect(SERVER ":" PORT);
-	if (!sock) {
-		CRITICAL("Error creating connection BIO");
-		protocol_ssl_backtrace();
-		exit(1);
-	}
-
-	if (BIO_do_connect(sock) <= 0) {
-		CRITICAL("Error connecting to remote server");
-		protocol_ssl_backtrace();
-		exit(1);
-	}
-
-	if (!(ssl = SSL_new(ctx))) {
-		CRITICAL("Error creating an SSL context");
-		protocol_ssl_backtrace();
-		exit(1);
-	}
-	SSL_set_bio(ssl, sock, sock);
-	if (SSL_connect(ssl) <= 0) {
-		CRITICAL("Error connecting SSL object");
-		protocol_ssl_backtrace();
-		exit(1);
-	}
-	if ((err = protocol_ssl_verify_peer(ssl, SERVER)) != X509_V_OK) {
-		CRITICAL("Server certificate verification failed: %s", X509_verify_cert_error_string(err));
-		protocol_ssl_backtrace();
-		exit(1);
-	}
-
-	protocol_session_init(&session, ssl);
-
-	policy = get_policy(&session, facts);
-	dump_policy(policy);
-	policy_check(policy, &session);
+	client_get_policy(arg_opts); /* FIXME: check return value */
+	dump_policy(arg_opts->policy);
+	policy_check(arg_opts->policy, &arg_opts->session);
 
 //	INFO("Enforcing policy on local system");
-//	policy_enforce(policy);
+//	client_enforce_policy(policy);
 
-	/* disconnect */
-	if (pdu_send_BYE(&session) < 0) {
-		perror("client_disconnect");
-		return -1;
-	}
-	pdu_receive(&session);
-
-	SSL_shutdown(ssl);
-	protocol_session_deinit(&session);
-
-	SSL_free(ssl);
-	SSL_CTX_free(ctx);
+	client_deinit(arg_opts);
 	return 0;
 }
 
+/**************************************************************/
+
+static client* config_file_options(const char *path)
+{
+	client *c;
+	struct hash *config;
+	char *v;
+
+	c = calloc(1, sizeof(client));
+	if (!c) {
+		return NULL;
+	}
+
+	config = parse_config(path);
+	if (config) {
+		v = hash_get(config, "ca_cert_file");
+		if (v) { c->ca_cert_file = strdup(v); }
+
+		v = hash_get(config, "cert_file");
+		if (v) { c->cert_file = strdup(v); }
+
+		v = hash_get(config, "key_file");
+		if (v) { c->key_file = strdup(v); }
+
+		v = hash_get(config, "gatherers");
+		if (v) { c->gatherers = strdup(v); }
+
+		v = hash_get(config, "server");
+		if (v) { c->s_address = strdup(v); }
+
+		v = hash_get(config, "port");
+		if (v) { c->s_port = strdup(v); }
+	}
+
+	return c;
+}
+
+static client* command_line_options(int argc, char **argv)
+{
+	client *c;
+
+	const char *short_opts = "h?c:s:p:";
+	struct option long_opts[] = {
+		{ "help",   no_argument,       NULL, 'h' },
+		{ "config", required_argument, NULL, 'c' },
+		{ "server", required_argument, NULL, 's' },
+		{ "port",   required_argument, NULL, 'p' },
+		{ 0, 0, 0, 0 },
+	};
+
+	int opt, idx = 0;
+
+	c = calloc(1, sizeof(client));
+	if (!c) {
+		return NULL;
+	}
+
+	while ( (opt = getopt_long(argc, argv, short_opts, long_opts, &idx)) != -1) {
+		switch(opt) {
+		case 'h':
+		case '?':
+			show_help();
+			exit(0);
+		case 'c':
+			free(c->config_file);
+			c->config_file = strdup(optarg);
+			break;
+		case 's':
+			free(c->s_address);
+			c->s_address = strdup(optarg);
+			break;
+		case 'p':
+			free(c->s_port);
+			c->s_port = strdup(optarg);
+			break;
+		}
+	}
+
+	return c;
+}
+
+#define MERGE_STRING_OPTION(a,b,opt) do {\
+	if (!a->opt && b->opt) {\
+		a->opt = strdup(b->opt);\
+	}\
+} while(0)
+static int merge_options(client *a, client *b)
+{
+	MERGE_STRING_OPTION(a,b,config_file);
+	MERGE_STRING_OPTION(a,b,ca_cert_file);
+	MERGE_STRING_OPTION(a,b,cert_file);
+	MERGE_STRING_OPTION(a,b,key_file);
+	MERGE_STRING_OPTION(a,b,gatherers);
+	MERGE_STRING_OPTION(a,b,s_address);
+	MERGE_STRING_OPTION(a,b,s_port);
+
+	return 0;
+}
+#undef MERGE_STRING_OPTION
+
+static void show_help(void)
+{
+	printf( "USAGE: cwa [OPTIONS]\n"
+	       "\n"
+	       "  -h, --help            Show this helpful message.\n"
+	       "                        (for more in-depth help, check the man pages.)\n"
+	       "\n"
+	       "  -c, --config          Specify the path to an alternate configuration file.\n"
+	       "                        If not given, defaults to " DEFAULT_CONFIG_FILE "\n"
+	       "\n"
+	       "  -s, --server          Override the name (IP or DNS) of the policy master.\n"
+	       "\n"
+	       "  -p, --port            Override the TCP port number to connect to.\n"
+	       "\n");
+}
+
+#ifndef NDEBUG
+static void dump_options(const char *prefix, client *c)
+{
+	fprintf(stderr, "%s {\n", (prefix ? prefix : "client"));
+	fprintf(stderr, "  config_file   = '%s'\n", c->config_file);
+	fprintf(stderr, "\n");
+	fprintf(stderr, "  ca_cert_file  = '%s'\n", c->ca_cert_file);
+	fprintf(stderr, "  cert_file     = '%s'\n", c->cert_file);
+	fprintf(stderr, "  key_file      = '%s'\n", c->key_file);
+	fprintf(stderr, "\n");
+	fprintf(stderr, "  gatherers     = '%s'\n", c->gatherers);
+	fprintf(stderr, "\n");
+	fprintf(stderr, "  s_address     = '%s'\n", c->s_address);
+	fprintf(stderr, "  s_port        = '%s'\n", c->s_port);
+	fprintf(stderr, "}\n\n");
+}
+#endif

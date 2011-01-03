@@ -230,7 +230,7 @@ main.o: main.c $(RESOURCE_HEADERS)
 ############################################################
 # EXPERIMENTAL
 
-test_client: test_client.o proto.o $(CORE_OBJECTS) $(POLICY_OBJECTS) $(RESOURCE_OBJECTS)
+test_client: test_client.o proto.o $(CORE_OBJECTS) $(POLICY_OBJECTS) $(RESOURCE_OBJECTS) $(CONFIG_PARSER_OBJECTS) client.o
 	$(CC) -o $@ $+
 
 polspec: $(CORE_OBJECTS) \

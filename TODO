@@ -36,6 +36,8 @@ More resources
 Sample Configs and Policy Manifests
   Write documented sample config files and policy / manifest
   files, in a new subdirectory (samples/).
+    - Sample config for cwa is done
+    - Sample config for policyd is started (need more notes)
 
 VIm syntax rules
   Write a syntax definition for the daemon / client configuration

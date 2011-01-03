@@ -17,9 +17,6 @@ chroot testing
   mkjail is coming along.  To do this right, we need passphrase-less
   certificates, and very long expirations (i.e. 100 years).
 
-test_client -> cwa
-  Re-write the test_client as the cwa (Clockwork Agent).
-
 clean up .gitignore
   I know there are pattern matches in there for test binaries
   that don't need to be there anymore.

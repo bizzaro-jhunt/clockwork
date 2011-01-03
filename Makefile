@@ -50,8 +50,8 @@ DOXYGEN := doxygen
 ############################################################
 # Object Group Variables
 
-UTILS := sha1sum sizes test_client
-CORE  := policyd
+UTILS := sha1sum sizes
+CORE  := cwa policyd
 
 # Resource types
 RESOURCE_OBJECTS := resource.o res_user.o res_group.o res_file.o
@@ -230,7 +230,7 @@ main.o: main.c $(RESOURCE_HEADERS)
 ############################################################
 # EXPERIMENTAL
 
-test_client: test_client.o proto.o $(CORE_OBJECTS) $(POLICY_OBJECTS) $(RESOURCE_OBJECTS) $(CONFIG_PARSER_OBJECTS) client.o
+cwa: cwa.o proto.o $(CORE_OBJECTS) $(POLICY_OBJECTS) $(RESOURCE_OBJECTS) $(CONFIG_PARSER_OBJECTS) client.o
 	$(CC) -o $@ $+
 
 polspec: $(CORE_OBJECTS) \

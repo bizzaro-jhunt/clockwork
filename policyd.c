@@ -13,7 +13,7 @@ static server default_opts = {
 	.log_level = LOG_LEVEL_CRITICAL,
 
 	.config_file   = DEFAULT_CONFIG_FILE,
-	.manifest_file = "/etc/clockwork/manfiest.pol",
+	.manifest_file = "/etc/clockwork/manifest.pol",
 
 	.lock_file = "/var/lock/policyd",
 	.pid_file  = "/var/run/policyd",

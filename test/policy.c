@@ -160,10 +160,13 @@ void test_policy_pack()
 	policy_add_group_resource(pol, rg1);
 
 	rf1 = res_file_new("beer");                    /* rf_enf == 0000 0000 */
-	res_file_set_source(rf1, "cfm://etc/sudoers"); /* rf_enf == 0000 1000 */
+	res_file_set_source(rf1, "/srv/cw/etc/sudoers");
 	res_file_set_uid(rf1, 101);                    /* rf_enf == 0000 1001 */
 	res_file_set_gid(rf1, 2000);                   /* rf_enf == 0000 1011 */
 	res_file_set_mode(rf1, 0600);                  /* rf_enf == 0000 1111 */
+	/* sneakily override the checksum */
+	sha1_init(&rf1->rf_rsha1, "0123456789abcdef0123456789abcdef01234567");
+
 	policy_add_file_resource(pol, rf1);
 
 	packed = policy_pack(pol);
@@ -172,7 +175,7 @@ void test_policy_pack()
 		"policy::\"1 user, 1 group, and 1 file\"\n"
 		"res_user::0000000d\"bourbon\"\"\"" "00000065" "000007d0" "\"\"\"\"\"\"" "00" "\"\"" "01" "00000000" "00000000" "00000000" "00000000" "00000000\n"
 		"res_group::00000005\"scotch\"\"\"000007d0\"\"\"\"\"\"\"\"\n"
-		"res_file::0000000f\"beer\"\"cfm://etc/sudoers\"" "00000065" "000007d0" "00000180",
+		"res_file::0000000f\"beer\"\"0123456789abcdef0123456789abcdef01234567\"" "00000065" "000007d0" "00000180",
 		packed);
 
 	free(packed);

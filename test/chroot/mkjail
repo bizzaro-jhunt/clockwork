@@ -1,11 +1,26 @@
 #!/usr/bin/perl -w
 
+#
+# mkjail - Chroot Jail Creator
+#
+# author:  James Hunt <filefrog@gmailcom>
+# created: 2010-12-20
+#
+# This script generates chroot jails suitable for testing Clockwork's
+# ability to enforce policies, without breaking developer machines.
+#
+
 sub jail_file($$);
 sub jail_libdeps;
 sub mkdir_v($$);
 
-my $jail = $ARGV[0] . ".chroot";
-my $config = "$jail.conf";
+if (!$ARGV[0]) {
+	print "USAGE: mkjail <name>\n";
+	exit 1;
+}
+my $jail    = $ARGV[0] . ".chroot/";
+my $config  = $ARGV[0] . ".conf";
+my $prejail = $ARGV[0] . ".pre/";
 
 ######################################################################
 
@@ -15,10 +30,6 @@ if (! -f $config) {
 }
 
 if (! -d $jail) { system("mkdir -p $jail"); }
-
-$jail =~ s/\/$//;
-my $prejail  = "$jail.pre/";
-$jail .= "/";
 
 if (-d $prejail) {
 	print "\n*** Initializing jail ***\n";
@@ -97,11 +108,14 @@ sub jail_libdeps() {
 		s/(\.so[\.0-9]*).*/$1/;
 		$libdep = $_;
 
-		if (exists $LIBDEPS{$libdep}) { next; }
+		if (exists $LIBDEPS{$libdep}) {
+			print "---- $prefix$libdep\n";
+			next;
+		}
 		print "COPY $prefix$libdep\n";
 
 		jail_file($root, $libdep);
-		$LIBDEPS{$libdep} = "moved";
+		$LIBDEPS{$libdep} = "seen";
 		jail_libdeps($root, $libdep, "$prefix   ");
 	}
 	close $ldd;

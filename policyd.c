@@ -10,7 +10,7 @@
 static server default_opts = {
 	.daemonize = SERVER_OPT_TRUE,
 	.debug     = SERVER_OPT_FALSE,
-	.log_level = LOG_LEVEL_CRITICAL,
+	.log_level = LOG_LEVEL_ERROR,
 
 	.config_file   = DEFAULT_CONFIG_FILE,
 	.manifest_file = "/etc/clockwork/manifest.pol",
@@ -61,7 +61,7 @@ int main(int argc, char **argv)
 
 	INFO("policyd starting up");
 	if (server_init(arg_opts) != 0) {
-		EMERGENCY("Failed to initialize policyd server thread");
+		CRITICAL("Failed to initialize policyd server thread");
 		exit(2);
 	}
 	DEBUG("entering server_loop");
@@ -109,13 +109,7 @@ static server* config_file_options(const char *path)
 
 		v = hash_get(config, "log_level");
 		if (v) {
-			if (strcmp(v, "none") == 0) {
-				s->log_level = LOG_LEVEL_NONE;
-			} else if (strcmp(v, "emergency") == 0) {
-				s->log_level = LOG_LEVEL_EMERGENCY;
-			} else if (strcmp(v, "alert") == 0) {
-				s->log_level = LOG_LEVEL_ALERT;
-			} else if (strcmp(v, "critical") == 0) {
+			if (strcmp(v, "critical") == 0) {
 				s->log_level = LOG_LEVEL_CRITICAL;
 			} else if (strcmp(v, "error") == 0) {
 				s->log_level = LOG_LEVEL_ERROR;
@@ -123,9 +117,11 @@ static server* config_file_options(const char *path)
 				s->log_level = LOG_LEVEL_WARNING;
 			} else if (strcmp(v, "notice") == 0) {
 				s->log_level = LOG_LEVEL_NOTICE;
-			} else if (strcmp(v, "debug") == 0 || strcmp(v, "all") == 0) {
+			} else if (strcmp(v, "debug") == 0) {
 				s->log_level = LOG_LEVEL_DEBUG;
-			} else {
+			} else if (strcmp(v, "all") == 0) {
+				s->log_level = LOG_LEVEL_ALL;
+			} else { // handle "none" implicitly
 				s->log_level = LOG_LEVEL_NONE;
 			}
 		}
@@ -244,8 +240,8 @@ static void show_help(void)
 	       "                        more than once.  See -v and -Q.\n"
 	       "\n"
 	       "  -Q, --silent          Reset verbosity to the default setting, such that\n"
-	       "                        EMERGENCY, ALERT and CRITICAL messages are logged,\n"
-	       "                        and all others are discarded.  See -q and -v.\n"
+	       "                        only CRITICAL and ERROR messages are logged, and all\n"
+	       "                        others are discarded.  See -q and -v.\n"
 	       "\n"
 	       "  -c, --config          Specify the path to an alternate configuration file.\n"
 	       "                        If not given, defaults to " DEFAULT_CONFIG_FILE "\n"

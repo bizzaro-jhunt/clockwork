@@ -387,7 +387,7 @@ int server_init(server *s)
 	struct sigaction sig;
 
 	if (manifest) {
-		EMERGENCY("server module already initialized");
+		ERROR("server module already initialized");
 		return -1;
 	}
 

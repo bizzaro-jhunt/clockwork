@@ -1,4 +1,5 @@
 #ifndef RES_FILE_H
+
 #define RES_FILE_H
 
 #include "clockwork.h"
@@ -283,7 +284,7 @@ struct res_file* res_file_unpack(const char *packed);
   callers responsibility to fclose the returned FILE handle when
   finished.
 
-  @params  rf     File Resource to "open"
+  @param  rf     File Resource to "open"
 
   @returns An open, read-only file handle to the server-side copy of
            the file resource's contents on success, or NULL on failure.

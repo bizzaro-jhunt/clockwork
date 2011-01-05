@@ -38,29 +38,6 @@ static void show_help(void);
 
 /**************************************************************/
 
-#define SERVER "cfm.niftylogic.net"
-#define PORT   "7890"
-
-#define FACTS "facts/*"
-
-#if 0
-#ifdef DEVEL
-static void DEVELOPER_verify_facts(const struct hash *facts)
-{
-	struct hash_cursor cur;
-	char *key, *val;
-
-	fprintf(stderr, "  > dumping facts\n");
-	for_each_key_value(facts, &cur, key, val) {
-		fprintf(stderr, "     found '%s' = '%s'\n", key, val);
-	}
-	fprintf(stderr, "\n");
-}
-#else
-#  define DEVELOPER_verify_facts(x)
-#endif
-#endif
-
 static void dump_policy(struct policy *pol)
 {
 	char *packed = policy_pack(pol);

@@ -3,10 +3,10 @@
 lcov.info
 gmon.out
 
-host
-polspec
+policyd
+cwa
 sha1sum
-sizes
+polspec
 
 doc/proto.png
 
@@ -26,6 +26,3 @@ spec/lexer.c
 spec/grammar.c
 spec/grammar.h
 spec/*.output
-
-policyd
-cwa

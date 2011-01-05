@@ -47,10 +47,11 @@ APIDOC_ROOT := doc/api
 
 DOXYGEN := doxygen
 
+
 ############################################################
 # Object Group Variables
 
-UTILS := sha1sum sizes
+UTILS := sha1sum polspec
 CORE  := cwa policyd
 
 # Resource types
@@ -73,16 +74,51 @@ NO_LCOV += spec/grammar.c   spec/lexer.c
 NO_LCOV += config/grammar.c config/lexer.c
 NO_LCOV += log.c # Can't easily test syslog-based logging methods
 
+
 ############################################################
 # Default Target
 
-all: test $(UTILS) $(CORE)
+all: $(UTILS) $(CORE)
+
 
 ############################################################
 # Main Binaries
 
 policyd: policyd.o $(CORE_OBJECTS) $(RESOURCE_OBJECTS) $(POLICY_OBJECTS) $(SPEC_PARSER_OBJECTS) $(CONFIG_PARSER_OBJECTS) proto.o server.o
 	$(CC) -o $@ $+
+
+cwa: cwa.o $(CORE_OBJECTS) $(POLICY_OBJECTS) $(RESOURCE_OBJECTS) $(CONFIG_PARSER_OBJECTS) proto.o client.o
+	$(CC) -o $@ $+
+
+sha1sum: sha1.o sha1sum.o
+	$(CC) -o $@ $+
+
+polspec: $(CORE_OBJECTS) $(RESOURCE_OBJECTS) $(POLICY_OBJECTS) $(SPEC_PARSER_OBJECTS) polspec.o
+	$(CC) -o $@ $+
+
+
+############################################################
+# Lex/YACC Parsers
+
+spec/lexer.c: spec/lexer.l spec/grammar.h spec/lexer_impl.c spec/parser.h spec/private.h
+	$(LEX) --outfile=$@ $<
+
+spec/grammar.c spec/grammar.h: spec/grammar.y spec/grammar_impl.c spec/parser.c spec/parser.h spec/private.h
+	$(YACC) --output-file=spec/grammar.c $<
+
+spec/parser.o: spec/parser.c spec/parser.h spec/private.h
+	$(CC) -c -o $@ $<
+
+
+config/lexer.c: config/lexer.l config/grammar.h config/lexer_impl.c config/private.h
+	$(LEX) --outfile=$@ $<
+
+config/grammar.c config/grammar.h: config/grammar.y config/parser.c config/parser.h config/private.h
+	$(YACC) -p yyconfig --output-file=config/grammar.c $<
+
+config/parser.o: config/parser.c config/parser.h config/private.h
+	$(CC) -c -o $@ $<
+
 
 ############################################################
 # Documentation
@@ -93,27 +129,15 @@ apidocs:
 	rm -rf $(APIDOC_ROOT)/*
 	$(DOXYGEN) $(APIDOC_CONF)
 
-# Main Binaries
-
-############################################################
-# Utilities
-
-sha1sum: sha1.o sha1sum.o
-	$(CC) -o $@ $+
-
-sizes: sizes.c $(RESOURCE_HEADERS) userdb.h
-	$(CC) -o $@ $<
 
 ############################################################
 # Unit Tests
 
 test: unit_tests functional_tests
 	test/setup.sh
-	@echo;
-	@echo;
+	@echo; echo;
 	test/run
-	@echo;
-	@echo;
+	@echo; echo;
 	test/functional/run
 
 memtest: unit_tests
@@ -161,6 +185,7 @@ test/res_file.o: test/res_file.c res_file.h test/sha1_files.h
 
 test/sha1_files.h:
 	$(MOG) sha1_tests
+
 
 ############################################################
 # Functional Tests
@@ -221,42 +246,6 @@ dist: clean
 fixme:
 	find . -name '*.c' -o -name '*.c' | xargs grep -n FIXME: | sed -e 's/:[^:]*FIXME: /:/' -e 's/ *\*\///' | column -t -s :
 
-############################################################
-# "Extra" Dependencies
-
-main.o: main.c $(RESOURCE_HEADERS)
-	$(CC) -c -o $@ $<
-
-############################################################
-# EXPERIMENTAL
-
-cwa: cwa.o proto.o $(CORE_OBJECTS) $(POLICY_OBJECTS) $(RESOURCE_OBJECTS) $(CONFIG_PARSER_OBJECTS) client.o
-	$(CC) -o $@ $+
-
-polspec: $(CORE_OBJECTS) \
-         $(RESOURCE_OBJECTS) $(POLICY_OBJECTS) \
-         $(SPEC_PARSER_OBJECTS) \
-         polspec.o
-	$(CC) -o $@ $+
-
-spec/lexer.c: spec/lexer.l spec/grammar.h spec/lexer_impl.c spec/parser.h spec/private.h
-	$(LEX) --outfile=$@ $<
-
-spec/grammar.c spec/grammar.h: spec/grammar.y spec/grammar_impl.c spec/parser.c spec/parser.h spec/private.h
-	$(YACC) --output-file=spec/grammar.c $<
-
-spec/parser.o: spec/parser.c spec/parser.h spec/private.h
-	$(CC) -c -o $@ $<
-
-
-config/lexer.c: config/lexer.l config/grammar.h config/lexer_impl.c config/private.h
-	$(LEX) --outfile=$@ $<
-
-config/grammar.c config/grammar.h: config/grammar.y config/parser.c config/parser.h config/private.h
-	$(YACC) -p yyconfig --output-file=config/grammar.c $<
-
-config/parser.o: config/parser.c config/parser.h config/private.h
-	$(CC) -c -o $@ $<
 
 ############################################################
 # Pattern Rules

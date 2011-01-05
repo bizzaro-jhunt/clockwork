@@ -17,7 +17,7 @@ chroot testing
   mkjail is coming along.  To do this right, we need passphrase-less
   certificates, and very long expirations (i.e. 100 years).
 
-man pages / documentation
+man pages / documentation - STARTED
   Write man pages for policyd, cwa and clockwork in general.
 
 Reporting

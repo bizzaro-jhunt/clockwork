@@ -1,0 +1,83 @@
+.TH cwa.conf "5" "January 2011" "Clockwork" "Clockwork File Formats"
+.SH NAME
+cwa.conf \- Clockwork Policy Agent configuration file
+.br
+
+.SH SYNOPSIS
+.B /etc/clockwork/cwa.conf
+
+.SH DESCRIPTION
+\fBcwa\fR(1) reads its configuration from
+.I /etc/clockwork/cwa.conf
+(unless a different file is specified with the \-c option).
+.PP
+
+Valid configuration directives, and their meanings, are as follows:
+.PP
+.B server
+\- Policy Master server to connect to
+.PP
+.RS 4
+You can use a fully-qualified DNS domain name (like "policyd.example.org"), or
+an IP(v4) address (192.168.0.42).
+.PP
+Unqualified host names ("policyd" without the ".example.org") should be
+avoided if possible, since proper name resolution necessitates a properly
+configured system.  If Clockwork is responsible for fixing that system,
+things might not always work out.
+.RE
+
+.PP
+.B port
+\- TCP port to connect to
+.PP
+.RS 4
+The standard Clockwork Policy Master port
+is 7890.  Using a different setting will require similar configuration on the server
+side.  See \fBpolicyd\fR(1) and \fBpolicyd.conf\fR(5).
+.RE
+
+.PP
+.B gatherers
+\- Path or shell glob to gatherer scripts
+.PP
+.RS 4
+Gatherers allow this host to collect as much information about
+itself as possible, and communicate that to the policy master.
+This data includes stuff like kernel version, number of interfaces,
+distribution name, etc., and allows the policy master to tailor a
+policy specific to this host.
+.PP
+To specify more than one script (the most common case), use a shell
+glob.  For example, if you keep multiple gatherers in /opt/clockwork,
+set 
+.B gatherers
+to "/opt/clockwork/*".
+.PP
+Only files with the executable bit set will be seen as valid gatherer
+scripts.
+.RE
+
+.PP
+.B ca_cert_file
+\- Path to the Certificate Authority certificate.
+.PP
+.RS 4
+Allows you to specify where cwa should find the public certficate
+for the Certificate Authority that signs certificates for the
+policy masters that this agent connects to.
+.RE
+
+.PP
+.B cert_file
+\- Path to this host\(cqs public certificate
+
+.PP
+.B key_file
+\- Path to the private key used for encryption
+.PP
+.RS 4
+.B NOTE:
+This file should only be readable by root!
+.RE
+

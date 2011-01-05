@@ -1,0 +1,104 @@
+.TH policyd "1" "January 2011" "Clockwork" "Clockwork Policy Master"
+.SH NAME
+policyd \- Clockwork Policy Master
+.br
+.SH SYNOPSIS
+.B policyd
+[options]
+
+.SH DESCRIPTION
+.B Clockwork
+is a system configuration management system designed to securely enforce
+policies on one or more host systems.  It can ensure that files have the
+prescribed attributes (owner, group, permissions, etc.) and content.  It
+can maintain a specific set of installed packages, and even make sure that
+system user accounts exist.
+.PP
+.B policyd
+is the Policy Master component of Clockwork.  It holds all of
+the policies for all managed systems, and gives them out to the
+.B cwa
+agents when they connect.
+.B policyd
+is also responsible for hosting and serving file contents to clients
+that need to update file resources.
+
+.SH OPTIONS
+.PP
+\fB\-c, \-\-config\fR \fI/path/to/policyd.conf\fR
+.RS 8
+Specify the path to an alternate configuration file.  If not given, the
+default configuration file (/etc/clockwork/policyd.conf) is used instead.
+.RE
+
+.PP
+\fB\-p, \-\-port\fR \fItcp-port-number\fR
+.RS 8
+Override the TCP port number to bind to and listen on.
+.RE
+
+.PP
+\fB\-Q, \-\-silent\fR
+.RS 8
+Reset verbosity to the default setting, such that only
+.B CRITICAL
+and
+.B ERROR
+messages are logged, and all others are discarded.
+See \fB\-q\fR and \fB\-v\fR.
+.RE
+
+.PP
+.B \-q[qqq...]
+.RS 8
+Decrease verbosity by one level.  Can be used more than once.
+See \fB\-v\fR and \fB\-Q\fR.
+.RE
+
+.PP
+.B \-v[vvv...]
+.RS 8
+Increase verbosity by one level.  Can be used more than once.
+See \fB\-Q\fR and \fB\-q\fR.
+.RE
+
+.PP
+.B \-D, \-\-debug
+.RS 8
+Run in debug mode, logging to stderr instead of syslog.
+Implies \fR\-F\fB.
+.RE
+
+.PP
+.B \-F, \-\-foreground
+.RS 8
+Do not fork into the background.
+Useful for debugging with \fB\-D\fR.
+.RE
+
+.SH FILES
+.TP 8
+.B /etc/clockwork/policyd.conf
+Default configuration file that
+.B policyd
+reads on start up.  See \fBpolicyd.conf\fR(5) for details.
+
+.SH SEE ALSO
+\fBclockwork\fR(7), \fBcwa\fR(1), \fBpolicyd.conf\fR(5) and \fBcwa.conf\fR(5)
+
+.SH AUTHOR
+Clockwork was conceived and written by James Hunt.
+.PP
+Original ideas were stolen from
+.B CFEngine
+(Mark Burgess) and
+.B Puppet
+(Luke Kanies).
+
+.SH BUGS
+Lots.  Clockwork is still evolving, and your input is appreciated.
+.PP
+Unfortunately, Clockwork doesn\(cqt even have a web site, let alone a
+worthwhile bug tracker.  Send bugs to
+.B filefrog@gmail.com
+with the word 'clockwork' in the subject.

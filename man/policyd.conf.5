@@ -1,0 +1,85 @@
+.TH policyd.conf "5" "January 2011" "Clockwork" "Clockwork File Formats"
+.SH NAME
+policyd.conf \- Clockwork Policy Master configuration file
+.br
+
+.SH SYNOPSIS
+.B /etc/clockwork/policyd.conf
+
+.SH DESCRIPTION
+\fBpolicyd\fR(1) reads its configuration from
+.I /etc/clockwork/policyd.conf
+(unless a different file is specified with the \-c option).
+.PP
+
+Valid configuration directives, and their meanings, are as follows:
+.PP
+.B log_level 
+\- Logging threshold
+.PP
+.RS 4
+Valid values are:
+.IP \fBnone\fR 1i
+Suppress all logging.
+.IP \fBcritical\fR
+Fatal issues that cause immediate termination.
+.IP \fBerror\fR
+Non-fatal issues that prevent proper system operation.
+.IP \fBwarning\fR
+Minor problems that do not hinder system operation.
+.IP \fBnotice\fR
+Informational messages that assist in system diagnostics.
+.IP \fBdebug\fR
+Messages for chasing down bugs.
+.IP \fBall\fR
+Log everything (same as debug).
+.RE
+
+.PP
+.B manifest_file
+\- Path to the policy manifest file.
+
+.PP
+.B ca_cert_file
+\- Path to the Certificate Authority certificate.
+.PP
+.RS 4
+Allows you to specify where
+.B policyd
+should find the public certficate
+for the Certificate Authority that signs certificates for
+host systems that will connect to this policy master.
+.RE
+
+.PP
+.B cert_file
+\- Path to this host\(cqs public certificate
+
+.PP
+.B key_file
+\- Path to the private key used for encryption
+.PP
+.RS 4
+.B NOTE:
+This file should only be readable by root!
+.RE
+
+.SH EXAMPLES
+
+If no configuration is specified,
+.B policyd
+will act as if the following configuration file was used:
+
+.RS 6
+# Default policyd configuration
+.PP
+ca_cert_file  = "/etc/clockwork/ssl/CA.pem"
+.br
+cert_file     = "/etc/clockwork/ssl/cert.pem"
+.br
+key_file      = "/etc/clockwork/ssl/key.pem"
+.PP
+manifest_file = "/etc/clockwork/manifest.pol"
+.PP
+log_level     = "error"
+.RE

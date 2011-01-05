@@ -1,0 +1,91 @@
+.TH cwa "1" "January 2011" "Clockwork" "Clockwork Policy Agent"
+.SH NAME
+cwa \- Clockwork Policy Agent
+.br
+.SH SYNOPSIS
+.B cwa
+[options]
+.br
+.B cwa
+-c /path/to/cwa.conf
+.br
+.B cwa
+-s server.address -p port
+.SH DESCRIPTION
+.B Clockwork
+is a system configuration management system designed to securely enforce
+policies on one or more host systems.  It can ensure that files have the
+prescribed attributes (owner, group, permissions, etc.) and content.  It
+can maintain a specific set of installed packages, and even make sure that
+system user accounts exist.
+.PP
+.B cwa
+is the agent component of Clockwork that runs on managed hosts.  It is
+responsible for retrieving the host's policy from a policy master and
+taking whatever steps necessary to bring the host back into line with that
+policy.
+
+.SH OPTIONS
+.PP
+\fB\-c, \-\-config\fR \fI/path/to/cwa.conf\fR
+.RS 8
+Specify the path to an alternate configuration file.  If not given, the
+default configuration file (/etc/clockwork/cwa.conf) is used instead.
+.RE
+.PP
+\fB\-s, \-\-server\fR \fIserver.host.name\fR
+.RS 8
+Override the name (IP or DNS) of the policy master.
+.RE
+.PP
+\fB\-p, \-\-port\fR \fItcp-port-number\fR
+.RS 8
+Override the TCP port number to connect to.
+.RE
+
+.SH EXIT STATUS
+.B cwa
+exits 0 if it was able to retrieve the local host policy from the policy master,
+and successfully apply that policy to bring the host into 100% compliance.
+Otherwise, a non-zero exit code is used.
+
+.RS 4
+.nr step 0 1
+.IP \n+[step]. 3
+connect to the policy master
+.IP \n+[step].
+present local host facts
+.IP \n+[step].
+retrieve policy for the local host
+.IP \n+[step].
+evaulate compliance
+.IP \n+[step].
+"fix" non-compliant resources
+.RE
+
+.SH FILES
+.TP 8
+.B /etc/clockwork/cwa.conf
+Default configuration file that
+.B cwa
+reads on start up.  See \fBcwa.conf\fR(5) for details.
+
+.SH SEE ALSO
+\fBclockwork\fR(7), \fBpolicyd\fR(1), \fBpolicyd.conf\fR(5) and \fBcwa.conf\fR(5)
+
+.SH AUTHOR
+Clockwork was conceived and written by James Hunt.
+.PP
+Original ideas were stolen from
+.B CFEngine
+(Mark Burgess) and
+.B Puppet
+(Luke Kanies).
+
+.SH BUGS
+Lots.  Clockwork is still evolving, and your input is appreciated.
+.PP
+Unfortunately, Clockwork doesn\(cqt even have a web site, let alone a
+worthwhile bug tracker.  Send bugs to
+.B filefrog@gmail.com
+with the word 'clockwork' in the subject.

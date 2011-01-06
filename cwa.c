@@ -10,6 +10,7 @@
 
 static client default_opts = {
 	.log_level = LOG_LEVEL_CRITICAL,
+	.dryrun    = 0,
 
 	.config_file = DEFAULT_CONFIG_FILE,
 
@@ -83,8 +84,12 @@ int main(int argc, char **argv)
 	dump_policy(arg_opts->policy);
 	policy_check(arg_opts->policy, &arg_opts->session);
 
-//	INFO("Enforcing policy on local system");
-//	client_enforce_policy(policy);
+	if (arg_opts->dryrun) {
+		INFO("Enforcement skipped (--dry-run specified)\n");
+	} else {
+		INFO("Enforcing policy on local system");
+		//client_enforce_policy(policy);
+	}
 
 	client_deinit(arg_opts);
 	return 0;
@@ -131,12 +136,13 @@ static client* command_line_options(int argc, char **argv)
 {
 	client *c;
 
-	const char *short_opts = "h?c:s:p:";
+	const char *short_opts = "h?c:s:p:n";
 	struct option long_opts[] = {
 		{ "help",   no_argument,       NULL, 'h' },
 		{ "config", required_argument, NULL, 'c' },
 		{ "server", required_argument, NULL, 's' },
 		{ "port",   required_argument, NULL, 'p' },
+		{ "dry-run", no_argument,      NULL, 'n' },
 		{ 0, 0, 0, 0 },
 	};
 
@@ -165,6 +171,8 @@ static client* command_line_options(int argc, char **argv)
 			free(c->s_port);
 			c->s_port = strdup(optarg);
 			break;
+		case 'n':
+			c->dryrun = 1;
 		}
 	}
 
@@ -186,6 +194,8 @@ static int merge_options(client *a, client *b)
 	MERGE_STRING_OPTION(a,b,s_address);
 	MERGE_STRING_OPTION(a,b,s_port);
 
+	a->dryrun = (b->dryrun ? 1 : a->dryrun);
+
 	return 0;
 }
 #undef MERGE_STRING_OPTION
@@ -196,6 +206,9 @@ static void show_help(void)
 	       "\n"
 	       "  -h, --help            Show this helpful message.\n"
 	       "                        (for more in-depth help, check the man pages.)\n"
+	       "\n"
+	       "  -n, --dry-run         Do not enforce the policy locally, just verify policy\n"
+	       "                        retrieval and fact gathering.\n"
 	       "\n"
 	       "  -c, --config          Specify the path to an alternate configuration file.\n"
 	       "                        If not given, defaults to " DEFAULT_CONFIG_FILE "\n"

@@ -18,6 +18,8 @@ typedef struct {
 
 	int log_level;
 
+	int dryrun;
+
 	char *config_file;
 
 	char *ca_cert_file;

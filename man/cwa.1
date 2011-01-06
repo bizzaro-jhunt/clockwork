@@ -26,21 +26,29 @@ taking whatever steps necessary to bring the host back into line with that
 policy.
 
 .SH OPTIONS
-.PP
-\fB\-c, \-\-config\fR \fI/path/to/cwa.conf\fR
+\fB\-c\fR, \fB\-\-config\fR \fI/path/to/cwa.conf\fR
 .RS 8
 Specify the path to an alternate configuration file.  If not given, the
 default configuration file (/etc/clockwork/cwa.conf) is used instead.
 .RE
-.PP
-\fB\-s, \-\-server\fR \fIserver.host.name\fR
+
+\fB\-n\fR, \fB\-\-dry\-run\fR
 .RS 8
-Override the name (IP or DNS) of the policy master.
+Run in test-only mode; gather local facts, present them to the policy master
+and retrieve the host policy, but do not change anything on the local system
+to enforce that policy.
 .RE
+
 .PP
-\fB\-p, \-\-port\fR \fItcp-port-number\fR
+\fB\-p\fR, \fB\-\-port\fR \fItcp-port-number\fR
 .RS 8
 Override the TCP port number to connect to.
+.RE
+
+.PP
+\fB\-s\fR, \fB\-\-server\fR \fIserver.host.name\fR
+.RS 8
+Override the name (IP or DNS) of the policy master.
 .RE
 
 .SH EXIT STATUS

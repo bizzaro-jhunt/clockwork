@@ -415,10 +415,11 @@ int res_user_stat(struct res_user *ru, struct pwdb *pwdb, struct spdb *spdb);
   and commit all changes when finished.
 
   @param  ru      User resource to use for remediation.
+  @param  dryrun  Don't remediate, just print what would be done.
   @param  pwdb    Password database structure to update.
   @param  spdb    Shadow database structure to update.
  */
-int res_user_remediate(struct res_user *ru, struct pwdb *pwdb, struct spdb *spdb);
+int res_user_remediate(struct res_user *ru, int dryrun, struct pwdb *pwdb, struct spdb *spdb);
 
 /**
   Determine whether or not \a packed is a packed representation

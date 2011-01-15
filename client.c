@@ -177,19 +177,19 @@ int client_enforce_policy(client *c)
 	/* Remediate users */
 	for_each_node(ru, &c->policy->res_users, res) {
 		res_user_stat(ru, passwd, shadow);
-		res_user_remediate(ru, passwd, shadow);
+		res_user_remediate(ru, !c->dryrun, passwd, shadow);
 	}
 
 	/* Remediate groups */
 	for_each_node(rg, &c->policy->res_groups, res) {
 		res_group_stat(rg, group, gshadow);
-		res_group_remediate(rg, group, gshadow);
+		res_group_remediate(rg, !c->dryrun, group, gshadow);
 	}
 
 	/* Remediate files */
 	for_each_node(rf, &c->policy->res_files, res) {
 		res_file_stat(rf);
-		res_file_remediate(rf);
+		res_file_remediate(rf, !c->dryrun);
 	}
 
 	return 0;

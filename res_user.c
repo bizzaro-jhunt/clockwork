@@ -383,7 +383,7 @@ int res_user_stat(struct res_user *ru, struct pwdb *pwdb, struct spdb *spdb)
 	return _res_user_diff(ru);
 }
 
-int res_user_remediate(struct res_user *ru, struct pwdb *pwdb, struct spdb *spdb)
+int res_user_remediate(struct res_user *ru, int dryrun, struct pwdb *pwdb, struct spdb *spdb)
 {
 	assert(ru);
 	assert(pwdb);

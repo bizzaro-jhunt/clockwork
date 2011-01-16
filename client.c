@@ -157,7 +157,7 @@ int client_get_file(protocol_session *session, sha1 *checksum)
 	return bytes;
 }
 
-int client_enforce_policy(client *c)
+int client_enforce_policy(client *c, struct list *l)
 {
 	struct pwdb *passwd;
 	struct spdb *shadow;
@@ -168,6 +168,8 @@ int client_enforce_policy(client *c)
 	struct res_group *rg;
 	struct res_file *rf;
 
+	struct report *r;
+
 	passwd  = pwdb_init(SYS_PASSWD);
 	shadow  = spdb_init(SYS_SHADOW);
 	group   = grdb_init(SYS_GROUP);
@@ -177,19 +179,34 @@ int client_enforce_policy(client *c)
 	/* Remediate users */
 	for_each_node(ru, &c->policy->res_users, res) {
 		res_user_stat(ru, passwd, shadow);
-		res_user_remediate(ru, !c->dryrun, passwd, shadow);
+		r = res_user_remediate(ru, c->dryrun, passwd, shadow);
+		list_add_tail(&r->rep, l);
 	}
 
 	/* Remediate groups */
 	for_each_node(rg, &c->policy->res_groups, res) {
 		res_group_stat(rg, group, gshadow);
-		res_group_remediate(rg, !c->dryrun, group, gshadow);
+		r = res_group_remediate(rg, c->dryrun, group, gshadow);
+		list_add_tail(&r->rep, l);
 	}
 
 	/* Remediate files */
 	for_each_node(rf, &c->policy->res_files, res) {
 		res_file_stat(rf);
-		res_file_remediate(rf, !c->dryrun);
+		r = res_file_remediate(rf, c->dryrun);
+		list_add_tail(&r->rep, l);
+	}
+
+	return 0;
+}
+
+int client_print_report(FILE *io, struct list *report)
+{
+	struct report *r;
+
+	for_each_node(r, report, rep) {
+		report_print(io, r);
+		fprintf(io, "\n");
 	}
 
 	return 0;

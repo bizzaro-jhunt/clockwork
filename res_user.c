@@ -383,92 +383,241 @@ int res_user_stat(struct res_user *ru, struct pwdb *pwdb, struct spdb *spdb)
 	return _res_user_diff(ru);
 }
 
-int res_user_remediate(struct res_user *ru, int dryrun, struct pwdb *pwdb, struct spdb *spdb)
+struct report* res_user_remediate(struct res_user *ru, int dryrun, struct pwdb *pwdb, struct spdb *spdb)
 {
 	assert(ru);
 	assert(pwdb);
 	assert(spdb);
 
+	struct report *report;
+	char *action;
+
+	int new_user = 0;
+
+	report = report_new("User", ru->ru_name);
+
 	/* Remove the user if RES_USER_ABSENT */
 	if (res_user_enforced(ru, ABSENT)) {
-		if ((ru->ru_pw && pwdb_rm(pwdb, ru->ru_pw) != 0)
-		 || (ru->ru_sp && spdb_rm(spdb, ru->ru_sp) != 0)) {
-			return -1;
+		if (ru->ru_pw || ru->ru_sp) {
+			action = string("remove user");
+
+			if (dryrun) {
+				report_action(report, action, ACTION_SKIPPED);
+				return report;
+			}
+
+			if ((ru->ru_pw && pwdb_rm(pwdb, ru->ru_pw) != 0)
+			 || (ru->ru_sp && spdb_rm(spdb, ru->ru_sp) != 0)) {
+				report_action(report, action, ACTION_FAILED);
+			} else {
+				report_action(report, action, ACTION_SUCCEEDED);
+			}
 		}
 
-		return 0;
+		return report;
 	}
 
-	if (!ru->ru_pw) {
-		ru->ru_pw = pwdb_new_entry(pwdb, ru->ru_name);
-		if (!ru->ru_pw) { return -1; }
+	if (!ru->ru_pw || !ru->ru_sp) {
+		action = string("create user");
+		new_user = 1;
+
+		if (!ru->ru_pw) { ru->ru_pw = pwdb_new_entry(pwdb, ru->ru_name); }
+		if (!ru->ru_sp) { ru->ru_sp = spdb_new_entry(spdb, ru->ru_name); }
+
+		if (dryrun) {
+			report_action(report, action, ACTION_SKIPPED);
+		} else if (ru->ru_pw && ru->ru_sp) {
+			report_action(report, action, ACTION_SUCCEEDED);
+		} else {
+			report_action(report, action, ACTION_FAILED);
+			return report;
+		}
 	}
 
-	if (!ru->ru_sp) {
-		ru->ru_sp = spdb_new_entry(spdb, ru->ru_name);
-		if (!ru->ru_sp) { return -1; }
+	if (res_user_different(ru, PASSWD)) {
+		if (new_user) {
+			action = string("set user password");
+		} else {
+			action = string("change user password");
+		}
+
+		if (dryrun) {
+			report_action(report, action, ACTION_SKIPPED);
+		} else {
+			xfree(ru->ru_pw->pw_passwd);
+			ru->ru_pw->pw_passwd = strdup("x");
+
+			xfree(ru->ru_sp->sp_pwdp);
+			ru->ru_sp->sp_pwdp = strdup(ru->ru_passwd);
+
+			report_action(report, action, ACTION_SUCCEEDED);
+		}
 	}
 
-	if (res_user_enforced(ru, PASSWD)) {
-		xfree(ru->ru_pw->pw_passwd);
-		ru->ru_pw->pw_passwd = strdup("x");
+	if (res_user_different(ru, UID)) {
+		if (new_user) {
+			action = string("set uid to %u", ru->ru_uid);
+		} else {
+			action = string("change uid from %u to %u", ru->ru_pw->pw_uid, ru->ru_uid);
+		}
 
-		xfree(ru->ru_sp->sp_pwdp);
-		ru->ru_sp->sp_pwdp = strdup(ru->ru_passwd);
+		if (dryrun) {
+			report_action(report, action, ACTION_SKIPPED);
+		} else {
+			ru->ru_pw->pw_uid = ru->ru_uid;
+			report_action(report, action, ACTION_SUCCEEDED);
+		}
 	}
 
-	if (res_user_enforced(ru, UID)) {
-		ru->ru_pw->pw_uid = ru->ru_uid;
+	if (res_user_different(ru, GID)) {
+		if (new_user) {
+			action = string("set gid to %u", ru->ru_gid);
+		} else {
+			action = string("change gid from %u to %u", ru->ru_pw->pw_gid, ru->ru_gid);
+		}
+
+		if (dryrun) {
+			report_action(report, action, ACTION_SKIPPED);
+		} else {
+			ru->ru_pw->pw_gid = ru->ru_gid;
+			report_action(report, action, ACTION_SUCCEEDED);
+		}
 	}
 
-	if (res_user_enforced(ru, GID)) {
-		ru->ru_pw->pw_gid = ru->ru_gid;
+	if (res_user_different(ru, GECOS)) {
+		if (new_user) {
+			action = string("set GECOS to %s", ru->ru_gecos);
+		} else {
+			action = string("change GECOS to %s", ru->ru_gecos);
+		}
+
+		if (dryrun) {
+			report_action(report, action, ACTION_SKIPPED);
+		} else {
+			xfree(ru->ru_pw->pw_gecos);
+			ru->ru_pw->pw_gecos = strdup(ru->ru_gecos);
+
+			report_action(report, action, ACTION_SUCCEEDED);
+		}
 	}
 
-	if (res_user_enforced(ru, GECOS)) {
-		xfree(ru->ru_pw->pw_gecos);
-		ru->ru_pw->pw_gecos = strdup(ru->ru_gecos);
+	if (res_user_different(ru, DIR)) {
+		if (new_user) {
+			action = string("set home directory to %s", ru->ru_dir);
+		} else {
+			action = string("change home from %s to %s", ru->ru_pw->pw_dir, ru->ru_dir);
+		}
+
+		if (dryrun) {
+			report_action(report, action, ACTION_SKIPPED);
+		} else {
+			xfree(ru->ru_pw->pw_dir);
+			ru->ru_pw->pw_dir = strdup(ru->ru_dir);
+			report_action(report, action, ACTION_SUCCEEDED);
+		}
 	}
 
-	if (res_user_enforced(ru, DIR)) {
-		xfree(ru->ru_pw->pw_dir);
-		ru->ru_pw->pw_dir = strdup(ru->ru_dir);
+	if (res_user_different(ru, SHELL)) {
+		if (new_user) {
+			action = string("set login shell to %s", ru->ru_shell);
+		} else {
+			action = string("change shell from %s to %s", ru->ru_pw->pw_shell, ru->ru_shell);
+		}
+
+		if (dryrun) {
+			report_action(report, action, ACTION_SKIPPED);
+		} else {
+			xfree(ru->ru_pw->pw_shell);
+			ru->ru_pw->pw_shell = strdup(ru->ru_shell);
+			report_action(report, action, ACTION_SUCCEEDED);
+		}
 	}
 
-	if (res_user_enforced(ru, SHELL)) {
-		xfree(ru->ru_pw->pw_shell);
-		ru->ru_pw->pw_shell = strdup(ru->ru_shell);
+	if (res_user_different(ru, PWMIN)) {
+		if (new_user) {
+			action = string("set password minimum age to %u days", ru->ru_pwmin);
+		} else {
+			action = string("change password minimum age to %u days", ru->ru_pwmin);
+		}
+
+		if (dryrun) {
+			report_action(report, action, ACTION_SKIPPED);
+		} else {
+			ru->ru_sp->sp_min = ru->ru_pwmin;
+			report_action(report, action, ACTION_SUCCEEDED);
+		}
 	}
 
-	if (res_user_enforced(ru, PWMIN)) {
-		ru->ru_sp->sp_min = ru->ru_pwmin;
+	if (res_user_different(ru, PWMAX)) {
+		if (new_user) {
+			action = string("set password maximum age to %u days", ru->ru_pwmax);
+		} else {
+			action = string("change password maximum age to %u days", ru->ru_pwmax);
+		}
+
+		if (dryrun) {
+			report_action(report, action, ACTION_SKIPPED);
+		} else {
+			ru->ru_sp->sp_max = ru->ru_pwmax;
+			report_action(report, action, ACTION_SUCCEEDED);
+		}
 	}
 
-	if (res_user_enforced(ru, PWMAX)) {
-		ru->ru_sp->sp_max = ru->ru_pwmax;
+	if (res_user_different(ru, PWWARN)) {
+		if (new_user) {
+			action = string("set password expiry warning to %u days", ru->ru_pwwarn);
+		} else {
+			action = string("change password expiry warning to %u days", ru->ru_pwwarn);
+		}
+
+		if (dryrun) {
+			report_action(report, action, ACTION_SKIPPED);
+		} else {
+			ru->ru_sp->sp_warn = ru->ru_pwwarn;
+			report_action(report, action, ACTION_SUCCEEDED);
+		}
 	}
 
-	if (res_user_enforced(ru, PWWARN)) {
-		ru->ru_sp->sp_warn = ru->ru_pwwarn;
+	if (res_user_different(ru, INACT)) {
+		if (ru->ru_inact) {
+			action = string("deactivate account");
+		} else {
+			action = string("activate account");
+		}
+
+		if (dryrun) {
+			report_action(report, action, ACTION_SKIPPED);
+		} else {
+			ru->ru_sp->sp_inact = ru->ru_inact;
+			report_action(report, action, ACTION_SUCCEEDED);
+		}
 	}
 
-	if (res_user_enforced(ru, INACT)) {
-		ru->ru_sp->sp_inact = ru->ru_inact;
-	}
+	if (res_user_different(ru, EXPIRE)) {
+		if (new_user) {
+			action = string("set account expiration to %u", ru->ru_expire);
+		} else {
+			action = string("change account expiration to %u", ru->ru_expire);
+		}
 
-	if (res_user_enforced(ru, EXPIRE)) {
-		ru->ru_sp->sp_expire = ru->ru_expire;
+		if (dryrun) {
+			report_action(report, action, ACTION_SKIPPED);
+		} else {
+			ru->ru_sp->sp_expire = ru->ru_expire;
+			report_action(report, action, ACTION_SUCCEEDED);
+		}
 	}
 
 	/* FIXME: ru_lock support in res_user_remediate */
 
-	return 0;
+	return report;
 }
 
 int res_user_is_pack(const char *packed)
 {
 	return strncmp(packed, RES_USER_PACK_PREFIX, RES_USER_PACK_OFFSET);
 }
+
 char* res_user_pack(const struct res_user *ru)
 {
 	char *packed;

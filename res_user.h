@@ -6,6 +6,7 @@
 #include <pwd.h>
 #include <shadow.h>
 
+#include "report.h"
 #include "list.h"
 #include "userdb.h"
 
@@ -418,8 +419,11 @@ int res_user_stat(struct res_user *ru, struct pwdb *pwdb, struct spdb *spdb);
   @param  dryrun  Don't remediate, just print what would be done.
   @param  pwdb    Password database structure to update.
   @param  spdb    Shadow database structure to update.
+
+  @returns a pointer to a struct report describing the actions taken,
+           or NULL on internal failure (i.e. malloc issues)
  */
-int res_user_remediate(struct res_user *ru, int dryrun, struct pwdb *pwdb, struct spdb *spdb);
+struct report* res_user_remediate(struct res_user *ru, int dryrun, struct pwdb *pwdb, struct spdb *spdb);
 
 /**
   Determine whether or not \a packed is a packed representation

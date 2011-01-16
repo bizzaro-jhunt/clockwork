@@ -235,62 +235,135 @@ int res_file_stat(struct res_file *rf)
 	return _res_file_diff(rf);
 }
 
-int res_file_remediate(struct res_file *rf)
+struct report* res_file_remediate(struct res_file *rf, int dryrun)
 {
 	assert(rf);
+
+	struct report *report = report_new("File", rf->rf_lpath);
+	char *action;
+	int new_file = 0;
 
 	/* UID and GID to chown to */
 	uid_t uid = (res_file_enforced(rf, UID) ? rf->rf_uid : rf->rf_stat.st_uid);
 	gid_t gid = (res_file_enforced(rf, GID) ? rf->rf_gid : rf->rf_stat.st_gid);
-	int local_fd; int remote_fd;
+	int local_fd = -1; int remote_fd;
 
 	/* Remove the file */
 	if (res_file_enforced(rf, ABSENT)) {
+		action = string("remove file");
 		if (rf->rf_exists == 1) {
-			return unlink(rf->rf_lpath);
+			if (dryrun) {
+				report_action(report, action, ACTION_SKIPPED);
+			} else if (unlink(rf->rf_lpath) == 0) {
+				report_action(report, action, ACTION_SUCCEEDED);
+			} else {
+				report_action(report, action, ACTION_FAILED);
+			}
 		}
 
-		return 0;
+		return report;
 	}
 
 	if (!rf->rf_exists) {
-		local_fd = creat(rf->rf_lpath, rf->rf_mode);
-		if (local_fd < 0) {
-			return local_fd;
+		new_file = 1;
+		action = string("create file");
+
+		if (dryrun) {
+			report_action(report, action, ACTION_SKIPPED);
+		} else {
+			local_fd = creat(rf->rf_lpath, rf->rf_mode);
+			if (local_fd >= 0) {
+				report_action(report, action, ACTION_SUCCEEDED);
+			} else {
+				report_action(report, action, ACTION_FAILED);
+				return report;
+			}
 		}
 
 		/* No need to chmod the file again */
-		rf->rf_enf ^= RES_FILE_MODE;
+		rf->rf_diff ^= RES_FILE_MODE;
 	}
 
 	if (res_file_different(rf, SHA1)) {
 		assert(rf->rf_lpath);
-		assert(rf->rf_rpath);
+		//assert(rf->rf_rpath);
 
-		local_fd = open(rf->rf_lpath, O_CREAT | O_RDWR | O_TRUNC, rf->rf_mode);
-		if (local_fd == -1) { return -1; }
+		action = string("update content from master copy");
+		if (dryrun) {
+			report_action(report, action, ACTION_SKIPPED);
+		} else {
+			if (local_fd < 0) {
+				local_fd = open(rf->rf_lpath, O_CREAT | O_RDWR | O_TRUNC, rf->rf_mode);
+				if (local_fd == -1) {
+					report_action(report, action, ACTION_FAILED);
+					return report;
+				}
+			}
 
-		remote_fd = open(rf->rf_rpath, O_RDONLY);
-		if (remote_fd == -1) { return -1; }
+			remote_fd = open(rf->rf_rpath, O_RDONLY);
+			if (remote_fd == -1) {
+				report_action(report, action, ACTION_FAILED);
+				return report;
+			}
 
-		if (_res_file_fd2fd(local_fd, remote_fd) == -1) {
-			return -1;
+			if (_res_file_fd2fd(local_fd, remote_fd) == -1) {
+				report_action(report, action, ACTION_FAILED);
+				return report;
+			}
+
+			report_action(report, action, ACTION_SUCCEEDED);
 		}
 	}
 
-	if (res_file_different(rf, UID) || res_file_different(rf, GID)) {
-		if (chown(rf->rf_lpath, uid, gid) == -1) {
-			return -1;
+	if (res_file_different(rf, UID)) {
+		if (new_file) {
+			action = string("set owner to %u", uid);
+		} else {
+			action = string("change owner from %u to %u", rf->rf_stat.st_uid, uid);
+		}
+
+		if (dryrun) {
+			report_action(report, action, ACTION_SKIPPED);
+		} else if (chown(rf->rf_lpath, uid, -1) == 0) {
+			report_action(report, action, ACTION_SUCCEEDED);
+		} else {
+			report_action(report, action, ACTION_FAILED);
+		}
+	}
+
+	if (res_file_different(rf, GID)) {
+		if (new_file) {
+			action = string("set group to %u", gid);
+		} else {
+			action = string("change group from %u to %u", rf->rf_stat.st_gid, gid);
+		}
+
+		if (dryrun) {
+			report_action(report, action, ACTION_SKIPPED);
+		} else if (chown(rf->rf_lpath, -1, gid) == 0) {
+			report_action(report, action, ACTION_SUCCEEDED);
+		} else {
+			report_action(report, action, ACTION_FAILED);
 		}
 	}
 
 	if (res_file_different(rf, MODE)) {
-		if (chmod(rf->rf_lpath, rf->rf_mode) == -1) {
-			return -1;
+		if (new_file) {
+			action = string("set permissions to %04o", rf->rf_mode);
+		} else {
+			action = string("change permissions from %04o to %04o", rf->rf_stat.st_mode & 07777, rf->rf_mode);
+		}
+
+		if (dryrun) {
+			report_action(report, action, ACTION_SKIPPED);
+		} else if (chmod(rf->rf_lpath, rf->rf_mode) == 0) {
+			report_action(report, action, ACTION_SUCCEEDED);
+		} else {
+			report_action(report, action, ACTION_FAILED);
 		}
 	}
 
-	return 0;
+	return report;
 }
 
 int res_file_is_pack(const char *packed)

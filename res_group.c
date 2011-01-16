@@ -304,42 +304,82 @@ int res_group_stat(struct res_group *rg, struct grdb *grdb, struct sgdb *sgdb)
 	return _res_group_diff(rg);
 }
 
-int res_group_remediate(struct res_group *rg, struct grdb *grdb, struct sgdb *sgdb)
+struct report* res_group_remediate(struct res_group *rg, int dryrun, struct grdb *grdb, struct sgdb *sgdb)
 {
 	assert(rg);
 	assert(grdb);
 	assert(sgdb);
 
+	struct report *report;
+	char *action;
+
+	report = report_new("Group", rg->rg_name);
+
 	/* Remove the group if RES_GROUP_ABSENT */
 	if (res_group_enforced(rg, ABSENT)) {
-		if ((rg->rg_grp && grdb_rm(grdb, rg->rg_grp) != 0)
-		 || (rg->rg_sg && sgdb_rm(sgdb, rg->rg_sg) != 0)) {
-			return -1;
+		if (rg->rg_grp || rg->rg_sg) {
+			action = string("remove group");
+
+			if (dryrun) {
+				report_action(report, action, ACTION_SKIPPED);
+			} else {
+				if ((rg->rg_grp && grdb_rm(grdb, rg->rg_grp) != 0)
+				 || (rg->rg_sg && sgdb_rm(sgdb, rg->rg_sg) != 0)) {
+					report_action(report, action, ACTION_FAILED);
+				} else {
+					report_action(report, action, ACTION_SUCCEEDED);
+				}
+			}
 		}
 
-		return 0;
+		return report;
 	}
 
-	if (!rg->rg_grp) {
-		rg->rg_grp = grdb_new_entry(grdb, rg->rg_name);
-		if (!rg->rg_grp) { return -1; }
-	}
+	if (!rg->rg_grp || !rg->rg_sg) {
+		action = string("create group");
 
-	if (!rg->rg_sg) {
-		rg->rg_sg = sgdb_new_entry(sgdb, rg->rg_name);
-		if (!rg->rg_sg) { return -1; }
+		if (!rg->rg_grp) {
+			rg->rg_grp = grdb_new_entry(grdb, rg->rg_name);
+		}
+		if (!rg->rg_sg) {
+			rg->rg_sg = sgdb_new_entry(sgdb, rg->rg_name);
+		}
+
+		if (rg->rg_grp && rg->rg_sg) {
+			report_action(report, action, ACTION_SUCCEEDED);
+		} else {
+			report_action(report, action, ACTION_FAILED);
+		}
 	}
 
 	if (res_group_enforced(rg, PASSWD)) {
-		rg->rg_grp->gr_passwd = strdup("x");
-		rg->rg_sg->sg_passwd = strdup(rg->rg_passwd);
+		action = string("change group membership password");
+
+		if (dryrun) {
+			report_action(report, action, ACTION_SKIPPED);
+		} else {
+			xfree(rg->rg_grp->gr_passwd);
+			rg->rg_grp->gr_passwd = strdup("x");
+			xfree(rg->rg_sg->sg_passwd);
+			rg->rg_sg->sg_passwd = strdup(rg->rg_passwd);
+
+			report_action(report, action, ACTION_SUCCEEDED);
+		}
 	}
 
 	if (res_group_enforced(rg, GID)) {
-		rg->rg_grp->gr_gid = rg->rg_gid;
+		action = string("change gid from %u to %u", rg->rg_grp->gr_gid, rg->rg_gid);
+
+		if (dryrun) {
+			report_action(report, action, ACTION_SKIPPED);
+		} else {
+			rg->rg_grp->gr_gid = rg->rg_gid;
+			report_action(report, action, ACTION_SUCCEEDED);
+		}
 	}
 
 	if (res_group_enforced(rg, MEMBERS) && res_group_different(rg, MEMBERS)) {
+		/* FIXME: RES_GROUP_MEMBERS report support... */
 		/* replace gr_mem and sg_mem with the rg_mem stringlist */
 		xarrfree(rg->rg_grp->gr_mem);
 		rg->rg_grp->gr_mem = xarrdup(rg->rg_mem->strings);
@@ -349,12 +389,13 @@ int res_group_remediate(struct res_group *rg, struct grdb *grdb, struct sgdb *sg
 	}
 
 	if (res_group_enforced(rg, ADMINS) && res_group_different(rg, ADMINS)) {
+		/* FIXME: RES_GROUP_ADMINS report support... */
 		/* replace sg_adm with the rg_adm stringlist */
 		xarrfree(rg->rg_sg->sg_adm);
 		rg->rg_sg->sg_adm = xarrdup(rg->rg_adm->strings);
 	}
 
-	return 0;
+	return report;
 }
 
 int res_group_is_pack(const char *packed)

@@ -15,6 +15,7 @@ CC_FLAGS += -lssl
 CC_FLAGS += -lpthread
 
 CC_FLAGS += -DDEVEL
+CC_FLAGS += -DNDEBUG
 
 CC := gcc $(CC_FLAGS)
 
@@ -55,8 +56,8 @@ UTILS := sha1sum polspec
 CORE  := cwa policyd
 
 # Resource types
-RESOURCE_OBJECTS := resource.o res_user.o res_group.o res_file.o
-RESOURCE_HEADERS := resource.h res_user.h res_group.h res_file.h
+RESOURCE_OBJECTS := resource.o res_user.o res_group.o res_file.o report.o
+RESOURCE_HEADERS := resource.h res_user.h res_group.h res_file.h report.h
 
 # Supporting object files
 CORE_OBJECTS := mem.o sha1.o pack.o hash.o stringlist.o userdb.o log.o

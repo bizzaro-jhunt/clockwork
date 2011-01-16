@@ -32,31 +32,21 @@ static void show_help(void);
 
 #ifndef NDEBUG
 static void dump_options(const char *prefix, client *c);
+static void dump_policy(struct policy *pol);
+static void policy_check(struct policy *pol, protocol_session *session);
 #else
-# define dump_optons(p,s)
+# define dump_options(p,s)
+# define dump_policy(p)
+# define policy_check(p,s)
 #endif
 static void show_help(void);
 
 /**************************************************************/
 
-static void dump_policy(struct policy *pol)
-{
-	char *packed = policy_pack(pol);
-	fprintf(stderr, "%s\n", packed);
-	free(packed);
-}
-
-static void policy_check(struct policy *pol, protocol_session *session)
-{
-	struct res_file *rf;
-	for_each_node(rf, &pol->res_files, res) {
-		client_get_file(session, &rf->rf_rsha1);
-	}
-}
-
 int main(int argc, char **argv)
 {
 	client *arg_opts, *cfg_opts;
+	LIST(report);
 
 	arg_opts = command_line_options(argc, argv);
 	cfg_opts = config_file_options(arg_opts->config_file ? arg_opts->config_file : default_opts.config_file);
@@ -81,6 +71,7 @@ int main(int argc, char **argv)
 	}
 
 	client_get_policy(arg_opts); /* FIXME: check return value */
+
 	dump_policy(arg_opts->policy);
 	policy_check(arg_opts->policy, &arg_opts->session);
 
@@ -88,8 +79,9 @@ int main(int argc, char **argv)
 		INFO("Enforcement skipped (--dry-run specified)\n");
 	} else {
 		INFO("Enforcing policy on local system");
-		//client_enforce_policy(policy);
 	}
+	client_enforce_policy(arg_opts, &report);
+	client_print_report(stdout, &report);
 
 	client_deinit(arg_opts);
 	return 0;
@@ -234,5 +226,20 @@ static void dump_options(const char *prefix, client *c)
 	fprintf(stderr, "  s_address     = '%s'\n", c->s_address);
 	fprintf(stderr, "  s_port        = '%s'\n", c->s_port);
 	fprintf(stderr, "}\n\n");
+}
+
+static void dump_policy(struct policy *pol)
+{
+	char *packed = policy_pack(pol);
+	fprintf(stderr, "%s\n", packed);
+	free(packed);
+}
+
+static void policy_check(struct policy *pol, protocol_session *session)
+{
+	struct res_file *rf;
+	for_each_node(rf, &pol->res_files, res) {
+		client_get_file(session, &rf->rf_rsha1);
+	}
 }
 #endif

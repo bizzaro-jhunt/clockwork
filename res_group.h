@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <grp.h>
 
+#include "report.h"
 #include "list.h"
 #include "userdb.h"
 #include "stringlist.h"
@@ -301,10 +302,14 @@ int res_group_stat(struct res_group *rg, struct grdb *grdb, struct sgdb *sgdb);
   and commit all changes when finished.
 
   @param  rg      Group resource to use for remediation.
+  @param  dryrun  Don't remediate, just print what would be done.
   @param  grdb    Group database structure to update.
   @param  sgdb    GShadow database structure to update.
+
+  @returns a pointer to a struct report describing actions taken,
+           or NULL on internal failure (i.e. malloc issues)
  */
-int res_group_remediate(struct res_group *rg, struct grdb *grdb, struct sgdb *sgdb);
+struct report* res_group_remediate(struct res_group *rg, int dryrun, struct grdb *grdb, struct sgdb *sgdb);
 
 /**
   Determine whether or not \a packed is a packed representation

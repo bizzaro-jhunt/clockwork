@@ -9,6 +9,7 @@
 #include "list.h"
 #include "sha1.h"
 #include "hash.h"
+#include "report.h"
 
 /** @file res_file.h
 
@@ -227,11 +228,13 @@ int res_file_stat(struct res_file *rf);
   @note It is the caller's responsibility to call res_file_stat
         prior to this function.
 
-  @param  rf    File resource to use for remediation
+  @param  rf      File resource to use for remediation
+  @param  dryrun  Don't remediate, just print what would be done.
 
-  @returns 0 on success, non-zero on failure.
+  @returns a pointer to a struct report describing actions taken,
+           or NULL on internal failure (i.e. malloc issues)
  */
-int res_file_remediate(struct res_file *rf);
+struct report* res_file_remediate(struct res_file *rf, int dryrun);
 
 /**
   Determine whether or not \a packed is a packed representation

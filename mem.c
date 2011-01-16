@@ -1,4 +1,6 @@
 #include <string.h>
+#include <stdio.h>
+#include <stdarg.h>
 
 #include "mem.h"
 
@@ -49,3 +51,28 @@ void xarrfree(char **a)
 	}
 	free(a);
 }
+
+char* string(const char *fmt, ...)
+{
+	char buf[256];
+	char *buf2;
+	size_t n;
+	va_list args;
+
+	va_start(args, fmt);
+	n = vsnprintf(buf, 256, fmt, args);
+	va_end(args);
+	if (n > 256) {
+		buf2 = calloc(n, sizeof(char));
+		if (!buf2) { return NULL; }
+
+		va_start(args, fmt);
+		vsnprintf(buf2, n, fmt, args);
+		va_end(args);
+	} else {
+		buf2 = strdup(buf);
+	}
+
+	return buf2;
+}
+

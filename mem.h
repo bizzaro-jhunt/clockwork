@@ -61,4 +61,6 @@ char** xarrdup(char **a);
  */
 void xarrfree(char **a);
 
+char* string(const char *fmt, ...);
+
 #endif /* MEM_H */

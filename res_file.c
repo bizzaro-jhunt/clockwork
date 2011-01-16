@@ -289,9 +289,9 @@ struct report* res_file_remediate(struct res_file *rf, int dryrun, int remote_fd
 			}
 		}
 
+		rf->rf_diff = rf->rf_enf;
 		/* No need to chmod the file again */
 		rf->rf_diff ^= RES_FILE_MODE;
-		rf->rf_diff &= RES_FILE_SHA1;
 	}
 
 	if (res_file_different(rf, SHA1)) {
@@ -423,30 +423,5 @@ struct res_file* res_file_unpack(const char *packed)
 	rf->key = resource_key("res_file", rf->rf_lpath);
 
 	return rf;
-}
-
-FILE* res_file_io(struct res_file *rf)
-{
-	FILE *io, *src;
-	char buf[8192];
-
-	io = fopen("/tmp/clockwork-file", "w+");
-	if (!io) {
-		return NULL;
-	}
-
-	src = fopen(rf->rf_rpath, "r");
-	if (!src) {
-		fclose(io);
-		return NULL;
-	}
-
-	while (fgets(buf, 8192, src)) {
-		fputs(buf, io);
-	}
-	fclose(src);
-
-	rewind(io);
-	return io;
 }
 

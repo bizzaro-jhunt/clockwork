@@ -3,6 +3,12 @@
 #include "sha1_files.h"
 #include "../res_file.h"
 
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
+
 #define ASSERT_ENFORCEMENT(o,f,c,t,v) do {\
 	res_file_set_ ## f (o,v); \
 	assert_true( #c " enforced", res_file_enforced(o,c)); \
@@ -86,6 +92,9 @@ void test_res_file_remedy()
 	const char *path = "test/data/res_file/fstab";
 	const char *src  = "test/data/res_file/SRC/fstab";
 
+	int src_fd;
+	ssize_t src_len, n;
+
 	test("RES_FILE: File Remediation");
 
 	/* STAT the target file */
@@ -104,9 +113,14 @@ void test_res_file_remedy()
 	res_file_set_mode(rf, 0754);
 	res_file_set_source(rf, src);
 
+	/* set up the src_fd for content remediation */
+	src_fd = open(src, O_RDONLY);
+	assert_int_greater_than("(test sanity) able to open 'remote' file", src_fd, 0);
+	src_len = st.st_size;
+
 	assert_int_equals("res_file_stat succeeds", res_file_stat(rf), 0);
 	assert_int_equals("File exists", 1, rf->rf_exists);
-	report = res_file_remediate(rf, 0);
+	report = res_file_remediate(rf, 0, src_fd, src_len);
 	assert_not_null("res_file_remeidate returns a report", report);
 	assert_int_equals("file was fixed", report->fixed, 1);
 	assert_int_equals("file is now compliant", report->compliant, 1);
@@ -142,7 +156,7 @@ void test_res_file_remediate_new()
 	assert_int_equals("File does not already exist", 0, rf->rf_exists);
 	assert_int_not_equal("stat pre-remediation file returns non-zero", 0, stat(path, &st));
 
-	report = res_file_remediate(rf, 0);
+	report = res_file_remediate(rf, 0, -1, 0);
 	assert_not_null("res_file_remediate returns a report", report);
 	assert_int_equals("file is fixed", report->fixed, 1);
 	assert_int_equals("file is now compliant", report->compliant, 1);
@@ -177,7 +191,7 @@ void test_res_file_remediate_remove_existing()
 	assert_int_equals("File exists", 1, rf->rf_exists);
 	assert_int_equals("stat pre-remediation file returns zero", 0, stat(path, &st));
 
-	report = res_file_remediate(rf, 0);
+	report = res_file_remediate(rf, 0, -1, 0);
 	assert_not_null("res_file_remediate returns a report", report);
 	assert_int_equals("file is fixed", report->fixed, 1);
 	assert_int_equals("file is now compliant", report->compliant, 1);
@@ -203,7 +217,7 @@ void test_res_file_remediate_remove_nonexistent()
 	assert_int_equals("File does not already exist", 0, rf->rf_exists);
 	assert_int_not_equal("stat pre-remediation file returns non-zero", 0, stat(path, &st));
 
-	report = res_file_remediate(rf, 0);
+	report = res_file_remediate(rf, 0, -1, 0);
 	assert_not_null("res_file_remediate returns a report", report);
 	assert_int_equals("file was already compliant", report->fixed, 0);
 	assert_int_equals("file is now compliant", report->compliant, 1);

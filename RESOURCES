@@ -1,5 +1,5 @@
 
-Key:  * = detection
+Key:  . = detection
       _ = (space) outstanding
       + = detection + remediation
 
@@ -28,22 +28,23 @@ res_user
 + password
 + shell
 + home
-* make home
-* skeleton
+. make home
+. skeleton
 + pwmin
 + pwmax
 + pwwarn
 + expire
 + inactive
-* locked
+. locked
 + comment
 
 res_group
 ---------
-* name
-* id
-  members
-* password
++ name
++ id
++ members
++ admins
++ password
 
 res_service
 -----------

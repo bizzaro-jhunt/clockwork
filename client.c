@@ -31,7 +31,7 @@ int client_init(client *c)
 	len = snprintf(NULL, 0, "%s:%s", c->s_address, c->s_port);
 	addr = malloc(len+1);
 	snprintf(addr, len+1, "%s:%s", c->s_address, c->s_port);
-	printf("addr: %s\n", addr);
+	DEVELOPER("Connecting to %s", addr);
 
 	c->socket = BIO_new_connect(addr);
 	if (!c->socket || BIO_do_connect(c->socket) <= 0) {
@@ -225,7 +225,7 @@ static int gather_facts(const char *script, struct hash *facts)
 	arg0 = basename(path_copy);
 	free(path_copy);
 
-	printf("Procesing script %s\n", script);
+	INFO("Processing script %s", script);
 
 	if (pipe(pipefd) != 0) {
 		perror("gather_facts");

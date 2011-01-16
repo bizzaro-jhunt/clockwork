@@ -80,7 +80,8 @@ void report_print(FILE *io, struct report *r)
 			memcpy(buf + 71 - 1 - 3, "...", 3);
 		}
 
-		fprintf(io, " - %-70s%7s\n", buf, (a->result == ACTION_SUCCEEDED ? "done" : (a->result == ACTION_FAILED ? "failed" : "skipped")));
-//		action_print(io, a);
+		fprintf(io, " - %-70s%7s\n", buf,
+		        (a->result == ACTION_SUCCEEDED ? "done" :
+		         (a->result == ACTION_FAILED ? "failed" : "skipped")));
 	}
 }

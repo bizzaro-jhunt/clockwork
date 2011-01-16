@@ -14,7 +14,7 @@ CC_FLAGS += -Wall #                    Warn on everything
 CC_FLAGS += -lssl
 CC_FLAGS += -lpthread
 
-CC_FLAGS += -DDEVEL
+#CC_FLAGS += -DDEVEL
 CC_FLAGS += -DNDEBUG
 
 CC := gcc $(CC_FLAGS)

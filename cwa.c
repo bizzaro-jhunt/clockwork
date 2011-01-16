@@ -62,10 +62,11 @@ int main(int argc, char **argv)
 	}
 
 	/* arg_opts is a modifier to the base log level */
-	//arg_opts->log_level += (cfg_opts->log_level == 0 ? default_opts.log_level : cfg_opts->log_level);
+	arg_opts->log_level += (cfg_opts->log_level == 0 ? default_opts.log_level : cfg_opts->log_level);
 
 	dump_options("merged_opts", arg_opts);
 
+	log_level(arg_opts->log_level);
 	if (client_init(arg_opts) != 0) {
 		exit(1);
 	}
@@ -128,13 +129,15 @@ static client* command_line_options(int argc, char **argv)
 {
 	client *c;
 
-	const char *short_opts = "h?c:s:p:n";
+	const char *short_opts = "h?c:s:p:nvq";
 	struct option long_opts[] = {
 		{ "help",   no_argument,       NULL, 'h' },
 		{ "config", required_argument, NULL, 'c' },
 		{ "server", required_argument, NULL, 's' },
 		{ "port",   required_argument, NULL, 'p' },
 		{ "dry-run", no_argument,      NULL, 'n' },
+		{ "verbose", no_argument,      NULL, 'v' },
+		{ "quiet",  no_argument,       NULL, 'q' },
 		{ 0, 0, 0, 0 },
 	};
 
@@ -165,6 +168,13 @@ static client* command_line_options(int argc, char **argv)
 			break;
 		case 'n':
 			c->dryrun = 1;
+			break;
+		case 'v':
+			c->log_level++;
+			break;
+		case 'q':
+			c->log_level--;
+			break;
 		}
 	}
 

@@ -250,8 +250,9 @@ struct report* res_file_remediate(struct res_file *rf, int dryrun)
 
 	/* Remove the file */
 	if (res_file_enforced(rf, ABSENT)) {
-		action = string("remove file");
 		if (rf->rf_exists == 1) {
+			action = string("remove file");
+
 			if (dryrun) {
 				report_action(report, action, ACTION_SKIPPED);
 			} else if (unlink(rf->rf_lpath) == 0) {

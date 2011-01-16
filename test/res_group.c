@@ -48,6 +48,7 @@ void test_res_group_diffstat_remediation()
 	struct grdb *grdb;
 	struct sgdb *sgdb;
 	stringlist *list; /* for gr_mem / sg_mem / sg_adm tests */
+	struct report *report;
 
 	rg = res_group_new("service");
 	res_group_set_gid(rg, 6000);
@@ -84,7 +85,11 @@ void test_res_group_diffstat_remediation()
 	assert_true("ADMINS is not in compliance", res_group_different(rg, ADMINS));
 
 	test("RES_GROUP: Remediation (existing account)");
-	assert_int_equals("res_group_remediate returns 0", res_group_remediate(rg, grdb, sgdb), 0);
+	report = res_group_remediate(rg, 0, grdb, sgdb);
+	assert_not_null("res_group_remediate returns a report", report);
+	assert_int_equals("group is fixed", report->fixed, 1);
+	assert_int_equals("group is now compliant", report->compliant, 1);
+
 	assert_str_equals("rg_name is still set properly", rg->rg_grp->gr_name, "service");
 
 	list = stringlist_new(rg->rg_grp->gr_mem);
@@ -105,6 +110,7 @@ void test_res_group_diffstat_remediation()
 	res_group_free(rg);
 	grdb_free(grdb);
 	sgdb_free(sgdb);
+	report_free(report);
 }
 
 void test_res_group_remediate_new()
@@ -112,6 +118,7 @@ void test_res_group_remediate_new()
 	struct res_group *rg;
 	struct grdb *grdb;
 	struct sgdb *sgdb;
+	struct report *report;
 
 	rg = res_group_new("new_group");
 	res_group_set_gid(rg, 6010);
@@ -131,7 +138,11 @@ void test_res_group_remediate_new()
 
 	test("RES_GROUP: Remediation (new account)");
 	assert_int_equals("res_group_stat returns 0", res_group_stat(rg, grdb, sgdb), 0);
-	assert_int_equals("res_group_remediate returns 0", res_group_remediate(rg, grdb, sgdb), 0);
+	report = res_group_remediate(rg, 0, grdb, sgdb);
+	assert_not_null("res_group_remediate returns a report", report);
+	assert_int_equals("group is fixed", report->fixed, 1);
+	assert_int_equals("group is now compliant", report->compliant, 1);
+
 	assert_str_equals("rg_name is still set properly", rg->rg_grp->gr_name, "new_group");
 
 	assert_str_equals("sg_namp is still set properly", rg->rg_sg->sg_namp, "new_group");
@@ -140,6 +151,7 @@ void test_res_group_remediate_new()
 	res_group_free(rg);
 	grdb_free(grdb);
 	sgdb_free(sgdb);
+	report_free(report);
 }
 
 void test_res_group_remediate_remove_existing()
@@ -147,6 +159,7 @@ void test_res_group_remediate_remove_existing()
 	struct res_group *rg;
 	struct grdb *grdb, *grdb_after;
 	struct sgdb *sgdb, *sgdb_after;
+	struct report *report;
 
 	rg = res_group_new("daemon");
 	res_group_set_presence(rg, 0); /* Remove the group */
@@ -169,7 +182,10 @@ void test_res_group_remediate_remove_existing()
 	assert_not_null("(test sanity) group found in group file",   rg->rg_grp);
 	assert_not_null("(test sanity) group found in gshadow file", rg->rg_sg);
 
-	assert_int_equals("res_group_remediate returns 0", res_group_remediate(rg, grdb, sgdb), 0);
+	report = res_group_remediate(rg, 0, grdb, sgdb);
+	assert_not_null("res_group_remediate returns a report", report);
+	assert_int_equals("group is fixed", report->fixed, 1);
+	assert_int_equals("group is now compliant", report->compliant, 1);
 
 	assert_int_equals("grdb_write succeeds", 0, grdb_write(grdb, "test/tmp/group.new"));
 	assert_int_equals("sgdb_write succeeds", 0, sgdb_write(sgdb, "test/tmp/gshadow.new"));
@@ -200,6 +216,7 @@ void test_res_group_remediate_remove_existing()
 	sgdb_free(sgdb);
 	grdb_free(grdb_after);
 	sgdb_free(sgdb_after);
+	report_free(report);
 }
 
 void test_res_group_remediate_remove_nonexistent()
@@ -207,6 +224,7 @@ void test_res_group_remediate_remove_nonexistent()
 	struct res_group *rg;
 	struct grdb *grdb, *grdb_after;
 	struct sgdb *sgdb, *sgdb_after;
+	struct report *report;
 
 	rg = res_group_new("non_existent_group");
 	res_group_set_presence(rg, 0); /* Remove the group */
@@ -229,7 +247,10 @@ void test_res_group_remediate_remove_nonexistent()
 	assert_null("(test sanity) group not found in group file",   rg->rg_grp);
 	assert_null("(test sanity) group not found in gshadow file", rg->rg_sg);
 
-	assert_int_equals("res_group_remediate returns 0", res_group_remediate(rg, grdb, sgdb), 0);
+	report = res_group_remediate(rg, 0, grdb, sgdb);
+	assert_not_null("res_group_remediate returns a report", report);
+	assert_int_equals("group was already compliant", report->fixed, 0);
+	assert_int_equals("group is now compliant", report->compliant, 1);
 
 	assert_int_equals("grdb_write succeeds", 0, grdb_write(grdb, "test/tmp/group.new"));
 	assert_int_equals("sgdb_write succeeds", 0, sgdb_write(sgdb, "test/tmp/gshadow.new"));
@@ -260,6 +281,7 @@ void test_res_group_remediate_remove_nonexistent()
 	sgdb_free(sgdb);
 	grdb_free(grdb_after);
 	sgdb_free(sgdb_after);
+	report_free(report);
 }
 
 void test_res_group_pack_detection()

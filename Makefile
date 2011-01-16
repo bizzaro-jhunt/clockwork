@@ -155,7 +155,7 @@ unit_tests: test/run
 test/run: test/run.o test/test.o \
           test/assertions.o \
           mem.o resource.o \
-          log.o \
+          report.o log.o \
           test/list.o \
           test/stringlist.o stringlist.o \
           test/hash.o hash.o \

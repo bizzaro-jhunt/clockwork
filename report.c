@@ -37,11 +37,16 @@ struct report* report_new(const char *type, const char *key)
 
 void report_free(struct report *r)
 {
+	struct action *a, *tmp;
+
 	if (r) {
+		for_each_node_safe(a, tmp, &r->actions, report) {
+			free(a->summary);
+			free(a);
+		}
+
 		free(r->res_type);
 		free(r->res_key);
-
-		/* FIXME: free all actions */
 	}
 
 	free(r);
@@ -54,6 +59,7 @@ int report_action(struct report *report, char *summary, enum action_result resul
 
 	struct action *add;
 	add = malloc(sizeof(struct action)); /* FIXME: check malloc return value */
+	list_init(&add->report);
 
 	add->summary = summary;
 	add->result  = result;

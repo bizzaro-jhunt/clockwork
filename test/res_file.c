@@ -81,6 +81,8 @@ void test_res_file_remedy()
 	struct stat st;
 	struct res_file *rf;
 
+	struct report *report;
+
 	const char *path = "test/data/res_file/fstab";
 	const char *src  = "test/data/res_file/SRC/fstab";
 
@@ -104,7 +106,10 @@ void test_res_file_remedy()
 
 	assert_int_equals("res_file_stat succeeds", res_file_stat(rf), 0);
 	assert_int_equals("File exists", 1, rf->rf_exists);
-	assert_int_equals("res_file_remediate succeeds", res_file_remediate(rf), 0);
+	report = res_file_remediate(rf, 0);
+	assert_not_null("res_file_remeidate returns a report", report);
+	assert_int_equals("file was fixed", report->fixed, 1);
+	assert_int_equals("file is now compliant", report->compliant, 1);
 
 	/* STAT the remediated file */
 	if (stat(path, &st) != 0) {
@@ -116,12 +121,14 @@ void test_res_file_remedy()
 	assert_int_equals("Post-remediation: file permissions are 0754", st.st_mode & 07777, 0754);
 
 	res_file_free(rf);
+	report_free(report);
 }
 
 void test_res_file_remediate_new()
 {
 	struct stat st;
 	struct res_file *rf;
+	struct report *report;
 
 	const char *path = "test/data/res_file/new_file";
 
@@ -135,7 +142,10 @@ void test_res_file_remediate_new()
 	assert_int_equals("File does not already exist", 0, rf->rf_exists);
 	assert_int_not_equal("stat pre-remediation file returns non-zero", 0, stat(path, &st));
 
-	assert_int_equals("res_file_remediate succeeds", res_file_remediate(rf), 0);
+	report = res_file_remediate(rf, 0);
+	assert_not_null("res_file_remediate returns a report", report);
+	assert_int_equals("file is fixed", report->fixed, 1);
+	assert_int_equals("file is now compliant", report->compliant, 1);
 	assert_int_equals("stat post-remediation file returns zero", 0, stat(path, &st));
 
 	/* STAT the remediated file */
@@ -148,12 +158,14 @@ void test_res_file_remediate_new()
 	assert_int_equals("Post-remediation: file permissions are 0754", st.st_mode & 07777, 0754);
 
 	res_file_free(rf);
+	report_free(report);
 }
 
 void test_res_file_remediate_remove_existing()
 {
 	struct stat st;
 	struct res_file *rf;
+	struct report *report;
 
 	const char *path = "test/data/res_file/delete";
 
@@ -165,20 +177,25 @@ void test_res_file_remediate_remove_existing()
 	assert_int_equals("File exists", 1, rf->rf_exists);
 	assert_int_equals("stat pre-remediation file returns zero", 0, stat(path, &st));
 
-	assert_int_equals("res_file_remediate succeeds", res_file_remediate(rf), 0);
+	report = res_file_remediate(rf, 0);
+	assert_not_null("res_file_remediate returns a report", report);
+	assert_int_equals("file is fixed", report->fixed, 1);
+	assert_int_equals("file is now compliant", report->compliant, 1);
 	assert_int_not_equal("stat post-remediation file returns non-zero", 0, stat(path, &st));
 
 	res_file_free(rf);
+	report_free(report);
 }
 
 void test_res_file_remediate_remove_nonexistent()
 {
 	struct stat st;
 	struct res_file *rf;
+	struct report *report;
 
 	const char *path = "test/data/res_file/non-existent";
 
-	test("RES_FILE: File Remediation (remove existing file)");
+	test("RES_FILE: File Remediation (remove non-existent file)");
 	rf = res_file_new(path);
 	res_file_set_presence(rf, 0); /* Remove the file */
 
@@ -186,10 +203,14 @@ void test_res_file_remediate_remove_nonexistent()
 	assert_int_equals("File does not already exist", 0, rf->rf_exists);
 	assert_int_not_equal("stat pre-remediation file returns non-zero", 0, stat(path, &st));
 
-	assert_int_equals("res_file_remediate succeeds", res_file_remediate(rf), 0);
+	report = res_file_remediate(rf, 0);
+	assert_not_null("res_file_remediate returns a report", report);
+	assert_int_equals("file was already compliant", report->fixed, 0);
+	assert_int_equals("file is now compliant", report->compliant, 1);
 	assert_int_not_equal("stat post-remediation file returns non-zero", 0, stat(path, &st));
 
 	res_file_free(rf);
+	report_free(report);
 }
 
 void test_res_file_pack_detection()

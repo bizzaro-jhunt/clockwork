@@ -78,6 +78,7 @@ void test_res_user_diffstat_remediation()
 	struct res_user *ru;
 	struct pwdb *pwdb;
 	struct spdb *spdb;
+	struct report *report;
 
 	ru = res_user_new("svc");
 	res_user_set_uid(ru, 7001);
@@ -116,7 +117,11 @@ void test_res_user_diffstat_remediation()
 	assert_true("PWWARN is out of compliance", res_user_different(ru, PWWARN));
 
 	test("RES_USER: Remediation (existing account)");
-	assert_int_equals("res_user_remediate returns zero", res_user_remediate(ru, pwdb, spdb), 0);
+	report = res_user_remediate(ru, 0, pwdb, spdb);
+	assert_not_null("res_user_remediate returns a report", report);
+	assert_int_equals("user is fixed", report->fixed, 1);
+	assert_int_equals("user is now compliant", report->compliant, 1);
+
 	assert_str_equals("pw_name is still set properly", ru->ru_pw->pw_name, "svc");
 	assert_int_equals("pw_uid is updated properly", ru->ru_pw->pw_uid, 7001);
 	assert_int_equals("pw_gid is updated properly", ru->ru_pw->pw_gid, 8001);
@@ -132,6 +137,7 @@ void test_res_user_diffstat_remediation()
 	res_user_free(ru);
 	pwdb_free(pwdb);
 	spdb_free(spdb);
+	report_free(report);
 }
 
 void test_res_user_remediation_new()
@@ -139,6 +145,7 @@ void test_res_user_remediation_new()
 	struct res_user *ru;
 	struct pwdb *pwdb;
 	struct spdb *spdb;
+	struct report *report;
 
 	ru = res_user_new("new_user");
 	res_user_set_uid(ru, 7010);
@@ -162,7 +169,12 @@ void test_res_user_remediation_new()
 
 	test("RES_USER: Remediation (new account)");
 	assert_int_equals("res_user_stat returns zero", res_user_stat(ru, pwdb, spdb), 0);
-	assert_int_equals("res_user_remediate returns zero", res_user_remediate(ru, pwdb, spdb), 0);
+
+	report = res_user_remediate(ru, 0, pwdb, spdb);
+	assert_not_null("res_user_remediate returns a report", report);
+	assert_int_equals("user is fixed", report->fixed, 1);
+	assert_int_equals("user is now compliant", report->compliant, 1);
+
 	assert_str_equals("pw_name is set properly", ru->ru_pw->pw_name, "new_user");
 	assert_int_equals("pw_uid is set properly", ru->ru_pw->pw_uid, 7010);
 	assert_int_equals("pw_gid is set properly", ru->ru_pw->pw_gid, 20);
@@ -175,6 +187,7 @@ void test_res_user_remediation_new()
 	res_user_free(ru);
 	pwdb_free(pwdb);
 	spdb_free(spdb);
+	report_free(report);
 }
 
 void test_res_user_remediation_remove_existing()
@@ -182,6 +195,7 @@ void test_res_user_remediation_remove_existing()
 	struct res_user *ru;
 	struct pwdb *pwdb, *pwdb_after;
 	struct spdb *spdb, *spdb_after;
+	struct report *report;
 
 	ru = res_user_new("sys");
 	res_user_set_presence(ru, 0); /* Remove the user */
@@ -202,7 +216,11 @@ void test_res_user_remediation_remove_existing()
 	assert_int_equals("res_user_stat returns zero", res_user_stat(ru, pwdb, spdb), 0);
 	assert_not_null("(test sanity) user found in passwd file", ru->ru_pw);
 	assert_not_null("(test sanity) user found in shadow file", ru->ru_sp);
-	assert_int_equals("res_user_remediate returns zero", res_user_remediate(ru, pwdb, spdb), 0);
+
+	report = res_user_remediate(ru, 0, pwdb, spdb);
+	assert_not_null("res_user_remediate returns a report", report);
+	assert_int_equals("user is fixed", report->fixed, 1);
+	assert_int_equals("user is now compliant", report->compliant, 1);
 
 	assert_int_equals("pwdb_write succeeds", 0, pwdb_write(pwdb, "test/tmp/passwd.new"));
 	assert_int_equals("spdb_write succeeds", 0, spdb_write(spdb, "test/tmp/shadow.new"));
@@ -230,6 +248,7 @@ void test_res_user_remediation_remove_existing()
 	spdb_free(spdb);
 	pwdb_free(pwdb_after);
 	spdb_free(spdb_after);
+	report_free(report);
 }
 
 void test_res_user_remediation_remove_nonexistent()
@@ -237,6 +256,7 @@ void test_res_user_remediation_remove_nonexistent()
 	struct res_user *ru;
 	struct pwdb *pwdb, *pwdb_after;
 	struct spdb *spdb, *spdb_after;
+	struct report *report;
 
 	ru = res_user_new("non_existent_user");
 	res_user_set_presence(ru, 0); /* Remove the user */
@@ -257,7 +277,11 @@ void test_res_user_remediation_remove_nonexistent()
 	assert_int_equals("res_user_stat returns zero", res_user_stat(ru, pwdb, spdb), 0);
 	assert_null("(test sanity) user not found in passwd file", ru->ru_pw);
 	assert_null("(test sanity) user not found in shadow file", ru->ru_sp);
-	assert_int_equals("res_user_remediate returns zero", res_user_remediate(ru, pwdb, spdb), 0);
+
+	report = res_user_remediate(ru, 0, pwdb, spdb);
+	assert_not_null("res_user_remediate returns a report", report);
+	assert_int_equals("user was already compliant", report->fixed, 0);
+	assert_int_equals("user is now compliant", report->compliant, 1);
 
 	assert_int_equals("pwdb_write succeeds", 0, pwdb_write(pwdb, "test/tmp/passwd.new"));
 	assert_int_equals("spdb_write succeeds", 0, spdb_write(spdb, "test/tmp/shadow.new"));
@@ -285,6 +309,7 @@ void test_res_user_remediation_remove_nonexistent()
 	spdb_free(spdb);
 	pwdb_free(pwdb_after);
 	spdb_free(spdb_after);
+	report_free(report);
 }
 
 void test_res_user_pack_detection()

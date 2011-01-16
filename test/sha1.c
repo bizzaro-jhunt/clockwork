@@ -57,8 +57,25 @@ void test_sha1_init()
 	}
 }
 
+void test_sha1_comparison()
+{
+	sha1 a, b;
+	const char *s1 = "This is the FIRST string";
+	const char *s2 = "This is the SECOND string";
+
+	sha1_init(&a, NULL);
+	sha1_init(&b, NULL);
+
+	sha1_data(s1, strlen(s1), &a);
+	sha1_data(s2, strlen(s2), &b);
+
+	assert_int_equals("identical checksums are equal", sha1_cmp(&a, &a), 0);
+	assert_int_not_equal("different checksums are not equal", sha1_cmp(&a, &b), 0);
+}
+
 void test_suite_sha1()
 {
 	test_sha1_FIPS();
 	test_sha1_init();
+	test_sha1_comparison();
 }

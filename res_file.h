@@ -230,11 +230,13 @@ int res_file_stat(struct res_file *rf);
 
   @param  rf      File resource to use for remediation
   @param  dryrun  Don't remediate, just print what would be done.
+  @param  fd      File descriptor to read from for updating file contents.
+  @param  len     Number of bytes to read from \a fd.
 
   @returns a pointer to a struct report describing actions taken,
            or NULL on internal failure (i.e. malloc issues)
  */
-struct report* res_file_remediate(struct res_file *rf, int dryrun);
+struct report* res_file_remediate(struct res_file *rf, int dryrun, int fd, ssize_t len);
 
 /**
   Determine whether or not \a packed is a packed representation

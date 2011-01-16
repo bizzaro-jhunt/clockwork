@@ -135,9 +135,9 @@ int client_get_policy(client *c)
 	return 0;
 }
 
-int client_get_file(protocol_session *session, sha1 *checksum)
+int client_get_file(protocol_session *session, sha1 *checksum, int fd)
 {
-	size_t bytes = 0;
+	size_t bytes = 0, n = 0;
 
 	if (pdu_send_GET_FILE(session, checksum) != 0) {
 		fprintf(stderr, "FAILED GET_FILE %s\n", checksum->hex);
@@ -151,8 +151,9 @@ int client_get_file(protocol_session *session, sha1 *checksum)
 			return -1;
 		}
 
-		bytes = pdu_decode_FILE_DATA(RECV_PDU(session), 1);
-	} while(bytes > 0);
+		n = pdu_decode_FILE_DATA(RECV_PDU(session), fd);
+		bytes += n;
+	} while(n > 0);
 
 	return bytes;
 }
@@ -169,6 +170,8 @@ int client_enforce_policy(client *c, struct list *l)
 	struct res_file *rf;
 
 	struct report *r;
+	int pipefd[2];
+	ssize_t bytes = 0;
 
 	passwd  = pwdb_init(SYS_PASSWD);
 	shadow  = spdb_init(SYS_SHADOW);
@@ -193,7 +196,25 @@ int client_enforce_policy(client *c, struct list *l)
 	/* Remediate files */
 	for_each_node(rf, &c->policy->res_files, res) {
 		res_file_stat(rf);
-		r = res_file_remediate(rf, c->dryrun);
+
+		if (res_file_different(rf, SHA1)) {
+			if (pipe(pipefd) != 0) {
+				pipefd[0] = -1;
+			} else {
+				bytes = client_get_file(&c->session, &rf->rf_rsha1, pipefd[1]);
+				if (bytes <= 0) {
+					close(pipefd[0]);
+					close(pipefd[1]);
+
+					pipefd[0] = -1;
+				}
+			}
+		}
+		r = res_file_remediate(rf, c->dryrun, pipefd[0], bytes);
+
+		close(pipefd[0]);
+		close(pipefd[1]);
+
 		list_add_tail(&r->rep, l);
 	}
 

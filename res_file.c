@@ -24,19 +24,27 @@
 #define RES_FILE_PACK_FORMAT "LaaLLL"
 
 
-static int _res_file_fd2fd(int dest, int src);
+static int _res_file_fd2fd(int dest, int src, ssize_t bytes);
 static int _res_file_diff(struct res_file *rf);
 
 /*****************************************************************/
 
-static int _res_file_fd2fd(int dest, int src)
+static int _res_file_fd2fd(int dest, int src, ssize_t bytes)
 {
 	char buf[RF_FD2FD_CHUNKSIZE];
-	ssize_t nread;
+	ssize_t nread = 0;
 
-	while ( (nread = read(src, buf, RF_FD2FD_CHUNKSIZE)) > 0) {
-		if (write(dest, buf, nread) != nread) { return -1; }
+	while (bytes > 0) {
+		nread = (RF_FD2FD_CHUNKSIZE > bytes ? bytes : RF_FD2FD_CHUNKSIZE);
+
+		if ((nread = read(src, buf, nread)) <= 0
+		 || write(dest, buf, nread) != nread) {
+			return -1;
+		}
+
+		bytes -= nread;
 	}
+
 	return 0;
 }
 
@@ -235,7 +243,7 @@ int res_file_stat(struct res_file *rf)
 	return _res_file_diff(rf);
 }
 
-struct report* res_file_remediate(struct res_file *rf, int dryrun)
+struct report* res_file_remediate(struct res_file *rf, int dryrun, int remote_fd, ssize_t remote_len)
 {
 	assert(rf);
 
@@ -246,7 +254,7 @@ struct report* res_file_remediate(struct res_file *rf, int dryrun)
 	/* UID and GID to chown to */
 	uid_t uid = (res_file_enforced(rf, UID) ? rf->rf_uid : rf->rf_stat.st_uid);
 	gid_t gid = (res_file_enforced(rf, GID) ? rf->rf_gid : rf->rf_stat.st_gid);
-	int local_fd = -1; int remote_fd;
+	int local_fd = -1;
 
 	/* Remove the file */
 	if (res_file_enforced(rf, ABSENT)) {
@@ -283,11 +291,11 @@ struct report* res_file_remediate(struct res_file *rf, int dryrun)
 
 		/* No need to chmod the file again */
 		rf->rf_diff ^= RES_FILE_MODE;
+		rf->rf_diff &= RES_FILE_SHA1;
 	}
 
 	if (res_file_different(rf, SHA1)) {
 		assert(rf->rf_lpath);
-		//assert(rf->rf_rpath);
 
 		action = string("update content from master copy");
 		if (dryrun) {
@@ -301,13 +309,12 @@ struct report* res_file_remediate(struct res_file *rf, int dryrun)
 				}
 			}
 
-			remote_fd = open(rf->rf_rpath, O_RDONLY);
 			if (remote_fd == -1) {
 				report_action(report, action, ACTION_FAILED);
 				return report;
 			}
 
-			if (_res_file_fd2fd(local_fd, remote_fd) == -1) {
+			if (_res_file_fd2fd(local_fd, remote_fd, remote_len) == -1) {
 				report_action(report, action, ACTION_FAILED);
 				return report;
 			}

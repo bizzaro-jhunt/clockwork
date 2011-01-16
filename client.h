@@ -37,7 +37,7 @@ int client_deinit(client *c);
 
 int client_gather_facts(client *c);
 int client_get_policy(client *c);
-int client_get_file(protocol_session *session, sha1 *checksum);
+int client_get_file(protocol_session *session, sha1 *checksum, int fd);
 int client_enforce_policy(client *c, struct list *report);
 int client_print_report(FILE *io, struct list *report);
 

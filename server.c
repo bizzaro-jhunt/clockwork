@@ -161,19 +161,23 @@ static int worker_dispatch(worker *w)
 
 			rf = NULL;
 			for_each_node(rf_match, &w->policy->res_files, res) {
-				if (sha1_cmp(&rf_match->rf_rsha1, &checksum)) {
+				DEBUG("Check '%s' against '%s'", rf_match->rf_rsha1.hex, checksum.hex);
+				if (sha1_cmp(&rf_match->rf_rsha1, &checksum) == 0) {
 					rf = rf_match;
 					break;
 				}
 			}
 
-			if (rf_match) {
+			if (rf) {
 				DEBUG("Found a res_file for %s: %s\n", checksum.hex, rf->rf_rpath);
 				if (worker_send_file(w, rf->rf_rpath) != 0) {
 					DEBUG("Unable to send file");
 				}
 			} else {
 				DEBUG("Could not find a res_file for: %s\n", checksum.hex);
+				if (worker_send_file(w, "/dev/null") != 0) {
+					DEBUG("Unable to send null file");
+				}
 			}
 
 			break;
@@ -247,6 +251,7 @@ static int worker_send_file(worker *w, const char *path)
 	int n;
 	while ((n = pdu_send_FILE_DATA(&w->session, fd)) > 0)
 		;
+
 	return n;
 }
 

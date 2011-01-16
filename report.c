@@ -62,7 +62,6 @@ int report_action(struct report *report, char *summary, enum action_result resul
 void report_print(FILE *io, struct report *r)
 {
 	char buf[80];
-	//char buf[67];
 	struct action *a;
 
 	if (snprintf(buf, 67, "%s: %s", r->res_type, r->res_key) > 67) {

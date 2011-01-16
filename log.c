@@ -5,7 +5,7 @@
 #include "log.h"
 
 static int SYSLOG_INITIALIZED = 0;
-static int LOG_LEVEL = LOG_LEVEL_ALL;
+static int LOG_LEVEL = LOG_LEVEL_INFO;
 
 #define log2syslog(prio,level) do { \
 	if (level > LOG_LEVEL) { return; } \

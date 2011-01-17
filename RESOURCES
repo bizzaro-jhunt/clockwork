@@ -28,14 +28,13 @@ res_user
 + password
 + shell
 + home
-. make home
-. skeleton
+. make home / skeleton
 + pwmin
 + pwmax
 + pwwarn
 + expire
 + inactive
-. locked
++ locked
 + comment
 
 res_group

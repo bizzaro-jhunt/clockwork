@@ -354,7 +354,7 @@ int pdu_receive(protocol_session *session)
 	rc = pdu_read(session->io, pdu);
 	if (rc < 0) {
 		DEVELOPER("pdu_receive: pdu_read returned %i", rc);
-		exit(42);
+		return -1;
 	}
 
 	/* handle error response */
@@ -362,7 +362,7 @@ int pdu_receive(protocol_session *session)
 		free(session->errstr);
 		if (pdu_decode_ERROR(pdu, &(session->errnum), &(session->errstr), NULL) < 0) {
 			perror("Unable to decode ERROR PDU");
-			exit(42);
+			return -1;
 		}
 
 		DEVELOPER("Received an ERROR: %u - %s", session->errnum, session->errstr);

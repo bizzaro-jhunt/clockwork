@@ -33,11 +33,9 @@ static void show_help(void);
 #ifndef NDEBUG
 static void dump_options(const char *prefix, client *c);
 static void dump_policy(struct policy *pol);
-static void policy_check(struct policy *pol, protocol_session *session);
 #else
 # define dump_options(p,s)
 # define dump_policy(p)
-# define policy_check(p,s)
 #endif
 static void show_help(void);
 
@@ -72,9 +70,7 @@ int main(int argc, char **argv)
 	}
 
 	client_get_policy(arg_opts); /* FIXME: check return value */
-
 	dump_policy(arg_opts->policy);
-	policy_check(arg_opts->policy, &arg_opts->session);
 
 	if (arg_opts->dryrun) {
 		INFO("Enforcement skipped (--dry-run specified)\n");
@@ -243,13 +239,5 @@ static void dump_policy(struct policy *pol)
 	char *packed = policy_pack(pol);
 	fprintf(stderr, "%s\n", packed);
 	free(packed);
-}
-
-static void policy_check(struct policy *pol, protocol_session *session)
-{
-	struct res_file *rf;
-	for_each_node(rf, &pol->res_files, res) {
-		client_get_file(session, &rf->rf_rsha1);
-	}
 }
 #endif

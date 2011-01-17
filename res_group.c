@@ -158,6 +158,12 @@ int res_group_setattr(struct res_group *rg, const char *name, const char *value)
 		return res_group_set_gid(rg, strtoll(value, NULL, 10));
 	} else if (strcmp(name, "present") == 0) {
 		return res_group_set_presence(rg, strcmp(value, "no"));
+	} else if (strcmp(name, "member") == 0) {
+		return res_group_add_member(rg, value);
+	} else if (strcmp(name, "admin") == 0) {
+		return res_group_add_admin(rg, value);
+	} else if (strcmp(name, "pwhash") == 0 || strcmp(name, "password") == 0) {
+		return res_group_set_passwd(rg, value);
 	}
 
 	return -1;
@@ -286,6 +292,13 @@ int res_group_stat(struct res_group *rg, struct grdb *grdb, struct sgdb *sgdb)
 	rg->rg_sg = sgdb_get_by_name(sgdb, rg->rg_name);
 	if (!rg->rg_grp || !rg->rg_sg) { /* new group */
 		rg->rg_diff = rg->rg_enf;
+
+		rg->rg_mem = stringlist_new(NULL);
+		stringlist_add_all(rg->rg_mem, rg->rg_mem_add);
+
+		rg->rg_adm = stringlist_new(NULL);
+		stringlist_add_all(rg->rg_adm, rg->rg_adm_add);
+
 		return 0;
 	}
 
@@ -313,6 +326,8 @@ struct report* res_group_remediate(struct res_group *rg, int dryrun, struct grdb
 	struct report *report;
 	char *action;
 
+	int new_group;
+
 	report = report_new("Group", rg->rg_name);
 
 	/* Remove the group if RES_GROUP_ABSENT */
@@ -336,24 +351,27 @@ struct report* res_group_remediate(struct res_group *rg, int dryrun, struct grdb
 	}
 
 	if (!rg->rg_grp || !rg->rg_sg) {
+		new_group = 1;
 		action = string("create group");
 
-		if (!rg->rg_grp) {
-			rg->rg_grp = grdb_new_entry(grdb, rg->rg_name);
-		}
-		if (!rg->rg_sg) {
-			rg->rg_sg = sgdb_new_entry(sgdb, rg->rg_name);
-		}
+		if (!rg->rg_grp) { rg->rg_grp = grdb_new_entry(grdb, rg->rg_name); }
+		if (!rg->rg_sg)  { rg->rg_sg = sgdb_new_entry(sgdb, rg->rg_name); }
 
-		if (rg->rg_grp && rg->rg_sg) {
+		if (dryrun) {
+			report_action(report, action, ACTION_SKIPPED);
+		} else if (rg->rg_grp && rg->rg_sg) {
 			report_action(report, action, ACTION_SUCCEEDED);
 		} else {
 			report_action(report, action, ACTION_FAILED);
 		}
 	}
 
-	if (res_group_enforced(rg, PASSWD)) {
-		action = string("change group membership password");
+	if (res_group_different(rg, PASSWD)) {
+		if (new_group) {
+			action = string("set group membership password");
+		} else {
+			action = string("change group membership password");
+		}
 
 		if (dryrun) {
 			report_action(report, action, ACTION_SKIPPED);
@@ -367,8 +385,12 @@ struct report* res_group_remediate(struct res_group *rg, int dryrun, struct grdb
 		}
 	}
 
-	if (res_group_enforced(rg, GID)) {
-		action = string("change gid from %u to %u", rg->rg_grp->gr_gid, rg->rg_gid);
+	if (res_group_different(rg, GID)) {
+		if (new_group) {
+			action = string("set gid to %u", rg->rg_gid);
+		} else {
+			action = string("change gid from %u to %u", rg->rg_grp->gr_gid, rg->rg_gid);
+		}
 
 		if (dryrun) {
 			report_action(report, action, ACTION_SKIPPED);
@@ -379,20 +401,38 @@ struct report* res_group_remediate(struct res_group *rg, int dryrun, struct grdb
 	}
 
 	if (res_group_enforced(rg, MEMBERS) && res_group_different(rg, MEMBERS)) {
-		/* FIXME: RES_GROUP_MEMBERS report support... */
-		/* replace gr_mem and sg_mem with the rg_mem stringlist */
-		xarrfree(rg->rg_grp->gr_mem);
-		rg->rg_grp->gr_mem = xarrdup(rg->rg_mem->strings);
+		if (!dryrun) {
+			/* replace gr_mem and sg_mem with the rg_mem stringlist */
+			xarrfree(rg->rg_grp->gr_mem);
+			rg->rg_grp->gr_mem = xarrdup(rg->rg_mem->strings);
 
-		xarrfree(rg->rg_sg->sg_mem);
-		rg->rg_sg->sg_mem = xarrdup(rg->rg_mem->strings);
+			xarrfree(rg->rg_sg->sg_mem);
+			rg->rg_sg->sg_mem = xarrdup(rg->rg_mem->strings);
+		}
+
+		size_t i;
+		for (i = 0; i < rg->rg_mem_add->num; i++) {
+			report_action(report, string("add %s", rg->rg_mem_add->strings[i]), (dryrun ? ACTION_SKIPPED : ACTION_SUCCEEDED));
+		}
+		for (i = 0; i < rg->rg_mem_rm->num; i++) {
+			report_action(report, string("remove %s", rg->rg_mem_rm->strings[i]), (dryrun ? ACTION_SKIPPED : ACTION_SUCCEEDED));
+		}
 	}
 
 	if (res_group_enforced(rg, ADMINS) && res_group_different(rg, ADMINS)) {
-		/* FIXME: RES_GROUP_ADMINS report support... */
-		/* replace sg_adm with the rg_adm stringlist */
-		xarrfree(rg->rg_sg->sg_adm);
-		rg->rg_sg->sg_adm = xarrdup(rg->rg_adm->strings);
+		if (!dryrun) {
+			/* replace sg_adm with the rg_adm stringlist */
+			xarrfree(rg->rg_sg->sg_adm);
+			rg->rg_sg->sg_adm = xarrdup(rg->rg_adm->strings);
+		}
+
+		size_t i;
+		for (i = 0; i < rg->rg_adm_add->num; i++) {
+			report_action(report, string("grant admin rights to %s", rg->rg_adm_add->strings[i]), (dryrun ? ACTION_SKIPPED : ACTION_SUCCEEDED));
+		}
+		for (i = 0; i < rg->rg_adm_rm->num; i++) {
+			report_action(report, string("revoke admin rights from %s", rg->rg_adm_rm->strings[i]), (dryrun ? ACTION_SKIPPED : ACTION_SUCCEEDED));
+		}
 	}
 
 	return report;

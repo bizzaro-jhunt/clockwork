@@ -729,6 +729,7 @@ struct sgrp* sgdb_new_entry(struct sgdb *db, const char *name)
 
 	/* shallow pointers are ok; _sgdb_entry strdup's them */
 	sg->sg_namp = xstrdup(name);
+	sg->sg_passwd = "!";
 
 	for (; db->next; db = db->next)
 		;

@@ -218,17 +218,44 @@ int client_enforce_policy(client *c, struct list *l)
 		list_add_tail(&r->rep, l);
 	}
 
+	if (!c->dryrun) {
+		pwdb_write(passwd,  SYS_PASSWD);
+		spdb_write(shadow,  SYS_SHADOW);
+		grdb_write(group,   SYS_GROUP);
+		sgdb_write(gshadow, SYS_GSHADOW);
+	}
+
 	return 0;
 }
 
 int client_print_report(FILE *io, struct list *report)
 {
 	struct report *r;
+	size_t ok = 0, fixed = 0, non = 0;
 
 	for_each_node(r, report, rep) {
-		report_print(io, r);
-		fprintf(io, "\n");
+		if (r->compliant && !r->fixed) {
+			report_print(io, r);
+			ok++;
+		}
 	}
+	fprintf(io, "\n");
+
+	for_each_node(r, report, rep) {
+		if (!r->compliant || r->fixed) {
+			report_print(io, r);
+			fprintf(io, "\n");
+
+			if (r->fixed) {
+				fixed++;
+			} else {
+				non++;
+			}
+		}
+	}
+
+	fprintf(io, "%u resource(s); %u OK, %u fixed, %u non-compliant\n",
+	        (ok+fixed+non), ok, fixed, non);
 
 	return 0;
 }

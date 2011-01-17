@@ -57,7 +57,6 @@ static worker* worker_spawn(server *s)
 	if (BIO_do_accept(s->listener) <= 0) {
 		WARNING("Couldn't accept inbound connection");
 		protocol_ssl_backtrace();
-		exit(1);
 		return NULL;
 	}
 
@@ -70,7 +69,7 @@ static worker* worker_spawn(server *s)
 
 	w->socket = BIO_pop(s->listener);
 	if (!(w->ssl = SSL_new(s->ssl_ctx))) {
-		WARNING("COuldn't create SSL handle for worker thread");
+		WARNING("Couldn't create SSL handle for worker thread");
 		protocol_ssl_backtrace();
 
 		free(w);
@@ -84,6 +83,13 @@ static worker* worker_spawn(server *s)
 static int worker_prep(worker *w)
 {
 	assert(w);
+
+	sigset_t blocked_signals;
+
+	/* block SIGPIPE for clients that close early. */
+	sigemptyset(&blocked_signals);
+	sigaddset(&blocked_signals, SIGPIPE);
+	pthread_sigmask(SIG_BLOCK, &blocked_signals, NULL);
 
 	if (SSL_accept(w->ssl) <= 0) {
 		ERROR("Unable to establish SSL connection");
@@ -102,7 +108,6 @@ static int worker_prep(worker *w)
 	pthread_mutex_unlock(&manifest_mutex);
 
 	w->policy = NULL;
-
 	return 0;
 }
 
@@ -190,6 +195,7 @@ static int worker_dispatch(worker *w)
 			break;
 
 		default:
+			WARNING("Unrecognized PDU OP: %u", RECV_PDU(sess)->op);
 			snprintf(errbuf, 256, "Unrecognized PDU OP: %u", RECV_PDU(sess)->op);
 			if (pdu_send_ERROR(sess, 405, (uint8_t*)errbuf, strlen(errbuf)) < 0) {
 				CRITICAL("Unable to send ERROR");
@@ -260,7 +266,7 @@ static void server_sighup(int signum, siginfo_t *info, void *udata)
 	pthread_t tid;
 	void *status;
 
-	DEBUG("sig_hup_handler entered");
+	DEBUG("SIGHUP handler entered");
 
 	pthread_create(&tid, NULL, server_manager_thread, NULL);
 	pthread_join(tid, &status);
@@ -414,8 +420,9 @@ int server_init(server *s)
 	INFO("setting up signal handlers");
 	sig.sa_sigaction = server_sighup;
 	sig.sa_flags = SA_SIGINFO;
+	sigemptyset(&sig.sa_mask);
 	if (sigaction(SIGHUP, &sig, NULL) != 0) {
-		ERROR("Unable to set signal handlers: $s", strerror(errno));
+		ERROR("Unable to set signal handlers: %s", strerror(errno));
 		/* FIXME: cleanup */
 		return -1;
 	}
@@ -475,11 +482,9 @@ void* server_worker_thread(void *arg)
 		return NULL;
 	}
 
-	//session.manifest = manifest;
-	//server_dispatch(&session);
 	worker_dispatch(w);
-
 	worker_die(w);
+
 	INFO("SSL connection closed");
 	return NULL;
 }

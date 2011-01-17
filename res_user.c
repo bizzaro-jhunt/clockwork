@@ -5,6 +5,8 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <fts.h>
+#include <fcntl.h>
 #include <unistd.h>
 
 #include "resource.h"
@@ -39,6 +41,7 @@
 
 static int _res_user_diff(struct res_user *ru);
 static unsigned char _res_user_home_exists(struct res_user *ru);
+static int _res_user_populate_home(const char *home, const char *skel, uid_t uid, gid_t gid);
 
 /*****************************************************************/
 
@@ -122,6 +125,51 @@ static unsigned char _res_user_home_exists(struct res_user *ru)
 	return (S_ISDIR(st.st_mode) ? 1 : 0); /* 1 = true; 0 = false */
 }
 
+static int _res_user_populate_home(const char *home, const char *skel, uid_t uid, gid_t gid)
+{
+	FTS *fts;
+	FTSENT *ent;
+	char *path_argv[2] = { strdup(skel), NULL };
+	char *skel_path, *home_path;
+	int skel_fd, home_fd;
+	mode_t mode;
+	char buf[8192];
+	size_t nread;
+
+	fts = fts_open(path_argv, FTS_PHYSICAL, NULL);
+	if (!fts) {
+		free(path_argv[0]);
+		return -1;
+	}
+
+	while ( (ent = fts_read(fts)) != NULL ) {
+		if (strcmp(ent->fts_accpath, ent->fts_path) != 0) {
+			home_path = string("%s/%s", home, ent->fts_accpath);
+			skel_path = string("%s/%s", skel, ent->fts_accpath);
+			mode = ent->fts_statp->st_mode & 0777;
+
+			if (S_ISREG(ent->fts_statp->st_mode)) {
+				skel_fd = open(skel_path, O_RDONLY); /* FIXME: check retval */
+				home_fd = creat(home_path, mode); /* FIXME: check retval */
+				chown(home_path, uid, gid); /* FIXME: check retval */
+
+				while ((nread = read(skel_fd, buf, 8192)) > 0)
+					write(home_fd, buf, nread);
+
+			} else if (S_ISDIR(ent->fts_statp->st_mode)) {
+				mkdir(home_path, mode); /* FIXME: check retval */
+				chown(home_path, uid, gid); /* FIXME: check retval */
+			}
+
+			free(home_path);
+			free(skel_path);
+		}
+	}
+
+	free(path_argv[0]);
+	return 0;
+}
+
 /*****************************************************************/
 
 struct res_user* res_user_new(const char *key)
@@ -195,6 +243,34 @@ int res_user_setattr(struct res_user *ru, const char *name, const char *value)
 		return res_user_set_dir(ru, value);
 	} else if (strcmp(name, "present") == 0) {
 		return res_user_set_presence(ru, strcmp(value, "no"));
+	} else if (strcmp(name, "locked") == 0) {
+		return res_user_set_lock(ru, strcmp(value, "no"));
+	} else if (strcmp(name, "gecos") == 0 || strcmp(name, "comment") == 0) {
+		return res_user_set_gecos(ru, value);
+	} else if (strcmp(name, "shell") == 0) {
+		return res_user_set_shell(ru, value);
+	} else if (strcmp(name, "pwhash") == 0 || strcmp(name, "password") == 0) {
+		return res_user_set_passwd(ru, value);
+	} else if (strcmp(name, "pwmin") == 0) { // FIXME: need better key
+		return res_user_set_pwmin(ru, strtoll(value, NULL, 10));
+	} else if (strcmp(name, "pwmax") == 0) { // FIXME: need better key
+		return res_user_set_pwmax(ru, strtoll(value, NULL, 10));
+	} else if (strcmp(name, "pwwarn") == 0) { // FIXME: need better key
+		return res_user_set_pwwarn(ru, strtoll(value, NULL, 10));
+	} else if (strcmp(name, "pwinact") == 0) { // FIXME: need better key
+		return res_user_set_inact(ru, strtoll(value, NULL, 10));
+	} else if (strcmp(name, "expiry") == 0 || strcmp(name, "expiration") == 0) {
+		return res_user_set_expire(ru, strtoll(value, NULL, 10));
+	} else if (strcmp(name, "locked") == 0) {
+		return res_user_set_lock(ru, strcmp(value, "no"));
+	} else if (strcmp(name, "skeleton") == 0 || strcmp(name, "makehome") == 0) {
+		if (strcmp(value, "no") == 0) {
+			return res_user_set_makehome(ru, 0, NULL);
+		} else if (strcmp(value, "yes") == 0) {
+			return res_user_set_makehome(ru, 1, "/etc/skel");
+		} else {
+			return res_user_set_makehome(ru, 1, value);
+		}
 	}
 
 	return -1;
@@ -427,7 +503,7 @@ struct report* res_user_remediate(struct res_user *ru, int dryrun, struct pwdb *
 		if (dryrun) {
 			report_action(report, action, ACTION_SKIPPED);
 		} else if (ru->ru_pw && ru->ru_sp) {
-			report_action(report, action, ACTION_SUCCEEDED);
+				report_action(report, action, ACTION_SUCCEEDED);
 		} else {
 			report_action(report, action, ACTION_FAILED);
 			return report;
@@ -514,6 +590,32 @@ struct report* res_user_remediate(struct res_user *ru, int dryrun, struct pwdb *
 			xfree(ru->ru_pw->pw_dir);
 			ru->ru_pw->pw_dir = strdup(ru->ru_dir);
 			report_action(report, action, ACTION_SUCCEEDED);
+		}
+	}
+
+	if (res_user_different(ru, MKHOME)) {
+		action = string("create home directory");
+
+		if (dryrun) {
+			report_action(report, action, ACTION_SKIPPED);
+		} else {
+			/* mkdir $home; populate from $skel */
+			mkdir(ru->ru_dir, 0700); /* FIXME: check return value */
+			chown(ru->ru_dir, ru->ru_pw->pw_uid, ru->ru_pw->pw_gid); /* FIXME: check return value */
+
+			report_action(report, action, ACTION_SUCCEEDED);
+		}
+
+		if (ru->ru_skel) {
+			action = string("populate home directory from %s", ru->ru_skel);
+
+			if (dryrun) {
+				report_action(report, string("populate home directory from %s", ru->ru_skel), ACTION_SKIPPED);
+			} else {
+				/* copy *all* files from ru_skel into ru_dir */
+				_res_user_populate_home(ru->ru_dir, ru->ru_skel, ru->ru_pw->pw_uid, ru->ru_pw->pw_gid);
+				report_action(report, action, ACTION_SUCCEEDED);
+			}
 		}
 	}
 
@@ -608,7 +710,29 @@ struct report* res_user_remediate(struct res_user *ru, int dryrun, struct pwdb *
 		}
 	}
 
-	/* FIXME: ru_lock support in res_user_remediate */
+	if (res_user_different(ru, LOCK)) {
+		size_t len = strlen(ru->ru_sp->sp_pwdp) + 2;
+		char pbuf[len], *password;
+		memcpy(pbuf + 1, ru->ru_sp->sp_pwdp, len - 1);
+
+		if (ru->ru_lock) {
+			action = string("lock account");
+			pbuf[0] = '!';
+			password = pbuf;
+		} else {
+			action = string("unlock account");
+			password = pbuf + 1;
+		}
+
+		if (dryrun) {
+			report_action(report, action, ACTION_SKIPPED);
+		} else {
+			xfree(ru->ru_sp->sp_pwdp);
+			ru->ru_sp->sp_pwdp = strdup(password);
+
+			report_action(report, action, ACTION_SUCCEEDED);
+		}
+	}
 
 	return report;
 }

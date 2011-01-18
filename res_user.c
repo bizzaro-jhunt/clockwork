@@ -9,7 +9,6 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#include "resource.h"
 #include "res_user.h"
 #include "pack.h"
 
@@ -204,7 +203,7 @@ struct res_user* res_user_new(const char *key)
 
 	if (key) {
 		res_user_set_name(ru, key);
-		ru->key = resource_key("res_user", key);
+		ru->key = string("res_user:%s", key);
 	} else {
 		ru->key = NULL;
 	}
@@ -783,7 +782,7 @@ struct res_user* res_user_unpack(const char *packed)
 		return NULL;
 	}
 
-	ru->key = resource_key("res_user", ru->ru_name);
+	ru->key = string("res_user:%s", ru->ru_name);
 
 	return ru;
 }

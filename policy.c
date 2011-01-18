@@ -221,8 +221,7 @@ static void * _policy_find_resource(struct policy_generator *pgen, const char *t
 	char *key;
 	void *resource = NULL;
 
-	key = resource_key(type, id);
-	if (key) {
+	if ((key = string("%s:%s", type, id)) != NULL) {
 		resource = hash_get(pgen->policy->resources, key);
 		free(key);
 	}

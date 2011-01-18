@@ -2,7 +2,6 @@
 #include <string.h>
 #include <errno.h>
 
-#include "resource.h"
 #include "res_group.h"
 #include "pack.h"
 
@@ -113,8 +112,8 @@ struct res_group* res_group_new(const char *key)
 	rg->rg_diff = RES_GROUP_NONE;
 
 	if (key) {
-		rg->key = resource_key("res_group", key);
 		res_group_set_name(rg, key);
+		rg->key = string("res_group:%s", key);
 	} else {
 		rg->key = NULL;
 	}
@@ -493,7 +492,7 @@ struct res_group* res_group_unpack(const char *packed)
 		return NULL;
 	}
 
-	rg->key = resource_key("res_group", rg->rg_name);
+	rg->key = string("res_group:%s", rg->rg_name);
 
 	stringlist_free(rg->rg_mem_add);
 	rg->rg_mem_add = stringlist_split(mem_add, strlen(mem_add), ".");

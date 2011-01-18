@@ -3,7 +3,6 @@
 
 #include "list.h"
 #include "hash.h"
-#include "resource.h"
 #include "res_file.h"
 #include "res_group.h"
 #include "res_user.h"

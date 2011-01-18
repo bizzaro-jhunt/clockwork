@@ -4,7 +4,6 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#include "resource.h"
 #include "res_file.h"
 #include "pack.h"
 
@@ -100,7 +99,7 @@ struct res_file* res_file_new(const char *key)
 
 	if (key) {
 		res_file_set_path(rf, key);
-		rf->key = resource_key("res_file", key);
+		rf->key = string("res_file:%s", key);
 	} else {
 		rf->key = NULL;
 	}
@@ -411,7 +410,7 @@ struct res_file* res_file_unpack(const char *packed)
 	sha1_init(&rf->rf_rsha1, hex);
 	free(hex);
 
-	rf->key = resource_key("res_file", rf->rf_lpath);
+	rf->key = string("res_file:%s", rf->rf_lpath);
 
 	return rf;
 }

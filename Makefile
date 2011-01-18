@@ -56,8 +56,8 @@ UTILS := sha1sum polspec
 CORE  := cwa policyd
 
 # Resource types
-RESOURCE_OBJECTS := resource.o res_user.o res_group.o res_file.o report.o
-RESOURCE_HEADERS := resource.h res_user.h res_group.h res_file.h report.h
+RESOURCE_OBJECTS := res_user.o res_group.o res_file.o report.o
+RESOURCE_HEADERS := res_user.h res_group.h res_file.h report.h
 
 # Supporting object files
 CORE_OBJECTS := mem.o sha1.o pack.o hash.o stringlist.o userdb.o log.o
@@ -154,7 +154,7 @@ unit_tests: test/run
 
 test/run: test/run.o test/test.o \
           test/assertions.o \
-          mem.o resource.o \
+          mem.o \
           report.o log.o \
           test/list.o \
           test/stringlist.o stringlist.o \

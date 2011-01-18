@@ -184,11 +184,9 @@ int res_file_set_mode(struct res_file *rf, mode_t mode)
 int res_file_set_path(struct res_file *rf, const char *file)
 {
 	assert(rf);
-	size_t len = strlen(file) + 1;
 
 	xfree(rf->rf_lpath);
-	rf->rf_lpath = xmalloc(len);
-	strncpy(rf->rf_lpath, file, len);
+	rf->rf_lpath = strdup(file);
 
 	return 0;
 }

@@ -93,7 +93,7 @@ void test_res_file_remedy()
 	const char *src  = "test/data/res_file/SRC/fstab";
 
 	int src_fd;
-	ssize_t src_len, n;
+	ssize_t src_len;
 
 	test("RES_FILE: File Remediation");
 

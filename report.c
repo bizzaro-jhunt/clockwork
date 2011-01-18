@@ -4,17 +4,15 @@ struct report* report_new(const char *type, const char *key)
 {
 	struct report *r;
 
-	r = malloc(sizeof(struct report));
-	if (r) {
-		r->res_type = strdup(type);
-		r->res_key  = strdup(key);
+	r = xmalloc(sizeof(struct report));
+	r->res_type = strdup(type);
+	r->res_key  = strdup(key);
 
-		r->compliant = 1;
-		r->fixed     = 0;
+	r->compliant = 1;
+	r->fixed     = 0;
 
-		list_init(&r->actions);
-		list_init(&r->rep);
-	}
+	list_init(&r->actions);
+	list_init(&r->rep);
 
 	return r;
 }
@@ -42,7 +40,7 @@ int report_action(struct report *report, char *summary, enum action_result resul
 	assert(summary);
 
 	struct action *add;
-	add = malloc(sizeof(struct action)); /* FIXME: check malloc return value */
+	add = xmalloc(sizeof(struct action));
 	list_init(&add->report);
 
 	add->summary = summary;

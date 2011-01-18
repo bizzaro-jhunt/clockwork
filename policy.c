@@ -5,8 +5,6 @@
 
 #include "policy.h"
 #include "pack.h"
-#include "mem.h"
-#include "log.h"
 
 
 #define POLICY_PACK_PREFIX "policy::"
@@ -55,16 +53,14 @@ struct manifest* manifest_new(void)
 {
 	struct manifest *m;
 
-	m = malloc(sizeof(struct manifest));
-	if (m) {
-		m->policies = hash_new();
-		m->hosts    = hash_new();
+	m = xmalloc(sizeof(struct manifest));
+	m->policies = hash_new();
+	m->hosts    = hash_new();
 
-		m->nodes = NULL;
-		m->nodes_len = 0;
+	m->nodes = NULL;
+	m->nodes_len = 0;
 
-		m->root = manifest_new_stree(m, PROG, NULL, NULL);
-	}
+	m->root = manifest_new_stree(m, PROG, NULL, NULL);
 
 	return m;
 }
@@ -94,7 +90,7 @@ struct stree* manifest_new_stree(struct manifest *m, enum oper op, const char *d
 	struct stree *stree;
 	struct stree **list;
 
-	stree = calloc(1, sizeof(struct stree));
+	stree = xmalloc(sizeof(struct stree));
 	list = realloc(m->nodes, sizeof(struct stree*) * (m->nodes_len + 1));
 	if (!stree || !list) {
 		free(stree);
@@ -346,11 +342,7 @@ struct policy* policy_new(const char *name)
 {
 	struct policy *pol;
 
-	pol = calloc(1, sizeof(struct policy));
-	if (!pol) {
-		return NULL;
-	}
-
+	pol = xmalloc(sizeof(struct policy));
 	pol->name = xstrdup(name);
 
 	list_init(&pol->res_files);
@@ -432,7 +424,7 @@ char* policy_pack(const struct policy *pol)
 
 	pack_len = pack(NULL, 0, POLICY_PACK_FORMAT, pol->name);
 
-	packed = malloc(pack_len + POLICY_PACK_OFFSET);
+	packed = xmalloc(pack_len + POLICY_PACK_OFFSET);
 	strncpy(packed, POLICY_PACK_PREFIX, POLICY_PACK_OFFSET);
 
 	pack(packed + POLICY_PACK_OFFSET, pack_len, POLICY_PACK_FORMAT, pol->name);

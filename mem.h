@@ -22,6 +22,21 @@ void __xfree(void **ptr2ptr);
 /** @endcond */
 
 /**
+  Wrapper around malloc(3)/calloc(3) that exits
+  if memory cannot be allocated.
+
+  @param size  Number of bytes to allocate
+
+  @returns a pointer to the newly allocated chunk of memory,
+           or issues a CRITICAL and exits (42) on failure.
+ */
+#define xmalloc(size) __xmalloc(size, __func__, __FILE__, __LINE__)
+
+/** @cond false */
+void* __xmalloc(size_t size, const char *func, const char *file, unsigned int line);
+/** @endcond */
+
+/**
   Wrapper around strdup(3) that can handle NULL strings.
 
   @param  s    Pointer to string to duplicate.

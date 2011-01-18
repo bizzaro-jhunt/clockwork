@@ -16,11 +16,7 @@ static int pdu_allocate(protocol_data_unit *pdu, uint16_t op, uint16_t len)
 	pdu->op = op;
 
 	free(pdu->data);
-	pdu->data = malloc(len);
-	if (!pdu->data) {
-		return -1;
-	}
-
+	pdu->data = xmalloc(len);
 	pdu->len = len;
 
 	return 0;
@@ -66,11 +62,7 @@ int pdu_decode_ERROR(protocol_data_unit *pdu, uint16_t *err_code, uint8_t **str,
 	*err_code = ntohs(*err_code);
 
 	my_len = pdu->len - sizeof(*err_code) + 1;
-	*str = calloc(my_len, sizeof(uint8_t));
-	if (!str) {
-		return -1;
-	}
-
+	*str = xmalloc(my_len * sizeof(uint8_t));
 	memcpy(*str, pdu->data + sizeof(*err_code), my_len);
 	if (len) {
 		*len = my_len;

@@ -32,5 +32,6 @@
 
 #include "sha1.h"
 #include "log.h"
+#include "mem.h"
 
 #endif

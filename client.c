@@ -29,7 +29,7 @@ int client_init(client *c)
 	}
 
 	len = snprintf(NULL, 0, "%s:%s", c->s_address, c->s_port);
-	addr = malloc(len+1);
+	addr = xmalloc(len+1);
 	snprintf(addr, len+1, "%s:%s", c->s_address, c->s_port);
 	DEVELOPER("Connecting to %s", addr);
 

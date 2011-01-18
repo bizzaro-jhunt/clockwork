@@ -1,8 +1,10 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <errno.h>
 
 #include "mem.h"
+#include "log.h"
 
 void __xfree(void **ptr2ptr)
 {
@@ -10,6 +12,17 @@ void __xfree(void **ptr2ptr)
 	if (!ptr2ptr) { return; }
 	free(*ptr2ptr);
 	*ptr2ptr = NULL;
+}
+
+void* __xmalloc(size_t size, const char *func, const char *file, unsigned int line)
+{
+	void *buf = calloc(1, size);
+	if (!buf) {
+		CRITICAL("%s, %s:%u - memory allocation failed: %s",
+		      func, file, line, strerror(errno));
+		exit(42);
+	}
+	return buf;
 }
 
 char* xstrdup(const char *s)
@@ -30,14 +43,9 @@ char** xarrdup(char **a)
 	for (t = a; *t; t++)
 		;
 
-	n = calloc(t - a + 1, sizeof(char*));
-	if (!n) {
-		return NULL;
-	}
-
-	for (t = n; *a; a++) {
+	n = xmalloc((t -a + 1) * sizeof(char*));
+	for (t = n; *a; a++)
 		*t++ = xstrdup(*a);
-	}
 
 	return n;
 }
@@ -63,8 +71,7 @@ char* string(const char *fmt, ...)
 	n = vsnprintf(buf, 256, fmt, args);
 	va_end(args);
 	if (n > 256) {
-		buf2 = calloc(n, sizeof(char));
-		if (!buf2) { return NULL; }
+		buf2 = xmalloc(n * sizeof(char));
 
 		va_start(args, fmt);
 		vsnprintf(buf2, n, fmt, args);

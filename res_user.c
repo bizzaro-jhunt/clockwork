@@ -12,7 +12,6 @@
 #include "resource.h"
 #include "res_user.h"
 #include "pack.h"
-#include "mem.h"
 
 
 #define RES_USER_PACK_PREFIX "res_user::"
@@ -176,10 +175,7 @@ struct res_user* res_user_new(const char *key)
 {
 	struct res_user *ru;
 
-	ru = malloc(sizeof(struct res_user));
-	if (!ru) {
-		return NULL;
-	}
+	ru = xmalloc(sizeof(struct res_user));
 
 	ru->ru_uid    = 0;
 	ru->ru_uid    = 0;
@@ -754,7 +750,7 @@ char* res_user_pack(const struct res_user *ru)
 		ru->ru_skel,   ru->ru_lock,   ru->ru_pwmin,  ru->ru_pwmax,
 		ru->ru_pwwarn, ru->ru_inact,  ru->ru_expire);
 
-	packed = malloc(pack_len + RES_USER_PACK_OFFSET);
+	packed = xmalloc(pack_len + RES_USER_PACK_OFFSET);
 	strncpy(packed, RES_USER_PACK_PREFIX, RES_USER_PACK_OFFSET);
 
 	pack(packed + RES_USER_PACK_OFFSET, pack_len, RES_USER_PACK_FORMAT,

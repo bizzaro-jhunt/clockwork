@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "stringlist.h"
+#include "mem.h"
 
 #define INIT_LEN   16
 
@@ -81,11 +82,7 @@ stringlist* stringlist_new(char **src)
 	stringlist *sl;
 	char **t;
 
-	sl = malloc(sizeof(stringlist));
-	if (!sl) {
-		return NULL;
-	}
-
+	sl = xmalloc(sizeof(stringlist));
 	if (src) {
 		t = src;
 		while (*t++)
@@ -97,11 +94,7 @@ stringlist* stringlist_new(char **src)
 		sl->len = INIT_LEN;
 	}
 
-	sl->strings = calloc(sl->len, sizeof(char *));
-	if (!sl->strings) {
-		free(sl);
-		return NULL;
-	}
+	sl->strings = xmalloc(sl->len * sizeof(char *));
 
 	if (src) {
 		for (t = sl->strings; *src; src++, t++) {
@@ -285,12 +278,7 @@ char* stringlist_join(stringlist *list, const char *delim)
 	}
 	len += (list->num - 1) * delim_len;
 
-	joined = malloc(len + 1);
-	if (!joined) {
-		return NULL;
-	}
-
-	ptr = joined;
+	ptr = joined = xmalloc(len + 1);
 	for (i = 0; i < list->num; i++) {
 		if (i != 0) {
 			memcpy(ptr, delim, delim_len);
@@ -321,11 +309,7 @@ stringlist* stringlist_split(const char *str, size_t len, const char *delim)
 			}
 		}
 
-		item = malloc(b - a + 1);
-		if (!item) {
-			stringlist_free(list);
-			return NULL;
-		}
+		item = xmalloc(b - a + 1);
 		memcpy(item, a, b - a);
 		item[b-a] = '\0';
 

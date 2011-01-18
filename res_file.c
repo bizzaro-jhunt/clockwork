@@ -7,7 +7,6 @@
 #include "resource.h"
 #include "res_file.h"
 #include "pack.h"
-#include "mem.h"
 
 #define RF_FD2FD_CHUNKSIZE 16384
 
@@ -81,11 +80,7 @@ struct res_file* res_file_new(const char *key)
 {
 	struct res_file *rf;
 
-	rf = malloc(sizeof(struct res_file));
-	if (!rf) {
-		return NULL;
-	}
-
+	rf = xmalloc(sizeof(struct res_file));
 	list_init(&rf->res);
 
 	rf->rf_enf = 0;
@@ -192,8 +187,7 @@ int res_file_set_path(struct res_file *rf, const char *file)
 	size_t len = strlen(file) + 1;
 
 	xfree(rf->rf_lpath);
-	rf->rf_lpath = malloc(len);
-	if (!rf->rf_lpath) { return -1; }
+	rf->rf_lpath = xmalloc(len);
 	strncpy(rf->rf_lpath, file, len);
 
 	return 0;
@@ -207,9 +201,7 @@ int res_file_set_source(struct res_file *rf, const char *file)
 	rf->rf_enf |= RES_FILE_SHA1;
 
 	xfree(rf->rf_rpath);
-	rf->rf_rpath = malloc(len);
-	if (!rf->rf_rpath) { return -1; }
-
+	rf->rf_rpath = xmalloc(len);
 	strncpy(rf->rf_rpath, file, len);
 	if (sha1_file(rf->rf_rpath, &(rf->rf_rsha1)) == -1) { return -1; }
 
@@ -388,7 +380,7 @@ char* res_file_pack(struct res_file *rf)
 		rf->rf_enf,
 		rf->rf_lpath, rf->rf_rsha1.hex, rf->rf_uid, rf->rf_gid, rf->rf_mode);
 
-	packed = malloc(pack_len + RES_FILE_PACK_OFFSET);
+	packed = xmalloc(pack_len + RES_FILE_PACK_OFFSET);
 	strncpy(packed, RES_FILE_PACK_PREFIX, RES_FILE_PACK_OFFSET);
 
 	pack(packed + RES_FILE_PACK_OFFSET, pack_len, RES_FILE_PACK_FORMAT,

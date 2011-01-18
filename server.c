@@ -60,11 +60,7 @@ static worker* worker_spawn(server *s)
 		return NULL;
 	}
 
-	w = calloc(1, sizeof(worker));
-	if (!w) {
-		WARNING("Couldn't allocate memory for worker thread");
-		return NULL;
-	}
+	w = xmalloc(sizeof(worker));
 	w->facts = hash_new();
 
 	w->socket = BIO_pop(s->listener);

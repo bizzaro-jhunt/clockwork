@@ -79,10 +79,7 @@ static server* config_file_options(const char *path)
 	struct hash *config;
 	char *v;
 
-	s = calloc(1, sizeof(server));
-	if (!s) {
-		return NULL;
-	}
+	s = xmalloc(sizeof(server));
 
 	config = parse_config(path);
 	if (config) {
@@ -148,10 +145,7 @@ static server* command_line_options(int argc, char **argv)
 
 	int opt, idx = 0;
 
-	s = calloc(1, sizeof(server));
-	if (!s) {
-		return NULL;
-	}
+	s = xmalloc(sizeof(server));
 
 	while ( (opt = getopt_long(argc, argv, short_opts, long_opts, &idx)) != -1 ) {
 		switch (opt) {

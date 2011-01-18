@@ -15,10 +15,8 @@ char* resource_key(const char *type, const char *id)
 
 	/* type + ":" + id */
 	keylen = strlen(type) + 1 + strlen(id);
-	key = malloc((keylen + 1) * sizeof(char));
-	if (key) {
-		snprintf(key, keylen + 1, "%s:%s", type, id);
-	}
+	key = xmalloc((keylen + 1) * sizeof(char));
+	snprintf(key, keylen + 1, "%s:%s", type, id);
 
 	return key;
 }

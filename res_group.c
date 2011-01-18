@@ -5,7 +5,6 @@
 #include "resource.h"
 #include "res_group.h"
 #include "pack.h"
-#include "mem.h"
 
 
 #define RES_GROUP_PACK_PREFIX "res_group::"
@@ -92,11 +91,7 @@ struct res_group* res_group_new(const char *key)
 {
 	struct res_group *rg;
 
-	rg = malloc(sizeof(struct res_group));
-	if (!rg) {
-		return NULL;
-	}
-
+	rg = xmalloc(sizeof(struct res_group));
 	list_init(&rg->res);
 
 	rg->rg_name = NULL;
@@ -464,7 +459,7 @@ char *res_group_pack(struct res_group *rg)
 		rg->rg_name, rg->rg_passwd, rg->rg_gid,
 		mem_add, mem_rm, adm_add, adm_rm);
 
-	packed = malloc(pack_len + RES_GROUP_PACK_OFFSET);
+	packed = xmalloc(pack_len + RES_GROUP_PACK_OFFSET);
 	strncpy(packed, RES_GROUP_PACK_PREFIX, RES_GROUP_PACK_OFFSET);
 
 	pack(packed + RES_GROUP_PACK_OFFSET, pack_len, RES_GROUP_PACK_FORMAT,

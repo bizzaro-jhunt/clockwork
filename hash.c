@@ -1,8 +1,9 @@
-#include "hash.h"
-
 #include <assert.h>
 #include <string.h>
 #include <stdlib.h>
+
+#include "hash.h"
+#include "mem.h"
 
 static unsigned char H256(const char *s)
 {
@@ -22,7 +23,7 @@ unsigned char H64(const char *s)
 
 struct hash *hash_new(void)
 {
-	return calloc(1, sizeof(struct hash));
+	return xmalloc(sizeof(struct hash));
 }
 
 void hash_free(struct hash *h)

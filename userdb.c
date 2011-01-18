@@ -8,21 +8,8 @@
 #include <stdio.h>
 
 #include "userdb.h"
-#include "mem.h"
 
 /**********************************************************/
-
-/* Allocate a userdb entry (pwdb, sgdb, etc.) and its payload
-   member (passwd, sgrp, etc.), while handling errors.  Since
-   this code was common to at four functions, it was macrofied. */
-#define ALLOC_ENTRY(db_t,db,ent_t,ent) do {\
-	if (!(db = malloc(sizeof(db_t)))) { return NULL; } \
-	db->next = NULL; \
-	if (!(ent = malloc(sizeof(ent_t)))) { \
-		free(db); \
-		return NULL; \
-	} \
-} while(0)
 
 static struct pwdb* _pwdb_entry(struct passwd *passwd);
 static struct pwdb* _pwdb_fgetpwent(FILE *input);
@@ -49,7 +36,8 @@ static struct pwdb* _pwdb_entry(struct passwd *passwd)
 	assert(passwd);
 
 	struct pwdb *ent;
-	ALLOC_ENTRY(struct pwdb, ent, struct passwd, ent->passwd);
+	ent = xmalloc(sizeof(struct pwdb));
+	ent->passwd = xmalloc(sizeof(struct passwd));
 
 	ent->passwd->pw_name   = xstrdup(passwd->pw_name);
 	ent->passwd->pw_passwd = xstrdup(passwd->pw_passwd);
@@ -94,7 +82,8 @@ static struct spdb* _spdb_entry(struct spwd *spwd)
 	assert(spwd);
 
 	struct spdb *ent;
-	ALLOC_ENTRY(struct spdb, ent, struct spwd, ent->spwd);
+	ent = xmalloc(sizeof(struct spdb));
+	ent->spwd = xmalloc(sizeof(struct spwd));
 
 	ent->spwd->sp_namp   = xstrdup(spwd->sp_namp);
 	ent->spwd->sp_pwdp   = xstrdup(spwd->sp_pwdp);
@@ -137,7 +126,8 @@ static struct grdb* _grdb_entry(struct group *group)
 	assert(group);
 
 	struct grdb *ent;
-	ALLOC_ENTRY(struct grdb, ent, struct group, ent->group);
+	ent = xmalloc(sizeof(struct grdb));
+	ent->group = xmalloc(sizeof(struct group));
 
 	ent->group->gr_name   = xstrdup(group->gr_name);
 	ent->group->gr_gid    = group->gr_gid;
@@ -183,7 +173,8 @@ static struct sgdb* _sgdb_entry(struct sgrp *sgrp)
 	assert(sgrp);
 
 	struct sgdb *ent;
-	ALLOC_ENTRY(struct sgdb, ent, struct sgrp, ent->sgrp);
+	ent = xmalloc(sizeof(struct sgdb));
+	ent->sgrp = xmalloc(sizeof(struct sgrp));
 
 	ent->sgrp->sg_namp   = xstrdup(sgrp->sg_namp);
 	ent->sgrp->sg_passwd = xstrdup(sgrp->sg_passwd);
@@ -289,9 +280,7 @@ struct passwd* pwdb_new_entry(struct pwdb *db, const char *name)
 
 	if (!db) { return NULL; }
 
-	pw = malloc(sizeof(struct passwd));
-	if (!pw) { return NULL; }
-
+	pw = xmalloc(sizeof(struct passwd));
 	/* shallow pointers are ok; _pwdb_entry strdup's them */
 	pw->pw_name = (char *)name;
 	pw->pw_passwd = "x";
@@ -432,9 +421,7 @@ struct spwd* spdb_new_entry(struct spdb *db, const char *name)
 
 	if (!db) { return NULL; }
 
-	sp = calloc(1, sizeof(struct spwd));
-	if (!sp) { return NULL; }
-
+	sp = xmalloc(sizeof(struct spwd));
 	/* shallow pointers are ok; _spdb_entry strdup's them */
 	sp->sp_namp = (char *)name;
 	sp->sp_pwdp = "!";
@@ -585,9 +572,7 @@ struct group* grdb_new_entry(struct grdb *db, const char *name)
 
 	if (!db) { return NULL; }
 
-	gr = malloc(sizeof(struct group));
-	if (!gr) { return NULL; }
-
+	gr = xmalloc(sizeof(struct group));
 	/* shallow pointers are ok; _grdb_entry strdup's them */
 	gr->gr_name = (char *)name;
 	gr->gr_passwd = "x";
@@ -724,9 +709,7 @@ struct sgrp* sgdb_new_entry(struct sgdb *db, const char *name)
 
 	if (!db) { return NULL; }
 
-	sg = calloc(1, sizeof(struct sgrp));
-	if (!sg) { return NULL; }
-
+	sg = xmalloc(sizeof(struct sgrp));
 	/* shallow pointers are ok; _sgdb_entry strdup's them */
 	sg->sg_namp = xstrdup(name);
 	sg->sg_passwd = "!";

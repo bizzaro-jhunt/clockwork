@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "pack.h"
+#include "mem.h"
 
 static char* _escape(const char *string)
 {
@@ -22,7 +23,7 @@ static char* _escape(const char *string)
 		}
 	}
 
-	escaped = malloc(len + 1);
+	escaped = xmalloc(len + 1);
 	for (write_ptr = escaped, read_ptr = string; *read_ptr; read_ptr++) {
 		if (*read_ptr == '"') {
 			*write_ptr++ = '\\';
@@ -50,7 +51,7 @@ static char* _unescape(const char *string)
 	}
 
 	last = '\0';
-	unescaped = malloc(len + 1);
+	unescaped = xmalloc(len + 1);
 	for (write_ptr = unescaped, read_ptr = string; *read_ptr; read_ptr++) {
 		if (last == '\\') {
 			if (*read_ptr == '"') {
@@ -165,11 +166,10 @@ static char* _extract_string(const char *start)
 	for (last = '\0', b = a; *b && !(last != '\\' && *b == '"'); last = *b, b++)
 		;
 
-	buf = malloc(b - a + 1);
-	if (buf) {
-		memcpy(buf, a, b - a);
-		buf[b-a] = '\0';
-	}
+	buf = xmalloc(b - a + 1);
+	memcpy(buf, a, b - a);
+	buf[b-a] = '\0';
+
 	return buf;
 }
 

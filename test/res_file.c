@@ -247,7 +247,7 @@ void test_res_file_pack()
 	res_file_set_uid(rf, 101);                              /* rf_enf == 0000 0001 */
 	res_file_set_gid(rf, 202);                              /* rf_enf == 0000 0011 */
 	res_file_set_mode(rf, 0644);                            /* rf_enf == 0000 0111 */
-	res_file_set_source(rf, "http://example.com/sudoers");  /* rf_enf == 0000 1111 */
+	res_file_set_source(rf, "/etc/issue");                  /* rf_enf == 0000 1111 */
 	/* sneakily override the checksum */
 	sha1_init(&rf->rf_rsha1, "0123456789abcdef0123456789abcdef01234567");
 

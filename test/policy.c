@@ -160,7 +160,7 @@ void test_policy_pack()
 	policy_add_group_resource(pol, rg1);
 
 	rf1 = res_file_new("beer");                    /* rf_enf == 0000 0000 */
-	res_file_set_source(rf1, "/srv/cw/etc/sudoers");
+	res_file_set_source(rf1, "/etc/issue");
 	res_file_set_uid(rf1, 101);                    /* rf_enf == 0000 1001 */
 	res_file_set_gid(rf1, 2000);                   /* rf_enf == 0000 1011 */
 	res_file_set_mode(rf1, 0600);                  /* rf_enf == 0000 1111 */

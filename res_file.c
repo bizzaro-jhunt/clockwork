@@ -194,14 +194,15 @@ int res_file_set_path(struct res_file *rf, const char *file)
 int res_file_set_source(struct res_file *rf, const char *file)
 {
 	assert(rf);
-	size_t len = strlen(file) + 1;
-
-	rf->rf_enf |= RES_FILE_SHA1;
 
 	xfree(rf->rf_rpath);
-	rf->rf_rpath = xmalloc(len);
-	strncpy(rf->rf_rpath, file, len);
-	if (sha1_file(rf->rf_rpath, &(rf->rf_rsha1)) == -1) { return -1; }
+	rf->rf_rpath = strdup(file);
+
+	if (sha1_file(rf->rf_rpath, &(rf->rf_rsha1)) == -1) {
+		return -1;
+	}
+
+	rf->rf_enf |= RES_FILE_SHA1;
 
 	return 0;
 }

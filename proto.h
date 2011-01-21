@@ -232,11 +232,10 @@ int pdu_receive(protocol_session *session);
                       and the PDU buffer.
   @param  err_code    The error code.
   @param  str         A descriptive error string.
-  @param  len         Length of the descriptive error string.
 
   @returns 0 on success, non-zero on failure.
  */
-int pdu_send_ERROR(protocol_session *session, uint16_t err_code, const uint8_t *str, size_t len);
+int pdu_send_ERROR(protocol_session *session, uint16_t err_code, const char *str);
 
 /**
   Decode an ERROR PDU, storing the contents in \a err_code, \a str and \a len.

@@ -30,10 +30,11 @@ static void pdu_deallocate(protocol_data_unit *pdu)
 	pdu->data = NULL;
 }
 
-int pdu_send_ERROR(protocol_session *session, uint16_t err_code, const uint8_t *str, size_t len)
+int pdu_send_ERROR(protocol_session *session, uint16_t err_code, const char *str)
 {
 	assert(session);
 
+	size_t len = strlen(str);
 	protocol_data_unit *pdu = SEND_PDU(session);
 
 	err_code = htons(err_code);

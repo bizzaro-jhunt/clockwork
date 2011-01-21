@@ -193,7 +193,7 @@ static int worker_dispatch(worker *w)
 		default:
 			WARNING("Unrecognized PDU OP: %u", RECV_PDU(sess)->op);
 			snprintf(errbuf, 256, "Unrecognized PDU OP: %u", RECV_PDU(sess)->op);
-			if (pdu_send_ERROR(sess, 405, (uint8_t*)errbuf, strlen(errbuf)) < 0) {
+			if (pdu_send_ERROR(sess, 405, errbuf) < 0) {
 				CRITICAL("Unable to send ERROR");
 				return -2;
 			}

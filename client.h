@@ -32,8 +32,8 @@ typedef struct {
 	char *s_port;
 } client;
 
-int client_init(client *c);
-int client_deinit(client *c);
+int client_connect(client *c);
+int client_disconnect(client *c);
 
 int client_gather_facts(client *c);
 int client_get_policy(client *c);

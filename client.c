@@ -8,14 +8,17 @@ static int gather_facts(const char *script, struct hash *facts);
 
 /**************************************************************/
 
-int client_init(client *c)
+int client_connect(client *c)
 {
 	char *addr;
 	size_t len;
 	long err;
 
 	INFO("Gathering Facts");
-	client_gather_facts(c); /* FIXME: check return value */
+	if (client_gather_facts(c) != 0) {
+		CRITICAL("Unable to gather facts");
+		exit(1);
+	}
 
 	protocol_ssl_init();
 	c->ssl_ctx = protocol_ssl_default_context(c->ca_cert_file,
@@ -64,7 +67,7 @@ int client_init(client *c)
 	return 0;
 }
 
-int client_deinit(client *c)
+int client_disconnect(client *c)
 {
 	if (pdu_send_BYE(&c->session) < 0) {
 		perror("client_disconnect");
@@ -118,18 +121,22 @@ int client_get_policy(client *c)
 {
 	if (pdu_send_GET_POLICY(&c->session, c->facts) < 0) {
 		CRITICAL("Unable to GET_POLICY");
-		return -1;
+		exit(1);
 	}
 
 	pdu_receive(&c->session);
 	if (RECV_PDU(&c->session)->op != PROTOCOL_OP_SEND_POLICY) {
 		CRITICAL("Unexpected op from server: %u", RECV_PDU(&c->session)->op);
-		return -1;
+
+		client_disconnect(c);
+		exit(1);
 	}
 
 	if (pdu_decode_SEND_POLICY(RECV_PDU(&c->session), &c->policy) != 0) {
 		CRITICAL("Unable to decode SEND_POLICY PDU");
-		return -1;
+
+		client_disconnect(c);
+		exit(1);
 	}
 
 	return 0;
@@ -147,7 +154,7 @@ int client_get_file(protocol_session *session, sha1 *checksum, int fd)
 	do {
 		pdu_receive(session);
 		if (RECV_PDU(session)->op != PROTOCOL_OP_FILE_DATA) {
-			/* FIXME: send back an error */
+			pdu_send_ERROR(session, 600, "Invalid operation");
 			return -1;
 		}
 
@@ -173,11 +180,13 @@ int client_enforce_policy(client *c, struct list *l)
 	int pipefd[2];
 	ssize_t bytes = 0;
 
-	passwd  = pwdb_init(SYS_PASSWD);
-	shadow  = spdb_init(SYS_SHADOW);
-	group   = grdb_init(SYS_GROUP);
-	gshadow = sgdb_init(SYS_GSHADOW);
-	/* FIXME: check return values of userdb init calls. */
+	if ((passwd  = pwdb_init(SYS_PASSWD)) == NULL
+	 || (shadow  = spdb_init(SYS_SHADOW)) == NULL
+	 || (group   = grdb_init(SYS_GROUP))  == NULL
+	 || (gshadow = sgdb_init(SYS_GSHADOW)) == NULL) {
+		CRITICAL("Unable to initialize user / group database(s)");
+		exit(2);
+	}
 
 	/* Remediate users */
 	for_each_node(ru, &c->policy->res_users, res) {

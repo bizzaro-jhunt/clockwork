@@ -65,11 +65,11 @@ int main(int argc, char **argv)
 	dump_options("merged_opts", arg_opts);
 
 	log_level(arg_opts->log_level);
-	if (client_init(arg_opts) != 0) {
+	if (client_connect(arg_opts) != 0) {
 		exit(1);
 	}
 
-	client_get_policy(arg_opts); /* FIXME: check return value */
+	client_get_policy(arg_opts);
 	dump_policy(arg_opts->policy);
 
 	if (arg_opts->dryrun) {
@@ -80,7 +80,7 @@ int main(int argc, char **argv)
 	client_enforce_policy(arg_opts, &report);
 	client_print_report(stdout, &report);
 
-	client_deinit(arg_opts);
+	client_disconnect(arg_opts);
 	return 0;
 }
 

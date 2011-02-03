@@ -3,6 +3,8 @@ List of Things To Do
 
 Client / Server
   - Test remediation in chroot
+  - Resource dependency resolution
+  - Automatic certificate enrolment
 
 API documentation
   Use some sort of source-code documentation system (Doxygen)

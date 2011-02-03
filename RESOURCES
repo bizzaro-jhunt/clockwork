@@ -50,4 +50,66 @@ res_service
   name
   status
 
+res_mount
+---------
+  device (fs_spec)
+  mountpoint (fs_file)
+  filesystem (fs_vfstype)
+  options (fs_mntops)
+  dump (fs_freq)
+  pass (fs_passno)
 
+res_ssh_public_key
+------------------
+  file (target)
+  user (target)
+  comment
+  type
+  key
+
+res_ssh_known_host
+------------------
+  file (where to store it)
+  host
+  ip
+  type
+  key
+  encrypt (boolean)
+
+res_cron
+--------
+  name
+  minute
+  hour
+  mday (month_day)
+  date
+  wday (week_day)
+  frequency (i.e. "@reboot")
+  user
+  system (boolean)
+  command
+
+res_host
+--------
+  hostname
+  aliases
+
+res_net_interface
+-----------------
+  device
+  ip
+  netmask
+  gateway
+  (sure there are others...)
+
+res_net_route
+-------------
+  network
+  gateway
+  (sure there are others... metric?)
+
+res_sysctl
+----------
+  name
+  value
+  persist

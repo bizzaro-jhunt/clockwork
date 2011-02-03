@@ -229,3 +229,97 @@ has (a) figured out which files need content remediation and (b) gets those file
 from the server.  Since I eventually intend to add in post-run reporting, this
 will work.
 
+
+Declarative vs. Imperative vs. Both
+-----------------------------------
+If you read through any of the literature on popular configuration management sytems
+like CFengine and Puppet, you will see that the authors have a real problem with
+imperative methods of configuration management, and an affinity for the declarative
+approach.  You tell the tool what you want, and it determines the best sequence of
+actions to take to get the system there.
+
+As awesome as that concept is, it doesn't track too well with people.  We are
+imperative, task-based creatures.  "I want Z, so I should do X and then Y"
+
+One of my biggest complaints with these existing systems is the mental workout
+required to unroll a declarative configuration into its imperative format.  Most
+of these systems do their own implicit dependency resolution.  If you say you
+want the file "/some/path/to/file" to be owned by the user joe in group staff,
+the tools puts in the dependency that "/some/path/to" is a directory, that it exists,
+user joe needs to be created first, and so does the group 'staff'.  When those
+dependencies are impossible to deduce, the system falls back to explicit dependency
+specification from the config.  For example, Puppet lets you "notify" a service when
+a file changes.  That's a fancy way of saying 'restart service B after updating
+file A'.
+
+Clockwork will (and does) embrace the declarative approach.  However, I must draw
+the line at coming up with terms that don't sound imperative, when in fact they are.
+If you need a resource to be evaluated after another, then the language will be
+'after', not 'requires'.  It's just easier to grok.
+
+
+Resource Trees
+--------------
+Now that the declarative imperative tirade is over, here's some notes on Resouce Trees.
+Resource Trees represent the implicit and explicit dependecies in a configuration.
+We could just ignore these dependencies and hope that successive runs get us closer
+and closer to the configuration, but that's a real disservice to system administrators.
+I personally don't like the "getting closer, try again later" approach, so we're stuck
+with dependency resolution.
+
+If we take the same approach with resource trees as we did with syntax trees, this should
+be pretty easy.  Define a struct rtree that contains:
+
+ * a pointer to a resource (don't know what type, don't care)
+ * a list of dependent resources (as struct rtrees).
+
+(Astute comp sci grads will notice that this is a run-of-the-mill non-binary tree.)
+"Free" resources, that have no further dependencies exist as leaf nodes.  These go through
+remediation first, followed by their parents.  Consider the following graph, with each
+letter representing a resource.
+
+   A -- B -- D
+   |     `-- E
+   |
+    `-- C -- F
+        |--- G
+         `-- H
+
+In this example, resource C cannot go through remediation until D and E are in a good
+state.  (D and E may be the user joe and group staff from the file example (B) above.)
+Remediation could proceed in either of the following sequences (ignoring order variations
+at the leaf node)
+
+H, G, F, C, E, D, B, A (remediating C first)
+D, E, B, F, G, H, C, A (remediating B first)
+
+Order does not matter; only parentage affects the outcome.
+
+As an implementation side note, the resource tree is only useful during remediation, not
+after.  Therefore, the act of traversing the tree can be implemented as a destructive
+operation if it simplifies the traversal logic.  For example, after remediating D, the
+D node can be removed, leaving the tree as such:
+
+   A -- B -- *
+   |     `-- E
+   |
+    `-- C -- F
+        |--- G
+         `-- H
+
+Three operations later, after remediating F:
+
+   A -- * -- *
+   |     `-- *
+   |
+    `-- C -- *
+        |--- G
+         `-- H
+
+This could be done through rtree delete/free, or by flagging the rtree node as 'done'
+
+Another sidenote: the policy master really should be able to identify cycles in the graph
+(i.e. A depends on B, which itself depends on A).  However, without client facts, this
+may not be possible.  In any event, someone needs to catch these situations before
+attempting to traverse the tree for remediation.  A descriptive error message followed by
+exit would be just the ticket.

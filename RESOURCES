@@ -28,7 +28,7 @@ res_user
 + password
 + shell
 + home
-. make home / skeleton
++ make home / skeleton
 + pwmin
 + pwmax
 + pwwarn

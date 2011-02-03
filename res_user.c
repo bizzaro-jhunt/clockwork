@@ -147,16 +147,20 @@ static int _res_user_populate_home(const char *home, const char *skel, uid_t uid
 			mode = ent->fts_statp->st_mode & 0777;
 
 			if (S_ISREG(ent->fts_statp->st_mode)) {
-				skel_fd = open(skel_path, O_RDONLY); /* FIXME: check retval */
-				home_fd = creat(home_path, mode); /* FIXME: check retval */
-				chown(home_path, uid, gid); /* FIXME: check retval */
+				skel_fd = open(skel_path, O_RDONLY);
+				home_fd = creat(home_path, mode);
 
-				while ((nread = read(skel_fd, buf, 8192)) > 0)
-					write(home_fd, buf, nread);
+				if (skel_fd >= 0 && home_fd >= 0) {
+					chown(home_path, uid, gid);
+					while ((nread = read(skel_fd, buf, 8192)) > 0)
+						write(home_fd, buf, nread);
+				}
 
 			} else if (S_ISDIR(ent->fts_statp->st_mode)) {
-				mkdir(home_path, mode); /* FIXME: check retval */
-				chown(home_path, uid, gid); /* FIXME: check retval */
+				if (mkdir(home_path, mode) == 0) {
+					chown(home_path, uid, gid);
+					chmod(home_path, 0755);
+				}
 			}
 
 			free(home_path);

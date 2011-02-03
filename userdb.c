@@ -266,7 +266,7 @@ uid_t pwdb_lookup_uid(struct pwdb *db, const char *name)
 	if (!name) { return 0; }
 
 	struct passwd* u = pwdb_get_by_name(db, name);
-	return (u ? u->pw_uid : 0);
+	return (u ? u->pw_uid : -1);
 }
 
 uid_t pwdb_next_uid(struct pwdb *db)
@@ -579,7 +579,7 @@ gid_t grdb_lookup_gid(struct grdb *db, const char *name)
 	if (!name) { return 0; }
 
 	struct group *g = grdb_get_by_name(db, name);
-	return (g ? g->gr_gid : 0);
+	return (g ? g->gr_gid : -1);
 }
 
 struct group* grdb_get_by_gid(struct grdb *db, gid_t gid)

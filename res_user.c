@@ -180,8 +180,8 @@ struct res_user* res_user_new(const char *key)
 
 	ru = xmalloc(sizeof(struct res_user));
 
-	ru->ru_uid    = 0;
-	ru->ru_uid    = 0;
+	ru->ru_uid    = -1;
+	ru->ru_uid    = -1;
 	ru->ru_mkhome = 0;
 	ru->ru_lock   = 1;
 	ru->ru_pwmin  = 0;

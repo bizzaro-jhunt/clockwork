@@ -615,8 +615,11 @@ struct report* res_user_remediate(struct res_user *ru, int dryrun, struct pwdb *
 				report_action(report, string("populate home directory from %s", ru->ru_skel), ACTION_SKIPPED);
 			} else {
 				/* copy *all* files from ru_skel into ru_dir */
-				_res_user_populate_home(ru->ru_dir, ru->ru_skel, ru->ru_pw->pw_uid, ru->ru_pw->pw_gid);
-				report_action(report, action, ACTION_SUCCEEDED);
+				if (_res_user_populate_home(ru->ru_dir, ru->ru_skel, ru->ru_pw->pw_uid, ru->ru_pw->pw_gid) == 0) {
+					report_action(report, action, ACTION_SUCCEEDED);
+				} else {
+					report_action(report, action, ACTION_FAILED);
+				}
 			}
 		}
 	}

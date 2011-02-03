@@ -7,8 +7,8 @@
 CC_FLAGS := -g #                       Debug syms for gdb
 #CC_FLAGS += -pg #                      gprof runtime support
 CC_FLAGS += -gdwarf-2 #                DWARF3; for Valgrind
-CC_FLAGS += -fprofile-arcs #           gcov / lcov coverage
-CC_FLAGS += -ftest-coverage #          gcov / lcov coverage
+#CC_FLAGS += -fprofile-arcs #           gcov / lcov coverage
+#CC_FLAGS += -ftest-coverage #          gcov / lcov coverage
 CC_FLAGS += -Wall #                    Warn on everything
 
 CC_FLAGS += -lssl

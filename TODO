@@ -29,12 +29,6 @@ More resources
   Check the RESOURCE file for the most up-to-date information.
   Definitely need to implement res_package and res_service.
 
-Sample Configs and Policy Manifests
-  Write documented sample config files and policy / manifest
-  files, in a new subdirectory (samples/).
-    - Sample config for cwa is done
-    - Sample config for policyd is started (need more notes)
-
 VIm syntax rules
   Write a syntax definition for the daemon / client configuration
   files, and one for the manifest definitions.  For the config

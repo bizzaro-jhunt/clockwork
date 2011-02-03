@@ -348,7 +348,7 @@ struct report* res_group_remediate(struct res_group *rg, int dryrun, struct grdb
 		new_group = 1;
 		action = string("create group");
 
-		if (!rg->rg_grp) { rg->rg_grp = grdb_new_entry(grdb, rg->rg_name); }
+		if (!rg->rg_grp) { rg->rg_grp = grdb_new_entry(grdb, rg->rg_name, rg->rg_gid); }
 		if (!rg->rg_sg)  { rg->rg_sg = sgdb_new_entry(sgdb, rg->rg_name); }
 
 		if (dryrun) {

@@ -83,8 +83,15 @@ struct res_file {
 	/** Remote path (server-side) to the desired file. */
 	char *rf_rpath;
 
+	/** Name of the file user owner. */
+	char *rf_owner;
+
 	/** UID of the files user owner. */
 	uid_t rf_uid;
+
+	/** Name of the file group owner. */
+	char *rf_group;
+
 	/** GID of the file group owner. */
 	gid_t rf_gid;
 
@@ -165,21 +172,21 @@ int res_file_set_presence(struct res_file *rf, int presence);
   Set file ownership (user).
 
   @param  rf     File resource to update.
-  @param  uid    UNIX user id of the file's desired owner.
+  @param  user   Username of the file's desired owner.
 
   @returns 0 on success, non-zero on failure.
  */
-int res_file_set_uid(struct res_file *rf, uid_t uid);
+int res_file_set_user(struct res_file *rf, const char *user);
 
 /**
   Set file ownership (group).
 
   @param  rf     File resource to update.
-  @param  gid    UNIX group id of the file's desired group.
+  @param  group  Group name of the file's desired group owner.
 
   @returns 0 on success, non-zero on failure.
  */
-int res_file_set_gid(struct res_file *rf, gid_t gid);
+int res_file_set_group(struct res_file *rf, const char *group);
 
 /**
   Set file mode / permissions.

@@ -99,6 +99,9 @@ struct pwdb* pwdb_init(const char *path);
  */
 struct passwd* pwdb_get_by_name(struct pwdb *db, const char *name);
 
+uid_t pwdb_lookup_uid(struct pwdb *db, const char *name);
+uid_t pwdb_next_uid(struct pwdb *db);
+
 /**
   Look up a user account, by UID, in a user database.
 
@@ -117,11 +120,13 @@ struct passwd* pwdb_get_by_uid(struct pwdb *db, uid_t uid);
 
   @param  db      Database to create the new entry in.
   @param  name    Username of the new entry.
+  @param  uid     UNIX User ID of new entry.
+  @param  gid     UNIX Group ID of new entry.
 
   @returns a pointer to the newly created passwd structure
            (see getpwent(3)).
  */
-struct passwd* pwdb_new_entry(struct pwdb *db, const char *name);
+struct passwd* pwdb_new_entry(struct pwdb *db, const char *name, uid_t uid, gid_t gid);
 int pwdb_add(struct pwdb *db, struct passwd *pw);
 
 /**
@@ -253,6 +258,8 @@ struct grdb* grdb_init(const char *path);
  */
 struct group* grdb_get_by_name(struct grdb *db, const char *name);
 
+gid_t grdb_lookup_gid(struct grdb *db, const char *name);
+
 /** Look up a group entry, by GID, in a group database.
 
   @param  db     Group database to search.
@@ -268,11 +275,12 @@ struct group* grdb_get_by_gid(struct grdb *db, gid_t gid);
 
   @param  db      Database to create the new entry in.
   @param  name    Name of the new group entry.
+  @param  gid     UNIX Group ID of the new entry.
 
   @returns a pointer to the newly created group structure
            (see getgrent(3)).
  */
-struct group* grdb_new_entry(struct grdb *db, const char *name);
+struct group* grdb_new_entry(struct grdb *db, const char *name, gid_t gid);
 int grdb_add(struct grdb *db, struct group *g);
 
 /**

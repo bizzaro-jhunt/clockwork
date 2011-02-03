@@ -492,13 +492,13 @@ struct report* res_user_remediate(struct res_user *ru, int dryrun, struct pwdb *
 		action = string("create user");
 		new_user = 1;
 
-		if (!ru->ru_pw) { ru->ru_pw = pwdb_new_entry(pwdb, ru->ru_name); }
+		if (!ru->ru_pw) { ru->ru_pw = pwdb_new_entry(pwdb, ru->ru_name, ru->ru_uid, ru->ru_gid); }
 		if (!ru->ru_sp) { ru->ru_sp = spdb_new_entry(spdb, ru->ru_name); }
 
 		if (dryrun) {
 			report_action(report, action, ACTION_SKIPPED);
 		} else if (ru->ru_pw && ru->ru_sp) {
-				report_action(report, action, ACTION_SUCCEEDED);
+			report_action(report, action, ACTION_SUCCEEDED);
 		} else {
 			report_action(report, action, ACTION_FAILED);
 			return report;
@@ -595,10 +595,13 @@ struct report* res_user_remediate(struct res_user *ru, int dryrun, struct pwdb *
 			report_action(report, action, ACTION_SKIPPED);
 		} else {
 			/* mkdir $home; populate from $skel */
-			mkdir(ru->ru_dir, 0700); /* FIXME: check return value */
-			chown(ru->ru_dir, ru->ru_pw->pw_uid, ru->ru_pw->pw_gid); /* FIXME: check return value */
+			if (mkdir(ru->ru_dir, 0700) == 0) {
+				chown(ru->ru_dir, ru->ru_pw->pw_uid, ru->ru_pw->pw_gid);
 
-			report_action(report, action, ACTION_SUCCEEDED);
+				report_action(report, action, ACTION_SUCCEEDED);
+			} else {
+				report_action(report, action, ACTION_FAILED);
+			}
 		}
 
 		if (ru->ru_skel) {

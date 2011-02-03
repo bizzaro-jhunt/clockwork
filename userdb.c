@@ -261,6 +261,27 @@ struct passwd* pwdb_get_by_name(struct pwdb *db, const char *name)
 	return NULL;
 }
 
+uid_t pwdb_lookup_uid(struct pwdb *db, const char *name)
+{
+	if (!name) { return 0; }
+
+	struct passwd* u = pwdb_get_by_name(db, name);
+	return (u ? u->pw_uid : 0);
+}
+
+uid_t pwdb_next_uid(struct pwdb *db)
+{
+	uid_t next = 1000;
+
+	for (; db; db = db->next) {
+		if (db->passwd && db->passwd->pw_uid == next) {
+			next++;
+		}
+	}
+
+	return next;
+}
+
 struct passwd* pwdb_get_by_uid(struct pwdb *db, uid_t uid)
 {
 	for (; db; db = db->next) {
@@ -272,7 +293,7 @@ struct passwd* pwdb_get_by_uid(struct pwdb *db, uid_t uid)
 	return NULL;
 }
 
-struct passwd* pwdb_new_entry(struct pwdb *db, const char *name)
+struct passwd* pwdb_new_entry(struct pwdb *db, const char *name, uid_t uid, gid_t gid)
 {
 	assert(name);
 
@@ -284,8 +305,8 @@ struct passwd* pwdb_new_entry(struct pwdb *db, const char *name)
 	/* shallow pointers are ok; _pwdb_entry strdup's them */
 	pw->pw_name = (char *)name;
 	pw->pw_passwd = "x";
-	pw->pw_uid = -1;
-	pw->pw_gid = -1;
+	pw->pw_uid = (uid == -1 ? pwdb_next_uid(db) : uid);
+	pw->pw_gid = gid;
 	pw->pw_gecos = "";
 	pw->pw_dir = "/";
 	pw->pw_shell = "/sbin/nologin";
@@ -553,6 +574,14 @@ struct group* grdb_get_by_name(struct grdb *db, const char *name)
 	return NULL;
 }
 
+gid_t grdb_lookup_gid(struct grdb *db, const char *name)
+{
+	if (!name) { return 0; }
+
+	struct group *g = grdb_get_by_name(db, name);
+	return (g ? g->gr_gid : 0);
+}
+
 struct group* grdb_get_by_gid(struct grdb *db, gid_t gid)
 {
 	for (; db; db = db->next) {
@@ -564,7 +593,7 @@ struct group* grdb_get_by_gid(struct grdb *db, gid_t gid)
 	return NULL;
 }
 
-struct group* grdb_new_entry(struct grdb *db, const char *name)
+struct group* grdb_new_entry(struct grdb *db, const char *name, gid_t gid)
 {
 	assert(name);
 
@@ -576,7 +605,7 @@ struct group* grdb_new_entry(struct grdb *db, const char *name)
 	/* shallow pointers are ok; _grdb_entry strdup's them */
 	gr->gr_name = (char *)name;
 	gr->gr_passwd = "x";
-	gr->gr_gid = -1;
+	gr->gr_gid = gid;
 	gr->gr_mem = NULL;
 
 	for (; db->next; db = db->next)

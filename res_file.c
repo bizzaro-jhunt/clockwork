@@ -15,11 +15,11 @@
      L - rf_enf
      a - rf_lpath
      a - rf_rsha1
-     L - rf_uid
-     L - rf_gid
+     a - rf_owner
+     a - rf_group
      L - rf_mode
  */
-#define RES_FILE_PACK_FORMAT "LaaLLL"
+#define RES_FILE_PACK_FORMAT "LaaaaL"
 
 
 static int _res_file_fd2fd(int dest, int src, ssize_t bytes);
@@ -87,8 +87,12 @@ struct res_file* res_file_new(const char *key)
 	memset(&rf->rf_stat, 0, sizeof(struct stat));
 	rf->rf_exists = 0;
 
+	rf->rf_owner = NULL;
 	rf->rf_uid = 0;
+
+	rf->rf_group = NULL;
 	rf->rf_gid = 0;
+
 	rf->rf_mode = 0600; /* sane default... */
 
 	rf->rf_lpath = NULL;
@@ -124,9 +128,9 @@ void res_file_free(struct res_file *rf)
 int res_file_setattr(struct res_file *rf, const char *name, const char *value)
 {
 	if (strcmp(name, "owner") == 0) {
-		return res_file_set_uid(rf, 0); /* FIXME: hard-coded UID */
+		return res_file_set_user(rf, value); /* FIXME: hard-coded UID */
 	} else if (strcmp(name, "group") == 0) {
-		return res_file_set_gid(rf, 0); /* FIXME: hard-coded GID */
+		return res_file_set_group(rf, value); /* FIXME: hard-coded GID */
 	} else if (strcmp(name, "lpath") == 0) {
 		return res_file_set_path(rf, value);
 	} else if (strcmp(name, "mode") == 0) {
@@ -153,19 +157,25 @@ int res_file_set_presence(struct res_file *rf, int presence)
 	return 0;
 }
 
-int res_file_set_uid(struct res_file *rf, uid_t uid)
+int res_file_set_user(struct res_file *rf, const char *user)
 {
 	assert(rf);
-	rf->rf_uid = uid;
+
+	free(rf->rf_owner);
+	rf->rf_owner = strdup(user);
+
 	rf->rf_enf |= RES_FILE_UID;
 
 	return 0;
 }
 
-int res_file_set_gid(struct res_file *rf, gid_t gid)
+int res_file_set_group(struct res_file *rf, const char *group)
 {
 	assert(rf);
-	rf->rf_gid = gid;
+
+	free(rf->rf_group);
+	rf->rf_group = strdup(group);
+
 	rf->rf_enf |= RES_FILE_GID;
 
 	return 0;
@@ -240,10 +250,6 @@ struct report* res_file_remediate(struct res_file *rf, int dryrun, int remote_fd
 	struct report *report = report_new("File", rf->rf_lpath);
 	char *action;
 	int new_file = 0;
-
-	/* UID and GID to chown to */
-	uid_t uid = (res_file_enforced(rf, UID) ? rf->rf_uid : rf->rf_stat.st_uid);
-	gid_t gid = (res_file_enforced(rf, GID) ? rf->rf_gid : rf->rf_stat.st_gid);
 	int local_fd = -1;
 
 	/* Remove the file */
@@ -315,14 +321,14 @@ struct report* res_file_remediate(struct res_file *rf, int dryrun, int remote_fd
 
 	if (res_file_different(rf, UID)) {
 		if (new_file) {
-			action = string("set owner to %u", uid);
+			action = string("set owner to %s(%u)", rf->rf_owner, rf->rf_uid);
 		} else {
-			action = string("change owner from %u to %u", rf->rf_stat.st_uid, uid);
+			action = string("change owner from %u to %s(%u)", rf->rf_stat.st_uid, rf->rf_owner, rf->rf_uid);
 		}
 
 		if (dryrun) {
 			report_action(report, action, ACTION_SKIPPED);
-		} else if (chown(rf->rf_lpath, uid, -1) == 0) {
+		} else if (chown(rf->rf_lpath, rf->rf_uid, -1) == 0) {
 			report_action(report, action, ACTION_SUCCEEDED);
 		} else {
 			report_action(report, action, ACTION_FAILED);
@@ -331,14 +337,14 @@ struct report* res_file_remediate(struct res_file *rf, int dryrun, int remote_fd
 
 	if (res_file_different(rf, GID)) {
 		if (new_file) {
-			action = string("set group to %u", gid);
+			action = string("set group to %s(%u)", rf->rf_group, rf->rf_gid);
 		} else {
-			action = string("change group from %u to %u", rf->rf_stat.st_gid, gid);
+			action = string("change group from %u to %s(%u)", rf->rf_stat.st_gid, rf->rf_group, rf->rf_gid);
 		}
 
 		if (dryrun) {
 			report_action(report, action, ACTION_SKIPPED);
-		} else if (chown(rf->rf_lpath, -1, gid) == 0) {
+		} else if (chown(rf->rf_lpath, -1, rf->rf_gid) == 0) {
 			report_action(report, action, ACTION_SUCCEEDED);
 		} else {
 			report_action(report, action, ACTION_FAILED);
@@ -376,14 +382,14 @@ char* res_file_pack(struct res_file *rf)
 
 	pack_len = pack(NULL, 0, RES_FILE_PACK_FORMAT,
 		rf->rf_enf,
-		rf->rf_lpath, rf->rf_rsha1.hex, rf->rf_uid, rf->rf_gid, rf->rf_mode);
+		rf->rf_lpath, rf->rf_rsha1.hex, rf->rf_owner, rf->rf_group, rf->rf_mode);
 
 	packed = xmalloc(pack_len + RES_FILE_PACK_OFFSET);
 	strncpy(packed, RES_FILE_PACK_PREFIX, RES_FILE_PACK_OFFSET);
 
 	pack(packed + RES_FILE_PACK_OFFSET, pack_len, RES_FILE_PACK_FORMAT,
 		rf->rf_enf,
-		rf->rf_lpath, rf->rf_rsha1.hex, rf->rf_uid, rf->rf_gid, rf->rf_mode);
+		rf->rf_lpath, rf->rf_rsha1.hex, rf->rf_owner, rf->rf_group, rf->rf_mode);
 
 	return packed;
 }
@@ -400,7 +406,7 @@ struct res_file* res_file_unpack(const char *packed)
 	rf = res_file_new(NULL);
 	if (unpack(packed + RES_FILE_PACK_OFFSET, RES_FILE_PACK_FORMAT,
 		&rf->rf_enf,
-		&rf->rf_lpath, &hex, &rf->rf_uid, &rf->rf_gid, &rf->rf_mode) != 0) {
+		&rf->rf_lpath, &hex, &rf->rf_owner, &rf->rf_group, &rf->rf_mode) != 0) {
 
 		free(hex);
 		res_file_free(rf);

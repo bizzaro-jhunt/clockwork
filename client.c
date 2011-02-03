@@ -204,6 +204,9 @@ int client_enforce_policy(client *c, struct list *l)
 
 	/* Remediate files */
 	for_each_node(rf, &c->policy->res_files, res) {
+		rf->rf_uid = pwdb_lookup_uid(passwd, rf->rf_owner);
+		rf->rf_gid = grdb_lookup_gid(group,  rf->rf_group);
+
 		res_file_stat(rf);
 
 		if (res_file_different(rf, SHA1)) {

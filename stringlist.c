@@ -77,17 +77,18 @@ int STRINGLIST_SORT_DESC(const void *a, const void *b)
 	return -1 * strcmp(* (char * const *) a, * (char * const *) b);
 }
 
-stringlist* stringlist_new(char **src)
+stringlist* stringlist_new(const char * const * src)
 {
 	stringlist *sl;
 	char **t;
+	const char * const *s;
 
 	sl = xmalloc(sizeof(stringlist));
 	if (src) {
-		t = src;
-		while (*t++)
+		s = src;
+		while (*s++)
 			;
-		sl->num = t - src - 1;
+		sl->num = s - src - 1;
 		sl->len = EXPAND_LEN(sl->num);
 	} else {
 		sl->num = 0;
@@ -97,8 +98,8 @@ stringlist* stringlist_new(char **src)
 	sl->strings = xmalloc(sl->len * sizeof(char *));
 
 	if (src) {
-		for (t = sl->strings; *src; src++, t++) {
-			*t = strdup(*src);
+		for (s = src, t = sl->strings; *s; s++, t++) {
+			*t = strdup(*s);
 		}
 	}
 

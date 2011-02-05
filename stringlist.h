@@ -98,7 +98,7 @@ int STRINGLIST_SORT_DESC(const void *a, const void *b);
 
   @returns a pointer to a stringlist allocated on the heap, or NULL on failure.
  */
-stringlist* stringlist_new(char **src);
+stringlist* stringlist_new(const char * const *src);
 
 /**
   Free memory allocated by a stringlist.

@@ -323,3 +323,35 @@ Another sidenote: the policy master really should be able to identify cycles in 
 may not be possible.  In any event, someone needs to catch these situations before
 attempting to traverse the tree for remediation.  A descriptive error message followed by
 exit would be just the ticket.
+
+An Alternative Aproach to Dependencies
+--------------------------------------
+
+After further reflection (and an attempted implementation), it doesn't seem like dep trees
+have as large an application as the above notes indicate.  Here's a few examples:
+
+File dependencies::
+
+If the policy enforces a file at "/path/to/file.dat" then res_file_remediate should be able
+to create the directory path '/path/to' if all or part of it does not exist.  For security
+reasons, missing directory components should be created according to the local umask, and
+owned by root:root.
+
+File Owner / Group dependencies::
+
+As long as users and groups get fixed before files, the pwdb and grdb structures will hold
+references to all users and groups known and created.  File remediation will then be able
+to look up the owner UID and GID from pwdb and grdb.
+
+User / Group dependencies::
+
+Users depend on groups, but groups do not depend on users.  A user's primary group must
+be created so that it can be looked up during user remediation.  For group memberships,
+/etc/group and /etc/shadow only contain user names, not UIDs.  Therefore, if we remediate
+groups before users, we can get around dependency graphing.
+
+So...
+
+The final decision (at least at this point) is to run the following sequence:
+  Groups -> Users -> Files
+

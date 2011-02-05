@@ -188,17 +188,17 @@ int client_enforce_policy(client *c, struct list *l)
 		exit(2);
 	}
 
-	/* Remediate users */
-	for_each_node(ru, &c->policy->res_users, res) {
-		res_user_stat(ru, passwd, shadow);
-		r = res_user_remediate(ru, c->dryrun, passwd, shadow);
-		list_add_tail(&r->rep, l);
-	}
-
 	/* Remediate groups */
 	for_each_node(rg, &c->policy->res_groups, res) {
 		res_group_stat(rg, group, gshadow);
 		r = res_group_remediate(rg, c->dryrun, group, gshadow);
+		list_add_tail(&r->rep, l);
+	}
+
+	/* Remediate users */
+	for_each_node(ru, &c->policy->res_users, res) {
+		res_user_stat(ru, passwd, shadow);
+		r = res_user_remediate(ru, c->dryrun, passwd, shadow);
 		list_add_tail(&r->rep, l);
 	}
 

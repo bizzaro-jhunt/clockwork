@@ -153,9 +153,17 @@ int res_group_setattr(struct res_group *rg, const char *name, const char *value)
 	} else if (strcmp(name, "present") == 0) {
 		return res_group_set_presence(rg, strcmp(value, "no"));
 	} else if (strcmp(name, "member") == 0) {
-		return res_group_add_member(rg, value);
+		if (value[0] == '!') {
+			return res_group_remove_member(rg, value+1);
+		} else {
+			return res_group_add_member(rg, value);
+		}
 	} else if (strcmp(name, "admin") == 0) {
-		return res_group_add_admin(rg, value);
+		if (value[0] == '!') {
+			return res_group_remove_admin(rg, value+1);
+		} else {
+			return res_group_add_admin(rg, value);
+		}
 	} else if (strcmp(name, "pwhash") == 0 || strcmp(name, "password") == 0) {
 		return res_group_set_passwd(rg, value);
 	}
@@ -321,6 +329,9 @@ struct report* res_group_remediate(struct res_group *rg, int dryrun, struct grdb
 	char *action;
 
 	int new_group;
+	stringlist *orig;
+	stringlist *to_add;
+	stringlist *to_remove;
 
 	report = report_new("Group", rg->rg_name);
 
@@ -395,6 +406,12 @@ struct report* res_group_remediate(struct res_group *rg, int dryrun, struct grdb
 	}
 
 	if (res_group_enforced(rg, MEMBERS) && res_group_different(rg, MEMBERS)) {
+		orig = stringlist_new(rg->rg_grp->gr_mem);
+		to_add = stringlist_dup(rg->rg_mem_add);
+		stringlist_remove_all(to_add, orig);
+
+		to_remove = stringlist_intersect(orig, rg->rg_mem_rm);
+
 		if (!dryrun) {
 			/* replace gr_mem and sg_mem with the rg_mem stringlist */
 			xarrfree(rg->rg_grp->gr_mem);
@@ -405,15 +422,27 @@ struct report* res_group_remediate(struct res_group *rg, int dryrun, struct grdb
 		}
 
 		size_t i;
-		for (i = 0; i < rg->rg_mem_add->num; i++) {
-			report_action(report, string("add %s", rg->rg_mem_add->strings[i]), (dryrun ? ACTION_SKIPPED : ACTION_SUCCEEDED));
+		/* FIXME: only report what was added to comply, not what needs to be added total */
+		for (i = 0; i < to_add->num; i++) {
+			report_action(report, string("add %s", to_add->strings[i]), (dryrun ? ACTION_SKIPPED : ACTION_SUCCEEDED));
 		}
-		for (i = 0; i < rg->rg_mem_rm->num; i++) {
-			report_action(report, string("remove %s", rg->rg_mem_rm->strings[i]), (dryrun ? ACTION_SKIPPED : ACTION_SUCCEEDED));
+		/* FIXME: only report what was removed to comply, not what needs to be removed total */
+		for (i = 0; i < to_remove->num; i++) {
+			report_action(report, string("remove %s", to_remove->strings[i]), (dryrun ? ACTION_SKIPPED : ACTION_SUCCEEDED));
 		}
+
+		stringlist_free(orig);
+		stringlist_free(to_add);
+		stringlist_free(to_remove);
 	}
 
 	if (res_group_enforced(rg, ADMINS) && res_group_different(rg, ADMINS)) {
+		orig = stringlist_new(rg->rg_sg->sg_adm);
+		to_add = stringlist_dup(rg->rg_adm_add);
+		stringlist_remove_all(to_add, orig);
+
+		to_remove = stringlist_intersect(orig, rg->rg_mem_add);
+
 		if (!dryrun) {
 			/* replace sg_adm with the rg_adm stringlist */
 			xarrfree(rg->rg_sg->sg_adm);
@@ -421,12 +450,16 @@ struct report* res_group_remediate(struct res_group *rg, int dryrun, struct grdb
 		}
 
 		size_t i;
-		for (i = 0; i < rg->rg_adm_add->num; i++) {
-			report_action(report, string("grant admin rights to %s", rg->rg_adm_add->strings[i]), (dryrun ? ACTION_SKIPPED : ACTION_SUCCEEDED));
+		for (i = 0; i < to_add->num; i++) {
+			report_action(report, string("grant admin rights to %s", to_add->strings[i]), (dryrun ? ACTION_SKIPPED : ACTION_SUCCEEDED));
 		}
-		for (i = 0; i < rg->rg_adm_rm->num; i++) {
-			report_action(report, string("revoke admin rights from %s", rg->rg_adm_rm->strings[i]), (dryrun ? ACTION_SKIPPED : ACTION_SUCCEEDED));
+		for (i = 0; i < to_remove->num; i++) {
+			report_action(report, string("revoke admin rights from %s", to_remove->strings[i]), (dryrun ? ACTION_SKIPPED : ACTION_SUCCEEDED));
 		}
+
+		stringlist_free(orig);
+		stringlist_free(to_add);
+		stringlist_free(to_remove);
 	}
 
 	return report;

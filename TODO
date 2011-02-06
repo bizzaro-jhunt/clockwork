@@ -3,7 +3,6 @@ List of Things To Do
 
 Client / Server
   - Test remediation in chroot
-  - Resource dependency resolution
   - Automatic certificate enrolment
 
 API documentation

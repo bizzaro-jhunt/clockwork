@@ -197,7 +197,8 @@ sub test_fact_checking()
 	assert_str_equals("factchecker: [map-no-else] UID is 3378 for fact '3xxx'", "res_user:guest:3378:3125",
 		run(qq(echo "test.use_uid=3xxx" | $factchecker "$root/map-no-else.pol" 2>/dev/null)));
 
-	assert_str_equals("factchecker: [map-no-else] UID is 0 (default) for fact '1x'", "res_user:guest:0:3125",
+	# 4294967295 is the unsigned representation of -1
+	assert_str_equals("factchecker: [map-no-else] UID is 0 (default) for fact '1x'", "res_user:guest:4294967295:3125",
 		run(qq(echo "test.use_uid=1x" | $factchecker "$root/map-no-else.pol" 2>/dev/null)));
 }
 

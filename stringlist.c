@@ -77,18 +77,17 @@ int STRINGLIST_SORT_DESC(const void *a, const void *b)
 	return -1 * strcmp(* (char * const *) a, * (char * const *) b);
 }
 
-stringlist* stringlist_new(const char * const * src)
+stringlist* stringlist_new(char **src)
 {
 	stringlist *sl;
 	char **t;
-	const char * const *s;
 
 	sl = xmalloc(sizeof(stringlist));
 	if (src) {
-		s = src;
-		while (*s++)
+		t = src;
+		while (*t++)
 			;
-		sl->num = s - src - 1;
+		sl->num = t - src - 1;
 		sl->len = EXPAND_LEN(sl->num);
 	} else {
 		sl->num = 0;
@@ -98,12 +97,17 @@ stringlist* stringlist_new(const char * const * src)
 	sl->strings = xmalloc(sl->len * sizeof(char *));
 
 	if (src) {
-		for (s = src, t = sl->strings; *s; s++, t++) {
-			*t = strdup(*s);
+		for (t = sl->strings; *src; src++, t++) {
+			*t = strdup(*src);
 		}
 	}
 
 	return sl;
+}
+
+stringlist* stringlist_dup(stringlist *orig)
+{
+	return stringlist_new(orig->strings);
 }
 
 void stringlist_free(stringlist *sl)
@@ -242,6 +246,22 @@ int stringlist_remove_all(stringlist *dst, stringlist *src)
 	}
 
 	return _stringlist_reduce(dst);
+}
+
+stringlist *stringlist_intersect(const stringlist *a, const stringlist *b)
+{
+	stringlist *intersect = stringlist_new(NULL);
+	size_t i, j;
+
+	for (i = 0; i < a->num; i++) {
+		for (j = 0; j < b->num; j++) {
+			if (strcmp(a->strings[i], b->strings[j]) == 0) {
+				stringlist_add(intersect, a->strings[i]);
+			}
+		}
+	}
+
+	return intersect;
 }
 
 int stringlist_diff(stringlist* a, stringlist* b)

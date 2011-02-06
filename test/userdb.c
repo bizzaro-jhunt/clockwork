@@ -324,12 +324,12 @@ void test_pwdb_new_entry()
 
 	test("PWDB: New Entry Creation");
 
-	pw = pwdb_new_entry(db, name);
+	pw = pwdb_new_entry(db, name, 1001, 2002);
 	assert_not_null("pwdb_new_entry returns a passwd structure", pw);
 	assert_str_equals("pw_name is set properly", pw->pw_name, name);
 	assert_str_equals("pw_passwd default is sane", pw->pw_passwd, "x");
-	assert_int_equals("pw_uid default is sane", pw->pw_uid, -1);
-	assert_int_equals("pw_gid default is sane", pw->pw_gid, -1);
+	assert_int_equals("pw_uid is set properly", pw->pw_uid, 1001);
+	assert_int_equals("pw_gid is set properly", pw->pw_gid, 2002);
 	assert_str_equals("pw_gecos default is sane", pw->pw_gecos, "");
 	assert_str_equals("pw_dir default is sane", pw->pw_dir, "/");
 	assert_str_equals("pw_shell default is sane", pw->pw_shell, "/sbin/nologin");
@@ -613,11 +613,11 @@ void test_grdb_new_entry()
 
 	test("GRDB: New Entry Creation");
 
-	gr = grdb_new_entry(db, name);
+	gr = grdb_new_entry(db, name, 2002);
 	assert_not_null("grdb_new_entry returns a group structure", gr);
 	assert_str_equals("gr_name is set properly", gr->gr_name, name);
 	assert_str_equals("gr_passwd default is sane", gr->gr_passwd, "x");
-	assert_int_equals("gr_gid default is sane", gr->gr_gid, -1);
+	assert_int_equals("gr_gid is set properly", gr->gr_gid, 2002);
 
 	grdb_free(db);
 }

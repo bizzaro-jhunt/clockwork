@@ -128,9 +128,9 @@ void res_file_free(struct res_file *rf)
 int res_file_setattr(struct res_file *rf, const char *name, const char *value)
 {
 	if (strcmp(name, "owner") == 0) {
-		return res_file_set_user(rf, value); /* FIXME: hard-coded UID */
+		return res_file_set_owner(rf, value);
 	} else if (strcmp(name, "group") == 0) {
-		return res_file_set_group(rf, value); /* FIXME: hard-coded GID */
+		return res_file_set_group(rf, value);
 	} else if (strcmp(name, "lpath") == 0) {
 		return res_file_set_path(rf, value);
 	} else if (strcmp(name, "mode") == 0) {
@@ -157,7 +157,7 @@ int res_file_set_presence(struct res_file *rf, int presence)
 	return 0;
 }
 
-int res_file_set_user(struct res_file *rf, const char *user)
+int res_file_set_owner(struct res_file *rf, const char *user)
 {
 	assert(rf);
 

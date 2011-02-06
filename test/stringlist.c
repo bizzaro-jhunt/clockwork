@@ -32,7 +32,7 @@ void test_stringlist_init()
 void test_stringlist_init_with_data()
 {
 	stringlist *sl;
-	char *data[32];
+	char *data[33];
 	char buf[32];
 	size_t i;
 
@@ -54,6 +54,45 @@ void test_stringlist_init_with_data()
 
 	stringlist_free(sl);
 	for (i = 0; i < 32; i++) {
+		free(data[i]);
+	}
+}
+
+void test_stringlist_dup()
+{
+	stringlist *orig, *dup;
+	char *data[5];
+	char buf[32];
+	size_t i;
+
+	for (i = 0; i < 4; i++) {
+		snprintf(buf, 32, "data%u", i);
+		data[i] = strdup(buf);
+	}
+	data[4] = NULL;
+
+	orig = stringlist_new(data);
+	dup  = stringlist_dup(orig);
+
+	assert_int_equals("original stringlist has 4 strings", orig->num, 4);
+	assert_int_equals("duplicate stringlist has 4 strings", orig->num, 4);
+
+	assert_str_equals("original->strings[0]",  orig->strings[0], "data0");
+	assert_str_equals("duplicate->strings[0]", dup->strings[0], "data0");
+
+	assert_str_equals("original->strings[1]",  orig->strings[1], "data1");
+	assert_str_equals("duplicate->strings[1]", dup->strings[1], "data1");
+
+	assert_str_equals("original->strings[2]",  orig->strings[2], "data2");
+	assert_str_equals("duplicate->strings[2]", dup->strings[2], "data2");
+
+	assert_str_equals("original->strings[3]",  orig->strings[3], "data3");
+	assert_str_equals("duplicate->strings[3]", dup->strings[3], "data3");
+
+	stringlist_free(orig);
+	stringlist_free(dup);
+
+	for (i = 0; i < 4; i++) {
 		free(data[i]);
 	}
 }
@@ -345,6 +384,7 @@ void test_suite_stringlist()
 {
 	test_stringlist_init();
 	test_stringlist_init_with_data();
+	test_stringlist_dup();
 	test_stringlist_basic_add_remove_search();
 	test_stringlist_add_all();
 	test_stringlist_remove_all();

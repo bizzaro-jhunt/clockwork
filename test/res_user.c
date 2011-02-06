@@ -85,8 +85,8 @@ void test_res_user_diffstat_remediation()
 	res_user_set_gid(ru, 8001);
 	res_user_set_gecos(ru, "SVC service account");
 	res_user_set_shell(ru, "/sbin/nologin");
-	res_user_set_dir(ru, "/nonexistent");
-	res_user_set_makehome(ru, 1, "/etc/skel.svc");
+	res_user_set_dir(ru, "/tmp/nonexistent");
+	res_user_set_makehome(ru, 1, "/etc/skel");
 	res_user_set_pwmin(ru, 4);
 	res_user_set_pwmax(ru, 45);
 	res_user_set_pwwarn(ru, 3);
@@ -127,7 +127,7 @@ void test_res_user_diffstat_remediation()
 	assert_int_equals("pw_gid is updated properly", ru->ru_pw->pw_gid, 8001);
 	assert_str_equals("pw_gecos is updated properly", ru->ru_pw->pw_gecos, "SVC service account");
 	assert_str_equals("pw_shell is still set properly", ru->ru_pw->pw_shell, "/sbin/nologin");
-	assert_str_equals("pw_dir is still set properly", ru->ru_pw->pw_dir, "/nonexistent");
+	assert_str_equals("pw_dir is still set properly", ru->ru_pw->pw_dir, "/tmp/nonexistent");
 
 	assert_str_equals("sp_namp is still set properly", ru->ru_sp->sp_namp, "svc");
 	assert_int_equals("sp_min is still set properly", ru->ru_sp->sp_min, 4);
@@ -152,7 +152,7 @@ void test_res_user_remediation_new()
 	res_user_set_gid(ru, 20);
 	res_user_set_gecos(ru, "New Account");
 	res_user_set_shell(ru, "/sbin/nologin");
-	res_user_set_dir(ru, "test/data/tmp/new_user.home");
+	res_user_set_dir(ru, "test/tmp/new_user.home");
 	res_user_set_makehome(ru, 1, "/etc/skel.svc");
 
 	pwdb = pwdb_init("test/data/passwd");
@@ -180,7 +180,7 @@ void test_res_user_remediation_new()
 	assert_int_equals("pw_gid is set properly", ru->ru_pw->pw_gid, 20);
 	assert_str_equals("pw_gecos is set properly", ru->ru_pw->pw_gecos, "New Account");
 	assert_str_equals("pw_shell is set properly", ru->ru_pw->pw_shell, "/sbin/nologin");
-	assert_str_equals("pw_dir is set properly", ru->ru_pw->pw_dir, "test/data/tmp/new_user.home");
+	assert_str_equals("pw_dir is set properly", ru->ru_pw->pw_dir, "test/tmp/new_user.home");
 
 	assert_str_equals("sp_namp is set properly", ru->ru_sp->sp_namp, "new_user");
 

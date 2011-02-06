@@ -98,7 +98,34 @@ int STRINGLIST_SORT_DESC(const void *a, const void *b);
 
   @returns a pointer to a stringlist allocated on the heap, or NULL on failure.
  */
-stringlist* stringlist_new(const char * const *src);
+stringlist* stringlist_new(char** src);
+
+/**
+  Duplicate a stringlist
+
+  This function allocates memory for a new stringlist, and copies
+  the strings in the \a orig parameter into the new stringlist before
+  returning it.
+
+  In the following example, new1 and new2 will contain the same
+  sequence of strings.
+
+  @verbatim
+  stringlist *orig = generate_a_list_of_strings()
+
+  // this statement...
+  stringlist *new1 = stringlist_dup(orig);
+
+  // ...is equivalent to this one
+  stringlist *new2 = stringlist_new(orig->strings);
+  @endverbatim
+
+  @param  orig    The stringlist to duplicate.
+
+  @returns a pointer to a stringlist containing the same strings
+           as \a orig, in the same order, or NULL on failure.
+ */
+stringlist* stringlist_dup(stringlist *orig);
 
 /**
   Free memory allocated by a stringlist.
@@ -266,6 +293,23 @@ int stringlist_remove(stringlist *list, const char *value);
            removed from \a dst, or non-zero if not.
  */
 int stringlist_remove_all(stringlist *dst, stringlist *src);
+
+/**
+  Generate a stringlist as the intersection of two other stringlists.
+
+  As in set theory, the intersection of two stringlists is another
+  stringlist containing the strings common to both \a a and \a b.
+
+  More rigorously, if X is the set [ l, m, n ] and Y is the set
+  [ m, n, o, p ], then the intersection of X and Y is the set [ m, n ].
+
+  @param  a    A stringlist.
+  @param  b    A stringlist.
+
+  @returns a pointer to a new stringlist containing the set of strings
+           found in both \a a and \a b, or NULL on failure.
+ */
+stringlist *stringlist_intersect(const stringlist *a, const stringlist *b);
 
 /**
   Compare two stringlists, looking for equivalency.

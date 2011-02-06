@@ -21,7 +21,8 @@ setup_res_file() {
 }
 
 setup_res_user() {
-	rm -rf /nonexistent
+	rm -rf /tmp/nonexistent
+	rm -rf test/tmp/new_user.home
 }
 
 setup_userdb() {

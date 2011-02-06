@@ -176,7 +176,7 @@ int res_file_set_presence(struct res_file *rf, int presence);
 
   @returns 0 on success, non-zero on failure.
  */
-int res_file_set_user(struct res_file *rf, const char *user);
+int res_file_set_owner(struct res_file *rf, const char *user);
 
 /**
   Set file ownership (group).

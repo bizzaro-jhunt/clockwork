@@ -45,10 +45,10 @@ void test_res_file_enforcement()
 	assert_true("SHA1 not enforced", !res_file_enforced(rf, SHA1));
 
 	test("RES_FILE: UID enforcement");
-	ASSERT_ENFORCEMENT(rf,uid,UID,int,23);
+	ASSERT_ENFORCEMENT(rf,owner,UID,str,"someone");
 
 	test("RES_FILE: GID enforcement");
-	ASSERT_ENFORCEMENT(rf,gid,GID,int,45);
+	ASSERT_ENFORCEMENT(rf,group,GID,str,"somegroup");
 
 	test("RES_FILE: MODE enforcement");
 	ASSERT_ENFORCEMENT(rf,mode,MODE,int,0755);
@@ -68,8 +68,10 @@ void test_res_file_diffstat()
 
 	rf = res_file_new("sudoers");
 	res_file_set_path(rf, "test/data/res_file/sudoers");
-	res_file_set_uid(rf, 42);
-	res_file_set_gid(rf, 42);
+	res_file_set_owner(rf, "someuser");
+	rf->rf_uid = 1001;
+	res_file_set_group(rf, "somegroup");
+	rf->rf_gid = 2002;
 	res_file_set_mode(rf, 0440);
 
 	test("RES_FILE: res_file_diffstat picks up file differences");
@@ -102,14 +104,18 @@ void test_res_file_remedy()
 		assert_fail("RES_FILE: Unable to stat pre-remediation file");
 		return;
 	}
-	assert_int_not_equal("Pre-remediation: file owner UID is not 42", st.st_uid, 42);
-	assert_int_not_equal("Pre-remediation: file group GID is not 42", st.st_gid, 42);
+	assert_int_not_equal("Pre-remediation: file owner UID is not 65542", st.st_uid, 65542);
+	assert_true("UID is out of compliance",  res_file_different(rf, UID));
+	assert_int_not_equal("Pre-remediation: file group GID is not 65524", st.st_gid, 65524);
+	assert_true("GID is out of compliance",  res_file_different(rf, GID));
 	assert_int_not_equal("Pre-remediation: file permissions are not 0754", st.st_mode & 07777, 0754);
 
 	rf = res_file_new("fstab");
 	res_file_set_path(rf, "test/data/res_file/fstab");
-	res_file_set_uid(rf, 42);
-	res_file_set_gid(rf, 42);
+	res_file_set_owner(rf, "someuser");
+	rf->rf_uid = 65542;
+	res_file_set_group(rf, "somegroup");
+	rf->rf_gid = 65524;
 	res_file_set_mode(rf, 0754);
 	res_file_set_source(rf, src);
 
@@ -121,7 +127,7 @@ void test_res_file_remedy()
 	assert_int_equals("res_file_stat succeeds", res_file_stat(rf), 0);
 	assert_int_equals("File exists", 1, rf->rf_exists);
 	report = res_file_remediate(rf, 0, src_fd, src_len);
-	assert_not_null("res_file_remeidate returns a report", report);
+	assert_not_null("res_file_remediate returns a report", report);
 	assert_int_equals("file was fixed", report->fixed, 1);
 	assert_int_equals("file is now compliant", report->compliant, 1);
 
@@ -130,8 +136,8 @@ void test_res_file_remedy()
 		assert_fail("RES_FILE: Unable to stat post-remediation file");
 		return;
 	}
-	assert_int_equals("Post-remediation: file owner UID 42", st.st_uid, 42);
-	assert_int_equals("Post-remediation: file group GID 42", st.st_gid, 42);
+	assert_int_equals("Post-remediation: file owner UID 65542", st.st_uid, 65542);
+	assert_int_equals("Post-remediation: file group GID 65524", st.st_gid, 65524);
 	assert_int_equals("Post-remediation: file permissions are 0754", st.st_mode & 07777, 0754);
 
 	res_file_free(rf);
@@ -148,8 +154,10 @@ void test_res_file_remediate_new()
 
 	test("RES_FILE: File Remediation (new file)");
 	rf = res_file_new(path);
-	res_file_set_uid(rf, 42);
-	res_file_set_gid(rf, 42);
+	res_file_set_owner(rf, "someuser");
+	rf->rf_uid = 65542;
+	res_file_set_group(rf, "somegroup");
+	rf->rf_gid = 65524;
 	res_file_set_mode(rf, 0754);
 
 	assert_int_equals("res_file_stat succeeds", res_file_stat(rf), 0);
@@ -167,8 +175,8 @@ void test_res_file_remediate_new()
 		assert_fail("RES_FILE: Unable to stat post-remediation file");
 		return;
 	}
-	assert_int_equals("Post-remediation: file owner UID 42", st.st_uid, 42);
-	assert_int_equals("Post-remediation: file group GID 42", st.st_gid, 42);
+	assert_int_equals("Post-remediation: file owner UID 65542", st.st_uid, 65542);
+	assert_int_equals("Post-remediation: file group GID 65524", st.st_gid, 65524);
 	assert_int_equals("Post-remediation: file permissions are 0754", st.st_mode & 07777, 0754);
 
 	res_file_free(rf);
@@ -244,8 +252,8 @@ void test_res_file_pack()
 
 	rf = res_file_new("/etc/sudoers");                      /* rf_enf == 0000 0000 */
 
-	res_file_set_uid(rf, 101);                              /* rf_enf == 0000 0001 */
-	res_file_set_gid(rf, 202);                              /* rf_enf == 0000 0011 */
+	res_file_set_owner(rf, "someuser");                     /* rf_enf == 0000 0001 */
+	res_file_set_group(rf, "somegroup");                    /* rf_enf == 0000 0011 */
 	res_file_set_mode(rf, 0644);                            /* rf_enf == 0000 0111 */
 	res_file_set_source(rf, "/etc/issue");                  /* rf_enf == 0000 1111 */
 	/* sneakily override the checksum */
@@ -257,8 +265,8 @@ void test_res_file_pack()
 		"0000000f" /* RES_FILE_*, all OR'ed together */
 		"\"/etc/sudoers\""
 		"\"0123456789abcdef0123456789abcdef01234567\""
-		"00000065" /* rf_uid 101 */
-		"000000ca" /* rf_gid 202 */
+		"\"someuser\"" /* rf_owner */
+		"\"somegroup\"" /* rf_group */
 		"000001a4" /* rf_mode 0644 */
 		"";
 	assert_str_equals("packs properly (normal case)", expected, packed);
@@ -276,8 +284,8 @@ void test_res_file_unpack()
 		"00000003" /* UID and GID only */
 		"\"/etc/sudoers\""
 		"\"0123456789abcdef0123456789abcdef01234567\""
-		"00000065" /* rf_uid 101 */
-		"000000ca" /* rf_gid 202 */
+		"\"someuser\""  /* rf_owner */
+		"\"somegroup\"" /* rf_group */
 		"000001a4" /* rf_mode 0644 */
 		"";
 
@@ -289,10 +297,10 @@ void test_res_file_unpack()
 	                  "0123456789abcdef0123456789abcdef01234567", rf->rf_rsha1.hex);
 	assert_true("SHA1 is NOT enforced", !res_file_enforced(rf, SHA1));
 
-	assert_int_equals("res_file->rf_uid is 101", 101, rf->rf_uid);
+	assert_str_equals("res_file->rf_owner is \"someuser\"", "someuser", rf->rf_owner);
 	assert_true("UID is enforced", res_file_enforced(rf, UID));
 
-	assert_int_equals("res_file->rf_gid is 202", 202, rf->rf_gid);
+	assert_str_equals("Res_file->rf_group is \"somegroup\"", "somegroup", rf->rf_group);
 	assert_true("GID is enforced", res_file_enforced(rf, GID));
 
 	assert_int_equals("res_file->rf_mode is 0644", 0644, rf->rf_mode);

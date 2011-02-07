@@ -3,36 +3,39 @@
 ############################################################
 # Global Variables
 
+DO_PROFILING := yes
+DO_PROFILING := no
 
-CC_FLAGS := -g #                       Debug syms for gdb
-#CC_FLAGS += -pg #                      gprof runtime support
-CC_FLAGS += -gdwarf-2 #                DWARF3; for Valgrind
-#CC_FLAGS += -fprofile-arcs #           gcov / lcov coverage
-#CC_FLAGS += -ftest-coverage #          gcov / lcov coverage
-CC_FLAGS += -Wall #                    Warn on everything
+DO_DEBUGGING := yes
+#DO_DEBUGGING := no
 
-CC_FLAGS += -lssl
-CC_FLAGS += -lpthread
 
-#CC_FLAGS += -DDEVEL
-CC_FLAGS += -DNDEBUG
+LEX_FLAGS := --verbose --header-file --yylineno
+
+YACC_FLAGS := --Wall --token-table --defines --report=all
+
+CC_FLAGS := -Wall -lssl -lpthread
+
+ifeq ($(DO_DEBUGGING),yes)
+  LEX_FLAGS += --debug
+
+  YACC_FLAGS += --debug
+
+  CC_FLAGS += -g #                       Debug syms for gdb
+  CC_FLAGS += -DDEVEL
+else
+  CC_FLAGS += -DNDEBUG
+endif
+
+ifeq ($(DO_PROFILING),yes)
+  CC_FLAGS += -gdwarf-2 #                DWARF3; for Valgrind
+  CC_FLAGS += -pg #                      gprof runtime support
+  CC_FLAGS += -fprofile-arcs #           gcov / lcov coverage
+  CC_FLAGS += -ftest-coverage #          gcov / lcov coverage
+endif
 
 CC := gcc $(CC_FLAGS)
-
-LEX_FLAGS :=
-#LEX_FLAGS += --debug
-LEX_FLAGS += --verbose
-LEX_FLAGS += --header-file
-LEX_FLAGS += --yylineno
-#LEX_FLAGS += --noline
 LEX := flex $(LEX_FLAGS)
-
-YACC_FLAGS :=
-YACC_FLAGS += -Wall
-#YACC_FLAGS += --debug
-YACC_FLAGS += --token-table
-YACC_FLAGS += --defines
-YACC_FLAGS += --report=all
 YACC := bison $(YACC_FLAGS)
 
 VG := valgrind --leak-check=full --show-reachable=yes --read-var-info=yes --track-origins=yes
@@ -53,7 +56,7 @@ DOXYGEN := doxygen
 # Object Group Variables
 
 UTILS := sha1sum polspec
-CORE  := cwa policyd
+CORE  := cwa cwcert cwca policyd
 
 # Resource types
 RESOURCE_OBJECTS := res_user.o res_group.o res_file.o report.o
@@ -89,6 +92,12 @@ policyd: policyd.o $(CORE_OBJECTS) $(RESOURCE_OBJECTS) $(POLICY_OBJECTS) $(SPEC_
 	$(CC) -o $@ $+
 
 cwa: cwa.o $(CORE_OBJECTS) $(POLICY_OBJECTS) $(RESOURCE_OBJECTS) $(CONFIG_PARSER_OBJECTS) proto.o client.o
+	$(CC) -o $@ $+
+
+cwcert: cwcert.o $(CORE_OBJECTS) cert.o
+	$(CC) -o $@ $+
+
+cwca: cwca.o $(CORE_OBJECTS) cert.o
 	$(CC) -o $@ $+
 
 sha1sum: sha1.o sha1sum.o

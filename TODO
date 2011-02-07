@@ -5,6 +5,17 @@ Client / Server
   - Test remediation in chroot
   - Automatic certificate enrolment
 
+     cwcert - CSR tool for agents
+       Implement 'renew'
+
+     cwca   - CA tool for policy masters
+       Finish 'new'
+       Implement 'revoke'
+
+     Communication between cwcert and cwca
+       cwcert needs to submit the CSR
+       cwca needs to sign and return the CERT
+
 API documentation
   Use some sort of source-code documentation system (Doxygen)
   to build up a readable but succinct body of function docs

@@ -5,6 +5,8 @@ gmon.out
 
 policyd
 cwa
+cwcert
+cwca
 sha1sum
 polspec
 

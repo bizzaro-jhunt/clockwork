@@ -422,11 +422,9 @@ struct report* res_group_remediate(struct res_group *rg, int dryrun, struct grdb
 		}
 
 		size_t i;
-		/* FIXME: only report what was added to comply, not what needs to be added total */
 		for (i = 0; i < to_add->num; i++) {
 			report_action(report, string("add %s", to_add->strings[i]), (dryrun ? ACTION_SKIPPED : ACTION_SUCCEEDED));
 		}
-		/* FIXME: only report what was removed to comply, not what needs to be removed total */
 		for (i = 0; i < to_remove->num; i++) {
 			report_action(report, string("remove %s", to_remove->strings[i]), (dryrun ? ACTION_SKIPPED : ACTION_SUCCEEDED));
 		}

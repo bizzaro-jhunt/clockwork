@@ -225,14 +225,16 @@ int sha1_file(const char *path, sha1 *cksum) {
 	struct stat st;
 
 	sha1_init(cksum, NULL);
-	if (stat(path, &st) == -1) { return -1; };
+	fd = open(path, O_RDONLY);
+
+	if (fd < 0 || fstat(fd, &st) == -1) {
+		return -1;
+	}
+
 	if (S_ISDIR(st.st_mode)) {
 		errno = EISDIR;
 		return -1;
 	}
-
-	fd = open(path, O_RDONLY);
-	if (fd == -1) { return -1; }
 
 	sha1_fd(fd, cksum);
 

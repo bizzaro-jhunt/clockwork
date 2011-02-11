@@ -100,7 +100,7 @@ cwcert: cwcert.o $(CORE_OBJECTS) cert.o
 cwca: cwca.o $(CORE_OBJECTS) cert.o
 	$(CC) -o $@ $+
 
-sha1sum: sha1.o sha1sum.o
+sha1sum: sha1.o sha1sum.o mem.o log.o
 	$(CC) -o $@ $+
 
 polspec: $(CORE_OBJECTS) $(RESOURCE_OBJECTS) $(POLICY_OBJECTS) $(SPEC_PARSER_OBJECTS) polspec.o

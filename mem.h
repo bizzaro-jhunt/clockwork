@@ -57,6 +57,8 @@ char* xstrdup(const char *s);
  */
 int xstrcmp(const char *a, const char *b);
 
+char* xstrncpy(char *dest, const char *src, size_t n);
+
 /**
   Duplicate a NULL-terminated array of character strings.
 

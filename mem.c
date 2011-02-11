@@ -8,7 +8,6 @@
 
 void __xfree(void **ptr2ptr)
 {
-	//if (!ptr2ptr || !*ptr2ptr) { return; }
 	if (!ptr2ptr) { return; }
 	free(*ptr2ptr);
 	*ptr2ptr = NULL;
@@ -33,6 +32,17 @@ char* xstrdup(const char *s)
 int xstrcmp(const char *a, const char *b)
 {
 	return ((!a || !b) ? -1 : strcmp(a,b));
+}
+
+char* xstrncpy(char *dest, const char *src, size_t n)
+{
+	if (!dest || !src || n <= 0) {
+		return NULL;
+	}
+
+	dest = strncpy(dest, src, n);
+	dest[n-1] = '\0';
+	return dest;
 }
 
 char** xarrdup(char **a)

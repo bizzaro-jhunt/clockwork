@@ -26,7 +26,7 @@ static int cert_my_hostname(char *hostname, size_t len)
 		return -1;
 	}
 
-	strncpy(hostname, info->ai_canonname, len);
+	xstrncpy(hostname, info->ai_canonname, len);
 	return 0;
 }
 

@@ -372,7 +372,7 @@ static void daemon_write_pid(pid_t pid, const char *path)
 
 static void daemon_settle(void)
 {
-	umask(0); /* reset the file umask */
+	umask(0777); /* reset the file umask */
 	if (chdir("/") < 0) {
 		ERROR("unable to chdir to /: %s", strerror(errno));
 		exit(2);

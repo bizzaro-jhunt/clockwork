@@ -194,7 +194,7 @@ static int merge_options(client *a, client *b)
 
 static void show_help(void)
 {
-	printf( "USAGE: cwa [OPTIONS]\n"
+	printf("USAGE: cwa [OPTIONS]\n"
 	       "\n"
 	       "  -h, --help            Show this helpful message.\n"
 	       "                        (for more in-depth help, check the man pages.)\n"
@@ -203,12 +203,12 @@ static void show_help(void)
 	       "                        retrieval and fact gathering.\n"
 	       "\n"
 	       "  -c, --config          Specify the path to an alternate configuration file.\n"
-	       "                        If not given, defaults to " DEFAULT_CONFIG_FILE "\n"
+	       "                        If not given, defaults to %s\n"
 	       "\n"
 	       "  -s, --server          Override the name (IP or DNS) of the policy master.\n"
 	       "\n"
 	       "  -p, --port            Override the TCP port number to connect to.\n"
-	       "\n");
+	       "\n", DEFAULT_CONFIG_FILE);
 }
 
 #ifndef NDEBUG

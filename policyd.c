@@ -238,11 +238,12 @@ static void show_help(void)
 	       "                        others are discarded.  See -q and -v.\n"
 	       "\n"
 	       "  -c, --config          Specify the path to an alternate configuration file.\n"
-	       "                        If not given, defaults to " DEFAULT_CONFIG_FILE "\n"
+	       "                        If not given, defaults to %s\n"
 	       "\n"
 	       "  -p, --port            Override the TCP port number that policyd should\n"
 	       "                        bind to and listen on.\n"
-	       "\n");
+	       "\n",
+	       DEFAULT_CONFIG_FILE);
 }
 
 #ifndef NDEBUG

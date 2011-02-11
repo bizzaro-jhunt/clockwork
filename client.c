@@ -11,7 +11,6 @@ static int gather_facts(const char *script, struct hash *facts);
 int client_connect(client *c)
 {
 	char *addr;
-	size_t len;
 	long err;
 
 	INFO("Gathering Facts");
@@ -31,9 +30,7 @@ int client_connect(client *c)
 		return -1;
 	}
 
-	len = snprintf(NULL, 0, "%s:%s", c->s_address, c->s_port);
-	addr = xmalloc(len+1);
-	snprintf(addr, len+1, "%s:%s", c->s_address, c->s_port);
+	addr = string("%s:%s", c->s_address, c->s_port);
 	DEVELOPER("Connecting to %s", addr);
 
 	c->socket = BIO_new_connect(addr);

@@ -5,6 +5,7 @@
 #include <stdarg.h>
 
 #include "../log.h"
+#include "../mem.h"
 
 /** STATIC functions used only by other, non-static functions in this file **/
 
@@ -75,9 +76,7 @@ static void lexer_process_file(const char *path, spec_parser_context *ctx)
    unmodified. */
 static char* lexer_resolve_path_spec(const char *current_file, const char *path)
 {
-	char *file_dup;
-	char *base, *full_path;
-	size_t len;
+	char *file_dup, *base, *full_path;
 
 	if (!current_file || path[0] == '/') {
 		return strdup(path);
@@ -88,20 +87,8 @@ static char* lexer_resolve_path_spec(const char *current_file, const char *path)
 	file_dup = strdup(current_file);
 	base = dirname(file_dup);
 
-	len = snprintf(NULL, 0, "%s/%s", base, path);
-	if (len < 0) {
-		return NULL;
-	}
-
-	full_path = malloc((len + 1) * sizeof(char));
-	if (!full_path) {
-		return NULL;
-	}
-
-	if (snprintf(full_path, len + 1, "%s/%s", base, path) < 0) {
-		free(full_path);
-		return NULL;
-	}
+	full_path = string("%s/%s", base, path);
+	free(file_dup);
 
 	return full_path;
 }

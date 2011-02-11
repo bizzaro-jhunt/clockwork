@@ -211,13 +211,8 @@ static char* cert_get_name(X509_NAME *name)
 	int idx;
 	X509_NAME_ENTRY *o, *cn;
 	ASN1_STRING *raw_o, *raw_cn;
-	char *str;
-	size_t bytes;
 
 	if (!name) { return NULL; }
-
-	// NID_organizationName
-	// NID_commonName
 
 	idx = X509_NAME_get_index_by_NID(name, NID_organizationName, -1);
 	o = X509_NAME_get_entry(name, idx);
@@ -227,12 +222,7 @@ static char* cert_get_name(X509_NAME *name)
 	cn = X509_NAME_get_entry(name, idx);
 	raw_cn = X509_NAME_ENTRY_get_data(cn);
 
-	bytes = snprintf(NULL, 0, "%s - %s", raw_o->data, raw_cn->data);
-	str = xmalloc((bytes+1) * sizeof(char));
-	snprintf(str, bytes+1, "%s - %s", raw_o->data, raw_cn->data);
-
-	//return (name ? X509_NAME_oneline(name, NULL, 0) : NULL);
-	return str;
+	return string("%s - %s", raw_o->data, raw_cn->data);
 }
 
 char *cert_request_subject_name(X509_REQ *request)

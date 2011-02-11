@@ -90,34 +90,6 @@ int main(int argc, char **argv)
 	return 1;
 }
 
-static char* _build_request_file(const char *dir, const char *fqdn)
-{
-	char *buf;
-	size_t bytes;
-	const char *format = "%s/%s.csr";
-
-	bytes = snprintf(NULL, 0, format, dir, fqdn);
-	if (bytes < 0) { return NULL; }
-
-	buf = xmalloc((bytes + 1) * sizeof(char));
-	snprintf(buf, bytes + 1, format, dir, fqdn);
-	return buf;
-}
-
-static char* _build_cert_file(const char *dir, const char *fqdn)
-{
-	char *buf;
-	size_t bytes;
-	const char *format = "%s/%s.pem";
-
-	bytes = snprintf(NULL, 0, format, dir, fqdn);
-	if (bytes < 0) { return NULL; }
-
-	buf = xmalloc((bytes + 1) * sizeof(char));
-	snprintf(buf, bytes + 1, format, dir, fqdn);
-	return buf;
-}
-
 struct cwca_opts* cwca_get_options(int argc, char **argv)
 {
 	struct cwca_opts *opts;
@@ -267,7 +239,7 @@ int cwca_issued_main(const struct cwca_opts *opts)
 	X509 *cert;
 	int rc;
 
-	cert_files = _build_cert_file(opts->certs_dir, "*");
+	cert_files = string("%s/*.pem", opts->certs_dir);
 	rc = glob(cert_files, GLOB_MARK, NULL, &certs);
 	free(cert_files);
 
@@ -308,7 +280,7 @@ int cwca_pending_main(const struct cwca_opts *opts)
 	X509_REQ *req;
 	EVP_PKEY *pubkey;
 
-	req_files = _build_request_file(opts->reqs_dir, "*");
+	req_files = string("%s/*.csr", opts->reqs_dir);
 	rc = glob(req_files, GLOB_MARK, NULL, &requests);
 	free(req_files);
 
@@ -357,8 +329,8 @@ int cwca_details_main(const struct cwca_opts *opts)
 		return CWCA_OTHER_ERR;
 	}
 
-	req_file  = _build_request_file(opts->reqs_dir, opts->fqdn);
-	cert_file = _build_cert_file(opts->certs_dir, opts->fqdn);
+	req_file  = string("%s/%s.csr", opts->reqs_dir, opts->fqdn);
+	cert_file = string("%s/%s.pem", opts->certs_dir, opts->fqdn);
 	if (!req_file || !cert_file) { return CWCA_OTHER_ERR; }
 
 	key = cert_retrieve_key(opts->key_file);
@@ -392,8 +364,8 @@ int cwca_sign_main(const struct cwca_opts *opts)
 		return CWCA_OTHER_ERR;
 	}
 
-	req_file  = _build_request_file(opts->reqs_dir, opts->fqdn);
-	cert_file = _build_cert_file(opts->certs_dir, opts->fqdn);
+	req_file  = string("%s/%s.csr", opts->reqs_dir, opts->fqdn);
+	cert_file = string("%s/%s.pem", opts->certs_dir, opts->fqdn);
 	if (!req_file || !cert_file) { return CWCA_OTHER_ERR; }
 
 	printf("Retrieving private/public keypair.\n");
@@ -430,7 +402,7 @@ int cwca_ignore_main(const struct cwca_opts *opts)
 		return CWCA_OTHER_ERR;
 	}
 
-	req_file  = _build_request_file(opts->reqs_dir, opts->fqdn);
+	req_file = string("%s/%s.csr", opts->reqs_dir, opts->fqdn);
 
 	printf("Removing certificate signing request for %s\n", opts->fqdn);
 	unlink(req_file);

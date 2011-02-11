@@ -12,7 +12,7 @@ DO_DEBUGGING := yes
 
 LEX_FLAGS := --verbose --header-file --yylineno
 
-YACC_FLAGS := --Wall --token-table --defines --report=all
+YACC_FLAGS := -Wall --token-table --defines --report=all
 
 CC_FLAGS := -Wall -lssl -lpthread
 

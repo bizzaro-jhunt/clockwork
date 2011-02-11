@@ -27,32 +27,15 @@
   the leading '0x':
 
   @verbatim
-  pack(&buf, 3, "c", 255);   // buf == "ff"
-  pack(&buf, 5, "s", 48879); // buf == "beef"
-  pack(&buf, 2, "c", 127);   // buf is undefined
-                             //  (because 2 bytes is not enough space
-                             //  to represent an 8-bit integer in hex,
-                             //  with the NULL terminator.
+  buf = pack("", "c", 255);   // buf == "ff"
+  buf = pack("", "s", 48879); // buf == "beef"
   @endverbatim
 
   Signed integers (8-, 16- and 32-bit) are represented as hex
   two's complements:
 
   @verbatim
-  pack(&buf, 3, "C", -42);   // buf == "d6" (11010110b / 214d)
-  @endverbatim
-
-  This function deliberately behaves like snprintf; the return
-  value is the number of bytes required in the dst buffer to
-  contain the complete packed representation.  This feature can
-  be used to size a buffer exactly to the requirements:
-
-  @verbatim
-  size_t len;
-  char *buf;
-  len = pack(NULL, 0, "c", 255);
-  buf = calloc(len, sizeof(char));
-  pack(&buf, len, "c", 255);
+  buf = pack("C", -42);   // buf == "d6" (11010110b / 214d)
   @endverbatim
 
  */
@@ -60,31 +43,31 @@
 /**
   Packs values into a string representation.
 
-  If \a dst is NULL, then this function goes through the motion
-  of building the packed representation, but only returns the
-  minimum number of bytes that needed in \a dst to fully
-  contain the packed string.
+  The string buffer holding the packed representation will be dynamically
+  allocated to be just large enough.  It is your responsibility to free
+  it when you are done with it.
 
-  @param  dst       Character buffer to populate.
-  @param  len       Maximum length of \a dst.
+  @param  prefix    String to prepend to packed data.
   @param  format    Pack format string.
   @param  ...       Variadic list of values; agrees with \a format
                     in both type and number.
 
-  @returns the number of bytes copied into \a dst, or -1 on failure.
+  @returns pointer to a dynamically-allocated buffer containing the
+           packed data (including the prefix), or NULL on failure.
  */
-size_t pack(char *dst, size_t len, const char *format, ...);
+char* pack(const char *prefix, const char *format, ...);
 
 /**
   Unpacks a string representation into a set of value pointers.
 
   @param  packed    Packed string representation to unpack.
+  @param  prefix    Prefix required for unpacking to continue.
   @param  format    Pack format string.
   @param  ...       Variadic list of pointers to values; agrees
                     with \a format in both type and number.
 
   @returns 0 on success, or non-zero on failure.
  */
-int unpack(const char *packed, const char *format, ...);
+int unpack(const char *packed, const char *prefix, const char *format, ...);
 
 #endif /* _PACK_H */

@@ -410,7 +410,6 @@ char* policy_pack(const struct policy *pol)
 
 	char *packed = NULL;
 	stringlist *pack_list;
-	size_t pack_len;
 
 	struct res_user  *ru;
 	struct res_group *rg;
@@ -421,12 +420,7 @@ char* policy_pack(const struct policy *pol)
 		return NULL;
 	}
 
-	pack_len = pack(NULL, 0, POLICY_PACK_FORMAT, pol->name);
-
-	packed = xmalloc(pack_len + POLICY_PACK_OFFSET);
-	strncpy(packed, POLICY_PACK_PREFIX, POLICY_PACK_OFFSET);
-
-	pack(packed + POLICY_PACK_OFFSET, pack_len, POLICY_PACK_FORMAT, pol->name);
+	packed = pack(POLICY_PACK_PREFIX, POLICY_PACK_FORMAT, pol->name);
 	if (stringlist_add(pack_list, packed) != 0) {
 		goto policy_pack_failed;
 	}
@@ -501,7 +495,7 @@ struct policy* policy_unpack(const char *packed_policy)
 		return NULL;
 	}
 
-	if (unpack(packed + POLICY_PACK_OFFSET, POLICY_PACK_FORMAT, &pol_name) != 0) {
+	if (unpack(packed, POLICY_PACK_PREFIX, POLICY_PACK_FORMAT, &pol_name) != 0) {
 
 		stringlist_free(pack_list);
 		return NULL;

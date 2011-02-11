@@ -377,34 +377,17 @@ int res_file_is_pack(const char *packed)
 
 char* res_file_pack(struct res_file *rf)
 {
-	char *packed;
-	size_t pack_len;
-
-	pack_len = pack(NULL, 0, RES_FILE_PACK_FORMAT,
-		rf->rf_enf,
-		rf->rf_lpath, rf->rf_rsha1.hex, rf->rf_owner, rf->rf_group, rf->rf_mode);
-
-	packed = xmalloc(pack_len + RES_FILE_PACK_OFFSET);
-	strncpy(packed, RES_FILE_PACK_PREFIX, RES_FILE_PACK_OFFSET);
-
-	pack(packed + RES_FILE_PACK_OFFSET, pack_len, RES_FILE_PACK_FORMAT,
-		rf->rf_enf,
-		rf->rf_lpath, rf->rf_rsha1.hex, rf->rf_owner, rf->rf_group, rf->rf_mode);
-
-	return packed;
+	return pack(RES_FILE_PACK_PREFIX, RES_FILE_PACK_FORMAT,
+	            rf->rf_enf,
+	            rf->rf_lpath, rf->rf_rsha1.hex, rf->rf_owner, rf->rf_group, rf->rf_mode);
 }
 
 struct res_file* res_file_unpack(const char *packed)
 {
-	struct res_file *rf;
 	char *hex = NULL;
+	struct res_file *rf = res_file_new(NULL);
 
-	if (strncmp(packed, RES_FILE_PACK_PREFIX, RES_FILE_PACK_OFFSET) != 0) {
-		return NULL;
-	}
-
-	rf = res_file_new(NULL);
-	if (unpack(packed + RES_FILE_PACK_OFFSET, RES_FILE_PACK_FORMAT,
+	if (unpack(packed, RES_FILE_PACK_PREFIX, RES_FILE_PACK_FORMAT,
 		&rf->rf_enf,
 		&rf->rf_lpath, &hex, &rf->rf_owner, &rf->rf_group, &rf->rf_mode) != 0) {
 

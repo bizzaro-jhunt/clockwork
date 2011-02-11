@@ -70,16 +70,52 @@ static char* _unescape(const char *string)
 	return unescaped;
 }
 
+static size_t _packlen(const char *prefix, const char *format, va_list args)
+{
+	size_t len = strlen(prefix);
+	char *escaped;
+
+	while (*format) {
+		switch (*format++) {
+		case 'a': /* NULL-terminated character string */
+			escaped = _escape(va_arg(args, const char*));
+			len += strlen(escaped) + 2; /* '"STRING"' */
+			free(escaped);
+			break;
+
+		case 'c': /* signed char   (8-bit) */
+		case 'C': /* unsigned char (8-bit) */
+			va_arg(args, unsigned long);
+			len += 2; /* '5f' */
+			break;
+
+		case 's': /* signed short   (16-bit) */
+		case 'S': /* unsigned short (16-bit) */
+			va_arg(args, unsigned long);
+			len += 4; /* 'cd4f' */
+			break;
+
+		case 'l': /* signed long   (32-bit) */
+		case 'L': /* unsigned long (32-bit) */
+			va_arg(args, unsigned long);
+			len += 8; /* '00cc18f3' */
+			break;
+		}
+	}
+
+	return len + 1; /* trailing '\0'; */
+}
+
 
 /************************************************************************/
 
-size_t pack(char *dst, size_t len, const char *format, ...)
+char* pack(const char *prefix, const char *format, ...)
 {
-	/* dst can be NULL, if we are trying to find
-	   the minimum size for the buffer */
+	assert(prefix);
 	assert(format);
 
-	size_t nbytes = 0;
+	char *dst, *p;
+	size_t n, len = 0;
 	va_list args;
 
 	union {
@@ -90,70 +126,83 @@ size_t pack(char *dst, size_t len, const char *format, ...)
 	} variadic;
 
 	va_start(args, format);
+	len = _packlen(prefix, format, args);
+	va_end(args);
+
+	p = dst = xmalloc(len * sizeof(char));
+
+	n = strlen(prefix); len -= n;
+	if (len >= 0) {
+		p += snprintf(p, n+1, "%s", prefix);
+	}
+
+	va_start(args, format);
 	while (*format) {
 		switch(*format++) {
 		case 'a': /* NULL-terminated character string */
 			variadic.string = _escape(va_arg(args, const char *));
-			nbytes += strlen(variadic.string) + 2;
-			len -= strlen(variadic.string) + 2;
-			if (len > 0 && dst) {
-				dst += snprintf(dst, strlen(variadic.string) + 2 + 1, "\"%s\"", variadic.string);
+			n = strlen(variadic.string) + 2; len -= n;
+			if (len > 0) {
+				p += snprintf(p, n+1, "\"%s\"", variadic.string);
 			}
 
 			free(variadic.string);
 			break;
-		case 'c': /* signed char    (8-bit) */
+
+		case 'c': /* signed char (8-bit) */
 			variadic.u8 = (unsigned char)va_arg(args, signed int);
-			nbytes += 2; len -= 2;
-			if (len > 0 && dst) {
-				dst += snprintf(dst, 3, "%02x", variadic.u8);
+			n = 2; len -= n;
+			if (len > 0) {
+				p += snprintf(p, n+1, "%02x", variadic.u8);
 			}
 			break;
-		case 'C': /* unsigned char  (8-bit) */
+
+		case 'C': /* unsigned char (8-bit) */
 			variadic.u8 = (unsigned char)va_arg(args, unsigned int);
-			nbytes += 2; len -= 2;
-			if (len >= 0 && dst) {
-				dst += snprintf(dst, 3, "%02x", variadic.u8);
+			n = 2; len -= n;
+			if (len >= 0) {
+				p += snprintf(p, n+1, "%02x", variadic.u8);
 			}
 			break;
-		case 's': /* signed short   (16-bit) */
+
+		case 's': /* signed short (16-bit) */
 			variadic.u16 = (unsigned short)va_arg(args, signed int);
-			nbytes += 4; len -= 4;
-			if (len >= 0 && dst) {
-				dst += snprintf(dst, 5, "%04x", variadic.u16);
+			n = 4; len -= n;
+			if (len > 0) {
+				p += snprintf(p, n+1, "%04x", variadic.u16);
 			}
 			break;
+
 		case 'S': /* unsigned short (16-bit) */
 			variadic.u16 = (unsigned short)va_arg(args, unsigned int);
-			nbytes += 4; len -= 4;
-			if (len >= 0 && dst) {
-				dst += snprintf(dst, 5, "%04x", variadic.u16);
+			n = 4; len -= n;
+			if (len > 0) {
+				p += snprintf(p, n+1, "%04x", variadic.u16);
 			}
 			break;
-		case 'l': /* signed long    (32-bit) */
+
+		case 'l': /* signed long (32-bit) */
 			variadic.u32 = va_arg(args, signed long);
-			nbytes += 8; len -= 8;
-			if (len >= 0 && dst) {
-				dst += snprintf(dst, 9, "%08lx", variadic.u32);
+			n = 8; len -= n;
+			if (len > 0) {
+				p += snprintf(p, n+1, "%08lx", variadic.u32);
 			}
 			break;
-		case 'L': /* unsigned long  (32-bit) */
+
+		case 'L': /* unsigned long (32-bit) */
 			variadic.u32 = va_arg(args, unsigned long);
-			nbytes += 8; len -= 8;
-			if (len >= 0 && dst) {
-				dst += snprintf(dst, 9, "%08lx", variadic.u32);
+			n = 8; len -= n;
+			if (len > 0) {
+				p += snprintf(p, n+1, "%08lx", variadic.u32);
 			}
 			break;
 		}
 	}
 	va_end(args);
 
-	nbytes += 1; len -= 1;
-	if (len >= 0 && dst) {
-		*dst = '\0';
-	}
+	if (--len >= 0) { *p = '\0'; }
 
-	return nbytes;
+	return dst;
 }
 
 static char* _extract_string(const char *start)
@@ -173,7 +222,7 @@ static char* _extract_string(const char *start)
 	return buf;
 }
 
-int unpack(const char *packed, const char *format, ...)
+int unpack(const char *packed, const char *prefix, const char *format, ...)
 {
 	assert(format);
 
@@ -182,6 +231,11 @@ int unpack(const char *packed, const char *format, ...)
 
 	/* for string extraction */
 	char *escaped, *unescaped;
+	size_t l;
+
+	l = strlen(prefix);
+	if (strncmp(packed, prefix, l) != 0) { return -1; }
+	packed += l;
 
 	va_start(args, format);
 	while (*format) {

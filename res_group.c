@@ -470,8 +470,7 @@ int res_group_is_pack(const char *packed)
 
 char *res_group_pack(struct res_group *rg)
 {
-	char *packed;
-	size_t pack_len;
+	char *tmp;
 	char *mem_add = NULL, *mem_rm = NULL,
 	     *adm_add = NULL, *adm_rm = NULL;
 
@@ -484,37 +483,24 @@ char *res_group_pack(struct res_group *rg)
 		return NULL;
 	}
 
-	pack_len = pack(NULL, 0, RES_GROUP_PACK_FORMAT,
-		rg->rg_enf,
-		rg->rg_name, rg->rg_passwd, rg->rg_gid,
-		mem_add, mem_rm, adm_add, adm_rm);
-
-	packed = xmalloc(pack_len + RES_GROUP_PACK_OFFSET);
-	strncpy(packed, RES_GROUP_PACK_PREFIX, RES_GROUP_PACK_OFFSET);
-
-	pack(packed + RES_GROUP_PACK_OFFSET, pack_len, RES_GROUP_PACK_FORMAT,
-		rg->rg_enf,
-		rg->rg_name, rg->rg_passwd, rg->rg_gid,
-		mem_add, mem_rm, adm_add, adm_rm);
+	tmp = pack(RES_GROUP_PACK_PREFIX, RES_GROUP_PACK_FORMAT,
+	           rg->rg_enf,
+	           rg->rg_name, rg->rg_passwd, rg->rg_gid,
+	           mem_add, mem_rm, adm_add, adm_rm);
 
 	free(mem_add); free(mem_rm);
 	free(adm_add); free(adm_rm);
 
-	return packed;
+	return tmp;
 }
 
 struct res_group* res_group_unpack(const char *packed)
 {
-	struct res_group *rg;
 	char *mem_add = NULL, *mem_rm = NULL,
 	     *adm_add = NULL, *adm_rm = NULL;
+	struct res_group *rg = res_group_new(NULL);
 
-	if (strncmp(packed, RES_GROUP_PACK_PREFIX, RES_GROUP_PACK_OFFSET) != 0) {
-		return NULL;
-	}
-
-	rg = res_group_new(NULL);
-	if (unpack(packed + RES_GROUP_PACK_OFFSET, RES_GROUP_PACK_FORMAT,
+	if (unpack(packed, RES_GROUP_PACK_PREFIX, RES_GROUP_PACK_FORMAT,
 		&rg->rg_enf,
 		&rg->rg_name, &rg->rg_passwd, &rg->rg_gid,
 		&mem_add, &mem_rm, &adm_add, &adm_rm)) {

@@ -114,6 +114,7 @@ int pdu_send_GET_POLICY(protocol_session *session, const struct hash *facts)
 
 	for_each_key_value(facts, &cur, key, value) {
 		snprintf(kvp, 256, "%s=%s\n", key, value);
+		kvp[255] = '\0';
 		stringlist_add(list, kvp); /* stringlist_add strdup's */
 	}
 

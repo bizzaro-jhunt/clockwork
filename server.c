@@ -111,7 +111,7 @@ static int worker_dispatch(worker *w)
 {
 	assert(w);
 
-	char errbuf[256] = {0};
+	char *err;
 	sha1 checksum; /* for PROTOCOL_OP_GET_FILE */
 	struct res_file *rf, *rf_match; /* for PROTOCOL_OP_GET_FILE */
 
@@ -191,12 +191,12 @@ static int worker_dispatch(worker *w)
 			break;
 
 		default:
-			WARNING("Unrecognized PDU OP: %u", RECV_PDU(sess)->op);
-			snprintf(errbuf, 256, "Unrecognized PDU OP: %u", RECV_PDU(sess)->op);
-			if (pdu_send_ERROR(sess, 405, errbuf) < 0) {
+			err = string("Unrecognized PDU OP: %u", RECV_PDU(sess)->op);
+			WARNING("%s", err);
+			if (pdu_send_ERROR(sess, 405, err) < 0) {
 				CRITICAL("Unable to send ERROR");
-				return -2;
 			}
+			free(err);
 			return -1;
 		}
 	}

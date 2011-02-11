@@ -1,6 +1,8 @@
 List of Things To Do
 ====================
 
+Tests for mem.o module
+
 Client / Server
   - Test remediation in chroot
   - Automatic certificate enrolment

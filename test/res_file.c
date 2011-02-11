@@ -105,9 +105,7 @@ void test_res_file_remedy()
 		return;
 	}
 	assert_int_not_equal("Pre-remediation: file owner UID is not 65542", st.st_uid, 65542);
-	assert_true("UID is out of compliance",  res_file_different(rf, UID));
 	assert_int_not_equal("Pre-remediation: file group GID is not 65524", st.st_gid, 65524);
-	assert_true("GID is out of compliance",  res_file_different(rf, GID));
 	assert_int_not_equal("Pre-remediation: file permissions are not 0754", st.st_mode & 07777, 0754);
 
 	rf = res_file_new("fstab");
@@ -126,6 +124,8 @@ void test_res_file_remedy()
 
 	assert_int_equals("res_file_stat succeeds", res_file_stat(rf), 0);
 	assert_int_equals("File exists", 1, rf->rf_exists);
+	assert_true("UID is out of compliance",  res_file_different(rf, UID));
+	assert_true("GID is out of compliance",  res_file_different(rf, GID));
 	report = res_file_remediate(rf, 0, src_fd, src_len);
 	assert_not_null("res_file_remediate returns a report", report);
 	assert_int_equals("file was fixed", report->fixed, 1);

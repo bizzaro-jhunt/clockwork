@@ -58,15 +58,16 @@ static int handle_get_file(worker *w);
 static int handle_put_report(worker *w);
 static int handle_unknown(worker *w);
 
-static void server_sighup(int, siginfo_t*, void*);
+static void sighup_handler(int, siginfo_t*, void*);
 
 static void daemonize(const char *lock_file, const char *pid_file);
 
 static int server_init_ssl(server *s);
 static int server_init(server *s);
 
-static void* server_worker_thread(void *arg);
-static void* server_manager_thread(void *arg);
+/* Thread execution functions */
+static void* worker_thread(void *arg);
+static void* manager_thread(void *arg);
 
 /**************************************************************/
 
@@ -93,7 +94,7 @@ int main(int argc, char **argv)
 			WARNING("Failed to spawn worker for inbound connection");
 			continue;
 		}
-		THREAD_CREATE(w->tid, server_worker_thread, w);
+		THREAD_CREATE(w->tid, worker_thread, w);
 	}
 
 	SSL_CTX_free(s->ssl_ctx);
@@ -481,14 +482,14 @@ static int worker_send_file(worker *w, const char *path)
 	return n;
 }
 
-static void server_sighup(int signum, siginfo_t *info, void *udata)
+static void sighup_handler(int signum, siginfo_t *info, void *udata)
 {
 	pthread_t tid;
 	void *status;
 
 	DEBUG("SIGHUP handler entered");
 
-	pthread_create(&tid, NULL, server_manager_thread, NULL);
+	pthread_create(&tid, NULL, manager_thread, NULL);
 	pthread_join(tid, &status);
 }
 
@@ -605,7 +606,7 @@ static int server_init(server *s)
 
 	/* sig handlers */
 	INFO("setting up signal handlers");
-	sig.sa_sigaction = server_sighup;
+	sig.sa_sigaction = sighup_handler;
 	sig.sa_flags = SA_SIGINFO;
 	sigemptyset(&sig.sa_mask);
 	if (sigaction(SIGHUP, &sig, NULL) != 0) {
@@ -635,7 +636,7 @@ static int server_init(server *s)
 	return 0;
 }
 
-static void* server_worker_thread(void *arg)
+static void* worker_thread(void *arg)
 {
 	worker *w = (worker*)arg;
 
@@ -653,7 +654,7 @@ static void* server_worker_thread(void *arg)
 	return NULL;
 }
 
-static void* server_manager_thread(void *arg)
+static void* manager_thread(void *arg)
 {
 	struct manifest *new_manifest;
 

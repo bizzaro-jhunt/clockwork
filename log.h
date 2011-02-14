@@ -139,18 +139,4 @@ void INFO(const char *format, ...);
  */
 void DEBUG(const char *format, ...);
 
-/**
-  Print messages helpful to developers.
-
-  This function is always defined, but does nothing unless the macro DEVEL is
-  defined.  When enabled, this function prints to stderr, and is essentially
-  similar to a call to fprintf.  A trailing "\n" will be added.
-
-  @note Unlike other log functions, DEVELOPER always writes to stderr.
-
-  @param  format    A printf-style format string.
-  @param  ...       Values for expansion of \a format.
- */
-void DEVELOPER(const char *format, ...);
-
 #endif

@@ -39,14 +39,3 @@ void NOTICE(const char *format, ...)     { log2syslog(LOG_NOTICE,  LOG_LEVEL_NOT
 void INFO(const char *format, ...)       { log2syslog(LOG_INFO,    LOG_LEVEL_INFO);      }
 void DEBUG(const char *format, ...)      { log2syslog(LOG_DEBUG,   LOG_LEVEL_DEBUG);     }
 
-void DEVELOPER(const char *format, ...)
-{
-#ifdef DEVEL
-	va_list ap;
-	va_start(ap, format);
-	vfprintf(stderr, format, ap);
-	va_end(ap);
-	fprintf(stderr, "\n");
-#endif
-}
-

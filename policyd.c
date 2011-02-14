@@ -340,11 +340,8 @@ static int handle_get_file(worker *w)
 		return 0;
 	}
 
-	DEBUG("FILE: %s", checksum.hex);
-
 	file = NULL;
 	for_each_node(match, &w->policy->res_files, res) {
-		DEBUG("Check '%s' against '%s'", match->rf_rsha1.hex, checksum.hex);
 		if (sha1_cmp(&match->rf_rsha1, &checksum) == 0) {
 			file = match;
 			break;
@@ -352,13 +349,13 @@ static int handle_get_file(worker *w)
 	}
 
 	if (file) {
-		DEBUG("Found a res_file for %s: %s\n", checksum.hex, file->rf_rpath);
+		INFO("Matched %s to %s", checksum.hex, file->rf_rpath);
 		if (worker_send_file(w, file->rf_rpath) != 0) {
 			DEBUG("Unable to send file");
 		}
 	} else {
+		INFO("File Not Found: %s", checksum.hex);
 		pdu_send_ERROR(&w->session, 404, "File Not Found");
-		DEBUG("Could not find a res_file for: %s\n", checksum.hex);
 	}
 
 	return 1;

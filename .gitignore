@@ -10,7 +10,7 @@ cwca
 sha1sum
 polspec
 
-doc/proto.png
+doc/*.png
 
 certs
 

@@ -133,11 +133,16 @@ config/parser.o: config/parser.c config/parser.h config/private.h
 ############################################################
 # Documentation
 
-docs: apidocs
+docs: apidocs diagrams
 
 apidocs:
 	rm -rf $(APIDOC_ROOT)/*
 	$(DOXYGEN) $(APIDOC_CONF)
+
+diagrams: doc/proto-agent.png doc/proto-cert.png
+
+%.png: %.dot
+	dot -Tpng $< -o $@
 
 
 ############################################################

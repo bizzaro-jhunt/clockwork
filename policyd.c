@@ -46,15 +46,13 @@ static void show_help(void);
 
 static worker* spawn(server *s);
 static int worker_prep(worker *w);
-static int worker_dispatch(worker *w);
-static void worker_die(worker *w);
 static int verify_peer(worker *w);
 static int send_file(worker *w, const char *path);
 
-static int handle_hello(worker *w);
-static int handle_get_cert(worker *w);
-static int handle_get_policy(worker *w);
-static int handle_get_file(worker *w);
+static int handle_HELLO(worker *w);
+static int handle_GET_CERT(worker *w);
+static int handle_FACTS(worker *w);
+static int handle_FILE(worker *w);
 static int handle_put_report(worker *w);
 static int handle_unknown(worker *w);
 
@@ -250,7 +248,7 @@ static int worker_prep(worker *w)
 	return 0;
 }
 
-static int handle_hello(worker *w)
+static int handle_HELLO(worker *w)
 {
 	if (w->peer_verified) {
 		pdu_send_HELLO(&w->session);
@@ -260,7 +258,7 @@ static int handle_hello(worker *w)
 	return 1;
 }
 
-static int handle_get_cert(worker *w)
+static int handle_GET_CERT(worker *w)
 {
 	char *csr_file, *cert_file;
 	X509_REQ *csr = X509_REQ_new();
@@ -286,7 +284,7 @@ static int handle_get_cert(worker *w)
 	return 1;
 }
 
-static int handle_get_policy(worker *w)
+static int handle_FACTS(worker *w)
 {
 	if (!w->peer_verified) {
 		WARNING("Unverified peer tried to FACTS");
@@ -313,7 +311,7 @@ static int handle_get_policy(worker *w)
 	return 1;
 }
 
-static int handle_get_file(worker *w)
+static int handle_FILE(worker *w)
 {
 	char hex[SHA1_HEX_DIGEST_SIZE + 1] = {0};
 	sha1 checksum;
@@ -386,56 +384,6 @@ static int handle_unknown(worker *w)
 	free(message);
 
 	return 1;
-}
-
-static int worker_dispatch(worker *w)
-{
-	assert(w);
-
-	for (;;) {
-		pdu_receive(&w->session);
-		switch (RECV_PDU(&w->session)->op) {
-
-		case PROTOCOL_OP_HELLO:
-			if (!handle_hello(w)) { return -2; }
-			break;
-
-		case PROTOCOL_OP_BYE:
-			return 0;
-
-		case PROTOCOL_OP_GET_CERT:
-			if (!handle_get_cert(w)) { return -2; }
-			break;
-
-		case PROTOCOL_OP_FACTS:
-			if (!handle_get_policy(w)) { return -2; }
-			break;
-
-		case PROTOCOL_OP_FILE:
-			if (!handle_get_file(w)) { return -2; }
-			break;
-
-		case PROTOCOL_OP_REPORT:
-			if (!handle_put_report(w)) { return -2; }
-			break;
-
-		default:
-			handle_unknown(w);
-			return -1;
-		}
-	}
-}
-
-static void worker_die(worker *w)
-{
-	assert(w);
-
-	SSL_shutdown(w->ssl);
-	SSL_free(w->ssl);
-	ERR_remove_state(0);
-
-	free(w->peer);
-	free(w);
 }
 
 static int verify_peer(worker *w)
@@ -636,18 +584,57 @@ static int server_init(server *s)
 static void* worker_thread(void *arg)
 {
 	worker *w = (worker*)arg;
+	int done = 0;
 
 	pthread_detach(pthread_self());
+	if (worker_prep(w) != 0) { goto die; }
 
-	if (worker_prep(w) != 0) {
-		worker_die(w);
-		return NULL;
+	/* dispatch */
+	while (!done) {
+		pdu_receive(&w->session);
+		switch (RECV_PDU(&w->session)->op) {
+
+		case PROTOCOL_OP_HELLO:
+			if (!handle_HELLO(w)) { done = 1; }
+			break;
+
+		case PROTOCOL_OP_BYE:
+			done = 1;
+			break;
+
+		case PROTOCOL_OP_GET_CERT:
+			if (!handle_GET_CERT(w)) { done = 1; }
+			break;
+
+		case PROTOCOL_OP_FACTS:
+			if (!handle_FACTS(w)) { done = 1; }
+			break;
+
+		case PROTOCOL_OP_FILE:
+			if (!handle_FILE(w)) { done = 1; }
+			break;
+
+		case PROTOCOL_OP_REPORT:
+			if (!handle_put_report(w)) { done = 1; }
+			break;
+
+		default:
+			handle_unknown(w);
+			done = 1;
+			break;
+		}
 	}
 
-	worker_dispatch(w);
-	worker_die(w);
-
 	INFO("SSL connection closed");
+
+die:
+	SSL_shutdown(w->ssl);
+	SSL_free(w->ssl);
+	ERR_remove_state(0);
+
+	free(w->peer);
+	free(w);
+
 	return NULL;
 }
 

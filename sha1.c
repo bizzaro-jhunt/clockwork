@@ -179,6 +179,7 @@ void sha1_init(sha1 *cksum, const char *hex)
 {
 	if (hex && strlen(hex) == SHA1_HEX_DIGEST_SIZE) {
 		memcpy(cksum->hex, hex, SHA1_HEX_DIGEST_SIZE);
+		cksum->hex[SHA1_HEX_DIGEST_SIZE] = '\0';
 
 		unsigned int i;
 		char digit[3] = {0};

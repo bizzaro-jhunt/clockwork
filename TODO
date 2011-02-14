@@ -15,8 +15,9 @@ Client / Server
        Implement 'revoke'
 
      Communication between cwcert and cwca
-       cwcert needs to submit the CSR
-       cwca needs to sign and return the CERT
+       More intrusive signing / verification procedure
+       How to handle renewals / revocation?
+       How to handle serial number generation?
 
 API documentation
   Use some sort of source-code documentation system (Doxygen)

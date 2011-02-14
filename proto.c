@@ -2,12 +2,29 @@
 
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <ctype.h>
 
 #include "proto.h"
 #include "policy.h"
 #include "stringlist.h"
 
 #define FILE_DATA_BLOCK_SIZE 8192
+
+static const char *protocol_op_names[] = {
+	NULL,
+	"ERROR",
+	"HELLO",
+	"FACTS",
+	"POLICY",
+	"FILE",
+	"DATA",
+	"REPORT",
+	"BYE",
+
+	"GET_CERT",
+	"SEND_CERT",
+	NULL
+};
 
 static int pdu_allocate(protocol_data_unit *pdu, uint16_t op, uint16_t len)
 {
@@ -30,6 +47,67 @@ static void pdu_deallocate(protocol_data_unit *pdu)
 	pdu->data = NULL;
 }
 
+static void pdu_dump(protocol_data_unit *pdu)
+{
+	assert(pdu);
+
+/*
+Op:   XXX (xx)
+Len:  xxx
+Data: xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx
+      xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx
+*/
+
+	char prefix[] = "Data:";
+	char data[16][4];
+
+	size_t i, j, n;
+	size_t lines = pdu->len / 16 + (pdu->len % 16 ? 1 : 0);
+
+	memset(data, '\0', 16*4);
+
+	DEBUG("Op:   %s (%04u)", protocol_op_name(pdu->op), pdu->op);
+	DEBUG("Len:  %u", pdu->len);
+
+	n = 0;
+	for (i = 0; i < lines; i++) {
+		for (j = 0; j < 16; j++, n++) {
+			if (n > pdu->len) {
+				memcpy(data[j], "", 2);
+			} else {
+				if (pdu->data[n] == '\n') {
+					snprintf(data[j], 4, " \\n");
+				} else if (pdu->data[n] == ' ') {
+					snprintf(data[j], 4, " sp");
+				} else if (isprint(pdu->data[n])) {
+					snprintf(data[j], 4, "  %c", pdu->data[n]);
+				} else {
+					snprintf(data[j], 4, " %02x", pdu->data[n]);
+				}
+			}
+		}
+		DEBUG("%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s", prefix,
+		      data[0],  data[1],  data[2],  data[3],
+		      data[4],  data[5],  data[6],  data[7],
+		      data[8],  data[9],  data[10], data[11],
+		      data[12], data[13], data[14], data[15]);
+		memset(prefix, ' ', 5);
+	}
+	DEBUG("");
+}
+
+int pdu_send_simple(protocol_session *session, protocol_op op)
+{
+	assert(session);
+
+	if (pdu_allocate(SEND_PDU(session), op, 0) < 0) {
+		return -1;
+	}
+
+	DEBUG("SEND %s (op:%u) - (empty payload)", protocol_op_name(op), op);
+	return pdu_write(session->io, SEND_PDU(session));
+}
+
 int pdu_send_ERROR(protocol_session *session, uint16_t err_code, const char *str)
 {
 	assert(session);
@@ -37,12 +115,14 @@ int pdu_send_ERROR(protocol_session *session, uint16_t err_code, const char *str
 	size_t len = strlen(str);
 	protocol_data_unit *pdu = SEND_PDU(session);
 
-	err_code = htons(err_code);
+
+	DEBUG("SEND ERROR (op:%u) - %u %s", PROTOCOL_OP_ERROR, err_code, str);
 
 	if (pdu_allocate(pdu, PROTOCOL_OP_ERROR, len + sizeof(err_code)) < 0) {
 		return -1;
 	}
 
+	err_code = htons(err_code);
 	memcpy(pdu->data, &err_code, sizeof(err_code));
 	memcpy(pdu->data + sizeof(err_code), str, len);
 
@@ -69,36 +149,11 @@ int pdu_decode_ERROR(protocol_data_unit *pdu, uint16_t *err_code, uint8_t **str,
 		*len = my_len;
 	}
 
+	DEBUG("RECV ERROR (op:%u) - %u %s", PROTOCOL_OP_ERROR, *err_code, *str);
 	return 0;
 }
 
-int pdu_send_ACK(protocol_session *session)
-{
-	assert(session);
-
-	protocol_data_unit *pdu = SEND_PDU(session);
-
-	if (pdu_allocate(pdu, PROTOCOL_OP_ACK, 0) < 0) {
-		return -1;
-	}
-
-	return pdu_write(session->io, SEND_PDU(session));
-}
-
-int pdu_send_BYE(protocol_session *session)
-{
-	assert(session);
-
-	protocol_data_unit *pdu = SEND_PDU(session);
-
-	if (pdu_allocate(pdu, PROTOCOL_OP_BYE, 0) < 0) {
-		return -1;
-	}
-
-	return pdu_write(session->io, SEND_PDU(session));
-}
-
-int pdu_send_GET_POLICY(protocol_session *session, const struct hash *facts)
+int pdu_send_FACTS(protocol_session *session, const struct hash *facts)
 {
 	assert(session);
 	assert(facts);
@@ -122,19 +177,20 @@ int pdu_send_GET_POLICY(protocol_session *session, const struct hash *facts)
 	stringlist_free(list);
 	len = strlen(buf);
 
-	if (pdu_allocate(pdu, PROTOCOL_OP_GET_POLICY, len) < 0) {
+	if (pdu_allocate(pdu, PROTOCOL_OP_FACTS, len) < 0) {
 		return -1;
 	}
 
 	memcpy(pdu->data, buf, len);
 
+	DEBUG("SEND FACTS (op:%u) - %u facts", pdu->op, list->num);
 	return pdu_write(session->io, SEND_PDU(session));
 }
 
-int pdu_decode_GET_POLICY(protocol_data_unit *pdu, struct hash *facts)
+int pdu_decode_FACTS(protocol_data_unit *pdu, struct hash *facts)
 {
 	assert(pdu);
-	assert(pdu->op == PROTOCOL_OP_GET_POLICY);
+	assert(pdu->op == PROTOCOL_OP_FACTS);
 	assert(facts);
 
 	size_t i;
@@ -152,10 +208,11 @@ int pdu_decode_GET_POLICY(protocol_data_unit *pdu, struct hash *facts)
 		}
 	}
 
+	DEBUG("RECV FACTS (op:%u) - %u facts", pdu->op, lines->num);
 	return 0;
 }
 
-int pdu_send_SEND_POLICY(protocol_session *session, const struct policy *policy)
+int pdu_send_POLICY(protocol_session *session, const struct policy *policy)
 {
 	assert(session);
 	assert(policy);
@@ -171,7 +228,7 @@ int pdu_send_SEND_POLICY(protocol_session *session, const struct policy *policy)
 
 	len = strlen(packed);
 
-	if (pdu_allocate(pdu, PROTOCOL_OP_SEND_POLICY, len) < 0) {
+	if (pdu_allocate(pdu, PROTOCOL_OP_POLICY, len) < 0) {
 		free(packed);
 		return -1;
 	}
@@ -179,13 +236,14 @@ int pdu_send_SEND_POLICY(protocol_session *session, const struct policy *policy)
 	memcpy(pdu->data, packed, len);
 	free(packed);
 
+	DEBUG("SEND POLICY (op:%u) - (policy data)", pdu->op);
 	return pdu_write(session->io, pdu);
 }
 
-int pdu_decode_SEND_POLICY(protocol_data_unit *pdu, struct policy **policy)
+int pdu_decode_POLICY(protocol_data_unit *pdu, struct policy **policy)
 {
 	assert(pdu);
-	assert(pdu->op == PROTOCOL_OP_SEND_POLICY);
+	assert(pdu->op == PROTOCOL_OP_POLICY);
 	assert(policy);
 
 	*policy = policy_unpack((char*)pdu->data);
@@ -196,14 +254,14 @@ int pdu_decode_SEND_POLICY(protocol_data_unit *pdu, struct policy **policy)
 	}
 }
 
-int pdu_send_GET_FILE(protocol_session *session, sha1 *checksum)
+int pdu_send_FILE(protocol_session *session, sha1 *checksum)
 {
 	assert(session);
 	assert(checksum);
 
 	protocol_data_unit *pdu = SEND_PDU(session);
 
-	if (pdu_allocate(pdu, PROTOCOL_OP_GET_FILE, SHA1_HEX_DIGEST_SIZE) < 0) {
+	if (pdu_allocate(pdu, PROTOCOL_OP_FILE, SHA1_HEX_DIGEST_SIZE) < 0) {
 		return -1;
 	}
 
@@ -212,22 +270,7 @@ int pdu_send_GET_FILE(protocol_session *session, sha1 *checksum)
 	return pdu_write(session->io, pdu);
 }
 
-int pdu_decode_GET_FILE(protocol_data_unit *pdu, sha1 *checksum)
-{
-	assert(pdu);
-	assert(pdu->op == PROTOCOL_OP_GET_FILE);
-	assert(pdu->len == SHA1_HEX_DIGEST_SIZE);
-	assert(checksum);
-
-	char hex[SHA1_HEX_DIGEST_SIZE + 1] = {0};
-	memcpy(hex, pdu->data, SHA1_HEX_DIGEST_SIZE);
-
-	sha1_init(checksum, hex);
-
-	return 0;
-}
-
-int pdu_send_FILE_DATA(protocol_session *session, int srcfd)
+int pdu_send_DATA(protocol_session *session, int srcfd)
 {
 	assert(session);
 
@@ -242,7 +285,7 @@ int pdu_send_FILE_DATA(protocol_session *session, int srcfd)
 		len += nread;
 	} while (nread != 0 && len < FILE_DATA_BLOCK_SIZE);
 
-	if (pdu_allocate(pdu, PROTOCOL_OP_FILE_DATA, len) < 0) {
+	if (pdu_allocate(pdu, PROTOCOL_OP_DATA, len) < 0) {
 		return -1;
 	}
 
@@ -256,15 +299,138 @@ int pdu_send_FILE_DATA(protocol_session *session, int srcfd)
 	return len;
 }
 
-int pdu_decode_FILE_DATA(protocol_data_unit *pdu, int dstfd)
+int pdu_send_GET_CERT(protocol_session *session, X509_REQ *csr)
+{
+	assert(session);
+	assert(csr);
+
+	protocol_data_unit *pdu = SEND_PDU(session);
+	BIO *bio;
+	char *raw_csr = NULL;
+	size_t len;
+	int write_status;
+
+	bio = BIO_new(BIO_s_mem());
+	if (!bio) {
+		return -1;
+	}
+
+	if (!PEM_write_bio_X509_REQ(bio, csr)) {
+		BIO_free(bio);
+		return -1;
+	}
+
+	len = (size_t)BIO_get_mem_data(bio, &raw_csr);
+	if (pdu_allocate(pdu, PROTOCOL_OP_GET_CERT, len) < 0) {
+		BIO_free(bio);
+		return -1;
+	}
+
+	memcpy(pdu->data, raw_csr, len);
+	BIO_free(bio);
+
+	write_status = pdu_write(session->io, pdu);
+	if (write_status != 0) {
+		return write_status;
+	}
+
+	return len;
+}
+
+int pdu_decode_GET_CERT(protocol_data_unit *pdu, X509_REQ **csr)
 {
 	assert(pdu);
-	assert(pdu->op == PROTOCOL_OP_FILE_DATA);
+	assert(pdu->op == PROTOCOL_OP_GET_CERT);
+	assert(csr);
 
-	size_t len = pdu->len;
+	BIO *bio;
 
-	write(dstfd, pdu->data, len);
+	bio = BIO_new(BIO_s_mem());
+	if (!bio) {
+		return -1;
+	}
+
+	BIO_write(bio, pdu->data, pdu->len);
+	if (!PEM_read_bio_X509_REQ(bio, csr, NULL, NULL)) {
+		BIO_free(bio);
+		return -1;
+	}
+
+	BIO_free(bio);
+	return 0;
+}
+
+int pdu_send_SEND_CERT(protocol_session *session, X509 *cert)
+{
+	assert(session);
+
+	protocol_data_unit *pdu = SEND_PDU(session);
+	BIO *bio;
+	char *raw_cert = NULL;
+	size_t len;
+	int write_status;
+
+	if (cert) {
+		bio = BIO_new(BIO_s_mem());
+		if (!bio) {
+			return -1;
+		}
+
+		if (!PEM_write_bio_X509(bio, cert)) {
+			BIO_free(bio);
+			return -1;
+		}
+
+		len = (size_t)BIO_get_mem_data(bio, &raw_cert);
+
+		if (pdu_allocate(pdu, PROTOCOL_OP_SEND_CERT, len) < 0) {
+			BIO_free(bio);
+			return -1;
+		}
+
+		memcpy(pdu->data, raw_cert, len);
+		BIO_free(bio);
+	} else {
+		len = 0;
+
+		if (pdu_allocate(pdu, PROTOCOL_OP_SEND_CERT, 0) < 0) {
+			return -1;
+		}
+	}
+
+	write_status = pdu_write(session->io, pdu);
+	if (write_status != 0) {
+		return write_status;
+	}
+
 	return len;
+}
+
+int pdu_decode_SEND_CERT(protocol_data_unit *pdu, X509 **cert)
+{
+	assert(pdu);
+	assert(pdu->op == PROTOCOL_OP_SEND_CERT);
+	assert(cert);
+
+	BIO *bio;
+
+	if (pdu->len > 0) {
+		bio = BIO_new(BIO_s_mem());
+		if (!bio) {
+			return -1;
+		}
+
+		BIO_write(bio, pdu->data, pdu->len);
+		if (!PEM_read_bio_X509(bio, cert, NULL, NULL)) {
+			BIO_free(bio);
+			return -1;
+		}
+
+		BIO_free(bio);
+	} else {
+		*cert = NULL;
+	}
+	return 0;
 }
 
 int pdu_read(SSL *io, protocol_data_unit *pdu)
@@ -298,7 +464,8 @@ int pdu_read(SSL *io, protocol_data_unit *pdu)
 		}
 	}
 
-	DEVELOPER("pdu_read:  OP:%04u; LEN:%04u", pdu->op, pdu->len);
+	DEBUG("pdu_read:  OP:%04u/%s; LEN:%04u", pdu->op, protocol_op_names[pdu->op], pdu->len);
+	pdu_dump(pdu);
 	return 0;
 }
 
@@ -315,22 +482,26 @@ int pdu_write(SSL *io, protocol_data_unit *pdu)
 
 	nwritten = SSL_write(io, &op, sizeof(op));
 	if (nwritten != sizeof(op)) {
+		DEBUG("pdu_write: error writing header:op");
 		return -1; /* error writing header */
 	}
 
 	nwritten = SSL_write(io, &len, sizeof(len));
 	if (nwritten != sizeof(len)) {
+		DEBUG("pdu_write: error writing header:len");
 		return -1; /* error writing header */
 	}
 
 	if (pdu->len > 0) {
 		nwritten = SSL_write(io, pdu->data, pdu->len);
 		if (nwritten != pdu->len) {
+			DEBUG("pdu_write: error writing payload");
 			return -3; /* error writing payload */
 		}
 	}
 
-	DEVELOPER("pdu_write: OP:%04u; LEN:%04u", pdu->op, pdu->len);
+	DEBUG("pdu_write: OP:%04u/%s; LEN:%04u", pdu->op, protocol_op_names[pdu->op], pdu->len);
+	pdu_dump(pdu);
 	return 0;
 }
 
@@ -347,7 +518,7 @@ int pdu_receive(protocol_session *session)
 
 	rc = pdu_read(session->io, pdu);
 	if (rc < 0) {
-		DEVELOPER("pdu_receive: pdu_read returned %i", rc);
+		DEBUG("pdu_receive: pdu_read returned %i", rc);
 		return -1;
 	}
 
@@ -359,7 +530,7 @@ int pdu_receive(protocol_session *session)
 			return -1;
 		}
 
-		DEVELOPER("Received an ERROR: %u - %s", session->errnum, session->errstr);
+		DEBUG(" -> ERROR (op:%u) - %u %s", PROTOCOL_OP_ERROR, session->errnum, session->errstr);
 		return -1;
 	}
 
@@ -368,14 +539,23 @@ int pdu_receive(protocol_session *session)
 
 /**********************************************************/
 
+static int ssl_loaded = 0;
 void protocol_ssl_init(void)
 {
+	if (ssl_loaded == 1) { return; }
+	ssl_loaded = 1;
+
 	if (!SSL_library_init()) {
 		CRITICAL("protocol_ssl_init: Failed to initialize OpenSSL");
 		exit(1);
 	}
 	SSL_load_error_strings();
 	RAND_load_file("/dev/urandom", 1024);
+}
+
+const char* protocol_op_name(protocol_op op)
+{
+	return protocol_op_names[op];
 }
 
 int protocol_session_init(protocol_session *session, SSL *io)
@@ -416,7 +596,8 @@ long protocol_ssl_verify_peer(SSL *ssl, const char *host)
 	int ok = 0;
 
 	if (!(cert = SSL_get_peer_certificate(ssl)) || !host) {
-		ERROR("Unable to get certificate in SSL_get_peer_certificate (for host '%s')", host);
+//		ERROR("Unable to get certificate in SSL_get_peer_certificate (for host '%s')", host);
+//		protocol_ssl_backtrace();
 		goto err_occurred;
 	}
 
@@ -462,6 +643,7 @@ long protocol_ssl_verify_peer(SSL *ssl, const char *host)
 	    X509_NAME_get_text_by_NID(subj, NID_commonName, data, 256) > 0) {
 		data[255] = '\0';
 		if (strcasecmp(data, host) != 0) {
+			ERROR("Peer certificate FQDN did not match FCrDNS lookup");
 			goto err_occurred;
 		}
 	}
@@ -472,30 +654,6 @@ long protocol_ssl_verify_peer(SSL *ssl, const char *host)
 err_occurred:
 	X509_free(cert);
 	return X509_V_ERR_APPLICATION_VERIFICATION;
-}
-
-SSL_CTX* protocol_ssl_default_context(const char *ca_cert_file, const char *cert_file, const char *key_file)
-{
-	assert(ca_cert_file);
-	assert(cert_file);
-	assert(key_file);
-
-	SSL_CTX *ctx;
-
-	ctx = SSL_CTX_new(TLSv1_method());
-	if (!ctx) {
-		return NULL;
-	}
-	if (SSL_CTX_load_verify_locations(ctx, ca_cert_file, NULL) != 1
-	 || SSL_CTX_use_certificate_chain_file(ctx, cert_file) != 1
-	 || SSL_CTX_use_PrivateKey_file(ctx, key_file, SSL_FILETYPE_PEM) != 1) {
-		/* free */
-		return NULL;
-	}
-
-	SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, NULL);
-	SSL_CTX_set_verify_depth(ctx, 4);
-	return ctx;
 }
 
 void protocol_ssl_backtrace(void)

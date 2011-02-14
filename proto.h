@@ -36,14 +36,16 @@
  */
 typedef enum {
 	PROTOCOL_OP_ERROR = 1,
-	PROTOCOL_OP_ACK,
+	PROTOCOL_OP_HELLO,
+	PROTOCOL_OP_FACTS,
+	PROTOCOL_OP_POLICY,
+	PROTOCOL_OP_FILE,
+	PROTOCOL_OP_DATA,
+	PROTOCOL_OP_REPORT,
 	PROTOCOL_OP_BYE,
-	PROTOCOL_OP_GET_POLICY,
-	PROTOCOL_OP_SEND_POLICY,
-	PROTOCOL_OP_GET_FILE,
-	PROTOCOL_OP_FILE_DATA,
-	PROTOCOL_OP_PUT_REPORT,
-	PROTOCOL_OP_SEND_REPORT,
+
+	PROTOCOL_OP_GET_CERT,
+	PROTOCOL_OP_SEND_CERT
 } protocol_op;
 
 /**
@@ -102,6 +104,8 @@ typedef struct {
 
 /**********************************************************/
 
+const char* protocol_op_name(protocol_op op);
+
 /**
   Initialize a protocol_session structure.
 
@@ -152,23 +156,6 @@ void protocol_ssl_init(void);
   @returns 0 on success, or an OpenSSL error code on failure.
  */
 long protocol_ssl_verify_peer(SSL *ssl, const char *hostname);
-
-/**
-  Set up the default OpenSSL context.
-
-  This function wraps up all of the required SSL options for
-  both client and server connections.
-
-  @param  ca_cert_file    Path to the Certificate Authorities certificate.
-  @param  cert_file       Path to this hosts certificate.
-  @param  key_file        Path to this hosts private key.
-
-  @returns a pointer to a valid SSL_CTX object that can be used
-           to set up new SSL connections.
- */
-SSL_CTX* protocol_ssl_default_context(const char *ca_cert_file,
-                                      const char *cert_file,
-                                      const char *key_file);
 
 /**
   Log all SSL errors on the stack, using the DEBUG priority.
@@ -225,6 +212,8 @@ int pdu_write(SSL *io, protocol_data_unit *pdu);
  */
 int pdu_receive(protocol_session *session);
 
+int pdu_send_simple(protocol_session *session, protocol_op op);
+
 /**
   Send an ERROR PDU to the remote party.
 
@@ -249,15 +238,7 @@ int pdu_send_ERROR(protocol_session *session, uint16_t err_code, const char *str
  */
 int pdu_decode_ERROR(protocol_data_unit *pdu, uint16_t *err_code, uint8_t **str, size_t *len);
 
-/**
-  Send an ACK PDU to the remote party.
-
-  @param  session    The current session.  Contains the IO stream,
-                     and the PDU buffer.
-
-  @returns 0 on success, non-zero on failure.
- */
-int pdu_send_ACK(protocol_session *session);
+#define pdu_send_HELLO(s) pdu_send_simple((s), PROTOCOL_OP_HELLO)
 
 /**
   Send a BYE PDU to the remote party.
@@ -267,10 +248,10 @@ int pdu_send_ACK(protocol_session *session);
 
   @returns 0 on success, non-zero on failure.
  */
-int pdu_send_BYE(protocol_session *session);
+#define pdu_send_BYE(s) pdu_send_simple((s), PROTOCOL_OP_BYE)
 
 /**
-  Send a GET_POLICY PDU to the server.
+  Send a FACTS PDU to the server.
 
   This type of PDU is sent from the client to the server, sending along
   a hash of the local facts in order to receive a generated policy.
@@ -281,7 +262,7 @@ int pdu_send_BYE(protocol_session *session);
 
   @returns 0 on success, non-zero on failure.
  */
-int pdu_send_GET_POLICY(protocol_session *session, const struct hash *facts);
+int pdu_send_FACTS(protocol_session *session, const struct hash *facts);
 
 /**
   Decode a GET_POLICY PDU sent from a client, storing the facts in \a facts.
@@ -291,13 +272,13 @@ int pdu_send_GET_POLICY(protocol_session *session, const struct hash *facts);
 
   @returns 0 on success, non-zero on failure.
  */
-int pdu_decode_GET_POLICY(protocol_data_unit *pdu, struct hash *facts);
+int pdu_decode_FACTS(protocol_data_unit *pdu, struct hash *facts);
 
 /**
-  Send a SEND_POLICY PDU to a client.
+  Send a POLICY PDU to a client.
 
   This type of PDU is sent from the server to a client, and includes the
-  policy generated from the client facts given in the GET_POLICY PDU.
+  policy generated from the client facts given in the FACTS PDU.
 
   @param  session    The current session.  Contains the IO stream,
                      and the PDU buffer.
@@ -305,10 +286,10 @@ int pdu_decode_GET_POLICY(protocol_data_unit *pdu, struct hash *facts);
 
   @returns 0 on success, non-zero on failure.
  */
-int pdu_send_SEND_POLICY(protocol_session *session, const struct policy *policy);
+int pdu_send_POLICY(protocol_session *session, const struct policy *policy);
 
 /**
-  Decode a SEND_POLICY PDU sent from the server, storing the policy in \a policy.
+  Decode a POLICY PDU sent from the server, storing the policy in \a policy.
 
   @param  pdu       PDU to decode.
   @param  policy    A pointer to a pointer to a policy, where the policy
@@ -316,12 +297,16 @@ int pdu_send_SEND_POLICY(protocol_session *session, const struct policy *policy)
 
   @returns 0 on success, non-zero on failure.
  */
-int pdu_decode_SEND_POLICY(protocol_data_unit *pdu, struct policy **policy);
+int pdu_decode_POLICY(protocol_data_unit *pdu, struct policy **policy);
 
-int pdu_send_GET_FILE(protocol_session *session, sha1 *checksum);
-int pdu_decode_GET_FILE(protocol_data_unit *pdu, sha1 *checksum);
+int pdu_send_FILE(protocol_session *session, sha1 *checksum);
 
-int pdu_send_FILE_DATA(protocol_session *session, int srcfd);
-int pdu_decode_FILE_DATA(protocol_data_unit *pdu, int dstfd);
+int pdu_send_DATA(protocol_session *session, int srcfd);
+
+int pdu_send_GET_CERT(protocol_session *session, X509_REQ  *csr);
+int pdu_decode_GET_CERT(protocol_data_unit *pdu, X509_REQ **csr);
+
+int pdu_send_SEND_CERT(protocol_session *session, X509  *cert);
+int pdu_decode_SEND_CERT(protocol_data_unit *pdu, X509 **cert);
 
 #endif

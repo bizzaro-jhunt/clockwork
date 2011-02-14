@@ -42,11 +42,33 @@ static int add_ext(STACK_OF(X509_EXTENSION) *sk, int nid, char *value)
 	return 1;
 }
 
+static int rand_serial(BIGNUM *b, ASN1_INTEGER *ai)
+{
+	BIGNUM *btmp;
+	int ret = 0;
+
+	btmp = (b ? b : BN_new());
+	if (!btmp) { return 0; }
+
+	if (!BN_pseudo_rand(btmp, 64, 0, 0)
+	 || (ai && !BN_to_ASN1_INTEGER(btmp, ai))) {
+		goto error;
+	}
+
+	ret = 1;
+
+error:
+	if (!b) {
+		BN_free(btmp);
+	}
+
+	return ret;
+}
+
 void cert_init(void) {
 	ERR_load_crypto_strings();
 	OpenSSL_add_all_algorithms();
 }
-
 
 EVP_PKEY* cert_retrieve_key(const char *keyfile)
 {
@@ -60,7 +82,7 @@ EVP_PKEY* cert_retrieve_key(const char *keyfile)
 		fclose(fp);
 		return key;
 	}
-	fprintf(stderr, "Private/public key doesn't exist; generating a new one.\n");
+	INFO("Generating public / private keypair");
 
 	key = cert_generate_key(2048);
 	if (!key) { return NULL; }
@@ -171,25 +193,35 @@ X509* cert_sign_request(X509_REQ *request, EVP_PKEY *cakey, unsigned int days)
 
 	verified = X509_REQ_verify(request, pubkey);
 	if (verified < 0) {
-		fprintf(stderr, "verify failed\n");
-		// verification problem
+		ERROR("Failed to verify certificate signing request");
 		return NULL;
 	}
 	if (verified == 0) {
-		fprintf(stderr, "signature mismatch\n");
-		// signature didn't match
+		ERROR("Signature mismatch on certificate signing request");
 		return NULL;
 	}
 
 	cert = X509_new();
 	if (!cert) { return NULL; }
 
+	/*
+	if (!X509_set_version(cert, 2)) {
+		ERROR("Failed to set X.509 version to 2");
+		return NULL;
+	}
+	*/
+
+	if (!rand_serial(NULL, X509_get_serialNumber(cert))) {
+		ERROR("Failed to generate serial number for certificate");
+		return NULL;
+	}
+
 	issuer = X509_get_issuer_name(cert);
 	X509_NAME_add_entry_by_txt(issuer, "O",  MBSTRING_ASC, (const unsigned char*)"Clockwork Policy Master", -1, -1, 0);
 	X509_NAME_add_entry_by_txt(issuer, "CN", MBSTRING_ASC, (const unsigned char*)fqdn, -1, -1, 0);
 
 	if (!X509_set_subject_name(cert, request->req_info->subject)) {
-		fprintf(stderr, "couldn't set subject\n");
+		ERROR("Failed to set subject on new certificate");
 		return NULL;
 	}
 
@@ -199,7 +231,7 @@ X509* cert_sign_request(X509_REQ *request, EVP_PKEY *cakey, unsigned int days)
 	EVP_PKEY_free(pubkey);
 
 	if (!X509_sign(cert, cakey, EVP_sha1())) {
-		fprintf(stderr, "couldn't sign cert as CA\n");
+		ERROR("Failed to sign certificate as CA");
 		return NULL;
 	}
 

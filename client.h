@@ -5,8 +5,6 @@
 #include "proto.h"
 #include "policy.h"
 
-#define DEFAULT_CONFIG_FILE "/etc/clockwork/cwa.conf"
-
 typedef struct {
 	BIO *socket;
 	SSL *ssl;
@@ -24,6 +22,7 @@ typedef struct {
 
 	char *ca_cert_file;
 	char *cert_file;
+	char *request_file;
 	char *key_file;
 
 	char *gatherers;
@@ -32,13 +31,11 @@ typedef struct {
 	char *s_port;
 } client;
 
-int client_connect(client *c);
-int client_disconnect(client *c);
+int client_options(client *args);
 
-int client_gather_facts(client *c);
-int client_get_policy(client *c);
-int client_get_file(protocol_session *session, sha1 *checksum, int fd);
-int client_enforce_policy(client *c, struct list *report);
-int client_print_report(FILE *io, struct list *report);
+int client_connect(client *c);
+int client_hello(client *c);
+int client_bye(client *c);
+int client_disconnect(client *c);
 
 #endif

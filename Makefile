@@ -63,10 +63,10 @@ RESOURCE_OBJECTS := res_user.o res_group.o res_file.o report.o
 RESOURCE_HEADERS := res_user.h res_group.h res_file.h report.h
 
 # Supporting object files
-CORE_OBJECTS := mem.o sha1.o pack.o hash.o stringlist.o userdb.o log.o
+CORE_OBJECTS := mem.o sha1.o pack.o hash.o stringlist.o userdb.o log.o cert.o
 
 # Policy object files
-POLICY_OBJECTS := policy.o
+POLICY_OBJECTS := policy.o $(RESOURCE_OBJECTS)
 
 # Parser object files
 SPEC_PARSER_OBJECTS := spec/lexer.o spec/grammar.o spec/parser.o
@@ -88,22 +88,22 @@ all: $(UTILS) $(CORE)
 ############################################################
 # Main Binaries
 
-policyd: policyd.o $(CORE_OBJECTS) $(RESOURCE_OBJECTS) $(POLICY_OBJECTS) $(SPEC_PARSER_OBJECTS) $(CONFIG_PARSER_OBJECTS) proto.o server.o
+policyd: policyd.o $(CORE_OBJECTS) $(POLICY_OBJECTS) $(SPEC_PARSER_OBJECTS) $(CONFIG_PARSER_OBJECTS) proto.o server.o
 	$(CC) -o $@ $+
 
-cwa: cwa.o $(CORE_OBJECTS) $(POLICY_OBJECTS) $(RESOURCE_OBJECTS) $(CONFIG_PARSER_OBJECTS) proto.o client.o
+cwa: cwa.o $(CORE_OBJECTS) $(POLICY_OBJECTS) $(CONFIG_PARSER_OBJECTS) proto.o client.o
 	$(CC) -o $@ $+
 
-cwcert: cwcert.o $(CORE_OBJECTS) cert.o
+cwcert: cwcert.o $(CORE_OBJECTS) $(POLICY_OBJECTS) $(CONFIG_PARSER_OBJECTS) proto.o client.o
 	$(CC) -o $@ $+
 
-cwca: cwca.o $(CORE_OBJECTS) cert.o
+cwca: cwca.o $(CORE_OBJECTS) $(CONFIG_PARSER_OBJECTS) server.o
 	$(CC) -o $@ $+
 
 sha1sum: sha1.o sha1sum.o mem.o log.o
 	$(CC) -o $@ $+
 
-polspec: $(CORE_OBJECTS) $(RESOURCE_OBJECTS) $(POLICY_OBJECTS) $(SPEC_PARSER_OBJECTS) polspec.o
+polspec: $(CORE_OBJECTS) $(POLICY_OBJECTS) $(SPEC_PARSER_OBJECTS) polspec.o
 	$(CC) -o $@ $+
 
 
@@ -211,16 +211,14 @@ functional_tests: test/util/includer \
                   test/util/presence
 
 test/util/includer: test/util/includer.o \
-                    $(CORE_OBJECTS) $(SPEC_PARSER_OBJECTS) \
-                    $(RESOURCE_OBJECTS) $(POLICY_OBJECTS)
+                    $(CORE_OBJECTS) $(SPEC_PARSER_OBJECTS) $(POLICY_OBJECTS)
 	$(CC) -o $@ $+
 
 test/util/includer.o: test/util/includer.c spec/lexer.l
 	$(CC) -c -o $@ $<
 
 test/util/factchecker: test/util/factchecker.o \
-                    $(CORE_OBJECTS) $(SPEC_PARSER_OBJECTS) \
-                    $(RESOURCE_OBJECTS) $(POLICY_OBJECTS)
+                    $(CORE_OBJECTS) $(SPEC_PARSER_OBJECTS) $(POLICY_OBJECTS)
 	$(CC) -o $@ $+
 
 test/util/factchecker.o: test/util/factchecker.c spec/lexer.l
@@ -234,8 +232,7 @@ test/util/daemoncfg.o: test/util/daemoncfg.c config/lexer.l
 	$(CC) -c -o $@ $<
 
 test/util/presence: test/util/presence.o \
-                    $(CORE_OBJECTS) $(SPEC_PARSER_OBJECTS) \
-                    $(RESOURCE_OBJECTS) $(POLICY_OBJECTS)
+                    $(CORE_OBJECTS) $(SPEC_PARSER_OBJECTS) $(POLICY_OBJECTS)
 	$(CC) -o $@ $+
 
 test/util/presence.o: test/util/presence.c spec/lexer.l

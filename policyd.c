@@ -44,12 +44,12 @@ static pthread_mutex_t  manifest_mutex = PTHREAD_MUTEX_INITIALIZER;
 static server* policyd_options(int argc, char **argv);
 static void show_help(void);
 
-static worker* worker_spawn(server *s);
+static worker* spawn(server *s);
 static int worker_prep(worker *w);
 static int worker_dispatch(worker *w);
 static void worker_die(worker *w);
-static int worker_verify_peer(worker *w);
-static int worker_send_file(worker *w, const char *path);
+static int verify_peer(worker *w);
+static int send_file(worker *w, const char *path);
 
 static int handle_hello(worker *w);
 static int handle_get_cert(worker *w);
@@ -89,7 +89,7 @@ int main(int argc, char **argv)
 	}
 	DEBUG("entering server_loop");
 	for (;;) {
-		w = worker_spawn(s);
+		w = spawn(s);
 		if (!w) {
 			WARNING("Failed to spawn worker for inbound connection");
 			continue;
@@ -189,7 +189,7 @@ static void show_help(void)
 	       "\n");
 }
 
-static worker* worker_spawn(server *s)
+static worker* spawn(server *s)
 {
 	worker *w;
 
@@ -236,7 +236,7 @@ static int worker_prep(worker *w)
 		return -1;
 	}
 
-	if (worker_verify_peer(w) != 0) {
+	if (verify_peer(w) != 0) {
 		return -1;
 	}
 
@@ -350,7 +350,7 @@ static int handle_get_file(worker *w)
 
 	if (file) {
 		INFO("Matched %s to %s", checksum.hex, file->rf_rpath);
-		if (worker_send_file(w, file->rf_rpath) != 0) {
+		if (send_file(w, file->rf_rpath) != 0) {
 			DEBUG("Unable to send file");
 		}
 	} else {
@@ -438,7 +438,7 @@ static void worker_die(worker *w)
 	free(w);
 }
 
-static int worker_verify_peer(worker *w)
+static int verify_peer(worker *w)
 {
 	assert(w);
 
@@ -469,7 +469,7 @@ static int worker_verify_peer(worker *w)
 	return 0;
 }
 
-static int worker_send_file(worker *w, const char *path)
+static int send_file(worker *w, const char *path)
 {
 	int fd = open(path, O_RDONLY);
 	int n;

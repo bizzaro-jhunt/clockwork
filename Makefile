@@ -94,7 +94,7 @@ policyd: policyd.o $(CORE_OBJECTS) $(POLICY_OBJECTS) $(SPEC_PARSER_OBJECTS) $(CO
 cwa: cwa.o $(CORE_OBJECTS) $(POLICY_OBJECTS) $(CONFIG_PARSER_OBJECTS) proto.o client.o
 	$(CC) -o $@ $+
 
-cwcert: cwcert.o $(CORE_OBJECTS) $(POLICY_OBJECTS) $(CONFIG_PARSER_OBJECTS) proto.o client.o
+cwcert: cwcert.o $(CORE_OBJECTS) $(POLICY_OBJECTS) $(CONFIG_PARSER_OBJECTS) proto.o client.o prompt.o
 	$(CC) -o $@ $+
 
 cwca: cwca.o $(CORE_OBJECTS) $(CONFIG_PARSER_OBJECTS) server.o

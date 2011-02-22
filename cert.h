@@ -11,14 +11,25 @@
 #include <openssl/ssl.h>
 #include <openssl/x509v3.h>
 
+struct cert_subject {
+	char *country;
+	char *state;
+	char *loc;
+	char *org;
+	char *org_unit;
+	char *type;
+	char *fqdn;
+};
+
 void cert_init(void);
 int cert_my_hostname(char *hostname, size_t len);
 
 EVP_PKEY* cert_retrieve_key(const char *keyfile);
+int cert_store_key(EVP_PKEY *key, const char *keyfile);
 EVP_PKEY* cert_generate_key(int bits);
 
 X509_REQ* cert_retrieve_request(const char *csrfile);
-X509_REQ* cert_generate_request(EVP_PKEY *key, const char *o);
+X509_REQ* cert_generate_request(EVP_PKEY *key, const struct cert_subject *subj);
 int cert_store_request(X509_REQ *request, const char *csrfile);
 X509* cert_sign_request(X509_REQ *request, EVP_PKEY *key, unsigned int days);
 char* cert_request_subject_name(X509_REQ *request);

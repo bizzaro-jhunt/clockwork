@@ -87,15 +87,30 @@ EVP_PKEY* cert_retrieve_key(const char *keyfile)
 	key = cert_generate_key(2048);
 	if (!key) { return NULL; }
 
-	fp = fopen(keyfile, "w");
-	if (!fp) {
+	if (cert_store_key(key, keyfile) != 0) {
 		perror("Couldn't save private/public keypair");
 		return NULL;
 	}
 
+	return key;
+}
+
+int cert_store_key(EVP_PKEY *key, const char *keyfile)
+{
+	assert(keyfile);
+
+	FILE *fp;
+
+	fp = fopen(keyfile, "w");
+	if (!fp) {
+		perror("Couldn't save private/public keypair");
+		return -1;
+	}
+
 	PEM_write_PrivateKey(fp, key, NULL, NULL, 0, NULL, NULL);
 	fclose(fp);
-	return key;
+
+	return 0;
 }
 
 EVP_PKEY* cert_generate_key(int bits)
@@ -129,29 +144,36 @@ X509_REQ* cert_retrieve_request(const char *csrfile)
 	return request;
 }
 
-X509_REQ* cert_generate_request(EVP_PKEY* key, const char *o)
+X509_REQ* cert_generate_request(EVP_PKEY* key, const struct cert_subject *subj)
 {
 	X509_REQ *request;
 	X509_NAME *name = NULL;
 	STACK_OF(X509_EXTENSION) *exts = NULL;
-	char fqdn[1024];
-
-	if (cert_my_hostname(fqdn, 1024) != 0) {
-		return NULL;
-	}
 
 	request = X509_REQ_new();
 	if (!request) { return NULL; }
 
 	X509_REQ_set_pubkey(request, key);
 
+	if (!X509_REQ_set_version(request, 3)) {
+		ERROR("Failed to set X.509 version to 3");
+		return NULL;
+	}
+
 	name = X509_REQ_get_subject_name(request);
-	X509_NAME_add_entry_by_txt(name, "O",  MBSTRING_ASC, (const unsigned char*)o, -1, -1, 0);
-	X509_NAME_add_entry_by_txt(name, "CN", MBSTRING_ASC, (const unsigned char*)fqdn, -1, -1, 0);
+	X509_NAME_add_entry_by_txt(name, "C",  MBSTRING_ASC, (const unsigned char*)subj->country, -1, -1, 0);
+	X509_NAME_add_entry_by_txt(name, "L",  MBSTRING_ASC, (const unsigned char*)subj->loc,     -1, -1, 0);
+	X509_NAME_add_entry_by_txt(name, "ST", MBSTRING_ASC, (const unsigned char*)subj->state,   -1, -1, 0);
+	X509_NAME_add_entry_by_txt(name, "O",  MBSTRING_ASC, (const unsigned char*)subj->org,     -1, -1, 0);
+	X509_NAME_add_entry_by_txt(name, "OU", MBSTRING_ASC, (const unsigned char*)subj->type,    -1, -1, 0);
+	if (strcmp(subj->org_unit, "") != 0) {
+		X509_NAME_add_entry_by_txt(name, "OU", MBSTRING_ASC, (const unsigned char*)subj->org_unit,-1, -1, 0);
+	}
+	X509_NAME_add_entry_by_txt(name, "CN", MBSTRING_ASC, (const unsigned char*)subj->fqdn, -1, -1, 0);
 
 	exts = sk_X509_EXTENSION_new_null();
 	//add_ext(exts, NID_key_usage, "critical,digitalSignature,keyEncipherment");
-	add_ext(exts, NID_subject_alt_name, fqdn);
+	add_ext(exts, NID_subject_alt_name, subj->fqdn);
 	X509_REQ_add_extensions(request, exts);
 	sk_X509_EXTENSION_pop_free(exts, X509_EXTENSION_free);
 
@@ -204,12 +226,10 @@ X509* cert_sign_request(X509_REQ *request, EVP_PKEY *cakey, unsigned int days)
 	cert = X509_new();
 	if (!cert) { return NULL; }
 
-	/*
-	if (!X509_set_version(cert, 2)) {
-		ERROR("Failed to set X.509 version to 2");
+	if (!X509_set_version(cert, 3)) {
+		ERROR("Failed to set X.509 version to 3");
 		return NULL;
 	}
-	*/
 
 	if (!rand_serial(NULL, X509_get_serialNumber(cert))) {
 		ERROR("Failed to generate serial number for certificate");

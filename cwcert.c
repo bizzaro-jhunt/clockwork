@@ -4,6 +4,7 @@
 
 #include "cert.h"
 #include "client.h"
+#include "prompt.h"
 
 /* NOTES
 
@@ -32,7 +33,7 @@ struct cwcert_opts {
 
 struct cwcert_opts* cwcert_options(int argc, char **argv);
 
-static int negotiate_certificate(client *c);
+static int negotiate_certificate(client *c, X509_REQ *csr);
 
 static int cwcert_help_main(const struct cwcert_opts *args);
 static int cwcert_details_main(const struct cwcert_opts *args);
@@ -110,30 +111,11 @@ struct cwcert_opts* cwcert_options(int argc, char **argv)
 	return args;
 }
 
-static int negotiate_certificate(client *c)
+static int negotiate_certificate(client *c, X509_REQ *csr)
 {
-	X509_REQ *csr = NULL;
 	X509 *cert = NULL;
-	EVP_PKEY *pkey = NULL;
-
-	csr = cert_retrieve_request(c->request_file);
-	if (!csr) {
-		pkey = cert_retrieve_key(c->key_file);
-		if (!pkey) { goto failed; }
-
-		csr = cert_generate_request(pkey, "Clockwork Agent");
-		if (!csr) { goto failed; }
-
-		cert_store_request(csr, c->request_file);
-		EVP_PKEY_free(pkey);
-		pkey = NULL;
-	}
 
 	if (pdu_send_GET_CERT(&c->session, csr) < 0) { exit(1); }
-
-	X509_REQ_free(csr);
-	csr = NULL;
-
 	if (pdu_receive(&c->session) < 0) {
 		CRITICAL("Error: %u - %s", c->session.errnum, c->session.errstr);
 		client_disconnect(c);
@@ -161,12 +143,6 @@ static int negotiate_certificate(client *c)
 	X509_free(cert);
 	cert = NULL;
 	return 0;
-
-failed:
-	X509_REQ_free(csr);
-	X509_free(cert);
-	EVP_PKEY_free(pkey);
-	return -1;
 }
 
 static int cwcert_help_main(const struct cwcert_opts *args)
@@ -225,6 +201,9 @@ static int cwcert_new_main(const struct cwcert_opts *args)
 {
 	EVP_PKEY *key;
 	X509_REQ *request;
+	struct cert_subject subject;
+	char fqdn[1024];
+	char *confirmation = NULL;
 
 	if (client_connect(args->config) != 0) {
 		exit(1);
@@ -237,15 +216,94 @@ static int cwcert_new_main(const struct cwcert_opts *args)
 		exit(0);
 	}
 
-	INFO("Using key in %s", args->config->key_file);
+	memset(&subject, 0, sizeof(subject));
+	subject.type = strdup("CWA");
+	if (cert_my_hostname(fqdn, 1024) != 0) {
+		ERROR("Failed to get local hostname!");
+		return CWCERT_OTHER_ERR;
+	}
+	subject.fqdn = fqdn;
+
+	do {
+		printf("You will now be asked for server identity information.\n"
+		       "\n"
+		       "The answers you provide will be used to construct the subject name\n"
+		       "of the certificate signing request sent to the Clockwork policy master.\n"
+		       "\n");
+
+		free(subject.country);
+		subject.country  = prompt_with_echo("Country (C): ");
+
+		free(subject.state);
+		subject.state    = prompt_with_echo("State / Province (ST): ");
+
+		free(subject.loc);
+		subject.loc      = prompt_with_echo("Locality / City (L): ");
+
+		free(subject.org);
+		subject.org      = prompt_with_echo("Organization (O): ");
+
+		free(subject.org_unit);
+		subject.org_unit = prompt_with_echo("Org. Unit (OU): ");
+
+		printf("\n"
+		       "Generating new certificate for:\n"
+		       "\n"
+		       "  Country:          %s\n"
+		       "  State / Province: %s\n"
+		       "  Locality / City:  %s\n"
+		       "  Organization:     %s\n"
+		       "  Org. Unit:        %s\n"
+		       "  Host Name:        %s\n"
+		       "\n",
+		       subject.country, subject.state, subject.loc,
+		       subject.org, subject.org_unit, subject.fqdn);
+
+		if (strcmp(subject.org_unit, "") == 0) {
+			printf("Subject for host certificate will be:\n"
+			       "\n"
+			       "  C=%s, ST=%s, L=%s, O=%s, OU=%s, CN=%s\n"
+			       "\n",
+			       subject.country, subject.state, subject.loc,
+			       subject.org, subject.type, subject.fqdn);
+		} else {
+			printf("Subject for host certificate will be:\n"
+			       "\n"
+			       "  C=%s, ST=%s, L=%s, O=%s, OU=%s, OU=%s, CN=%s\n"
+			       "\n",
+			       subject.country, subject.state, subject.loc,
+			       subject.org, subject.type, subject.org_unit, subject.fqdn);
+		}
+
+		do {
+			free(confirmation);
+			confirmation = prompt_with_echo("Is this information correct (yes or no) ? ");
+		} while (strcmp(confirmation, "yes") != 0 && strcmp(confirmation, "no") != 0);
+
+	} while (strcmp(confirmation, "yes") != 0);
+
 	key = cert_retrieve_key(args->config->key_file);
 	if (!key) {
-		CRITICAL("Unable to generate or retrieve private/public key.");
-		return CWCERT_SSL_ERROR;
+		INFO("Creating new key");
+		key = cert_generate_key(2048);
+		if (!key) {
+			CRITICAL("Unable to create new key");
+			return CWCERT_SSL_ERROR;
+		}
+		if (cert_store_key(key, args->config->key_file) != 0) {
+			CRITICAL("Unable to store new key in %s", args->config->key_file);
+			return CWCERT_SSL_ERROR;
+		}
+	} else {
+		INFO("Using key in %s", args->config->key_file);
+		if (!key) {
+			CRITICAL("Unable to retrieve key from %s", args->config->key_file);
+			return CWCERT_SSL_ERROR;
+		}
 	}
 
 	INFO("Generating certificate signing request...");
-	request = cert_generate_request(key, "Clockwork Agent");
+	request = cert_generate_request(key, &subject);
 	if (!request) {
 		CRITICAL("Unable to generate certificate signing request.");
 		return CWCERT_SSL_ERROR;
@@ -261,7 +319,7 @@ static int cwcert_new_main(const struct cwcert_opts *args)
 	unlink(args->config->cert_file);
 
 	INFO("Sending certificate signing request to server");
-	while (negotiate_certificate(args->config) != 0) {
+	while (negotiate_certificate(args->config, request) != 0) {
 		printf("awaiting `cwca sign' on policy master...\n");
 		sleep(5);
 	}

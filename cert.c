@@ -8,28 +8,6 @@
 /** NOTES
 */
 
-static int cert_my_hostname(char *hostname, size_t len)
-{
-	struct utsname uts;
-	struct addrinfo hints, *info;
-
-	if (uname(&uts) != 0) {
-		return -1;
-	}
-
-	memset(&hints, 0, sizeof(hints));
-	hints.ai_family = AF_UNSPEC;
-	hints.ai_socktype = SOCK_STREAM;
-	hints.ai_flags = AI_CANONNAME;
-
-	if (getaddrinfo(uts.nodename, NULL, &hints, &info) != 0) {
-		return -1;
-	}
-
-	xstrncpy(hostname, info->ai_canonname, len);
-	return 0;
-}
-
 static int add_ext(STACK_OF(X509_EXTENSION) *sk, int nid, char *value)
 {
 	X509_EXTENSION *ex;
@@ -68,6 +46,28 @@ error:
 void cert_init(void) {
 	ERR_load_crypto_strings();
 	OpenSSL_add_all_algorithms();
+}
+
+int cert_my_hostname(char *hostname, size_t len)
+{
+	struct utsname uts;
+	struct addrinfo hints, *info;
+
+	if (uname(&uts) != 0) {
+		return -1;
+	}
+
+	memset(&hints, 0, sizeof(hints));
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_flags = AI_CANONNAME;
+
+	if (getaddrinfo(uts.nodename, NULL, &hints, &info) != 0) {
+		return -1;
+	}
+
+	xstrncpy(hostname, info->ai_canonname, len);
+	return 0;
 }
 
 EVP_PKEY* cert_retrieve_key(const char *keyfile)

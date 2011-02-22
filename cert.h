@@ -12,6 +12,7 @@
 #include <openssl/x509v3.h>
 
 void cert_init(void);
+int cert_my_hostname(char *hostname, size_t len);
 
 EVP_PKEY* cert_retrieve_key(const char *keyfile);
 EVP_PKEY* cert_generate_key(int bits);

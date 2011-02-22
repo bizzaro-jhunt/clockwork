@@ -273,6 +273,37 @@ sub test_presence()
 		run(qq($checker "$root/override-present.conf" 2>/dev/null)));
 }
 
+sub _random_string($)
+{
+	my $n = shift;
+	my $s = "";
+
+	my @letters = split(//, "abcdefghijklmnopqrstuvwxyz0123456789 ");
+	my $max = $#letters + 1;
+
+	for ($i = 0; $i < $n; $i++) {
+		$s .= $letters[rand($max)];
+	}
+
+	return $s;
+}
+
+sub test_prompter()
+{
+	$TESTS++;
+	print "prompter: echo prompts\n";
+
+	my $checker = "./test/util/prompter";
+	my $str;
+
+	for (my $i = 1; $i < 64; $i++) {
+		$str = _random_string($i);
+		assert_str_equals("Random string ($i bytes)",
+		                  "$i:$str:", run(qq(echo "$str" | $checker 2>&1 >/dev/null)));
+	}
+
+}
+
 
 test_assertions();
 test_parser_inclusion();
@@ -280,4 +311,5 @@ test_fact_checking();
 test_overrides();
 test_daemon_config();
 test_presence();
+test_prompter();
 finish_tests();

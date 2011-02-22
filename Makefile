@@ -208,7 +208,8 @@ test/sha1_files.h:
 functional_tests: test/util/includer \
                   test/util/factchecker \
                   test/util/daemoncfg \
-                  test/util/presence
+                  test/util/presence \
+                  test/util/prompter
 
 test/util/includer: test/util/includer.o \
                     $(CORE_OBJECTS) $(SPEC_PARSER_OBJECTS) $(POLICY_OBJECTS)
@@ -237,6 +238,9 @@ test/util/presence: test/util/presence.o \
 
 test/util/presence.o: test/util/presence.c spec/lexer.l
 	$(CC) -c -o $@ $<
+
+test/util/prompter: test/util/prompter.o \
+                    $(CORE_OBJECTS) prompt.o
 
 
 ############################################################

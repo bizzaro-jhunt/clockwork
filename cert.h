@@ -41,4 +41,8 @@ int cert_store_certificate(X509 *cert, const char *certfile);
 
 char* cert_fingerprint_certificate(X509 *cert);
 
+int cert_prompt_for_subject(struct cert_subject *s);
+int cert_print_subject_terse(FILE *io, const struct cert_subject *s);
+int cert_print_subject(FILE *io, const char *prefix, const struct cert_subject *s);
+
 #endif

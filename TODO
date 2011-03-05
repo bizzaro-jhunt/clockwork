@@ -16,8 +16,6 @@ Client / Server
 
      Communication between cwcert and cwca
        More intrusive signing / verification procedure
-       Better C=x,ST=y,L=z,O=o,OU=(Agent|Master),CN=... ?
-         (can we prompt cwcert user for details?)
        How to handle renewals / revocation?
        How to handle serial number generation?
 

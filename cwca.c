@@ -5,6 +5,7 @@
 
 #include "server.h"
 #include "cert.h"
+#include "prompt.h"
 
 
 /* NOTES
@@ -187,23 +188,82 @@ static int cwca_new_main(const struct cwca_opts *args)
 	X509_REQ *request;
 	X509 *cert;
 	EVP_PKEY *key;
+	char *pass1, *pass2;
+
+	struct cert_subject subject;
+	char fqdn[1024];
+	char *confirmation = NULL;
 
 	/* FIXME: confirm new ca setup with user... */
-	/* FIXME: remove previous private key */
 
-	printf("Generating private/public keypair.\n");
-	key = cert_retrieve_key(args->server->key_file);
-	if (!key) { return CWCA_SSL_ERROR; }
+	INFO("Creating new signing key");
+	for (;;) {
+		pass1 = prompt_without_echo("Enter a private key passphrase: ");
+		pass2 = prompt_without_echo("Confirm private key passphrase: ");
 
-	printf("Generating self-signed root CA certificate.\n");
-	request = cert_generate_request(key, "Clockwork Policy Master");
+		if (strcmp(pass1, pass2) == 0) {
+			break;
+		}
+
+		printf("Passphrases did not match.  Try again.\n\n");
+
+		memset(pass1, 0, strlen(pass1));
+		free(pass1);
+
+		memset(pass2, 0, strlen(pass2));
+		free(pass2);
+	}
+
+	key = cert_generate_key(2048);
+	if (!key) {
+		CRITICAL("Unable to create new signing key");
+		return CWCA_SSL_ERROR;
+	}
+	if (cert_store_key(key, args->server->key_file) != 0) {
+		CRITICAL("Unable to store new signing key in %s", args->server->key_file);
+		return CWCA_SSL_ERROR;
+	}
+
+	INFO("Creating new Certificate Authority certificate");
+	memset(&subject, 0, sizeof(subject));
+
+	subject.type = strdup("Policy Master");
+	if (cert_my_hostname(fqdn, 1024) != 0) {
+		ERROR("Failed to get local hostname!");
+		return CWCA_OTHER_ERR;
+	}
+	subject.fqdn = fqdn;
+
+	do {
+		printf("You will now be asked for server identity information.\n"
+		       "\n"
+		       "The answers you provide will be used to construct the subject name\n"
+		       "of the certificate authority's certificate.\n"
+		       "\n");
+
+		cert_prompt_for_subject(&subject);
+
+		printf("\nGenerating new certificate for:\n\n");
+		cert_print_subject(stdout, "  ", &subject);
+		printf("\nSubject for host certificate will be:\n\n  ");
+		cert_print_subject_terse(stdout, &subject);
+		printf("\n\n");
+
+		do {
+			free(confirmation);
+			confirmation = prompt_with_echo("Is this information correct (yes or no) ? ");
+		} while (strcmp(confirmation, "yes") != 0 && strcmp(confirmation, "no") != 0);
+
+	} while (strcmp(confirmation, "yes") != 0);
+
+	request = cert_generate_request(key, &subject);
 	if (!request) { return CWCA_SSL_ERROR; }
 
 	cert = cert_sign_request(request, key, days);
 	if (!cert) { return CWCA_SSL_ERROR; }
 
 	if (cert_store_certificate(cert, args->server->cert_file) != 0) {
-		perror("Unable to store CA certificate");
+		CRITICAL("Unable to store CA certificate in %s", args->server->key_file);
 		return CWCA_OTHER_ERR;
 	}
 

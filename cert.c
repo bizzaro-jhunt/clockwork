@@ -5,6 +5,8 @@
 #include <netdb.h>
 #include <sys/utsname.h>
 
+#include "prompt.h"
+
 /** NOTES
 */
 
@@ -339,4 +341,55 @@ char* cert_fingerprint_certificate(X509 *cert)
 	}
 
 	return data;
+}
+
+int cert_prompt_for_subject(struct cert_subject *subject)
+{
+	free(subject->country);
+	subject->country = prompt_with_echo("Country (C): ");
+
+	free(subject->state);
+	subject->state = prompt_with_echo("State / Province (ST): ");
+
+	free(subject->loc);
+	subject->loc = prompt_with_echo("Locality / City (L): ");
+
+	free(subject->org);
+	subject->org = prompt_with_echo("Organization (O): ");
+
+	free(subject->org_unit);
+	subject->org_unit = prompt_with_echo("Org. Unit (OU): ");
+
+	return 0;
+}
+
+int cert_print_subject_terse(FILE *io, const struct cert_subject *subject)
+{
+	if (strcmp(subject->org_unit, "") == 0) {
+		fprintf(io, "C=%s, ST=%s, L=%s, O=%s, OU=%s, CN=%s",
+		        subject->country, subject->state, subject->loc,
+		        subject->org, subject->type, subject->fqdn);
+	} else {
+		fprintf(io, "C=%s, ST=%s, L=%s, O=%s, OU=%s, OU=%s, CN=%s",
+		        subject->country, subject->state, subject->loc,
+		        subject->org, subject->type, subject->org_unit, subject->fqdn);
+	}
+	return 0;
+}
+
+int cert_print_subject(FILE *io, const char *prefix, const struct cert_subject *subject)
+{
+	fprintf(io, "%sCountry:          %s\n"
+	            "%sState / Province: %s\n"
+	            "%sLocality / City:  %s\n"
+	            "%sOrganization:     %s\n"
+	            "%sOrg. Unit:        %s\n"
+	            "%sHost Name:        %s\n",
+	            prefix, subject->country,
+	            prefix, subject->state,
+	            prefix, subject->loc,
+	            prefix, subject->org,
+	            prefix, subject->org_unit,
+	            prefix, subject->fqdn);
+	return 0;
 }

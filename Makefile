@@ -97,7 +97,7 @@ cwa: cwa.o $(CORE_OBJECTS) $(POLICY_OBJECTS) $(CONFIG_PARSER_OBJECTS) proto.o cl
 cwcert: cwcert.o $(CORE_OBJECTS) $(POLICY_OBJECTS) $(CONFIG_PARSER_OBJECTS) proto.o client.o prompt.o
 	$(CC) -o $@ $+
 
-cwca: cwca.o $(CORE_OBJECTS) $(CONFIG_PARSER_OBJECTS) server.o
+cwca: cwca.o $(CORE_OBJECTS) $(CONFIG_PARSER_OBJECTS) server.o prompt.o
 	$(CC) -o $@ $+
 
 sha1sum: sha1.o sha1sum.o mem.o log.o

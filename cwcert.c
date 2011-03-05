@@ -231,49 +231,13 @@ static int cwcert_new_main(const struct cwcert_opts *args)
 		       "of the certificate signing request sent to the Clockwork policy master.\n"
 		       "\n");
 
-		free(subject.country);
-		subject.country  = prompt_with_echo("Country (C): ");
+		cert_prompt_for_subject(&subject);
 
-		free(subject.state);
-		subject.state    = prompt_with_echo("State / Province (ST): ");
-
-		free(subject.loc);
-		subject.loc      = prompt_with_echo("Locality / City (L): ");
-
-		free(subject.org);
-		subject.org      = prompt_with_echo("Organization (O): ");
-
-		free(subject.org_unit);
-		subject.org_unit = prompt_with_echo("Org. Unit (OU): ");
-
-		printf("\n"
-		       "Generating new certificate for:\n"
-		       "\n"
-		       "  Country:          %s\n"
-		       "  State / Province: %s\n"
-		       "  Locality / City:  %s\n"
-		       "  Organization:     %s\n"
-		       "  Org. Unit:        %s\n"
-		       "  Host Name:        %s\n"
-		       "\n",
-		       subject.country, subject.state, subject.loc,
-		       subject.org, subject.org_unit, subject.fqdn);
-
-		if (strcmp(subject.org_unit, "") == 0) {
-			printf("Subject for host certificate will be:\n"
-			       "\n"
-			       "  C=%s, ST=%s, L=%s, O=%s, OU=%s, CN=%s\n"
-			       "\n",
-			       subject.country, subject.state, subject.loc,
-			       subject.org, subject.type, subject.fqdn);
-		} else {
-			printf("Subject for host certificate will be:\n"
-			       "\n"
-			       "  C=%s, ST=%s, L=%s, O=%s, OU=%s, OU=%s, CN=%s\n"
-			       "\n",
-			       subject.country, subject.state, subject.loc,
-			       subject.org, subject.type, subject.org_unit, subject.fqdn);
-		}
+		printf("\nGenerating new certificate for:\n\n");
+		cert_print_subject(stdout, "  ", &subject);
+		printf("\nSubject for host certificate will be:\n\n  ");
+		cert_print_subject_terse(stdout, &subject);
+		printf("\n\n");
 
 		do {
 			free(confirmation);

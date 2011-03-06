@@ -2,6 +2,7 @@
 
 #include <glob.h>
 #include <getopt.h>
+#include <libgen.h>
 
 #include "server.h"
 #include "cert.h"
@@ -38,6 +39,7 @@ struct cwca_opts {
 
 /**************************************************************/
 
+static int mkdir_p(const char *path, int mode);
 static struct cwca_opts* cwca_options(int argc, char **argv);
 
 /* Command runners */
@@ -49,6 +51,8 @@ static int cwca_details_main(const struct cwca_opts *args);
 static int cwca_sign_main(const struct cwca_opts *args);
 static int cwca_ignore_main(const struct cwca_opts *args);
 static int cwca_revoke_main(const struct cwca_opts *args);
+
+static int cwca_new_setup_ca_dirs(const struct cwca_opts *args);
 
 /**************************************************************/
 
@@ -90,6 +94,36 @@ int main(int argc, char **argv)
 }
 
 /**************************************************************/
+
+static int mkdir_p(const char *path, int mode)
+{
+	char *parent, *path2;
+
+	if (mkdir(path, mode) == 0) {
+		return 0;
+	}
+
+	switch (errno) {
+	case EEXIST:
+		return 0;
+	case ENOENT:
+		if (strcmp(path, "/") == 0) {
+			return -1;
+		}
+
+		path2 = strdup(path);
+		parent = dirname(path2);
+
+		if (mkdir_p(parent, mode) == 0) {
+			return mkdir(path, mode);
+		} else {
+			return -1;
+		}
+
+	default:
+		return -1;
+	}
+}
 
 struct cwca_opts* cwca_options(int argc, char **argv)
 {
@@ -267,7 +301,10 @@ static int cwca_new_main(const struct cwca_opts *args)
 		return CWCA_OTHER_ERR;
 	}
 
-	/* FIXME: set up CA directory structure? */
+	if (cwca_new_setup_ca_dirs(args) != CWCA_SUCCESS) {
+		return CWCA_OTHER_ERR;
+	}
+
 	printf("Complete.\n");
 	return CWCA_SUCCESS;
 }
@@ -465,3 +502,22 @@ static int cwca_revoke_main(const struct cwca_opts *args)
 	return CWCA_SUCCESS;
 }
 
+static int cwca_new_setup_ca_dirs(const struct cwca_opts *args)
+{
+	printf("Setting up certificate authority directory structure\n");
+	if (mkdir_p(args->server->requests_dir, 0700) != 0) {
+		printf("  - Creating requests dir (%s)... failed\n", args->server->requests_dir);
+		return CWCA_OTHER_ERR;
+	} else {
+		printf("  - Creating requests dir (%s)... succeeded\n", args->server->requests_dir);
+	}
+
+	if (mkdir_p(args->server->certs_dir, 0700) != 0) {
+		printf("  - Creating certs dir (%s)... failed\n", args->server->certs_dir);
+		return CWCA_OTHER_ERR;
+	} else {
+		printf("  - Creating certs dir (%s)... succeeded\n", args->server->requests_dir);
+	}
+
+	return CWCA_SUCCESS;
+}

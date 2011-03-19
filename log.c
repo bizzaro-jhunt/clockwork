@@ -7,6 +7,18 @@
 static int SYSLOG_INITIALIZED = 0;
 static int LOG_LEVEL = LOG_LEVEL_INFO;
 
+static const char* LOG_LEVEL_NAMES[] = {
+	NULL,
+	"NONE",
+	"CRITICAL",
+	"ERROR",
+	"WARNING",
+	"NOTICE",
+	"INFO",
+	"DEBUG",
+	"ALL"
+};
+
 #define log2syslog(prio,level) do { \
 	if (level > LOG_LEVEL) { return; } \
 	va_list ap; \
@@ -30,6 +42,12 @@ void log_init(const char *ident) {
 int log_level(int l)
 {
 	return LOG_LEVEL = (l > LOG_LEVEL_ALL ? LOG_LEVEL_ALL : (l < LOG_LEVEL_NONE ? LOG_LEVEL_NONE : l));
+}
+
+const char* log_level_name(int l)
+{
+	l = (l > LOG_LEVEL_DEBUG ? LOG_LEVEL_DEBUG : (l < LOG_LEVEL_NONE ? LOG_LEVEL_NONE : l));
+	return LOG_LEVEL_NAMES[l];
 }
 
 void CRITICAL(const char *format, ...)   { log2syslog(LOG_CRIT,    LOG_LEVEL_CRITICAL);  }

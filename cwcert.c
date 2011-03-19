@@ -50,7 +50,10 @@ int main(int argc, char **argv)
 	cert_init();
 
 	args = cwcert_options(argc, argv);
-	log_level(args->config->log_level);
+	args->config->log_level = log_level(args->config->log_level);
+	INFO("Log level is now %s (%u)",
+	     log_level_name(args->config->log_level),
+	     args->config->log_level);
 
 	if (strcmp(args->command, "details") == 0) {
 		err = cwcert_details_main(args);
@@ -78,9 +81,11 @@ struct cwcert_opts* cwcert_options(int argc, char **argv)
 {
 	struct cwcert_opts *args;
 
-	const char *short_opts = "h?c:";
+	const char *short_opts = "h?c:Dv";
 	struct option long_opts[] = {
-		{ "config", required_argument, NULL, 'c' },
+		{ "config",  required_argument, NULL, 'c' },
+		{ "debug",   no_argument,       NULL, 'D' },
+		{ "verbose", no_argument,       NULL, 'v' },
 		{ 0, 0, 0, 0 },
 	};
 
@@ -95,6 +100,12 @@ struct cwcert_opts* cwcert_options(int argc, char **argv)
 		case 'c':
 			free(args->config->config_file);
 			args->config->config_file = strdup(optarg);
+			break;
+		case 'D':
+			args->config->log_level = LOG_LEVEL_DEBUG;
+			break;
+		case 'v':
+			args->config->log_level++;
 			break;
 		case 'h':
 		case '?':
@@ -173,6 +184,12 @@ static int cwcert_help_main(const struct cwcert_opts *args)
 	       "                        (for more in-depth help, check the man pages.)\n"
 	       "\n"
 	       "  -c, --config          Specify the path to an alternate configuration file.\n"
+	       "\n"
+	       "  -v, --verbose         Increase verbosity / log level by one.\n"
+	       "                        (can be used more than once, i.e. -vvv)\n"
+	       "\n"
+	       "  -D, --debug           Set verbosity to DEBUG level.  Mainly intended for\n"
+	       "                        developers, but helpful in troubleshooting.\n"
 	       "\n");
 	return CWCERT_SUCCESS;
 }

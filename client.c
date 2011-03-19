@@ -5,7 +5,7 @@
 /**************************************************************/
 
 static client default_options = {
-	.log_level   = LOG_LEVEL_CRITICAL,
+	.log_level   = LOG_LEVEL_ERROR,
 	.dryrun      = 0,
 
 	.config_file  = "/etc/clockwork/cwa.conf",
@@ -136,15 +136,20 @@ int client_connect(client *c)
 		return -1;
 	}
 
+	DEBUG(" - Loading CA certificate chain from %s", c->ca_cert_file);
 	if (!SSL_CTX_load_verify_locations(c->ssl_ctx, c->ca_cert_file, NULL)) {
 		ERROR("Failed to load CA certificate chain (%s)", c->ca_cert_file);
 		SSL_CTX_free(c->ssl_ctx); c->ssl_ctx = NULL;
 		protocol_ssl_backtrace();
 		return -1;
 	}
+
+	DEBUG(" - Loading certificate from %s", c->cert_file);
 	if (!SSL_CTX_use_certificate_file(c->ssl_ctx, c->cert_file, SSL_FILETYPE_PEM)) {
 		WARNING("No certificate to load (%s); running in 'unverified client' mode");
 	}
+
+	DEBUG(" - Loading private key from %s", c->key_file);
 	if (!SSL_CTX_use_PrivateKey_file(c->ssl_ctx, c->key_file, SSL_FILETYPE_PEM)) {
 		ERROR("Failed to load private key (%s)", c->key_file);
 		SSL_CTX_free(c->ssl_ctx); c->ssl_ctx = NULL;
@@ -152,6 +157,7 @@ int client_connect(client *c)
 		return -1;
 	}
 
+	DEBUG(" - Setting peer verification flags");
 	SSL_CTX_set_verify(c->ssl_ctx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, NULL);
 	SSL_CTX_set_verify_depth(c->ssl_ctx, 4);
 

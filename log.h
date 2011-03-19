@@ -87,6 +87,8 @@ void log_init(const char *ident);
 
 int log_level(int level);
 
+const char* log_level_name(int level);
+
 /**
   Log critical messages; for fatal issues that cause
   immediate process termination.

@@ -229,12 +229,15 @@ static int worker_prep(worker *w)
 	pthread_sigmask(SIG_BLOCK, &blocked_signals, NULL);
 
 	if (SSL_accept(w->ssl) <= 0) {
-		ERROR("Unable to establish SSL connection");
+		DEBUG("SSL_accept returned non-zero");
+		ERROR("Unable to accept inbound SSL connection");
 		protocol_ssl_backtrace();
 		return -1;
 	}
 
 	if (verify_peer(w) != 0) {
+		DEBUG("verify_peer returned non-zero");
+		ERROR("Unable to verify peer");
 		return -1;
 	}
 
@@ -542,6 +545,9 @@ static int server_init(server *s)
 		return -1;
 	}
 
+	s->log_level = log_level(s->log_level);
+	INFO("Log level is %s (%u)", log_level_name(s->log_level), s->log_level);
+
 	pthread_mutex_lock(&manifest_mutex);
 		manifest_file = s->manifest_file;
 		manifest = parse_file(manifest_file);
@@ -568,8 +574,6 @@ static int server_init(server *s)
 	} else {
 		INFO("running in foreground");
 	}
-
-	log_level(s->log_level);
 
 	/* bind socket */
 	INFO("binding SSL socket on port %s", s->port);

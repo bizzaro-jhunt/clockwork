@@ -1,5 +1,6 @@
 #include "cert.h"
 
+#include <glob.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
@@ -45,6 +46,28 @@ error:
 	return ret;
 }
 
+static int cert_X509_CRL_get0_by_serial(X509_CRL *crl, X509_REVOKED **revoked_cert, ASN1_INTEGER *serial)
+{
+	assert(crl);
+	assert(revoked_cert);
+	assert(serial);
+
+	X509_REVOKED *needle = NULL;
+	int i, len = sk_X509_CRL_num(crl->crl->revoked);
+
+	for (i = 0; i < len; i++) {
+		needle = sk_X509_REVOKED_value(crl->crl->revoked, i);
+		if (needle && ASN1_INTEGER_cmp(needle->serialNumber, serial) == 0) {
+			*revoked_cert = needle;
+			return 0;
+		}
+	}
+
+	*revoked_cert = NULL;
+	return -1;
+}
+
+
 void cert_init(void) {
 	ERR_load_crypto_strings();
 	OpenSSL_add_all_algorithms();
@@ -82,16 +105,6 @@ EVP_PKEY* cert_retrieve_key(const char *keyfile)
 	if ((fp = fopen(keyfile, "r")) != NULL) {
 		key = PEM_read_PrivateKey(fp, NULL, NULL, NULL);
 		fclose(fp);
-		return key;
-	}
-	INFO("Generating public / private keypair");
-
-	key = cert_generate_key(2048);
-	if (!key) { return NULL; }
-
-	if (cert_store_key(key, keyfile) != 0) {
-		perror("Couldn't save private/public keypair");
-		return NULL;
 	}
 
 	return key;
@@ -144,6 +157,32 @@ X509_REQ* cert_retrieve_request(const char *csrfile)
 		fclose(fp);
 	}
 	return request;
+}
+
+X509_REQ** cert_retrieve_requests(const char *pathglob, size_t *len)
+{
+	X509_REQ **reqs;
+	size_t i;
+	glob_t files;
+
+	*len = 0;
+	switch (glob(pathglob, GLOB_MARK, NULL, &files)) {
+	case GLOB_NOSPACE:
+	case GLOB_ABORTED:
+		*len = -1;
+		/* fall through on purpose */
+	case GLOB_NOMATCH:
+		globfree(&files);
+		return NULL;
+	}
+
+	*len = files.gl_pathc;
+	reqs = xmalloc(sizeof(X509_REQ*) * (*len + 1));
+	for (i = 0; i < *len; i++) {
+		reqs[i] = cert_retrieve_request(files.gl_pathv[i]);
+	}
+
+	return reqs;
 }
 
 X509_REQ* cert_generate_request(EVP_PKEY* key, const struct cert_subject *subj)
@@ -200,17 +239,11 @@ int cert_store_request(X509_REQ *request, const char *csrfile)
 
 }
 
-X509* cert_sign_request(X509_REQ *request, EVP_PKEY *cakey, unsigned int days)
+X509* cert_sign_request(X509_REQ *request, X509 *ca_cert, EVP_PKEY *cakey, unsigned int days)
 {
 	EVP_PKEY *pubkey;
 	X509 *cert;
-	X509_NAME *issuer = NULL;
 	int verified;
-	char fqdn[1024];
-
-	if (cert_my_hostname(fqdn, 1024) != 0) {
-		return NULL;
-	}
 
 	pubkey = X509_REQ_get_pubkey(request);
 	if (!pubkey) { return NULL; }
@@ -238,9 +271,17 @@ X509* cert_sign_request(X509_REQ *request, EVP_PKEY *cakey, unsigned int days)
 		return NULL;
 	}
 
-	issuer = X509_get_issuer_name(cert);
-	X509_NAME_add_entry_by_txt(issuer, "O",  MBSTRING_ASC, (const unsigned char*)"Clockwork Policy Master", -1, -1, 0);
-	X509_NAME_add_entry_by_txt(issuer, "CN", MBSTRING_ASC, (const unsigned char*)fqdn, -1, -1, 0);
+	if (ca_cert) {
+		if (!X509_set_issuer_name(cert, X509_get_subject_name(ca_cert))) {
+			ERROR("Failed to set issuer on new certificate");
+			return NULL;
+		}
+	} else {
+		if (!X509_set_issuer_name(cert, request->req_info->subject)) {
+			ERROR("Failed to set issuer on new self-signed certificate");
+			return NULL;
+		}
+	}
 
 	if (!X509_set_subject_name(cert, request->req_info->subject)) {
 		ERROR("Failed to set subject on new certificate");
@@ -294,6 +335,25 @@ char* cert_certificate_issuer_name(X509 *cert)
 	return cert_get_name(X509_get_issuer_name(cert));
 }
 
+char* cert_certificate_serial_number(X509 *cert)
+{
+	BIO *out;
+	char *ser;
+	int len;
+
+	out = BIO_new(BIO_s_mem());
+	if (!out) { return NULL; }
+
+	i2a_ASN1_INTEGER(out, X509_get_serialNumber(cert));
+	len = BIO_ctrl_pending(out);
+	ser = xmalloc(sizeof(char) * (len + 1));
+	BIO_read(out, ser, len);
+	ser[len] = '\0';
+	BIO_free(out);
+
+	return ser;
+}
+
 X509* cert_retrieve_certificate(const char *certfile)
 {
 	X509 *cert = NULL;
@@ -306,6 +366,32 @@ X509* cert_retrieve_certificate(const char *certfile)
 	}
 
 	return cert;
+}
+
+X509** cert_retrieve_certificates(const char *pathglob, size_t *len)
+{
+	X509 **certs;
+	size_t i;
+	glob_t files;
+
+	*len = 0;
+	switch (glob(pathglob, GLOB_MARK, NULL, &files)) {
+	case GLOB_NOSPACE:
+	case GLOB_ABORTED:
+		*len = -1;
+		/* fall through on purpose */
+	case GLOB_NOMATCH:
+		globfree(&files);
+		return NULL;
+	}
+
+	*len = files.gl_pathc;
+	certs = xmalloc(sizeof(X509*) * (*len + 1));
+	for (i = 0; i < *len; i++) {
+		certs[i] = cert_retrieve_certificate(files.gl_pathv[i]);
+	}
+
+	return certs;
 }
 
 int cert_store_certificate(X509 *cert, const char *certfile)
@@ -393,3 +479,99 @@ int cert_print_subject(FILE *io, const char *prefix, const struct cert_subject *
 	            prefix, subject->fqdn);
 	return 0;
 }
+
+X509_CRL* cert_retrieve_crl(const char *crlfile)
+{
+	FILE *fp;
+	X509_CRL *crl = NULL;
+
+	fp = fopen(crlfile, "r");
+	if (fp) {
+		crl = PEM_read_X509_CRL(fp, NULL, NULL, NULL);
+		fclose(fp);
+	}
+	return crl;
+}
+
+X509_CRL* cert_generate_crl(X509 *ca_cert)
+{
+	X509_CRL *crl;
+
+	if (!(crl = X509_CRL_new())) {
+		return NULL;
+	}
+
+	if (!X509_CRL_set_issuer_name(crl, X509_get_subject_name(ca_cert))) {
+		X509_CRL_free(crl);
+		return NULL;
+	}
+
+	return crl;
+}
+
+int cert_store_crl(X509_CRL *crl, const char *crlfile)
+{
+	FILE *fp;
+
+	fp = fopen(crlfile, "w");
+	if (!fp) { return -1; }
+
+	PEM_write_X509_CRL(fp, crl);
+
+	fclose(fp);
+	return 0;
+}
+
+int cert_revoke_certificate(X509_CRL *crl, X509 *cert, EVP_PKEY *key)
+{
+	assert(crl);
+	assert(cert);
+
+	X509_REVOKED *revoked_cert;
+	ASN1_ENUMERATED *reason_code;
+	ASN1_TIME *revoked_at; /* now */
+
+	if (cert_X509_CRL_get0_by_serial(crl, &revoked_cert, X509_get_serialNumber(cert)) == 0) {
+		DEBUG("Already revoked...");
+		/* already revoked */
+		return 1;
+	}
+
+	revoked_cert = X509_REVOKED_new();
+	if (!revoked_cert) { goto error; }
+
+	revoked_at = ASN1_UTCTIME_new();
+	if (!(revoked_at = ASN1_UTCTIME_new())
+	 || !ASN1_UTCTIME_set(revoked_at, time(NULL))
+	 || !X509_REVOKED_set_revocationDate(revoked_cert, revoked_at)) {
+		goto error;
+	}
+
+	if (!(reason_code = ASN1_ENUMERATED_new())
+	 || !ASN1_ENUMERATED_set(reason_code, OCSP_REVOKED_STATUS_SUPERSEDED)
+	 || !X509_REVOKED_add1_ext_i2d(revoked_cert, NID_crl_reason, reason_code, 0, 0)) {
+		goto error;
+	}
+
+	if (!X509_REVOKED_set_serialNumber(revoked_cert, X509_get_serialNumber(cert))) {
+		goto error;
+	}
+
+	X509_CRL_add0_revoked(crl, revoked_cert);
+	X509_CRL_sort(crl);
+	X509_CRL_set_lastUpdate(crl, revoked_at);
+	X509_CRL_set_nextUpdate(crl, revoked_at); /* FIXME: need a better 'nextUpdate' value */
+
+	if (!X509_CRL_sign(crl, key, EVP_sha1())) {
+		goto error;
+	}
+
+	return 0;
+
+error:
+	if (revoked_cert) {
+		X509_REVOKED_free(revoked_cert);
+	}
+	return -1;
+}
+

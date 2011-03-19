@@ -121,6 +121,7 @@ static int merge_servers(server *a, server *b)
 	MERGE_STRING_OPTION(a,b,lock_file);
 	MERGE_STRING_OPTION(a,b,pid_file);
 	MERGE_STRING_OPTION(a,b,ca_cert_file);
+	MERGE_STRING_OPTION(a,b,crl_file);
 	MERGE_STRING_OPTION(a,b,cert_file);
 	MERGE_STRING_OPTION(a,b,key_file);
 	MERGE_STRING_OPTION(a,b,requests_dir);

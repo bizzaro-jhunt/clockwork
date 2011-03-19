@@ -16,6 +16,7 @@
   cwcert details - Show details about my cert/req
   cwcert new     - Generate a new cert request
   cwcert renew   - Renew my certificate
+  cwcert test    - Test certificate against policy master
 
   ('cwcert new' and 'cwcert renew' may be called from cwa via shell-out,
    or, we may roll up the new and renew main()'s as library functions and
@@ -39,6 +40,7 @@ static int cwcert_help_main(const struct cwcert_opts *args);
 static int cwcert_details_main(const struct cwcert_opts *args);
 static int cwcert_new_main(const struct cwcert_opts *args);
 static int cwcert_renew_main(const struct cwcert_opts *args);
+static int cwcert_test_main(const struct cwcert_opts *args);
 
 int main(int argc, char **argv)
 {
@@ -56,6 +58,8 @@ int main(int argc, char **argv)
 		err = cwcert_new_main(args);
 	} else if (strcmp(args->command, "renew") == 0) {
 		err = cwcert_renew_main(args);
+	} else if (strcmp(args->command, "test") == 0) {
+		err = cwcert_test_main(args);
 	} else {
 		return cwcert_help_main(args);
 	}
@@ -64,6 +68,8 @@ int main(int argc, char **argv)
 		return err;
 	}
 
+	fprintf(stderr, "OpenSSL error stack\n"
+	                "-------------------\n");
 	ERR_print_errors_fp(stderr);
 	return 1;
 }
@@ -155,6 +161,7 @@ static int cwcert_help_main(const struct cwcert_opts *args)
 	       "  details - Print information about this host's certificate / request.\n"
 	       "  new     - Generate a new host certificate request.\n"
 	       "  renew   - Renew this host's certificate / request.\n"
+	       "  test    - Test local certificate against policy master.\n"
 	       "  help    - Show this message.\n"
 	       "\n"
 	       "If no COMMAND is given, cwcert will pick either 'details' or 'new',\n"
@@ -205,10 +212,24 @@ static int cwcert_new_main(const struct cwcert_opts *args)
 	char fqdn[1024];
 	char *confirmation = NULL;
 
-	if (client_connect(args->config) != 0) {
-		exit(1);
+	key = cert_retrieve_key(args->config->key_file);
+	if (!key) {
+		INFO("Creating new key");
+		key = cert_generate_key(2048);
+		if (!key) {
+			CRITICAL("Unable to create new key");
+			return CWCERT_SSL_ERROR;
+		}
+		if (cert_store_key(key, args->config->key_file) != 0) {
+			CRITICAL("Unable to store new key in %s", args->config->key_file);
+			return CWCERT_SSL_ERROR;
+		}
+	} else {
+		CRITICAL("Unable to retrieve key from %s", args->config->key_file);
+		return CWCERT_SSL_ERROR;
 	}
 
+	if (client_connect(args->config) != 0) { exit(1); }
 	if (client_hello(args->config) == 0) {
 		printf("Valid certificate already acquired.\n"
 		       "Use `cwca revoke' on policy master to revoke.\n");
@@ -245,26 +266,6 @@ static int cwcert_new_main(const struct cwcert_opts *args)
 		} while (strcmp(confirmation, "yes") != 0 && strcmp(confirmation, "no") != 0);
 
 	} while (strcmp(confirmation, "yes") != 0);
-
-	key = cert_retrieve_key(args->config->key_file);
-	if (!key) {
-		INFO("Creating new key");
-		key = cert_generate_key(2048);
-		if (!key) {
-			CRITICAL("Unable to create new key");
-			return CWCERT_SSL_ERROR;
-		}
-		if (cert_store_key(key, args->config->key_file) != 0) {
-			CRITICAL("Unable to store new key in %s", args->config->key_file);
-			return CWCERT_SSL_ERROR;
-		}
-	} else {
-		INFO("Using key in %s", args->config->key_file);
-		if (!key) {
-			CRITICAL("Unable to retrieve key from %s", args->config->key_file);
-			return CWCERT_SSL_ERROR;
-		}
-	}
 
 	INFO("Generating certificate signing request...");
 	request = cert_generate_request(key, &subject);
@@ -309,5 +310,29 @@ static int cwcert_renew_main(const struct cwcert_opts *args)
 {
 	fprintf(stderr, "'renew' not yet implemented...\n");
 	return 1;
+}
+
+static int cwcert_test_main(const struct cwcert_opts *args)
+{
+	EVP_PKEY *key;
+
+	key = cert_retrieve_key(args->config->key_file);
+	if (!key) {
+		ERROR("No private key found.  Have you run `cwcert new'?");
+		return CWCERT_OTHER_ERR;
+	}
+
+	if (client_connect(args->config) != 0) {
+		ERROR("Connection to %s:%s refused", args->config->s_address, args->config->s_port);
+		return CWCERT_OTHER_ERR;
+	}
+	if (client_hello(args->config) == 0) {
+		printf("Certificate accepted by policy master\n");
+		client_bye(args->config);
+		return CWCERT_SUCCESS;
+	}
+
+	printf("Certificate DENIED by policy master\n");
+	return CWCERT_OTHER_ERR;
 }
 

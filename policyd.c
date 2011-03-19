@@ -661,6 +661,9 @@ static int server_init_ssl(server *s)
 	assert(s->cert_file);
 	assert(s->key_file);
 
+	X509_STORE *store;
+	X509_CRL *crl;
+
 	protocol_ssl_init();
 
 	INFO("Setting up server SSL context");
@@ -670,21 +673,38 @@ static int server_init_ssl(server *s)
 		return -1;
 	}
 
+	DEBUG(" - Loading CA certificate chain from %s", s->ca_cert_file);
 	if (!SSL_CTX_load_verify_locations(s->ssl_ctx, s->ca_cert_file, NULL)) {
 		ERROR("Failed to load CA certificate chain (%s)", s->ca_cert_file);
 		goto error;
 	}
+
+	DEBUG(" - Loading certificate from %s", s->cert_file);
 	if (!SSL_CTX_use_certificate_file(s->ssl_ctx, s->cert_file, SSL_FILETYPE_PEM)) {
 		ERROR("Failed to load certificate from file (%s)", s->cert_file);
 		goto error;
 	}
+
+	DEBUG(" - Loading private key from %s", s->key_file);
 	if (!SSL_CTX_use_PrivateKey_file(s->ssl_ctx, s->key_file, SSL_FILETYPE_PEM)) {
 		ERROR("Failed to load private key (%s)", s->key_file);
 		goto error;
 	}
 
+	DEBUG(" - Setting peer verification flags");
 	SSL_CTX_set_verify(s->ssl_ctx, SSL_VERIFY_PEER, NULL);
 	SSL_CTX_set_verify_depth(s->ssl_ctx, 4);
+
+	crl = cert_retrieve_crl(s->crl_file);
+	if (crl) {
+		DEBUG(" - Loading certificate revocation list from %s", s->crl_file);
+		store = SSL_CTX_get_cert_store(s->ssl_ctx);
+		X509_STORE_add_crl(store, crl);
+
+		s->ssl_ctx->param = X509_VERIFY_PARAM_new();
+		X509_VERIFY_PARAM_set_flags(s->ssl_ctx->param, X509_V_FLAG_CRL_CHECK);
+	}
+
 	return 0;
 
 error:

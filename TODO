@@ -2,6 +2,7 @@ List of Things To Do
 ====================
 
 Tests for mem.o module
+Tests for cert.o module
 
 Client / Server
   - Test remediation in chroot
@@ -10,13 +11,9 @@ Client / Server
      cwcert - CSR tool for agents
        Implement 'renew'
 
-     cwca   - CA tool for policy masters
-       Implement 'revoke'
-
      Communication between cwcert and cwca
        More intrusive signing / verification procedure
        How to handle renewals / revocation?
-       How to handle serial number generation?
 
 API documentation
   Use some sort of source-code documentation system (Doxygen)

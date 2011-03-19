@@ -16,7 +16,7 @@
   cwca new            - Generate a self-signed rootca cert
   cwca issued         - Show issued certs
   cwca pending        - List pending requests
- *cwca revoked        - List revoked certificates
+  cwca revoked        - List revoked certificates
   cwca [fqdn]         - Details about [fqdn]'s cert/req
   cwca details [fqdn] - Details about [fqdn]'s cert/req
   cwca sign [fqdn]    - Sign [fqdn]'s req
@@ -47,6 +47,7 @@ static int cwca_help_main(const struct cwca_opts *args);
 static int cwca_new_main(const struct cwca_opts *args);
 static int cwca_issued_main(const struct cwca_opts *args);
 static int cwca_pending_main(const struct cwca_opts *args);
+static int cwca_revoked_main(const struct cwca_opts *args);
 static int cwca_details_main(const struct cwca_opts *args);
 static int cwca_sign_main(const struct cwca_opts *args);
 static int cwca_ignore_main(const struct cwca_opts *args);
@@ -70,6 +71,8 @@ int main(int argc, char **argv)
 		err = cwca_issued_main(args);
 	} else if (strcmp(args->command, "pending") == 0) {
 		err = cwca_pending_main(args);
+	} else if (strcmp(args->command, "revoked") == 0) {
+		err = cwca_revoked_main(args);
 	} else if (strcmp(args->command, "sign") == 0) {
 		err = cwca_sign_main(args);
 	} else if (strcmp(args->command, "help") == 0) {
@@ -178,13 +181,14 @@ struct cwca_opts* cwca_options(int argc, char **argv)
 static int cwca_help_main(const struct cwca_opts *args)
 {
 	printf("cwca - Clockwork Policy Master Certificate Authority Tool\n"
-	       "USAGE: cwca [COMMAND] [ARGS]\n"
+	       "USAGE: cwca [OPTIONS] [COMMAND] [hostname]\n"
 	       "\n"
 	       "Valid commands are:\n"
 	       "\n"
 	       "  new     - Setup a new CA, with a self-signed certificate.\n"
 	       "  issued  - List signed certificates, by host name and fingerprint.\n"
 	       "  pending - List pending signing requests, by host name and fingerprint.\n"
+	       "  revoked - Show revoked certificates.\n"
 	       "  details - Print information about a named host's certificate / request.\n"
 	       "  sign    - Sign a named host's certificate request.\n"
 	       "  ignore  - Ignore (and remove) a host's certificate request.\n"
@@ -197,12 +201,18 @@ static int cwca_help_main(const struct cwca_opts *args)
 	       "\n"
 	       "If no COMMAND is given, cwca will default to 'pending'.\n"
 	       "\n"
-	       "ARGS can be any or all of the following:\n"
+	       "OPTIONS can be any or all of the following:\n"
 	       "\n"
 	       "  -h, --help            Show this helpful message.\n"
 	       "                        (for more in-depth help, check the man pages.)\n"
 	       "\n"
 	       "  -c, --config          Specify the path to an alternate configuration file.\n"
+	       "\n"
+	       "  -v, --verbose         Increase verbosity / log level by one.\n"
+	       "                        (can be used more than once, i.e. -vvv)\n"
+	       "\n"
+	       "  -D, --debug           Set verbosity to DEBUG level.  Mainly intended for\n"
+	       "                        developers, but helpful in troubleshooting.\n"
 	       "\n");
 
 	return CWCA_SUCCESS;
@@ -210,13 +220,6 @@ static int cwca_help_main(const struct cwca_opts *args)
 
 static int cwca_new_main(const struct cwca_opts *args)
 {
-	/* Stuff to ask the user for:
-
-	   lifetime of root ca cert
-	   lifetime of signed certs
-	 */
-
-	/* for now, some sane defaults... */
 	int days   = 365 * 10;
 
 	X509_REQ *request;
@@ -227,8 +230,6 @@ static int cwca_new_main(const struct cwca_opts *args)
 	struct cert_subject subject;
 	char fqdn[1024];
 	char *confirmation = NULL;
-
-	/* FIXME: confirm new ca setup with user... */
 
 	INFO("Creating new signing key");
 	for (;;) {
@@ -247,6 +248,8 @@ static int cwca_new_main(const struct cwca_opts *args)
 		memset(pass2, 0, strlen(pass2));
 		free(pass2);
 	}
+
+	/* FIXME: not actually using the key passphrase... */
 
 	key = cert_generate_key(2048);
 	if (!key) {
@@ -293,7 +296,7 @@ static int cwca_new_main(const struct cwca_opts *args)
 	request = cert_generate_request(key, &subject);
 	if (!request) { return CWCA_SSL_ERROR; }
 
-	cert = cert_sign_request(request, key, days);
+	cert = cert_sign_request(request, NULL, key, days);
 	if (!cert) { return CWCA_SSL_ERROR; }
 
 	if (cert_store_certificate(cert, args->server->cert_file) != 0) {
@@ -311,86 +314,100 @@ static int cwca_new_main(const struct cwca_opts *args)
 
 static int cwca_issued_main(const struct cwca_opts *args)
 {
-	// iterate through #{args->server->certs_dir}/*.pem
-	glob_t certs;
-	size_t i;
-	char *cert_files;
-	X509 *cert;
-	int rc;
+	X509 **certs;
+	size_t i, ncerts = 0;
+	char *path;
 
-	cert_files = string("%s/*.pem", args->server->certs_dir);
-	rc = glob(cert_files, GLOB_MARK, NULL, &certs);
-	free(cert_files);
+	path = string("%s/*.pem", args->server->certs_dir);
+	certs = cert_retrieve_certificates(path, &ncerts);
+	free(path);
 
-	switch (rc) {
-	case GLOB_NOMATCH:
-		printf("No certificates have been issued.\n");
+	if (ncerts == 0) {
+		printf("No certificates have been isued.\n");
 		return CWCA_SUCCESS;
-
-	case GLOB_NOSPACE:
-	case GLOB_ABORTED:
+	} else if (ncerts < 0) {
 		fprintf(stderr, "couldn't list issued certificates.\n");
 		return CWCA_OTHER_ERR;
 	}
 
-	for (i = 0; i < certs.gl_pathc; i++) {
-		cert = cert_retrieve_certificate(certs.gl_pathv[i]);
-		if (!cert) {
-			printf("%s does not look like a PEM-encoded certificate.\n",
-			       certs.gl_pathv[i]);
-			continue;
-		}
-
+	for (i = 0; i < ncerts; i++) {
 		printf("%s\t%s\n",
-		       cert_certificate_subject_name(cert),
-		       cert_fingerprint_certificate(cert));
+		       cert_certificate_subject_name(certs[i]),
+		       cert_fingerprint_certificate(certs[i]));
 	}
-	globfree(&certs);
 	return CWCA_SUCCESS;
 }
 
 static int cwca_pending_main(const struct cwca_opts *args)
 {
-	// iterate through #{args->server->requests_dir}/*.csr
-	glob_t requests;
-	size_t i;
-	char *req_files;
-	int rc;
-	X509_REQ *req;
+	X509_REQ **reqs;
 	EVP_PKEY *pubkey;
+	size_t i, nreqs = 0;
+	char *path;
 
-	req_files = string("%s/*.csr", args->server->requests_dir);
-	rc = glob(req_files, GLOB_MARK, NULL, &requests);
-	free(req_files);
+	path = string("%s/*.csr", args->server->requests_dir);
+	reqs = cert_retrieve_requests(path, &nreqs);
+	free(path);
 
-	switch (rc) {
-	case GLOB_NOMATCH:
+	if (nreqs == 0) {
 		printf("No certificate signing requests pending.\n");
 		printf(" (in %s)\n", args->server->requests_dir);
 		return CWCA_SUCCESS;
-
-	case GLOB_NOSPACE:
-	case GLOB_ABORTED:
+	} else if (nreqs < 0) {
 		fprintf(stderr, "couldn't list pending certificate signing requests.\n");
 		return CWCA_OTHER_ERR;
 	}
 
-	for (i = 0; i < requests.gl_pathc; i++) {
-		req = cert_retrieve_request(requests.gl_pathv[i]);
-		if (!req) {
-			fprintf(stderr, "%s does not appear to be a Certificate Request.\n", requests.gl_pathv[i]);
-			continue;
-		}
-
-		pubkey = X509_REQ_get_pubkey(req);
-		if (!pubkey) {
-			fprintf(stderr, "%s could not be verified.\n", requests.gl_pathv[i]);
-			continue;
-		}
-
-		printf("%s\t(%s)\n", cert_request_subject_name(req), requests.gl_pathv[i]);
+	for (i = 0; i < nreqs; i++) {
+		pubkey = X509_REQ_get_pubkey(reqs[i]);
+		printf("%s (%s)\n", 
+		       cert_request_subject_name(reqs[i]),
+		       (pubkey ? "verified" : "NOT VERIFIED"));
 	}
-	globfree(&requests);
+	return CWCA_SUCCESS;
+}
+
+static int cwca_revoked_main(const struct cwca_opts *args)
+{
+	X509_CRL *crl;
+	X509_REVOKED *revoked;
+	X509 **certs, *cert;
+	size_t ncerts = 0;
+	size_t i, j;
+	char *files;
+
+	files = string("%s/*.pem", args->server->certs_dir);
+	certs = cert_retrieve_certificates(files, &ncerts);
+	free(files);
+
+	if (!(crl = cert_retrieve_crl(args->server->crl_file))) {
+		ERROR("Unable to retrieve CRL from %s", args->server->crl_file);
+		return CWCA_SSL_ERROR;
+	}
+
+	for (i = 0; i < sk_X509_CRL_num(crl->crl->revoked); i++) {
+		revoked = sk_X509_REVOKED_value(crl->crl->revoked, i);
+		if (!revoked) { continue; }
+
+		cert = NULL;
+		for (j = 0; j < ncerts; j++) {
+			if (ASN1_INTEGER_cmp(X509_get_serialNumber(certs[j]), revoked->serialNumber) == 0) {
+				cert = certs[j];
+				break;
+			}
+		}
+
+		if (cert) {
+			printf("%s   %s\t%s\n",
+			       cert_certificate_serial_number(cert),
+			       cert_certificate_subject_name(cert),
+			       cert_fingerprint_certificate(cert));
+		} else {
+			printf("%s   (no matching cert)\n",
+			       cert_certificate_serial_number(cert));
+		}
+	}
+
 	return CWCA_SUCCESS;
 }
 
@@ -413,7 +430,11 @@ static int cwca_details_main(const struct cwca_opts *args)
 	if (!req_file || !cert_file) { return CWCA_OTHER_ERR; }
 
 	key = cert_retrieve_key(args->server->key_file);
-	if (!key) { return CWCA_SSL_ERROR; }
+	if (!key) {
+		fprintf(stderr, "Unable to retrieve CA key from %s\n",
+		                args->server->key_file);
+		return CWCA_SSL_ERROR;
+	}
 
 	request = cert_retrieve_request(req_file);
 	cert = cert_retrieve_certificate(cert_file);
@@ -424,6 +445,11 @@ static int cwca_details_main(const struct cwca_opts *args)
 	} else if (request) {
 		printf("Found a certificate signing request\n at %s\n\n", req_file);
 		X509_REQ_print_fp(stdout, request);
+	} else {
+		printf("Nothing known about %s\n", args->fqdn);
+		printf("  (looked in %s\n", req_file);
+		printf("         and %s\n", cert_file);
+		return CWCA_OTHER_ERR;
 	}
 
 	return CWCA_SUCCESS;
@@ -433,7 +459,7 @@ static int cwca_sign_main(const struct cwca_opts *args)
 {
 	EVP_PKEY *key;
 	X509_REQ *request;
-	X509 *cert;
+	X509 *cert, *ca_cert;
 	char *req_file;
 	char *cert_file;
 
@@ -451,12 +477,15 @@ static int cwca_sign_main(const struct cwca_opts *args)
 	key = cert_retrieve_key(args->server->key_file);
 	if (!key) { return CWCA_SSL_ERROR; }
 
+	printf("Retrieving CA certificate.\n");
+	ca_cert = cert_retrieve_certificate(args->server->ca_cert_file);
+
 	printf("Loading certificate signing request from %s\n", req_file);
 	request = cert_retrieve_request(req_file);
 	if (!request) { return CWCA_SSL_ERROR; }
 
 	printf("Signing certificate\n");
-	cert = cert_sign_request(request, key, 365*10);
+	cert = cert_sign_request(request, ca_cert, key, 365*10);
 	if (!cert) { return CWCA_SSL_ERROR; }
 
 	printf("Storing signed certifcate in %s\n", cert_file);
@@ -491,6 +520,10 @@ static int cwca_ignore_main(const struct cwca_opts *args)
 
 static int cwca_revoke_main(const struct cwca_opts *args)
 {
+	X509_CRL *crl;
+	EVP_PKEY *ca_key;
+	X509 *ca_cert, *cert;
+	char *cert_file;
 
 	if (!args->fqdn) {
 		fprintf(stderr, "Invalid invocation.\n"
@@ -498,7 +531,43 @@ static int cwca_revoke_main(const struct cwca_opts *args)
 		return CWCA_OTHER_ERR;
 	}
 
-	fprintf(stderr, "'revoke' not yet implemented.\n");
+	ca_key = cert_retrieve_key(args->server->key_file);
+	if (!ca_key) {
+		ERROR("Unable to retrieve CA signing key from %s",
+		      args->server->key_file);
+		return CWCA_SSL_ERROR;
+	}
+
+	ca_cert = cert_retrieve_certificate(args->server->ca_cert_file);
+	if (!ca_cert) {
+		ERROR("Unable to retrieve CA certificate from %s",
+		      args->server->ca_cert_file);
+		return CWCA_SSL_ERROR;
+	}
+
+	cert_file = string("%s/%s.pem", args->server->certs_dir, args->fqdn);
+	if (!cert_file) {
+		ERROR("Unable to determine path to certificate for %s", args->fqdn);
+		return CWCA_OTHER_ERR;
+	}
+
+	cert = cert_retrieve_certificate(cert_file);
+	if (!cert) {
+		ERROR("Unable to retrieve certificate to revoke (%s)", cert_file);
+		return CWCA_SSL_ERROR;
+	}
+
+	if (!(crl = cert_retrieve_crl(args->server->crl_file))) {
+		if (!(crl = cert_generate_crl(ca_cert))) {
+			return CWCA_SSL_ERROR;
+		}
+	}
+	if (cert_revoke_certificate(crl, cert, ca_key) == 0) {
+		cert_store_crl(crl, args->server->crl_file);
+	}
+	X509_CRL_print_fp(stdout, crl);
+
+	printf("\nRestart policyd for the new revocation list to take effect.\n");
 	return CWCA_SUCCESS;
 }
 

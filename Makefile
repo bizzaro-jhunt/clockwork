@@ -63,7 +63,7 @@ RESOURCE_OBJECTS := res_user.o res_group.o res_file.o report.o
 RESOURCE_HEADERS := res_user.h res_group.h res_file.h report.h
 
 # Supporting object files
-CORE_OBJECTS := mem.o sha1.o pack.o hash.o stringlist.o userdb.o log.o cert.o
+CORE_OBJECTS := mem.o sha1.o pack.o hash.o stringlist.o userdb.o log.o cert.o prompt.o
 
 # Policy object files
 POLICY_OBJECTS := policy.o $(RESOURCE_OBJECTS)
@@ -94,10 +94,10 @@ policyd: policyd.o $(CORE_OBJECTS) $(POLICY_OBJECTS) $(SPEC_PARSER_OBJECTS) $(CO
 cwa: cwa.o $(CORE_OBJECTS) $(POLICY_OBJECTS) $(CONFIG_PARSER_OBJECTS) proto.o client.o
 	$(CC) -o $@ $+
 
-cwcert: cwcert.o $(CORE_OBJECTS) $(POLICY_OBJECTS) $(CONFIG_PARSER_OBJECTS) proto.o client.o prompt.o
+cwcert: cwcert.o $(CORE_OBJECTS) $(POLICY_OBJECTS) $(CONFIG_PARSER_OBJECTS) proto.o client.o
 	$(CC) -o $@ $+
 
-cwca: cwca.o $(CORE_OBJECTS) $(CONFIG_PARSER_OBJECTS) server.o prompt.o
+cwca: cwca.o $(CORE_OBJECTS) $(CONFIG_PARSER_OBJECTS) server.o
 	$(CC) -o $@ $+
 
 sha1sum: sha1.o sha1sum.o mem.o log.o
@@ -240,7 +240,7 @@ test/util/presence.o: test/util/presence.c spec/lexer.l
 	$(CC) -c -o $@ $<
 
 test/util/prompter: test/util/prompter.o \
-                    $(CORE_OBJECTS) prompt.o
+                    $(CORE_OBJECTS)
 
 
 ############################################################

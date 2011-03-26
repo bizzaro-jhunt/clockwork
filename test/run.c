@@ -18,6 +18,8 @@ extern void test_suite_policy();
 extern void test_suite_fact();
 extern void test_suite_stree();
 
+extern void test_suite_cert();
+
 int main(int argc, char **argv)
 {
 	test_setup(argc, argv);
@@ -39,6 +41,8 @@ int main(int argc, char **argv)
 
 	test_suite_fact();
 	test_suite_stree();
+
+	test_suite_cert();
 
 	return test_status();
 }

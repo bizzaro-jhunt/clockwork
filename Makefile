@@ -4,7 +4,7 @@
 # Global Variables
 
 DO_PROFILING := yes
-DO_PROFILING := no
+#DO_PROFILING := no
 
 DO_DEBUGGING := yes
 #DO_DEBUGGING := no
@@ -179,6 +179,7 @@ test/run: test/run.o test/test.o \
           test/res_group.o res_group.o \
           test/res_user.o res_user.o \
           test/policy.o test/stree.o test/fact.o policy.o \
+          test/cert.o cert.o prompt.o \
           test/sha1.o sha1.o
 
 	$(CC) -o $@ $+

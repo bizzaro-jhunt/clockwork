@@ -85,8 +85,49 @@
  */
 void log_init(const char *ident);
 
+/**
+  Set the current log level
+
+  Because this function does check parameters before setting log level,
+  it may not always return the log level passed for the \a level parameter.
+  For example:
+
+  @verbatim
+  int l;
+
+  // Too low...
+  l = log_level(-1)      // l = LOG_LEVEL_NONE
+  l = log_level(-999)    // l = LOG_LEVEL_NONE
+
+  // Too high!
+  l = log_level(1000)    // l = LOG_LEVEL_ALL
+  @endverbatim
+
+  @param  level    Desired log verbosity level (a LOG_LEVEL_* constant)
+
+  @returns the actual log level, which may differ if \a level is an unknown
+           log level (i.e. too high or too low)
+ */
 int log_level(int level);
 
+/**
+  Return a human-friendly description of a log level
+
+  This function is intended to be used for printing out the current log
+  level so that the user know what it is set to.  For example:
+
+  @verbatim
+  int l;
+
+  l = log_level(LOG_LEVEL_INFO);
+  INFO("Log level is now %s", log_level_name(l));
+  @endverbatim
+
+  @param  level  Log level (LOG_LEVEL_*) to retrieve a name for.
+
+  @returns an internal constant string representing the name of the
+           given log level.
+ */
 const char* log_level_name(int level);
 
 /**

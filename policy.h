@@ -244,6 +244,12 @@ struct policy* policy_new(const char *name);
  */
 void policy_free(struct policy *pol);
 
+/**
+  De-allocate a policy object, and all of the resource
+  objects it has references to.
+
+  @param  pol    Policy object to de-allocate.
+ */
 void policy_free_all(struct policy *pol);
 
 /**

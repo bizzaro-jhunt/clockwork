@@ -5,29 +5,48 @@
 #include "proto.h"
 #include "policy.h"
 
+/**
+  A Client-side Interaction
+ */
 typedef struct {
+	/** OpenSSL I/O object connected to the policy master. */
 	BIO *socket;
+	/** OpenSSL SSL object controlling the SSL connection. */
 	SSL *ssl;
+	/** OpenSSL context for setting up the SSL connection. */
 	SSL_CTX *ssl_ctx;
 
+	/** The protocol session state machine. */
 	protocol_session session;
+	/** Facts gathered for the local client. */
 	struct hash *facts;
+	/** Policy retrieved from the policy master for the local client. */
 	struct policy *policy;
 
+	/** Requested log verbosity level (option) */
 	int log_level;
 
+	/** Whether or not to actually apply changes required by policy. */
 	int dryrun;
 
+	/** Path to the agent configuration file. */
 	char *config_file;
 
+	/** Path to the Certificate Authority certificate */
 	char *ca_cert_file;
+	/** Path to this node's certificate */
 	char *cert_file;
+	/** Path to this node's certificate signing request */
 	char *request_file;
+	/** Path to this node's private key */
 	char *key_file;
 
+	/** Shell glob matching the fact gathering scripts to run. */
 	char *gatherers;
 
+	/** The IP/DNS address of the policy master (option). */
 	char *s_address;
+	/** TCP port to connect to on the policy master host (option). */
 	char *s_port;
 } client;
 

@@ -137,7 +137,15 @@ docs: apidocs diagrams
 
 apidocs:
 	rm -rf $(APIDOC_ROOT)/*
-	$(DOXYGEN) $(APIDOC_CONF)
+	$(DOXYGEN) $(APIDOC_CONF) 2>&1 | tee $(APIDOC_ROOT)/doxygen.log
+	@echo
+	@echo === DOXYGEN ERROR SUMMARY ===================================================
+	@echo
+	@grep Warning $(APIDOC_ROOT)/doxygen.log | sed -e "s;.*$(PWD)/\([^:]*\).*;\1;" | sort | uniq -c
+	@echo
+	@echo === DOXYGEN ERROR DETAILS ===================================================
+	@echo
+	@grep Warning $(APIDOC_ROOT)/doxygen.log | sed -e 's/Parsing file //'
 
 diagrams: doc/proto-agent.png doc/proto-cert.png
 
@@ -261,7 +269,10 @@ dist: clean
 	rm -rf doc/coverage
 
 fixme:
-	find . -name '*.c' -o -name '*.c' | xargs grep -n FIXME: | sed -e 's/:[^:]*FIXME: /:/' -e 's/ *\*\///' | column -t -s :
+	find . -name '*.[ch]' | xargs grep -n FIXME: | sed -e 's/:[^:]*FIXME: /:/' -e 's/ *\*\///' | column -t -s :
+
+stats: clean
+	find . -name '*.[ch]' -not -path './test/**' 2>/dev/null | xargs ./util/nocomment | wc -l
 
 
 ############################################################

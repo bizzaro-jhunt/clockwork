@@ -104,6 +104,13 @@ typedef struct {
 
 /**********************************************************/
 
+/**
+  Generate a human-frindly textual name for a protocol operation.
+
+  @param  op    Protocol operator to look up.
+
+  @returns a constant string describint the protocol operator.
+ */
 const char* protocol_op_name(protocol_op op);
 
 /**
@@ -212,6 +219,18 @@ int pdu_write(SSL *io, protocol_data_unit *pdu);
  */
 int pdu_receive(protocol_session *session);
 
+/**
+  Send a simple (data-less) PDU to the remote party.
+
+  This function is used by macros like pdu_send_BYE, which
+  do not need to send additional data to the other side.
+
+  @param  session     The current session, containing the IO stream
+                      and the PDU buffer.
+  @param  op          The protocol operator (PDU type) to send.
+
+  @returns 0 on success, non-zero on failure.
+ */
 int pdu_send_simple(protocol_session *session, protocol_op op);
 
 /**
@@ -238,13 +257,19 @@ int pdu_send_ERROR(protocol_session *session, uint16_t err_code, const char *str
  */
 int pdu_decode_ERROR(protocol_data_unit *pdu, uint16_t *err_code, uint8_t **str, size_t *len);
 
+/**
+  Send a HELLO PDU to the report part.
+
+  @param  s    The current session.  Contains the IO stream and the PDU buffer.
+
+  @returns 0 on success, non-zero on failure.
+ */
 #define pdu_send_HELLO(s) pdu_send_simple((s), PROTOCOL_OP_HELLO)
 
 /**
   Send a BYE PDU to the remote party.
 
-  @param  session    The current session.  Contains the IO stream,
-                     and the PDU buffer.
+  @param  s    The current session.  Contains the IO stream and the PDU buffer.
 
   @returns 0 on success, non-zero on failure.
  */
@@ -299,14 +324,89 @@ int pdu_send_POLICY(protocol_session *session, const struct policy *policy);
  */
 int pdu_decode_POLICY(protocol_data_unit *pdu, struct policy **policy);
 
+/**
+  Send a FILE PDU to the server.
+
+  FILE PDUs are sent by clients to server in order to request the contents
+  of a res_file that need to be refreshed on the client machine.  For security
+  reasons, only the checksum is sent, to prevent "leeching" of files.
+
+  @param  session    The current session.  Contains the IO stream,
+                     and the PDU buffer.
+  @param  checksum   SHA1 checksum of the file (obtained from the policy).
+
+  @returns 0 on success, non-zero on failure.
+ */
 int pdu_send_FILE(protocol_session *session, sha1 *checksum);
 
+/**
+  Send a DATA PDU to a client.
+
+  DATA PDUs are sent by servers to clients, in response to a FILE PDU.
+  Each DATA PDU represents a chunk of the file, sent in order.  The final
+  (EOF) DATA PDU is sent with a zero length.
+
+  Each call to pdu_send_DATA will read more data out of \a srcfd until an
+  EOF occurs.
+
+  @param  session    The current session.  Contains the IO stream,
+                     and the PDU buffer.
+  @param  srcfd      File descriptor of the file to transfer.
+
+  @returns the number of bytes read from \a srcfd on success,
+           or -1 on failure.  When an EOF occurs on \a srcfd,
+           0 is returned and the EOF DATA PDU is sent.
+ */
 int pdu_send_DATA(protocol_session *session, int srcfd);
 
+/**
+  Send a GET_CERT PDU to the server.
+
+  GET_CERT PDUs are used by clients to request a signed certificate from
+  a certificate signing request.
+
+  @param  session    The current session.  Contains the IO stream,
+                     and the PDU buffer.
+  @param  csr        The client's certificate signing request.
+
+  @returns 0 on success, non-zero on failure.
+ */
 int pdu_send_GET_CERT(protocol_session *session, X509_REQ  *csr);
+
+/**
+  Decode a GET_CERT PDU sent by a client.
+
+  @param  pdu      PDU to decode.
+  @param  csr      Pointer to a pointer to a CSR structure,
+                   where the request will be stored.
+
+  @returns 0 on success, non-zero on failure.
+ */
 int pdu_decode_GET_CERT(protocol_data_unit *pdu, X509_REQ **csr);
 
+/**
+  Send a SEND_CERT PDU to a client.
+
+  SEND_CERT PDUs are sent in response to a GET_CERT, if the policy
+  master has a signed certificate on file for the client.
+
+  @param  session    The current session.  Contains the IO stream,
+                     and the PDU buffer.
+  @param  cert       The signed certificate for the client.
+
+  @returns 0 on success, non-zero on failure.
+ */
 int pdu_send_SEND_CERT(protocol_session *session, X509  *cert);
+
+/**
+  Decode a SEND_CERT PDU sent by the server.
+
+  @param  pdu      PDU to decode.
+  @param  cert     Pointer to a pointer to a certificate structure,
+                   where the certificate will be stored.
+
+  @returns 0 on success, non-zero on failure.
+ */
 int pdu_decode_SEND_CERT(protocol_data_unit *pdu, X509 **cert);
 
 #endif

@@ -12,6 +12,7 @@
 
 /**************************************************************/
 
+/** @cond false */
 typedef struct {
 	BIO *socket;
 	SSL *ssl;
@@ -32,6 +33,7 @@ typedef struct {
 
 	unsigned short peer_verified;
 } worker;
+/** @endcond */
 
 /**************************************************************/
 

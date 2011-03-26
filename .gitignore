@@ -11,6 +11,7 @@ sha1sum
 polspec
 
 doc/*.png
+doc/api/doxygen.log
 
 certs
 

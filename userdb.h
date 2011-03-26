@@ -99,7 +99,27 @@ struct pwdb* pwdb_init(const char *path);
  */
 struct passwd* pwdb_get_by_name(struct pwdb *db, const char *name);
 
+/**
+  Look up a UID, by username, in a user database.
+
+  @param  db      User database to search.
+  @param  name    Username of the account to look for.
+
+  @returns the UID of the named account, if the entry
+           was found, otherwise -1.
+ */
 uid_t pwdb_lookup_uid(struct pwdb *db, const char *name);
+
+/**
+  Find an unused UID in a user database
+
+  Useful for creating "auto-increment" UIDs, pwdb_next_uid
+  starts at UID 1000 and tries to find the next available
+  user ID, based on what IDs have already been handed out.
+
+  @param  db      User database to search.
+  @returns an available UID.
+ */
 uid_t pwdb_next_uid(struct pwdb *db);
 
 /**
@@ -127,6 +147,19 @@ struct passwd* pwdb_get_by_uid(struct pwdb *db, uid_t uid);
            (see getpwent(3)).
  */
 struct passwd* pwdb_new_entry(struct pwdb *db, const char *name, uid_t uid, gid_t gid);
+
+/**
+  Add a new user entry to a user database.
+
+  @note If an entry already exists in \a db that has the same
+        UID as \a pw, the add operation "fails" and returns
+        a suitable failure value (-1).
+
+  @param  db   Database to add the entry to.
+  @param  pw   User entry to add.
+
+  @returns 0 on success, -1 on failure.
+ */
 int pwdb_add(struct pwdb *db, struct passwd *pw);
 
 /**
@@ -198,6 +231,19 @@ struct spwd* spdb_get_by_name(struct spdb *db, const char *name);
            (see getspent(3)).
  */
 struct spwd* spdb_new_entry(struct spdb *db, const char *name);
+
+/**
+  Add a new shadow entry to a shadow database.
+
+  @note If an entry already exists in \a db that has the same
+        UID as \a pw, the add operation "fails" and returns a
+        suitable failure value (-1).
+
+  @param  db   Database to add the entry to.
+  @param  sp   Shadow entry to add.
+
+  @returns 0 on success, -1 on failure.
+ */
 int spdb_add(struct spdb *db, struct spwd *sp);
 
 /**
@@ -258,6 +304,14 @@ struct grdb* grdb_init(const char *path);
  */
 struct group* grdb_get_by_name(struct grdb *db, const char *name);
 
+/**
+  Look up a group ID, by name, in a group database.
+
+  @param  db      Group database to search.
+  @param  name    Name of group account to look for.
+
+  @returns the GID of the group if found, otherwise -1.
+ */
 gid_t grdb_lookup_gid(struct grdb *db, const char *name);
 
 /** Look up a group entry, by GID, in a group database.
@@ -281,6 +335,18 @@ struct group* grdb_get_by_gid(struct grdb *db, gid_t gid);
            (see getgrent(3)).
  */
 struct group* grdb_new_entry(struct grdb *db, const char *name, gid_t gid);
+
+/**
+  Add a group entry to a group database.
+
+  @note If a group entry already exists in \a db with
+        the same GID as \a g, the add operation "fails".
+
+  @param  db    Database to add the entry to.
+  @param  g     Group entry to add.
+
+  @returns 0 on success, -1 on failure.
+ */
 int grdb_add(struct grdb *db, struct group *g);
 
 /**
@@ -351,6 +417,18 @@ struct sgrp* sgdb_get_by_name(struct sgdb *db, const char *name);
   @returns a pointer to the newly created sgrp structure.
  */
 struct sgrp* sgdb_new_entry(struct sgdb *db, const char *name);
+
+/**
+  Add a group shadow entry to a group shadow database.
+
+  @note If a group entry already exists in \a db with
+        the same GID as \a g, the add operation "fails".
+
+  @param  db    Database to add the entry to.
+  @param  g     Group shadow entry to add.
+
+  @returns 0 on success, -1 on failure.
+ */
 int sgdb_add(struct sgdb *db, struct sgrp *g);
 
 /** Remove an entry from a group shadow database.

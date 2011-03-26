@@ -57,6 +57,19 @@ char* xstrdup(const char *s);
  */
 int xstrcmp(const char *a, const char *b);
 
+/**
+  Copy one string into another buffer.
+
+  Unlike the standard libc +strcpy+ function that it wraps, strncpy
+  correctly handles NULL \a dest and \a src parameters, and places
+  a NULL-terminator in \a dest.
+
+  @param  dest   Buffer to copy into.
+  @param  src    String buffer to copy from.
+  @param  n      Number of bytes to copy from \a src into \a dest.
+
+  @returns  The \a dest parameter (just like standard +strncpy+)
+ */
 char* xstrncpy(char *dest, const char *src, size_t n);
 
 /**
@@ -78,6 +91,19 @@ char** xarrdup(char **a);
  */
 void xarrfree(char **a);
 
+/**
+  Build an arbitrary string, with printf-like flexibility
+
+  For formatting options support, see printf(3).
+
+  The returned string must be freed by the caller.
+
+  @param  fmt   A printf-like format string.
+  @param  ...   Variable arguments for interpolating \a fmt.
+
+  @returns a dynamically allocated string containing the interpolated
+           \a fmt string.
+ */
 char* string(const char *fmt, ...);
 
 #endif /* MEM_H */

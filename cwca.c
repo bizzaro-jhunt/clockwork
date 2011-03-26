@@ -31,11 +31,13 @@
 #define CWCA_SSL_ERROR 1
 #define CWCA_OTHER_ERR 2
 
+/** @cond false */
 struct cwca_opts {
 	char *command;
 	char *fqdn;
 	server *server;
 };
+/** @endcond */
 
 /**************************************************************/
 

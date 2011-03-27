@@ -19,6 +19,31 @@ res_package
   status
   version requirements
 
+
+  NOTE: For res_package, it will be best to rely on the
+        package manager of choice for the local platform.  For
+        RedHat, use yum or up2date.  For Deb/Ubu, use apt*.
+        Trying to integrate with these package manager DBs
+        via C APIs seems to be too much work for little gain.
+
+  DEBIAN:
+          check installed:   "dpkg-query -W -f='${Version}' %s"
+          install:           "apt-get install -qqy %s"
+          install version:   "apt-get install -qqy %s=%s"
+          erase:             "apt-get purge   -qqy %s"
+
+  REDHAT:
+          check installed:   "rpm --quiet --qf='%%{VERSION}-%%{RELEASE}' -q %s"
+          install:           "yum install -qy %s"
+          install version:   "yum install -qy %s-%s"
+          erase:             "yum erase   -qy %s"
+
+  GENTOO:
+          check installed:   ???
+          install:           ???
+          install version:   ???
+          erase:             ???
+
 res_user
 --------
 + username

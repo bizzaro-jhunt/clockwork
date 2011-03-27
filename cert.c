@@ -105,6 +105,8 @@ EVP_PKEY* cert_retrieve_key(const char *keyfile)
 	if ((fp = fopen(keyfile, "r")) != NULL) {
 		key = PEM_read_PrivateKey(fp, NULL, NULL, NULL);
 		fclose(fp);
+	} else {
+		DEBUG("Unable to open %s for key retrieval", keyfile);
 	}
 
 	return key;
@@ -560,7 +562,10 @@ int cert_revoke_certificate(X509_CRL *crl, X509 *cert, EVP_PKEY *key)
 	X509_CRL_add0_revoked(crl, revoked_cert);
 	X509_CRL_sort(crl);
 	X509_CRL_set_lastUpdate(crl, revoked_at);
-	X509_CRL_set_nextUpdate(crl, revoked_at); /* FIXME: need a better 'nextUpdate' value */
+	if (!X509_time_adj(revoked_at, 10 * 365 * 86400, NULL)) {
+		goto error;
+	}
+	X509_CRL_set_nextUpdate(crl, revoked_at);
 
 	if (!X509_CRL_sign(crl, key, EVP_sha1())) {
 		goto error;

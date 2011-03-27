@@ -11,6 +11,7 @@
 #include "policy.h"
 #include "userdb.h"
 #include "client.h"
+#include "pkgmgr.h"
 
 static client* cwa_options(int argc, char **argv);
 static void show_help(void);
@@ -278,6 +279,7 @@ static int enforce_policy(client *c, struct list *l)
 	struct res_user *ru;
 	struct res_group *rg;
 	struct res_file *rf;
+	struct res_package *rp;
 
 	struct report *r;
 	int pipefd[2];
@@ -336,6 +338,14 @@ static int enforce_policy(client *c, struct list *l)
 		close(pipefd[0]);
 		close(pipefd[1]);
 
+		list_add_tail(&r->rep, l);
+	}
+
+	/* Remediate packages */
+	for_each_node(rp, &c->policy->res_packages, res) {
+		/* FIXME: detect or assign package manager */
+		res_package_stat(rp, UBUNTU_PACKAGE_MANAGER);
+		r = res_package_remediate(rp, c->dryrun, UBUNTU_PACKAGE_MANAGER);
 		list_add_tail(&r->rep, l);
 	}
 

@@ -6,6 +6,7 @@
 #include "res_file.h"
 #include "res_group.h"
 #include "res_user.h"
+#include "res_package.h"
 
 /** @file policy.h
  */
@@ -95,6 +96,9 @@ struct policy {
 
 	/** List of user resources */
 	struct list res_users;
+
+	/** List of package resources */
+	struct list res_packages;
 
 	/** Searchable hash table, keyed "TYPE:pkey" */
 	struct hash *resources;
@@ -281,6 +285,8 @@ int policy_add_group_resource(struct policy *pol, struct res_group *rg);
   @returns 0 on succes, non-zero on failure.
  */
 int policy_add_user_resource(struct policy *pol, struct res_user *ru);
+
+int policy_add_package_resource(struct policy *pol, struct res_package *rp);
 
 /**
   Serialize a policy into a string representation.

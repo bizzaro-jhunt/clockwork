@@ -235,12 +235,14 @@ static int get_policy(client *c)
 	}
 
 	if (pdu_decode_POLICY(RECV_PDU(&c->session), &c->policy) != 0) {
+		CRITICAL("Unable to decode POLICY PDU");
 		goto disconnect;
 	}
 
 	return 0;
 
 disconnect:
+	DEBUG("get_policy forcing a disconnect");
 	client_disconnect(c);
 	exit(1);
 }

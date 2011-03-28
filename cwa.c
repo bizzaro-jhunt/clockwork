@@ -13,6 +13,9 @@
 #include "client.h"
 #include "pkgmgr.h"
 
+/* FIXME: one-off weirdness for fixup res_file */
+#include "res_file.h"
+
 static client* cwa_options(int argc, char **argv);
 static void show_help(void);
 
@@ -271,24 +274,21 @@ static int get_file(protocol_session *session, sha1 *checksum, int fd)
 
 static int enforce_policy(client *c, struct list *l)
 {
-	struct pwdb *passwd;
-	struct spdb *shadow;
-	struct grdb *group;
-	struct sgdb *gshadow;
-
-	struct res_user *ru;
-	struct res_group *rg;
+	struct resource_env env;
+	struct resource *res;
 	struct res_file *rf;
-	struct res_package *rp;
 
 	struct report *r;
 	int pipefd[2];
 	ssize_t bytes = 0;
 
-	if ((passwd  = pwdb_init(SYS_PASSWD)) == NULL
-	 || (shadow  = spdb_init(SYS_SHADOW)) == NULL
-	 || (group   = grdb_init(SYS_GROUP))  == NULL
-	 || (gshadow = sgdb_init(SYS_GSHADOW)) == NULL) {
+	/* FIXME: hard-coded in cwa */
+	env.package_manager = UBUNTU_PACKAGE_MANAGER;
+
+	if ((env.user_pwdb  = pwdb_init(SYS_PASSWD)) == NULL
+	 || (env.user_spdb  = spdb_init(SYS_SHADOW)) == NULL
+	 || (env.group_grdb = grdb_init(SYS_GROUP))  == NULL
+	 || (env.group_sgdb = sgdb_init(SYS_GSHADOW)) == NULL) {
 		CRITICAL("Unable to initialize user / group database(s)");
 		exit(2);
 	}
@@ -299,61 +299,52 @@ static int enforce_policy(client *c, struct list *l)
 		INFO("Enforcing policy on local system");
 	}
 
-	/* Remediate groups */
-	for_each_node(rg, &c->policy->res_groups, res) {
-		res_group_stat(rg, group, gshadow);
-		r = res_group_remediate(rg, c->dryrun, group, gshadow);
-		list_add_tail(&r->rep, l);
-	}
+	/* Remediate all */
+	for_each_node(res, &c->policy->resources, l) {
+		/* FIXME: one-off weirdness for res_file */
+		env.file_fd = -1;
+		env.file_len = 0;
+		if (res->type == RES_FILE) {
+			rf = (struct res_file*)(res->resource);
+			rf->rf_uid = pwdb_lookup_uid(env.user_pwdb,  rf->rf_owner);
+			rf->rf_gid = grdb_lookup_gid(env.group_grdb, rf->rf_group);
+		}
 
-	/* Remediate users */
-	for_each_node(ru, &c->policy->res_users, res) {
-		res_user_stat(ru, passwd, shadow);
-		r = res_user_remediate(ru, c->dryrun, passwd, shadow);
-		list_add_tail(&r->rep, l);
-	}
+		resource_stat(res, &env);
 
-	/* Remediate files */
-	for_each_node(rf, &c->policy->res_files, res) {
-		rf->rf_uid = pwdb_lookup_uid(passwd, rf->rf_owner);
-		rf->rf_gid = grdb_lookup_gid(group,  rf->rf_group);
-
-		res_file_stat(rf);
-
-		if (res_file_different(rf, SHA1)) {
-			if (pipe(pipefd) != 0) {
-				pipefd[0] = -1;
-			} else {
-				bytes = get_file(&c->session, &rf->rf_rsha1, pipefd[1]);
-				if (bytes <= 0) {
-					close(pipefd[0]);
-					close(pipefd[1]);
-
+		/* FIXME: one-off weirdness for res_file */
+		if (res->type == RES_FILE) {
+			rf = (struct res_file*)(res->resource);
+			if (res_file_different(rf, SHA1)) {
+				if (pipe(pipefd) != 0) {
 					pipefd[0] = -1;
+				} else {
+					bytes = get_file(&c->session, &rf->rf_rsha1, pipefd[1]);
+					if (bytes <= 0) {
+						close(pipefd[0]);
+						close(pipefd[1]);
+
+						pipefd[0] = -1;
+					}
 				}
+				env.file_fd = pipefd[0];
+				env.file_len = bytes;
 			}
 		}
-		r = res_file_remediate(rf, c->dryrun, pipefd[0], bytes);
 
-		close(pipefd[0]);
-		close(pipefd[1]);
+		r = resource_fixup(res, c->dryrun, &env);
 
-		list_add_tail(&r->rep, l);
-	}
-
-	/* Remediate packages */
-	for_each_node(rp, &c->policy->res_packages, res) {
-		/* FIXME: detect or assign package manager */
-		res_package_stat(rp, UBUNTU_PACKAGE_MANAGER);
-		r = res_package_remediate(rp, c->dryrun, UBUNTU_PACKAGE_MANAGER);
+		if (res->type == RES_FILE) {
+			close(env.file_fd);
+		}
 		list_add_tail(&r->rep, l);
 	}
 
 	if (!c->dryrun) {
-		pwdb_write(passwd,  SYS_PASSWD);
-		spdb_write(shadow,  SYS_SHADOW);
-		grdb_write(group,   SYS_GROUP);
-		sgdb_write(gshadow, SYS_GSHADOW);
+		pwdb_write(env.user_pwdb,  SYS_PASSWD);
+		spdb_write(env.user_spdb,  SYS_SHADOW);
+		grdb_write(env.group_grdb, SYS_GROUP);
+		sgdb_write(env.group_sgdb, SYS_GSHADOW);
 	}
 
 	return 0;

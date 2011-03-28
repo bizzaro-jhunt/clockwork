@@ -75,7 +75,8 @@ static int _res_file_diff(struct res_file *rf)
 
 /*****************************************************************/
 
-struct res_file* res_file_new(const char *key)
+//struct res_file* res_file_new(const char *key)
+void* res_file_new(const char *key)
 {
 	struct res_file *rf;
 
@@ -111,8 +112,10 @@ struct res_file* res_file_new(const char *key)
 	return rf;
 }
 
-void res_file_free(struct res_file *rf)
+//void res_file_free(struct res_file *rf)
+void res_file_free(void *res)
 {
+	struct res_file *rf = (struct res_file*)(res);
 	if (rf) {
 		list_del(&rf->res);
 
@@ -125,8 +128,27 @@ void res_file_free(struct res_file *rf)
 	free(rf);
 }
 
-int res_file_setattr(struct res_file *rf, const char *name, const char *value)
+const char* res_file_key(const void *res)
 {
+	const struct res_file *rf = (struct res_file*)(res);
+	assert(rf);
+
+	return rf->key;
+}
+
+int res_file_norm(void *res) {
+	struct res_file *rf = (struct res_file*)(res);
+	assert(rf);
+
+	return sha1_file(rf->rf_rpath, &rf->rf_rsha1);
+}
+
+//int res_file_setattr(struct res_file *rf, const char *name, const char *value)
+int res_file_setattr(void *res, const char *name, const char *value)
+{
+	struct res_file *rf = (struct res_file*)(res);
+	assert(rf);
+
 	if (strcmp(name, "owner") == 0) {
 		return res_file_set_owner(rf, value);
 	} else if (strcmp(name, "group") == 0) {
@@ -220,8 +242,11 @@ int res_file_set_source(struct res_file *rf, const char *file)
  * Fill in the local details of res_file structure,
  * including invoking stat(2)
  */
-int res_file_stat(struct res_file *rf)
+//int res_file_stat(struct res_file *rf)
+int res_file_stat(void *res, const struct resource_env *env)
 {
+	struct res_file *rf = (struct res_file*)(res);
+
 	assert(rf);
 	assert(rf->rf_lpath);
 
@@ -243,9 +268,12 @@ int res_file_stat(struct res_file *rf)
 	return _res_file_diff(rf);
 }
 
-struct report* res_file_remediate(struct res_file *rf, int dryrun, int remote_fd, ssize_t remote_len)
+//struct report* res_file_remediate(struct res_file *rf, int dryrun, int remote_fd, ssize_t remote_len)
+struct report* res_file_fixup(void *res, int dryrun, const struct resource_env *env)
 {
+	struct res_file *rf = (struct res_file*)(res);
 	assert(rf);
+	assert(env);
 
 	struct report *report = report_new("File", rf->rf_lpath);
 	char *action;
@@ -305,12 +333,12 @@ struct report* res_file_remediate(struct res_file *rf, int dryrun, int remote_fd
 				}
 			}
 
-			if (remote_fd == -1) {
+			if (env->file_fd == -1) {
 				report_action(report, action, ACTION_FAILED);
 				return report;
 			}
 
-			if (_res_file_fd2fd(local_fd, remote_fd, remote_len) == -1) {
+			if (_res_file_fd2fd(local_fd, env->file_fd, env->file_len) == -1) {
 				report_action(report, action, ACTION_FAILED);
 				return report;
 			}
@@ -372,17 +400,23 @@ struct report* res_file_remediate(struct res_file *rf, int dryrun, int remote_fd
 
 int res_file_is_pack(const char *packed)
 {
+	assert(packed);
 	return strncmp(packed, RES_FILE_PACK_PREFIX, RES_FILE_PACK_OFFSET);
 }
 
-char* res_file_pack(struct res_file *rf)
+//char* res_file_pack(struct res_file *rf)
+char* res_file_pack(const void *res)
 {
+	const struct res_file *rf = (const struct res_file*)(res);
+	assert(rf);
+
 	return pack(RES_FILE_PACK_PREFIX, RES_FILE_PACK_FORMAT,
 	            rf->rf_enf,
 	            rf->rf_lpath, rf->rf_rsha1.hex, rf->rf_owner, rf->rf_group, rf->rf_mode);
 }
 
-struct res_file* res_file_unpack(const char *packed)
+//struct res_file* res_file_unpack(const char *packed)
+void* res_file_unpack(const char *packed)
 {
 	char *hex = NULL;
 	struct res_file *rf = res_file_new(NULL);

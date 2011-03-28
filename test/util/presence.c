@@ -15,11 +15,15 @@
 void print_users(struct policy *pol)
 {
 	struct res_user *u;
+	struct resource *r;
 	size_t i;
 
 	i = 0;
 	printf("present");
-	for_each_node(u, &pol->res_users, res) {
+	for_each_node(r, &pol->resources, l) {
+		if (r->type != RES_USER) { continue; }
+		u = (struct res_user*)(r->resource);
+
 		if (!res_user_enforced(u, ABSENT)) {
 			printf(":%s", u->ru_name);
 			i++;
@@ -30,7 +34,10 @@ void print_users(struct policy *pol)
 
 	i = 0;
 	printf("absent");
-	for_each_node(u, &pol->res_users, res) {
+	for_each_node(r, &pol->resources, l) {
+		if (r->type != RES_USER) { continue; }
+		u = (struct res_user*)(r->resource);
+
 		if (res_user_enforced(u, ABSENT)) {
 			printf(":%s", u->ru_name);
 			i++;

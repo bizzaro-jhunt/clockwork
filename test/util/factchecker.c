@@ -1,6 +1,7 @@
 #include <stdio.h>
 
 #include "../../policy.h"
+#include "../../resources.h"
 #include "../../spec/parser.h"
 
 /** factchecker - a test utility
@@ -21,9 +22,12 @@
 void print_users(struct policy *pol)
 {
 	struct res_user *u;
+	struct resource *r;
 	size_t i = 0;
 
-	for_each_node(u, &pol->res_users, res) {
+	for_each_node(r, &pol->resources, l) {
+		if (r->type != RES_USER) { continue; }
+		u = (struct res_user*)(r->resource);
 		printf("res_user:%s:%u:%u\n", u->ru_name, u->ru_uid, u->ru_gid);
 		i++;
 	}

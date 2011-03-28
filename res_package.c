@@ -11,7 +11,8 @@
  */
 #define RES_PACKAGE_PACK_FORMAT "Laa"
 
-struct res_package* res_package_new(const char *key)
+//struct res_package* res_package_new(const char *key)
+void* res_package_new(const char *key)
 {
 	struct res_package *rp;
 
@@ -32,8 +33,10 @@ struct res_package* res_package_new(const char *key)
 	return rp;
 }
 
-void res_package_free(struct res_package *rp)
+//void res_package_free(struct res_package *rp)
+void res_package_free(void *res)
 {
+	struct res_package *rp = (struct res_package*)(res);
 	if (rp) {
 		list_del(&rp->res);
 
@@ -46,8 +49,20 @@ void res_package_free(struct res_package *rp)
 	free(rp);
 }
 
-int res_package_setattr(struct res_package *rp, const char *name, const char *value)
+const char* res_package_key(const void *res)
 {
+	const struct res_package *rp = (struct res_package*)(res);
+	assert(rp);
+
+	return rp->key;
+}
+
+int res_package_norm(void *res) { return 0; }
+
+//int res_package_setattr(struct res_package *rp, const char *name, const char *value)
+int res_package_setattr(void *res, const char *name, const char *value)
+{
+	struct res_package *rp = (struct res_package*)(res);
 	if (strcmp(name, "name") == 0) {
 		return res_package_set_name(rp, value);
 	} else if (strcmp(name, "version") == 0) {
@@ -92,21 +107,27 @@ int res_package_set_version(struct res_package *rp, const char *version)
 	return 0;
 }
 
-int res_package_stat(struct res_package *rp, const struct package_manager *mgr)
+int res_package_stat(void *res, const struct resource_env *env)
 {
+	struct res_package *rp = (struct res_package*)(res);
+
 	assert(rp);
-	assert(mgr);
+	assert(env);
+	assert(env->package_manager);
 
 	free(rp->installed);
-	rp->installed = package_manager_query(mgr, rp->name);
+	rp->installed = package_manager_query(env->package_manager, rp->name);
 
 	return 0;
 }
 
-struct report* res_package_remediate(struct res_package *rp, int dryrun, const struct package_manager *mgr)
+struct report* res_package_fixup(void *res, int dryrun, const struct resource_env *env)
 {
+	struct res_package *rp = (struct res_package*)(res);
+
 	assert(rp);
-	assert(mgr);
+	assert(env);
+	assert(env->package_manager);
 
 	struct report *report = report_new("Package", rp->name);
 	char *action;
@@ -117,7 +138,7 @@ struct report* res_package_remediate(struct res_package *rp, int dryrun, const s
 
 			if (dryrun) {
 				report_action(report, action, ACTION_SKIPPED);
-			} else if (package_manager_remove(mgr, rp->name) == 0) {
+			} else if (package_manager_remove(env->package_manager, rp->name) == 0) {
 				report_action(report, action, ACTION_SUCCEEDED);
 			} else {
 				report_action(report, action, ACTION_FAILED);
@@ -133,7 +154,7 @@ struct report* res_package_remediate(struct res_package *rp, int dryrun, const s
 
 		if (dryrun) {
 			report_action(report, action, ACTION_SKIPPED);
-		} else if (package_manager_install(mgr, rp->name, rp->version) == 0) {
+		} else if (package_manager_install(env->package_manager, rp->name, rp->version) == 0) {
 			report_action(report, action, ACTION_SUCCEEDED);
 		} else {
 			report_action(report, action, ACTION_FAILED);
@@ -147,7 +168,7 @@ struct report* res_package_remediate(struct res_package *rp, int dryrun, const s
 
 		if (dryrun) {
 			report_action(report, action, ACTION_SKIPPED);
-		} else if (package_manager_install(mgr, rp->name, rp->version) == 0) {
+		} else if (package_manager_install(env->package_manager, rp->name, rp->version) == 0) {
 			report_action(report, action, ACTION_SUCCEEDED);
 		} else {
 			report_action(report, action, ACTION_FAILED);
@@ -164,14 +185,19 @@ int res_package_is_pack(const char *packed)
 	return strncmp(packed, RES_PACKAGE_PACK_PREFIX, RES_PACKAGE_PACK_OFFSET);
 }
 
-char *res_package_pack(struct res_package *rp)
+//char *res_package_pack(struct res_package *rp)
+char* res_package_pack(const void *res)
 {
+	const struct res_package *rp = (const struct res_package*)(res);
+	assert(rp);
+
 	return pack(RES_PACKAGE_PACK_PREFIX, RES_PACKAGE_PACK_FORMAT,
 	            rp->enforced,
 	            rp->name, rp->version);
 }
 
-struct res_package* res_package_unpack(const char *packed)
+//struct res_package* res_package_unpack(const char *packed)
+void* res_package_unpack(const char *packed)
 {
 	struct res_package *rp = res_package_new(NULL);
 

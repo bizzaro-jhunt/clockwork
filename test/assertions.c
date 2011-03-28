@@ -23,3 +23,16 @@ void assert_stringlist(stringlist *sl, const char *name, size_t n, ...)
 	assert_null(buf, sl->strings[sl->num]);
 }
 
+void assert_policy_has(const char *msg, const struct policy *pol, enum restype t, int num)
+{
+	int n = 0;
+	struct resource *r;
+	assert(pol);
+
+	for_each_node(r, &pol->resources, l) {
+		if (r->type == t) { n++; }
+	}
+
+	assert_int_eq(msg, num, n);
+}
+

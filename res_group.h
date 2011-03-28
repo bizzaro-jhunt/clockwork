@@ -9,6 +9,7 @@
 #include "list.h"
 #include "userdb.h"
 #include "stringlist.h"
+#include "resource.h"
 
 /** @file res_group.h
 
@@ -100,6 +101,9 @@ struct res_group {
 	struct list res;
 };
 
+NEW_RESOURCE(group);
+
+#if 0
 /**
   Allocate and initialize a new res_group structure.
 
@@ -134,6 +138,7 @@ void res_group_free(struct res_group *rg);
   @returns 0 on success, non-zero on failure.
  */
 int res_group_setattr(struct res_group *rg, const char *name, const char *value);
+#endif
 
 /**
   Set the presence disposition of this group resource.
@@ -277,6 +282,7 @@ int res_group_add_admin(struct res_group *rg, const char *user);
  */
 int res_group_remove_admin(struct res_group *rg, const char *user);
 
+#if 0
 /**
   Check the local /etc/group and /etc/gshadow databases to determine
   the current state of the local group account this resource represents.
@@ -353,5 +359,6 @@ char *res_group_pack(struct res_group *rg);
            found in the \a packed string.
  */
 struct res_group* res_group_unpack(const char *packed);
+#endif
 
 #endif

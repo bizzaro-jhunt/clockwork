@@ -5,7 +5,8 @@
 
 #include "policy.h"
 #include "pack.h"
-
+#include "resource.h"
+#include "stringlist.h"
 
 #define POLICY_PACK_PREFIX "policy::"
 #define POLICY_PACK_OFFSET 8
@@ -15,36 +16,23 @@
 #define POLICY_PACK_FORMAT "a"
 
 /** @cond false */
-enum restype {
-	RES_UNKNOWN = 0,
-	RES_USER,
-	RES_FILE,
-	RES_GROUP,
-	RES_PACKAGE
-};
-
 struct policy_generator {
 	struct policy *policy;
 	struct hash   *facts;
 	enum restype   type;
 
-	union {
-		struct res_user  *user;
-		struct res_group *group;
-		struct res_file  *file;
-		struct res_package *package;
-	} resource;
+	struct resource *res;
 };
 /** @endcond */
 
-static int _policy_normalize_files(struct policy *pol)
+static int _policy_normalize(struct policy *pol)
 {
 	assert(pol);
 
-	struct res_file *rf;
+	struct resource *r;
 
-	for_each_node(rf, &pol->res_files, res) {
-		sha1_file(rf->rf_rpath, &rf->rf_rsha1);
+	for_each_node(r, &pol->resources, l) {
+		if (resource_norm(r) != 0) { return -1; }
 	}
 
 	return 0;
@@ -216,19 +204,19 @@ struct hash* fact_read(FILE *io, struct hash *facts)
 	return facts;
 }
 
-static void * _policy_find_resource(struct policy_generator *pgen, const char *type, const char *id)
+static struct resource * _policy_find_resource(struct policy_generator *pgen, const char *type, const char *id)
 {
 	assert(pgen);
 
 	char *key;
-	void *resource = NULL;
+	struct resource *r = NULL;
 
-	if ((key = string("%s:%s", type, id)) != NULL) {
-		resource = hash_get(pgen->policy->resources, key);
+	if ((key = string("res_%s:%s", type, id)) != NULL) {
+		r = hash_get(pgen->policy->index, key);
 		free(key);
 	}
 
-	return resource;
+	return r;
 }
 
 static int _policy_generate(struct stree *node, struct policy_generator *pgen)
@@ -249,67 +237,27 @@ again:
 		goto again;
 
 	case RESOURCE:
-		if (strcmp(node->data1, "user") == 0) {
-			pgen->type = RES_USER;
-			pgen->resource.user = _policy_find_resource(pgen, "res_user", node->data2);
-			if (!pgen->resource.user) {
-				pgen->resource.user = res_user_new(node->data2);
-				policy_add_user_resource(pgen->policy, pgen->resource.user);
-			}
+		pgen->res = _policy_find_resource(pgen, node->data1, node->data2);
+		if (!pgen->res) {
+			pgen->res = resource_new(node->data1, node->data2);
+		}
 
-		} else if (strcmp(node->data1, "file") == 0) {
-			pgen->type = RES_FILE;
-			pgen->resource.file = _policy_find_resource(pgen, "res_file", node->data2);
-			if (!pgen->resource.file) {
-				pgen->resource.file = res_file_new(node->data2);
-				policy_add_file_resource(pgen->policy, pgen->resource.file);
-			}
-
-		} else if (strcmp(node->data1, "group") == 0) {
-			pgen->type = RES_GROUP;
-			pgen->resource.group = _policy_find_resource(pgen, "res_group", node->data2);
-			if (!pgen->resource.group) {
-				pgen->resource.group = res_group_new(node->data2);
-				policy_add_group_resource(pgen->policy, pgen->resource.group);
-			}
-
-		} else if (strcmp(node->data1, "package") == 0) {
-			pgen->type = RES_PACKAGE;
-			pgen->resource.package = _policy_find_resource(pgen, "res_package", node->data2);
-			if (!pgen->resource.package) {
-				pgen->resource.package = res_package_new(node->data2);
-				policy_add_package_resource(pgen->policy, pgen->resource.package);
-			}
-
+		if (!pgen->res) {
+			WARNING("Definition for unknown resource type '%s'", node->data1);
 		} else {
-			pgen->type = RES_UNKNOWN;
-			WARNING("trying to define unknown resource type '%s'", node->data1);
+			policy_add_resource(pgen->policy, pgen->res);
 		}
 
 		break;
 
 	case ATTR:
-		switch (pgen->type) {
-		case RES_USER:
-			res_user_setattr(pgen->resource.user, node->data1, node->data2);
-			break;
-
-		case RES_FILE:
-			res_file_setattr(pgen->resource.file, node->data1, node->data2);
-			break;
-
-		case RES_GROUP:
-			res_group_setattr(pgen->resource.group, node->data1, node->data2);
-			break;
-
-		case RES_PACKAGE:
-			res_package_setattr(pgen->resource.package, node->data1, node->data2);
-			break;
-
-		default:
-			WARNING("trying to set attribute %s = '%s' on unknown type %u",
-					node->data1, node->data2, pgen->type);
+		if (pgen->res) {
+			resource_setattr(pgen->res, node->data1, node->data2);
+		} else {
+			WARNING("Attribute %s = '%s' defined for unknown type",
+			        node->data1, node->data2);
 		}
+
 		break;
 
 	case PROG:
@@ -346,7 +294,7 @@ struct policy* policy_generate(struct stree *root, struct hash *facts)
 		return NULL;
 	}
 
-	_policy_normalize_files(pgen.policy);
+	_policy_normalize(pgen.policy);
 
 	return pgen.policy;
 }
@@ -358,12 +306,8 @@ struct policy* policy_new(const char *name)
 	pol = xmalloc(sizeof(struct policy));
 	pol->name = xstrdup(name);
 
-	list_init(&pol->res_files);
-	list_init(&pol->res_groups);
-	list_init(&pol->res_users);
-	list_init(&pol->res_packages);
-
-	pol->resources = hash_new();
+	list_init(&pol->resources);
+	pol->index = hash_new();
 
 	return pol;
 }
@@ -371,7 +315,7 @@ struct policy* policy_new(const char *name)
 void policy_free(struct policy *pol)
 {
 	if (pol) {
-		hash_free(pol->resources);
+		hash_free(pol->index);
 		free(pol->name);
 	}
 	free(pol);
@@ -379,55 +323,19 @@ void policy_free(struct policy *pol)
 
 void policy_free_all(struct policy *pol)
 {
-	struct res_user  *ru, *ru_tmp;
-	struct res_group *rg, *rg_tmp;
-	struct res_file  *rf, *rf_tmp;
-	struct res_package *rp, *rp_tmp;
+	struct resource *r, *r_tmp;
 
-	for_each_node_safe(ru, ru_tmp, &pol->res_users,  res) { res_user_free(ru);  }
-	for_each_node_safe(rg, rg_tmp, &pol->res_groups, res) { res_group_free(rg); }
-	for_each_node_safe(rf, rf_tmp, &pol->res_files,  res) { res_file_free(rf);  }
-	for_each_node_safe(rp, rp_tmp, &pol->res_packages, res) { res_package_free(rp); }
+	for_each_node_safe(r, r_tmp, &pol->resources, l) { resource_free(r); }
 	policy_free(pol);
 }
 
-int policy_add_file_resource(struct policy *pol, struct res_file *rf)
+int policy_add_resource(struct policy *pol, struct resource *res)
 {
 	assert(pol);
-	assert(rf);
+	assert(res);
 
-	list_add_tail(&rf->res, &pol->res_files);
-	hash_set(pol->resources, rf->key, rf);
-	return 0;
-}
-
-int policy_add_group_resource(struct policy *pol, struct res_group *rg)
-{
-	assert(pol);
-	assert(rg);
-
-	list_add_tail(&rg->res, &pol->res_groups);
-	hash_set(pol->resources, rg->key, rg);
-	return 0;
-}
-
-int policy_add_user_resource(struct policy *pol, struct res_user *ru)
-{
-	assert(pol);
-	assert(ru);
-
-	list_add_tail(&ru->res, &pol->res_users);
-	hash_set(pol->resources, ru->key, ru);
-	return 0;
-}
-
-int policy_add_package_resource(struct policy *pol, struct res_package *rp)
-{
-	assert(pol);
-	assert(rp);
-
-	list_add_tail(&rp->res, &pol->res_packages);
-	hash_set(pol->resources, rp->key, rp);
+	list_add_tail(&res->l, &pol->resources);
+	hash_set(pol->index, res->key, res);
 	return 0;
 }
 
@@ -437,11 +345,7 @@ char* policy_pack(const struct policy *pol)
 
 	char *packed = NULL;
 	stringlist *pack_list;
-
-	struct res_user  *ru;
-	struct res_group *rg;
-	struct res_file  *rf;
-	struct res_package *rp;
+	struct resource *r;
 
 	pack_list = stringlist_new(NULL);
 	if (!pack_list) {
@@ -454,36 +358,8 @@ char* policy_pack(const struct policy *pol)
 	}
 	xfree(packed);
 
-	/* pack res_user objects */
-	for_each_node(ru, &pol->res_users, res) {
-		packed = res_user_pack(ru);
-		if (!packed || stringlist_add(pack_list, packed) != 0) {
-			goto policy_pack_failed;
-		}
-		xfree(packed);
-	}
-
-	/* pack res_group objects */
-	for_each_node(rg, &pol->res_groups, res) {
-		packed = res_group_pack(rg);
-		if (!packed || stringlist_add(pack_list, packed) != 0) {
-			goto policy_pack_failed;
-		}
-		xfree(packed);
-	}
-
-	/* pack res_file objects */
-	for_each_node(rf, &pol->res_files, res) {
-		packed = res_file_pack(rf);
-		if (!packed || stringlist_add(pack_list, packed) != 0) {
-			goto policy_pack_failed;
-		}
-		xfree(packed);
-	}
-
-	/* pack res_package objects */
-	for_each_node(rp, &pol->res_packages, res) {
-		packed = res_package_pack(rp);
+	for_each_node(r, &pol->resources, l) {
+		packed = resource_pack(r);
 		if (!packed || stringlist_add(pack_list, packed) != 0) {
 			goto policy_pack_failed;
 		}
@@ -511,11 +387,7 @@ struct policy* policy_unpack(const char *packed_policy)
 	size_t i;
 
 	char *pol_name;
-
-	struct res_user *ru;
-	struct res_group *rg;
-	struct res_file *rf;
-	struct res_package *rp;
+	struct resource *r;
 
 	pack_list = stringlist_split(packed_policy, strlen(packed_policy), "\n");
 	if (!pack_list) {
@@ -547,39 +419,13 @@ struct policy* policy_unpack(const char *packed_policy)
 
 	for (i = 1; i < pack_list->num; i++) {
 		packed = pack_list->strings[i];
-		if (res_user_is_pack(packed) == 0) {
-			ru = res_user_unpack(packed);
-			if (!ru) {
-				return NULL;
-			}
-			policy_add_user_resource(pol, ru);
-
-		} else if (res_group_is_pack(packed) == 0) {
-			rg = res_group_unpack(packed);
-			if (!rg) {
-				return NULL;
-			}
-			policy_add_group_resource(pol, rg);
-
-		} else if (res_file_is_pack(packed) == 0) {
-			rf = res_file_unpack(packed);
-			if (!rf) {
-				return NULL;
-			}
-			policy_add_file_resource(pol, rf);
-
-		} else if (res_package_is_pack(packed) == 0) {
-			rp = res_package_unpack(packed);
-			if (!rp) {
-				return NULL;
-			}
-			policy_add_package_resource(pol, rp);
-
-		} else {
-			DEBUG("Unknown resource: %s", packed);
+		r = resource_unpack(packed);
+		if (!r) {
+			DEBUG("Unable to unpack: %s", pack);
 			stringlist_free(pack_list);
-			return NULL; /* unknown policy object type! */
+			return NULL;
 		}
+		policy_add_resource(pol, r);
 	}
 
 	stringlist_free(pack_list);

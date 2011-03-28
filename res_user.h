@@ -8,7 +8,7 @@
 
 #include "report.h"
 #include "list.h"
-#include "userdb.h"
+#include "resource.h"
 
 /** @file res_user.h
 
@@ -145,6 +145,9 @@ struct res_user {
 	struct list res;
 };
 
+NEW_RESOURCE(user);
+
+#if 0
 /**
   Allocate and initialize a new res_user structure.
 
@@ -179,6 +182,7 @@ void res_user_free(struct res_user *ru);
   @returns 0 on success, non-zero on failure.
  */
 int res_user_setattr(struct res_user *ru, const char *name, const char *value);
+#endif
 
 /**
   Set the presence disposition of this user resource.
@@ -391,6 +395,7 @@ int res_user_set_expire(struct res_user *ru, long days);
  */
 int res_user_set_lock(struct res_user *ru, unsigned char locked);
 
+#if 0
 /**
   Check the local /etc/passwd and /etc/shadow databases to determine
   the current state of the local user account this resource represents.
@@ -467,5 +472,6 @@ char* res_user_pack(const struct res_user *ru);
            found in the \a packed string.
  */
 struct res_user* res_user_unpack(const char *packed);
+#endif
 
 #endif

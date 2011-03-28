@@ -1,5 +1,4 @@
 #ifndef RES_FILE_H
-
 #define RES_FILE_H
 
 #include "clockwork.h"
@@ -10,6 +9,7 @@
 #include "sha1.h"
 #include "hash.h"
 #include "report.h"
+#include "resource.h"
 
 /** @file res_file.h
 
@@ -119,6 +119,9 @@ struct res_file {
 	struct list res;
 };
 
+NEW_RESOURCE(file);
+
+#if 0
 /**
   Allocate and initialize a new res_file structure.
 
@@ -153,6 +156,7 @@ void res_file_free(struct res_file *rf);
   @returns 0 on success, non-zero on failure.
  */
 int res_file_setattr(struct res_file *rf, const char *name, const char *value);
+#endif
 
 /**
   Set the presence disposition of this file resource.
@@ -218,6 +222,7 @@ int res_file_set_path(struct res_file *rf, const char *path);
  */
 int res_file_set_source(struct res_file *rf, const char *path);
 
+#if 0
 /**
   Query the local filesystem and and populate the res_file::rf_stat
   member with information necessary for remediation.
@@ -287,6 +292,7 @@ char* res_file_pack(struct res_file *rf);
            found in the \a packed string.
  */
 struct res_file* res_file_unpack(const char *packed);
+#endif
 
 /**
   Retrieve an open stdio FILE handle for a file resource.

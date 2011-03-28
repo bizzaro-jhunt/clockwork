@@ -73,11 +73,10 @@ void test_res_user_enforcement()
 	res_user_free(ru);
 }
 
-void test_res_user_diffstat_remediation()
+void test_res_user_diffstat_fixup()
 {
 	struct res_user *ru;
-	struct pwdb *pwdb;
-	struct spdb *spdb;
+	struct resource_env env;
 	struct report *report;
 
 	ru = res_user_new("svc");
@@ -91,20 +90,20 @@ void test_res_user_diffstat_remediation()
 	res_user_set_pwmax(ru, 45);
 	res_user_set_pwwarn(ru, 3);
 
-	pwdb = pwdb_init("test/data/passwd");
-	if (!pwdb) {
+	env.user_pwdb = pwdb_init("test/data/passwd");
+	if (!env.user_pwdb) {
 		assert_fail("Unable to init pwdb");
 		return;
 	}
 
-	spdb = spdb_init("test/data/shadow");
-	if (!spdb) {
+	env.user_spdb = spdb_init("test/data/shadow");
+	if (!env.user_spdb) {
 		assert_fail("Unable to init spdb");
 		return;
 	}
 
 	test("RES_USER: Diffstat");
-	assert_int_equals("res_user_stat returns zero", res_user_stat(ru, pwdb, spdb), 0);
+	assert_int_equals("res_user_stat returns zero", res_user_stat(ru, &env), 0);
 	assert_true("NAME is in compliance", !res_user_different(ru, NAME));
 	assert_true("UID is out of compliance", res_user_different(ru, UID));
 	assert_true("GID is out of compliance", res_user_different(ru, GID));
@@ -116,9 +115,9 @@ void test_res_user_diffstat_remediation()
 	assert_true("PWMAX is out of compliance", res_user_different(ru, PWMAX));
 	assert_true("PWWARN is out of compliance", res_user_different(ru, PWWARN));
 
-	test("RES_USER: Remediation (existing account)");
-	report = res_user_remediate(ru, 0, pwdb, spdb);
-	assert_not_null("res_user_remediate returns a report", report);
+	test("RES_USER: Fixups (existing account)");
+	report = res_user_fixup(ru, 0, &env);
+	assert_not_null("res_user_fixup returns a report", report);
 	assert_int_equals("user is fixed", report->fixed, 1);
 	assert_int_equals("user is now compliant", report->compliant, 1);
 
@@ -135,16 +134,15 @@ void test_res_user_diffstat_remediation()
 	assert_int_equals("sp_warn is still set properly", ru->ru_sp->sp_warn, 3);
 
 	res_user_free(ru);
-	pwdb_free(pwdb);
-	spdb_free(spdb);
+	pwdb_free(env.user_pwdb);
+	spdb_free(env.user_spdb);
 	report_free(report);
 }
 
-void test_res_user_remediation_new()
+void test_res_user_fixup_new()
 {
 	struct res_user *ru;
-	struct pwdb *pwdb;
-	struct spdb *spdb;
+	struct resource_env env;
 	struct report *report;
 
 	ru = res_user_new("new_user");
@@ -155,23 +153,23 @@ void test_res_user_remediation_new()
 	res_user_set_dir(ru, "test/tmp/new_user.home");
 	res_user_set_makehome(ru, 1, "/etc/skel.svc");
 
-	pwdb = pwdb_init("test/data/passwd");
-	if (!pwdb) {
+	env.user_pwdb = pwdb_init("test/data/passwd");
+	if (!env.user_pwdb) {
 		assert_fail("Unable to init pwdb");
 		return;
 	}
 
-	spdb = spdb_init("test/data/shadow");
-	if (!spdb) {
+	env.user_spdb = spdb_init("test/data/shadow");
+	if (!env.user_spdb) {
 		assert_fail("Unable to init spdb");
 		return;
 	}
 
-	test("RES_USER: Remediation (new account)");
-	assert_int_equals("res_user_stat returns zero", res_user_stat(ru, pwdb, spdb), 0);
+	test("RES_USER: Fixups (new account)");
+	assert_int_equals("res_user_stat returns zero", res_user_stat(ru, &env), 0);
 
-	report = res_user_remediate(ru, 0, pwdb, spdb);
-	assert_not_null("res_user_remediate returns a report", report);
+	report = res_user_fixup(ru, 0, &env);
+	assert_not_null("res_user_fixup returns a report", report);
 	assert_int_equals("user is fixed", report->fixed, 1);
 	assert_int_equals("user is now compliant", report->compliant, 1);
 
@@ -185,130 +183,128 @@ void test_res_user_remediation_new()
 	assert_str_equals("sp_namp is set properly", ru->ru_sp->sp_namp, "new_user");
 
 	res_user_free(ru);
-	pwdb_free(pwdb);
-	spdb_free(spdb);
+	pwdb_free(env.user_pwdb);
+	spdb_free(env.user_spdb);
 	report_free(report);
 }
 
-void test_res_user_remediation_remove_existing()
+void test_res_user_fixup_remove_existing()
 {
 	struct res_user *ru;
-	struct pwdb *pwdb, *pwdb_after;
-	struct spdb *spdb, *spdb_after;
+	struct resource_env env, env_after;
 	struct report *report;
 
 	ru = res_user_new("sys");
 	res_user_set_presence(ru, 0); /* Remove the user */
 
-	pwdb = pwdb_init("test/data/passwd");
-	if (!pwdb) {
+	env.user_pwdb = pwdb_init("test/data/passwd");
+	if (!env.user_pwdb) {
 		assert_fail("Unable to init pwdb");
 		return;
 	}
 
-	spdb = spdb_init("test/data/shadow");
-	if (!spdb) {
+	env.user_spdb = spdb_init("test/data/shadow");
+	if (!env.user_spdb) {
 		assert_fail("Unable to init spdb");
 		return;
 	}
 
-	test("RES_USER: Remediation (remove existing account)");
-	assert_int_equals("res_user_stat returns zero", res_user_stat(ru, pwdb, spdb), 0);
+	test("RES_USER: Fixups (remove existing account)");
+	assert_int_equals("res_user_stat returns zero", res_user_stat(ru, &env), 0);
 	assert_not_null("(test sanity) user found in passwd file", ru->ru_pw);
 	assert_not_null("(test sanity) user found in shadow file", ru->ru_sp);
 
-	report = res_user_remediate(ru, 0, pwdb, spdb);
-	assert_not_null("res_user_remediate returns a report", report);
+	report = res_user_fixup(ru, 0, &env);
+	assert_not_null("res_user_fixup returns a report", report);
 	assert_int_equals("user is fixed", report->fixed, 1);
 	assert_int_equals("user is now compliant", report->compliant, 1);
 
-	assert_int_equals("pwdb_write succeeds", 0, pwdb_write(pwdb, "test/tmp/passwd.new"));
-	assert_int_equals("spdb_write succeeds", 0, spdb_write(spdb, "test/tmp/shadow.new"));
+	assert_int_equals("pwdb_write succeeds", 0, pwdb_write(env.user_pwdb, "test/tmp/passwd.new"));
+	assert_int_equals("spdb_write succeeds", 0, spdb_write(env.user_spdb, "test/tmp/shadow.new"));
 
-	pwdb_after = pwdb_init("test/tmp/passwd.new");
-	if (!pwdb_after) {
-		assert_fail("Unable to init pwdb_after");
+	env_after.user_pwdb = pwdb_init("test/tmp/passwd.new");
+	if (!env_after.user_pwdb) {
+		assert_fail("Unable to init env_after.user_pwdb");
 		return;
 	}
 
-	spdb_after = spdb_init("test/tmp/shadow.new");
-	if (!spdb_after) {
-		assert_fail("Unable to init spdb_after");
+	env_after.user_spdb = spdb_init("test/tmp/shadow.new");
+	if (!env_after.user_spdb) {
+		assert_fail("Unable to init env_after.user_spdb");
 		return;
 	}
 
 	res_user_free(ru);
 	ru = res_user_new("sys");
-	assert_int_equals("res_user_stat returns zero (after)", res_user_stat(ru, pwdb_after, spdb_after), 0);
-	assert_null("No passwd entry exists after remediation", ru->ru_pw);
-	assert_null("No shadow entry exists after remediation", ru->ru_sp);
+	assert_int_equals("res_user_stat returns zero (after)", res_user_stat(ru, &env_after), 0);
+	assert_null("No passwd entry exists after fixup", ru->ru_pw);
+	assert_null("No shadow entry exists after fixup", ru->ru_sp);
 
 	res_user_free(ru);
-	pwdb_free(pwdb);
-	spdb_free(spdb);
-	pwdb_free(pwdb_after);
-	spdb_free(spdb_after);
+	pwdb_free(env.user_pwdb);
+	spdb_free(env.user_spdb);
+	pwdb_free(env_after.user_pwdb);
+	spdb_free(env_after.user_spdb);
 	report_free(report);
 }
 
-void test_res_user_remediation_remove_nonexistent()
+void test_res_user_fixup_remove_nonexistent()
 {
 	struct res_user *ru;
-	struct pwdb *pwdb, *pwdb_after;
-	struct spdb *spdb, *spdb_after;
+	struct resource_env env, env_after;
 	struct report *report;
 
 	ru = res_user_new("non_existent_user");
 	res_user_set_presence(ru, 0); /* Remove the user */
 
-	pwdb = pwdb_init("test/data/passwd");
-	if (!pwdb) {
+	env.user_pwdb = pwdb_init("test/data/passwd");
+	if (!env.user_pwdb) {
 		assert_fail("Unable to init pwdb");
 		return;
 	}
 
-	spdb = spdb_init("test/data/shadow");
-	if (!spdb) {
+	env.user_spdb = spdb_init("test/data/shadow");
+	if (!env.user_spdb) {
 		assert_fail("Unable to init spdb");
 		return;
 	}
 
-	test("RES_USER: Remediation (remove non-existent account)");
-	assert_int_equals("res_user_stat returns zero", res_user_stat(ru, pwdb, spdb), 0);
+	test("RES_USER: Fixups (remove non-existent account)");
+	assert_int_equals("res_user_stat returns zero", res_user_stat(ru, &env), 0);
 	assert_null("(test sanity) user not found in passwd file", ru->ru_pw);
 	assert_null("(test sanity) user not found in shadow file", ru->ru_sp);
 
-	report = res_user_remediate(ru, 0, pwdb, spdb);
-	assert_not_null("res_user_remediate returns a report", report);
+	report = res_user_fixup(ru, 0, &env);
+	assert_not_null("res_user_fixup returns a report", report);
 	assert_int_equals("user was already compliant", report->fixed, 0);
 	assert_int_equals("user is now compliant", report->compliant, 1);
 
-	assert_int_equals("pwdb_write succeeds", 0, pwdb_write(pwdb, "test/tmp/passwd.new"));
-	assert_int_equals("spdb_write succeeds", 0, spdb_write(spdb, "test/tmp/shadow.new"));
+	assert_int_equals("pwdb_write succeeds", 0, pwdb_write(env.user_pwdb, "test/tmp/passwd.new"));
+	assert_int_equals("spdb_write succeeds", 0, spdb_write(env.user_spdb, "test/tmp/shadow.new"));
 
-	pwdb_after = pwdb_init("test/tmp/passwd.new");
-	if (!pwdb_after) {
-		assert_fail("Unable to init pwdb_after");
+	env_after.user_pwdb = pwdb_init("test/tmp/passwd.new");
+	if (!env_after.user_pwdb) {
+		assert_fail("Unable to init env_after.user_pwdb");
 		return;
 	}
 
-	spdb_after = spdb_init("test/tmp/shadow.new");
-	if (!spdb_after) {
-		assert_fail("Unable to init spdb_after");
+	env_after.user_spdb = spdb_init("test/tmp/shadow.new");
+	if (!env_after.user_spdb) {
+		assert_fail("Unable to init env_after.user_spdb");
 		return;
 	}
 
 	res_user_free(ru);
 	ru = res_user_new("non_existent_user");
-	assert_int_equals("res_user_stat returns zero (after)", res_user_stat(ru, pwdb_after, spdb_after), 0);
-	assert_null("No passwd entry exists after remediation", ru->ru_pw);
-	assert_null("No shadow entry exists after remediation", ru->ru_sp);
+	assert_int_equals("res_user_stat returns zero (after)", res_user_stat(ru, &env_after), 0);
+	assert_null("No passwd entry exists after fixup", ru->ru_pw);
+	assert_null("No shadow entry exists after fixup", ru->ru_sp);
 
 	res_user_free(ru);
-	pwdb_free(pwdb);
-	spdb_free(spdb);
-	pwdb_free(pwdb_after);
-	spdb_free(spdb_after);
+	pwdb_free(env.user_pwdb);
+	spdb_free(env.user_spdb);
+	pwdb_free(env_after.user_pwdb);
+	spdb_free(env_after.user_spdb);
 	report_free(report);
 }
 
@@ -439,10 +435,10 @@ void test_res_user_unpack()
 void test_suite_res_user()
 {
 	test_res_user_enforcement();
-	test_res_user_diffstat_remediation();
-	test_res_user_remediation_new();
-	test_res_user_remediation_remove_existing();
-	test_res_user_remediation_remove_nonexistent();
+	test_res_user_diffstat_fixup();
+	test_res_user_fixup_new();
+	test_res_user_fixup_remove_existing();
+	test_res_user_fixup_remove_nonexistent();
 
 	test_res_user_pack_detection();
 	test_res_user_pack();

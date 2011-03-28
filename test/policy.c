@@ -3,6 +3,7 @@
 #include "test.h"
 #include "assertions.h"
 #include "../policy.h"
+#include "../resources.h"
 #include "../mem.h"
 
 void test_policy_creation()
@@ -12,131 +13,46 @@ void test_policy_creation()
 	test("policy: Initialization of policy structure");
 	pol = policy_new("policy name");
 	assert_str_equals("Policy name is set correctly", pol->name, "policy name");
-	assert_true("res_files is an empty list head", list_empty(&pol->res_files));
-	assert_true("res_groups is an empty list head", list_empty(&pol->res_groups));
-	assert_true("res_users is an empty list head", list_empty(&pol->res_users));
+	assert_true("resources is an empty list head", list_empty(&pol->resources));
 
 	policy_free(pol);
 }
 
-void test_policy_user_addition()
+void test_policy_resource_addition()
 {
 	struct policy *pol;
-	struct res_user *ru, *other;
-	struct res_user *ptr;
-	size_t n = 0;
+	struct resource *res1, *res2;
 
-	pol = policy_new("user policy");
+	test("policy: addition of resources to policy");
+	pol = policy_new("test policy");
+	assert_policy_has_users( "Policy (initially) has no users",  pol, 0);
+	assert_policy_has_groups("Policy (initially) has no groups", pol, 0);
+	assert_policy_has_files( "Policy (initially) has no files",  pol, 0);
 
-	test("policy: addition of users to policy");
-	ru = res_user_new("user1");
-	assert_str_equals("User details are correct (before addition)", "user1", ru->ru_name);
-	policy_add_user_resource(pol, ru);
+	res1 = resource_new("user", "user1");
+	assert_str_equals("User details are correct (before addition)", "user1",
+		((struct res_user*)(res1->resource))->ru_name);
+	policy_add_resource(pol, res1);
 
-	other = res_user_new("other");
-	assert_str_equals("User details are correct (before addition)", "other", other->ru_name);
-	policy_add_user_resource(pol, other);
+	res2 = resource_new("group", "group1");
+	assert_str_equals("Group details are correct (before addition)", "group1",
+		((struct res_group*)(res2->resource))->rg_name);
+	policy_add_resource(pol, res2);
 
-	n = 0;
-	for_each_node(ptr, &pol->res_users, res) {
-		switch (n++) {
-		case 0:
-			assert_str_equals("User details are correct", "user1", ptr->ru_name);
-			break;
+	assert_policy_has_files("Policy has no files", pol, 0);
+	assert_policy_has_users("Policy has 1 user",   pol, 1);
+	assert_policy_has_groups("Policy has 1 group", pol, 1);
 
-		case 1:
-			assert_str_equals("User details are correct", "other", ptr->ru_name);
-			break;
-		}
-	}
-	assert_int_equals("Only two users in the list", 2, n);
-
-	res_user_free(ru);
-	res_user_free(other);
-	policy_free(pol);
-}
-
-void test_policy_group_addition()
-{
-	struct policy *pol;
-	struct res_group *rg, *other;
-	struct res_group *ptr;
-	size_t n = 0;
-
-	pol = policy_new("group policy");
-
-	test("policy: addition of groups to policy");
-	rg = res_group_new("group1");
-	assert_str_equals("Group details are correct (before addition)", "group1", rg->rg_name);
-	policy_add_group_resource(pol, rg);
-
-	other = res_group_new("other");
-	assert_str_equals("Group details are correct (before addition)", "other", other->rg_name);
-	policy_add_group_resource(pol, other);
-
-	n = 0;
-	for_each_node(ptr, &pol->res_groups, res) {
-		switch (n++) {
-		case 0:
-			assert_str_equals("Group details are correct", "group1", ptr->rg_name);
-			break;
-		case 1:
-			assert_str_equals("Group details are correct", "other", ptr->rg_name);
-			break;
-		}
-	}
-	assert_int_equals("Only two groups in the list", 2, n);
-
-	res_group_free(rg);
-	res_group_free(other);
-	policy_free(pol);
-}
-
-void test_policy_file_addition()
-{
-	struct policy *pol;
-	struct res_file *rf, *other;
-	struct res_file *ptr;
-	size_t n = 0;
-
-	pol = policy_new("file policy");
-
-	test("policy: addition of files to policy");
-	rf = res_file_new("/file1");
-	assert_str_equals("File details are correct (before addition)", "/file1", rf->rf_lpath);
-	policy_add_file_resource(pol, rf);
-
-	other = res_file_new("/other");
-	assert_str_equals("File details are correct (before addition)", "/other", other->rf_lpath);
-	policy_add_file_resource(pol, other);
-
-	n = 0;
-	for_each_node(ptr, &pol->res_files, res) {
-		switch (n++) {
-		case 0:
-			assert_str_equals("File details are correct", "/file1", ptr->rf_lpath);
-			break;
-
-		case 1:
-			assert_str_equals("File details are correct", "/other", ptr->rf_lpath);
-			break;
-		}
-	}
-	assert_int_equals("Only two files in the list", 2, n);
-
-	res_file_free(rf);
-	res_file_free(other);
+	resource_free(res1);
+	resource_free(res2);
 	policy_free(pol);
 }
 
 void test_policy_pack()
 {
 	struct policy *pol;
+	struct resource *r;
 	char *packed;
-
-	struct res_user  *ru1;
-	struct res_group *rg1;
-	struct res_file  *rf1;
 
 	test("policy: pack empty policy");
 	pol = policy_new("empty");
@@ -150,24 +66,24 @@ void test_policy_pack()
 	test("policy: pack policy with one user, one group and one file");
 	pol = policy_new("1 user, 1 group, and 1 file");
 	/* The George Thoroughgood test */
-	ru1 = res_user_new("bourbon"); /* ru_enf == 0000 0001 */
-	res_user_set_uid(ru1, 101);    /* ru_enf == 0000 0101 */
-	res_user_set_gid(ru1, 2000);   /* ru_enf == 0000 1101 */
-	policy_add_user_resource(pol, ru1);
+	r = resource_new("user", "bourbon"); /* ru_enf == 0000 0001 */
+	resource_setattr(r, "uid", "101");   /* ru_enf == 0000 0101 */
+	resource_setattr(r, "gid", "2000");  /* ru_enf == 0000 1101 */
+	policy_add_resource(pol, r);
 
-	rg1 = res_group_new("scotch"); /* rg_enf == 0000 0001 */
-	res_group_set_gid(rg1, 2000);  /* rg_enf == 0000 0101 */
-	policy_add_group_resource(pol, rg1);
+	r = resource_new("group", "scotch"); /* rg_enf == 0000 0001 */
+	resource_setattr(r, "gid", "2000");  /* rg_enf == 0000 0101 */
+	policy_add_resource(pol, r);
 
-	rf1 = res_file_new("beer");                    /* rf_enf == 0000 0000 */
-	res_file_set_source(rf1, "/etc/issue");
-	res_file_set_owner(rf1, "george");             /* rf_enf == 0000 1001 */
-	res_file_set_group(rf1, "thoroughgood");       /* rf_enf == 0000 1011 */
-	res_file_set_mode(rf1, 0600);                  /* rf_enf == 0000 1111 */
+	r = resource_new("file", "beer");              /* rf_enf == 0000 0000 */
+	resource_setattr(r, "source", "/etc/issue");
+	resource_setattr(r, "owner",  "george");       /* rf_enf == 0000 1001 */
+	resource_setattr(r, "group",  "thoroughgood"); /* rf_enf == 0000 1011 */
+	resource_setattr(r, "mode",   "0600");         /* rf_enf == 0000 1111 */
 	/* sneakily override the checksum */
-	sha1_init(&rf1->rf_rsha1, "0123456789abcdef0123456789abcdef01234567");
-
-	policy_add_file_resource(pol, rf1);
+	sha1_init(&((struct res_file*)(r->resource))->rf_rsha1,
+	          "0123456789abcdef0123456789abcdef01234567");
+	policy_add_resource(pol, r);
 
 	packed = policy_pack(pol);
 	assert_not_null("policy_pack succeeds", packed);
@@ -179,11 +95,7 @@ void test_policy_pack()
 		packed);
 
 	free(packed);
-
-	res_user_free(ru1);
-	res_group_free(rg1);
-	res_file_free(rf1);
-	policy_free(pol);
+	policy_free_all(pol);
 }
 
 void test_policy_unpack()
@@ -198,9 +110,7 @@ void test_policy_unpack()
 	test("policy: unpack empty policy");
 	pol = policy_unpack("policy::\"empty\"00000309");
 	assert_not_null("policy_unpack succeeds", pol);
-	assert_true("res_files is an empty list head", list_empty(&pol->res_files));
-	assert_true("res_groups is an empty list head", list_empty(&pol->res_groups));
-	assert_true("res_users is an empty list head", list_empty(&pol->res_users));
+	assert_true("resources is an empty list head", list_empty(&pol->resources));
 	policy_free_all(pol);
 
 	test("policy: unpack policy with one user, one group and one file");
@@ -208,9 +118,10 @@ void test_policy_unpack()
 	pol = policy_unpack(packed);
 	assert_not_null("policy_unpack succeeds", pol);
 	assert_str_equals("policy name unpacked", "1 user, 1 group, and 1 file", pol->name);
-	assert_true("res_files is NOT an empty list head", !list_empty(&pol->res_files));
-	assert_true("res_groups is NOT an empty list head", !list_empty(&pol->res_groups));
-	assert_true("res_users is NOT an empty list head", !list_empty(&pol->res_users));
+	assert_true("resources is NOT an empty list head", !list_empty(&pol->resources));
+	assert_policy_has_files("Policy has 1 file",   pol, 1);
+	assert_policy_has_groups("Policy has 1 group", pol, 1);
+	assert_policy_has_users("Policy has 1 user",   pol, 1);
 
 	policy_free_all(pol);
 }
@@ -219,9 +130,7 @@ void test_suite_policy()
 {
 	test_policy_creation();
 
-	test_policy_user_addition();
-	test_policy_group_addition();
-	test_policy_file_addition();
+	test_policy_resource_addition();
 
 	test_policy_pack();
 	test_policy_unpack();

@@ -174,7 +174,8 @@ static int _res_user_populate_home(const char *home, const char *skel, uid_t uid
 
 /*****************************************************************/
 
-struct res_user* res_user_new(const char *key)
+//struct res_user* res_user_new(const char *key)
+void* res_user_new(const char *key)
 {
 	struct res_user *ru;
 
@@ -215,8 +216,11 @@ struct res_user* res_user_new(const char *key)
 	return ru;
 }
 
-void res_user_free(struct res_user *ru)
+//void res_user_free(struct res_user *ru)
+void res_user_free(void *res)
 {
+	struct res_user *ru = (struct res_user*)(res);
+
 	if (ru) {
 		list_del(&ru->res);
 
@@ -232,8 +236,22 @@ void res_user_free(struct res_user *ru)
 	free(ru);
 }
 
-int res_user_setattr(struct res_user *ru, const char *name, const char *value)
+const char* res_user_key(const void *res)
 {
+	const struct res_user *ru = (struct res_user*)(res);
+	assert(ru);
+
+	return ru->key;
+}
+
+int res_user_norm(void *res) { return 0; }
+
+//int res_user_setattr(struct res_user *ru, const char *name, const char *value)
+int res_user_setattr(void *res, const char *name, const char *value)
+{
+	struct res_user *ru = (struct res_user*)(res);
+	assert(ru);
+
 	if (strcmp(name, "uid") == 0) {
 		return res_user_set_uid(ru, strtoll(value, NULL, 10));
 	} else if (strcmp(name, "gid") == 0) {
@@ -442,14 +460,17 @@ int res_user_set_lock(struct res_user *ru, unsigned char locked)
 	return 0;
 }
 
-int res_user_stat(struct res_user *ru, struct pwdb *pwdb, struct spdb *spdb)
+//int res_user_stat(struct res_user *ru, struct pwdb *pwdb, struct spdb *spdb)
+int res_user_stat(void *res, const struct resource_env *env)
 {
+	struct res_user *ru = (struct res_user*)(res);
 	assert(ru);
-	assert(pwdb);
-	assert(spdb);
+	assert(env);
+	assert(env->user_pwdb);
+	assert(env->user_spdb);
 
-	ru->ru_pw = pwdb_get_by_name(pwdb, ru->ru_name);
-	ru->ru_sp = spdb_get_by_name(spdb, ru->ru_name);
+	ru->ru_pw = pwdb_get_by_name(env->user_pwdb, ru->ru_name);
+	ru->ru_sp = spdb_get_by_name(env->user_spdb, ru->ru_name);
 	if (!ru->ru_pw || !ru->ru_sp) { /* new account */
 		ru->ru_diff = ru->ru_enf;
 		return 0;
@@ -458,11 +479,14 @@ int res_user_stat(struct res_user *ru, struct pwdb *pwdb, struct spdb *spdb)
 	return _res_user_diff(ru);
 }
 
-struct report* res_user_remediate(struct res_user *ru, int dryrun, struct pwdb *pwdb, struct spdb *spdb)
+//struct report* res_user_remediate(struct res_user *ru, int dryrun, struct pwdb *pwdb, struct spdb *spdb)
+struct report* res_user_fixup(void *res, int dryrun, const struct resource_env *env)
 {
+	struct res_user *ru = (struct res_user*)(res);
 	assert(ru);
-	assert(pwdb);
-	assert(spdb);
+	assert(env);
+	assert(env->user_pwdb);
+	assert(env->user_spdb);
 
 	struct report *report;
 	char *action;
@@ -481,8 +505,8 @@ struct report* res_user_remediate(struct res_user *ru, int dryrun, struct pwdb *
 				return report;
 			}
 
-			if ((ru->ru_pw && pwdb_rm(pwdb, ru->ru_pw) != 0)
-			 || (ru->ru_sp && spdb_rm(spdb, ru->ru_sp) != 0)) {
+			if ((ru->ru_pw && pwdb_rm(env->user_pwdb, ru->ru_pw) != 0)
+			 || (ru->ru_sp && spdb_rm(env->user_spdb, ru->ru_sp) != 0)) {
 				report_action(report, action, ACTION_FAILED);
 			} else {
 				report_action(report, action, ACTION_SUCCEEDED);
@@ -496,8 +520,8 @@ struct report* res_user_remediate(struct res_user *ru, int dryrun, struct pwdb *
 		action = string("create user");
 		new_user = 1;
 
-		if (!ru->ru_pw) { ru->ru_pw = pwdb_new_entry(pwdb, ru->ru_name, ru->ru_uid, ru->ru_gid); }
-		if (!ru->ru_sp) { ru->ru_sp = spdb_new_entry(spdb, ru->ru_name); }
+		if (!ru->ru_pw) { ru->ru_pw = pwdb_new_entry(env->user_pwdb, ru->ru_name, ru->ru_uid, ru->ru_gid); }
+		if (!ru->ru_sp) { ru->ru_sp = spdb_new_entry(env->user_spdb, ru->ru_name); }
 
 		if (dryrun) {
 			report_action(report, action, ACTION_SKIPPED);
@@ -747,8 +771,12 @@ int res_user_is_pack(const char *packed)
 	return strncmp(packed, RES_USER_PACK_PREFIX, RES_USER_PACK_OFFSET);
 }
 
-char* res_user_pack(const struct res_user *ru)
+//char* res_user_pack(const struct res_user *ru)
+char* res_user_pack(const void *res)
 {
+	const struct res_user *ru = (const struct res_user*)(res);
+	assert(ru);
+
 	return pack(RES_USER_PACK_PREFIX, RES_USER_PACK_FORMAT,
 	            ru->ru_enf,
 	            ru->ru_name,   ru->ru_passwd, ru->ru_uid,    ru->ru_gid,
@@ -757,7 +785,8 @@ char* res_user_pack(const struct res_user *ru)
 	            ru->ru_pwwarn, ru->ru_inact,  ru->ru_expire);
 }
 
-struct res_user* res_user_unpack(const char *packed)
+//struct res_user* res_user_unpack(const char *packed)
+void* res_user_unpack(const char *packed)
 {
 	struct res_user *ru = res_user_new(NULL);
 

@@ -3,6 +3,7 @@
 #include <glob.h>
 #include <getopt.h>
 #include <libgen.h>
+#include <sys/stat.h>
 
 #include "server.h"
 #include "cert.h"

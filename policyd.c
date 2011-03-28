@@ -9,6 +9,7 @@
 #include "cert.h"
 #include "spec/parser.h"
 #include "server.h"
+#include "res_file.h"
 
 /**************************************************************/
 
@@ -320,6 +321,7 @@ static int handle_FILE(worker *w)
 {
 	char hex[SHA1_HEX_DIGEST_SIZE + 1] = {0};
 	sha1 checksum;
+	struct resource *res;
 	struct res_file *file, *match;
 
 	if (!w->peer_verified) {
@@ -344,10 +346,13 @@ static int handle_FILE(worker *w)
 	}
 
 	file = NULL;
-	for_each_node(match, &w->policy->res_files, res) {
-		if (sha1_cmp(&match->rf_rsha1, &checksum) == 0) {
-			file = match;
-			break;
+	for_each_node(res, &w->policy->resources, l) {
+		if (res->type == RES_FILE) {
+			match = (struct res_file*)(res->resource);
+			if (sha1_cmp(&match->rf_rsha1, &checksum) == 0) {
+				file = match;
+				break;
+			}
 		}
 	}
 

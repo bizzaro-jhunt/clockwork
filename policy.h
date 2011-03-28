@@ -3,10 +3,7 @@
 
 #include "list.h"
 #include "hash.h"
-#include "res_file.h"
-#include "res_group.h"
-#include "res_user.h"
-#include "res_package.h"
+#include "resources.h"
 
 /** @file policy.h
  */
@@ -88,20 +85,11 @@ struct policy {
 	/** User-assigned name of policy */
 	char *name;
 
-	/** List of file resources */
-	struct list res_files;
-
-	/** List of group resources */
-	struct list res_groups;
-
-	/** List of user resources */
-	struct list res_users;
-
-	/** List of package resources */
-	struct list res_packages;
+	/** List of all resources */
+	struct list resources;
 
 	/** Searchable hash table, keyed "TYPE:pkey" */
-	struct hash *resources;
+	struct hash *index;
 };
 
 /**
@@ -257,36 +245,14 @@ void policy_free(struct policy *pol);
 void policy_free_all(struct policy *pol);
 
 /**
-  Add a new File Resource to a policy.
+  Add a new Resource to a policy.
 
-  @param  pol    Policy to add to.
-  @param  rf     File resource to add.
+  @param  pol    Policy to add the resource to.
+  @param  res    Resource to add.
 
-  @returns 0 on succes, non-zero on failure.
+  @returns 0 on success, non-zero on failure.
  */
-int policy_add_file_resource(struct policy *pol, struct res_file *rf);
-
-/**
-  Add a new Group Resource to a policy.
-
-  @param  pol    Policy to add to.
-  @param  rg     Group resource to add.
-
-  @returns 0 on succes, non-zero on failure.
- */
-int policy_add_group_resource(struct policy *pol, struct res_group *rg);
-
-/**
-  Add a new User Resource to a policy.
-
-  @param  pol    Policy to add to.
-  @param  ru     User resource to add.
-
-  @returns 0 on succes, non-zero on failure.
- */
-int policy_add_user_resource(struct policy *pol, struct res_user *ru);
-
-int policy_add_package_resource(struct policy *pol, struct res_package *rp);
+int policy_add_resource(struct policy *pol, struct resource *res);
 
 /**
   Serialize a policy into a string representation.

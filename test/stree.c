@@ -129,11 +129,12 @@ void test_stree_static_policy_generation()
 {
 	struct policy *pol;
 	struct stree *root;
-	unsigned int i;
+	unsigned int user_count, file_count, group_count;
 
 	struct res_user *user;
 	struct res_file *file;
 	struct res_group *group;
+	struct resource *r;
 
 	test("stree: static stree generates static policy with empty list");
 	root = static_policy();
@@ -142,47 +143,46 @@ void test_stree_static_policy_generation()
 	pol = policy_generate(root, NULL);
 	assert_not_null("policy defined successfully from stree", pol);
 
-	assert_true("policy defined has user resources",  !list_empty(&pol->res_users));
-	assert_true("policy defined has group resources", !list_empty(&pol->res_groups));
-	assert_true("policy defined has file resources",  !list_empty(&pol->res_files));
+	assert_true("policy defined has resources", !list_empty(&pol->resources));
 
-	i = 0;
-	for_each_node(user, &pol->res_users, res) {
-		switch (i++) {
-		case 0:
+	user_count = group_count = file_count = 0;
+	for_each_node(r, &pol->resources, l) {
+		switch (r->type) {
+		case RES_USER:
+			user_count++;
+			user = (struct res_user*)(r->resource);
 			assert_not_null("got the first res_user defined", user);
 			assert_int_equals("user->ru_uid == 411", 411, user->ru_uid);
 			assert_int_equals("user->ru_gid == 1089", 1089, user->ru_gid);
 			assert_str_equals("user->ru_dir is /srv/oper/info", "/srv/oper/info", user->ru_dir);
 			break;
-		}
-	}
-	assert_int_equals("Only found 1 user", 1, i);
 
-	i = 0;
-	for_each_node(file, &pol->res_files, res) {
-		switch (i++) {
-		case 0:
+		case RES_FILE:
+			file_count++;
+			file = (struct res_file*)(r->resource);
 			assert_not_null("got the first res_file defined", file);
 			assert_int_equals("file->rf_mode == 0600", file->rf_mode, 0600);
 			assert_str_equals("file->rf_rpath is std/etc-sudoers", "std/etc-sudoers", file->rf_rpath);
 			assert_str_equals("file->rf_lpath is /etc/sudoers", "/etc/sudoers", file->rf_lpath);
 			break;
-		}
-	}
-	assert_int_equals("Only found 1 file", 1, i);
 
-	i = 0;
-	for_each_node(group, &pol->res_groups, res) {
-		switch (i++) {
-		case 0:
+		case RES_GROUP:
+			group_count++;
+			group = (struct res_group*)(r->resource);
 			assert_not_null("got the first res_group defined", group);
 			assert_int_equals("group->rg_gid == 5454", 5454, group->rg_gid);
 			assert_str_equals("group->rg_name is group54", "group54", group->rg_name);
 			break;
+
+		default:
+			assert_fail("Unknown resource type");
+			break;
+
 		}
 	}
-	assert_int_equals("Only found 1 group", 1, i);
+	assert_int_equals("Only found 1 user",  1, user_count);
+	assert_int_equals("Only found 1 file",  1, file_count);
+	assert_int_equals("Only found 1 group", 1, group_count);
 
 	policy_free_all(pol);
 }
@@ -193,6 +193,7 @@ void test_stree_conditional_policy_generation()
 	struct stree *root;
 	struct hash *facts;
 
+	struct resource *r, *res;
 	struct res_user *user;
 	struct res_file *file;
 
@@ -205,17 +206,23 @@ void test_stree_conditional_policy_generation()
 	pol = policy_generate(root, facts);
 	assert_not_null("policy defined successfully from stree", pol);
 
-	assert_true("policy defined has user resources",  !list_empty(&pol->res_users));
-	assert_true("policy defined has no group resources", list_empty(&pol->res_groups));
-	assert_true("policy defined has file resources", !list_empty(&pol->res_files));
+	assert_policy_has_users( "policy defined has 1 user resource",    pol, 1);
+	assert_policy_has_groups("policy defined has no group resources", pol, 0);
+	assert_policy_has_files( "policy defined has 1 file resource",    pol, 1);
 
-	file = list_node(pol->res_files.next, struct res_file, res);
+	res = NULL;
+	for_each_node(r, &pol->resources, l) { if (r->type == RES_FILE) { res = r; break; } }
+	assert_not_null("first resource is not NULL", res);
+	file = (struct res_file*)(res->resource);
 	assert_not_null("got the first res_file defined", file);
 	assert_int_equals("file->rf_mode == 0644", file->rf_mode, 0644);
 	assert_str_equals("file->rf_rpath is std/2.6.conf", "std/2.6.conf", file->rf_rpath);
 	assert_str_equals("file->rf_lpath is snmpd.conf", "snmpd.conf", file->rf_lpath);
 
-	user = list_node(pol->res_users.next, struct res_user, res);
+	res = NULL;
+	for_each_node(r, &pol->resources, l) { if (r->type == RES_USER) { res = r; break; } }
+	assert_not_null("first resource is not NULL", res);
+	user = (struct res_user*)(res->resource);
 	assert_not_null("got the first res_user defined", user);
 	assert_int_equals("user->ru_uid == 20050", 20050, user->ru_uid);
 	assert_int_equals("user->ru_gid == 20051", 20051, user->ru_gid);
@@ -229,11 +236,14 @@ void test_stree_conditional_policy_generation()
 	pol = policy_generate(root, facts);
 	assert_not_null("policy defined successfully from stree", pol);
 
-	assert_true("policy defined has no users resources", list_empty(&pol->res_users));
-	assert_true("policy defined has no group resources", list_empty(&pol->res_groups));
-	assert_true("policy defined has file resources", !list_empty(&pol->res_files));
+	assert_policy_has_users( "policy defined has no user resources",  pol, 0);
+	assert_policy_has_groups("policy defined has no group resources", pol, 0);
+	assert_policy_has_files( "policy defined has 1 file resource",    pol, 1);
 
-	file = list_node(pol->res_files.next, struct res_file, res);
+	res = NULL;
+	for_each_node(r, &pol->resources, l) { if (r->type == RES_FILE) { res = r; break; } }
+	assert_not_null("first file resource is not NULL", res);
+	file = (struct res_file*)(res->resource);
 	assert_not_null("got the first res_file defined", file);
 	assert_int_equals("file->rf_mode == 0644", file->rf_mode, 0644);
 	assert_str_equals("file->rf_rpath is std/2.4.conf", "std/2.4.conf", file->rf_rpath);
@@ -295,6 +305,7 @@ void test_stree_prog_policy_generation()
 	struct hash *facts;
 	unsigned int i;
 
+	struct resource *res, *r;
 	struct res_group *group;
 
 	test("stree: prog(resssion) stree generates policies based on facts");
@@ -305,17 +316,14 @@ void test_stree_prog_policy_generation()
 	facts = facts_for_prog1();
 	pol = policy_generate(root, facts);
 	assert_not_null("policy defined successfully from stree", pol);
-	assert_true("policy defined has group resources", !list_empty(&pol->res_groups));
-	i = 0;
-	for_each_node(group, &pol->res_groups, res) {
-		switch (i++) {
-		case 0:
-			assert_not_null("got the first res_group defined", group);
-			assert_int_equals("group->rg_gid == 101", 101, group->rg_gid);
-			break;
-		}
-	}
-	assert_int_equals("Found 1 group", 1, i);
+	assert_policy_has_groups("policy defined has 1 group resource", pol, 1);
+
+	res = NULL;
+	for_each_node(r, &pol->resources, l) { if (r->type == RES_GROUP) { res = r; break; } }
+	assert_not_null("group resource was found", res);
+	group = (struct res_group*)(res->resource);
+	assert_not_null("got the first res_group defined", group);
+	assert_int_equals("group->rg_gid == 101", 101, group->rg_gid);
 
 	hash_free(facts);
 	policy_free_all(pol);
@@ -324,9 +332,13 @@ void test_stree_prog_policy_generation()
 	facts = facts_for_prog2();
 	pol = policy_generate(root, facts);
 	assert_not_null("policy defined successfully from stree", pol);
-	assert_true("policy defined has group resources", !list_empty(&pol->res_groups));
+	assert_policy_has_groups("policy defined has 2 group resources", pol, 2);
+
 	i = 0;
-	for_each_node(group, &pol->res_groups, res) {
+	for_each_node(r, &pol->resources, l) {
+		if (r->type != RES_GROUP) { continue; }
+		group = (struct res_group*)(r->resource);
+
 		switch (i++) {
 		case 0:
 			assert_not_null("got the first res_group defined", group);

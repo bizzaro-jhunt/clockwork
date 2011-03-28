@@ -86,7 +86,8 @@ static int _group_update(stringlist *add, stringlist *rm, const char *user)
 
 /*****************************************************************/
 
-struct res_group* res_group_new(const char *key)
+//struct res_group* res_group_new(const char *key)
+void* res_group_new(const char *key)
 {
 	struct res_group *rg;
 
@@ -121,8 +122,11 @@ struct res_group* res_group_new(const char *key)
 	return rg;
 }
 
-void res_group_free(struct res_group *rg)
+//void res_group_free(struct res_group *rg)
+void res_group_free(void *res)
 {
+	struct res_group *rg = (struct res_group*)(res);
+
 	if (rg) {
 		free(rg->key);
 
@@ -146,8 +150,22 @@ void res_group_free(struct res_group *rg)
 	free(rg);
 }
 
-int res_group_setattr(struct res_group *rg, const char *name, const char *value)
+const char* res_group_key(const void *res)
 {
+	const struct res_group *rg = (struct res_group*)(res);
+	assert(rg);
+
+	return rg->key;
+}
+
+int res_group_norm(void *res) { return 0; }
+
+//int res_group_setattr(struct res_group *rg, const char *name, const char *value)
+int res_group_setattr(void *res, const char *name, const char *value)
+{
+	struct res_group *rg = (struct res_group*)(res);
+	assert(res);
+
 	if (strcmp(name, "gid") == 0) {
 		return res_group_set_gid(rg, strtoll(value, NULL, 10));
 	} else if (strcmp(name, "present") == 0) {
@@ -284,14 +302,17 @@ int res_group_remove_admin(struct res_group *rg, const char *user)
 	return _group_update(rg->rg_adm_rm, rg->rg_adm_add, user);
 }
 
-int res_group_stat(struct res_group *rg, struct grdb *grdb, struct sgdb *sgdb)
+//int res_group_stat(struct res_group *rg, struct grdb *grdb, struct sgdb *sgdb)
+int res_group_stat(void *res, const struct resource_env *env)
 {
+	struct res_group *rg = (struct res_group*)(res);
 	assert(rg);
-	assert(grdb);
-	assert(sgdb);
+	assert(env);
+	assert(env->group_grdb);
+	assert(env->group_sgdb);
 
-	rg->rg_grp = grdb_get_by_name(grdb, rg->rg_name);
-	rg->rg_sg = sgdb_get_by_name(sgdb, rg->rg_name);
+	rg->rg_grp = grdb_get_by_name(env->group_grdb, rg->rg_name);
+	rg->rg_sg = sgdb_get_by_name(env->group_sgdb, rg->rg_name);
 	if (!rg->rg_grp || !rg->rg_sg) { /* new group */
 		rg->rg_diff = rg->rg_enf;
 
@@ -319,11 +340,14 @@ int res_group_stat(struct res_group *rg, struct grdb *grdb, struct sgdb *sgdb)
 	return _res_group_diff(rg);
 }
 
-struct report* res_group_remediate(struct res_group *rg, int dryrun, struct grdb *grdb, struct sgdb *sgdb)
+//struct report* res_group_remediate(struct res_group *rg, int dryrun, struct grdb *grdb, struct sgdb *sgdb)
+struct report* res_group_fixup(void *res, int dryrun, const struct resource_env *env)
 {
+	struct res_group *rg = (struct res_group*)(res);
 	assert(rg);
-	assert(grdb);
-	assert(sgdb);
+	assert(env);
+	assert(env->group_grdb);
+	assert(env->group_sgdb);
 
 	struct report *report;
 	char *action;
@@ -343,8 +367,8 @@ struct report* res_group_remediate(struct res_group *rg, int dryrun, struct grdb
 			if (dryrun) {
 				report_action(report, action, ACTION_SKIPPED);
 			} else {
-				if ((rg->rg_grp && grdb_rm(grdb, rg->rg_grp) != 0)
-				 || (rg->rg_sg && sgdb_rm(sgdb, rg->rg_sg) != 0)) {
+				if ((rg->rg_grp && grdb_rm(env->group_grdb, rg->rg_grp) != 0)
+				 || (rg->rg_sg && sgdb_rm(env->group_sgdb, rg->rg_sg) != 0)) {
 					report_action(report, action, ACTION_FAILED);
 				} else {
 					report_action(report, action, ACTION_SUCCEEDED);
@@ -359,8 +383,8 @@ struct report* res_group_remediate(struct res_group *rg, int dryrun, struct grdb
 		new_group = 1;
 		action = string("create group");
 
-		if (!rg->rg_grp) { rg->rg_grp = grdb_new_entry(grdb, rg->rg_name, rg->rg_gid); }
-		if (!rg->rg_sg)  { rg->rg_sg = sgdb_new_entry(sgdb, rg->rg_name); }
+		if (!rg->rg_grp) { rg->rg_grp = grdb_new_entry(env->group_grdb, rg->rg_name, rg->rg_gid); }
+		if (!rg->rg_sg)  { rg->rg_sg = sgdb_new_entry(env->group_sgdb, rg->rg_name); }
 
 		if (dryrun) {
 			report_action(report, action, ACTION_SKIPPED);
@@ -468,8 +492,12 @@ int res_group_is_pack(const char *packed)
 	return strncmp(packed, RES_GROUP_PACK_PREFIX, RES_GROUP_PACK_OFFSET);
 }
 
-char *res_group_pack(struct res_group *rg)
+//char *res_group_pack(struct res_group *rg)
+char *res_group_pack(const void *res)
 {
+	const struct res_group *rg = (const struct res_group*)(res);
+	assert(rg);
+
 	char *tmp;
 	char *mem_add = NULL, *mem_rm = NULL,
 	     *adm_add = NULL, *adm_rm = NULL;
@@ -494,7 +522,8 @@ char *res_group_pack(struct res_group *rg)
 	return tmp;
 }
 
-struct res_group* res_group_unpack(const char *packed)
+//struct res_group* res_group_unpack(const char *packed)
+void* res_group_unpack(const char *packed)
 {
 	char *mem_add = NULL, *mem_rm = NULL,
 	     *adm_add = NULL, *adm_rm = NULL;

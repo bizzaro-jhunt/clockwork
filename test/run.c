@@ -9,10 +9,7 @@ extern void test_suite_sha1();
 
 extern void test_suite_pack();
 
-extern void test_suite_res_file();
-extern void test_suite_res_user();
-extern void test_suite_res_group();
-
+extern void test_suite_resources();
 extern void test_suite_policy();
 
 extern void test_suite_fact();
@@ -43,10 +40,7 @@ int main(int argc, char **argv)
 
 	RUN_TESTS(pack);
 
-	RUN_TESTS(res_file);
-	RUN_TESTS(res_user);
-	RUN_TESTS(res_group);
-
+	RUN_TESTS(resources);
 	RUN_TESTS(policy);
 
 	RUN_TESTS(fact);

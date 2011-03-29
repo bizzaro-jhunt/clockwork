@@ -8,13 +8,6 @@
 #include "resource.h"
 #include "stringlist.h"
 
-#define POLICY_PACK_PREFIX "policy::"
-#define POLICY_PACK_OFFSET 8
-/* Pack format for policy structure (first line):
-     a - name
- */
-#define POLICY_PACK_FORMAT "a"
-
 /** @cond false */
 struct policy_generator {
 	struct policy *policy;
@@ -352,7 +345,7 @@ char* policy_pack(const struct policy *pol)
 		return NULL;
 	}
 
-	packed = pack(POLICY_PACK_PREFIX, POLICY_PACK_FORMAT, pol->name);
+	packed = pack("policy::", "a", pol->name);
 	if (stringlist_add(pack_list, packed) != 0) {
 		goto policy_pack_failed;
 	}
@@ -400,12 +393,12 @@ struct policy* policy_unpack(const char *packed_policy)
 	}
 
 	packed = pack_list->strings[0];
-	if (strncmp(packed, POLICY_PACK_PREFIX, POLICY_PACK_OFFSET) != 0) {
+	if (strncmp(packed, "policy::", strlen("policy::")) != 0) {
 		stringlist_free(pack_list);
 		return NULL;
 	}
 
-	if (unpack(packed, POLICY_PACK_PREFIX, POLICY_PACK_FORMAT, &pol_name) != 0) {
+	if (unpack(packed, "policy::", "a", &pol_name) != 0) {
 
 		stringlist_free(pack_list);
 		return NULL;

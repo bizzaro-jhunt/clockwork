@@ -9,7 +9,7 @@
 #include "cert.h"
 #include "spec/parser.h"
 #include "server.h"
-#include "res_file.h"
+#include "resources.h"
 
 /**************************************************************/
 

@@ -51,24 +51,13 @@
            or NULL on internal failure (i.e. malloc issues)
   struct report *res_TYPENAME_fixup(void *r, int dryrun, struct resource_env *env);
 
-  Determine whether or not \a packed is a packed representation
-  of this type of resource.
-
-  @param  packed    Packed string to check.
-
-  @returns 0 if \a packed represents this type of resource, and non-zero if not.
-  int res_TYPENAME_is_pack(const char *packed);
-
   Serialize a resource into its packed string representation.
 
   The string returned by this function should be freed by the caller,
   using the standard free(3) standard library function.
 
-  The final serialized form of a resource satisfies the following
-  requirements:
-
-  -# Can be passed to res_TYPENAME_is_pack to get a successful return value.
-  -# Can be passed to res_TYPENAME_unpack to get the original structure back.
+  The final serialized form of a resource can be passed to
+  res_TYPENAME_unpack to get the original structure back
 
   @param  r    Resource to serialize.
 
@@ -131,9 +120,26 @@ int            res_ ## t ## _norm(void *res); \
 int            res_ ## t ## _set(void *res, const char *attr, const char *value); \
 int            res_ ## t ## _stat(void *res, const struct resource_env *env); \
 struct report* res_ ## t ## _fixup(void *res, int dryrun, const struct resource_env *env); \
-int            res_ ## t ## _is_pack(const char *packed); \
 char*          res_ ## t ## _pack(const void *res); \
 void*          res_ ## t ## _unpack(const char *packed)
+
+/**
+  Check if an attribute is enforced on \a r.
+
+  @param  r  Resource to check
+  @param  a  Attribute (RES_*_* contstant)
+  @returns non-zero if \a a is enforced; zero if not.
+ */
+#define ENFORCED(r,a)  (((r)->enforced  & a) == a)
+
+/**
+  Check if attribute \a a is out of compliance.
+
+  @param  r  Resource to check
+  @param  a  Attribute (RES_*_* contstant)
+  @returns non-zero if \a a is out of compliance; zero if not.
+ */
+#define DIFFERENT(r,a) (((r)->different & a) == a)
 
 struct resource* resource_new(const char *type, const char *key);
 void resource_free(struct resource *r);

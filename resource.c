@@ -1,9 +1,5 @@
 #include "resource.h"
-
-#include "res_user.h"
-#include "res_group.h"
-#include "res_file.h"
-#include "res_package.h"
+#include "resources.h"
 
 typedef void* (*resource_new_f)(const char *key);
 typedef void (*resource_free_f)(void *res);
@@ -12,12 +8,12 @@ typedef int (*resource_norm_f)(void *res);
 typedef int (*resource_set_f)(void *res, const char *attr, const char *value);
 typedef int (*resource_stat_f)(void *res, const struct resource_env *env);
 typedef struct report* (*resource_fixup_f)(void *res, int dryrun, const struct resource_env *env);
-typedef int (*resource_is_pack_f)(const char *packed);
 typedef char* (*resource_pack_f)(const void *res);
 typedef void* (*resource_unpack_f)(const char *packed);
 
 #define RESOURCE_TYPE(t) { \
 	             .name = #t,                    \
+	      .pack_prefix = "res_" #t "::",        \
 	     .new_callback = res_ ## t ## _new,     \
 	    .free_callback = res_ ## t ## _free,    \
 	     .key_callback = res_ ## t ## _key,     \
@@ -25,12 +21,13 @@ typedef void* (*resource_unpack_f)(const char *packed);
 	     .set_callback = res_ ## t ## _set,     \
 	    .stat_callback = res_ ## t ## _stat,    \
 	   .fixup_callback = res_ ## t ## _fixup,   \
-	 .is_pack_callback = res_ ## t ## _is_pack, \
 	    .pack_callback = res_ ## t ## _pack,    \
 	  .unpack_callback = res_ ## t ## _unpack   }
 
 	const struct {
 		const char         *name;
+		const char         *pack_prefix;
+
 		resource_new_f      new_callback;
 		resource_free_f     free_callback;
 		resource_key_f      key_callback;
@@ -38,7 +35,6 @@ typedef void* (*resource_unpack_f)(const char *packed);
 		resource_set_f      set_callback;
 		resource_stat_f     stat_callback;
 		resource_fixup_f    fixup_callback;
-		resource_is_pack_f  is_pack_callback;
 		resource_pack_f     pack_callback;
 		resource_unpack_f   unpack_callback;
 	} resource_types[RES_UNKNOWN] = {
@@ -138,7 +134,8 @@ struct resource *resource_unpack(const char *packed)
 
 	enum restype i;
 	for (i = 0; i < RES_UNKNOWN; i++) {
-		if ( (*(resource_types[i].is_pack_callback))(packed) == 0 ) {
+		if (strncmp(packed, resource_types[i].pack_prefix,
+		            strlen(resource_types[i].pack_prefix)) == 0) {
 			r = xmalloc(sizeof(struct resource));
 			r->type = i;
 			r->resource = (*(resource_types[i].unpack_callback))(packed);

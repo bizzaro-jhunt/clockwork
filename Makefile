@@ -59,8 +59,8 @@ UTILS := sha1sum polspec
 CORE  := cwa cwcert cwca policyd
 
 # Resource types
-RESOURCE_OBJECTS := res_user.o res_group.o res_file.o res_package.o resource.o report.o pkgmgr.o
-RESOURCE_HEADERS := res_user.h res_group.h res_file.h res_package.h resource.o report.h pkgmgr.h
+RESOURCE_OBJECTS := resource.o resources.o report.o pkgmgr.o
+RESOURCE_HEADERS := resource.h resources.h report.h pkgmgr.h
 
 # Supporting object files
 CORE_OBJECTS := mem.o sha1.o pack.o hash.o stringlist.o userdb.o log.o cert.o prompt.o
@@ -188,7 +188,6 @@ unit: unit_tests
 unit_tests: test/run
 
 test/run: test/run.o test/test.o \
-          resource.o pkgmgr.o \
           test/assertions.o \
           mem.o \
           report.o log.o \
@@ -197,10 +196,8 @@ test/run: test/run.o test/test.o \
           test/hash.o hash.o \
           test/userdb.o userdb.o \
           test/pack.o pack.o \
-          test/res_file.o res_file.o \
-          test/res_group.o res_group.o \
-          test/res_user.o res_user.o \
-                          res_package.o \
+          test/resources.o resource.o resources.o \
+          pkgmgr.o \
           test/policy.o test/stree.o test/fact.o policy.o \
           test/cert.o cert.o prompt.o \
           test/sha1.o sha1.o
@@ -219,7 +216,7 @@ lcov.info: unit_tests functional_tests
 	$(LCOV) --remove $@.tmp $(NO_LCOV) > $@
 	rm -f $@.tmp
 
-test/res_file.o: test/res_file.c res_file.h test/sha1_files.h
+test/resources.o: test/resources.c resources.h test/sha1_files.h
 	$(CC) -c -o $@ $<
 
 test/sha1_files.h:

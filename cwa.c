@@ -14,7 +14,7 @@
 #include "pkgmgr.h"
 
 /* FIXME: one-off weirdness for fixup res_file */
-#include "res_file.h"
+#include "resources.h"
 
 static client* cwa_options(int argc, char **argv);
 static void show_help(void);

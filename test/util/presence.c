@@ -24,7 +24,7 @@ void print_users(struct policy *pol)
 		if (r->type != RES_USER) { continue; }
 		u = (struct res_user*)(r->resource);
 
-		if (!res_user_enforced(u, ABSENT)) {
+		if (!ENFORCED(u, RES_FILE_ABSENT)) {
 			printf(":%s", u->ru_name);
 			i++;
 		}
@@ -38,7 +38,7 @@ void print_users(struct policy *pol)
 		if (r->type != RES_USER) { continue; }
 		u = (struct res_user*)(r->resource);
 
-		if (res_user_enforced(u, ABSENT)) {
+		if (ENFORCED(u, RES_FILE_ABSENT)) {
 			printf(":%s", u->ru_name);
 			i++;
 		}

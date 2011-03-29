@@ -11,7 +11,6 @@
  */
 #define RES_PACKAGE_PACK_FORMAT "Laa"
 
-//struct res_package* res_package_new(const char *key)
 void* res_package_new(const char *key)
 {
 	struct res_package *rp;
@@ -24,7 +23,7 @@ void* res_package_new(const char *key)
 	rp->version = NULL;
 
 	if (key) {
-		res_package_set_name(rp, key);
+		res_package_set(rp, "name", key);
 		rp->key = string("res_package:%s", key);
 	} else {
 		rp->key = NULL;
@@ -33,7 +32,6 @@ void* res_package_new(const char *key)
 	return rp;
 }
 
-//void res_package_free(struct res_package *rp)
 void res_package_free(void *res)
 {
 	struct res_package *rp = (struct res_package*)(res);
@@ -59,50 +57,27 @@ const char* res_package_key(const void *res)
 
 int res_package_norm(void *res) { return 0; }
 
-//int res_package_setattr(struct res_package *rp, const char *name, const char *value)
-int res_package_setattr(void *res, const char *name, const char *value)
+int res_package_set(void *res, const char *name, const char *value)
 {
 	struct res_package *rp = (struct res_package*)(res);
 	if (strcmp(name, "name") == 0) {
-		return res_package_set_name(rp, value);
+		free(rp->name);
+		rp->name = strdup(value);
+
 	} else if (strcmp(name, "version") == 0) {
-		return res_package_set_version(rp, value);
+		free(rp->version);
+		rp->version = strdup(value);
+
 	} else if (strcmp(name, "installed") == 0) {
-		return res_package_set_presence(rp, strcmp(value, "no"));
-	}
+		if (strcmp(value, "no") != 0) {
+			rp->enforced ^= RES_PACKAGE_ABSENT;
+		} else {
+			rp->enforced |= RES_PACKAGE_ABSENT;
+		}
 
-	return -1;
-}
-
-int res_package_set_presence(struct res_package *rp, int presence)
-{
-	assert(rp);
-
-	if (presence) {
-		rp->enforced ^= RES_PACKAGE_ABSENT;
 	} else {
-		rp->enforced |= RES_PACKAGE_ABSENT;
+		return -1;
 	}
-
-	return 0;
-}
-
-int res_package_set_name(struct res_package *rp, const char *name)
-{
-	assert(rp);
-
-	free(rp->name);
-	rp->name = strdup(name);
-
-	return 0;
-}
-
-int res_package_set_version(struct res_package *rp, const char *version)
-{
-	assert(rp);
-
-	free(rp->version);
-	rp->version = strdup(version);
 
 	return 0;
 }
@@ -185,7 +160,6 @@ int res_package_is_pack(const char *packed)
 	return strncmp(packed, RES_PACKAGE_PACK_PREFIX, RES_PACKAGE_PACK_OFFSET);
 }
 
-//char *res_package_pack(struct res_package *rp)
 char* res_package_pack(const void *res)
 {
 	const struct res_package *rp = (const struct res_package*)(res);
@@ -196,7 +170,6 @@ char* res_package_pack(const void *res)
 	            rp->name, rp->version);
 }
 
-//struct res_package* res_package_unpack(const char *packed)
 void* res_package_unpack(const char *packed)
 {
 	struct res_package *rp = res_package_new(NULL);

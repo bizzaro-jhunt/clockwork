@@ -75,7 +75,6 @@ static int _res_file_diff(struct res_file *rf)
 
 /*****************************************************************/
 
-//struct res_file* res_file_new(const char *key)
 void* res_file_new(const char *key)
 {
 	struct res_file *rf;
@@ -103,7 +102,7 @@ void* res_file_new(const char *key)
 	sha1_init(&(rf->rf_rsha1), NULL);
 
 	if (key) {
-		res_file_set_path(rf, key);
+		res_file_set(rf, "path", key);
 		rf->key = string("res_file:%s", key);
 	} else {
 		rf->key = NULL;
@@ -112,7 +111,6 @@ void* res_file_new(const char *key)
 	return rf;
 }
 
-//void res_file_free(struct res_file *rf)
 void res_file_free(void *res)
 {
 	struct res_file *rf = (struct res_file*)(res);
@@ -143,97 +141,49 @@ int res_file_norm(void *res) {
 	return sha1_file(rf->rf_rpath, &rf->rf_rsha1);
 }
 
-//int res_file_setattr(struct res_file *rf, const char *name, const char *value)
-int res_file_setattr(void *res, const char *name, const char *value)
+int res_file_set(void *res, const char *name, const char *value)
 {
 	struct res_file *rf = (struct res_file*)(res);
 	assert(rf);
 
 	if (strcmp(name, "owner") == 0) {
-		return res_file_set_owner(rf, value);
+		free(rf->rf_owner);
+		rf->rf_owner = strdup(value);
+		rf->rf_enf |= RES_FILE_UID;
+
 	} else if (strcmp(name, "group") == 0) {
-		return res_file_set_group(rf, value);
-	} else if (strcmp(name, "lpath") == 0) {
-		return res_file_set_path(rf, value);
+		free(rf->rf_group);
+		rf->rf_group = strdup(value);
+		rf->rf_enf |= RES_FILE_GID;
+
 	} else if (strcmp(name, "mode") == 0) {
-		return res_file_set_mode(rf, strtoll(value, NULL, 0));
+		/* Mask off non-permission bits */
+		rf->rf_mode = strtoll(value, NULL, 0) & 07777;
+		rf->rf_enf |= RES_FILE_MODE;
+
 	} else if (strcmp(name, "source") == 0) {
-		return res_file_set_source(rf, value);
+		free(rf->rf_rpath);
+		rf->rf_rpath = strdup(value);
+		if (sha1_file(rf->rf_rpath, &rf->rf_rsha1) != 0) {
+			return -1;
+		}
+		rf->rf_enf |= RES_FILE_SHA1;
+
+	} else if (strcmp(name, "path") == 0) {
+		free(rf->rf_lpath);
+		rf->rf_lpath = strdup(value);
+
 	} else if (strcmp(name, "present") == 0) {
-		return res_file_set_presence(rf, strcmp(value, "no"));
-	}
+		if (strcmp(value, "no") != 0) {
+			rf->rf_enf ^= RES_FILE_ABSENT;
+		} else {
+			rf->rf_enf |= RES_FILE_ABSENT;
+		}
 
-	return -1;
-}
-
-int res_file_set_presence(struct res_file *rf, int presence)
-{
-	assert(rf);
-
-	if (presence) {
-		rf->rf_enf ^= RES_FILE_ABSENT;
 	} else {
-		rf->rf_enf |= RES_FILE_ABSENT;
-	}
-
-	return 0;
-}
-
-int res_file_set_owner(struct res_file *rf, const char *user)
-{
-	assert(rf);
-
-	free(rf->rf_owner);
-	rf->rf_owner = strdup(user);
-
-	rf->rf_enf |= RES_FILE_UID;
-
-	return 0;
-}
-
-int res_file_set_group(struct res_file *rf, const char *group)
-{
-	assert(rf);
-
-	free(rf->rf_group);
-	rf->rf_group = strdup(group);
-
-	rf->rf_enf |= RES_FILE_GID;
-
-	return 0;
-}
-
-int res_file_set_mode(struct res_file *rf, mode_t mode)
-{
-	assert(rf);
-	rf->rf_mode = mode & 07777; /* mask off non-perm bits */
-	rf->rf_enf |= RES_FILE_MODE;
-
-	return 0;
-}
-
-int res_file_set_path(struct res_file *rf, const char *file)
-{
-	assert(rf);
-
-	xfree(rf->rf_lpath);
-	rf->rf_lpath = strdup(file);
-
-	return 0;
-}
-
-int res_file_set_source(struct res_file *rf, const char *file)
-{
-	assert(rf);
-
-	xfree(rf->rf_rpath);
-	rf->rf_rpath = strdup(file);
-
-	if (sha1_file(rf->rf_rpath, &(rf->rf_rsha1)) == -1) {
+		/* unknown attribute. */
 		return -1;
 	}
-
-	rf->rf_enf |= RES_FILE_SHA1;
 
 	return 0;
 }
@@ -242,7 +192,6 @@ int res_file_set_source(struct res_file *rf, const char *file)
  * Fill in the local details of res_file structure,
  * including invoking stat(2)
  */
-//int res_file_stat(struct res_file *rf)
 int res_file_stat(void *res, const struct resource_env *env)
 {
 	struct res_file *rf = (struct res_file*)(res);
@@ -268,7 +217,6 @@ int res_file_stat(void *res, const struct resource_env *env)
 	return _res_file_diff(rf);
 }
 
-//struct report* res_file_remediate(struct res_file *rf, int dryrun, int remote_fd, ssize_t remote_len)
 struct report* res_file_fixup(void *res, int dryrun, const struct resource_env *env)
 {
 	struct res_file *rf = (struct res_file*)(res);
@@ -404,7 +352,6 @@ int res_file_is_pack(const char *packed)
 	return strncmp(packed, RES_FILE_PACK_PREFIX, RES_FILE_PACK_OFFSET);
 }
 
-//char* res_file_pack(struct res_file *rf)
 char* res_file_pack(const void *res)
 {
 	const struct res_file *rf = (const struct res_file*)(res);
@@ -415,7 +362,6 @@ char* res_file_pack(const void *res)
 	            rf->rf_lpath, rf->rf_rsha1.hex, rf->rf_owner, rf->rf_group, rf->rf_mode);
 }
 
-//struct res_file* res_file_unpack(const char *packed)
 void* res_file_unpack(const char *packed)
 {
 	char *hex = NULL;

@@ -9,7 +9,7 @@ typedef void* (*resource_new_f)(const char *key);
 typedef void (*resource_free_f)(void *res);
 typedef const char* (*resource_key_f)(const void *res);
 typedef int (*resource_norm_f)(void *res);
-typedef int (*resource_setattr_f)(void *res, const char *attr, const char *value);
+typedef int (*resource_set_f)(void *res, const char *attr, const char *value);
 typedef int (*resource_stat_f)(void *res, const struct resource_env *env);
 typedef struct report* (*resource_fixup_f)(void *res, int dryrun, const struct resource_env *env);
 typedef int (*resource_is_pack_f)(const char *packed);
@@ -22,7 +22,7 @@ typedef void* (*resource_unpack_f)(const char *packed);
 	    .free_callback = res_ ## t ## _free,    \
 	     .key_callback = res_ ## t ## _key,     \
 	    .norm_callback = res_ ## t ## _norm,    \
-	 .setattr_callback = res_ ## t ## _setattr, \
+	     .set_callback = res_ ## t ## _set,     \
 	    .stat_callback = res_ ## t ## _stat,    \
 	   .fixup_callback = res_ ## t ## _fixup,   \
 	 .is_pack_callback = res_ ## t ## _is_pack, \
@@ -35,7 +35,7 @@ typedef void* (*resource_unpack_f)(const char *packed);
 		resource_free_f     free_callback;
 		resource_key_f      key_callback;
 		resource_norm_f     norm_callback;
-		resource_setattr_f  setattr_callback;
+		resource_set_f      set_callback;
 		resource_stat_f     stat_callback;
 		resource_fixup_f    fixup_callback;
 		resource_is_pack_f  is_pack_callback;
@@ -92,14 +92,14 @@ int resource_norm(struct resource *r)
 	return (*(resource_types[r->type].norm_callback))(r->resource);
 }
 
-int resource_setattr(struct resource *r, const char *attr, const char *value)
+int resource_set(struct resource *r, const char *attr, const char *value)
 {
 	assert(r);
 	assert(r->type != RES_UNKNOWN);
 	assert(attr);
 	assert(value);
 
-	return (*(resource_types[r->type].setattr_callback))(r->resource, attr, value);
+	return (*(resource_types[r->type].set_callback))(r->resource, attr, value);
 }
 
 int resource_stat(struct resource *r, const struct resource_env *env)

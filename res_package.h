@@ -24,8 +24,4 @@ struct res_package {
 
 NEW_RESOURCE(package);
 
-int res_package_set_presence(struct res_package *rp, int presence);
-int res_package_set_name(struct res_package *rp, const char *name);
-int res_package_set_version(struct res_package *rp, const char *version);
-
 #endif

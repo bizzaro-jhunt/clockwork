@@ -174,7 +174,6 @@ static int _res_user_populate_home(const char *home, const char *skel, uid_t uid
 
 /*****************************************************************/
 
-//struct res_user* res_user_new(const char *key)
 void* res_user_new(const char *key)
 {
 	struct res_user *ru;
@@ -207,7 +206,7 @@ void* res_user_new(const char *key)
 	ru->ru_sp     = NULL;
 
 	if (key) {
-		res_user_set_name(ru, key);
+		res_user_set(ru, "username", key);
 		ru->key = string("res_user:%s", key);
 	} else {
 		ru->key = NULL;
@@ -216,7 +215,6 @@ void* res_user_new(const char *key)
 	return ru;
 }
 
-//void res_user_free(struct res_user *ru)
 void res_user_free(void *res)
 {
 	struct res_user *ru = (struct res_user*)(res);
@@ -246,221 +244,88 @@ const char* res_user_key(const void *res)
 
 int res_user_norm(void *res) { return 0; }
 
-//int res_user_setattr(struct res_user *ru, const char *name, const char *value)
-int res_user_setattr(void *res, const char *name, const char *value)
+int res_user_set(void *res, const char *name, const char *value)
 {
 	struct res_user *ru = (struct res_user*)(res);
 	assert(ru);
 
 	if (strcmp(name, "uid") == 0) {
-		return res_user_set_uid(ru, strtoll(value, NULL, 10));
+		ru->ru_uid = strtoll(value, NULL, 10);
+		ru->ru_enf |= RES_USER_UID;
+
 	} else if (strcmp(name, "gid") == 0) {
-		return res_user_set_gid(ru, strtoll(value, NULL, 10));
+		ru->ru_gid = strtoll(value, NULL, 10);
+		ru->ru_enf |= RES_USER_GID;
+
+	} else if (strcmp(name, "username") == 0) {
+		free(ru->ru_name);
+		ru->ru_name = strdup(value);
+		ru->ru_enf |= RES_USER_NAME;
+
 	} else if (strcmp(name, "home") == 0) {
-		return res_user_set_dir(ru, value);
+		free(ru->ru_dir);
+		ru->ru_dir = strdup(value);
+		ru->ru_enf |= RES_USER_DIR;
+
 	} else if (strcmp(name, "present") == 0) {
-		return res_user_set_presence(ru, strcmp(value, "no"));
-	} else if (strcmp(name, "locked") == 0) {
-		return res_user_set_lock(ru, strcmp(value, "no"));
-	} else if (strcmp(name, "gecos") == 0 || strcmp(name, "comment") == 0) {
-		return res_user_set_gecos(ru, value);
-	} else if (strcmp(name, "shell") == 0) {
-		return res_user_set_shell(ru, value);
-	} else if (strcmp(name, "pwhash") == 0 || strcmp(name, "password") == 0) {
-		return res_user_set_passwd(ru, value);
-	} else if (strcmp(name, "pwmin") == 0) { // FIXME: need better key
-		return res_user_set_pwmin(ru, strtoll(value, NULL, 10));
-	} else if (strcmp(name, "pwmax") == 0) { // FIXME: need better key
-		return res_user_set_pwmax(ru, strtoll(value, NULL, 10));
-	} else if (strcmp(name, "pwwarn") == 0) { // FIXME: need better key
-		return res_user_set_pwwarn(ru, strtoll(value, NULL, 10));
-	} else if (strcmp(name, "pwinact") == 0) { // FIXME: need better key
-		return res_user_set_inact(ru, strtoll(value, NULL, 10));
-	} else if (strcmp(name, "expiry") == 0 || strcmp(name, "expiration") == 0) {
-		return res_user_set_expire(ru, strtoll(value, NULL, 10));
-	} else if (strcmp(name, "locked") == 0) {
-		return res_user_set_lock(ru, strcmp(value, "no"));
-	} else if (strcmp(name, "skeleton") == 0 || strcmp(name, "makehome") == 0) {
-		if (strcmp(value, "no") == 0) {
-			return res_user_set_makehome(ru, 0, NULL);
-		} else if (strcmp(value, "yes") == 0) {
-			return res_user_set_makehome(ru, 1, "/etc/skel");
+		if (strcmp(value, "no") != 0) {
+			ru->ru_enf ^= RES_USER_ABSENT;
 		} else {
-			return res_user_set_makehome(ru, 1, value);
+			ru->ru_enf |= RES_USER_ABSENT;
 		}
+
+	} else if (strcmp(name, "locked") == 0) {
+		ru->ru_lock = strcmp(value, "no") ? 1 : 0;
+		ru->ru_enf |= RES_USER_LOCK;
+
+	} else if (strcmp(name, "gecos") == 0 || strcmp(name, "comment") == 0) {
+		free(ru->ru_gecos);
+		ru->ru_gecos = strdup(value);
+		ru->ru_enf |= RES_USER_GECOS;
+
+	} else if (strcmp(name, "shell") == 0) {
+		free(ru->ru_shell);
+		ru->ru_shell = strdup(value);
+		ru->ru_enf |= RES_USER_SHELL;
+
+	} else if (strcmp(name, "pwhash") == 0 || strcmp(name, "password") == 0) {
+		free(ru->ru_passwd);
+		ru->ru_passwd = strdup(value);
+		ru->ru_enf |= RES_USER_PASSWD;
+
+	} else if (strcmp(name, "pwmin") == 0) { // FIXME: need better key
+		ru->ru_pwmin = strtoll(value, NULL, 10);
+		ru->ru_enf |= RES_USER_PWMIN;
+
+	} else if (strcmp(name, "pwmax") == 0) { // FIXME: need better key
+		ru->ru_pwmax = strtoll(value, NULL, 10);
+		ru->ru_enf |= RES_USER_PWMAX;
+
+	} else if (strcmp(name, "pwwarn") == 0) { // FIXME: need better key
+		ru->ru_pwwarn = strtoll(value, NULL, 10);
+		ru->ru_enf |= RES_USER_PWWARN;
+
+	} else if (strcmp(name, "inact") == 0) { // FIXME: need better key
+		ru->ru_inact = strtoll(value, NULL, 10);
+		ru->ru_enf |= RES_USER_INACT;
+
+	} else if (strcmp(name, "expiry") == 0 || strcmp(name, "expiration") == 0) {
+		ru->ru_expire = strtoll(value, NULL, 10);
+		ru->ru_enf |= RES_USER_EXPIRE;
+
+	} else if (strcmp(name, "skeleton") == 0 || strcmp(name, "makehome") == 0) {
+		ru->ru_enf |= RES_USER_MKHOME;
+		xfree(ru->ru_skel);
+		ru->ru_mkhome = (strcmp(value, "no") ? 1 : 0);
+
+		if (!ru->ru_mkhome) { return 0; }
+		ru->ru_skel = strdup(strcmp(value, "yes") == 0 ? "/etc/skel" : value);
+
 	}
 
-	return -1;
-}
-
-int res_user_set_presence(struct res_user *ru, int presence)
-{
-	assert(ru);
-
-	if (presence) {
-		ru->ru_enf ^= RES_USER_ABSENT;
-	} else {
-		ru->ru_enf |= RES_USER_ABSENT;
-	}
-
 	return 0;
 }
 
-int res_user_set_name(struct res_user *ru, const char *name)
-{
-	assert(ru);
-
-	xfree(ru->ru_name);
-	ru->ru_name = strdup(name);
-	if (!ru->ru_name) { return -1; }
-
-	ru->ru_enf |= RES_USER_NAME;
-	return 0;
-}
-
-int res_user_set_passwd(struct res_user *ru, const char *passwd)
-{
-	assert(ru);
-
-	xfree(ru->ru_passwd);
-	ru->ru_passwd = strdup(passwd);
-	if (!ru->ru_passwd) { return -1; }
-
-	ru->ru_enf |= RES_USER_PASSWD;
-	return 0;
-}
-
-int res_user_set_uid(struct res_user *ru, uid_t uid)
-{
-	assert(ru);
-
-	ru->ru_uid = uid;
-
-	ru->ru_enf |= RES_USER_UID;
-	return 0;
-}
-
-int res_user_set_gid(struct res_user *ru, gid_t gid)
-{
-	assert(ru);
-
-	ru->ru_gid = gid;
-
-	ru->ru_enf |= RES_USER_GID;
-	return 0;
-}
-
-int res_user_set_gecos(struct res_user *ru, const char *gecos)
-{
-	assert(ru);
-
-	xfree(ru->ru_gecos);
-	ru->ru_gecos = strdup(gecos);
-	if (!ru->ru_gecos) { return -1; }
-
-	ru->ru_enf |= RES_USER_GECOS;
-	return 0;
-}
-
-int res_user_set_dir(struct res_user *ru, const char *path)
-{
-	assert(ru);
-
-	xfree(ru->ru_dir);
-	ru->ru_dir = strdup(path);
-	if (!ru->ru_dir) { return -1; }
-
-	ru->ru_enf |= RES_USER_DIR;
-	return 0;
-}
-
-int res_user_set_shell(struct res_user *ru, const char *shell)
-{
-	assert(ru);
-
-	xfree(ru->ru_shell);
-	ru->ru_shell = strdup(shell);
-	if (!ru->ru_shell) { return -1; }
-
-	ru->ru_enf |= RES_USER_SHELL;
-	return 0;
-}
-
-int res_user_set_makehome(struct res_user *ru, unsigned char mkhome, const char *skel)
-{
-	assert(ru);
-
-	ru->ru_mkhome = mkhome;
-	xfree(ru->ru_skel); /* nullifies ru_skel */
-	if (mkhome && skel) {
-		ru->ru_skel = strdup(skel);
-	}
-
-	ru->ru_enf |= RES_USER_MKHOME;
-	return 0;
-}
-
-int res_user_set_pwmin(struct res_user *ru, long days)
-{
-	assert(ru);
-
-	ru->ru_pwmin = days;
-
-	ru->ru_enf |= RES_USER_PWMIN;
-	return 0;
-}
-
-int res_user_set_pwmax(struct res_user *ru, long days)
-{
-	assert(ru);
-
-	ru->ru_pwmax = days;
-
-	ru->ru_enf |= RES_USER_PWMAX;
-	return 0;
-}
-
-int res_user_set_pwwarn(struct res_user *ru, long days)
-{
-	assert(ru);
-
-	ru->ru_pwwarn = days;
-
-	ru->ru_enf |= RES_USER_PWWARN;
-	return 0;
-}
-
-int res_user_set_inact(struct res_user *ru, long days)
-{
-	assert(ru);
-
-	ru->ru_inact = days;
-
-	ru->ru_enf |= RES_USER_INACT;
-	return 0;
-}
-
-int res_user_set_expire(struct res_user *ru, long days)
-{
-	assert(ru);
-
-	ru->ru_expire = days;
-
-	ru->ru_enf |= RES_USER_EXPIRE;
-	return 0;
-}
-
-int res_user_set_lock(struct res_user *ru, unsigned char locked)
-{
-	assert(ru);
-
-	ru->ru_lock = locked;
-
-	ru->ru_enf |= RES_USER_LOCK;
-	return 0;
-}
-
-//int res_user_stat(struct res_user *ru, struct pwdb *pwdb, struct spdb *spdb)
 int res_user_stat(void *res, const struct resource_env *env)
 {
 	struct res_user *ru = (struct res_user*)(res);
@@ -479,7 +344,6 @@ int res_user_stat(void *res, const struct resource_env *env)
 	return _res_user_diff(ru);
 }
 
-//struct report* res_user_remediate(struct res_user *ru, int dryrun, struct pwdb *pwdb, struct spdb *spdb)
 struct report* res_user_fixup(void *res, int dryrun, const struct resource_env *env)
 {
 	struct res_user *ru = (struct res_user*)(res);
@@ -771,7 +635,6 @@ int res_user_is_pack(const char *packed)
 	return strncmp(packed, RES_USER_PACK_PREFIX, RES_USER_PACK_OFFSET);
 }
 
-//char* res_user_pack(const struct res_user *ru)
 char* res_user_pack(const void *res)
 {
 	const struct res_user *ru = (const struct res_user*)(res);
@@ -785,7 +648,6 @@ char* res_user_pack(const void *res)
 	            ru->ru_pwwarn, ru->ru_inact,  ru->ru_expire);
 }
 
-//struct res_user* res_user_unpack(const char *packed)
 void* res_user_unpack(const char *packed)
 {
 	struct res_user *ru = res_user_new(NULL);

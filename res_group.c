@@ -86,7 +86,6 @@ static int _group_update(stringlist *add, stringlist *rm, const char *user)
 
 /*****************************************************************/
 
-//struct res_group* res_group_new(const char *key)
 void* res_group_new(const char *key)
 {
 	struct res_group *rg;
@@ -113,7 +112,7 @@ void* res_group_new(const char *key)
 	rg->rg_diff = RES_GROUP_NONE;
 
 	if (key) {
-		res_group_set_name(rg, key);
+		res_group_set(rg, "name", key);
 		rg->key = string("res_group:%s", key);
 	} else {
 		rg->key = NULL;
@@ -122,7 +121,6 @@ void* res_group_new(const char *key)
 	return rg;
 }
 
-//void res_group_free(struct res_group *rg)
 void res_group_free(void *res)
 {
 	struct res_group *rg = (struct res_group*)(res);
@@ -160,16 +158,27 @@ const char* res_group_key(const void *res)
 
 int res_group_norm(void *res) { return 0; }
 
-//int res_group_setattr(struct res_group *rg, const char *name, const char *value)
-int res_group_setattr(void *res, const char *name, const char *value)
+int res_group_set(void *res, const char *name, const char *value)
 {
 	struct res_group *rg = (struct res_group*)(res);
 	assert(res);
 
 	if (strcmp(name, "gid") == 0) {
-		return res_group_set_gid(rg, strtoll(value, NULL, 10));
+		rg->rg_gid = strtoll(value, NULL, 10);
+		rg->rg_enf |= RES_GROUP_GID;
+
+	} else if (strcmp(name, "name") == 0) {
+		free(rg->rg_name);
+		rg->rg_name = strdup(value);
+		rg->rg_enf |= RES_GROUP_NAME;
+
 	} else if (strcmp(name, "present") == 0) {
-		return res_group_set_presence(rg, strcmp(value, "no"));
+		if (strcmp(value, "no") != 0) {
+			rg->rg_enf ^= RES_GROUP_ABSENT;
+		} else {
+			rg->rg_enf |= RES_GROUP_ABSENT;
+		}
+
 	} else if (strcmp(name, "member") == 0) {
 		if (value[0] == '!') {
 			return res_group_remove_member(rg, value+1);
@@ -183,55 +192,14 @@ int res_group_setattr(void *res, const char *name, const char *value)
 			return res_group_add_admin(rg, value);
 		}
 	} else if (strcmp(name, "pwhash") == 0 || strcmp(name, "password") == 0) {
-		return res_group_set_passwd(rg, value);
-	}
+		free(rg->rg_passwd);
+		rg->rg_passwd = strdup(value);
+		rg->rg_enf |= RES_GROUP_PASSWD;
 
-	return -1;
-}
-
-int res_group_set_presence(struct res_group *rg, int presence)
-{
-	assert(rg);
-
-	if (presence) {
-		rg->rg_enf ^= RES_GROUP_ABSENT;
 	} else {
-		rg->rg_enf |= RES_GROUP_ABSENT;
+		return -1;
 	}
 
-	return 0;
-}
-
-int res_group_set_name(struct res_group *rg, const char *name)
-{
-	assert(rg);
-
-	xfree(rg->rg_name);
-	rg->rg_name = strdup(name);
-
-	rg->rg_enf |= RES_GROUP_NAME;
-	return 0;
-}
-
-int res_group_set_passwd(struct res_group *rg, const char *passwd)
-{
-	assert(rg);
-
-	xfree(rg->rg_passwd);
-	rg->rg_passwd = strdup(passwd);
-	if (!rg->rg_passwd) { return -1; }
-
-	rg->rg_enf |= RES_GROUP_PASSWD;
-	return 0;
-}
-
-int res_group_set_gid(struct res_group *rg, gid_t gid)
-{
-	assert(rg);
-
-	rg->rg_gid = gid;
-
-	rg->rg_enf |= RES_GROUP_GID;
 	return 0;
 }
 
@@ -302,7 +270,6 @@ int res_group_remove_admin(struct res_group *rg, const char *user)
 	return _group_update(rg->rg_adm_rm, rg->rg_adm_add, user);
 }
 
-//int res_group_stat(struct res_group *rg, struct grdb *grdb, struct sgdb *sgdb)
 int res_group_stat(void *res, const struct resource_env *env)
 {
 	struct res_group *rg = (struct res_group*)(res);
@@ -340,7 +307,6 @@ int res_group_stat(void *res, const struct resource_env *env)
 	return _res_group_diff(rg);
 }
 
-//struct report* res_group_remediate(struct res_group *rg, int dryrun, struct grdb *grdb, struct sgdb *sgdb)
 struct report* res_group_fixup(void *res, int dryrun, const struct resource_env *env)
 {
 	struct res_group *rg = (struct res_group*)(res);
@@ -492,7 +458,6 @@ int res_group_is_pack(const char *packed)
 	return strncmp(packed, RES_GROUP_PACK_PREFIX, RES_GROUP_PACK_OFFSET);
 }
 
-//char *res_group_pack(struct res_group *rg)
 char *res_group_pack(const void *res)
 {
 	const struct res_group *rg = (const struct res_group*)(res);
@@ -522,7 +487,6 @@ char *res_group_pack(const void *res)
 	return tmp;
 }
 
-//struct res_group* res_group_unpack(const char *packed)
 void* res_group_unpack(const char *packed)
 {
 	char *mem_add = NULL, *mem_rm = NULL,

@@ -2,12 +2,6 @@
 #include "assertions.h"
 #include "../res_group.h"
 
-#define ASSERT_ENFORCEMENT(o,f,c,t,v1,v2) do {\
-	res_group_set_ ## f (o,v1); \
-	assert_true( #c " enforced", res_group_enforced(o,c)); \
-	assert_ ## t ## _equals( #c " set properly", (o)->rg_ ## f, v1); \
-} while(0)
-
 void test_res_group_enforcement()
 {
 	struct res_group *rg;
@@ -19,13 +13,19 @@ void test_res_group_enforcement()
 	assert_true("GID not enforced",    !res_group_enforced(rg, GID));
 
 	test("RES_GROUP: NAME enforcement");
-	ASSERT_ENFORCEMENT(rg,name,NAME,str,"name1","name2");
+	res_group_set(rg, "name", "name1");
+	assert_true("name enforced", res_group_enforced(rg, NAME));
+	assert_str_eq("name set poperly", rg->rg_name, "name1");
 
 	test("RES_GROUP: PASSWD enforcement");
-	ASSERT_ENFORCEMENT(rg,passwd,PASSWD,str,"password1","password2");
+	res_group_set(rg, "password", "#$hash!@#$");
+	assert_true("password enforced", res_group_enforced(rg, PASSWD));
+	assert_str_eq("password set poperly", rg->rg_passwd , "#$hash!@#$");
 
 	test("RES_GROUP: GID enforcement");
-	ASSERT_ENFORCEMENT(rg,gid,GID,int,15,16);
+	res_group_set(rg, "gid", "15");
+	assert_true("gid enforced", res_group_enforced(rg, GID));
+	assert_int_eq("gid set poperly", rg->rg_gid, 15);
 
 	test("RES_GROUP: Membership enforcement");
 	res_group_enforce_members(rg, 1);
@@ -50,7 +50,7 @@ void test_res_group_diffstat_fixup()
 	struct resource_env env;
 
 	rg = res_group_new("service");
-	res_group_set_gid(rg, 6000);
+	res_group_set(rg, "gid", "6000");
 
 	/* real membership: account1, account2 */
 	res_group_enforce_members(rg, 1);
@@ -119,7 +119,7 @@ void test_res_group_fixup_new()
 	struct resource_env env;
 
 	rg = res_group_new("new_group");
-	res_group_set_gid(rg, 6010);
+	res_group_set(rg, "gid", "6010");
 
 	env.group_grdb = grdb_init("test/data/group");
 	if (!env.group_grdb) {
@@ -160,7 +160,7 @@ void test_res_group_fixup_remove_existing()
 	struct resource_env env_after;
 
 	rg = res_group_new("daemon");
-	res_group_set_presence(rg, 0); /* Remove the group */
+	res_group_set(rg, "present", "no"); /* Remove the group */
 
 	env.group_grdb = grdb_init("test/data/group");
 	if (!env.group_grdb) {
@@ -224,7 +224,7 @@ void test_res_group_fixup_remove_nonexistent()
 	struct resource_env env, env_after;
 
 	rg = res_group_new("non_existent_group");
-	res_group_set_presence(rg, 0); /* Remove the group */
+	res_group_set(rg, "present", "no"); /* Remove the group */
 
 	env.group_grdb = grdb_init("test/data/group");
 	if (!env.group_grdb) {
@@ -297,8 +297,8 @@ void test_res_group_pack()
 	const char *expected;
 
 	rg = res_group_new("staff");         /* rg_enf == 0000 0001 */
-	res_group_set_passwd(rg, "sesame");  /* rg_enf == 0000 0011 */
-	res_group_set_gid(rg, 1415);         /* rg_enf == 0000 0111 */
+	res_group_set(rg, "password", "sesame"); /* rg_enf == 0000 0011 */
+	res_group_set(rg, "gid",      "1415");   /* rg_enf == 0000 0111 */
 	res_group_add_member(rg, "admin1");  /* rg_enf == 0000 1111 */
 	res_group_add_member(rg, "admin2");  /* ... */
 	res_group_add_member(rg, "admin3");  /* ... */

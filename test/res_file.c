@@ -9,34 +9,11 @@
 #include <fcntl.h>
 
 
-#define ASSERT_ENFORCEMENT(o,f,c,t,v) do {\
-	res_file_set_ ## f (o,v); \
-	assert_true( #c " enforced", res_file_enforced(o,c)); \
-	assert_ ## t ## _equals( #c " set properly", (o)->rf_ ## f, v); \
-} while(0)
-
-static void assert_rf_source_enforcement(struct res_file *rf)
-{
-	const char *src = "test/data/sha1/file1";
-
-	res_file_set_source(rf, src);
-	assert_true("SHA1 enforced", res_file_enforced(rf, SHA1));
-	assert_str_equals("SHA1 set properly", rf->rf_rsha1.hex, TESTFILE_SHA1_file1);
-	assert_str_equals("rf_rpath set properly", rf->rf_rpath, src);
-}
-
-static void assert_rf_path_enforcement(struct res_file *rf)
-{
-	const char *src = "test/data/sha1/file1";
-
-	res_file_set_path(rf, src);
-	assert_str_equals("rf_lpath set properly", rf->rf_lpath, src);
-}
-
 void test_res_file_enforcement()
 {
 	struct res_file *rf;
 	rf = res_file_new("sudoers");
+	const char *src = "test/data/sha1/file1";
 
 	test("RES_FILE: Default Enforcements");
 	assert_true("UID not enforced",  !res_file_enforced(rf, UID));
@@ -45,19 +22,29 @@ void test_res_file_enforcement()
 	assert_true("SHA1 not enforced", !res_file_enforced(rf, SHA1));
 
 	test("RES_FILE: UID enforcement");
-	ASSERT_ENFORCEMENT(rf,owner,UID,str,"someone");
+	res_file_set(rf, "owner", "someone");
+	assert_true("owner enforced", res_file_enforced(rf, UID));
+	assert_str_equals("owner set properly", rf->rf_owner, "someone");
 
 	test("RES_FILE: GID enforcement");
-	ASSERT_ENFORCEMENT(rf,group,GID,str,"somegroup");
+	res_file_set(rf, "group", "somegroup");
+	assert_true("group enforced", res_file_enforced(rf, GID));
+	assert_str_equals("group set properly", rf->rf_group, "somegroup");
 
 	test("RES_FILE: MODE enforcement");
-	ASSERT_ENFORCEMENT(rf,mode,MODE,int,0755);
+	res_file_set(rf,"mode", "0755");
+	assert_true("mode enforced", res_file_enforced(rf, MODE));
+	assert_int_equals("mode set properly", rf->rf_mode, 0755);
 
 	test("RES_FILE: SHA1 / rpath enforcement");
-	assert_rf_source_enforcement(rf);
+	res_file_set(rf, "source", src);
+	assert_true("SHA1 enforced", res_file_enforced(rf, SHA1));
+	assert_str_equals("SHA1 set properly", rf->rf_rsha1.hex, TESTFILE_SHA1_file1);
+	assert_str_equals("rf_rpath set properly", rf->rf_rpath, src);
 
 	test("RES_FILE: SHA1 / lpath 'enforcement'");
-	assert_rf_path_enforcement(rf);
+	res_file_set(rf, "path", src);
+	assert_str_equals("rf_lpath set properly", rf->rf_lpath, src);
 
 	res_file_free(rf);
 }
@@ -67,12 +54,12 @@ void test_res_file_diffstat()
 	struct res_file *rf;
 
 	rf = res_file_new("sudoers");
-	res_file_set_path(rf, "test/data/res_file/sudoers");
-	res_file_set_owner(rf, "someuser");
+	res_file_set(rf, "path", "test/data/res_file/sudoers");
+	res_file_set(rf, "owner", "someuser");
 	rf->rf_uid = 1001;
-	res_file_set_group(rf, "somegroup");
+	res_file_set(rf, "group", "somegroup");
 	rf->rf_gid = 2002;
-	res_file_set_mode(rf, 0440);
+	res_file_set(rf, "mode", "0440");
 
 	test("RES_FILE: res_file_diffstat picks up file differences");
 	/* 2nd arg to res_file_stat is NULL, because we don't need it in res_file */
@@ -108,13 +95,13 @@ void test_res_file_remedy()
 	assert_int_not_equal("Pre-remediation: file permissions are not 0754", st.st_mode & 07777, 0754);
 
 	rf = res_file_new("fstab");
-	res_file_set_path(rf, "test/data/res_file/fstab");
-	res_file_set_owner(rf, "someuser");
+	res_file_set(rf, "path",  "test/data/res_file/fstab");
+	res_file_set(rf, "owner", "someuser");
 	rf->rf_uid = 65542;
-	res_file_set_group(rf, "somegroup");
+	res_file_set(rf, "group", "somegroup");
 	rf->rf_gid = 65524;
-	res_file_set_mode(rf, 0754);
-	res_file_set_source(rf, src);
+	res_file_set(rf, "mode",  "0754");
+	res_file_set(rf, "source", src);
 
 	/* set up the resource_env for content remediation */
 	env.file_fd = open(src, O_RDONLY);
@@ -157,11 +144,11 @@ void test_res_file_fixup_new()
 
 	test("RES_FILE: File Remediation (new file)");
 	rf = res_file_new(path);
-	res_file_set_owner(rf, "someuser");
+	res_file_set(rf, "owner", "someuser");
 	rf->rf_uid = 65542;
-	res_file_set_group(rf, "somegroup");
+	res_file_set(rf, "group", "somegroup");
 	rf->rf_gid = 65524;
-	res_file_set_mode(rf, 0754);
+	res_file_set(rf, "mode",  "0754");
 
 	assert_int_equals("res_file_stat succeeds", res_file_stat(rf, &env), 0);
 	assert_int_equals("File does not already exist", 0, rf->rf_exists);
@@ -200,7 +187,7 @@ void test_res_file_fixup_remove_existing()
 
 	test("RES_FILE: File Remediation (remove existing file)");
 	rf = res_file_new(path);
-	res_file_set_presence(rf, 0); /* Remove the file */
+	res_file_set(rf, "present", "no"); /* Remove the file */
 
 	assert_int_equals("res_file_stat succeeds", res_file_stat(rf, &env), 0);
 	assert_int_equals("File exists", 1, rf->rf_exists);
@@ -230,7 +217,7 @@ void test_res_file_fixup_remove_nonexistent()
 
 	test("RES_FILE: File Remediation (remove non-existent file)");
 	rf = res_file_new(path);
-	res_file_set_presence(rf, 0); /* Remove the file */
+	res_file_set(rf, "present", "no"); /* Remove the file */
 
 	assert_int_equals("res_file_stat succeeds", res_file_stat(rf, &env), 0);
 	assert_int_equals("File does not already exist", 0, rf->rf_exists);
@@ -263,10 +250,10 @@ void test_res_file_pack()
 
 	rf = res_file_new("/etc/sudoers");                      /* rf_enf == 0000 0000 */
 
-	res_file_set_owner(rf, "someuser");                     /* rf_enf == 0000 0001 */
-	res_file_set_group(rf, "somegroup");                    /* rf_enf == 0000 0011 */
-	res_file_set_mode(rf, 0644);                            /* rf_enf == 0000 0111 */
-	res_file_set_source(rf, "/etc/issue");                  /* rf_enf == 0000 1111 */
+	res_file_set(rf, "owner",  "someuser");             /* rf_enf == 0000 0001 */
+	res_file_set(rf, "group",  "somegroup");            /* rf_enf == 0000 0011 */
+	res_file_set(rf, "mode",   "0644");                 /* rf_enf == 0000 0111 */
+	res_file_set(rf, "source", "/etc/issue");           /* rf_enf == 0000 1111 */
 	/* sneakily override the checksum */
 	sha1_init(&rf->rf_rsha1, "0123456789abcdef0123456789abcdef01234567");
 

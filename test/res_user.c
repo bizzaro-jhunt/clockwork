@@ -3,12 +3,6 @@
 #include "../clockwork.h"
 #include "../res_user.h"
 
-#define ASSERT_ENFORCEMENT(o,f,c,t,v) do {\
-	res_user_set_ ## f (o,v); \
-	assert_true( #c " enforced", res_user_enforced(o,c)); \
-	assert_ ## t ## _equals( #c " set properly", (o)->ru_ ## f, v); \
-} while(0)
-
 void test_res_user_enforcement()
 {
 	struct res_user *ru;
@@ -21,54 +15,80 @@ void test_res_user_enforcement()
 	assert_true("GID not enforced",    !res_user_enforced(ru, GID));
 
 	test("RES_USER: NAME enforcement");
-	ASSERT_ENFORCEMENT(ru,name,NAME,str,"name");
+	res_user_set(ru, "username", "Name");
+	assert_true("attribute enforced", res_user_enforced(ru, NAME));
+	assert_str_eq("value set properly", ru->ru_name, "Name");
 
 	test("RES_USER: PASSWD enforcement");
-	ASSERT_ENFORCEMENT(ru,passwd,PASSWD,str,"pass");
+	res_user_set(ru, "pwhash", "!@#hash!@#");
+	assert_true("attribute enforced", res_user_enforced(ru, PASSWD));
+	assert_str_eq("value set properly", ru->ru_passwd, "!@#hash!@#");
 
 	test("RES_USER: UID enforcement");
-	ASSERT_ENFORCEMENT(ru,uid,UID,int,4);
+	res_user_set(ru, "uid", "4");
+	assert_true("attribute enforced", res_user_enforced(ru, UID));
+	assert_int_eq("value set properly", ru->ru_uid, 4);
 
 	test("RES_USER: GID enforcement");
-	ASSERT_ENFORCEMENT(ru,gid,GID,int,4);
+	res_user_set(ru, "gid", "5");
+	assert_true("attribute enforced", res_user_enforced(ru, GID));
+	assert_int_eq("value set properly", ru->ru_gid, 5);
 
 	test("RES_USER: GECOS enforcement");
-	ASSERT_ENFORCEMENT(ru,gecos,GECOS,str,"Comment");
+	res_user_set(ru, "comment", "GECOS comment");
+	assert_true("attribute enforced", res_user_enforced(ru, GECOS));
+	assert_str_eq("value set properly", ru->ru_gecos, "GECOS comment");
 
 	test("RES_USER: DIR enforcement");
-	ASSERT_ENFORCEMENT(ru,dir,DIR,str,"/home/user");
+	res_user_set(ru, "home", "/home/user");
+	assert_true("attribute enforced", res_user_enforced(ru, DIR));
+	assert_str_eq("value set properly", ru->ru_dir, "/home/user");
 
 	test("RES_USER: SHELL enforcement");
-	ASSERT_ENFORCEMENT(ru,shell,SHELL,str,"/bin/bash");
+	res_user_set(ru, "shell", "/bin/bash");
+	assert_true("attribute enforced", res_user_enforced(ru, SHELL));
+	assert_str_eq("value set properly", ru->ru_shell, "/bin/bash");
 
 	test("RES_USER: MKHOME enforcement");
-	res_user_set_makehome(ru, 1, "/etc/skel.admin");
+	res_user_set(ru, "makehome", "/etc/skel.admin");
 	assert_true("MKHOME enforced", res_user_enforced(ru, MKHOME));
 	assert_int_equals("MKHOME set properly", ru->ru_mkhome, 1);
 	assert_str_equals("SKEL set properly", ru->ru_skel, "/etc/skel.admin");
 
-	res_user_set_makehome(ru, 0, "/etc/skel");
+	res_user_set(ru, "makehome", "no");
 	assert_true("MKHOME re-re-enforced", res_user_enforced(ru, MKHOME));
 	assert_int_equals("MKHOME re-re-set properly", ru->ru_mkhome, 0);
 	assert_null("SKEL is NULL", ru->ru_skel);
 
 	test("RES_USER: PWMIN enforcement");
-	ASSERT_ENFORCEMENT(ru,pwmin,PWMIN,int,7);
+	res_user_set(ru, "pwmin", "7");
+	assert_true("attribute enforced", res_user_enforced(ru, PWMIN));
+	assert_int_eq("value set properly", ru->ru_pwmin, 7);
 
 	test("RES_USER: PWMAX enforcement");
-	ASSERT_ENFORCEMENT(ru,pwmax,PWMAX,int,45);
+	res_user_set(ru, "pwmax", "45");
+	assert_true("attribute enforced", res_user_enforced(ru, PWMAX));
+	assert_int_eq("value set properly", ru->ru_pwmax, 45);
 
 	test("RES_USER: PWWARN enforcement");
-	ASSERT_ENFORCEMENT(ru,pwwarn,PWWARN,int,2);
+	res_user_set(ru, "pwwarn", "29");
+	assert_true("attribute enforced", res_user_enforced(ru, PWWARN));
+	assert_int_eq("value set properly", ru->ru_pwwarn, 29);
 
 	test("RES_USER: INACT enforcement");
-	ASSERT_ENFORCEMENT(ru,inact,INACT,int,999);
+	res_user_set(ru, "inact", "999");
+	assert_true("attribute enforced", res_user_enforced(ru, INACT));
+	assert_int_eq("value set properly", ru->ru_inact, 999);
 
 	test("RES_USER: EXPIRE enforcement");
-	ASSERT_ENFORCEMENT(ru,expire,EXPIRE,int,100);
+	res_user_set(ru, "expiry", "100");
+	assert_true("attribute enforced", res_user_enforced(ru, EXPIRE));
+	assert_int_eq("value set properly", ru->ru_expire, 100);
 
 	test("RES_USER: LOCK enforcement");
-	ASSERT_ENFORCEMENT(ru,lock,LOCK,int,1);
+	res_user_set(ru, "locked", "yes");
+	assert_true("attribute enforced", res_user_enforced(ru, LOCK));
+	assert_int_eq("value set properly", ru->ru_lock, 1);
 
 	res_user_free(ru);
 }
@@ -80,15 +100,15 @@ void test_res_user_diffstat_fixup()
 	struct report *report;
 
 	ru = res_user_new("svc");
-	res_user_set_uid(ru, 7001);
-	res_user_set_gid(ru, 8001);
-	res_user_set_gecos(ru, "SVC service account");
-	res_user_set_shell(ru, "/sbin/nologin");
-	res_user_set_dir(ru, "/tmp/nonexistent");
-	res_user_set_makehome(ru, 1, "/etc/skel");
-	res_user_set_pwmin(ru, 4);
-	res_user_set_pwmax(ru, 45);
-	res_user_set_pwwarn(ru, 3);
+	res_user_set(ru, "uid",      "7001");
+	res_user_set(ru, "gid",      "8001");
+	res_user_set(ru, "comment",  "SVC service account");
+	res_user_set(ru, "shell",    "/sbin/nologin");
+	res_user_set(ru, "home",     "/tmp/nonexistent");
+	res_user_set(ru, "makehome", "yes");
+	res_user_set(ru, "pwmin",    "4");
+	res_user_set(ru, "pwmax",    "45");
+	res_user_set(ru, "pwwarn",   "3");
 
 	env.user_pwdb = pwdb_init("test/data/passwd");
 	if (!env.user_pwdb) {
@@ -146,12 +166,12 @@ void test_res_user_fixup_new()
 	struct report *report;
 
 	ru = res_user_new("new_user");
-	res_user_set_uid(ru, 7010);
-	res_user_set_gid(ru, 20);
-	res_user_set_gecos(ru, "New Account");
-	res_user_set_shell(ru, "/sbin/nologin");
-	res_user_set_dir(ru, "test/tmp/new_user.home");
-	res_user_set_makehome(ru, 1, "/etc/skel.svc");
+	res_user_set(ru, "uid",      "7010");
+	res_user_set(ru, "gid",      "20");
+	res_user_set(ru, "shell",    "/sbin/nologin");
+	res_user_set(ru, "comment",  "New Account");
+	res_user_set(ru, "home",     "test/tmp/new_user.home");
+	res_user_set(ru, "skeleton", "/etc/skel.svc");
 
 	env.user_pwdb = pwdb_init("test/data/passwd");
 	if (!env.user_pwdb) {
@@ -195,7 +215,7 @@ void test_res_user_fixup_remove_existing()
 	struct report *report;
 
 	ru = res_user_new("sys");
-	res_user_set_presence(ru, 0); /* Remove the user */
+	res_user_set(ru, "present", "no"); /* Remove the user */
 
 	env.user_pwdb = pwdb_init("test/data/passwd");
 	if (!env.user_pwdb) {
@@ -255,7 +275,7 @@ void test_res_user_fixup_remove_nonexistent()
 	struct report *report;
 
 	ru = res_user_new("non_existent_user");
-	res_user_set_presence(ru, 0); /* Remove the user */
+	res_user_set(ru, "present", "no"); /* Remove the user */
 
 	env.user_pwdb = pwdb_init("test/data/passwd");
 	if (!env.user_pwdb) {
@@ -324,19 +344,19 @@ void test_res_user_pack()
 	const char *expected;
 
 	ru = res_user_new("user");
-	res_user_set_uid(ru, 123); // hex: 0000007b
-	res_user_set_gid(ru, 999); // hex: 000003e7
-	res_user_set_passwd(ru, "sooper.seecret");
-	res_user_set_dir(ru, "/home/user");
-	res_user_set_gecos(ru, "GECOS for user");
-	res_user_set_shell(ru, "/sbin/nologin");
-	res_user_set_makehome(ru, 1, "/etc/skel.oper");
-	res_user_set_pwmin(ru, 4);      // hex: 00000004
-	res_user_set_pwmax(ru, 90);     // hex: 0000005a
-	res_user_set_pwwarn(ru, 14);    // hex: 0000000e
-	res_user_set_inact(ru, 1000);   // hex: 000003e8
-	res_user_set_expire(ru, 2000);  // hex: 000007d0
-	res_user_set_lock(ru, 0);
+	res_user_set(ru, "uid",      "123"); /* hex: 0000007b */
+	res_user_set(ru, "gid",      "999"); /* hex: 000003e7 */
+	res_user_set(ru, "password", "sooper.seecret");
+	res_user_set(ru, "home",     "/home/user");
+	res_user_set(ru, "gecos",    "GECOS for user");
+	res_user_set(ru, "shell",    "/sbin/nologin");
+	res_user_set(ru, "makehome", "/etc/skel.oper");
+	res_user_set(ru, "pwmin",    "4");    /* hex: 00000004 */
+	res_user_set(ru, "pwmax",    "90");   /* hex: 0000005a */
+	res_user_set(ru, "pwwarn",   "14");   /* hex: 0000000e */
+	res_user_set(ru, "inact",    "1000"); /* hex: 000003e8 */
+	res_user_set(ru, "expiry",   "2000"); /* hex: 000007d0 */
+	res_user_set(ru, "locked",   "no");
 
 	test("RES_USER: pack res_user");
 	packed = res_user_pack(ru);

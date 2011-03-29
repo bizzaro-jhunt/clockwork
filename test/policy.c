@@ -67,19 +67,19 @@ void test_policy_pack()
 	pol = policy_new("1 user, 1 group, and 1 file");
 	/* The George Thoroughgood test */
 	r = resource_new("user", "bourbon"); /* ru_enf == 0000 0001 */
-	resource_setattr(r, "uid", "101");   /* ru_enf == 0000 0101 */
-	resource_setattr(r, "gid", "2000");  /* ru_enf == 0000 1101 */
+	resource_set(r, "uid", "101");   /* ru_enf == 0000 0101 */
+	resource_set(r, "gid", "2000");  /* ru_enf == 0000 1101 */
 	policy_add_resource(pol, r);
 
 	r = resource_new("group", "scotch"); /* rg_enf == 0000 0001 */
-	resource_setattr(r, "gid", "2000");  /* rg_enf == 0000 0101 */
+	resource_set(r, "gid", "2000");  /* rg_enf == 0000 0101 */
 	policy_add_resource(pol, r);
 
 	r = resource_new("file", "beer");              /* rf_enf == 0000 0000 */
-	resource_setattr(r, "source", "/etc/issue");
-	resource_setattr(r, "owner",  "george");       /* rf_enf == 0000 1001 */
-	resource_setattr(r, "group",  "thoroughgood"); /* rf_enf == 0000 1011 */
-	resource_setattr(r, "mode",   "0600");         /* rf_enf == 0000 1111 */
+	resource_set(r, "source", "/etc/issue");
+	resource_set(r, "owner",  "george");       /* rf_enf == 0000 1001 */
+	resource_set(r, "group",  "thoroughgood"); /* rf_enf == 0000 1011 */
+	resource_set(r, "mode",   "0600");         /* rf_enf == 0000 1111 */
 	/* sneakily override the checksum */
 	sha1_init(&((struct res_file*)(r->resource))->rf_rsha1,
 	          "0123456789abcdef0123456789abcdef01234567");

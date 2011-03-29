@@ -20,29 +20,39 @@ extern void test_suite_stree();
 
 extern void test_suite_cert();
 
+typedef void (*test_suite)(void);
+static void run_test_suite(const char *run, const char *name, test_suite ts)
+{
+	if (!run || strcmp(run, name) == 0) { (*ts)(); }
+}
+#define RUN_TESTS(x) run_test_suite(to_run,#x, test_suite_ ## x)
+
 int main(int argc, char **argv)
 {
+	const char *to_run;
+
 	test_setup(argc, argv);
+	to_run = *(++argv);
 
-	test_suite_list();
-	test_suite_stringlist();
-	test_suite_hash();
+	RUN_TESTS(list);
+	RUN_TESTS(stringlist);
+	RUN_TESTS(hash);
 
-	test_suite_userdb();
-	test_suite_sha1();
+	RUN_TESTS(userdb);
+	RUN_TESTS(sha1);
 
-	test_suite_pack();
+	RUN_TESTS(pack);
 
-	test_suite_res_file();
-	test_suite_res_user();
-	test_suite_res_group();
+	RUN_TESTS(res_file);
+	RUN_TESTS(res_user);
+	RUN_TESTS(res_group);
 
-	test_suite_policy();
+	RUN_TESTS(policy);
 
-	test_suite_fact();
-	test_suite_stree();
+	RUN_TESTS(fact);
+	RUN_TESTS(stree);
 
-	test_suite_cert();
+	RUN_TESTS(cert);
 
 	return test_status();
 }

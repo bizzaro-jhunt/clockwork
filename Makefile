@@ -172,6 +172,19 @@ coverage: lcov.info unit_tests functional_tests
 	mkdir -p doc/coverage
 	$(GENHTML) -o doc/coverage lcov.info
 
+unit: unit_tests
+	find . -name '*.gcda' | xargs rm -f
+	test/setup.sh
+	@echo; echo;
+	test/run $(TEST)
+	@echo; echo;
+	$(LCOV) --capture -o $@.tmp
+	$(LCOV) --remove $@.tmp $(NO_LCOV) > lcov.info
+	rm -f $@.tmp
+	rm -rf doc/coverage
+	mkdir -p doc/coverage
+	$(GENHTML) -o doc/coverage lcov.info
+
 unit_tests: test/run
 
 test/run: test/run.o test/test.o \

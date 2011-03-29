@@ -1,7 +1,7 @@
 #!/bin/bash
 
 set -e # stop on errors
-set -x # show commands as they run
+#set -x # show commands as they run
 
 DATAROOT=test/data
 SAFE_UID=100
@@ -103,21 +103,21 @@ EOF
 	echo '01' > $X509/ca/serial
 
 	# Create a new self-signed cert
-	openssl req -x509 -nodes -newkey rsa:2048 -out $X509/ca/cert.pem -outform PEM -days 365
+	openssl req -x509 -nodes -newkey rsa:2048 -out $X509/ca/cert.pem -outform PEM -days 365 >/dev/null 2>&1
 
 	unset OPENSSL_CONF
 
 	# Generate 128-, 1024- and 2048-bit RSA keys
-	openssl genrsa -passout pass: -out $X509/keys/rsa128.pem  128
-	openssl genrsa -passout pass: -out $X509/keys/rsa1024.pem 1024
-	openssl genrsa -passout pass: -out $X509/keys/rsa2048.pem 2048
+	openssl genrsa -passout pass: -out $X509/keys/rsa128.pem  128 >/dev/null 2>&1
+	openssl genrsa -passout pass: -out $X509/keys/rsa1024.pem 1024 >/dev/null 2>&1
+	openssl genrsa -passout pass: -out $X509/keys/rsa2048.pem 2048 >/dev/null 2>&1
 
 	# Generate a test key
-	openssl genrsa -passout pass: -out $X509/keys/test-key.pem 2048
+	openssl genrsa -passout pass: -out $X509/keys/test-key.pem 2048 >/dev/null 2>&1
 
 	# Generate a test CSR
 	openssl req -new -nodes -key $X509/keys/test-key.pem -out $X509/csrs/request.pem \
-		-subj "/C=US/ST=Illinois/L=Peoria/O=NiftyLogic/CN=test.rd.niftylogic.net"
+		-subj "/C=US/ST=Illinois/L=Peoria/O=NiftyLogic/CN=test.rd.niftylogic.net" >/dev/null 2>&1
 
 	# Generate a test cert
 }

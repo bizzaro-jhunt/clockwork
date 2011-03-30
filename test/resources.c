@@ -1077,6 +1077,48 @@ void test_res_file_unpack()
 }
 
 /*****************************************************************************/
+
+void test_res_package_pack()
+{
+	struct res_package *r;
+	char *expected = "res_package::"
+	                 "00000000"
+	                 "\"pkg-name\""
+	                 "\"1.2.3-5\"";
+	char *actual;
+
+	test("RES_PACKAGE: package serialization");
+	r = res_package_new("pkg-name");
+	assert_not_null("(test sanity) Package to work with can't be NULL", r);
+	res_package_set(r, "version", "1.2.3-5");
+
+	actual = res_package_pack(r);
+	assert_not_null("res_package_pack succeeds", actual);
+	assert_str_eq("Packed format", actual, expected);
+
+	res_package_free(r);
+	free(actual);
+}
+
+void test_res_package_unpack()
+{
+	struct res_package *r;
+	char *packed;
+
+	packed = "res_package::"
+		"00000000"
+		"\"libtao-dev\""
+		"\"5.6.3\"";
+
+	test("RES_PACKAGE: package unserialization");
+	r = res_package_unpack(packed);
+	assert_not_null("res_package_unpack succeeds", r);
+	assert_str_equals("res_package->name is \"libtao-dev\"", "libtao-dev", r->name);
+	assert_str_equals("res_package->version is \"5.6.3\"", "5.6.3", r->version);
+
+	res_package_free(r);
+}
+
 /*****************************************************************************/
 
 void test_suite_resources()
@@ -1105,4 +1147,7 @@ void test_suite_resources()
 	test_res_file_fixup_remove_nonexistent();
 	test_res_file_pack();
 	test_res_file_unpack();
+
+	test_res_package_pack();
+	test_res_package_unpack();
 }

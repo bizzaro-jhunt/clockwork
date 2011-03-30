@@ -14,10 +14,10 @@ res_file (done)
 
 res_package
 -----------
-  name
++ name
   package manager
-  status
-  version requirements
++ status
++ version requirements
 
 
   NOTE: For res_package, it will be best to rely on the

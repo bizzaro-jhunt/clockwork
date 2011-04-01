@@ -41,12 +41,6 @@ More resources
   Check the RESOURCE file for the most up-to-date information.
   Definitely need to implement res_package and res_service.
 
-VIm syntax rules
-  Write a syntax definition for the daemon / client configuration
-  files, and one for the manifest definitions.  For the config
-  syntax, make sure that all keywords are highlighted properly,
-  to aid administrators in configuration.
-
 Logo / Branding
   Get the logo drawn and vectorized.  Determine what legal stuff
   needs to happen for Trademarks, Copyright etc.

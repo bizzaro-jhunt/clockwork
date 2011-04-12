@@ -315,7 +315,7 @@ static int enforce_policy(client *c, struct list *l)
 		/* FIXME: one-off weirdness for res_file */
 		if (res->type == RES_FILE) {
 			rf = (struct res_file*)(res->resource);
-			if (res_file_different(rf, SHA1)) {
+			if (DIFFERENT(rf, RES_FILE_SHA1)) {
 				if (pipe(pipefd) != 0) {
 					pipefd[0] = -1;
 				} else {

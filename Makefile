@@ -63,7 +63,7 @@ RESOURCE_OBJECTS := resource.o resources.o report.o pkgmgr.o
 RESOURCE_HEADERS := resource.h resources.h report.h pkgmgr.h
 
 # Supporting object files
-CORE_OBJECTS := mem.o sha1.o pack.o hash.o stringlist.o userdb.o log.o cert.o prompt.o
+CORE_OBJECTS := mem.o sha1.o pack.o hash.o stringlist.o userdb.o log.o cert.o prompt.o exec.o
 
 # Policy object files
 POLICY_OBJECTS := policy.o $(RESOURCE_OBJECTS)
@@ -157,6 +157,7 @@ diagrams: doc/proto-agent.png doc/proto-cert.png
 # Unit Tests
 
 test: unit_tests functional_tests
+	find . -name '*.gcda' | xargs rm -f
 	test/setup.sh
 	@echo; echo;
 	test/run
@@ -189,7 +190,7 @@ unit_tests: test/run
 
 test/run: test/run.o test/test.o \
           test/assertions.o \
-          mem.o \
+          mem.o exec.o \
           report.o log.o \
           test/list.o \
           test/stringlist.o stringlist.o \
@@ -230,7 +231,8 @@ functional_tests: test/util/includer \
                   test/util/factchecker \
                   test/util/daemoncfg \
                   test/util/presence \
-                  test/util/prompter
+                  test/util/prompter \
+                  test/util/executive
 
 test/util/includer: test/util/includer.o \
                     $(CORE_OBJECTS) $(SPEC_PARSER_OBJECTS) $(POLICY_OBJECTS)
@@ -263,6 +265,9 @@ test/util/presence.o: test/util/presence.c spec/lexer.l
 test/util/prompter: test/util/prompter.o \
                     $(CORE_OBJECTS)
 
+test/util/executive: test/util/executive.o $(CORE_OBJECTS)
+	$(CC) -o $@ $+
+
 
 ############################################################
 # Maintenance
@@ -273,7 +278,7 @@ clean:
 	rm -f $(UTILS) $(CORE) test/run polspec
 	rm -f spec/lexer.c spec/grammar.c spec/grammar.h spec/*.output
 	rm -f config/lexer.c config/grammar.c config/grammar.h config/*.output
-	rm -f test/util/includer test/util/factchecker test/util/presence test/util/daemoncfg
+	rm -f test/util/includer test/util/factchecker test/util/presence test/util/daemoncfg test/util/executive
 	rm -rf $(APIDOC_ROOT)/*
 	rm -rf doc/coverage/*
 

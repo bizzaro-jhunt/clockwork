@@ -1,0 +1,6 @@
+#!/bin/bash
+
+echo "this is standard output";
+echo "this is standard error"  >&2;
+
+exit 0

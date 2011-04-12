@@ -1,0 +1,8 @@
+#!/bin/bash
+
+#lsof -a -p $$ -d0,1,2 > /tmp/fds-test1
+
+echo "this is standard output" >&1;
+echo "this is standard error"  >&2;
+
+exit 0

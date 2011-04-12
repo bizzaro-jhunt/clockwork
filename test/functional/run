@@ -304,6 +304,32 @@ sub test_prompter()
 
 }
 
+sub test_executive()
+{
+	$TESTS++;
+	print "executive: capture stdout\n";
+
+	my $checker = "./test/util/executive";
+	my $scripts = "./test/functional/exec";
+
+	assert_str_equals("Can capture both stdout and stderr",
+		"STDOUT:this is standard output\nSTDERR:this is standard error",
+		run(qq($checker both $scripts/test1)));
+
+	assert_str_equals("Can capture stdout only",
+		"STDOUT:this is standard output\nSTDERR:<not captured>",
+		run(qq($checker stdout $scripts/test1)));
+
+	assert_str_equals("Can capture stderr only",
+		"STDOUT:<not captured>\nSTDERR:this is standard error",
+		run(qq($checker stderr $scripts/test1)));
+
+	assert_str_equals("Can suppress stdout and stderr",
+		"STDOUT:<not captured>\nSTDERR:<not captured>",
+		run(qq($checker none $scripts/test1)));
+}
+
+
 
 test_assertions();
 test_parser_inclusion();
@@ -312,4 +338,5 @@ test_overrides();
 test_daemon_config();
 test_presence();
 test_prompter();
+test_executive();
 finish_tests();

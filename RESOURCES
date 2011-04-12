@@ -75,6 +75,10 @@ res_service
   name
   status
 
+  Before we implement res_service, need to determine which types of
+  init systems we want to support.  SysV (sysvinit) is an obvious
+  choice, but there seem to be several out there (initng, runit, upstart)
+
 res_mount
 ---------
   device (fs_spec)

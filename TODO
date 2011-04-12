@@ -4,6 +4,7 @@ List of Things To Do
 Ability to run coverage for one suite of tests in isolation
 Tests for mem.o module
 Tests for cert.o module
+Implement if-else-if-else-if-else support in policy lang
 
 Client / Server
   - Test remediation in chroot

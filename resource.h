@@ -3,8 +3,9 @@
 
 #include "clockwork.h"
 #include "list.h"
-#include "pkgmgr.h"
 #include "userdb.h"
+
+#include "managers/package.h"
 
 /** @file resource.h
 

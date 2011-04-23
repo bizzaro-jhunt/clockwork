@@ -1,4 +1,3 @@
-
 #include "resources.h"
 #include "pack.h"
 
@@ -1527,7 +1526,7 @@ int res_package_stat(void *res, const struct resource_env *env)
 	assert(env->package_manager);
 
 	free(rp->installed);
-	rp->installed = package_manager_query(env->package_manager, rp->name);
+	rp->installed = package_version(env->package_manager, rp->name);
 
 	return 0;
 }
@@ -1549,7 +1548,7 @@ struct report* res_package_fixup(void *res, int dryrun, const struct resource_en
 
 			if (dryrun) {
 				report_action(report, action, ACTION_SKIPPED);
-			} else if (package_manager_remove(env->package_manager, rp->name) == 0) {
+			} else if (package_remove(env->package_manager, rp->name) == 0) {
 				report_action(report, action, ACTION_SUCCEEDED);
 			} else {
 				report_action(report, action, ACTION_FAILED);
@@ -1565,7 +1564,7 @@ struct report* res_package_fixup(void *res, int dryrun, const struct resource_en
 
 		if (dryrun) {
 			report_action(report, action, ACTION_SKIPPED);
-		} else if (package_manager_install(env->package_manager, rp->name, rp->version) == 0) {
+		} else if (package_install(env->package_manager, rp->name, rp->version) == 0) {
 			report_action(report, action, ACTION_SUCCEEDED);
 		} else {
 			report_action(report, action, ACTION_FAILED);
@@ -1579,7 +1578,7 @@ struct report* res_package_fixup(void *res, int dryrun, const struct resource_en
 
 		if (dryrun) {
 			report_action(report, action, ACTION_SKIPPED);
-		} else if (package_manager_install(env->package_manager, rp->name, rp->version) == 0) {
+		} else if (package_install(env->package_manager, rp->name, rp->version) == 0) {
 			report_action(report, action, ACTION_SUCCEEDED);
 		} else {
 			report_action(report, action, ACTION_FAILED);

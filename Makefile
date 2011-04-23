@@ -57,10 +57,15 @@ DOXYGEN := doxygen
 
 UTILS := sha1sum polspec
 CORE  := cwa cwcert cwca policyd
+DEBUGGERS := debug/service-manager debug/package-manager
+
+# Managers
+MANAGER_OBJECTS := managers/service.o managers/package.o
+MANAGER_HEADERS := managers/service.h managers/package.h
 
 # Resource types
-RESOURCE_OBJECTS := resource.o resources.o report.o pkgmgr.o
-RESOURCE_HEADERS := resource.h resources.h report.h pkgmgr.h
+RESOURCE_OBJECTS := resource.o resources.o report.o $(MANAGER_OBJECTS)
+RESOURCE_HEADERS := resource.h resources.h report.h $(MANAGER_HEADERS)
 
 # Supporting object files
 CORE_OBJECTS := mem.o sha1.o pack.o hash.o stringlist.o userdb.o log.o cert.o prompt.o exec.o
@@ -80,9 +85,11 @@ NO_LCOV += log.c # Can't easily test syslog-based logging methods
 
 
 ############################################################
-# Default Target
+# Group Target
 
 all: $(UTILS) $(CORE)
+
+debuggers: $(DEBUGGERS)
 
 
 ############################################################
@@ -106,6 +113,15 @@ sha1sum: sha1.o sha1sum.o mem.o log.o
 polspec: $(CORE_OBJECTS) $(POLICY_OBJECTS) $(SPEC_PARSER_OBJECTS) polspec.o
 	$(CC) -o $@ $+
 
+
+############################################################
+# Debugging Tools (mainly for CW developers)
+
+debug/service-manager: debug/service-manager.o managers/service.o log.o exec.o mem.o
+	$(CC) -o $@ $+
+
+debug/package-manager: debug/package-manager.o managers/package.o log.o exec.o mem.o
+	$(CC) -o $@ $+
 
 ############################################################
 # Lex/YACC Parsers
@@ -275,7 +291,7 @@ test/util/executive: test/util/executive.o $(CORE_OBJECTS)
 clean:
 	find . -name '*.o' -o -name '*.gc??' | xargs rm -f
 	rm -f lcov.info
-	rm -f $(UTILS) $(CORE) test/run polspec
+	rm -f $(UTILS) $(CORE) $(DEBUGGERS) test/run polspec
 	rm -f spec/lexer.c spec/grammar.c spec/grammar.h spec/*.output
 	rm -f config/lexer.c config/grammar.c config/grammar.h config/*.output
 	rm -f test/util/includer test/util/factchecker test/util/presence test/util/daemoncfg test/util/executive

@@ -11,7 +11,6 @@
 #include "policy.h"
 #include "userdb.h"
 #include "client.h"
-#include "pkgmgr.h"
 
 /* FIXME: one-off weirdness for fixup res_file */
 #include "resources.h"

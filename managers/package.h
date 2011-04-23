@@ -16,14 +16,7 @@ struct package_manager {
 };
 
 const struct package_manager *PM_dpkg_apt;
-#define DEBIAN_PACKAGE_MANAGER PM_dpkg_apt
-#define UBUNTU_PACKAGE_MANAGER PM_dpkg_apt
-
 const struct package_manager *PM_rpm_yum;
-#define REDHAT_PACKAGE_MANAGER PM_rpm_yum
-#define FEDORA_PACKAGE_MANAGER PM_rpm_yum
-#define CENTOS_PACKAGE_MANAGER PM_rpm_yum
-#define OEL_PACKAGE_MANAGER    PM_rpm_yum
 
 #define package_installed(pm,package,version)  ((*((pm)->query))((package),(version)))
 #define package_version(pm,package)            ((*((pm)->version))(package))

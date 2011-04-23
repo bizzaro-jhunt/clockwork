@@ -23,6 +23,7 @@ static int gather_facts(client *c);
 static int get_policy(client *c);
 static int get_file(protocol_session *session, sha1 *checksum, int fd);
 static int enforce_policy(client *c, struct list *report);
+static int autodetect_managers(struct resource_env *env, const struct hash *facts);
 static int print_report(FILE *io, struct list *report);
 static int send_report(client *c);
 
@@ -281,9 +282,10 @@ static int enforce_policy(client *c, struct list *l)
 	int pipefd[2];
 	ssize_t bytes = 0;
 
-	/* FIXME: hard-coded in cwa */
-	env.package_manager = UBUNTU_PACKAGE_MANAGER;
-	env.service_manager = SM_debian;
+	if (autodetect_managers(&env, c->facts) != 0) {
+		CRITICAL("Unable to auto-detect appropriate managers.");
+		exit(2);
+	}
 
 	if ((env.user_pwdb  = pwdb_init(SYS_PASSWD)) == NULL
 	 || (env.user_spdb  = spdb_init(SYS_SHADOW)) == NULL
@@ -345,6 +347,28 @@ static int enforce_policy(client *c, struct list *l)
 		spdb_write(env.user_spdb,  SYS_SHADOW);
 		grdb_write(env.group_grdb, SYS_GROUP);
 		sgdb_write(env.group_sgdb, SYS_GSHADOW);
+	}
+
+	return 0;
+}
+
+static int autodetect_managers(struct resource_env *env, const struct hash *facts)
+{
+	assert(env);
+	assert(facts);
+
+	const char *dist = hash_get(facts, "lsb.distro.id");
+	if (!dist) { return -1; }
+
+	if (strcmp(dist, "Ubuntu") == 0) {
+		INFO("Using 'debian' service manager");
+		env->service_manager = SM_debian;
+
+		INFO("Using 'dpkg/apt' package manager");
+		env->package_manager = PM_dpkg_apt;
+
+	} else {
+		return -1;
 	}
 
 	return 0;

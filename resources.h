@@ -380,4 +380,26 @@ struct res_package {
 
 NEW_RESOURCE(package);
 
+
+
+#define RES_SERVICE_RUNNING   0x0001
+#define RES_SERVICE_STOPPED   0x0002
+#define RES_SERVICE_ENABLED   0x0004
+#define RES_SERVICE_DISABLED  0x0010
+#define RES_SERVICE_NONE      0x0
+
+struct res_service {
+	char *key;
+	char *service;
+
+	unsigned int running;
+	unsigned int enabled;
+
+	unsigned int enforced;
+	unsigned int different;
+	struct list res;
+};
+
+NEW_RESOURCE(service);
+
 #endif

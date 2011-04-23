@@ -6,6 +6,7 @@
 #include "userdb.h"
 
 #include "managers/package.h"
+#include "managers/service.h"
 
 /** @file resource.h
 
@@ -83,6 +84,7 @@ enum restype {
 	RES_GROUP,
 	RES_FILE,
 	RES_PACKAGE,
+	RES_SERVICE,
 	RES_UNKNOWN /* must be the LAST enumerated value */
 };
 
@@ -91,6 +93,8 @@ struct resource_env {
 
 	/* Used by res_package for native package management */
 	const struct package_manager *package_manager;
+	/* Used by res_service for native service management */
+	const struct service_manager *service_manager;
 
 	/* Used by res_user for /etc/passwd and /etc/shadow */
 	struct pwdb *user_pwdb;

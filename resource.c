@@ -41,7 +41,8 @@ typedef void* (*resource_unpack_f)(const char *packed);
 		RESOURCE_TYPE(user),
 		RESOURCE_TYPE(group),
 		RESOURCE_TYPE(file),
-		RESOURCE_TYPE(package)
+		RESOURCE_TYPE(package),
+		RESOURCE_TYPE(service)
 	};
 
 #undef RESOURCE_TYPE

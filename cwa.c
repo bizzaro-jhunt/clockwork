@@ -283,6 +283,7 @@ static int enforce_policy(client *c, struct list *l)
 
 	/* FIXME: hard-coded in cwa */
 	env.package_manager = UBUNTU_PACKAGE_MANAGER;
+	env.service_manager = SM_debian;
 
 	if ((env.user_pwdb  = pwdb_init(SYS_PASSWD)) == NULL
 	 || (env.user_spdb  = spdb_init(SYS_SHADOW)) == NULL

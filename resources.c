@@ -1623,3 +1623,199 @@ void* res_package_unpack(const char *packed)
 }
 #undef PACK_FORMAT
 
+
+void* res_service_new(const char *key)
+{
+	struct res_service *rs;
+
+	rs = xmalloc(sizeof(struct res_service));
+	list_init(&rs->res);
+
+	rs->enforced = 0;
+	rs->different = 0;
+
+	if (key) {
+		res_service_set(rs, "service", key);
+		rs->key = string("res_service:%s", key);
+	} else {
+		rs->key = NULL;
+	}
+
+	return rs;
+}
+
+void res_service_free(void *res)
+{
+	struct res_service *rs = (struct res_service*)(res);
+	if (rs) {
+		list_del(&rs->res);
+
+		free(rs->service);
+
+		free(rs->key);
+	}
+
+	free(rs);
+}
+
+const char* res_service_key(const void *res)
+{
+	const struct res_service *rs = (struct res_service*)(res);
+	assert(rs);
+
+	return rs->key;
+}
+
+int res_service_norm(void *res) { return 0; }
+
+int res_service_set(void *res, const char *name, const char *value)
+{
+	struct res_service *rs = (struct res_service*)(res);
+	if (strcmp(name, "name") == 0 || strcmp(name, "service") == 0) {
+		free(rs->service);
+		rs->service = strdup(value);
+
+	} else if (strcmp(name, "running") == 0) {
+		if (strcmp(value, "no") != 0) {
+			rs->enforced ^= RES_SERVICE_STOPPED;
+			rs->enforced |= RES_SERVICE_RUNNING;
+		} else {
+			rs->enforced ^= RES_SERVICE_RUNNING;
+			rs->enforced |= RES_SERVICE_STOPPED;
+		}
+
+	} else if (strcmp(name, "stopped") == 0) {
+		if (strcmp(value, "no") != 0) {
+			rs->enforced ^= RES_SERVICE_RUNNING;
+			rs->enforced |= RES_SERVICE_STOPPED;
+		} else {
+			rs->enforced ^= RES_SERVICE_STOPPED;
+			rs->enforced |= RES_SERVICE_RUNNING;
+		}
+
+	} else if (strcmp(name, "enabled") == 0) {
+		if (strcmp(value, "no") != 0) {
+			rs->enforced ^= RES_SERVICE_DISABLED;
+			rs->enforced |= RES_SERVICE_ENABLED;
+		} else {
+			rs->enforced ^= RES_SERVICE_ENABLED;
+			rs->enforced |= RES_SERVICE_DISABLED;
+		}
+
+	} else if (strcmp(name, "disabled") == 0) {
+		if (strcmp(value, "no") != 0) {
+			rs->enforced ^= RES_SERVICE_ENABLED;
+			rs->enforced |= RES_SERVICE_DISABLED;
+		} else {
+			rs->enforced ^= RES_SERVICE_DISABLED;
+			rs->enforced |= RES_SERVICE_ENABLED;
+		}
+
+	} else {
+		return -1;
+	}
+
+	return 0;
+}
+
+int res_service_stat(void *res, const struct resource_env *env)
+{
+	struct res_service *rs = (struct res_service*)(res);
+
+	assert(rs);
+	assert(env);
+	assert(env->service_manager);
+
+	rs->enabled = (service_enabled(env->service_manager, rs->service) == 0 ? 1 : 0);
+	rs->running = (service_running(env->service_manager, rs->service) == 0 ? 1 : 0);
+
+	return 0;
+}
+
+struct report* res_service_fixup(void *res, int dryrun, const struct resource_env *env)
+{
+	struct res_service *rs = (struct res_service*)(res);
+
+	assert(rs);
+	assert(env);
+	assert(env->service_manager);
+
+	struct report *report = report_new("Service", rs->service);
+	char *action;
+
+	if (ENFORCED(rs, RES_SERVICE_ENABLED) && !rs->enabled) {
+		action = string("enable service");
+
+		if (dryrun) {
+			report_action(report, action, ACTION_SKIPPED);
+		} else if (service_enable(env->service_manager, rs->service) == 0) {
+			report_action(report, action, ACTION_SUCCEEDED);
+		} else {
+			report_action(report, action, ACTION_FAILED);
+		}
+
+	} else if (ENFORCED(rs, RES_SERVICE_DISABLED) && rs->enabled) {
+		action = string("disable service");
+
+		if (dryrun) {
+			report_action(report, action, ACTION_SKIPPED);
+		} else if (service_disable(env->service_manager, rs->service) == 0) {
+			report_action(report, action, ACTION_SUCCEEDED);
+		} else {
+			report_action(report, action, ACTION_FAILED);
+		}
+	}
+
+	if (ENFORCED(rs, RES_SERVICE_RUNNING) && !rs->running) {
+		action = string("start service");
+
+		if (dryrun) {
+			report_action(report, action, ACTION_SKIPPED);
+		} else if (service_start(env->service_manager, rs->service) == 0) {
+			report_action(report, action, ACTION_SUCCEEDED);
+		} else {
+			report_action(report, action, ACTION_FAILED);
+		}
+
+	} else if (ENFORCED(rs, RES_SERVICE_STOPPED) && rs->running) {
+		action = string("stop service");
+
+		if (dryrun) {
+			report_action(report, action, ACTION_SKIPPED);
+		} else if (service_stop(env->service_manager, rs->service) == 0) {
+			report_action(report, action, ACTION_SUCCEEDED);
+		} else {
+			report_action(report, action, ACTION_FAILED);
+		}
+	}
+
+	return report;
+}
+
+#define PACK_FORMAT "La"
+char* res_service_pack(const void *res)
+{
+	const struct res_service *rs = (const struct res_service*)(res);
+	assert(rs);
+
+	return pack("res_service::", PACK_FORMAT,
+	            rs->enforced, rs->service);
+}
+
+void* res_service_unpack(const char *packed)
+{
+	struct res_service *rs = res_service_new(NULL);
+
+	if (unpack(packed, "res_service::", PACK_FORMAT,
+		&rs->enforced, &rs->service) != 0) {
+
+		res_service_free(rs);
+		return NULL;
+	}
+
+	rs->key = string("res_service:%s", rs->service);
+
+	return rs;
+}
+#undef PACK_FORMAT
+

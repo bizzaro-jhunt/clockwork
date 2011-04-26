@@ -33,6 +33,8 @@
 %token T_KEYWORD_MAP
 %token T_KEYWORD_IS
 %token T_KEYWORD_NOT
+%token T_KEYWORD_DEPENDS_ON
+%token T_KEYWORD_AFFECTS
 
 /* These token definitions identify the expected type of the lvalue.
    The name 'string' comes from the union members of the YYSTYPE
@@ -57,6 +59,7 @@
 %type <stree> blocks block
 %type <stree> resource conditional extension
 %type <stree> attributes attribute
+%type <stree> dependency resource_id
 
 %type <branch> conditional_test
 
@@ -118,7 +121,7 @@ blocks:
 		{ stree_add($$, $2); }
 	;
 
-block: resource | conditional | extension
+block: resource | conditional | extension | dependency
 	;
 
 resource: T_IDENTIFIER value '{' attributes '}'
@@ -181,6 +184,19 @@ explicit_value_list: value
 extension: T_KEYWORD_EXTEND qstring
 		{ $$ = NODE(INCLUDE, $2, NULL); }
 	;
+
+dependency: resource_id T_KEYWORD_DEPENDS_ON resource_id
+		{ $$ = NODE(DEPENDENCY, NULL, NULL);
+		  stree_add($$, $1);
+		  stree_add($$, $3); }
+	  | resource_id T_KEYWORD_AFFECTS    resource_id
+		{ $$ = NODE(DEPENDENCY, NULL, NULL);
+		  stree_add($$, $3);
+		  stree_add($$, $1); }
+	  ;
+
+resource_id: T_IDENTIFIER '(' value ')'
+			{ $$ = NODE(RESOURCE_ID, $1, $3); }
 
 conditional_inline: T_KEYWORD_MAP '(' T_FACT ')' '{' mapped_value_set mapped_value_default '}'
 		{ $$ = map_new($3, NULL, $6[0], $6[1], $7); }

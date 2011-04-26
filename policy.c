@@ -15,18 +15,60 @@ struct policy_generator {
 	enum restype   type;
 
 	struct resource *res;
+	struct dependency *dep;
 };
+
 /** @endcond */
 
 static int _policy_normalize(struct policy *pol)
 {
 	assert(pol);
 
-	struct resource *r;
+	LIST(deps);
+	struct resource *r1, *r2, *tmp;
+	struct dependency *dep;
 
-	for_each_node(r, &pol->resources, l) {
-		if (resource_norm(r) != 0) { return -1; }
+	for_each_node(r1, &pol->resources, l) {
+		if (resource_norm(r1, pol) != 0) { return -1; }
 	}
+
+	/* expand defered dependencies */
+	for_each_node(dep, &pol->dependencies, l) {
+		DEBUG("Expanding dependency for %s on %s", dep->a, dep->b);
+
+		r1 = hash_get(pol->index, dep->a);
+		r2 = hash_get(pol->index, dep->b);
+
+		if (!r1) {
+			ERROR("Failed dependency for unknown resource %s", dep->a);
+			return -1;
+		}
+		if (!r2) {
+			ERROR("Failed dependency on unknown resource %s", dep->b);
+			return -1;
+		}
+
+		resource_add_dependency(r1, r2);
+	}
+
+	/* get the one with no deps */
+	for_each_node_safe(r1, tmp, &pol->resources, l) {
+		if (r1->ndeps == 0) { list_move_tail(&r1->l, &deps); }
+	}
+
+	for_each_node(r1, &deps, l) {
+		for_each_node_safe(r2, tmp, &pol->resources, l) {
+			if (resource_depends_on(r2, r1) == 0) {
+				resource_drop_dependency(r2, r1);
+				if (r2->ndeps == 0) {
+					list_move_tail(&r2->l, &deps);
+				}
+			}
+		}
+	}
+
+	if (!list_empty(&pol->resources)) { return -1; }
+	list_replace(&deps, &pol->resources);
 
 	return 0;
 }
@@ -218,6 +260,7 @@ static int _policy_generate(struct stree *node, struct policy_generator *pgen)
 	assert(pgen);
 
 	unsigned int i;
+	struct dependency dep;
 
 again:
 	switch(node->op) {
@@ -252,6 +295,21 @@ again:
 		}
 
 		break;
+
+	case DEPENDENCY:
+		if (node->size != 2) {
+			WARNING("Corrupt dependency: %u constituent(s)", node->size);
+			return -1;
+		}
+
+		dep.a = string("res_%s:%s", node->nodes[0]->data1, node->nodes[0]->data2);
+		dep.b = string("res_%s:%s", node->nodes[1]->data1, node->nodes[1]->data2);
+		pgen->dep = dependency_new(dep.a, dep.b);
+		free(dep.a);
+		free(dep.b);
+
+		policy_add_dependency(pgen->policy, pgen->dep);
+		return 0; /* don't need to traverse the RESOURCE_ID nodes */
 
 	case PROG:
 	case NOOP:
@@ -300,6 +358,7 @@ struct policy* policy_new(const char *name)
 	pol->name = xstrdup(name);
 
 	list_init(&pol->resources);
+	list_init(&pol->dependencies);
 	pol->index = hash_new();
 
 	return pol;
@@ -328,7 +387,60 @@ int policy_add_resource(struct policy *pol, struct resource *res)
 	assert(res);
 
 	list_add_tail(&res->l, &pol->resources);
+	DEBUG("Adding resource %s to policy", res->key);
 	hash_set(pol->index, res->key, res);
+	return 0;
+}
+
+struct resource* policy_find_resource(struct policy *pol, enum restype type, const char *attr, const char *value)
+{
+	struct resource *r;
+
+	for_each_node(r, &pol->resources, l) {
+		if (r->type == type && resource_match(r, attr, value) == 0) {
+			return r;
+		}
+	}
+
+	return NULL;
+}
+
+int policy_add_dependency(struct policy *pol, struct dependency *dep)
+{
+	assert(pol);
+	assert(dep);
+
+	struct dependency *d;
+	for_each_node(d, &pol->dependencies, l) {
+		if (strcmp(d->a, dep->a) == 0
+		 && strcmp(d->b, dep->b) == 0) {
+			DEBUG("Already have a dependency of %s -> %s", dep->a, dep->b);
+			return -1; /* duplicate */
+		}
+	}
+	DEBUG("Adding dependency of %s -> %s", dep->a, dep->b);
+	list_add_tail(&dep->l, &pol->dependencies);
+
+	return 0;
+}
+
+int policy_notify(const struct policy *pol, const struct resource *cause)
+{
+	assert(pol);
+	assert(cause);
+
+	struct dependency *d;
+
+	DEBUG("Notifying dependent resources on %s", cause->key);
+	for_each_node(d, &pol->dependencies, l) {
+		if (d->resource_b == cause) {
+			DEBUG("  notifying resource %s (%p) of change in %s (%p)",
+			      d->a, d->resource_a, cause->key, cause);
+
+			resource_notify(d->resource_a, cause);
+		}
+	}
+
 	return 0;
 }
 
@@ -339,6 +451,7 @@ char* policy_pack(const struct policy *pol)
 	char *packed = NULL;
 	stringlist *pack_list;
 	struct resource *r;
+	struct dependency *d;
 
 	pack_list = stringlist_new(NULL);
 	if (!pack_list) {
@@ -353,6 +466,14 @@ char* policy_pack(const struct policy *pol)
 
 	for_each_node(r, &pol->resources, l) {
 		packed = resource_pack(r);
+		if (!packed || stringlist_add(pack_list, packed) != 0) {
+			goto policy_pack_failed;
+		}
+		xfree(packed);
+	}
+
+	for_each_node(d, &pol->dependencies, l) {
+		packed = dependency_pack(d);
 		if (!packed || stringlist_add(pack_list, packed) != 0) {
 			goto policy_pack_failed;
 		}
@@ -381,6 +502,7 @@ struct policy* policy_unpack(const char *packed_policy)
 
 	char *pol_name;
 	struct resource *r;
+	struct dependency *d;
 
 	pack_list = stringlist_split(packed_policy, strlen(packed_policy), "\n");
 	if (!pack_list) {
@@ -388,40 +510,61 @@ struct policy* policy_unpack(const char *packed_policy)
 	}
 
 	if (pack_list->num == 0) {
-		stringlist_free(pack_list);
-		return NULL;
+		goto policy_unpack_failed;
 	}
 
 	packed = pack_list->strings[0];
 	if (strncmp(packed, "policy::", strlen("policy::")) != 0) {
-		stringlist_free(pack_list);
-		return NULL;
+		goto policy_unpack_failed;
 	}
 
 	if (unpack(packed, "policy::", "a", &pol_name) != 0) {
-
-		stringlist_free(pack_list);
-		return NULL;
+		goto policy_unpack_failed;
 	}
 
 	pol = policy_new(pol_name);
 	if (!pol) {
-		return NULL;
+		goto policy_unpack_failed;
 	}
 	free(pol_name); /* policy_new strdup's this */
 
 	for (i = 1; i < pack_list->num; i++) {
 		packed = pack_list->strings[i];
-		r = resource_unpack(packed);
-		if (!r) {
-			DEBUG("Unable to unpack: %s", pack);
-			stringlist_free(pack_list);
-			return NULL;
+		if (strncmp(packed, "dependency::", 12) == 0) {
+			d = dependency_unpack(packed);
+			if (!d) {
+				DEBUG("Unable to unpack dependency: %s", packed);
+				goto policy_unpack_failed;
+			}
+
+			d->resource_a = hash_get(pol->index, d->a);
+			d->resource_b = hash_get(pol->index, d->b);
+			if (!d->resource_a) {
+				ERROR("Failed resolving dependency for %s", d->a);
+				goto policy_unpack_failed;
+			}
+			if (!d->resource_b) {
+				ERROR("Failed resolving dependency for %s", d->b);
+				goto policy_unpack_failed;
+			}
+			policy_add_dependency(pol, d);
+
+		} else {
+			r = resource_unpack(packed);
+			if (!r) {
+				DEBUG("Unable to unpack: %s", pack);
+				goto policy_unpack_failed;
+			}
+			policy_add_resource(pol, r);
+
 		}
-		policy_add_resource(pol, r);
 	}
 
 	stringlist_free(pack_list);
 	return pol;
+
+policy_unpack_failed:
+	stringlist_free(pack_list);
+	return NULL;
 }
 

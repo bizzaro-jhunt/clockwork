@@ -335,6 +335,9 @@ static int enforce_policy(client *c, struct list *l)
 		}
 
 		r = resource_fixup(res, c->dryrun, &env);
+		if (r->compliant && r->fixed) {
+			policy_notify(c->policy, res);
+		}
 
 		if (res->type == RES_FILE) {
 			close(env.file_fd);

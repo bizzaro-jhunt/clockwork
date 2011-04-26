@@ -15,6 +15,22 @@
 #include "list.h"
 #include "stringlist.h"
 #include "hash.h"
+#include "policy.h"
+
+
+#define NEW_RESOURCE(t) \
+void*          res_ ## t ## _new(const char *key); \
+void           res_ ## t ## _free(void *res); \
+char*          res_ ## t ## _key(const void *res); \
+int            res_ ## t ## _norm(void *res, struct policy *pol); \
+int            res_ ## t ## _set(void *res, const char *attr, const char *value); \
+int            res_ ## t ## _match(const void *res, const char *attr, const char *value); \
+int            res_ ## t ## _stat(void *res, const struct resource_env *env); \
+struct report* res_ ## t ## _fixup(void *res, int dryrun, const struct resource_env *env); \
+int            res_ ## t ## _notify(void *res, const struct resource *dep); \
+char*          res_ ## t ## _pack(const void *res); \
+void*          res_ ## t ## _unpack(const char *packed)
+
 
 #define RES_USER_ABSENT   0x80000000
 
@@ -392,6 +408,8 @@ struct res_service {
 	char *key;
 	char *service;
 
+	unsigned int notified;
+
 	unsigned int running;
 	unsigned int enabled;
 
@@ -401,5 +419,7 @@ struct res_service {
 };
 
 NEW_RESOURCE(service);
+
+#undef NEW_RESOURCE
 
 #endif

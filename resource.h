@@ -109,24 +109,30 @@ struct resource_env {
 	ssize_t file_len;
 };
 
+struct policy;
+
 struct resource {
 	enum restype type;
 	void *resource;
 	const char *key;
 
+	/** Other resources that this resource depends on. */
+	struct resource **deps;
+	/** Number of dependencies. */
+	int ndeps;
+
 	struct list l;
 };
 
-#define NEW_RESOURCE(t) \
-void*          res_ ## t ## _new(const char *key); \
-void           res_ ## t ## _free(void *res); \
-const char*    res_ ## t ## _key(const void *res); \
-int            res_ ## t ## _norm(void *res); \
-int            res_ ## t ## _set(void *res, const char *attr, const char *value); \
-int            res_ ## t ## _stat(void *res, const struct resource_env *env); \
-struct report* res_ ## t ## _fixup(void *res, int dryrun, const struct resource_env *env); \
-char*          res_ ## t ## _pack(const void *res); \
-void*          res_ ## t ## _unpack(const char *packed)
+struct dependency {
+	/* a depends on b */
+	char *a, *b;
+
+	struct resource *resource_a;
+	struct resource *resource_b;
+
+	struct list l;
+};
 
 /**
   Check if an attribute is enforced on \a r.
@@ -148,11 +154,22 @@ void*          res_ ## t ## _unpack(const char *packed)
 
 struct resource* resource_new(const char *type, const char *key);
 void resource_free(struct resource *r);
-int resource_norm(struct resource *r);
+const char *resource_key(const struct resource *r);
+int resource_norm(struct resource *r, struct policy *pol);
 int resource_set(struct resource *r, const char *attr, const char *value);
 int resource_stat(struct resource *r, const struct resource_env *env);
 struct report* resource_fixup(struct resource *r, int dryrun, const struct resource_env *env);
+int resource_notify(struct resource *r, const struct resource *dep);
 char *resource_pack(const struct resource *r);
 struct resource *resource_unpack(const char *packed);
+int resource_add_dependency(struct resource *r, struct resource *dep);
+int resource_drop_dependency(struct resource *r, struct resource *dep);
+int resource_depends_on(const struct resource *r, const struct resource *dep);
+int resource_match(const struct resource *r, const char *attr, const char *value);
+
+struct dependency* dependency_new(const char *a, const char *b);
+void dependency_free(struct dependency *dep);
+char *dependency_pack(const struct dependency *dep);
+struct dependency *dependency_unpack(const char *packed);
 
 #endif

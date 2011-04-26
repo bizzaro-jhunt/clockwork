@@ -12,6 +12,8 @@ static const char *OP_NAMES[] = {
 	"INCLUDE",
 	"RESOURCE",
 	"ATTR",
+	"RESOURCE_ID",
+	"DEPENDENCY",
 	NULL
 };
 

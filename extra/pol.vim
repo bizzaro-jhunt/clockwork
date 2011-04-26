@@ -13,8 +13,9 @@ endif
 syn keyword   polTodo           contained TODO FIXME XXX
 syn match     polComment        "#.*" contains=polTodo
 
-syn match     polType           /host\|policy\|user\|file\|group\|package/
+syn match     polType           /host\|policy\|user\|file\|group\|package\|service/
 syn keyword   polKeyword        if unless else map is not
+syn match     polDepKeyword     /depends  *on\|affects/
 syn keyword   polPreProc        enforce extend include
 
 syn match     polFact           /\(\i\+\)\(\.\i\+\)\+/
@@ -29,6 +30,7 @@ hi def link   polTodo           Todo
 
 hi def link   polType           Type
 hi def link   polKeyword        Statement
+hi def link   polDepKeyword     Statement
 hi def link   polPreProc        PreProc
 
 hi def link   polFact           Special

@@ -58,6 +58,9 @@
 "is"     { return T_KEYWORD_IS; }
 "not"    { return T_KEYWORD_NOT; }
 
+depends[ \t\r\n]+on { return T_KEYWORD_DEPENDS_ON; }
+affects             { return T_KEYWORD_AFFECTS; }
+
 enforce { return T_KEYWORD_ENFORCE; }
 extend  { return T_KEYWORD_EXTEND; }
 

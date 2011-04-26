@@ -128,11 +128,10 @@ void* res_user_new(const char *key)
 	ru->ru_pw     = NULL;
 	ru->ru_sp     = NULL;
 
+	ru->key = NULL;
 	if (key) {
+		ru->key = strdup(key);
 		res_user_set(ru, "username", key);
-		ru->key = string("res_user:%s", key);
-	} else {
-		ru->key = NULL;
 	}
 
 	return ru;
@@ -157,15 +156,15 @@ void res_user_free(void *res)
 	free(ru);
 }
 
-const char* res_user_key(const void *res)
+char* res_user_key(const void *res)
 {
 	const struct res_user *ru = (struct res_user*)(res);
 	assert(ru);
 
-	return ru->key;
+	return string("res_user:%s", ru->key);
 }
 
-int res_user_norm(void *res) { return 0; }
+int res_user_norm(void *res, struct policy *pol) { return 0; }
 
 int res_user_set(void *res, const char *name, const char *value)
 {
@@ -247,6 +246,31 @@ int res_user_set(void *res, const char *name, const char *value)
 	}
 
 	return 0;
+}
+
+int res_user_match(const void *res, const char *name, const char *value)
+{
+	const struct res_user *ru = (const struct res_user*)(res);
+	assert(ru);
+
+	char *test_value;
+	int rc;
+
+	if (strcmp(name, "uid") == 0) {
+		test_value = string("%u", ru->ru_uid);
+	} else if (strcmp(name, "gid") == 0) {
+		test_value = string("%u", ru->ru_gid);
+	} else if (strcmp(name, "username") == 0) {
+		test_value = string("%s", ru->ru_name);
+	} else if (strcmp(name, "home") == 0) {
+		test_value = string("%s", ru->ru_dir);
+	} else {
+		return 1;
+	}
+
+	rc = strcmp(test_value, value);
+	free(test_value);
+	return rc;
 }
 
 int res_user_stat(void *res, const struct resource_env *env)
@@ -616,14 +640,14 @@ struct report* res_user_fixup(void *res, int dryrun, const struct resource_env *
 	return report;
 }
 
-#define PACK_FORMAT "LaaLLaaaCaCLLLLL"
+#define PACK_FORMAT "aLaaLLaaaCaCLLLLL"
 char* res_user_pack(const void *res)
 {
 	const struct res_user *ru = (const struct res_user*)(res);
 	assert(ru);
 
 	return pack("res_user::", PACK_FORMAT,
-	            ru->enforced,
+	            ru->key, ru->enforced,
 	            ru->ru_name,   ru->ru_passwd, ru->ru_uid,    ru->ru_gid,
 	            ru->ru_gecos,  ru->ru_shell,  ru->ru_dir,    ru->ru_mkhome,
 	            ru->ru_skel,   ru->ru_lock,   ru->ru_pwmin,  ru->ru_pwmax,
@@ -635,7 +659,7 @@ void* res_user_unpack(const char *packed)
 	struct res_user *ru = res_user_new(NULL);
 
 	if (unpack(packed, "res_user::", PACK_FORMAT,
-		&ru->enforced,
+		&ru->key, &ru->enforced,
 		&ru->ru_name,   &ru->ru_passwd, &ru->ru_uid,    &ru->ru_gid,
 		&ru->ru_gecos,  &ru->ru_shell,  &ru->ru_dir,    &ru->ru_mkhome,
 		&ru->ru_skel,   &ru->ru_lock,   &ru->ru_pwmin,  &ru->ru_pwmax,
@@ -645,12 +669,11 @@ void* res_user_unpack(const char *packed)
 		return NULL;
 	}
 
-	ru->key = string("res_user:%s", ru->ru_name);
-
 	return ru;
 }
 #undef PACK_FORMAT
 
+int res_user_notify(void *res, const struct resource *dep) { return 0; }
 
 
 
@@ -682,11 +705,11 @@ void* res_file_new(const char *key)
 	sha1_init(&(rf->rf_lsha1), NULL);
 	sha1_init(&(rf->rf_rsha1), NULL);
 
+	rf->key = NULL;
+
 	if (key) {
+		rf->key = strdup(key);
 		res_file_set(rf, "path", key);
-		rf->key = string("res_file:%s", key);
-	} else {
-		rf->key = NULL;
 	}
 
 	return rf;
@@ -707,18 +730,49 @@ void res_file_free(void *res)
 	free(rf);
 }
 
-const char* res_file_key(const void *res)
+char* res_file_key(const void *res)
 {
 	const struct res_file *rf = (struct res_file*)(res);
 	assert(rf);
 
-	return rf->key;
+	return string("res_file:%s", rf->key);
 }
 
-int res_file_norm(void *res) {
+int res_file_norm(void *res, struct policy *pol) {
 	struct res_file *rf = (struct res_file*)(res);
 	assert(rf);
 
+	struct dependency *dep;
+	struct resource *other;
+	char *key = res_file_key(rf);
+
+	/* files depend on their owner and group */
+	if (ENFORCED(rf, RES_FILE_UID)) {
+		other = policy_find_resource(pol, RES_USER, "username", rf->rf_owner);
+
+		if (other) {
+			dep = dependency_new(key, other->key);
+			if (policy_add_dependency(pol, dep) != 0) {
+				dependency_free(dep);
+				free(key);
+				return -1;
+			}
+		}
+	}
+
+	if (ENFORCED(rf, RES_FILE_GID)) {
+		other = policy_find_resource(pol, RES_GROUP, "name", rf->rf_group);
+		if (other) {
+			dep = dependency_new(key, other->key);
+			if (policy_add_dependency(pol, dep) != 0) {
+				dependency_free(dep);
+				free(key);
+				return -1;
+			}
+		}
+	}
+
+	free(key);
 	return sha1_file(rf->rf_rpath, &rf->rf_rsha1);
 }
 
@@ -767,6 +821,25 @@ int res_file_set(void *res, const char *name, const char *value)
 	}
 
 	return 0;
+}
+
+int res_file_match(const void *res, const char *name, const char *value)
+{
+	const struct res_file *rf = (struct res_file*)(res);
+	assert(rf);
+
+	char *test_value;
+	int rc;
+
+	if (strcmp(name, "path") == 0) {
+		test_value = string("%s", rf->rf_lpath);
+	} else {
+		return 1;
+	}
+
+	rc = strcmp(test_value, value);
+	free(test_value);
+	return rc;
 }
 
 /*
@@ -942,14 +1015,14 @@ struct report* res_file_fixup(void *res, int dryrun, const struct resource_env *
 	return report;
 }
 
-#define PACK_FORMAT "LaaaaL"
+#define PACK_FORMAT "aLaaaaL"
 char* res_file_pack(const void *res)
 {
 	const struct res_file *rf = (const struct res_file*)(res);
 	assert(rf);
 
 	return pack("res_file::", PACK_FORMAT,
-	            rf->enforced,
+	            rf->key, rf->enforced,
 	            rf->rf_lpath, rf->rf_rsha1.hex, rf->rf_owner, rf->rf_group, rf->rf_mode);
 }
 
@@ -959,7 +1032,7 @@ void* res_file_unpack(const char *packed)
 	struct res_file *rf = res_file_new(NULL);
 
 	if (unpack(packed, "res_file::", PACK_FORMAT,
-		&rf->enforced,
+		&rf->key, &rf->enforced,
 		&rf->rf_lpath, &hex, &rf->rf_owner, &rf->rf_group, &rf->rf_mode) != 0) {
 
 		free(hex);
@@ -970,11 +1043,11 @@ void* res_file_unpack(const char *packed)
 	sha1_init(&rf->rf_rsha1, hex);
 	free(hex);
 
-	rf->key = string("res_file:%s", rf->rf_lpath);
-
 	return rf;
 }
 #undef PACK_FORMAT
+
+int res_file_notify(void *res, const struct resource *dep) { return 0; }
 
 /*****************************************************************/
 
@@ -1004,8 +1077,8 @@ void* res_group_new(const char *key)
 	rg->different = RES_GROUP_NONE;
 
 	if (key) {
+		rg->key = strdup(key);
 		res_group_set(rg, "name", key);
-		rg->key = string("res_group:%s", key);
 	} else {
 		rg->key = NULL;
 	}
@@ -1040,20 +1113,20 @@ void res_group_free(void *res)
 	free(rg);
 }
 
-const char* res_group_key(const void *res)
+char* res_group_key(const void *res)
 {
 	const struct res_group *rg = (struct res_group*)(res);
 	assert(rg);
 
-	return rg->key;
+	return string("res_group:%s", rg->key);
 }
 
-int res_group_norm(void *res) { return 0; }
+int res_group_norm(void *res, struct policy *pol) { return 0; }
 
 int res_group_set(void *res, const char *name, const char *value)
 {
 	struct res_group *rg = (struct res_group*)(res);
-	assert(res);
+	assert(rg);
 
 	if (strcmp(name, "gid") == 0) {
 		rg->rg_gid = strtoll(value, NULL, 10);
@@ -1093,6 +1166,27 @@ int res_group_set(void *res, const char *name, const char *value)
 	}
 
 	return 0;
+}
+
+int res_group_match(const void *res, const char *name, const char *value)
+{
+	const struct res_group *rg = (struct res_group*)(res);
+	assert(rg);
+
+	char *test_value;
+	int rc;
+
+	if (strcmp(name, "gid") == 0) {
+		test_value = string("%u", rg->rg_gid);
+	} else if (strcmp(name, "name") == 0) {
+		test_value = string("%s", rg->rg_name);
+	} else {
+		return 1;
+	}
+
+	rc = strcmp(test_value, value);
+	free(test_value);
+	return rc;
 }
 
 int res_group_enforce_members(struct res_group *rg, int enforce)
@@ -1379,7 +1473,7 @@ struct report* res_group_fixup(void *res, int dryrun, const struct resource_env 
 	return report;
 }
 
-#define PACK_FORMAT "LaaLaaaa"
+#define PACK_FORMAT "aLaaLaaaa"
 char *res_group_pack(const void *res)
 {
 	const struct res_group *rg = (const struct res_group*)(res);
@@ -1399,7 +1493,7 @@ char *res_group_pack(const void *res)
 	}
 
 	tmp = pack("res_group::", PACK_FORMAT,
-	           rg->enforced,
+	           rg->key, rg->enforced,
 	           rg->rg_name, rg->rg_passwd, rg->rg_gid,
 	           mem_add, mem_rm, adm_add, adm_rm);
 
@@ -1416,15 +1510,13 @@ void* res_group_unpack(const char *packed)
 	struct res_group *rg = res_group_new(NULL);
 
 	if (unpack(packed, "res_group::", PACK_FORMAT,
-		&rg->enforced,
+		&rg->key, &rg->enforced,
 		&rg->rg_name, &rg->rg_passwd, &rg->rg_gid,
 		&mem_add, &mem_rm, &adm_add, &adm_rm)) {
 
 		res_group_free(rg);
 		return NULL;
 	}
-
-	rg->key = string("res_group:%s", rg->rg_name);
 
 	stringlist_free(rg->rg_mem_add);
 	rg->rg_mem_add = stringlist_split(mem_add, strlen(mem_add), ".");
@@ -1445,6 +1537,8 @@ void* res_group_unpack(const char *packed)
 }
 #undef PACK_FORMAT
 
+int res_group_notify(void *res, const struct resource *dep) { return 0; }
+
 
 void* res_package_new(const char *key)
 {
@@ -1458,8 +1552,8 @@ void* res_package_new(const char *key)
 	rp->version = NULL;
 
 	if (key) {
+		rp->key = strdup(key);
 		res_package_set(rp, "name", key);
-		rp->key = string("res_package:%s", key);
 	} else {
 		rp->key = NULL;
 	}
@@ -1482,19 +1576,21 @@ void res_package_free(void *res)
 	free(rp);
 }
 
-const char* res_package_key(const void *res)
+char* res_package_key(const void *res)
 {
 	const struct res_package *rp = (struct res_package*)(res);
 	assert(rp);
 
-	return rp->key;
+	return string("res_package:%s", rp->key);
 }
 
-int res_package_norm(void *res) { return 0; }
+int res_package_norm(void *res, struct policy *pol) { return 0; }
 
 int res_package_set(void *res, const char *name, const char *value)
 {
 	struct res_package *rp = (struct res_package*)(res);
+	assert(rp);
+
 	if (strcmp(name, "name") == 0) {
 		free(rp->name);
 		rp->name = strdup(value);
@@ -1515,6 +1611,25 @@ int res_package_set(void *res, const char *name, const char *value)
 	}
 
 	return 0;
+}
+
+int res_package_match(const void *res, const char *name, const char *value)
+{
+	const struct res_package *rp = (const struct res_package*)(res);
+	assert(rp);
+
+	char *test_value;
+	int rc;
+
+	if (strcmp(name, "name") == 0) {
+		test_value = string("%s", name);
+	} else {
+		return 1;
+	}
+
+	rc = strcmp(test_value, value);
+	free(test_value);
+	return rc;
 }
 
 int res_package_stat(void *res, const struct resource_env *env)
@@ -1590,14 +1705,14 @@ struct report* res_package_fixup(void *res, int dryrun, const struct resource_en
 	return report;
 }
 
-#define PACK_FORMAT "Laa"
+#define PACK_FORMAT "aLaa"
 char* res_package_pack(const void *res)
 {
 	const struct res_package *rp = (const struct res_package*)(res);
 	assert(rp);
 
 	return pack("res_package::", PACK_FORMAT,
-	            rp->enforced, rp->name, rp->version);
+	            rp->key, rp->enforced, rp->name, rp->version);
 }
 
 void* res_package_unpack(const char *packed)
@@ -1605,13 +1720,11 @@ void* res_package_unpack(const char *packed)
 	struct res_package *rp = res_package_new(NULL);
 
 	if (unpack(packed, "res_package::", PACK_FORMAT,
-		&rp->enforced, &rp->name, &rp->version) != 0) {
+		&rp->key, &rp->enforced, &rp->name, &rp->version) != 0) {
 
 		res_package_free(rp);
 		return NULL;
 	}
-
-	rp->key = string("res_package:%s", rp->name);
 
 	if (rp->version && !*(rp->version)) {
 		/* treat "" as NULL */
@@ -1622,6 +1735,8 @@ void* res_package_unpack(const char *packed)
 	return rp;
 }
 #undef PACK_FORMAT
+
+int res_package_notify(void *res, const struct resource *dep) { return 0; }
 
 
 void* res_service_new(const char *key)
@@ -1634,11 +1749,10 @@ void* res_service_new(const char *key)
 	rs->enforced = 0;
 	rs->different = 0;
 
+	rs->key = NULL;
 	if (key) {
+		rs->key = strdup(key);
 		res_service_set(rs, "service", key);
-		rs->key = string("res_service:%s", key);
-	} else {
-		rs->key = NULL;
 	}
 
 	return rs;
@@ -1658,19 +1772,21 @@ void res_service_free(void *res)
 	free(rs);
 }
 
-const char* res_service_key(const void *res)
+char* res_service_key(const void *res)
 {
 	const struct res_service *rs = (struct res_service*)(res);
 	assert(rs);
 
-	return rs->key;
+	return string("res_service:%s", rs->key);
 }
 
-int res_service_norm(void *res) { return 0; }
+int res_service_norm(void *res, struct policy *pol) { return 0; }
 
 int res_service_set(void *res, const char *name, const char *value)
 {
 	struct res_service *rs = (struct res_service*)(res);
+	assert(rs);
+
 	if (strcmp(name, "name") == 0 || strcmp(name, "service") == 0) {
 		free(rs->service);
 		rs->service = strdup(value);
@@ -1716,6 +1832,25 @@ int res_service_set(void *res, const char *name, const char *value)
 	}
 
 	return 0;
+}
+
+int res_service_match(const void *res, const char *name, const char *value)
+{
+	const struct res_service *rs = (const struct res_service*)(res);
+	assert(rs);
+
+	char *test_value;
+	int rc;
+
+	if (strcmp(name, "name") == 0 || strcmp(name, "service") == 0) {
+		test_value = string("%s", rs->service);
+	} else {
+		return 1;
+	}
+
+	rc = strcmp(test_value, value);
+	free(test_value);
+	return rc;
 }
 
 int res_service_stat(void *res, const struct resource_env *env)
@@ -1787,19 +1922,31 @@ struct report* res_service_fixup(void *res, int dryrun, const struct resource_en
 		} else {
 			report_action(report, action, ACTION_FAILED);
 		}
+	} else if (rs->running && rs->notified) {
+		action = string("reload service (via dependency)");
+
+		if (dryrun) {
+			report_action(report, action, ACTION_SKIPPED);
+		} else if (service_reload(env->service_manager, rs->service) == 0) {
+			report_action(report, action, ACTION_SUCCEEDED);
+		} else {
+			report_action(report, action, ACTION_FAILED);
+		}
 	}
+
+	rs->notified = 0;
 
 	return report;
 }
 
-#define PACK_FORMAT "La"
+#define PACK_FORMAT "aLa"
 char* res_service_pack(const void *res)
 {
 	const struct res_service *rs = (const struct res_service*)(res);
 	assert(rs);
 
 	return pack("res_service::", PACK_FORMAT,
-	            rs->enforced, rs->service);
+	            rs->key, rs->enforced, rs->service);
 }
 
 void* res_service_unpack(const char *packed)
@@ -1807,15 +1954,22 @@ void* res_service_unpack(const char *packed)
 	struct res_service *rs = res_service_new(NULL);
 
 	if (unpack(packed, "res_service::", PACK_FORMAT,
-		&rs->enforced, &rs->service) != 0) {
+		&rs->key, &rs->enforced, &rs->service) != 0) {
 
 		res_service_free(rs);
 		return NULL;
 	}
 
-	rs->key = string("res_service:%s", rs->service);
-
 	return rs;
 }
 #undef PACK_FORMAT
 
+int res_service_notify(void *res, const struct resource *dep)
+{
+	struct res_service *rs = (struct res_service*)(res);
+	assert(rs);
+
+	rs->notified = 1;
+
+	return 0;
+}

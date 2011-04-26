@@ -15,7 +15,9 @@ enum oper {
 	IF,
 	INCLUDE,
 	RESOURCE,
-	ATTR
+	ATTR,
+	RESOURCE_ID,
+	DEPENDENCY
 };
 
 /**
@@ -87,6 +89,9 @@ struct policy {
 
 	/** List of all resources */
 	struct list resources;
+
+	/** List of all dependencies */
+	struct list dependencies;
 
 	/** Searchable hash table, keyed "TYPE:pkey" */
 	struct hash *index;
@@ -253,6 +258,12 @@ void policy_free_all(struct policy *pol);
   @returns 0 on success, non-zero on failure.
  */
 int policy_add_resource(struct policy *pol, struct resource *res);
+
+struct resource* policy_find_resource(struct policy *pol, enum restype type, const char *attr, const char *value);
+
+int policy_add_dependency(struct policy *pol, struct dependency *dep);
+
+int policy_notify(const struct policy *pol, const struct resource *cause);
 
 /**
   Serialize a policy into a string representation.

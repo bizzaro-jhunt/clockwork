@@ -1,13 +1,16 @@
 #include "resource.h"
 #include "resources.h"
+#include "pack.h"
 
 typedef void* (*resource_new_f)(const char *key);
 typedef void (*resource_free_f)(void *res);
-typedef const char* (*resource_key_f)(const void *res);
-typedef int (*resource_norm_f)(void *res);
+typedef char* (*resource_key_f)(const void *res);
+typedef int (*resource_norm_f)(void *res, struct policy *pol);
 typedef int (*resource_set_f)(void *res, const char *attr, const char *value);
+typedef int (*resource_match_f)(const void *res, const char *attr, const char *value);
 typedef int (*resource_stat_f)(void *res, const struct resource_env *env);
 typedef struct report* (*resource_fixup_f)(void *res, int dryrun, const struct resource_env *env);
+typedef int (*resource_notify_f)(void *res, const struct resource *dep);
 typedef char* (*resource_pack_f)(const void *res);
 typedef void* (*resource_unpack_f)(const char *packed);
 
@@ -19,8 +22,10 @@ typedef void* (*resource_unpack_f)(const char *packed);
 	     .key_callback = res_ ## t ## _key,     \
 	    .norm_callback = res_ ## t ## _norm,    \
 	     .set_callback = res_ ## t ## _set,     \
+	   .match_callback = res_ ## t ## _match,   \
 	    .stat_callback = res_ ## t ## _stat,    \
 	   .fixup_callback = res_ ## t ## _fixup,   \
+	  .notify_callback = res_ ## t ## _notify,  \
 	    .pack_callback = res_ ## t ## _pack,    \
 	  .unpack_callback = res_ ## t ## _unpack   }
 
@@ -33,10 +38,13 @@ typedef void* (*resource_unpack_f)(const char *packed);
 		resource_key_f      key_callback;
 		resource_norm_f     norm_callback;
 		resource_set_f      set_callback;
+		resource_match_f    match_callback;
 		resource_stat_f     stat_callback;
 		resource_fixup_f    fixup_callback;
+		resource_notify_f   notify_callback;
 		resource_pack_f     pack_callback;
 		resource_unpack_f   unpack_callback;
+
 	} resource_types[RES_UNKNOWN] = {
 		RESOURCE_TYPE(user),
 		RESOURCE_TYPE(group),
@@ -70,6 +78,8 @@ struct resource* resource_new(const char *type, const char *key)
 	}
 	r->resource = (*(resource_types[r->type].new_callback))(key);
 	r->key = (*(resource_types[r->type].key_callback))(r->resource);
+	r->ndeps = 0;
+	r->deps = NULL;
 	return r;
 }
 
@@ -81,12 +91,20 @@ void resource_free(struct resource *r)
 	free(r);
 }
 
-int resource_norm(struct resource *r)
+const char *resource_key(const struct resource *r)
 {
 	assert(r);
 	assert(r->type != RES_UNKNOWN);
 
-	return (*(resource_types[r->type].norm_callback))(r->resource);
+	return (*(resource_types[r->type].key_callback))(r->resource);
+}
+
+int resource_norm(struct resource *r, struct policy *pol)
+{
+	assert(r);
+	assert(r->type != RES_UNKNOWN);
+
+	return (*(resource_types[r->type].norm_callback))(r->resource, pol);
 }
 
 int resource_set(struct resource *r, const char *attr, const char *value)
@@ -115,6 +133,14 @@ struct report* resource_fixup(struct resource *r, int dryrun, const struct resou
 	assert(env);
 
 	return (*(resource_types[r->type].fixup_callback))(r->resource, dryrun, env);
+}
+
+int resource_notify(struct resource *r, const struct resource *dep)
+{
+	assert(r);
+	assert(r->type != RES_UNKNOWN);
+
+	return (*(resource_types[r->type].notify_callback))(r->resource, dep);
 }
 
 char *resource_pack(const struct resource *r)
@@ -148,3 +174,98 @@ struct resource *resource_unpack(const char *packed)
 	return r;
 }
 
+int resource_add_dependency(struct resource *r, struct resource *dep)
+{
+	assert(r);
+	assert(dep);
+
+	r->deps = realloc(r->deps, sizeof(struct resource*) * (r->ndeps+1));
+	r->deps[r->ndeps++] = dep;
+	return 0;
+}
+
+int resource_drop_dependency(struct resource *r, struct resource *dep)
+{
+	assert(r);
+	assert(dep);
+
+	int i, j;
+	for (i = 0; i < r->ndeps; i++) {
+		if (r->deps[i] == dep) {
+			for (j = i+1; j < r->ndeps; j++) {
+				r->deps[i++] = r->deps[j];
+			}
+			r->ndeps--;
+			if (r->ndeps == 0) {
+				xfree(r->deps);
+			}
+			return 0;
+		}
+	}
+
+	return 1; /* not found */
+}
+
+int resource_depends_on(const struct resource *r, const struct resource *dep)
+{
+	int i;
+
+	for (i = 0; i < r->ndeps; i++) {
+		if (r->deps[i] == dep) { return 0; }
+	}
+	return 1; /* no dependency */
+}
+
+int resource_match(const struct resource *r, const char *attr, const char *value)
+{
+	assert(r);
+	assert(r->type != RES_UNKNOWN);
+
+	return (*(resource_types[r->type].match_callback))(r->resource, attr, value);
+}
+
+struct dependency* dependency_new(const char *a, const char *b)
+{
+	struct dependency *dep;
+
+	dep = xmalloc(sizeof(struct dependency));
+
+	if (a) { dep->a = strdup(a); }
+	if (b) { dep->b = strdup(b); }
+	list_init(&dep->l);
+
+	return dep;
+}
+
+void dependency_free(struct dependency *dep)
+{
+	if (dep) {
+		list_del(&dep->l);
+		free(dep->a);
+		free(dep->b);
+		free(dep);
+	}
+}
+
+#define PACK_FORMAT "aa"
+char *dependency_pack(const struct dependency *dep)
+{
+	assert(dep);
+
+	return pack("dependency::", PACK_FORMAT, dep->a, dep->b);
+}
+
+struct dependency *dependency_unpack(const char *packed)
+{
+	struct dependency *dep = dependency_new(NULL, NULL);
+
+	if (unpack(packed, "dependency::", PACK_FORMAT,
+	    &dep->a, &dep->b) != 0) {
+
+		dependency_free(dep);
+		return NULL;
+	}
+
+	return dep;
+}
+#undef PACK_FORMAT

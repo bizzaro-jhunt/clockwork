@@ -273,8 +273,7 @@ uid_t pwdb_next_uid(struct pwdb *db)
 {
 	uid_t next = 1000;
 
-	/* FIXME: need more invasive tests here;
-	          if UIDs are out of order, this fails. */
+	/* FIXME: need more invasive tests here; if UIDs are out of order, this fails. */
 	for (; db; db = db->next) {
 		if (db->passwd && db->passwd->pw_uid == next) {
 			next++;

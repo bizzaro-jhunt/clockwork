@@ -1,6 +1,9 @@
 List of Things To Do
 ====================
 
+res_file -> parent-directory implicit dependencies
+Figure out how to manage parts of a file (like augeas)
+
 Ability to run coverage for one suite of tests in isolation
 Tests for mem.o module
 Tests for cert.o module

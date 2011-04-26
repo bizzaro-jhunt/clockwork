@@ -73,7 +73,6 @@ struct resource* resource_new(const char *type, const char *key)
 	}
 
 	if (r->type == RES_UNKNOWN) {
-		/* FIXME: debug? */
 		free(r);
 		return NULL;
 	}

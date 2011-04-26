@@ -414,7 +414,6 @@ static int verify_peer(worker *w)
 
 	w->peer_verified = 0;
 
-	/* FIXME: this is a bit of a mess... */
 	if ((err = protocol_ssl_verify_peer(w->ssl, addr)) != X509_V_OK) {
 		if (err != X509_V_ERR_APPLICATION_VERIFICATION) {
 			ERROR("SSL: problem with peer certificate: %s", X509_verify_cert_error_string(err));
@@ -569,7 +568,6 @@ static int server_init(server *s)
 	sigemptyset(&sig.sa_mask);
 	if (sigaction(SIGHUP, &sig, NULL) != 0) {
 		ERROR("Unable to set signal handlers: %s", strerror(errno));
-		/* FIXME: cleanup */
 		return -1;
 	}
 

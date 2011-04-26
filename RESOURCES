@@ -15,7 +15,6 @@ res_file (done)
 res_package
 -----------
 + name
-  package manager
 + status
 + version requirements
 

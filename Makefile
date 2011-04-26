@@ -288,9 +288,11 @@ test/util/executive: test/util/executive.o $(CORE_OBJECTS)
 ############################################################
 # Maintenance
 
-clean:
+clean_lcov:
 	find . -name '*.o' -o -name '*.gc??' | xargs rm -f
 	rm -f lcov.info
+
+clean: clean_lcov
 	rm -f $(UTILS) $(CORE) $(DEBUGGERS) test/run polspec
 	rm -f spec/lexer.c spec/grammar.c spec/grammar.h spec/*.output
 	rm -f config/lexer.c config/grammar.c config/grammar.h config/*.output

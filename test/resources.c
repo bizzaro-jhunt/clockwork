@@ -9,6 +9,77 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+void test_resource_keys()
+{
+	struct res_user     *user;
+	struct res_group    *group;
+	struct res_file     *file;
+	struct res_service  *service;
+	struct res_package  *package;
+
+	char *k;
+
+	test("RES_*: Resource Key Generation");
+	user = res_user_new("user-key");
+	k = res_user_key(user);
+	assert_str_equals("user key formatted properly", "res_user:user-key", k);
+	free(k);
+	res_user_free(user);
+
+	group = res_group_new("group-key");
+	k = res_group_key(group);
+	assert_str_equals("group key formatted properly", "res_group:group-key", k);
+	free(k);
+	res_group_free(group);
+
+	file = res_file_new("file-key");
+	k = res_file_key(file);
+	assert_str_equals("file key formatted properly", "res_file:file-key", k);
+	free(k);
+	res_file_free(file);
+
+	service = res_service_new("service-key");
+	k = res_service_key(service);
+	assert_str_equals("service key formatted properly", "res_service:service-key", k);
+	free(k);
+	res_service_free(service);
+
+	package = res_package_new("package-key");
+	k = res_package_key(package);
+	assert_str_equals("package key formatted properly", "res_package:package-key", k);
+	free(k);
+	res_package_free(package);
+}
+
+void test_resource_noops()
+{
+	test("RES_USER: notify is a NOOP");
+	assert_int_equals("res_user_notify does nothing", 0, res_user_notify(NULL, NULL));
+
+	test("RES_USER: norm is a NOOP");
+	assert_int_equals("res_user_norm does nothing", 0, res_user_norm(NULL, NULL));
+
+	test("RES_GROUP: notify is a NOOP");
+	assert_int_equals("res_group_notify does nothing", 0, res_group_notify(NULL, NULL));
+
+	test("RES_GROUP: norm is a NOOP");
+	assert_int_equals("res_group_norm does nothing", 0, res_group_norm(NULL, NULL));
+
+	test("RES_FILE: notify is a NOOP");
+	assert_int_equals("res_file_notify does nothing", 0, res_file_notify(NULL, NULL));
+
+	test("RES_SERVICE: norm is a NOOP");
+	assert_int_equals("res_service_norm does nothing", 0, res_service_norm(NULL, NULL));
+
+	test("RES_PACKAGE: notify is a NOOP");
+	assert_int_equals("res_package_notify does nothing", 0, res_package_notify(NULL, NULL));
+
+	test("RES_PACKAGE: norm is a NOOP");
+	assert_int_equals("res_package_norm does nothing", 0, res_package_norm(NULL, NULL));
+
+
+}
+
 void test_res_user_enforcement()
 {
 	struct res_user *ru;
@@ -334,6 +405,33 @@ void test_res_user_fixup_remove_nonexistent()
 	report_free(report);
 }
 
+void test_res_user_match()
+{
+	struct res_user *ru;
+
+	ru = res_user_new("key");
+	res_user_set(ru, "username", "user42");
+	res_user_set(ru, "uid",      "123"); /* hex: 0000007b */
+	res_user_set(ru, "gid",      "999"); /* hex: 000003e7 */
+	res_user_set(ru, "home",     "/home/user");
+	res_user_set(ru, "password", "sooper.seecret");
+
+	test("RES_USER: attribute matching");
+	assert_int_equals("user42 matches username=user42", 0, res_user_match(ru, "username", "user42"));
+	assert_int_equals("user42 matches uid=123", 0, res_user_match(ru, "uid", "123"));
+	assert_int_equals("user42 matches gid=999", 0, res_user_match(ru, "gid", "999"));
+	assert_int_equals("user42 matches home=/home/user", 0, res_user_match(ru, "home", "/home/user"));
+
+	assert_int_not_equals("user42 does not match username=bob", 0, res_user_match(ru, "username", "bob"));
+	assert_int_not_equals("user42 does not match uid=42", 0, res_user_match(ru, "uid", "42"));
+	assert_int_not_equals("user42 does not match gid=16", 0, res_user_match(ru, "gid", "16"));
+	assert_int_not_equals("user42 does not match home=/root", 0, res_user_match(ru, "home", "/root"));
+
+	assert_int_not_equals("password is not a matchable attr", 0, res_user_match(ru, "password", "sooper.seecret"));
+
+	res_user_free(ru);
+}
+
 void test_res_user_pack()
 {
 	struct res_user *ru;
@@ -357,7 +455,7 @@ void test_res_user_pack()
 
 	test("RES_USER: pack res_user");
 	packed = res_user_pack(ru);
-	expected = "res_user::"
+	expected = "res_user::\"user\""
 		"00003fff" /* RES_USER_*, all OR'ed together */
 		"\"user\"\"sooper.seecret\""
 		"0000007b" /* uid 123 */
@@ -383,7 +481,7 @@ void test_res_user_unpack()
 	struct res_user *ru;
 	char *packed;
 
-	packed = "res_user::"
+	packed = "res_user::\"userkey\""
 		"00003001" /* NAME, EXPIRE and LOCK only */
 		"\"user\"\"secret\""
 		"0000002d" /* uid 45 */
@@ -399,10 +497,13 @@ void test_res_user_unpack()
 		"00002328" /* expire 9000 */
 		"";
 
+	assert_null("res_user_unpack returns NULL on failure", res_user_unpack("<invalid packed data>"));
+
 	ru = res_user_unpack(packed);
 
 	test("RES_USER: unpack res_user");
 	assert_not_null("res_user_unpack succeeds", ru);
+	assert_str_equals("res_user->key is \"userkey\"", "userkey", ru->key);
 	assert_str_equals("res_user->ru_name is \"user\"", "user", ru->ru_name);
 	assert_true("NAME is enforced", ENFORCED(ru, RES_USER_NAME));
 
@@ -730,6 +831,27 @@ void test_res_group_fixup_remove_nonexistent()
 	report_free(report);
 }
 
+void test_res_group_match()
+{
+	struct res_group *rg;
+
+	rg = res_group_new("key");
+	res_group_set(rg, "name", "group2");
+	res_group_set(rg, "gid",  "1337");
+	res_group_set(rg, "password", "sesame");
+
+	test("RES_GROUP: attribute matching");
+	assert_int_equals("group2 matches name=group2", 0, res_group_match(rg, "name", "group2"));
+	assert_int_equals("group2 matches gid=1337", 0, res_group_match(rg, "gid", "1337"));
+
+	assert_int_not_equals("group2 does not match name=wheel", 0, res_group_match(rg, "name", "wheel"));
+	assert_int_not_equals("group2 does not match gid=6", 0, res_group_match(rg, "gid", "6"));
+
+	assert_int_not_equals("password is not a matchable attr", 0, res_group_match(rg, "password", "sesame"));
+
+	res_group_free(rg);
+}
+
 void test_res_group_pack()
 {
 	struct res_group *rg;
@@ -748,7 +870,7 @@ void test_res_group_pack()
 
 	test("RES_GROUP: pack res_group");
 	packed = res_group_pack(rg);
-	expected = "res_group::0000001f\"staff\"\"sesame\"00000587\"admin1.admin2.admin3.admin4\"\"user\"\"admin1\"\"\"";
+	expected = "res_group::\"staff\"0000001f\"staff\"\"sesame\"00000587\"admin1.admin2.admin3.admin4\"\"user\"\"admin1\"\"\"";
 	assert_str_equals("packs properly (normal case)", expected, packed);
 
 	res_group_free(rg);
@@ -760,11 +882,14 @@ void test_res_group_unpack()
 	struct res_group *rg;
 	char *packed;
 
-	packed = "res_group::0000001d\"staff\"\"sesame\"00000587\"admin1.admin2.admin3.admin4\"\"user\"\"admin1\"\"\"";
+	packed = "res_group::\"groupkey\"0000001d\"staff\"\"sesame\"00000587\"admin1.admin2.admin3.admin4\"\"user\"\"admin1\"\"\"";
 
 	test("RES_GROUP: Unserialization");
+	assert_null("res_group_unpack returns NULL on failure", res_group_unpack("<invalid packed data>"));
+
 	rg = res_group_unpack(packed);
 	assert_not_null("res_group_unpack succeeds", rg);
+	assert_str_equals("res_group->key is \"groupkey\"", "groupkey", rg->key);
 	assert_str_equals("res_group->rg_name is \"staff\"", "staff", rg->rg_name);
 	assert_true("'name' is enforced", ENFORCED(rg, RES_GROUP_NAME));
 
@@ -781,6 +906,36 @@ void test_res_group_unpack()
 	assert_stringlist(rg->rg_adm_add, "res_group->rg_adm_add", 1, "admin1");
 	assert_stringlist(rg->rg_adm_rm,  "res_group->rg_adm_rm",  0);
 	assert_true("'admins' is enforced", ENFORCED(rg, RES_GROUP_ADMINS));
+
+	res_group_free(rg);
+}
+
+void test_res_group_add_remove_members_via_set()
+{
+	struct res_group *rg;
+
+	rg = res_group_new("g1");
+
+	test("RES_GROUP: Adding and removing people via res_group_set()");
+
+	res_group_set(rg, "member", "user1");
+	res_group_set(rg, "member", "!user2");
+	res_group_set(rg, "member", "!user3");
+	res_group_set(rg, "member", "user3"); /* should move from _rm to _add */
+	res_group_set(rg, "member", "user4");
+	res_group_set(rg, "member", "!user4"); /* should move from _add to _rm */
+
+	res_group_set(rg, "admin", "!admin1");
+	res_group_set(rg, "admin", "admin2");
+	res_group_set(rg, "admin", "!admin2"); /* should move from _add to rm */
+	res_group_set(rg, "admin", "admin3");
+	res_group_set(rg, "admin", "!admin4");
+	res_group_set(rg, "admin", "admin4"); /* should move from _rm to _add */
+
+	assert_stringlist(rg->rg_mem_add, "Members to add list",    2, "user1",  "user3");
+	assert_stringlist(rg->rg_mem_rm,  "Members to remove list", 2, "user2",  "user4");
+	assert_stringlist(rg->rg_adm_add, "Admins to add list",     2, "admin3", "admin4");
+	assert_stringlist(rg->rg_adm_rm,  "Admins to remove list",  2, "admin1", "admin2");
 
 	res_group_free(rg);
 }
@@ -1011,6 +1166,26 @@ void test_res_file_fixup_remove_nonexistent()
 	report_free(report);
 }
 
+void test_res_file_match()
+{
+	struct res_file *rf;
+
+	rf = res_file_new("SUDO");
+
+	res_file_set(rf, "owner",  "someuser");
+	res_file_set(rf, "path",   "/etc/sudoers");
+	res_file_set(rf, "source", "/etc/issue");
+
+	test("RES_FILE: attribute matching");
+	assert_int_equals("SUDO matches path=/etc/sudoers", 0, res_file_match(rf, "path", "/etc/sudoers"));
+
+	assert_int_not_equals("SUDO does not match path=/tmp/wrong/file", 0, res_file_match(rf, "path", "/tmp/wrong/file"));
+
+	assert_int_not_equals("owner is not a matchable attr", 0, res_file_match(rf, "owner", "someuser"));
+
+	res_file_free(rf);
+}
+
 void test_res_file_pack()
 {
 	struct res_file *rf;
@@ -1028,7 +1203,7 @@ void test_res_file_pack()
 
 	test("RES_FILE: file serialization");
 	packed = res_file_pack(rf);
-	expected = "res_file::"
+	expected = "res_file::\"/etc/sudoers\""
 		"0000000f" /* RES_FILE_*, all OR'ed together */
 		"\"/etc/sudoers\""
 		"\"0123456789abcdef0123456789abcdef01234567\""
@@ -1047,7 +1222,7 @@ void test_res_file_unpack()
 	struct res_file *rf;
 	char *packed;
 
-	packed = "res_file::"
+	packed = "res_file::\"somefile\""
 		"00000003" /* UID and GID only */
 		"\"/etc/sudoers\""
 		"\"0123456789abcdef0123456789abcdef01234567\""
@@ -1057,8 +1232,11 @@ void test_res_file_unpack()
 		"";
 
 	test("RES_FILE: file unserialization");
+	assert_null("res_file_unpack returns NULL on failure", res_file_unpack("<invalid packed data>"));
+
 	rf = res_file_unpack(packed);
 	assert_not_null("res_file_unpack succeeds", rf);
+	assert_str_equals("res_file->key is \"somefile\"", "somefile", rf->key);
 	assert_str_equals("res_file->rf_lpath is \"/etc/sudoers\"", "/etc/sudoers", rf->rf_lpath);
 	assert_str_equals("res_file->rf_rsha1.hex is \"0123456789abcdef0123456789abcdef01234567\"",
 	                  "0123456789abcdef0123456789abcdef01234567", rf->rf_rsha1.hex);
@@ -1081,7 +1259,7 @@ void test_res_file_unpack()
 void test_res_package_pack()
 {
 	struct res_package *r;
-	char *expected = "res_package::"
+	char *expected = "res_package::\"pkg-name\""
 	                 "00000000"
 	                 "\"pkg-name\""
 	                 "\"1.2.3-5\"";
@@ -1105,17 +1283,29 @@ void test_res_package_unpack()
 	struct res_package *r;
 	char *packed;
 
-	packed = "res_package::"
+	packed = "res_package::\"pkgkey\""
 		"00000000"
 		"\"libtao-dev\""
 		"\"5.6.3\"";
 
 	test("RES_PACKAGE: package unserialization");
+	assert_null("res_package_unpack returns NULL on failure", res_package_unpack("<invalid packed data>"));
+
 	r = res_package_unpack(packed);
 	assert_not_null("res_package_unpack succeeds", r);
+	assert_str_equals("res_package->key is \"pkgkey\"", "pkgkey", r->key);
 	assert_str_equals("res_package->name is \"libtao-dev\"", "libtao-dev", r->name);
 	assert_str_equals("res_package->version is \"5.6.3\"", "5.6.3", r->version);
+	res_package_free(r);
 
+	packed = "res_package::\"pkgkey\""
+		"00000000"
+		"\"libtao-dev\""
+		"\"\"";
+
+	r = res_package_unpack(packed);
+	assert_not_null("res_package_unpack [2] succeeds", r);
+	assert_null("res_package->version is NULL (empty string = NULL)", r->version);
 	res_package_free(r);
 }
 
@@ -1123,11 +1313,15 @@ void test_res_package_unpack()
 
 void test_suite_resources()
 {
+	test_resource_keys();
+	test_resource_noops();
+
 	test_res_user_enforcement();
 	test_res_user_diffstat_fixup();
 	test_res_user_fixup_new();
 	test_res_user_fixup_remove_existing();
 	test_res_user_fixup_remove_nonexistent();
+	test_res_user_match();
 	test_res_user_pack();
 	test_res_user_unpack();
 
@@ -1136,8 +1330,10 @@ void test_suite_resources()
 	test_res_group_fixup_new();
 	test_res_group_fixup_remove_existing();
 	test_res_group_fixup_remove_nonexistent();
+	test_res_group_match();
 	test_res_group_pack();
 	test_res_group_unpack();
+	test_res_group_add_remove_members_via_set();
 
 	test_res_file_enforcement();
 	test_res_file_diffstat();
@@ -1145,6 +1341,7 @@ void test_suite_resources()
 	test_res_file_fixup_new();
 	test_res_file_fixup_remove_existing();
 	test_res_file_fixup_remove_nonexistent();
+	test_res_file_match();
 	test_res_file_pack();
 	test_res_file_unpack();
 

@@ -73,6 +73,11 @@ void cert_init(void) {
 	OpenSSL_add_all_algorithms();
 }
 
+void cert_deinit(void) {
+	ERR_free_strings();
+	EVP_cleanup();
+}
+
 int cert_my_hostname(char *hostname, size_t len)
 {
 	struct utsname uts;

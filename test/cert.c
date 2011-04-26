@@ -12,16 +12,19 @@ void test_cert_key_retrieve()
 	assert_not_null("128-bit RSA key retrieval", key);
 	assert_int_eq("rsa128.pem should be an RSA key", key->type, EVP_PKEY_RSA);
 	assert_int_eq("rsa128.pem should be 128-bit", RSA_size(key->pkey.rsa) * 8, 128);
+	EVP_PKEY_free(key);
 
 	key = cert_retrieve_key("test/data/x509/keys/rsa1024.pem");
 	assert_not_null("1024-bit RSA key retrieval", key);
 	assert_int_eq("rsa1024.pem should be an RSA key", key->type, EVP_PKEY_RSA);
 	assert_int_eq("rsa1024.pem should be 1024-bit", RSA_size(key->pkey.rsa) * 8, 1024);
+	EVP_PKEY_free(key);
 
 	key = cert_retrieve_key("test/data/x509/keys/rsa2048.pem");
 	assert_not_null("2048-bit RSA key retrieval", key);
 	assert_int_eq("rsa2048.pem should be an RSA key", key->type, EVP_PKEY_RSA);
 	assert_int_eq("rsa2048.pem should be 2048-bit", RSA_size(key->pkey.rsa) * 8, 2048);
+	EVP_PKEY_free(key);
 }
 
 void test_cert_key_generation()
@@ -33,6 +36,7 @@ void test_cert_key_generation()
 	assert_not_null("Key generated successfully", key);
 	assert_int_eq("Key is RSA", key->type, EVP_PKEY_RSA);
 	assert_int_eq("Key is 512-bit strength", RSA_size(key->pkey.rsa) * 8, 512);
+	EVP_PKEY_free(key);
 }
 
 void test_cert_key_storage()
@@ -53,6 +57,9 @@ void test_cert_key_storage()
 	test("Cert: Private Key storage w/ bad destination");
 
 	assert_int_ne("Storing key in bad path fails", cert_store_key(key, badpath), 0);
+
+	EVP_PKEY_free(key);
+	EVP_PKEY_free(reread);
 }
 
 void test_cert_csr_retrieve()
@@ -67,6 +74,7 @@ void test_cert_csr_retrieve()
 
 	request = cert_retrieve_request(badpath);
 	assert_null("Retrieve fails for bad path", request);
+	X509_REQ_free(request);
 
 	request = cert_retrieve_request(path);
 	assert_not_null("Retrieve succeeds for valid path", request);
@@ -75,6 +83,7 @@ void test_cert_csr_retrieve()
 	assert_not_null("CSR has a subject name", subject_name);
 	assert_str_eq("CSR subject name succeeds", expected, subject_name);
 	free(subject_name);
+	X509_REQ_free(request);
 }
 
 void test_cert_csr_generation()
@@ -103,6 +112,9 @@ void test_cert_csr_generation()
 	assert_not_null("Generated request has a subject name", subject_name);
 	assert_str_eq("CSR subject name succeeds", expected, subject_name);
 	free(subject_name);
+
+	EVP_PKEY_free(key);
+	X509_REQ_free(request);
 }
 
 void test_cert_csr_storage()
@@ -123,6 +135,8 @@ void test_cert_csr_storage()
 	test("Cert: CSR storage w/ bad destination");
 
 	assert_int_ne("Storing CSR in a bad path fails", cert_store_request(request, badpath), 0);
+	X509_REQ_free(request);
+	X509_REQ_free(reread);
 }
 
 void test_cert_cert_retrieve()
@@ -147,4 +161,6 @@ void test_suite_cert()
 
 	test_cert_cert_retrieve();
 	test_cert_crl_retrieve();
+
+	cert_deinit();
 }

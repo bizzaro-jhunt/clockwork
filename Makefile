@@ -214,7 +214,7 @@ test/run: test/run.o test/test.o \
           test/userdb.o userdb.o \
           test/pack.o pack.o \
           test/resources.o resource.o resources.o \
-          pkgmgr.o \
+          $(MANAGER_OBJECTS) \
           test/policy.o test/stree.o test/fact.o policy.o \
           test/cert.o cert.o prompt.o \
           test/sha1.o sha1.o

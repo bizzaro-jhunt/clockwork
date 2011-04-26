@@ -377,6 +377,22 @@ void test_pack_interpretation()
 
 }
 
+void test_pack_failure()
+{
+	char *s1, *s2, *s3;
+
+	test("pack: Unpacking malformed data");
+	assert_int_not_equals("unpack fails with bad prefix", 0,
+		unpack("\"s1\"\"s2\"\"s3\"", "prefix::", "aaa",
+	               &s1, &s2, &s3));
+
+	/** Not currently working
+	assert_int_not_equals("unpack fails with bad data", 0,
+		unpack("prefix::<invalid data>", "prefix::", "aaa",
+	               &s1, &s2, &s3));
+	 **/
+}
+
 void test_suite_pack() {
 	test_pack_encoding_integers();
 	test_pack_encoding_strings();
@@ -387,4 +403,6 @@ void test_suite_pack() {
 
 	test_pack_DECAFBAD();
 	test_pack_interpretation();
+
+	test_pack_failure();
 }

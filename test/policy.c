@@ -89,9 +89,9 @@ void test_policy_pack()
 	assert_not_null("policy_pack succeeds", packed);
 	assert_str_equals("packed policy with 1 user, 1 group, and 1 file",
 		"policy::\"1 user, 1 group, and 1 file\"\n"
-		"res_user::0000000d\"bourbon\"\"\"" "00000065" "000007d0" "\"\"\"\"\"\"" "00" "\"\"" "01" "00000000" "00000000" "00000000" "00000000" "00000000\n"
-		"res_group::00000005\"scotch\"\"\"000007d0\"\"\"\"\"\"\"\"\n"
-		"res_file::0000000f\"beer\"\"0123456789abcdef0123456789abcdef01234567\"" "\"george\"" "\"thoroughgood\"" "00000180",
+		"res_user::\"bourbon\"0000000d\"bourbon\"\"\"" "00000065" "000007d0" "\"\"\"\"\"\"" "00" "\"\"" "01" "00000000" "00000000" "00000000" "00000000" "00000000\n"
+		"res_group::\"scotch\"00000005\"scotch\"\"\"000007d0\"\"\"\"\"\"\"\"\n"
+		"res_file::\"beer\"0000000f\"beer\"\"0123456789abcdef0123456789abcdef01234567\"" "\"george\"" "\"thoroughgood\"" "00000180",
 		packed);
 
 	free(packed);
@@ -103,9 +103,9 @@ void test_policy_unpack()
 	struct policy *pol;
 	char *packed = \
 		"policy::\"1 user, 1 group, and 1 file\"\n"
-		"res_user::00003fff\"user1\"\"\"" "00000065" "000007d0" "\"\"\"\"\"\"" "00" "\"\"" "01" "00000000" "00000000" "00000000" "00000000" "00000000\n"
-		"res_group::0000000f\"staff\"\"\"000007d0\"\"\"\"\"\"\"\"\n"
-		"res_file::00000007\"\"\"cfm://etc/sudoers\"" "00000065" "000007d0" "00000180";
+		"res_user::\"k1\"00003fff\"user1\"\"\"" "00000065" "000007d0" "\"\"\"\"\"\"" "00" "\"\"" "01" "00000000" "00000000" "00000000" "00000000" "00000000\n"
+		"res_group::\"k2\"0000000f\"staff\"\"\"000007d0\"\"\"\"\"\"\"\"\n"
+		"res_file::\"k3\"00000007\"\"\"cfm://etc/sudoers\"" "00000065" "000007d0" "00000180";
 
 	test("policy: unpack empty policy");
 	pol = policy_unpack("policy::\"empty\"00000309");

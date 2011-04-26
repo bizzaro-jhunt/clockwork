@@ -114,7 +114,7 @@ struct policy;
 struct resource {
 	enum restype type;
 	void *resource;
-	const char *key;
+	char *key;
 
 	/** Other resources that this resource depends on. */
 	struct resource **deps;

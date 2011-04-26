@@ -58,6 +58,7 @@ static int _res_user_populate_home(const char *home, const char *skel, uid_t uid
 	}
 
 	free(path_argv[0]);
+	fts_close(fts);
 	return 0;
 }
 
@@ -723,7 +724,8 @@ void res_file_free(void *res)
 
 		free(rf->rf_rpath);
 		free(rf->rf_lpath);
-
+		free(rf->rf_owner);
+		free(rf->rf_group);
 		free(rf->key);
 	}
 
@@ -1338,7 +1340,7 @@ struct report* res_group_fixup(void *res, int dryrun, const struct resource_env 
 	struct report *report;
 	char *action;
 
-	int new_group;
+	int new_group = 0;
 	stringlist *orig;
 	stringlist *to_add;
 	stringlist *to_remove;

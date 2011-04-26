@@ -46,6 +46,7 @@ struct cert_subject {
   Initialize the cert module for use
  */
 void cert_init(void);
+void cert_deinit(void);
 
 /**
   Retrieve the local nodes hostname (FQDN)

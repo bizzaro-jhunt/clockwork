@@ -323,7 +323,7 @@ int res_user_stat(void *res, const struct resource_env *env)
 	}
 
 	if (ru->ru_mkhome == 1 && ENFORCED(ru, RES_USER_MKHOME)
-	 && (stat(ru->ru_dir, &home) != 0 || S_ISDIR(home.st_mode))) {
+	 && (stat(ru->ru_dir, &home) != 0 || !S_ISDIR(home.st_mode))) {
 		ru->different |= RES_USER_MKHOME;
 	}
 

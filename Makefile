@@ -29,7 +29,7 @@ endif
 
 ifeq ($(DO_PROFILING),yes)
   CC_FLAGS += -gdwarf-2 #                DWARF3; for Valgrind
-  CC_FLAGS += -pg #                      gprof runtime support
+  #CC_FLAGS += -pg #                      gprof runtime support
   CC_FLAGS += -fprofile-arcs #           gcov / lcov coverage
   CC_FLAGS += -ftest-coverage #          gcov / lcov coverage
 endif

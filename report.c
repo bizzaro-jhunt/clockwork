@@ -48,10 +48,10 @@ int report_action(struct report *report, char *summary, enum action_result resul
 
 	list_add_tail(&add->report, &report->actions);
 
-	if (add->result == ACTION_SUCCEEDED) {
-		report->fixed = 1;
-	} else {
+	if (add->result == ACTION_FAILED) {
 		report->compliant = 0;
+	} else {
+		report->fixed = 1;
 	}
 
 	return 0;

@@ -1,6 +1,8 @@
 #include "service.h"
 #include "../exec.h"
 
+/******************************************************************************/
+
 #define DEFINE_SM_STATUS(t) int service_manager_ ## t ## _status(const char *service, unsigned int run)
 #define DEFINE_SM_ACTION(t) int service_manager_ ## t ## _action(const char *service, enum service_manager_action action)
 
@@ -86,3 +88,4 @@ DEFINE_SM_ACTION(debian) {
 #undef DEFINE_SM_ACTION
 #undef DEFINE_SM_STATUS
 #undef NEW_SERVICE_MANAGER
+

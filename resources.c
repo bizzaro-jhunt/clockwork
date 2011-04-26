@@ -491,7 +491,7 @@ struct report* res_user_fixup(void *res, int dryrun, const struct resource_env *
 	}
 
 	if (DIFFERENT(ru, RES_USER_MKHOME)) {
-		action = string("create home directory");
+		action = string("create home directory %s", ru->ru_dir);
 
 		if (dryrun) {
 			report_action(report, action, ACTION_SKIPPED);

@@ -29,7 +29,7 @@ void assert_policy_has(const char *msg, const struct policy *pol, enum restype t
 	struct resource *r;
 	assert(pol);
 
-	for_each_node(r, &pol->resources, l) {
+	for_each_resource(r, pol) {
 		if (r->type == t) { n++; }
 	}
 

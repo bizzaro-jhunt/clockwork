@@ -20,7 +20,7 @@ void print_users(struct policy *pol)
 
 	i = 0;
 	printf("present");
-	for_each_node(r, &pol->resources, l) {
+	for_each_resource(r, pol) {
 		if (r->type != RES_USER) { continue; }
 		u = (struct res_user*)(r->resource);
 
@@ -34,7 +34,7 @@ void print_users(struct policy *pol)
 
 	i = 0;
 	printf("absent");
-	for_each_node(r, &pol->resources, l) {
+	for_each_resource(r, pol) {
 		if (r->type != RES_USER) { continue; }
 		u = (struct res_user*)(r->resource);
 

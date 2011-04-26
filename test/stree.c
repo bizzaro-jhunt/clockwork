@@ -146,7 +146,7 @@ void test_stree_static_policy_generation()
 	assert_true("policy defined has resources", !list_empty(&pol->resources));
 
 	user_count = group_count = file_count = 0;
-	for_each_node(r, &pol->resources, l) {
+	for_each_resource(r, pol) {
 		switch (r->type) {
 		case RES_USER:
 			user_count++;
@@ -211,7 +211,7 @@ void test_stree_conditional_policy_generation()
 	assert_policy_has_files( "policy defined has 1 file resource",    pol, 1);
 
 	res = NULL;
-	for_each_node(r, &pol->resources, l) { if (r->type == RES_FILE) { res = r; break; } }
+	for_each_resource(r, pol) { if (r->type == RES_FILE) { res = r; break; } }
 	assert_not_null("first resource is not NULL", res);
 	file = (struct res_file*)(res->resource);
 	assert_not_null("got the first res_file defined", file);
@@ -220,7 +220,7 @@ void test_stree_conditional_policy_generation()
 	assert_str_equals("file->rf_lpath is snmpd.conf", "snmpd.conf", file->rf_lpath);
 
 	res = NULL;
-	for_each_node(r, &pol->resources, l) { if (r->type == RES_USER) { res = r; break; } }
+	for_each_resource(r, pol) { if (r->type == RES_USER) { res = r; break; } }
 	assert_not_null("first resource is not NULL", res);
 	user = (struct res_user*)(res->resource);
 	assert_not_null("got the first res_user defined", user);
@@ -241,7 +241,7 @@ void test_stree_conditional_policy_generation()
 	assert_policy_has_files( "policy defined has 1 file resource",    pol, 1);
 
 	res = NULL;
-	for_each_node(r, &pol->resources, l) { if (r->type == RES_FILE) { res = r; break; } }
+	for_each_resource(r, pol) { if (r->type == RES_FILE) { res = r; break; } }
 	assert_not_null("first file resource is not NULL", res);
 	file = (struct res_file*)(res->resource);
 	assert_not_null("got the first res_file defined", file);
@@ -319,7 +319,7 @@ void test_stree_prog_policy_generation()
 	assert_policy_has_groups("policy defined has 1 group resource", pol, 1);
 
 	res = NULL;
-	for_each_node(r, &pol->resources, l) { if (r->type == RES_GROUP) { res = r; break; } }
+	for_each_resource(r, pol) { if (r->type == RES_GROUP) { res = r; break; } }
 	assert_not_null("group resource was found", res);
 	group = (struct res_group*)(res->resource);
 	assert_not_null("got the first res_group defined", group);
@@ -335,7 +335,7 @@ void test_stree_prog_policy_generation()
 	assert_policy_has_groups("policy defined has 2 group resources", pol, 2);
 
 	i = 0;
-	for_each_node(r, &pol->resources, l) {
+	for_each_resource(r, pol) {
 		if (r->type != RES_GROUP) { continue; }
 		group = (struct res_group*)(r->resource);
 

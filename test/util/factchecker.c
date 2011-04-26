@@ -25,7 +25,7 @@ void print_users(struct policy *pol)
 	struct resource *r;
 	size_t i = 0;
 
-	for_each_node(r, &pol->resources, l) {
+	for_each_resource(r, pol) {
 		if (r->type != RES_USER) { continue; }
 		u = (struct res_user*)(r->resource);
 		printf("res_user:%s:%u:%u\n", u->ru_name, u->ru_uid, u->ru_gid);

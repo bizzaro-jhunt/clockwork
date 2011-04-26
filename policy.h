@@ -97,6 +97,13 @@ struct policy {
 	struct hash *index;
 };
 
+/* a little syntactic sugar */
+#define for_each_resource(r,pol) for_each_node((r),&((pol)->resources), l)
+#define for_each_resource_safe(r,t,pol) for_each_node_safe((r),(t),&((pol)->resources), l)
+
+#define for_each_dependency(d,pol) for_each_node((d),&((pol)->dependencies), l)
+#define for_each_dependency_safe(d,t,pol) for_each_node_safe((d),(t),&((pol)->dependencies), l)
+
 /**
   Allocate and initialize a new manifest.
 

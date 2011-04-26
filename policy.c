@@ -28,12 +28,12 @@ static int _policy_normalize(struct policy *pol)
 	struct resource *r1, *r2, *tmp;
 	struct dependency *dep;
 
-	for_each_node(r1, &pol->resources, l) {
+	for_each_resource(r1, pol) {
 		if (resource_norm(r1, pol) != 0) { return -1; }
 	}
 
 	/* expand defered dependencies */
-	for_each_node(dep, &pol->dependencies, l) {
+	for_each_dependency(dep, pol) {
 		DEBUG("Expanding dependency for %s on %s", dep->a, dep->b);
 
 		r1 = hash_get(pol->index, dep->a);
@@ -52,12 +52,12 @@ static int _policy_normalize(struct policy *pol)
 	}
 
 	/* get the one with no deps */
-	for_each_node_safe(r1, tmp, &pol->resources, l) {
+	for_each_resource_safe(r1, tmp, pol) {
 		if (r1->ndeps == 0) { list_move_tail(&r1->l, &deps); }
 	}
 
 	for_each_node(r1, &deps, l) {
-		for_each_node_safe(r2, tmp, &pol->resources, l) {
+		for_each_resource_safe(r2, tmp, pol) {
 			if (resource_depends_on(r2, r1) == 0) {
 				resource_drop_dependency(r2, r1);
 				if (r2->ndeps == 0) {
@@ -377,7 +377,7 @@ void policy_free_all(struct policy *pol)
 {
 	struct resource *r, *r_tmp;
 
-	for_each_node_safe(r, r_tmp, &pol->resources, l) { resource_free(r); }
+	for_each_resource_safe(r, r_tmp, pol) { resource_free(r); }
 	policy_free(pol);
 }
 
@@ -396,7 +396,7 @@ struct resource* policy_find_resource(struct policy *pol, enum restype type, con
 {
 	struct resource *r;
 
-	for_each_node(r, &pol->resources, l) {
+	for_each_resource(r, pol) {
 		if (r->type == type && resource_match(r, attr, value) == 0) {
 			return r;
 		}
@@ -411,7 +411,7 @@ int policy_add_dependency(struct policy *pol, struct dependency *dep)
 	assert(dep);
 
 	struct dependency *d;
-	for_each_node(d, &pol->dependencies, l) {
+	for_each_dependency(d, pol) {
 		if (strcmp(d->a, dep->a) == 0
 		 && strcmp(d->b, dep->b) == 0) {
 			DEBUG("Already have a dependency of %s -> %s", dep->a, dep->b);
@@ -432,7 +432,7 @@ int policy_notify(const struct policy *pol, const struct resource *cause)
 	struct dependency *d;
 
 	DEBUG("Notifying dependent resources on %s", cause->key);
-	for_each_node(d, &pol->dependencies, l) {
+	for_each_dependency(d, pol) {
 		if (d->resource_b == cause) {
 			DEBUG("  notifying resource %s (%p) of change in %s (%p)",
 			      d->a, d->resource_a, cause->key, cause);
@@ -464,7 +464,7 @@ char* policy_pack(const struct policy *pol)
 	}
 	xfree(packed);
 
-	for_each_node(r, &pol->resources, l) {
+	for_each_resource(r, pol) {
 		packed = resource_pack(r);
 		if (!packed || stringlist_add(pack_list, packed) != 0) {
 			goto policy_pack_failed;
@@ -472,7 +472,7 @@ char* policy_pack(const struct policy *pol)
 		xfree(packed);
 	}
 
-	for_each_node(d, &pol->dependencies, l) {
+	for_each_dependency(d, pol) {
 		packed = dependency_pack(d);
 		if (!packed || stringlist_add(pack_list, packed) != 0) {
 			goto policy_pack_failed;

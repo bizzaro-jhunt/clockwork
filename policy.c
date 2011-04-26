@@ -280,7 +280,7 @@ again:
 
 		if (!pgen->res) {
 			WARNING("Definition for unknown resource type '%s'", node->data1);
-		} else {
+		} else if (list_empty(&pgen->res->l)) {
 			policy_add_resource(pgen->policy, pgen->res);
 		}
 

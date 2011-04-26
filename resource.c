@@ -63,6 +63,7 @@ struct resource* resource_new(const char *type, const char *key)
 	enum restype i;
 	struct resource *r = xmalloc(sizeof(struct resource));
 
+	list_init(&r->l);
 	r->key = NULL;
 	r->type = RES_UNKNOWN;
 	for (i = 0; i < RES_UNKNOWN; i++) {
@@ -87,6 +88,7 @@ void resource_free(struct resource *r)
 {
 	if (r) {
 		(*(resource_types[r->type].free_callback))(r->resource);
+		free(r->key);
 	}
 	free(r);
 }

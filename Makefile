@@ -110,7 +110,7 @@ cwca: cwca.o $(CORE_OBJECTS) $(CONFIG_PARSER_OBJECTS) server.o
 sha1sum: sha1.o sha1sum.o mem.o log.o
 	$(CC) -o $@ $+
 
-polspec: $(CORE_OBJECTS) $(POLICY_OBJECTS) $(SPEC_PARSER_OBJECTS) polspec.o
+polspec: polspec.o $(CORE_OBJECTS) $(POLICY_OBJECTS) $(SPEC_PARSER_OBJECTS)
 	$(CC) -o $@ $+
 
 

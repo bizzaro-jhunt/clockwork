@@ -112,7 +112,7 @@ void test_mem_xstrncpy()
 
 void test_mem_xarrdup()
 {
-	const char *original[4] = {
+	char *original[4] = {
 		"string1",
 		"another string",
 		"a third and final string",
@@ -140,7 +140,7 @@ void test_mem_xarrdup()
 
 void test_mem_xarrfree()
 {
-	const char *original[4] = {
+	char *original[4] = {
 		"string1",
 		"another string",
 		"a third and final string",

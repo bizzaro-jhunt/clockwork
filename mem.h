@@ -82,7 +82,7 @@ char* xstrncpy(char *dest, const char *src, size_t n);
   @returns a pointer to a duplicate of the \a a array, or NULL if \a a
            could not be duplicated.
  */
-char** xarrdup(char const **ptr2arr);
+char** xarrdup(char **ptr2arr);
 
 /**
   Free a NULL-terminated array of character strings.

@@ -45,18 +45,17 @@ char* xstrncpy(char *dest, const char *src, size_t n)
 	return dest;
 }
 
-char** xarrdup(char const **a)
+char** xarrdup(char **a)
 {
-	char **n, **tn;
-	const char **ta;
+	char **n, **t;
 
 	if (!a) { return NULL; }
-	for (ta = a; *ta; ta++)
+	for (t = a; *t; t++)
 		;
 
-	n = xmalloc((ta -a + 1) * sizeof(char*));
-	for (tn = n; *a; a++)
-		*tn++ = xstrdup(*a);
+	n = xmalloc((t -a + 1) * sizeof(char*));
+	for (t = n; *a; a++)
+		*t++ = xstrdup(*a);
 
 	return n;
 }

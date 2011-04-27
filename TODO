@@ -3,6 +3,24 @@ List of Things To Do
 
 res_file -> parent-directory implicit dependencies
 Figure out how to manage parts of a file (like augeas)
+  - Instead of resources like res_mount, what if integrate
+    augeas under the stanza type of "config":
+
+        policy "test" {
+              config "sshd" {
+                  path: "/etc/ssh/sshd_config"   # file path
+                  type: "sshd_config"            # lense to use
+                  data {                         # config data
+                        set Protocol 2
+
+                        set SyslogFacility AUTH
+                        set LogLevel       INFO
+
+                        set PermitRootLogin no
+                  }
+              }
+              config("sshd") affects service("sshd")
+        }
 
 Tests for cert.o module
 Implement if-else-if-else-if-else support in policy lang

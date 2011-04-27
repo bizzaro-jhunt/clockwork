@@ -82,14 +82,17 @@ char* xstrncpy(char *dest, const char *src, size_t n);
   @returns a pointer to a duplicate of the \a a array, or NULL if \a a
            could not be duplicated.
  */
-char** xarrdup(char **a);
+char** xarrdup(char const **ptr2arr);
 
 /**
   Free a NULL-terminated array of character strings.
 
   @param  a    Pointer to the array to free.
  */
-void xarrfree(char **a);
+#define xarrfree(a) __xarrfree(&(a))
+/** @cond false */
+void __xarrfree(char ***a);
+/** @endcond */
 
 /**
   Build an arbitrary string, with printf-like flexibility

@@ -1,0 +1,196 @@
+#include "test.h"
+#include "assertions.h"
+#include "../mem.h"
+
+void test_mem_xfree()
+{
+	char *s;
+
+	test("MEM: xfree(NULL)");
+	s = NULL; xfree(s);
+	assert_null("xfree(NULL) doesn't segfault", s);
+
+	s = malloc(42);
+	test("MEM: xfree(s) nullifies s");
+	assert_not_null("s was allocated properly", s);
+	xfree(s);
+	assert_null("s is NULL after xfree(s)", s);
+}
+
+void test_mem_xmalloc()
+{
+	char *s = NULL;
+
+	/* strlen("clockwork") = 10 */
+	test("MEM: xmalloc(10) succeeds");
+	s = xmalloc(10);
+	assert_not_null("s was allocated properly", s);
+	assert_str_equals("s is all '\0's", "", s);
+	xfree(s);
+
+	/** "failure" = exit(42) on this one...
+
+	test("MEM: xmalloc() fails to allocate");
+	s = xmalloc((unsigned long long)-1);
+	assert_null("s is NULL after failed allocation", s);
+	 **/
+}
+
+void test_mem_xstrdup()
+{
+	char *s;
+
+	test("MEM: xstrdup(NULL) is NULL");
+	s = xstrdup(NULL);
+	assert_null("s is NULL", s);
+
+	test("MEM:xstrdup(\"\") is NOT NULL");
+	s = xstrdup("");
+	assert_not_null("s is NOT NULL", s);
+	assert_str_equals("s is \"\" (empty string)", "", s);
+	xfree(s);
+
+	test("MEM:xstrdup(\"There once was a man from Nantucket...\")");
+	s = xstrdup("There once was a man from Nantucket...");
+	assert_not_null("s is NOT NULL", s);
+	assert_str_equals("duplication worked", "There once was a man from Nantucket...", s);
+	xfree(s);
+}
+
+void test_mem_xstrcmp()
+{
+	const char *s1, *s2, *s3, *s4, *s5;
+
+	s1 = "This Is A String";
+	s2 = s1;
+	s3 = "this is a string";
+	s4 = "completely off (very different string)";
+	s5 = "This Is A String";
+
+	test("MEM: xstrcmp() with NULLS always returns non-zero");
+	assert_int_ne("xstrcmp(s1, NULL)   != 0", 0, xstrcmp(s1, NULL));
+	assert_int_ne("xstrcmp(NULL, s1)   != 0", 0, xstrcmp(NULL, s1));
+	assert_int_ne("xstrcmp(NULL, NULL) != 0", 0, xstrcmp(NULL, NULL));
+
+	test("MEM xstrcmp() works like strcmp()");
+	assert_int_eq("s1 == s2 (same pointer)", 0, xstrcmp(s1, s2));
+	assert_int_eq("s1 == s5 (diff pointer)", 0, xstrcmp(s1, s5));
+	assert_int_eq("s5 == s1 (transitive)",   0, xstrcmp(s5, s1));
+	assert_int_eq("s3 < s1", 1,  xstrcmp(s3, s1));
+	assert_int_eq("s4 > s3", -1, xstrcmp(s4, s3));
+	assert_int_ne("s1 != s3", 0, xstrcmp(s1, s3));
+}
+
+void test_mem_xstrncpy()
+{
+	const char *buffer = "AAABBBCCCDDDEEEFFF";
+	char *ret;
+	char s[19];
+
+	test("MEM: xstrncpy() with bad args always returns NULL");
+	assert_null("xstrncpy() with NULL dest is NULL", xstrncpy(NULL, buffer, 19));
+	assert_null("xstrncpy() with NULL src is NULL",  xstrncpy(s, NULL, 19));
+	assert_null("xstrncpy() with bad length is NULL", xstrncpy(s, NULL, -25));
+
+	test("MEM: xstrncpy() - normal usage case");
+	ret = xstrncpy(s, buffer, 6+1);
+	assert_not_null("return value is not NULL", ret);
+	assert_ptr("return value is address of dest. buffer", s, ret);
+	assert_str_equals("dest. buffer contains 'AAABBB'", "AAABBB", s);
+
+	ret = xstrncpy(s, buffer, 19);
+	assert_not_null("return value is not NULL", ret);
+	assert_ptr("return value is address of dest. buffer", s, ret);
+	assert_str_equals("dest. buffer contains full string", buffer, s);
+
+	test("MEM: xstrncpy() - small src, large dest");
+	ret = xstrncpy(s, "hi!", 19);
+	assert_not_null("return value is not NULL", ret);
+	assert_ptr("return value is address of dest. buffer", s, ret);
+	assert_str_equals("dest. buffer contains full string (hi!)", "hi!", s);
+}
+
+void test_mem_xarrdup()
+{
+	const char *original[4] = {
+		"string1",
+		"another string",
+		"a third and final string",
+		NULL
+	};
+
+	char **copy;
+
+	test("MEM: xarrdup(NULL) returns NULL");
+	assert_null("xarddup(NULL) returns NULL", xarrdup(NULL));
+
+	test("MEM: xarrdup() returns copies");
+	copy = xarrdup(original);
+	assert_ptr_ne("different root pointer returned", original, copy);
+	assert_not_null("copy[0] is a valid pointer", copy[0]);
+	assert_str_equals("copy[0] is a faithful copy", original[0], copy[0]);
+	assert_not_null("copy[1] is a valid pointer", copy[1]);
+	assert_str_equals("copy[1] is a faithful copy", original[1], copy[1]);
+	assert_not_null("copy[2] is a valid pointer", copy[2]);
+	assert_str_equals("copy[3] is a faithful copy", original[3], copy[3]);
+	assert_null("copy[3] is NULL (sigil)", copy[3]);
+
+	xarrfree(copy);
+}
+
+void test_mem_xarrfree()
+{
+	const char *original[4] = {
+		"string1",
+		"another string",
+		"a third and final string",
+		NULL
+	};
+
+	char **copy;
+
+	test("MEM: xarrfree(NULL) doesn't fail");
+	copy = NULL;
+	xarrfree(copy);
+	assert_null("copy is NULL after xarrfree", copy);
+
+	copy = xarrdup(original);
+	test("MEM: xarrfree() - normal use");
+	assert_not_null("copy is not NULL", copy);
+	xarrfree(copy);
+	assert_null("copy is NULL after xarfree", copy);
+}
+
+void test_mem_string()
+{
+	char *s;
+	char buf[129];
+
+	test("MEM: string() - normal use");
+	s = string("%s: %u 0x%08x", "Clockwork test build", 1025, 1025);
+	assert_not_null("string() returns valid pointer", s);
+	assert_str_equals("string() formats properly", "Clockwork test build: 1025 0x00000401", s);
+	free(s);
+
+	test("MEM: string() - large buffer required");
+	memset(buf, 'x', 128); buf[128] = '\0';
+	assert_int_equals("buffer should be 128 octets long", 128, strlen(buf));
+	s = string("%sA%sB%sC%sD", buf, buf, buf, buf);
+	assert_int_equals("s should be 4+(128*4) octets long", 4+(128*4), strlen(s));
+	free(s);
+
+}
+
+void test_suite_mem() {
+	test_mem_xfree();
+	test_mem_xmalloc();
+
+	test_mem_xstrdup();
+	test_mem_xstrcmp();
+	test_mem_xstrncpy();
+
+	test_mem_xarrdup();
+	test_mem_xarrfree();
+
+	test_mem_string();
+}

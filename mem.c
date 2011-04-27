@@ -45,29 +45,32 @@ char* xstrncpy(char *dest, const char *src, size_t n)
 	return dest;
 }
 
-char** xarrdup(char **a)
+char** xarrdup(char const **a)
 {
-	char **n, **t;
+	char **n, **tn;
+	const char **ta;
 
 	if (!a) { return NULL; }
-	for (t = a; *t; t++)
+	for (ta = a; *ta; ta++)
 		;
 
-	n = xmalloc((t -a + 1) * sizeof(char*));
-	for (t = n; *a; a++)
-		*t++ = xstrdup(*a);
+	n = xmalloc((ta -a + 1) * sizeof(char*));
+	for (tn = n; *a; a++)
+		*tn++ = xstrdup(*a);
 
 	return n;
 }
 
-void xarrfree(char **a)
+void __xarrfree(char ***a)
 {
-	char **s = a;
-	if (!a) { return; }
+	char **s;
+	if (!a || !*a) { return; }
+	s = *a;
 	while (*s) {
 		free(*s++);
 	}
-	free(a);
+	free(*a);
+	*a = NULL;
 }
 
 char* string(const char *fmt, ...)
@@ -78,7 +81,7 @@ char* string(const char *fmt, ...)
 	va_list args;
 
 	va_start(args, fmt);
-	n = vsnprintf(buf, 256, fmt, args);
+	n = vsnprintf(buf, 256, fmt, args) + 1;
 	va_end(args);
 	if (n > 256) {
 		buf2 = xmalloc(n * sizeof(char));

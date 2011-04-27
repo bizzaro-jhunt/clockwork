@@ -1,5 +1,7 @@
 #include "test.h"
 
+extern void test_suite_mem();
+
 extern void test_suite_list();
 extern void test_suite_stringlist();
 extern void test_suite_hash();
@@ -30,6 +32,8 @@ int main(int argc, char **argv)
 
 	test_setup(argc, argv);
 	to_run = *(++argv);
+
+	RUN_TESTS(mem);
 
 	RUN_TESTS(list);
 	RUN_TESTS(stringlist);

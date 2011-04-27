@@ -28,6 +28,12 @@ void assert_signed_equals(const char *s, signed long int expected, signed long i
 #define assert_signed_eq    assert_signed_equals
 
 void assert_ptr(const char *s, const void *expected, const void *actual);
+#define assert_ptr_eq     assert_ptr
+#define assert_ptr_equal  assert_ptr
+#define assert_ptr_equals assert_ptr
+void assert_ptr_ne(const char *s, const void *unexpected, const void *actual);
+#define assert_ptr_not_equal  assert_ptr_ne
+#define assert_ptr_not_equals assert_ptr_ne
 
 void assert_int_equals(const char *s, int expected, int actual);
 #define assert_int_equal assert_int_equals

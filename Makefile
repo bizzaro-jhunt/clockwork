@@ -208,6 +208,7 @@ test/run: test/run.o test/test.o \
           test/assertions.o \
           mem.o exec.o \
           report.o log.o \
+          test/mem.o \
           test/list.o \
           test/stringlist.o stringlist.o \
           test/hash.o hash.o \

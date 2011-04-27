@@ -138,6 +138,20 @@ void assert_ptr(const char *s, const void *expected, const void *actual)
 	_assert_numeric_equals(s, "0x%lx", (unsigned long)expected, (unsigned long)actual);
 }
 
+void assert_ptr_ne(const char *s, const void *unexpected, const void *actual)
+{
+	++__ASSERTIONS;
+	if (actual != unexpected) {
+		if (TEST_PRINT_PASS) { printf(" - %s: PASS\n", s); }
+	} else {
+		if (TEST_PRINT_FAIL) {
+			printf(" - %s: FAIL:\n"
+			       "\t\t0x%lx == 0x%lx",
+			       s, (unsigned long)unexpected, (unsigned long)actual);
+		}
+	}
+}
+
 void assert_int_equals(const char *s, int expected, int actual)
 {
 	++__ASSERTIONS;

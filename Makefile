@@ -176,13 +176,13 @@ test: unit_tests functional_tests
 	find . -name '*.gcda' | xargs rm -f
 	test/setup.sh
 	@echo; echo;
-	test/run
+	test/run $(TESTS)
 	@echo; echo;
 	test/functional/run
 
 memtest: unit_tests
 	test/setup.sh
-	$(VG) test/run
+	$(VG) test/run $(TESTS)
 
 coverage: lcov.info unit_tests functional_tests
 	rm -rf doc/coverage
@@ -193,7 +193,7 @@ unit: unit_tests
 	find . -name '*.gcda' | xargs rm -f
 	test/setup.sh
 	@echo; echo;
-	test/run $(TEST)
+	test/run $(TESTS)
 	@echo; echo;
 	$(LCOV) --capture -o $@.tmp
 	$(LCOV) --remove $@.tmp $(NO_LCOV) > lcov.info

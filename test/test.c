@@ -17,7 +17,62 @@ static inline void __test_failed(void)
 	__STATUS = 0;
 }
 
+static int num_test_suites = 0;
+static struct test_suite *test_suites = NULL;
+
 /**********************************************************/
+
+int add_test_suite(const char *name, test_suite_f runner, int active)
+{
+	struct test_suite *ts;
+
+	num_test_suites++;
+	test_suites = realloc(test_suites, (num_test_suites * sizeof(struct test_suite)));
+	if (!test_suites) {
+		fprintf(stderr, "Failed to register suite '%s'\n", name);
+		exit(99);
+	}
+	ts = test_suites + (num_test_suites - 1);
+	ts->name   = name;
+	ts->runner = runner;
+	ts->active = active;
+	return 0;
+}
+
+int activate_test(const char *name)
+{
+	int i;
+
+	for (i = 0; i < num_test_suites; i++) {
+		if (strcmp(test_suites[i].name, name) == 0) {
+			test_suites[i].active = 1;
+			return 1;
+		}
+	}
+	return 0;
+}
+
+int run_active_tests(void)
+{
+	int i;
+
+	for (i = 0; i < num_test_suites; i++) {
+		if (test_suites[i].active) {
+			(*(test_suites[i].runner))();
+		}
+	}
+	return 0;
+}
+
+int run_all_tests(void)
+{
+	int i;
+
+	for (i = 0; i < num_test_suites; i++) {
+		(*(test_suites[i].runner))();
+	}
+	return 0;
+}
 
 void test(const char *s)
 {

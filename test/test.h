@@ -6,6 +6,21 @@
 #include <string.h>
 #include <stdlib.h>
 
+typedef void (*test_suite_f)(void);
+
+struct test_suite {
+	const char    *name;
+	test_suite_f   runner;
+	int            active;
+};
+
+int add_test_suite(const char *name, test_suite_f runner, int active);
+#define TEST_SUITE(x) extern void test_suite_ ## x(); add_test_suite(#x, test_suite_ ## x, 0)
+
+int activate_test(const char *name);
+int run_active_tests(void);
+int run_all_tests(void);
+
 void test(const char *s);
 int test_status(void);
 int test_setup(int argc, char **argv);

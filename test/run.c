@@ -1,56 +1,29 @@
 #include "test.h"
 
-extern void test_suite_mem();
-
-extern void test_suite_list();
-extern void test_suite_stringlist();
-extern void test_suite_hash();
-
-extern void test_suite_userdb();
-extern void test_suite_sha1();
-
-extern void test_suite_pack();
-
-extern void test_suite_resources();
-extern void test_suite_policy();
-
-extern void test_suite_fact();
-extern void test_suite_stree();
-
-extern void test_suite_cert();
-
-typedef void (*test_suite)(void);
-static void run_test_suite(const char *run, const char *name, test_suite ts)
-{
-	if (!run || strcmp(run, name) == 0) { (*ts)(); }
-}
-#define RUN_TESTS(x) run_test_suite(to_run,#x, test_suite_ ## x)
-
 int main(int argc, char **argv)
 {
-	const char *to_run;
+	int run_active;
+
+	TEST_SUITE(mem);
+	TEST_SUITE(list);
+	TEST_SUITE(stringlist);
+	TEST_SUITE(hash);
+	TEST_SUITE(userdb);
+	TEST_SUITE(sha1);
+	TEST_SUITE(pack);
+	TEST_SUITE(resources);
+	TEST_SUITE(policy);
+	TEST_SUITE(fact);
+	TEST_SUITE(stree);
+	TEST_SUITE(cert);
 
 	test_setup(argc, argv);
-	to_run = *(++argv);
+	run_active = 0;
+	while (*(++argv)) {
+		printf("to_run = %p (%s)\n", *argv, *argv);
+		run_active += activate_test(*argv);
+	}
 
-	RUN_TESTS(mem);
-
-	RUN_TESTS(list);
-	RUN_TESTS(stringlist);
-	RUN_TESTS(hash);
-
-	RUN_TESTS(userdb);
-	RUN_TESTS(sha1);
-
-	RUN_TESTS(pack);
-
-	RUN_TESTS(resources);
-	RUN_TESTS(policy);
-
-	RUN_TESTS(fact);
-	RUN_TESTS(stree);
-
-	RUN_TESTS(cert);
-
+	(run_active ? run_active_tests() : run_all_tests());
 	return test_status();
 }

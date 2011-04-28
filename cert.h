@@ -46,6 +46,19 @@ struct cert_subject {
   Initialize the cert module for use
  */
 void cert_init(void);
+
+/**
+  Deinitialize the cert module
+
+  This routine must be called to properly clean up
+  memory used by OpenSSL.  In practice there is almost
+  no use for it (yet) since the policyd daemon always
+  needs OpenSSL routines to be around, and the client
+  side tools are not long-running.
+
+  It's really defined so that the unit tests can call
+  it and not report false-positive memory leaks.
+ */
 void cert_deinit(void);
 
 /**

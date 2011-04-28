@@ -97,11 +97,46 @@ struct policy {
 	struct hash *index;
 };
 
-/* a little syntactic sugar */
+/**
+  Iterate over a policy's resources
+
+  @param r    Resource (pointer) to use as an iterator
+  @param pol  Policy
+ */
 #define for_each_resource(r,pol) for_each_node((r),&((pol)->resources), l)
+
+/**
+  Iterate (safely) over a policy's resources
+
+  This macro works just like for_each_resource, except that the
+  resource \a r can be removed safely from the list without causing
+  strange behavior.
+
+  @param r    Resource (pointer) to use as an iterator
+  @param t    Resource (pointer) for temporary storage
+  @param pol  Policy
+ */
 #define for_each_resource_safe(r,t,pol) for_each_node_safe((r),(t),&((pol)->resources), l)
 
+/**
+  Iterate over a policy's dependencies
+
+  @param d    Dependency (pointer) to use as an iterator
+  @param pol  Policy
+ */
 #define for_each_dependency(d,pol) for_each_node((d),&((pol)->dependencies), l)
+
+/**
+  Iterate (safely) over a policy's dependencies
+
+  This macro works just like for_each_dependency, except that the
+  dependency \a d can be removed safely from the list without causing
+  strange behavior.
+
+  @param d    Dependency (pointer) to use as an iterator
+  @param t    Dependency (pointer) for temporary storage
+  @param pol  Policy
+ */
 #define for_each_dependency_safe(d,t,pol) for_each_node_safe((d),(t),&((pol)->dependencies), l)
 
 /**
@@ -266,10 +301,64 @@ void policy_free_all(struct policy *pol);
  */
 int policy_add_resource(struct policy *pol, struct resource *res);
 
+/**
+  Find a Resource based on its attributes.
+
+  This function is used to find resources defined inside of a policy
+  based on a single attribute filter.  For example, to find the res_user
+  resource of the user account 'bob':
+
+  @verbatim
+  struct resource *bob;
+  bob = policy_find_resource(pol, RES_USER, "username", "bob");
+  @endverbatim
+
+  Resource normalization, which often involves creating implicit
+  dependencies on other resources, makes heavy use of this function.
+
+  @note If more than one resource would match a given attribute
+        filter, only the first is returned.
+
+  @param  pol    Policy to search
+  @param  type   Type of resource (like RES_SERVICE) to look for
+  @param  attr   Name of the Resource Attribute to filter on
+  @param  value  Value to look for in \a attr
+
+  @returns a pointer to the first matching resource if found, or
+           NULL if no match was found.
+ */
 struct resource* policy_find_resource(struct policy *pol, enum restype type, const char *attr, const char *value);
 
+/**
+  Add a Resource Dependency to a Policy
+
+  @param  pol  Policy to add dependency \a dep to
+  @param  dep  Resource Dependency to add
+
+  @returns 0 on success, non-zero on failure.
+ */
 int policy_add_dependency(struct policy *pol, struct dependency *dep);
 
+/**
+  Notify all dependent resources of a change.
+
+  All dependencies is evaluated in turn to determine if
+  \a cause if the "b" resource (remembering that "a depends on b").
+  For each matching dependency, resource_notify is called on the
+  dependent resource, so that it knows it may still need to do something
+  even if it is compliant.
+
+  The simplest example is a service (i.e. OpenLDAP) and its configuration
+  file.  If the config file changes, the service needs to be reloaded,
+  even if it is already running.  In this example, \a cause would be
+  the configuration file.
+
+  @param  pol    Policy
+  @param  cause  The resource that has changed
+
+  @returns 0 on success or non-zero on failure.  Not finding a matching
+           dependency is not classified as a failure.
+ */
 int policy_notify(const struct policy *pol, const struct resource *cause);
 
 /**

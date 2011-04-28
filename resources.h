@@ -132,9 +132,6 @@ struct res_user {
 
 	/** Compliance failure flags; see RES_USER_* constants. */
 	unsigned int different;
-
-	/** Used in policy node lists. */
-	struct list res;
 };
 
 NEW_RESOURCE(user);
@@ -196,9 +193,6 @@ struct res_group {
 	unsigned int enforced;
 	/** Compliance failure flags; see RES_GROUP_* constants. */
 	unsigned int different;
-
-	/** Used in policy node lists. */
-	struct list res;
 };
 
 NEW_RESOURCE(group);
@@ -355,9 +349,6 @@ struct res_file {
 
 	/** Compliance failure flags; see RES_FILE_* contstants. */
 	unsigned int different;
-
-	/** Used in policy node lists. */
-	struct list res;
 };
 
 NEW_RESOURCE(file);
@@ -382,16 +373,26 @@ FILE* res_file_io(struct res_file *rf);
 #define RES_PACKAGE_ABSENT   0x80000000
 #define RES_PACKAGE_NONE     0x0
 
+/**
+  A software package resource.
+ */
 struct res_package {
+	/** Unique identifier, starting with "res_package:" */
 	char *key;
+
+	/** Name of the software package (i.e. apache2) */
 	char *name;
+	/** Version to be installed */
 	char *version;
 
+	/** Actual version installed (if any) */
 	char *installed;
 
+	/** Enforcements flags; see RES_PACKAGE_* constants. */
 	unsigned int enforced;
+
+	/** Compliance failure flags; see RES_PACKAGE_* contstants. */
 	unsigned int different;
-	struct list res;
 };
 
 NEW_RESOURCE(package);
@@ -404,18 +405,31 @@ NEW_RESOURCE(package);
 #define RES_SERVICE_DISABLED  0x0010
 #define RES_SERVICE_NONE      0x0
 
+/**
+  A system init service.
+ */
 struct res_service {
+	/** Unique identifier, starting with "res_service:" */
 	char *key;
+
+	/** Name of the script in /etc/init.d */
 	char *service;
 
+	/** Whether or not this resource has been notified by a
+	    dependency.  Services need to be unconditionally reloaded
+	    or restarted when their dependencies are updated. */
 	unsigned int notified;
 
+	/** Is the service currently running? */
 	unsigned int running;
+	/** Is the service currently enabled (starts at boot)? */
 	unsigned int enabled;
 
+	/** Enforcements flags; see RES_SERVICE_* constants. */
 	unsigned int enforced;
+
+	/** Compliance failure flags; see RES_SERVICE_* contstants. */
 	unsigned int different;
-	struct list res;
 };
 
 NEW_RESOURCE(service);

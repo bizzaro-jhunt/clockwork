@@ -77,10 +77,10 @@ char* xstrncpy(char *dest, const char *src, size_t n);
 
   Memory allocated by this function must be freed via an xarrfree call.
 
-  @param  a    Pointer to the array to duplicate.
+  @param  ptr2arr  Pointer to the array to duplicate.
 
-  @returns a pointer to a duplicate of the \a a array, or NULL if \a a
-           could not be duplicated.
+  @returns a pointer to a duplicate of the \a ptr2arr array, or NULL
+           if \a ptr2arr could not be duplicated.
  */
 char** xarrdup(char **ptr2arr);
 

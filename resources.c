@@ -117,8 +117,6 @@ void* res_user_new(const char *key)
 	ru->enforced = RES_USER_NONE;
 	ru->different = RES_USER_NONE;
 
-	list_init(&ru->res);
-
 	ru->ru_name   = NULL;
 	ru->ru_passwd = NULL;
 	ru->ru_gecos  = NULL;
@@ -143,8 +141,6 @@ void res_user_free(void *res)
 	struct res_user *ru = (struct res_user*)(res);
 
 	if (ru) {
-		list_del(&ru->res);
-
 		free(ru->ru_name);
 		free(ru->ru_passwd);
 		free(ru->ru_gecos);
@@ -685,7 +681,6 @@ void* res_file_new(const char *key)
 	struct res_file *rf;
 
 	rf = xmalloc(sizeof(struct res_file));
-	list_init(&rf->res);
 
 	rf->enforced = 0;
 	rf->different = 0;
@@ -720,8 +715,6 @@ void res_file_free(void *res)
 {
 	struct res_file *rf = (struct res_file*)(res);
 	if (rf) {
-		list_del(&rf->res);
-
 		free(rf->rf_rpath);
 		free(rf->rf_lpath);
 		free(rf->rf_owner);
@@ -1058,7 +1051,6 @@ void* res_group_new(const char *key)
 	struct res_group *rg;
 
 	rg = xmalloc(sizeof(struct res_group));
-	list_init(&rg->res);
 
 	rg->rg_name = NULL;
 	rg->rg_passwd = NULL;
@@ -1097,8 +1089,6 @@ void res_group_free(void *res)
 
 		free(rg->rg_name);
 		free(rg->rg_passwd);
-
-		list_del(&rg->res);
 
 		if (rg->rg_mem) {
 			stringlist_free(rg->rg_mem);
@@ -1547,7 +1537,6 @@ void* res_package_new(const char *key)
 	struct res_package *rp;
 
 	rp = xmalloc(sizeof(struct res_package));
-	list_init(&rp->res);
 
 	rp->enforced = 0;
 	rp->different = 0;
@@ -1567,8 +1556,6 @@ void res_package_free(void *res)
 {
 	struct res_package *rp = (struct res_package*)(res);
 	if (rp) {
-		list_del(&rp->res);
-
 		free(rp->name);
 		free(rp->version);
 
@@ -1746,7 +1733,6 @@ void* res_service_new(const char *key)
 	struct res_service *rs;
 
 	rs = xmalloc(sizeof(struct res_service));
-	list_init(&rs->res);
 
 	rs->enforced = 0;
 	rs->different = 0;
@@ -1764,8 +1750,6 @@ void res_service_free(void *res)
 {
 	struct res_service *rs = (struct res_service*)(res);
 	if (rs) {
-		list_del(&rs->res);
-
 		free(rs->service);
 
 		free(rs->key);

@@ -36,11 +36,6 @@ Client / Server
        More intrusive signing / verification procedure
        How to handle renewals / revocation?
 
-API documentation
-  Use some sort of source-code documentation system (Doxygen)
-  to build up a readable but succinct body of function docs
-  and library usage information (i.e. how do I use a stringlist?)
-
 chroot testing
   Need to be able to run full-sim tests in chroot environments,
   so that functional tests can be reproduced, without requiring
@@ -48,9 +43,6 @@ chroot testing
 
   mkjail is coming along.  To do this right, we need passphrase-less
   certificates, and very long expirations (i.e. 100 years).
-
-man pages / documentation - STARTED
-  Write man pages for policyd, cwa and clockwork in general.
 
 Reporting
   Design and implement the reporting generation, submission,
@@ -72,3 +64,16 @@ Infrastructure
   Identify needs for bug tracking, community support (forums, mailing
   lists, etc.) and collaborative development (i.e. ReviewBoard).
 
+
+Perpetual List of Things To Do
+==============================
+
+(These are things that will never get "done", but need to be tracked.
+
+* Doxygen API Documentation
+* man pages:
+  - clockwork
+  - policyd
+  - cwca
+  - cwa
+  - cwcert

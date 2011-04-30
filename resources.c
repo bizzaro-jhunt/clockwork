@@ -212,19 +212,19 @@ int res_user_set(void *res, const char *name, const char *value)
 		ru->ru_passwd = strdup(value);
 		ru->enforced |= RES_USER_PASSWD;
 
-	} else if (strcmp(name, "pwmin") == 0) { // FIXME: need better key
+	} else if (strcmp(name, "pwmin") == 0) {
 		ru->ru_pwmin = strtoll(value, NULL, 10);
 		ru->enforced |= RES_USER_PWMIN;
 
-	} else if (strcmp(name, "pwmax") == 0) { // FIXME: need better key
+	} else if (strcmp(name, "pwmax") == 0) {
 		ru->ru_pwmax = strtoll(value, NULL, 10);
 		ru->enforced |= RES_USER_PWMAX;
 
-	} else if (strcmp(name, "pwwarn") == 0) { // FIXME: need better key
+	} else if (strcmp(name, "pwwarn") == 0) {
 		ru->ru_pwwarn = strtoll(value, NULL, 10);
 		ru->enforced |= RES_USER_PWWARN;
 
-	} else if (strcmp(name, "inact") == 0) { // FIXME: need better key
+	} else if (strcmp(name, "inact") == 0) {
 		ru->ru_inact = strtoll(value, NULL, 10);
 		ru->enforced |= RES_USER_INACT;
 

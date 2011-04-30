@@ -175,7 +175,6 @@ struct resource *resource_unpack(const char *packed)
 	return r;
 }
 
-#if 0
 int resource_add_dependency(struct resource *r, struct resource *dep)
 {
 	assert(r);
@@ -185,7 +184,7 @@ int resource_add_dependency(struct resource *r, struct resource *dep)
 	r->deps[r->ndeps++] = dep;
 	return 0;
 }
-#endif
+
 int resource_drop_dependency(struct resource *r, struct resource *dep)
 {
 	assert(r);

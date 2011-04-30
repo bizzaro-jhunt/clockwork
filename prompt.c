@@ -5,13 +5,13 @@
 
 #define PROMPT_BUFFER_SIZE 8192
 
-char* prompt_with_echo(const char *prompt)
+char* prompt(const char *text)
 {
 	char buf[PROMPT_BUFFER_SIZE];
 	char *result = NULL, *p;
 	size_t len = 0, bytes = 0;
 
-	printf("%s", prompt);
+	printf("%s", text);
 
 	for (;;) {
 		fgets(buf, PROMPT_BUFFER_SIZE, stdin);
@@ -44,6 +44,7 @@ char* prompt_with_echo(const char *prompt)
 	return result;
 }
 
+#if 0
 char* prompt_without_echo(const char *prompt)
 {
 	char *result;
@@ -61,4 +62,4 @@ char* prompt_without_echo(const char *prompt)
 
 	return result;
 }
-
+#endif

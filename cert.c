@@ -439,19 +439,19 @@ char* cert_fingerprint_certificate(X509 *cert)
 int cert_prompt_for_subject(struct cert_subject *subject)
 {
 	free(subject->country);
-	subject->country = prompt_with_echo("Country (C): ");
+	subject->country = prompt("Country (C): ");
 
 	free(subject->state);
-	subject->state = prompt_with_echo("State / Province (ST): ");
+	subject->state = prompt("State / Province (ST): ");
 
 	free(subject->loc);
-	subject->loc = prompt_with_echo("Locality / City (L): ");
+	subject->loc = prompt("Locality / City (L): ");
 
 	free(subject->org);
-	subject->org = prompt_with_echo("Organization (O): ");
+	subject->org = prompt("Organization (O): ");
 
 	free(subject->org_unit);
-	subject->org_unit = prompt_with_echo("Org. Unit (OU): ");
+	subject->org_unit = prompt("Org. Unit (OU): ");
 
 	return 0;
 }

@@ -281,7 +281,7 @@ static int cwcert_new_main(const struct cwcert_opts *args)
 
 		do {
 			free(confirmation);
-			confirmation = prompt_with_echo("Is this information correct (yes or no) ? ");
+			confirmation = prompt("Is this information correct (yes or no) ? ");
 		} while (strcmp(confirmation, "yes") != 0 && strcmp(confirmation, "no") != 0);
 
 	} while (strcmp(confirmation, "yes") != 0);

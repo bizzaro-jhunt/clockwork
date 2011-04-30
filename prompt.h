@@ -3,7 +3,7 @@
 
 #include "clockwork.h"
 
-char* prompt_with_echo(const char *prompt);
-char* prompt_without_echo(const char *prompt);
+char* prompt(const char *text);
+//char* prompt_without_echo(const char *prompt);
 
 #endif

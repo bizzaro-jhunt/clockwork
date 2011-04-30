@@ -302,7 +302,7 @@ static int enforce_policy(client *c, struct list *l)
 	}
 
 	/* Remediate all */
-	for_each_resource(res, &c->policy) {
+	for_each_resource(res, c->policy) {
 		DEBUG("Fixing up %s", res->key);
 
 		/* FIXME: one-off weirdness for res_file */

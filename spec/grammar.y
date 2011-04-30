@@ -57,7 +57,8 @@
 %type <stree> host policy
 %type <stree> enforcing enforce
 %type <stree> blocks block
-%type <stree> resource conditional extension
+%type <stree> resource extension
+%type <stree> conditional alt_condition
 %type <stree> attributes attribute
 %type <stree> dependency resource_id
 
@@ -149,20 +150,21 @@ attribute: T_IDENTIFIER ':' value
 value: qstring | T_NUMERIC
 	;
 
-conditional: T_KEYWORD_IF '(' conditional_test ')' '{' blocks '}'
-		{ branch_connect($3, $6, NODE(NOOP, NULL,  NULL));
+conditional: T_KEYWORD_IF '(' conditional_test ')' '{' blocks '}' alt_condition
+		{ branch_connect($3, $6, $8);
 		  $$ = branch_expand(MANIFEST(ctx), $3); }
-	| T_KEYWORD_IF '(' conditional_test ')' '{' blocks '}' T_KEYWORD_ELSE '{' blocks '}'
-		{ branch_connect($3, $6, $10);
+	| T_KEYWORD_UNLESS '(' conditional_test ')' '{' blocks '}' alt_condition
+		{ $3->affirmative = 1 ? 0 : 1;
+		  branch_connect($3, $6, $8);
 		  $$ = branch_expand(MANIFEST(ctx), $3); }
-	| T_KEYWORD_UNLESS '(' conditional_test ')' '{' blocks '}'
-		{ $3->affirmative = ($3->affirmative == 1 ? 0 : 1);
-		  branch_connect($3, $6, NODE(NOOP, NULL, NULL));
-		  $$ = branch_expand(MANIFEST(ctx), $3); }
-	| T_KEYWORD_UNLESS '(' conditional_test ')' '{' blocks '}' T_KEYWORD_ELSE '{' blocks '}'
-		{ $3->affirmative = ($3->affirmative == 1 ? 0 : 1);
-		  branch_connect($3, $6, $10);
-		  $$ = branch_expand(MANIFEST(ctx), $3); }
+	;
+
+alt_condition:
+		{ $$ = NODE(NOOP, NULL, NULL); }
+	| T_KEYWORD_ELSE '{' blocks '}'
+		{ $$ = $3; }
+	| T_KEYWORD_ELSE conditional
+		{ $$ = $2; }
 	;
 
 conditional_test: T_FACT T_KEYWORD_IS value_list

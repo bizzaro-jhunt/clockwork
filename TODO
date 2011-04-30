@@ -23,7 +23,6 @@ Figure out how to manage parts of a file (like augeas)
         }
 
 Tests for cert.o module
-Implement if-else-if-else-if-else support in policy lang
 
 Client / Server
   - Test remediation in chroot

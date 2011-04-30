@@ -14,6 +14,7 @@
 
 /* test /etc/passwd file */
 #define PWFILE     "test/data/passwd"
+#define PWFILE_UID "test/data/passwd-uid"
 #define PWFILE_NEW "test/tmp/passwd.new"
 
 /* test /etc/shadow file */
@@ -333,6 +334,21 @@ void test_pwdb_new_entry()
 	assert_str_equals("pw_gecos default is sane", pw->pw_gecos, "");
 	assert_str_equals("pw_dir default is sane", pw->pw_dir, "/");
 	assert_str_equals("pw_shell default is sane", pw->pw_shell, "/sbin/nologin");
+
+	pwdb_free(db);
+}
+
+void test_pwdb_next_uid_out_of_order()
+{
+	struct pwdb *db;
+	uid_t next;
+
+	db = open_passwd(PWFILE_UID);
+
+	test("PWDB: Next UID out of order");
+	next = pwdb_next_uid(db);
+
+	assert_int_equals("Next UID should be 8192 (not 1016)", 8192, next);
 
 	pwdb_free(db);
 }
@@ -858,6 +874,7 @@ void test_suite_userdb() {
 	test_pwdb_rm();
 	test_pwdb_rm_head();
 	test_pwdb_new_entry();
+	test_pwdb_next_uid_out_of_order();
 
 	/* shadow db tests */
 	test_spdb_init();

@@ -117,6 +117,9 @@ uid_t pwdb_lookup_uid(struct pwdb *db, const char *name);
   starts at UID 1000 and tries to find the next available
   user ID, based on what IDs have already been handed out.
 
+  It emulates the automatic UID generation of the standard
+  useradd command (i.e. highest in use + 1)
+
   @param  db      User database to search.
   @returns an available UID.
  */

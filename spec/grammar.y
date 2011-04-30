@@ -96,8 +96,9 @@ manifest:
 	;
 
 host: T_KEYWORD_HOST qstring '{' enforcing '}'
-		{ $$ = NODE(NOOP, $2, NULL);
-		  stree_add($$, $4); }
+		{ $$ = $4;
+		  $$->op = HOST;
+		  $$->data1 = xstrdup($2); }
 	;
 
 enforcing:
@@ -111,8 +112,9 @@ enforce: T_KEYWORD_ENFORCE qstring
 	;
 
 policy: T_KEYWORD_POLICY qstring '{' blocks '}'
-		{ $$ = NODE(NOOP, $2, NULL);
-		  stree_add($$, $4); }
+		{ $$ = $4;
+		  $$->op = POLICY;
+		  $$->data1 = xstrdup($2); }
 	;
 
 blocks:
@@ -125,8 +127,10 @@ block: resource | conditional | extension | dependency
 	;
 
 resource: T_IDENTIFIER value '{' attributes '}'
-		{ $$ = NODE(RESOURCE, $1, $2);
-		  stree_add($$, $4); }
+		{ $$ = $4;
+		  $$->op = RESOURCE;
+		  $$->data1 = xstrdup($1);
+		  $$->data2 = xstrdup($2); }
 	;
 
 attributes:

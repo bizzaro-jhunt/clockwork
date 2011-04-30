@@ -17,7 +17,9 @@ enum oper {
 	RESOURCE,
 	ATTR,
 	RESOURCE_ID,
-	DEPENDENCY
+	DEPENDENCY,
+	HOST,
+	POLICY
 };
 
 /**

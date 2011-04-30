@@ -17,7 +17,6 @@ static int _manifest_expand(struct manifest *manifest)
 		if (node->op == INCLUDE) {
 			pol = hash_get(manifest->policies, node->data1);
 			if (pol) {
-				node->op = PROG;
 				stree_add(node, pol);
 				pol = NULL;
 			} else {

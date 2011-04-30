@@ -14,8 +14,91 @@ static const char *OP_NAMES[] = {
 	"ATTR",
 	"RESOURCE_ID",
 	"DEPENDENCY",
+	"HOST",
+	"POLICY",
 	NULL
 };
+
+#define REDUNDANT_NODE(n) (((n)->op == PROG || (n)->op == NOOP) && (n)->size == 1)
+
+static int redundant_nodes(struct stree *node)
+{
+	int i;
+	int n = 0;
+
+	if (REDUNDANT_NODE(node)) { n++; }
+
+	for (i = 0; i < node->size; i++) {
+		n += redundant_nodes(node->nodes[i]);
+	}
+
+	return n;
+}
+
+static int count_nodes(struct stree *node)
+{
+	int i;
+	int n = 1;
+
+	if (node->size == 0) { return 1; }
+	for (i = 0; i < node->size; i++) {
+		n += count_nodes(node->nodes[i]);
+	}
+	return n;
+}
+
+static int size_used_by_attr_names(struct manifest *m)
+{
+	int i, n = 0;
+	struct stree *node;
+
+	for (i = 0; i < m->nodes_len; i++) {
+		node = m->nodes[i];
+		if (node && node->op == ATTR) {
+			n += (strlen(node->data1) + 1) * sizeof(char);
+		}
+	}
+
+	return n;
+}
+
+static int size_used_by_data1(struct manifest *m)
+{
+	int i, n = 0;
+	struct stree *node;
+
+	for (i = 0; i < m->nodes_len; i++) {
+		node = m->nodes[i];
+		if (node && node->data1) {
+			n += (strlen(node->data1) + 1) * sizeof(char);
+		}
+	}
+
+	return n;
+}
+
+static int stree_memory_usage(struct stree *n)
+{
+	int s = 0;
+
+	if (n) {
+		s += sizeof(struct stree);
+		if (n->data1) { s += (strlen(n->data1) + 1) * sizeof(n->data1); }
+		if (n->data2) { s += (strlen(n->data2) + 1) * sizeof(n->data2); }
+		s += sizeof(struct stree*) * n->size;
+	}
+	return s;
+}
+
+static int manifest_memory_usage(struct manifest *m)
+{
+	int i, s = 0;
+
+	for (i = 0; i < m->nodes_len; i++) {
+		s += stree_memory_usage(m->nodes[i]);
+	}
+	return s;
+}
 
 static void traverse(struct stree *node, unsigned int depth)
 {
@@ -26,7 +109,7 @@ static void traverse(struct stree *node, unsigned int depth)
 	memset(buf, ' ', 2 * depth);
 	buf[2 * depth] = '\0';
 
-	fprintf(stderr, "%s(%u:%s // %s // %s) 0x%p\n", buf, node->op, OP_NAMES[node->op], node->data1, node->data2, node);
+	printf("%s(%u:%s // %s // %s) [%u] 0x%p\n", buf, node->op, OP_NAMES[node->op], node->data1, node->data2, node->size, node);
 
 	for (i = 0; i < node->size; i++) {
 		traverse(node->nodes[i], depth + 1);
@@ -36,6 +119,7 @@ static void traverse(struct stree *node, unsigned int depth)
 int main(int argc, char **argv)
 {
 	struct manifest *manifest;
+	int redundant, count, mem;
 
 	printf("POL:SPEC   A Policy Specification Compiler\n" \
 	       "\n" \
@@ -54,6 +138,24 @@ int main(int argc, char **argv)
 	}
 
 	traverse(manifest->root, 0);
+
+	printf("\n");
+
+	count = count_nodes(manifest->root);
+	redundant = redundant_nodes(manifest->root);
+	mem = manifest_memory_usage(manifest);
+
+	printf("Total Nodes: %u\n", count);
+	printf("Redundant:   %u\n", redundant);
+	printf("%% Wasted:    %0.2f%%\n", redundant * 100. / count);
+	printf("Memory Used: %ub\n", mem);
+	printf("\n");
+
+	mem = size_used_by_attr_names(manifest);
+	printf("Attr Name Mem Usage: %ib\n", mem);
+	mem = size_used_by_data1(manifest);
+	printf("Tot Data1 Mem Usage: %ib\n", mem);
+	printf("\n");
 
 	if (argc > 2) {
 		int i;

@@ -20,6 +20,16 @@ struct policy_generator {
 
 /** @endcond */
 
+static void stree_free(struct stree *n)
+{
+	if (n) {
+		free(n->data1);
+		free(n->data2);
+		free(n->nodes);
+		free(n);
+	}
+}
+
 static int _policy_normalize(struct policy *pol)
 {
 	assert(pol);
@@ -96,12 +106,7 @@ void manifest_free(struct manifest *m)
 	size_t i;
 
 	if (m) {
-		for (i = 0; i < m->nodes_len; i++) {
-			free(m->nodes[i]->data1);
-			free(m->nodes[i]->data2);
-			free(m->nodes[i]->nodes);
-			free(m->nodes[i]);
-		}
+		for (i = 0; i < m->nodes_len; i++) { stree_free(m->nodes[i]); }
 		free(m->nodes);
 
 		hash_free(m->policies);

@@ -77,7 +77,7 @@
 /* grammar_impl.c contains several static routines that only make sense
    within the context of a parser.  They deal with interim representations
    of abstract syntax trees, like if branches and map constructs.  They
-   exist in a separate C file to keep this file clean and focues. */
+   exist in a separate C file to keep this file clean and focused. */
 #include "grammar_impl.c"
 
 #define MANIFEST(ctx) (((spec_parser_context*)ctx)->root)

@@ -9,6 +9,7 @@ cwcert
 cwca
 sha1sum
 polspec
+tplspec
 
 doc/*.png
 doc/api/doxygen.log
@@ -20,6 +21,7 @@ test/sha1_files.h
 test/data/res_file/new_file
 test/data/x509/*
 test/chroot/*.chroot
+test/data/passwd-uid
 
 config/lexer.c
 config/grammar.c
@@ -30,3 +32,8 @@ spec/lexer.c
 spec/grammar.c
 spec/grammar.h
 spec/*.output
+
+tpl/lexer.c
+tpl/grammar.c
+tpl/grammar.h
+tpl/*.output

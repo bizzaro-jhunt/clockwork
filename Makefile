@@ -55,7 +55,7 @@ DOXYGEN := doxygen
 ############################################################
 # Object Group Variables
 
-UTILS := sha1sum polspec
+UTILS := sha1sum polspec tplspec
 CORE  := cwa cwcert cwca policyd
 DEBUGGERS := debug/service-manager debug/package-manager
 
@@ -73,9 +73,13 @@ CORE_OBJECTS := mem.o sha1.o pack.o hash.o stringlist.o userdb.o log.o cert.o pr
 # Policy object files
 POLICY_OBJECTS := policy.o $(RESOURCE_OBJECTS)
 
+# Template system object files
+TEMPLATE_OBJECTS := template.o
+
 # Parser object files
 SPEC_PARSER_OBJECTS := spec/lexer.o spec/grammar.o spec/parser.o
 CONFIG_PARSER_OBJECTS := config/lexer.o config/grammar.o config/parser.o
+TEMPLATE_PARSER_OBJECTS := tpl/lexer.o tpl/grammar.o tpl/parser.o
 
 NO_LCOV :=
 NO_LCOV += test/test.c
@@ -113,6 +117,9 @@ sha1sum: sha1.o sha1sum.o mem.o log.o
 polspec: polspec.o $(CORE_OBJECTS) $(POLICY_OBJECTS) $(SPEC_PARSER_OBJECTS)
 	$(CC) -o $@ $+
 
+tplspec: tplspec.o $(CORE_OBJECTS) $(POLICY_OBJECTS) $(TEMPLATE_OBJECTS) $(TEMPLATE_PARSER_OBJECTS)
+	$(CC) -o $@ $+
+
 
 ############################################################
 # Debugging Tools (mainly for CW developers)
@@ -135,6 +142,14 @@ spec/grammar.c spec/grammar.h: spec/grammar.y spec/grammar_impl.c spec/parser.c 
 spec/parser.o: spec/parser.c spec/parser.h spec/private.h
 	$(CC) -c -o $@ $<
 
+tpl/lexer.c: tpl/lexer.l tpl/grammar.h tpl/lexer_impl.c tpl/parser.h tpl/private.h
+	$(LEX) --outfile=$@ $<
+
+tpl/grammar.c tpl/grammar.h: tpl/grammar.y tpl/parser.c tpl/parser.h tpl/private.h
+	$(YACC) -p yytpl --output-file=tpl/grammar.c $<
+
+tpl/parser.o: tpl/parser.c tpl/parser.h tpl/private.h
+	$(CC) -c -o $@ $<
 
 config/lexer.c: config/lexer.l config/grammar.h config/lexer_impl.c config/private.h
 	$(LEX) --outfile=$@ $<
@@ -297,6 +312,7 @@ clean: clean_lcov
 	rm -f $(UTILS) $(CORE) $(DEBUGGERS) test/run polspec
 	rm -f spec/lexer.c spec/grammar.c spec/grammar.h spec/*.output
 	rm -f config/lexer.c config/grammar.c config/grammar.h config/*.output
+	rm -f tpl/lexer.c tpl/grammar.c tpl/grammar.h tpl/*.output
 	rm -f test/util/includer test/util/factchecker test/util/presence test/util/daemoncfg test/util/executive
 	rm -rf $(APIDOC_ROOT)/*
 	rm -rf doc/coverage/*

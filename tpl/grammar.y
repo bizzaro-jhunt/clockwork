@@ -96,35 +96,16 @@ echo: T_ECHO expression
 
 literal: literals
 		{ $$ = NODE(TNODE_ECHO, NULL, NULL);
-		  tnode_add($$, NODE(TNODE_VALUE, xstrdup($1->data), NULL));
-		  free($1->data);
-		  free($1); }
+		  tnode_add($$, NODE(TNODE_VALUE, xstrdup($1->raw), NULL));
+		  string_free($1); }
 	| value
 		{ $$ = NODE(TNODE_VALUE, $1, NULL); }
 	;
 
 literals:
-		{ $$ = xmalloc(sizeof(struct autostr));
-		  $$->str_size = 0;
-		  $$->buf_size = 128;
-		  $$->data = xmalloc(sizeof(char) * $$->buf_size);
-		  $$->tmp  = NULL;
-		  $$->ptr  = $$->data;
-		  *$$->ptr = '\0'; }
+		{ $$ = string_new(NULL, 0); }
 	| literals T_LITERAL
-		{ if ($$->str_size == $$->buf_size - 1) {
-			/* expand the buffer by 128 */
-			$$->tmp = realloc($$->data, $$->buf_size + 128);
-			if ($$->tmp) {
-				$$->data = $$->tmp;
-				$$->buf_size += 128;
-			} else {
-				/* FIXME: error and exit */
-			}
-		  }
-		  *$$->ptr++ = $2;
-		  $$->str_size++;
-		  *$$->ptr = '\0'; }
+		{ string_append1($$, $2); }
 	;
 
 value: T_QSTRING

@@ -12,15 +12,7 @@
 #include "../list.h"
 #include "../template.h"
 #include "../stringlist.h"
-
-struct autostr {
-	char *data;
-	size_t buf_size;
-	size_t str_size;
-
-	char *tmp;
-	char *ptr;
-};
+#include "../string.h"
 
 /**
   parser_branch - interim representation of an if block
@@ -78,7 +70,7 @@ typedef struct {
 typedef union {
 	char            *string;
 	char             singlec;
-	struct autostr  *autostr;
+	struct string   *autostr;
 
 	struct tnode    *tnode;
 	struct template *tpl;

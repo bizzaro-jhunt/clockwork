@@ -1,7 +1,16 @@
 #include "template.h"
 #include "tpl/parser.h"
+#include "string.h"
 
 #include <ctype.h>
+
+struct template_context {
+
+	struct string *out;
+	int echo;
+};
+
+/***********************************************************************/
 
 static void tnode_free(struct tnode *n)
 {
@@ -12,6 +21,57 @@ static void tnode_free(struct tnode *n)
 	}
 	free(n);
 }
+
+static int _template_render(struct template *t, struct tnode *n, struct template_context *ctx)
+{
+	unsigned int i;
+
+again:
+	switch (n->type) {
+	case TNODE_NOOP:
+		break;
+
+	case TNODE_ECHO:
+		ctx->echo = 1;
+		for (i = 0; i < n->size; i++) {
+			_template_render(t, n->nodes[i], ctx);
+		}
+		ctx->echo = 0;
+		return 0;
+
+	case TNODE_VALUE:
+		if (ctx->echo) { string_append(ctx->out, n->d1); }
+		return 0;
+
+	case TNODE_REF:
+		if (ctx->echo) { string_append(ctx->out, template_deref_var(t, n->d1)); }
+		return 0;
+
+	case TNODE_IF_EQ:
+		if (xstrcmp(n->d2, template_deref_var(t, n->d1)) == 0) {
+			n = n->nodes[0];
+			goto again;
+		} else if (n->nodes[1]) {
+			n = n->nodes[1];
+			goto again;
+		}
+
+	case TNODE_FOR:
+		/* not yet implemented */
+		return 0;
+
+	default:
+		ERROR("Bad node type: %i", n->type);
+		return -1;
+	}
+
+	for (i = 0; i < n->size; i++) {
+		_template_render(t, n->nodes[i], ctx);
+	}
+	return 0;
+}
+
+/***********************************************************************/
 
 struct template* template_new(void)
 {
@@ -60,174 +120,17 @@ void* template_deref_var(struct template *t, const char *name)
 	return v;
 }
 
-/* FIXME: standalone implementation */
-struct autostr2 {
-	size_t len;
-	size_t bytes;
-	size_t block;
-
-	char *data;
-	char *ptr;
-};
-
-struct autostr2* autostr_new(const char *seed, size_t block);
-int autostr_add_string(struct autostr2 *s, const char *str);
-int autostr_add_char(struct autostr2 *s, char c);
-//void autostr_dump(struct autostr2 *s);
-
-struct autostr2* autostr_new(const char *seed, size_t block)
-{
-	struct autostr2 *s;
-
-	if (block <= 0) { block = 64; }
-
-	s = xmalloc(sizeof(struct autostr2));
-
-	s->len = 0;
-	s->bytes = s->block = block;
-
-	s->data = xmalloc(sizeof(char) * s->block);
-	s->ptr = s->data;
-
-	autostr_add_string(s, seed);
-	return s;
-}
-
-int autostr_add_string(struct autostr2 *s, const char *str)
-{
-	char *tmp;
-	size_t new_bytes;
-
-	if (!str) { return -1; }
-
-	new_bytes = s->len + strlen(str);
-	if (new_bytes >= s->bytes) {
-		new_bytes = (new_bytes / s->block + 1) * s->block;
-		tmp = realloc(s->data, new_bytes);
-		if (!tmp) {
-			return -1;
-		}
-
-		s->data = tmp;
-		s->ptr = s->data + s->len; /* reset s->ptr, in case s->data moved) */
-		s->bytes = new_bytes;
-	}
-
-	for (; *str; *s->ptr++ = *str++, s->len++)
-		;
-	*s->ptr = '\0';
-
-	return 0;
-}
-
-#if 0
-void autostr_dump(struct autostr2 *s)
-{
-	size_t i;
-
-	for (i = 0; i < s->bytes; i++) {
-		if (isprint(s->data[i])) {
-			fprintf(stderr, "autostr[%u] = %c\n", i, s->data[i]);
-		} else {
-			fprintf(stderr, "autostr[%u] = 0x%x\n", i, s->data[i]);
-		}
-	}
-}
-#endif
-
-int autostr_add_char(struct autostr2 *s, char c)
-{
-	char *tmp;
-	size_t new_bytes = s->len + 1;
-	if (new_bytes > s->bytes) {
-		new_bytes = s->bytes + s->block;
-		tmp = realloc(s->data, new_bytes);
-		if (!tmp) {
-			return -1;
-		}
-
-		s->data = tmp;
-		s->bytes = new_bytes;
-	}
-
-	*s->ptr++ = c;
-	s->len++;
-	*s->ptr = '\0';
-
-	return 0;
-}
-
-struct template_context {
-
-	struct autostr2 *out;
-	int echo;
-};
-
-static int _template_render(struct template *t, struct tnode *n, struct template_context *ctx)
-{
-	unsigned int i;
-
-again:
-	switch (n->type) {
-	case TNODE_NOOP:
-		break;
-
-	case TNODE_ECHO:
-		ctx->echo = 1;
-		for (i = 0; i < n->size; i++) {
-			_template_render(t, n->nodes[i], ctx);
-		}
-		ctx->echo = 0;
-		return 0;
-
-	case TNODE_VALUE:
-		if (ctx->echo) {
-			autostr_add_string(ctx->out, n->d1);
-		}
-		return 0;
-
-	case TNODE_REF:
-		if (ctx->echo) {
-			autostr_add_string(ctx->out, template_deref_var(t, n->d1));
-		}
-		return 0;
-
-	case TNODE_IF_EQ:
-		if (xstrcmp(n->d2, template_deref_var(t, n->d1)) == 0) {
-			n = n->nodes[0];
-			goto again;
-		} else if (n->nodes[1]) {
-			n = n->nodes[1];
-			goto again;
-		}
-
-	case TNODE_FOR:
-		/* not yet implemented */
-		return 0;
-
-	default:
-		ERROR("Bad node type: %i", n->type);
-		return -1;
-	}
-
-	for (i = 0; i < n->size; i++) {
-		_template_render(t, n->nodes[i], ctx);
-	}
-	return 0;
-}
-
 char* template_render(struct template *t)
 {
 	char *data;
 	struct template_context ctx;
 	ctx.echo = 0;
-	ctx.out = autostr_new(NULL, 0);
+	ctx.out = string_new(NULL, 0);
 
 	_template_render(t, t->root, &ctx);
 
-	data = xstrdup(ctx.out->data);
-	free(ctx.out->data);
-	free(ctx.out);
+	data = xstrdup(ctx.out->raw);
+	string_free(ctx.out);
 	return data;
 }
 

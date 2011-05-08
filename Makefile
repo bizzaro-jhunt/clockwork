@@ -68,7 +68,7 @@ RESOURCE_OBJECTS := resource.o resources.o report.o $(MANAGER_OBJECTS)
 RESOURCE_HEADERS := resource.h resources.h report.h $(MANAGER_HEADERS)
 
 # Supporting object files
-CORE_OBJECTS := mem.o sha1.o pack.o hash.o stringlist.o userdb.o log.o cert.o prompt.o exec.o
+CORE_OBJECTS := mem.o sha1.o pack.o hash.o stringlist.o userdb.o log.o cert.o prompt.o exec.o string.o
 
 # Policy object files
 POLICY_OBJECTS := policy.o $(RESOURCE_OBJECTS)
@@ -226,6 +226,7 @@ test/run: test/run.o test/test.o \
           test/mem.o \
           test/list.o \
           test/stringlist.o stringlist.o \
+          test/string.o string.o \
           test/hash.o hash.o \
           test/userdb.o userdb.o \
           test/pack.o pack.o \

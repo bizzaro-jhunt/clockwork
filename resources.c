@@ -4,6 +4,11 @@
 #include <fts.h>
 #include <fcntl.h>
 
+#define ENFORCE(r,f)   (r)->enforced  |=  (f)
+#define UNENFORCE(r,f) (r)->enforced  &= ~(f)
+#define DIFF(r,f)      (r)->different |=  (f)
+#define UNDIFF(r,f)    (r)->different &= ~(f)
+
 #define _FD2FD_CHUNKSIZE 16384
 
 static int _res_user_populate_home(const char *home, const char *skel, uid_t uid, gid_t gid);
@@ -170,70 +175,70 @@ int res_user_set(void *res, const char *name, const char *value)
 
 	if (strcmp(name, "uid") == 0) {
 		ru->ru_uid = strtoll(value, NULL, 10);
-		ru->enforced |= RES_USER_UID;
+		ENFORCE(ru, RES_USER_UID);
 
 	} else if (strcmp(name, "gid") == 0) {
 		ru->ru_gid = strtoll(value, NULL, 10);
-		ru->enforced |= RES_USER_GID;
+		ENFORCE(ru, RES_USER_GID);
 
 	} else if (strcmp(name, "username") == 0) {
 		free(ru->ru_name);
 		ru->ru_name = strdup(value);
-		ru->enforced |= RES_USER_NAME;
+		ENFORCE(ru, RES_USER_NAME);
 
 	} else if (strcmp(name, "home") == 0) {
 		free(ru->ru_dir);
 		ru->ru_dir = strdup(value);
-		ru->enforced |= RES_USER_DIR;
+		ENFORCE(ru, RES_USER_DIR);
 
 	} else if (strcmp(name, "present") == 0) {
 		if (strcmp(value, "no") != 0) {
-			ru->enforced ^= RES_USER_ABSENT;
+			UNENFORCE(ru, RES_USER_ABSENT);
 		} else {
-			ru->enforced |= RES_USER_ABSENT;
+			ENFORCE(ru, RES_USER_ABSENT);
 		}
 
 	} else if (strcmp(name, "locked") == 0) {
 		ru->ru_lock = strcmp(value, "no") ? 1 : 0;
-		ru->enforced |= RES_USER_LOCK;
+		ENFORCE(ru, RES_USER_LOCK);
 
 	} else if (strcmp(name, "gecos") == 0 || strcmp(name, "comment") == 0) {
 		free(ru->ru_gecos);
 		ru->ru_gecos = strdup(value);
-		ru->enforced |= RES_USER_GECOS;
+		ENFORCE(ru, RES_USER_GECOS);
 
 	} else if (strcmp(name, "shell") == 0) {
 		free(ru->ru_shell);
 		ru->ru_shell = strdup(value);
-		ru->enforced |= RES_USER_SHELL;
+		ENFORCE(ru, RES_USER_SHELL);
 
 	} else if (strcmp(name, "pwhash") == 0 || strcmp(name, "password") == 0) {
 		free(ru->ru_passwd);
 		ru->ru_passwd = strdup(value);
-		ru->enforced |= RES_USER_PASSWD;
+		ENFORCE(ru, RES_USER_PASSWD);
 
 	} else if (strcmp(name, "pwmin") == 0) {
 		ru->ru_pwmin = strtoll(value, NULL, 10);
-		ru->enforced |= RES_USER_PWMIN;
+		ENFORCE(ru, RES_USER_PWMIN);
 
 	} else if (strcmp(name, "pwmax") == 0) {
 		ru->ru_pwmax = strtoll(value, NULL, 10);
-		ru->enforced |= RES_USER_PWMAX;
+		ENFORCE(ru, RES_USER_PWMAX);
 
 	} else if (strcmp(name, "pwwarn") == 0) {
 		ru->ru_pwwarn = strtoll(value, NULL, 10);
-		ru->enforced |= RES_USER_PWWARN;
+		ENFORCE(ru, RES_USER_PWWARN);
 
 	} else if (strcmp(name, "inact") == 0) {
 		ru->ru_inact = strtoll(value, NULL, 10);
-		ru->enforced |= RES_USER_INACT;
+		ENFORCE(ru, RES_USER_INACT);
 
 	} else if (strcmp(name, "expiry") == 0 || strcmp(name, "expiration") == 0) {
 		ru->ru_expire = strtoll(value, NULL, 10);
-		ru->enforced |= RES_USER_EXPIRE;
+		ENFORCE(ru, RES_USER_EXPIRE);
 
 	} else if (strcmp(name, "skeleton") == 0 || strcmp(name, "makehome") == 0) {
-		ru->enforced |= RES_USER_MKHOME;
+		ENFORCE(ru, RES_USER_MKHOME);
 		xfree(ru->ru_skel);
 		ru->ru_mkhome = (strcmp(value, "no") ? 1 : 0);
 
@@ -292,60 +297,60 @@ int res_user_stat(void *res, const struct resource_env *env)
 	ru->different = RES_USER_NONE;
 
 	if (ENFORCED(ru, RES_USER_NAME) && strcmp(ru->ru_name, ru->ru_pw->pw_name) != 0) {
-		ru->different |= RES_USER_NAME;
+		DIFF(ru, RES_USER_NAME);
 	}
 
 	if (ENFORCED(ru, RES_USER_PASSWD) && strcmp(ru->ru_passwd, ru->ru_sp->sp_pwdp) != 0) {
-		ru->different |= RES_USER_PASSWD;
+		DIFF(ru, RES_USER_PASSWD);
 	}
 
 	if (ENFORCED(ru, RES_USER_UID) && ru->ru_uid != ru->ru_pw->pw_uid) {
-		ru->different |= RES_USER_UID;
+		DIFF(ru, RES_USER_UID);
 	}
 
 	if (ENFORCED(ru, RES_USER_GID) && ru->ru_gid != ru->ru_pw->pw_gid) {
-		ru->different |= RES_USER_GID;
+		DIFF(ru, RES_USER_GID);
 	}
 
 	if (ENFORCED(ru, RES_USER_GECOS) && strcmp(ru->ru_gecos, ru->ru_pw->pw_gecos) != 0) {
-		ru->different |= RES_USER_GECOS;
+		DIFF(ru, RES_USER_GECOS);
 	}
 
 	if (ENFORCED(ru, RES_USER_DIR) && strcmp(ru->ru_dir, ru->ru_pw->pw_dir) != 0) {
-		ru->different |= RES_USER_DIR;
+		DIFF(ru, RES_USER_DIR);
 	}
 
 	if (ENFORCED(ru, RES_USER_SHELL) && strcmp(ru->ru_shell, ru->ru_pw->pw_shell) != 0) {
-		ru->different |= RES_USER_SHELL;
+		DIFF(ru, RES_USER_SHELL);
 	}
 
 	if (ru->ru_mkhome == 1 && ENFORCED(ru, RES_USER_MKHOME)
 	 && (stat(ru->ru_dir, &home) != 0 || !S_ISDIR(home.st_mode))) {
-		ru->different |= RES_USER_MKHOME;
+		DIFF(ru, RES_USER_MKHOME);
 	}
 
 	if (ENFORCED(ru, RES_USER_PWMIN) && ru->ru_pwmin != ru->ru_sp->sp_min) {
-		ru->different |= RES_USER_PWMIN;
+		DIFF(ru, RES_USER_PWMIN);
 	}
 
 	if (ENFORCED(ru, RES_USER_PWMAX) && ru->ru_pwmax != ru->ru_sp->sp_max) {
-		ru->different |= RES_USER_PWMAX;
+		DIFF(ru, RES_USER_PWMAX);
 	}
 
 	if (ENFORCED(ru, RES_USER_PWWARN) && ru->ru_pwwarn != ru->ru_sp->sp_warn) {
-		ru->different |= RES_USER_PWWARN;
+		DIFF(ru, RES_USER_PWWARN);
 	}
 
 	if (ENFORCED(ru, RES_USER_INACT) && ru->ru_inact != ru->ru_sp->sp_inact) {
-		ru->different |= RES_USER_INACT;
+		DIFF(ru, RES_USER_INACT);
 	}
 
 	if (ENFORCED(ru, RES_USER_EXPIRE) && ru->ru_expire != ru->ru_sp->sp_expire) {
-		ru->different |= RES_USER_EXPIRE;
+		DIFF(ru, RES_USER_EXPIRE);
 	}
 
 	if (ENFORCED(ru, RES_USER_LOCK) && ru->ru_lock != locked) {
-		ru->different |= RES_USER_LOCK;
+		DIFF(ru, RES_USER_LOCK);
 	}
 
 	return 0;
@@ -779,17 +784,17 @@ int res_file_set(void *res, const char *name, const char *value)
 	if (strcmp(name, "owner") == 0) {
 		free(rf->rf_owner);
 		rf->rf_owner = strdup(value);
-		rf->enforced |= RES_FILE_UID;
+		ENFORCE(rf, RES_FILE_UID);
 
 	} else if (strcmp(name, "group") == 0) {
 		free(rf->rf_group);
 		rf->rf_group = strdup(value);
-		rf->enforced |= RES_FILE_GID;
+		ENFORCE(rf, RES_FILE_GID);
 
 	} else if (strcmp(name, "mode") == 0) {
 		/* Mask off non-permission bits */
 		rf->rf_mode = strtoll(value, NULL, 0) & 07777;
-		rf->enforced |= RES_FILE_MODE;
+		ENFORCE(rf, RES_FILE_MODE);
 
 	} else if (strcmp(name, "source") == 0) {
 		free(rf->rf_rpath);
@@ -797,7 +802,7 @@ int res_file_set(void *res, const char *name, const char *value)
 		if (sha1_file(rf->rf_rpath, &rf->rf_rsha1) != 0) {
 			return -1;
 		}
-		rf->enforced |= RES_FILE_SHA1;
+		ENFORCE(rf, RES_FILE_SHA1);
 
 	} else if (strcmp(name, "path") == 0) {
 		free(rf->rf_lpath);
@@ -805,9 +810,9 @@ int res_file_set(void *res, const char *name, const char *value)
 
 	} else if (strcmp(name, "present") == 0) {
 		if (strcmp(value, "no") != 0) {
-			rf->enforced ^= RES_FILE_ABSENT;
+			UNENFORCE(rf, RES_FILE_ABSENT);
 		} else {
-			rf->enforced |= RES_FILE_ABSENT;
+			ENFORCE(rf, RES_FILE_ABSENT);
 		}
 
 	} else {
@@ -866,16 +871,16 @@ int res_file_stat(void *res, const struct resource_env *env)
 	rf->different = RES_FILE_NONE;
 
 	if (ENFORCED(rf, RES_FILE_UID) && rf->rf_uid != rf->rf_stat.st_uid) {
-		rf->different |= RES_FILE_UID;
+		DIFF(rf, RES_FILE_UID);
 	}
 	if (ENFORCED(rf, RES_FILE_GID) && rf->rf_gid != rf->rf_stat.st_gid) {
-		rf->different |= RES_FILE_GID;
+		DIFF(rf, RES_FILE_GID);
 	}
 	if (ENFORCED(rf, RES_FILE_MODE) && (rf->rf_stat.st_mode & 07777) != rf->rf_mode) {
-		rf->different |= RES_FILE_MODE;
+		DIFF(rf, RES_FILE_MODE);
 	}
 	if (ENFORCED(rf, RES_FILE_SHA1) && memcmp(rf->rf_rsha1.raw, rf->rf_lsha1.raw, SHA1_DIGEST_SIZE) != 0) {
-		rf->different |= RES_FILE_SHA1;
+		DIFF(rf, RES_FILE_SHA1);
 	}
 
 	return 0;
@@ -927,7 +932,7 @@ struct report* res_file_fixup(void *res, int dryrun, const struct resource_env *
 
 		rf->different = rf->enforced;
 		/* No need to chmod the file again */
-		rf->different ^= RES_FILE_MODE;
+		UNDIFF(rf, RES_FILE_MODE);
 	}
 
 	if (DIFFERENT(rf, RES_FILE_SHA1)) {
@@ -1122,18 +1127,18 @@ int res_group_set(void *res, const char *name, const char *value)
 
 	if (strcmp(name, "gid") == 0) {
 		rg->rg_gid = strtoll(value, NULL, 10);
-		rg->enforced |= RES_GROUP_GID;
+		ENFORCE(rg, RES_GROUP_GID);
 
 	} else if (strcmp(name, "name") == 0) {
 		free(rg->rg_name);
 		rg->rg_name = strdup(value);
-		rg->enforced |= RES_GROUP_NAME;
+		ENFORCE(rg, RES_GROUP_NAME);
 
 	} else if (strcmp(name, "present") == 0) {
 		if (strcmp(value, "no") != 0) {
-			rg->enforced ^= RES_GROUP_ABSENT;
+			UNENFORCE(rg, RES_GROUP_ABSENT);
 		} else {
-			rg->enforced |= RES_GROUP_ABSENT;
+			ENFORCE(rg, RES_GROUP_ABSENT);
 		}
 
 	} else if (strcmp(name, "member") == 0) {
@@ -1151,7 +1156,7 @@ int res_group_set(void *res, const char *name, const char *value)
 	} else if (strcmp(name, "pwhash") == 0 || strcmp(name, "password") == 0) {
 		free(rg->rg_passwd);
 		rg->rg_passwd = strdup(value);
-		rg->enforced |= RES_GROUP_PASSWD;
+		ENFORCE(rg, RES_GROUP_PASSWD);
 
 	} else {
 		return -1;
@@ -1186,9 +1191,9 @@ int res_group_enforce_members(struct res_group *rg, int enforce)
 	assert(rg);
 
 	if (enforce) {
-		rg->enforced |= RES_GROUP_MEMBERS;
+		ENFORCE(rg, RES_GROUP_MEMBERS);
 	} else {
-		rg->enforced ^= RES_GROUP_MEMBERS;
+		UNENFORCE(rg, RES_GROUP_MEMBERS);
 	}
 	return 0;
 }
@@ -1219,9 +1224,9 @@ int res_group_enforce_admins(struct res_group *rg, int enforce)
 	assert(rg);
 
 	if (enforce) {
-		rg->enforced |= RES_GROUP_ADMINS;
+		ENFORCE(rg, RES_GROUP_ADMINS);
 	} else {
-		rg->enforced ^= RES_GROUP_ADMINS;
+		UNENFORCE(rg, RES_GROUP_ADMINS);
 	}
 	return 0;
 }
@@ -1287,22 +1292,22 @@ int res_group_stat(void *res, const struct resource_env *env)
 	rg->different = RES_GROUP_NONE;
 
 	if (ENFORCED(rg, RES_GROUP_NAME) && strcmp(rg->rg_name, rg->rg_grp->gr_name) != 0) {
-		rg->different |= RES_GROUP_NAME;
+		DIFF(rg, RES_GROUP_NAME);
 	}
 
 	if (ENFORCED(rg, RES_GROUP_PASSWD) && strcmp(rg->rg_passwd, rg->rg_sg->sg_passwd) != 0) {
-		rg->different |= RES_GROUP_PASSWD;
+		DIFF(rg, RES_GROUP_PASSWD);
 	}
 
 	if (ENFORCED(rg, RES_GROUP_GID) && rg->rg_gid != rg->rg_grp->gr_gid) {
-		rg->different |= RES_GROUP_GID;
+		DIFF(rg, RES_GROUP_GID);
 	}
 
 	if (ENFORCED(rg, RES_GROUP_MEMBERS)) {
 		/* use list as a stringlist of gr_mem */
 		list = stringlist_new(rg->rg_grp->gr_mem);
 		if (stringlist_diff(list, rg->rg_mem) == 0) {
-			rg->different |= RES_GROUP_MEMBERS;
+			DIFF(rg, RES_GROUP_MEMBERS);
 		}
 		stringlist_free(list);
 	}
@@ -1311,7 +1316,7 @@ int res_group_stat(void *res, const struct resource_env *env)
 		/* use list as a stringlist of sg_adm */
 		list = stringlist_new(rg->rg_sg->sg_adm);
 		if (stringlist_diff(list, rg->rg_adm) == 0) {
-			rg->different |= RES_GROUP_ADMINS;
+			DIFF(rg, RES_GROUP_ADMINS);
 		}
 		stringlist_free(list);
 	}
@@ -1590,9 +1595,9 @@ int res_package_set(void *res, const char *name, const char *value)
 
 	} else if (strcmp(name, "installed") == 0) {
 		if (strcmp(value, "no") != 0) {
-			rp->enforced ^= RES_PACKAGE_ABSENT;
+			UNENFORCE(rp, RES_PACKAGE_ABSENT);
 		} else {
-			rp->enforced |= RES_PACKAGE_ABSENT;
+			ENFORCE(rp, RES_PACKAGE_ABSENT);
 		}
 
 	} else {
@@ -1779,38 +1784,38 @@ int res_service_set(void *res, const char *name, const char *value)
 
 	} else if (strcmp(name, "running") == 0) {
 		if (strcmp(value, "no") != 0) {
-			rs->enforced ^= RES_SERVICE_STOPPED;
-			rs->enforced |= RES_SERVICE_RUNNING;
+			UNENFORCE(rs, RES_SERVICE_STOPPED);
+			ENFORCE(rs, RES_SERVICE_RUNNING);
 		} else {
-			rs->enforced ^= RES_SERVICE_RUNNING;
-			rs->enforced |= RES_SERVICE_STOPPED;
+			UNENFORCE(rs, RES_SERVICE_RUNNING);
+			ENFORCE(rs, RES_SERVICE_STOPPED);
 		}
 
 	} else if (strcmp(name, "stopped") == 0) {
 		if (strcmp(value, "no") != 0) {
-			rs->enforced ^= RES_SERVICE_RUNNING;
-			rs->enforced |= RES_SERVICE_STOPPED;
+			UNENFORCE(rs, RES_SERVICE_RUNNING);
+			ENFORCE(rs, RES_SERVICE_STOPPED);
 		} else {
-			rs->enforced ^= RES_SERVICE_STOPPED;
-			rs->enforced |= RES_SERVICE_RUNNING;
+			UNENFORCE(rs, RES_SERVICE_STOPPED);
+			ENFORCE(rs, RES_SERVICE_RUNNING);
 		}
 
 	} else if (strcmp(name, "enabled") == 0) {
 		if (strcmp(value, "no") != 0) {
-			rs->enforced ^= RES_SERVICE_DISABLED;
-			rs->enforced |= RES_SERVICE_ENABLED;
+			UNENFORCE(rs, RES_SERVICE_DISABLED);
+			ENFORCE(rs, RES_SERVICE_ENABLED);
 		} else {
-			rs->enforced ^= RES_SERVICE_ENABLED;
-			rs->enforced |= RES_SERVICE_DISABLED;
+			UNENFORCE(rs, RES_SERVICE_ENABLED);
+			ENFORCE(rs, RES_SERVICE_DISABLED);
 		}
 
 	} else if (strcmp(name, "disabled") == 0) {
 		if (strcmp(value, "no") != 0) {
-			rs->enforced ^= RES_SERVICE_ENABLED;
-			rs->enforced |= RES_SERVICE_DISABLED;
+			UNENFORCE(rs, RES_SERVICE_ENABLED);
+			ENFORCE(rs, RES_SERVICE_DISABLED);
 		} else {
-			rs->enforced ^= RES_SERVICE_DISABLED;
-			rs->enforced |= RES_SERVICE_ENABLED;
+			UNENFORCE(rs, RES_SERVICE_DISABLED);
+			ENFORCE(rs, RES_SERVICE_ENABLED);
 		}
 
 	} else {

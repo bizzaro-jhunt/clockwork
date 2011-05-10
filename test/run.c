@@ -4,6 +4,7 @@ int main(int argc, char **argv)
 {
 	int run_active;
 
+	TEST_SUITE(bits);
 	TEST_SUITE(mem);
 	TEST_SUITE(list);
 	TEST_SUITE(stringlist);
@@ -12,6 +13,7 @@ int main(int argc, char **argv)
 	TEST_SUITE(sha1);
 	TEST_SUITE(pack);
 	TEST_SUITE(resources);
+	TEST_SUITE(resource);
 	TEST_SUITE(policy);
 	TEST_SUITE(fact);
 	TEST_SUITE(stree);

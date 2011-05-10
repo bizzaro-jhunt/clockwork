@@ -1309,6 +1309,52 @@ void test_res_package_unpack()
 	res_package_free(r);
 }
 
+void test_res_service_pack()
+{
+	struct res_service *r;
+	char *packed;
+	const char *expected;
+
+	r = res_service_new("svckey");
+	res_service_set(r, "service", "service-name");
+	res_service_set(r, "running", "yes");
+	res_service_set(r, "enabled", "yes");
+
+	test("RES_SERVICE: service serialization");
+	packed = res_service_pack(r);
+	expected = "res_service::\"svckey\""
+		"00000005"
+		"\"service-name\"";
+
+	assert_str_equals("packs properly (normal case)", expected, packed);
+	res_service_free(r);
+	free(packed);
+}
+
+void test_res_service_unpack()
+{
+	struct res_service *r;
+	char *packed;
+	
+	packed = "res_service::\"svckey\""
+		"00000005"
+		"\"service-name\"";
+
+	test("RES_SERVICE: service unserialization");
+	assert_null("res_service_unpack returns NULL on failure", res_service_unpack("<invalid packed data>"));
+
+	r = res_service_unpack(packed);
+	assert_not_null("res_service_unpack succeeds", r);
+	assert_str_equals("res_service->key is \"svckey\"", "svckey", r->key);
+	assert_str_equals("res_service->service is \"service-name\"", "service-name", r->service);
+	assert_true("RUNNING is enforced", ENFORCED(r, RES_SERVICE_RUNNING));
+	assert_false("STOPPED is NOT enforced", ENFORCED(r, RES_SERVICE_STOPPED));
+	assert_true("ENABLED is enforced", ENFORCED(r, RES_SERVICE_ENABLED));
+	assert_false("DISABLED is NOT enforced", ENFORCED(r, RES_SERVICE_DISABLED));
+
+	res_service_free(r);
+}
+
 /*****************************************************************************/
 
 void test_suite_resources()
@@ -1347,4 +1393,7 @@ void test_suite_resources()
 
 	test_res_package_pack();
 	test_res_package_unpack();
+
+	test_res_service_pack();
+	test_res_service_unpack();
 }

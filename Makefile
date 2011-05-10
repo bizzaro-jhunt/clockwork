@@ -221,6 +221,7 @@ unit_tests: test/run
 
 test/run: test/run.o test/test.o \
           test/assertions.o \
+          test/bits.o \
           mem.o exec.o \
           report.o log.o \
           test/mem.o \
@@ -230,7 +231,8 @@ test/run: test/run.o test/test.o \
           test/hash.o hash.o \
           test/userdb.o userdb.o \
           test/pack.o pack.o \
-          test/resources.o resource.o resources.o \
+          test/resource.o resource.o \
+          test/resources.o resources.o \
           $(MANAGER_OBJECTS) \
           test/policy.o test/stree.o test/fact.o policy.o \
           test/cert.o cert.o prompt.o \

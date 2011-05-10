@@ -45,50 +45,43 @@
   into the state, and the end delimiters (%> amd -%>) take it out.
  */
 %}
-%x TEMPLATE
-%x TPL_COMMENT
+%x TPL
 %%
 
-\<%# { BEGIN(TPL_COMMENT); }
-
-"<%" { BEGIN(TEMPLATE); }
-"<%=" {
-	BEGIN(TEMPLATE);
-	return T_ECHO;
-}
-
-(.|\n) {
-	yylval->singlec = yytext[0];
+([^<%]+|<|%) {
+	/* Kind of a silly way to match everything leading up to a
+	   '<%.*' delimiter, but its the only way that works. */
+	yylval->string = strdup(yytext);
 	return T_LITERAL;
 }
 
-<TPL_COMMENT>%> { BEGIN(INITIAL); }
-<TPL_COMMENT>.  { /* Ignore comments */ }
+"<%"  { BEGIN(TPL); }
+"<%=" { BEGIN(TPL); return T_ECHO; }
+\<%#[^(%>)]+%>\r?\n? { /* Ignore comments */ }
 
-<TEMPLATE>[ \t\r\n]* { /* Ignore whitespace */ }
-<TEMPLATE>-%>\r?\n? { BEGIN(INITIAL); }
-<TEMPLATE>%>        { BEGIN(INITIAL); }
+<TPL>[ \t\r\n]* { /* Ignore whitespace */ }
+<TPL>#.*        { /* Ignore comments   */ }
 
-<TEMPLATE>"if"     { return T_KEYWORD_IF; }
-<TEMPLATE>"unless" { return T_KEYWORD_UNLESS; }
-<TEMPLATE>"else"   { return T_KEYWORD_ELSE; }
-<TEMPLATE>"is"     { return T_KEYWORD_IS; }
-<TEMPLATE>"not"    { return T_KEYWORD_NOT; }
-<TEMPLATE>"for"    { return T_KEYWORD_FOR; }
-<TEMPLATE>"in"     { return T_KEYWORD_IN; }
-<TEMPLATE>"end"    { return T_KEYWORD_END; }
+<TPL>-%>\r?\n? { BEGIN(INITIAL); }
+<TPL>%>        { BEGIN(INITIAL); }
 
-<TEMPLATE>[\(\)] { return yytext[0]; }
+<TPL>"if"     { return T_KEYWORD_IF; }
+<TPL>"unless" { return T_KEYWORD_UNLESS; }
+<TPL>"else"   { return T_KEYWORD_ELSE; }
+<TPL>"elsif"  { return T_KEYWORD_ELSIF; }
+<TPL>"is"     { return T_KEYWORD_IS; }
+<TPL>"not"    { return T_KEYWORD_NOT; }
+<TPL>"end"    { return T_KEYWORD_END; }
 
-<TEMPLATE>([a-z_]+\.)*[a-z_]+ { /* fact */
+<TPL>([a-z_]+\.)+[a-z_]+ { /* fact */
 	yylval->string = strdup(yytext);
 	return T_IDENTIFIER;
 }
-<TEMPLATE>[0-9]+ { /* numeric */
+<TPL>[0-9]+ { /* numeric */
 	yylval->string = strdup(yytext);
 	return T_NUMERIC;
 }
-<TEMPLATE>\"[^\"\n]*[\"\n] { /* quoted string */
+<TPL>\"[^\"\n]*[\"\n] { /* quoted string */
 	yylval->string = strdup(yytext + 1);
 	if (yylval->string[yyleng-2] != '\"') {
 		lexer_warning("unterminated string literal");
@@ -99,7 +92,7 @@
 	}
 	return T_QSTRING;
 }
-<TEMPLATE>. { template_parser_error(yyget_extra(yyscanner), "unexpected character '%c'", yytext[0]); }
+<TPL>. { template_parser_error(yyget_extra(yyscanner), "unexpected character '%c'", yytext[0]); }
 
 %%
 /* lexer_impl.c contains the implementation for routines used

@@ -28,7 +28,7 @@ static char* escape_newlines(const char *s)
 		n++;
 	}
 
-	b = xmalloc(sizeof(char) * n);
+	b = xmalloc(sizeof(char) * (n + 1));
 	for (b1 = b; *s; s++) {
 		switch (*s) {
 			case '\r': *b1++ = '\\'; *b1++ = 'r'; break;
@@ -36,6 +36,7 @@ static char* escape_newlines(const char *s)
 			default:   *b1++ = *s;
 		}
 	}
+	*b1 = '\0';
 
 	return b;
 }

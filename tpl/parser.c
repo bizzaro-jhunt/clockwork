@@ -21,9 +21,10 @@ struct template* parse_template(const char *path)
 
 	yytpllex_init_extra(&ctx, &ctx.scanner);
 	template_parser_use_file(path, &ctx);
-	yytplparse(&ctx);
 
-	template = ctx.root;
+	template = template_new();
+	ctx.root = template;
+	yytplparse(&ctx);
 
 	yytpllex_destroy(ctx.scanner);
 	xfree(ctx.file);

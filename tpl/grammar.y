@@ -29,11 +29,10 @@
 %token T_KEYWORD_IF
 %token T_KEYWORD_UNLESS
 %token T_KEYWORD_ELSE
+%token T_KEYWORD_ELSIF
 %token T_KEYWORD_END
 %token T_KEYWORD_IS
 %token T_KEYWORD_NOT
-%token T_KEYWORD_FOR
-%token T_KEYWORD_IN
 
 /* These token definitions identify the expected type of the lvalue.
    The name 'string' comes from the union members of the YYSTYPE
@@ -46,7 +45,7 @@
 
 %token <string> T_IDENTIFIER
 %token <string> T_QSTRING
-%token <singlec> T_LITERAL
+%token <string> T_LITERAL
 %token <string> T_NUMERIC
 
 /* Define the lvalue types of non-terminal productions.
@@ -56,10 +55,9 @@
 %type <tpl>   template
 %type <tnode> echo
 %type <tnode> expressions expression
-%type <tnode> for_loop conditional conditional_test
+%type <tnode> conditional conditional_test alt_condition
 %type <tnode> literal reference
 %type <string> value
-%type <autostr> literals
 
 %{
 
@@ -70,10 +68,8 @@
 
 %%
 
-template:
-		{ TEMPLATE(ctx) = template_new(); }
-	| template expression
-		{ tnode_add(TEMPLATE(ctx)->root, $2); }
+template: expressions
+		{ TEMPLATE(ctx)->root = $1; }
 	;
 
 expressions:
@@ -84,7 +80,6 @@ expressions:
 
 expression: echo
 	  | literal
-	  | for_loop
 	  | conditional
 	  | reference
 	  ;
@@ -94,42 +89,44 @@ echo: T_ECHO expression
 		  tnode_add($$, $2); }
 	;
 
-literal: literals
+literal: T_LITERAL
 		{ $$ = NODE(TNODE_ECHO, NULL, NULL);
-		  tnode_add($$, NODE(TNODE_VALUE, xstrdup($1->raw), NULL));
-		  string_free($1); }
+		  tnode_add($$, NODE(TNODE_VALUE, $1, NULL)); }
 	| value
 		{ $$ = NODE(TNODE_VALUE, $1, NULL); }
 	;
 
-literals:
-		{ $$ = string_new(NULL, 0); }
-	| literals T_LITERAL
-		{ string_append1($$, $2); }
-	;
-
 value: T_QSTRING
+		{ $$ = $1; }
+	| T_NUMERIC
 		{ $$ = $1; }
 	;
 
-for_loop: T_KEYWORD_FOR T_IDENTIFIER T_KEYWORD_IN T_IDENTIFIER expressions T_KEYWORD_END
-		{ $$ = NODE(TNODE_FOR, $2, $4);
-		  tnode_add($$, $5); }
+conditional: T_KEYWORD_IF conditional_test expressions alt_condition
+		{ tnode_add($2, $3);
+		  tnode_add($2, $4);
+		  $$ = $2; }
+	| T_KEYWORD_UNLESS conditional_test expressions alt_condition
+		{ tnode_add($2, $4);
+		  tnode_add($2, $3);
+		  $$ = $2; }
 	;
 
-conditional: T_KEYWORD_IF conditional_test expressions T_KEYWORD_END
+alt_condition: T_KEYWORD_END
+		{ $$ = NODE(TNODE_NOOP, NULL, NULL); }
+	| T_KEYWORD_ELSE expressions T_KEYWORD_END
+		{ $$ = $2; }
+	| T_KEYWORD_ELSIF conditional_test expressions alt_condition
 		{ tnode_add($2, $3);
-		  tnode_add($2, NODE(TNODE_NOOP, NULL, NULL));
+		  tnode_add($2, $4);
 		  $$ = $2; }
-	   | T_KEYWORD_IF conditional_test expressions T_KEYWORD_ELSE expressions T_KEYWORD_END
-		{ tnode_add($2, $3);
-		  tnode_add($2, $5);
-		  $$ = $2; }
-	   ;
+	;
 
 conditional_test: T_IDENTIFIER T_KEYWORD_IS value
 		{ $$ = NODE(TNODE_IF_EQ, $1, $3); }
-		;
+	| T_IDENTIFIER T_KEYWORD_IS T_KEYWORD_NOT value
+		{ $$ = NODE(TNODE_IF_NE, $1, $4); }
+	;
 
 reference: T_IDENTIFIER
 		{ $$ = NODE(TNODE_REF, $1, NULL); }

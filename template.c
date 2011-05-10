@@ -48,17 +48,12 @@ again:
 		return 0;
 
 	case TNODE_IF_EQ:
-		if (xstrcmp(n->d2, template_deref_var(t, n->d1)) == 0) {
-			n = n->nodes[0];
-			goto again;
-		} else if (n->nodes[1]) {
-			n = n->nodes[1];
-			goto again;
-		}
+		n = (xstrcmp(n->d2, template_deref_var(t, n->d1)) == 0 ? n->nodes[0] : n->nodes[1]);
+		goto again;
 
-	case TNODE_FOR:
-		/* not yet implemented */
-		return 0;
+	case TNODE_IF_NE:
+		n = (xstrcmp(n->d2, template_deref_var(t, n->d1)) != 0 ? n->nodes[0] : n->nodes[1]);
+		goto again;
 
 	default:
 		ERROR("Bad node type: %i", n->type);
@@ -81,7 +76,7 @@ struct template* template_new(void)
 	t->nodes = NULL;
 	t->nodes_len = 0;
 
-	t->root = template_new_tnode(t, TNODE_NOOP, NULL, NULL);
+	t->root = NULL;
 
 	return t;
 }

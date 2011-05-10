@@ -10,7 +10,7 @@ enum tnode_type {
 	TNODE_VALUE,
 	TNODE_REF,
 	TNODE_IF_EQ,
-	TNODE_FOR
+	TNODE_IF_NE
 };
 
 struct tnode {

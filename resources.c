@@ -1616,7 +1616,7 @@ int res_package_match(const void *res, const char *name, const char *value)
 	int rc;
 
 	if (strcmp(name, "name") == 0) {
-		test_value = string("%s", name);
+		test_value = string("%s", rp->name);
 	} else {
 		return 1;
 	}

@@ -1256,6 +1256,24 @@ void test_res_file_unpack()
 
 /*****************************************************************************/
 
+void test_res_package_match()
+{
+	struct res_package *rp;
+
+	rp = res_package_new("sys-tools");
+
+	res_package_set(rp, "name", "lsof");
+	res_package_set(rp, "installed", "yes");
+
+	test("RES_PACKAGE: attribute matching");
+	assert_int_eq("sys-tools matches name=lsof", 0, res_package_match(rp, "name", "lsof"));
+	assert_int_ne("sys-tools does not match name=dtrace", 0, res_package_match(rp, "name", "dtrace"));
+
+	assert_int_ne("installed is not a matchable attr", 0, res_package_match(rp, "installed", "yes"));
+
+	res_package_free(rp);
+}
+
 void test_res_package_pack()
 {
 	struct res_package *r;
@@ -1307,6 +1325,26 @@ void test_res_package_unpack()
 	assert_not_null("res_package_unpack [2] succeeds", r);
 	assert_null("res_package->version is NULL (empty string = NULL)", r->version);
 	res_package_free(r);
+}
+
+/*****************************************************************************/
+
+void test_res_service_match()
+{
+	struct res_service *rs;
+
+	rs = res_service_new("svc1");
+
+	res_service_set(rs, "service", "policyd");
+	res_service_set(rs, "running", "yes");
+
+	test("RES_SERVICE: attribute matching");
+	assert_int_eq("svc1 matches service=policyd", 0, res_service_match(rs, "service", "policyd"));
+	assert_int_ne("svc1 does not match service=apache2", 0, res_service_match(rs, "service", "apache2"));
+
+	assert_int_ne("running is not a matchable attr", 0, res_service_match(rs, "running", "yes"));
+
+	res_service_free(rs);
 }
 
 void test_res_service_pack()
@@ -1391,9 +1429,11 @@ void test_suite_resources()
 	test_res_file_pack();
 	test_res_file_unpack();
 
+	test_res_package_match();
 	test_res_package_pack();
 	test_res_package_unpack();
 
+	test_res_service_match();
 	test_res_service_pack();
 	test_res_service_unpack();
 }

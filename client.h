@@ -29,6 +29,9 @@ typedef struct {
 	/** Whether or not to actually apply changes required by policy. */
 	int dryrun;
 
+	/** Whether to run 'offline', without connecting to the policy master. */
+	int offline;
+
 	/** Path to the agent configuration file. */
 	char *config_file;
 

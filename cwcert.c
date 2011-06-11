@@ -83,10 +83,11 @@ struct cwcert_opts* cwcert_options(int argc, char **argv)
 {
 	struct cwcert_opts *args;
 
-	const char *short_opts = "h?c:Dv";
+	const char *short_opts = "h?c:DOv";
 	struct option long_opts[] = {
 		{ "config",  required_argument, NULL, 'c' },
 		{ "debug",   no_argument,       NULL, 'D' },
+		{ "offline", no_argument,       NULL, 'O' },
 		{ "verbose", no_argument,       NULL, 'v' },
 		{ 0, 0, 0, 0 },
 	};
@@ -105,6 +106,9 @@ struct cwcert_opts* cwcert_options(int argc, char **argv)
 			break;
 		case 'D':
 			args->config->log_level = LOG_LEVEL_DEBUG;
+			break;
+		case 'O':
+			args->config->offline = 1;
 			break;
 		case 'v':
 			args->config->log_level++;
@@ -190,6 +194,9 @@ static int cwcert_help_main(const struct cwcert_opts *args)
 	       "  -v, --verbose         Increase verbosity / log level by one.\n"
 	       "                        (can be used more than once, i.e. -vvv)\n"
 	       "\n"
+	       "  -O, --offline         Do not contact the Clockwork Policy Master.\n"
+	       "                        (If used with `test', causes nothing to be tested.)\n"
+	       "\n"
 	       "  -D, --debug           Set verbosity to DEBUG level.  Mainly intended for\n"
 	       "                        developers, but helpful in troubleshooting.\n"
 	       "\n");
@@ -243,17 +250,19 @@ static int cwcert_new_main(const struct cwcert_opts *args)
 			CRITICAL("Unable to store new key in %s", args->config->key_file);
 			return CWCERT_SSL_ERROR;
 		}
-	} else {
-		CRITICAL("Unable to retrieve key from %s", args->config->key_file);
-		return CWCERT_SSL_ERROR;
 	}
 
-	if (client_connect(args->config) != 0) { exit(1); }
-	if (client_hello(args->config) == 0) {
-		printf("Valid certificate already acquired.\n"
-		       "Use `cwca revoke' on policy master to revoke.\n");
-		client_bye(args->config);
-		exit(0);
+	if (args->config->offline) {
+		INFO("Skipping check with policy master (offline mode)");
+
+	} else {
+		if (client_connect(args->config) != 0) { exit(1); }
+		if (client_hello(args->config) == 0) {
+			printf("Valid certificate already acquired.\n"
+			       "Use `cwca revoke' on policy master to revoke.\n");
+			client_bye(args->config);
+			exit(0);
+		}
 	}
 
 	memset(&subject, 0, sizeof(subject));
@@ -302,27 +311,33 @@ static int cwcert_new_main(const struct cwcert_opts *args)
 	INFO("Removing old certificate %s", args->config->cert_file);
 	unlink(args->config->cert_file);
 
-	INFO("Sending certificate signing request to server");
-	while (negotiate_certificate(args->config, request) != 0) {
-		printf("awaiting `cwca sign' on policy master...\n");
-		sleep(5);
-	}
+	if (args->config->offline) {
+		INFO("Skipping verification with policy master (offline mode)");
+		return CWCERT_SUCCESS;
 
-	client_bye(args->config);
-	if (client_connect(args->config) != 0) {
-		CRITICAL("Unable to reconnect to verify");
-		return CWCERT_OTHER_ERR;
-	}
+	} else {
+		INFO("Sending certificate signing request to server");
+		while (negotiate_certificate(args->config, request) != 0) {
+			printf("awaiting `cwca sign' on policy master...\n");
+			sleep(5);
+		}
 
-	if (client_hello(args->config) != 0) {
-		CRITICAL("Issued certificate is not valid");
 		client_bye(args->config);
-		return CWCERT_OTHER_ERR;
-	}
+		if (client_connect(args->config) != 0) {
+			CRITICAL("Unable to reconnect to verify");
+			return CWCERT_OTHER_ERR;
+		}
 
-	INFO("Completed");
-	client_bye(args->config);
-	return CWCERT_SUCCESS;
+		if (client_hello(args->config) != 0) {
+			CRITICAL("Issued certificate is not valid");
+			client_bye(args->config);
+			return CWCERT_OTHER_ERR;
+		}
+
+		INFO("Completed");
+		client_bye(args->config);
+		return CWCERT_SUCCESS;
+	}
 }
 
 static int cwcert_renew_main(const struct cwcert_opts *args)
@@ -339,6 +354,11 @@ static int cwcert_test_main(const struct cwcert_opts *args)
 	if (!key) {
 		ERROR("No private key found.  Have you run `cwcert new'?");
 		return CWCERT_OTHER_ERR;
+	}
+
+	if (args->config->offline) {
+		INFO("Skipping test against policy master (offline mode)");
+		return CWCERT_SUCCESS;
 	}
 
 	if (client_connect(args->config) != 0) {

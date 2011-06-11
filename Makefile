@@ -267,7 +267,8 @@ functional_tests: test/util/includer \
                   test/util/daemoncfg \
                   test/util/presence \
                   test/util/prompter \
-                  test/util/executive
+                  test/util/executive \
+                  cwcert
 
 test/util/includer: test/util/includer.o \
                     $(CORE_OBJECTS) $(SPEC_PARSER_OBJECTS) $(POLICY_OBJECTS)
@@ -316,7 +317,7 @@ clean: clean_lcov
 	rm -f spec/lexer.c spec/grammar.c spec/grammar.h spec/*.output
 	rm -f config/lexer.c config/grammar.c config/grammar.h config/*.output
 	rm -f tpl/lexer.c tpl/grammar.c tpl/grammar.h tpl/*.output
-	rm -f test/util/includer test/util/factchecker test/util/presence test/util/daemoncfg test/util/executive
+	rm -f test/util/includer test/util/factchecker test/util/presence test/util/daemoncfg test/util/executive test/util/prompter
 	rm -rf $(APIDOC_ROOT)/*
 	rm -rf doc/coverage/*
 

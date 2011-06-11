@@ -7,6 +7,7 @@
 static client default_options = {
 	.log_level   = LOG_LEVEL_ERROR,
 	.dryrun      = 0,
+	.offline     = 0,
 
 	.config_file  = "/etc/clockwork/cwa.conf",
 

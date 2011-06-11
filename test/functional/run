@@ -1,5 +1,7 @@
 #!/usr/bin/perl
 
+use IO::Pipe;
+
 our $FAILURES = 0;
 our $TESTS = 0;
 our $ASSERTIONS = 0;
@@ -54,6 +56,32 @@ sub assert_str_match($$$)
 	}
 }
 
+sub assert_file_exists($$)
+{
+	(my $msg, my $file) = (@_);
+
+	$ASSERTIONS++;
+
+	if (! -f $file) {
+		print "$msg: FAIL\n";
+		print "      $file: no such file or directory\n";
+		$FAILURES++;
+	}
+}
+
+sub assert_file_not_exists($$)
+{
+	(my $msg, my $file) = (@_);
+
+	$ASSERTIONS++;
+
+	if (-f $file) {
+		print "$msg: FAIL\n";
+		print "      $file: is a file or directory\n";
+		$FAILURES++;
+	}
+}
+
 sub test_assertions()
 {
 	$TESTS++;
@@ -66,6 +94,12 @@ sub test_assertions()
 	assert_str_match("  basic string matching assertions",
 		"ing [a-z]+ [0-9]+",
 		"string value 42");
+
+	my $f = "/tmp/tempf-CWTests";
+	`touch $f`;
+	assert_file_exists("  basic file existence assertion", $f);
+	`rm -f $f`;
+	assert_file_not_exists("  basic file non-existence assertion", $f);
 }
 
 sub test_parser_inclusion()
@@ -329,6 +363,32 @@ sub test_executive()
 		run(qq($checker none $scripts/test1)));
 }
 
+sub test_cwcert()
+{
+	$TESTS++;
+	print "cwcert: certificate and key generation\n";
+
+	my $config = "test/functional/cwcert/main.conf";
+	my $cwcert = "./cwcert --offline --config $config";
+
+	my $key_f = "test/tmp/key.pem";
+	my $cert_f = "test/tmp/cert.pem";
+	my $req_f = "test/tmp/request.pem";
+
+	run(qq(rm -f $key_f $cert_f $req_f));
+	assert_file_not_exists("Key does not exist initially", $key_f);
+	assert_file_not_exists("Request does not exist initially", $req_f);
+	assert_file_not_exists("Certificate does not exist initially", $cert_f);
+
+	run(qq(expect -f test/functional/cwcert/cwcert-new.expect));
+
+	assert_file_exists("Key exists after `cwcert new`", $key_f);
+	assert_file_exists("Request exists after `cwcert new`", $req_f);
+	assert_file_not_exists("Certificate still doesn't exist (offline mode)", $cert_f);
+
+	#`rm -f $key_f $cert_f $req_f`;
+}
+
 
 
 test_assertions();
@@ -339,4 +399,5 @@ test_daemon_config();
 test_presence();
 test_prompter();
 test_executive();
+test_cwcert();
 finish_tests();

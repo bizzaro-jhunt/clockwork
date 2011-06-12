@@ -409,4 +409,7 @@ int pdu_send_SEND_CERT(protocol_session *session, X509  *cert);
  */
 int pdu_decode_SEND_CERT(protocol_data_unit *pdu, X509 **cert);
 
+int pdu_send_REPORT(protocol_session *session, struct job *job);
+int pdu_decode_REPORT(protocol_data_unit *pdu, struct job **job);
+
 #endif

@@ -10,6 +10,7 @@
 #include "spec/parser.h"
 #include "server.h"
 #include "resources.h"
+#include "db.h"
 
 /**************************************************************/
 
@@ -23,6 +24,7 @@ typedef struct {
 
 	char *requests_dir;
 	char *certs_dir;
+	char *db_file;
 
 	struct hash   *facts;
 	struct policy *policy;
@@ -56,7 +58,7 @@ static int handle_HELLO(worker *w);
 static int handle_GET_CERT(worker *w);
 static int handle_FACTS(worker *w);
 static int handle_FILE(worker *w);
-static int handle_put_report(worker *w);
+static int handle_REPORT(worker *w);
 static int handle_unknown(worker *w);
 
 static void sighup_handler(int, siginfo_t*, void*);
@@ -206,6 +208,7 @@ static worker* spawn(server *s)
 
 	w->requests_dir = strdup(s->requests_dir);
 	w->certs_dir    = strdup(s->certs_dir);
+	w->db_file      = strdup(s->db_file);
 
 	w->socket = BIO_pop(s->listener);
 	if (!(w->ssl = SSL_new(s->ssl_ctx))) {
@@ -369,18 +372,48 @@ static int handle_FILE(worker *w)
 	return 1;
 }
 
-static int handle_put_report(worker *w)
+static int handle_REPORT(worker *w)
 {
+	struct job *job;
+	rowid host_id;
+	DB *db = NULL;
+
 	if (!w->peer_verified) {
 		WARNING("Unverified peer tried to REPORT");
 		pdu_send_ERROR(&w->session, 401, "Peer Certificate Required");
 		return 1;
 	}
 
-	/* FIXME: process the SEND_REPORT PDU(s) */
-	pdu_send_BYE(&w->session);
+	if (pdu_decode_REPORT(RECV_PDU(&w->session), &job) != 0) {
+		CRITICAL("Unable to decode REPORT");
+		return 0;
+	}
+
+	db = db_open(DB_MASTER, w->db_file);
+	if (!db) {
+		CRITICAL("Unable to open reporting DB");
+		goto failed;
+	}
+
+	host_id = masterdb_host(db, w->peer);
+	if (host_id == NULL_ROWID) {
+		CRITICAL("Failed to find or create host record for '%s'", w->peer);
+		goto failed;
+	}
+
+	if (masterdb_store_report(db, host_id, job) != 0) {
+		CRITICAL("Unable to save report in reporting DB");
+		goto failed;
+	}
+	db_close(db); db = NULL;
+
+	if (pdu_send_BYE(&w->session) < 0) { return 0; }
 
 	return 1;
+
+failed:
+	if (db) { db_close(db); }
+	return 0;
 }
 
 static int handle_unknown(worker *w)
@@ -624,7 +657,7 @@ static void* worker_thread(void *arg)
 			break;
 
 		case PROTOCOL_OP_REPORT:
-			if (!handle_put_report(w)) { done = 1; }
+			if (!handle_REPORT(w)) { done = 1; }
 			break;
 
 		default:
@@ -642,6 +675,9 @@ die:
 	ERR_remove_state(0);
 
 	free(w->peer);
+	free(w->db_file);
+	free(w->certs_dir);
+	free(w->requests_dir);
 	free(w);
 
 	return NULL;

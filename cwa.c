@@ -70,11 +70,11 @@ int main(int argc, char **argv)
 	enforce_policy(c, job);
 	print_summary(stdout, job);
 	if (!c->dryrun) {
-		send_report(c, job);
-		if (save_report(c, job)) {
-			ERROR("Unable to store report in local database.");
-			client_bye(c);
-			exit(3);
+		if (save_report(c, job) != 0) {
+			WARNING("Unable to store report in local database.");
+		}
+		if (send_report(c, job) != 0) {
+			WARNING("Unable to send report to master database.");
 		}
 	}
 
@@ -456,28 +456,45 @@ static int print_summary(FILE *io, struct job *job)
 
 	fprintf(io, "%u resource(s); %u OK, %u fixed, %u non-compliant\n",
 	        (ok+fixed+non), ok, fixed, non);
+	fprintf(io, "run duration: %0.4fs\n", job->duration / 1000000.0);
 
 	return 0;
 }
 
 static int send_report(client *c, struct job *job)
 {
+	if (pdu_send_REPORT(&c->session, job) < 0) { goto disconnect; }
+	if (pdu_receive(&c->session) < 0) {
+		goto disconnect;
+	}
+
+	if (RECV_PDU(&c->session)->op != PROTOCOL_OP_BYE) {
+		CRITICAL("Unexpected op from server: %u", RECV_PDU(&c->session)->op);
+		pdu_send_ERROR(&c->session, 505, "Protocol Error");
+		goto disconnect;
+	}
+
 	return 0;
+
+disconnect:
+	DEBUG("send_report forcing a disconnect");
+	client_disconnect(c);
+	exit(1);
 }
 
 static int save_report(client *c, struct job *job)
 {
-	struct reportdb *db;
-	db = reportdb_open(DB_AGENT, c->db_file);
+	DB *db;
+	db = db_open(DB_AGENT, c->db_file);
 	if (!db) {
 		return -1;
 	}
 
 	if (agentdb_store_report(db, job) != 0) {
-		reportdb_close(db);
+		db_close(db);
 		return -1;
 	}
 
-	reportdb_close(db);
+	db_close(db);
 	return 0;
 }

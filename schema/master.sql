@@ -17,8 +17,8 @@
 --
 create table hosts (
   id              INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-  name            VARCHAR(100),
-  last_seen_at    DATETIME
+  name            TEXT,
+  last_seen_at    INTEGER
 );
 
 --
@@ -27,10 +27,9 @@ create table hosts (
 create table jobs (
   id              INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
   host_id         INTEGER,
-  started_at      DATETIME,
-  ended_at        DATETIME,
-  duration        INTEGER,
-  result          VARCHAR(20)
+  started_at      INTEGER,
+  ended_at        INTEGER,
+  duration        INTEGER
 );
 
 --
@@ -39,10 +38,11 @@ create table jobs (
 create table resources (
   id              INTEGER NOT NULL PRIMARY KEY,
   job_id          INTEGER,
-  restype         VARCHAR(30),
-  name            VARCHAR(100),
+  type            TEXT,
+  name            TEXT,
   sequence        INTEGER,
-  result          VARCHAR(20)
+  compliant       INTEGER,
+  fixed           INTEGER
 );
 
 --
@@ -52,5 +52,5 @@ create table actions (
   resource_id     INTEGER,
   summary         TEXT,
   sequence        INTEGER,
-  result          VARCHAR(20)
+  result          INTEGER
 );

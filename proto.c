@@ -433,6 +433,48 @@ int pdu_decode_SEND_CERT(protocol_data_unit *pdu, X509 **cert)
 	return 0;
 }
 
+int pdu_send_REPORT(protocol_session *session, struct job *job)
+{
+	assert(session);
+	assert(job);
+
+	protocol_data_unit *pdu = SEND_PDU(session);
+	char *packed;
+	size_t len;
+
+	packed = job_pack(job);
+	if (!packed) {
+		return -1;
+	}
+
+	len = strlen(packed);
+
+	if (pdu_allocate(pdu, PROTOCOL_OP_REPORT, len) < 0) {
+		free(packed);
+		return -1;
+	}
+
+	memcpy(pdu->data, packed, len);
+	free(packed);
+
+	DEBUG("SEND REPORT (op:%u) - (report data)", pdu->op);
+	return pdu_write(session->io, pdu);
+}
+
+int pdu_decode_REPORT(protocol_data_unit *pdu, struct job **job)
+{
+	assert(pdu);
+	assert(pdu->op == PROTOCOL_OP_REPORT);
+	assert(job);
+
+	*job = job_unpack((char*)pdu->data);
+	if (*job) {
+		return 0;
+	} else {
+		return -1;
+	}
+}
+
 int pdu_read(SSL *io, protocol_data_unit *pdu)
 {
 	assert(io);

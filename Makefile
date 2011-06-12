@@ -64,8 +64,8 @@ MANAGER_OBJECTS := managers/service.o managers/package.o
 MANAGER_HEADERS := managers/service.h managers/package.h
 
 # Resource types
-RESOURCE_OBJECTS := resource.o resources.o report.o $(MANAGER_OBJECTS)
-RESOURCE_HEADERS := resource.h resources.h report.h $(MANAGER_HEADERS)
+RESOURCE_OBJECTS := resource.o resources.o job.o $(MANAGER_OBJECTS)
+RESOURCE_HEADERS := resource.h resources.h job.h $(MANAGER_HEADERS)
 
 # Supporting object files
 CORE_OBJECTS := mem.o sha1.o pack.o hash.o stringlist.o userdb.o log.o cert.o prompt.o exec.o string.o
@@ -102,7 +102,7 @@ debuggers: $(DEBUGGERS)
 policyd: policyd.o $(CORE_OBJECTS) $(POLICY_OBJECTS) $(SPEC_PARSER_OBJECTS) $(CONFIG_PARSER_OBJECTS) proto.o server.o
 	$(CC) -o $@ $+
 
-cwa: cwa.o $(CORE_OBJECTS) $(POLICY_OBJECTS) $(CONFIG_PARSER_OBJECTS) proto.o client.o reportdb.o
+cwa: cwa.o $(CORE_OBJECTS) $(POLICY_OBJECTS) $(CONFIG_PARSER_OBJECTS) proto.o client.o db.o
 	$(CC) -lsqlite3 -o $@ $+
 
 cwcert: cwcert.o $(CORE_OBJECTS) $(POLICY_OBJECTS) $(CONFIG_PARSER_OBJECTS) proto.o client.o
@@ -223,7 +223,7 @@ test/run: test/run.o test/test.o \
           test/assertions.o \
           test/bits.o \
           mem.o exec.o \
-          report.o log.o \
+          job.o log.o \
           test/mem.o \
           test/list.o \
           test/stringlist.o stringlist.o \

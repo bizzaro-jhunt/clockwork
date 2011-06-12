@@ -1,11 +1,11 @@
-#ifndef REPORTDB_H
-#define REPORTDB_H
+#ifndef DB_H
+#define DB_H
 
 #include "clockwork.h"
 #include <sqlite3.h>
 #include <sys/time.h>
 
-#include "report.h"
+#include "job.h"
 
 enum reportdb_type {
 	DB_MASTER = 1,
@@ -36,8 +36,8 @@ int reportdb_close(struct reportdb *db);
    */
 
 rowid masterdb_host(struct reportdb *db, const char *host);
-int masterdb_store_report(struct reportdb *db, rowid host_id, struct list *reports);
-int agentdb_store_report(struct reportdb *db, struct list *reports, struct timeval *start, struct timeval *end);
+int masterdb_store_report(struct reportdb *db, rowid host_id, struct job *job);
+int agentdb_store_report(struct reportdb *db, struct job *job);
 
 
 #endif

@@ -1,4 +1,4 @@
-#include "reportdb.h"
+#include "db.h"
 
 #define PREP(db, stmt, sql) do { \
 	rc = sqlite3_prepare_v2((db),(sql), -1, &(stmt), NULL); \
@@ -106,9 +106,9 @@ failure:
 }
 
 /* FIXME: split this up into statics; let the compiler optimize */
-int masterdb_store_report(struct reportdb *db, rowid host_id, struct list *reports)
+int masterdb_store_report(struct reportdb *db, rowid host_id, struct job *job)
 {
-	const char *j_sql = "INSERT INTO jobs (host_id) VALUES (?)";
+	const char *j_sql = "INSERT INTO jobs (host_id, started_at, ended_at, duration) VALUES (?,?,?,?)";
 	sqlite3_stmt *j_stmt = NULL;
 	rowid j_id = 0;
 
@@ -132,11 +132,14 @@ int masterdb_store_report(struct reportdb *db, rowid host_id, struct list *repor
 
 	/* insert job */
 	BIND_INT64(j_stmt, 1, host_id);
+	BIND_INT(j_stmt,   2, job->start.tv_sec);
+	BIND_INT(j_stmt,   3, job->end.tv_sec);
+	BIND_INT(j_stmt,   4, job->duration);
 	EXEC_SQL(j_stmt);
 	FINALIZE(j_stmt);
 	j_id = sqlite3_last_insert_rowid(db->db);
 
-	for_each_node(report, reports, rep) {
+	for_each_report(report, job) {
 		BIND_INT64(r_stmt, 1, j_id);
 		BIND_TEXT(r_stmt,  2, report->res_type);
 		BIND_TEXT(r_stmt,  3, report->res_key);
@@ -147,7 +150,7 @@ int masterdb_store_report(struct reportdb *db, rowid host_id, struct list *repor
 
 		r_id = sqlite3_last_insert_rowid(db->db);
 		a_seq = 0;
-		for_each_node(action, &report->actions, report) {
+		for_each_action(action, report) {
 			BIND_INT64(a_stmt, 0, r_id);
 			BIND_TEXT(a_stmt,  1, action->summary);
 			BIND_INT(a_stmt,   2, a_seq++);
@@ -170,13 +173,8 @@ failure:
 }
 
 /* FIXME: split this up into statics; let the compiler optimize */
-int agentdb_store_report(struct reportdb *db, struct list *reports, struct timeval *start, struct timeval *end)
+int agentdb_store_report(struct reportdb *db, struct job *job)
 {
-	assert(start);
-	assert(end);
-
-	struct timeval diff;
-
 	const char *j_sql = "INSERT INTO jobs (started_at, ended_at, duration) VALUES (?,?,?)";
 	sqlite3_stmt *j_stmt = NULL;
 	rowid j_id = 0;
@@ -195,22 +193,20 @@ int agentdb_store_report(struct reportdb *db, struct list *reports, struct timev
 
 	int rc;
 
-	timersub(end, start, &diff);
-
 	PREP(db->db, j_stmt, j_sql);
 	PREP(db->db, r_stmt, r_sql);
 	PREP(db->db, a_stmt, a_sql);
 
 	/* job */
-	BIND_INT(j_stmt,  1, start->tv_sec);
-	BIND_INT(j_stmt,  2, end->tv_sec);
-	BIND_INT(j_stmt,  3, diff.tv_sec * 1000000 + diff.tv_usec);
+	BIND_INT(j_stmt,  1, job->start.tv_sec);
+	BIND_INT(j_stmt,  2, job->end.tv_sec);
+	BIND_INT(j_stmt,  3, job->duration);
 
 	EXEC_SQL(j_stmt);
 	FINALIZE(j_stmt);
 	j_id = sqlite3_last_insert_rowid(db->db);
 
-	for_each_node(report, reports, rep) {
+	for_each_report(report, job) {
 		BIND_INT64(r_stmt, 1, j_id);
 		BIND_TEXT(r_stmt,  2, report->res_type);
 		BIND_TEXT(r_stmt,  3, report->res_key);
@@ -222,7 +218,7 @@ int agentdb_store_report(struct reportdb *db, struct list *reports, struct timev
 		r_id = sqlite3_last_insert_rowid(db->db);
 
 		a_seq = 0;
-		for_each_node(action, &report->actions, report) {
+		for_each_action(action, report) {
 			BIND_INT64(a_stmt, 1, r_id);
 			BIND_TEXT( a_stmt, 2, action->summary);
 			BIND_INT(  a_stmt, 3, a_seq++);

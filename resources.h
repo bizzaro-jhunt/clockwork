@@ -11,7 +11,7 @@
 #include <shadow.h>
 
 #include "resource.h"
-#include "report.h"
+#include "job.h"
 #include "list.h"
 #include "stringlist.h"
 #include "hash.h"

@@ -16,7 +16,7 @@
 /* FIXME: one-off weirdness for fixup res_file */
 #include "resources.h"
 
-#include "reportdb.h"
+#include "db.h"
 
 static client* cwa_options(int argc, char **argv);
 static void show_help(void);
@@ -25,19 +25,19 @@ static int gather_facts_from_script(const char *script, struct hash *facts);
 static int gather_facts(client *c);
 static int get_policy(client *c);
 static int get_file(protocol_session *session, sha1 *checksum, int fd);
-static int enforce_policy(client *c, struct list *report);
+static int enforce_policy(client *c, struct job *job);
 static int autodetect_managers(struct resource_env *env, const struct hash *facts);
-static int print_report(FILE *io, struct list *report);
-static int send_report(client *c);
-static int save_report(client *c, struct list *report, struct timeval *start, struct timeval *end);
+static void print_report(FILE *io, struct report *r);
+static int print_summary(FILE *io, struct job *job);
+static int send_report(client *c, struct job *job);
+static int save_report(client *c, struct job *job);
 
 /**************************************************************/
 
 int main(int argc, char **argv)
 {
 	client *c;
-	LIST(report);
-	struct timeval start, end;
+	struct job *job;
 
 	c = cwa_options(argc, argv);
 	if (client_options(c) != 0) {
@@ -47,10 +47,6 @@ int main(int argc, char **argv)
 	c->log_level = log_level(c->log_level);
 	INFO("Log level is %s (%u)", log_level_name(c->log_level), c->log_level);
 
-	if (gettimeofday(&start, NULL) != 0) {
-		CRITICAL("Unable to get time of day: %s", strerror(errno));
-		exit(1);
-	}
 	INFO("Gathering facts");
 	if (gather_facts(c) != 0) {
 		CRITICAL("Unable to gather facts");
@@ -69,21 +65,17 @@ int main(int argc, char **argv)
 		exit(2);
 	}
 
+	job = job_new();
 	get_policy(c);
-	enforce_policy(c, &report);
-
-	if (gettimeofday(&end, NULL) != 0) {
-		CRITICAL("Unable to get time of day: %s", strerror(errno));
-		exit(1);
-	}
-
-	print_report(stdout, &report);
-	send_report(c);
-	if (save_report(c, &report, &start, &end)) {
-		ERROR("Unable to store report in local database.");
-
-		client_bye(c);
-		exit(3);
+	enforce_policy(c, job);
+	print_summary(stdout, job);
+	if (!c->dryrun) {
+		send_report(c, job);
+		if (save_report(c, job)) {
+			ERROR("Unable to store report in local database.");
+			client_bye(c);
+			exit(3);
+		}
 	}
 
 	client_bye(c);
@@ -293,7 +285,7 @@ static int get_file(protocol_session *session, sha1 *checksum, int fd)
 	return bytes;
 }
 
-static int enforce_policy(client *c, struct list *l)
+static int enforce_policy(client *c, struct job *job)
 {
 	struct resource_env env;
 	struct resource *res;
@@ -302,6 +294,11 @@ static int enforce_policy(client *c, struct list *l)
 	struct report *r;
 	int pipefd[2];
 	ssize_t bytes = 0;
+
+	if (job_start(job) != 0) {
+		CRITICAL("Unable to start job timer");
+		exit(2);
+	}
 
 	if (autodetect_managers(&env, c->facts) != 0) {
 		CRITICAL("Unable to auto-detect appropriate managers.");
@@ -365,7 +362,7 @@ static int enforce_policy(client *c, struct list *l)
 		if (res->type == RES_FILE) {
 			close(env.file_fd);
 		}
-		list_add_tail(&r->rep, l);
+		list_add_tail(&r->l, &job->reports);
 	}
 
 	if (!c->dryrun) {
@@ -373,6 +370,11 @@ static int enforce_policy(client *c, struct list *l)
 		spdb_write(env.user_spdb,  SYS_SHADOW);
 		grdb_write(env.group_grdb, SYS_GROUP);
 		sgdb_write(env.group_sgdb, SYS_GSHADOW);
+	}
+
+	if (job_end(job) != 0) {
+		CRITICAL("Unable to stop job timer");
+		exit(2);
 	}
 
 	return 0;
@@ -400,22 +402,48 @@ static int autodetect_managers(struct resource_env *env, const struct hash *fact
 	return 0;
 }
 
-static int print_report(FILE *io, struct list *report)
+static void print_report(FILE *io, struct report *r)
+{
+	char buf[80];
+	struct action *a;
+
+	if (snprintf(buf, 67, "%s: %s", r->res_type, r->res_key) > 67) {
+		memcpy(buf + 67 - 1 - 3, "...", 3);
+	}
+	buf[66] = '\0';
+
+	fprintf(io, "%-66s%14s\n", buf, (r->compliant ? (r->fixed ? "FIXED": "OK") : "NON-COMPLIANT"));
+
+	for_each_action(a, r) {
+		memcpy(buf, a->summary, 70);
+		buf[70] = '\0';
+
+		if (strlen(a->summary) > 70) {
+			memcpy(buf + 71 - 1 - 3, "...", 3);
+		}
+
+		fprintf(io, " - %-70s%7s\n", buf,
+		        (a->result == ACTION_SUCCEEDED ? "done" :
+		         (a->result == ACTION_FAILED ? "failed" : "skipped")));
+	}
+}
+
+static int print_summary(FILE *io, struct job *job)
 {
 	struct report *r;
 	size_t ok = 0, fixed = 0, non = 0;
 
-	for_each_node(r, report, rep) {
+	for_each_report(r, job) {
 		if (r->compliant && !r->fixed) {
-			report_print(io, r);
+			print_report(io, r);
 			ok++;
 		}
 	}
 	fprintf(io, "\n");
 
-	for_each_node(r, report, rep) {
+	for_each_report(r, job) {
 		if (!r->compliant || r->fixed) {
-			report_print(io, r);
+			print_report(io, r);
 			fprintf(io, "\n");
 
 			if (r->fixed) {
@@ -432,12 +460,12 @@ static int print_report(FILE *io, struct list *report)
 	return 0;
 }
 
-static int send_report(client *c)
+static int send_report(client *c, struct job *job)
 {
 	return 0;
 }
 
-static int save_report(client *c, struct list *report, struct timeval *start, struct timeval *end)
+static int save_report(client *c, struct job *job)
 {
 	struct reportdb *db;
 	db = reportdb_open(DB_AGENT, c->db_file);
@@ -445,7 +473,7 @@ static int save_report(client *c, struct list *report, struct timeval *start, st
 		return -1;
 	}
 
-	if (agentdb_store_report(db, report, start, end) != 0) {
+	if (agentdb_store_report(db, job) != 0) {
 		reportdb_close(db);
 		return -1;
 	}

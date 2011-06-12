@@ -1,0 +1,7 @@
+{
+   OpenSSL/malloc/default_malloc_ex
+   Memcheck:Leak
+   fun:malloc
+   fun:default_malloc_ex
+}
+

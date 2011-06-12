@@ -37,3 +37,6 @@ tpl/lexer.c
 tpl/grammar.c
 tpl/grammar.h
 tpl/*.output
+
+ext/build
+ext/openssl

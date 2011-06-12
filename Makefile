@@ -3,53 +3,57 @@
 ############################################################
 # Global Variables
 
+ROOT := $(shell pwd)
+
 DO_PROFILING := yes
 #DO_PROFILING := no
 
 DO_DEBUGGING := yes
 #DO_DEBUGGING := no
 
-
 LEX_FLAGS := --verbose --header-file --yylineno
 
 YACC_FLAGS := -Wall --token-table --defines --report=all
 
-CC_FLAGS := -Wall -lssl -lpthread
+CC_FLAGS := -Wall -lssl -lpthread -lsqlite3
+
+OPENSSL := $(shell if [ -f ext/openssl/lib/libssl.so ]; then echo local; else echo system; fi)
+ifeq ($(OPENSSL), local)
+  export LD_LIBRARY_PATH=./ext/openssl/lib
+
+  # Have to specify -lcrypto so that gcc/ld look for it in
+  # our -L override directories;  otherwise, ld complains
+  # about undefined symbols that are in the local version,
+  # but not the system version (i.e. EVP_idea_cbc)
+  #
+  CC_FLAGS := -L./ext/openssl/lib -lcrypto $(CC_FLAGS)
+endif
 
 ifeq ($(DO_DEBUGGING),yes)
-  LEX_FLAGS += --debug
-
+  LEX_FLAGS  += --debug
   YACC_FLAGS += --debug
-
-  CC_FLAGS += -g #                       Debug syms for gdb
-  CC_FLAGS += -DDEVEL
+  CC_FLAGS   += -g -DDEVEL
 else
-  CC_FLAGS += -DNDEBUG
+  CC_FLAGS   += -DNDEBUG
 endif
 
 ifeq ($(DO_PROFILING),yes)
-  CC_FLAGS += -gdwarf-2 #                DWARF3; for Valgrind
-  #CC_FLAGS += -pg #                      gprof runtime support
-  CC_FLAGS += -fprofile-arcs #           gcov / lcov coverage
-  CC_FLAGS += -ftest-coverage #          gcov / lcov coverage
+  # In profiling mode, turn on DWARF2 for Valgrind and gcov/lcov support
+  CC_FLAGS += -gdwarf-2 -fprofile-arcs -ftest-coverage
+  #CC_FLAGS += -pg # gprof runtime support
 endif
 
-CC := gcc $(CC_FLAGS)
-LEX := flex $(LEX_FLAGS)
-YACC := bison $(YACC_FLAGS)
-
-VG := valgrind --leak-check=full --show-reachable=yes --read-var-info=yes --track-origins=yes
-
-LCOV := lcov --directory . --base-directory .
+CC      := gcc $(CC_FLAGS)
+LEX     := flex $(LEX_FLAGS)
+YACC    := bison $(YACC_FLAGS)
+VG      := build/valgrind
+LCOV    := lcov --directory . --base-directory .
 GENHTML := genhtml --prefix $(shell dirname `pwd`)
-
-MOG := ./mog
+MOG     := ./mog
+DOXYGEN := doxygen
 
 APIDOC_CONF := doc/doxy.api.conf
-
 APIDOC_ROOT := doc/api
-
-DOXYGEN := doxygen
 
 
 ############################################################
@@ -95,15 +99,38 @@ all: $(UTILS) $(CORE)
 
 debuggers: $(DEBUGGERS)
 
+summary:
+	@echo
+	@echo "============="
+	@echo "BUILD SUMMARY"
+	@echo "============="
+	@echo
+	@echo "CONFIGURATION"
+	@echo " Profile?: $(DO_PROFILING)"
+	@echo " Debug?:   $(DO_DEBUGGING)"
+	@echo " OpenSSL:  $(OPENSSL)"
+	@echo
+	@echo "PATHS"
+	@echo " ROOT:     $(ROOT)"
+	@echo
+	@echo "COMMANDS"
+	@echo " cc:       $(CC)"
+	@echo " lex:      $(LEX)"
+	@echo " yacc:     $(YACC)"
+	@echo " valgrind: $(VG)"
+	@echo " lcov:     $(LCOV)"
+	@echo " genhtml:  $(GENHTML)"
+	@echo
+
 
 ############################################################
 # Main Binaries
 
-policyd: policyd.o $(CORE_OBJECTS) $(POLICY_OBJECTS) $(SPEC_PARSER_OBJECTS) $(CONFIG_PARSER_OBJECTS) proto.o server.o
+policyd: policyd.o $(CORE_OBJECTS) $(POLICY_OBJECTS) $(SPEC_PARSER_OBJECTS) $(CONFIG_PARSER_OBJECTS) proto.o server.o db.o
 	$(CC) -o $@ $+
 
 cwa: cwa.o $(CORE_OBJECTS) $(POLICY_OBJECTS) $(CONFIG_PARSER_OBJECTS) proto.o client.o db.o
-	$(CC) -lsqlite3 -o $@ $+
+	$(CC) -o $@ $+
 
 cwcert: cwcert.o $(CORE_OBJECTS) $(POLICY_OBJECTS) $(CONFIG_PARSER_OBJECTS) proto.o client.o
 	$(CC) -o $@ $+
@@ -119,6 +146,13 @@ polspec: polspec.o $(CORE_OBJECTS) $(POLICY_OBJECTS) $(SPEC_PARSER_OBJECTS)
 
 tplspec: tplspec.o $(CORE_OBJECTS) $(POLICY_OBJECTS) $(TEMPLATE_OBJECTS) $(TEMPLATE_PARSER_OBJECTS)
 	$(CC) -o $@ $+
+
+
+############################################################
+# External Dependencies
+
+externals:
+	./ext/build-openssl 0.9.8k $(ROOT)/ext
 
 
 ############################################################
@@ -336,4 +370,5 @@ stats: clean
 
 %.o: %.c %.h
 	$(CC) -c -o $@ $<
+
 

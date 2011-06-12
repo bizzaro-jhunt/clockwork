@@ -27,6 +27,8 @@ Figure out how to manage parts of a file (like augeas)
 
 Tests for cert.o module
 
+cwdb for Database Reporting (cwreport?)
+
 Client / Server
   - Test remediation in chroot
   - Automatic certificate enrolment
@@ -45,14 +47,6 @@ chroot testing
 
   mkjail is coming along.  To do this right, we need passphrase-less
   certificates, and very long expirations (i.e. 100 years).
-
-Reporting
-  Design and implement the reporting generation, submission,
-  storage and analysis parts.  Might want to look into database
-  backends.
-
-  Need job start/end/duration and result
-  Switch from varchar to result codes?
 
 More resources
   Check the RESOURCE file for the most up-to-date information.

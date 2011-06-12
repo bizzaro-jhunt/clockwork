@@ -191,7 +191,7 @@ void resource_free(struct resource *r);
 
   @return a fully-qualified resource identifier, or NULL on failure.
  */
-const char *resource_key(const struct resource *r);
+char *resource_key(const struct resource *r);
 
 /**
   Normalize a Resource

@@ -92,7 +92,7 @@ void resource_free(struct resource *r)
 	free(r);
 }
 
-const char *resource_key(const struct resource *r)
+char *resource_key(const struct resource *r)
 {
 	assert(r);
 	assert(r->type != RES_UNKNOWN);

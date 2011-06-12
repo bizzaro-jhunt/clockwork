@@ -11,6 +11,18 @@ struct job* job_new(void)
 	return job;
 }
 
+void job_free(struct job *job)
+{
+	struct report *report, *rtmp;
+
+	if (job) {
+		for_each_report_safe(report, rtmp, job) {
+			report_free(report);
+		}
+		free(job);
+	}
+}
+
 int job_start(struct job *job)
 {
 	assert(job);
@@ -32,15 +44,24 @@ int job_end(struct job *job)
 	return 0;
 }
 
+int job_add_report(struct job *job, struct report *report)
+{
+	assert(job);
+	assert(report);
+
+	list_add_tail(&report->l, &job->reports);
+	return 0;
+}
+
 #define JOB_PACK_FORMAT    "LLL"
 #define REPORT_PACK_FORMAT "aaLL"
 #define ACTION_PACK_FORMAT "aL"
-char *job_pack(const struct job *job)
+char* job_pack(const struct job *job)
 {
 	assert(job);
 
-	struct report *report;
-	struct action *action;
+	struct report *report = NULL;
+	struct action *action = NULL;
 	char *packed;
 	stringlist *pack_list;
 
@@ -50,8 +71,7 @@ char *job_pack(const struct job *job)
 	}
 
 	packed = pack("job::", JOB_PACK_FORMAT,
-	              job->start.tv_sec, job->end.tv_usec,
-	              job->duration);
+	              job->start.tv_sec, job->end.tv_sec, job->duration);
 	if (!packed || stringlist_add(pack_list, packed) != 0) {
 		goto pack_failed;
 	}
@@ -93,12 +113,10 @@ struct job* job_unpack(const char *packed_job)
 	struct job *job = NULL;
 	struct report *report = NULL;
 	struct action *action = NULL;
+
 	stringlist *pack_list;
 	char *packed;
 	size_t i;
-
-	char *a_summary;
-	enum action_result a_result;
 
 	pack_list = stringlist_split(packed_job, strlen(packed_job), "\n");
 	if (!pack_list) {
@@ -134,27 +152,27 @@ struct job* job_unpack(const char *packed_job)
 			           &report->compliant, &report->fixed) != 0) {
 				goto unpack_failed;
 			}
-			list_add_tail(&report->l, &job->reports);
+			job_add_report(job, report);
 
 		} else if (strncmp(packed, "action::", strlen("action::")) == 0) {
-			action = xmalloc(sizeof(struct action));
-			list_init(&action->l);
-
+			action = action_new(NULL, ACTION_SKIPPED);
 			if (unpack(packed, "action::", ACTION_PACK_FORMAT,
-			           &a_summary, &a_result) != 0) {
+			           &action->summary, &action->result) != 0) {
 				goto unpack_failed;
 			}
-			report_action(report, a_summary, a_result);
+			report_add_action(report, action);
 
 		} else {
 			goto unpack_failed;
 		}
 	}
 
+	stringlist_free(pack_list);
 	return job;
 
 unpack_failed:
-	/* FIXME: clean up allocated memory */
+	stringlist_free(pack_list);
+	job_free(job);
 	return NULL;
 }
 
@@ -180,9 +198,8 @@ void report_free(struct report *r)
 	struct action *a, *tmp;
 
 	if (r) {
-		for_each_node_safe(a, tmp, &r->actions, l) {
-			free(a->summary);
-			free(a);
+		for_each_action_safe(a, tmp, r) {
+			action_free(a);
 		}
 
 		free(r->res_type);
@@ -192,26 +209,45 @@ void report_free(struct report *r)
 	free(r);
 }
 
+int report_add_action(struct report *report, struct action *action)
+{
+	assert(report);
+	assert(action);
+
+	list_add_tail(&action->l, &report->actions);
+	if (action->result == ACTION_FAILED) {
+		report->compliant = 0;
+	} else {
+		report->fixed = 1;
+	}
+	return 0;
+}
+
 int report_action(struct report *report, char *summary, enum action_result result)
 {
 	assert(report);
 	assert(summary);
 
-	struct action *add;
-	add = xmalloc(sizeof(struct action));
-	list_init(&add->l);
-
-	add->summary = summary;
-	add->result  = result;
-
-	list_add_tail(&add->l, &report->actions);
-
-	if (add->result == ACTION_FAILED) {
-		report->compliant = 0;
-	} else {
-		report->fixed = 1;
-	}
-
-	return 0;
+	struct action *action = action_new(summary, result);;
+	return report_add_action(report, action);
 }
 
+struct action* action_new(char *summary, enum action_result result)
+{
+	struct action *action;
+	action = xmalloc(sizeof(struct action));
+	list_init(&action->l);
+
+	action->summary = summary;
+	action->result  = result;
+
+	return action;
+}
+
+void action_free(struct action* action)
+{
+	if (action) {
+		free(action->summary);
+	}
+	free(action);
+}

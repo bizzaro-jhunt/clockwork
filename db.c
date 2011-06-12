@@ -63,7 +63,6 @@ int db_close(DB *db)
 	return 0;
 }
 
-/* FIXME: split this up into statics; let the compiler optimize */
 rowid masterdb_host(DB *db, const char *host)
 {
 	rowid host_id = NULL_ROWID;
@@ -105,7 +104,6 @@ failure:
 	return NULL_ROWID;
 }
 
-/* FIXME: split this up into statics; let the compiler optimize */
 int masterdb_store_report(DB *db, rowid host_id, struct job *job)
 {
 	const char *j_sql = "INSERT INTO jobs (host_id, started_at, ended_at, duration) VALUES (?,?,?,?)";
@@ -172,7 +170,6 @@ failure:
 	return -1;
 }
 
-/* FIXME: split this up into statics; let the compiler optimize */
 int agentdb_store_report(DB *db, struct job *job)
 {
 	const char *j_sql = "INSERT INTO jobs (started_at, ended_at, duration) VALUES (?,?,?)";

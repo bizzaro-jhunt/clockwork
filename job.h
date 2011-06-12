@@ -6,7 +6,9 @@
 #include "list.h"
 
 #define for_each_report(r,job) for_each_node((r), &((job)->reports), l)
+#define for_each_report_safe(r,t,job) for_each_node_safe((r), (t), &((job)->reports), l)
 #define for_each_action(a,rpt) for_each_node((a), &((rpt)->actions), l)
+#define for_each_action_safe(a,t,rpt) for_each_node_safe((a), (t), &((rpt)->actions), l)
 
 enum action_result {
 	ACTION_SUCCEEDED = 0,
@@ -63,13 +65,21 @@ struct action {
 };
 
 struct job* job_new(void);
+void job_free(struct job *job);
+
 int job_start(struct job *job);
 int job_end(struct job *job);
+int job_add_report(struct job *job, struct report *report);
+
 char* job_pack(const struct job *job);
 struct job* job_unpack(const char *packed);
 
 struct report* report_new(const char *type, const char *key);
 void report_free(struct report *report);
+int report_add_action(struct report *report, struct action *action);
 int report_action(struct report *report, char *summary, enum action_result result);
+
+struct action* action_new(char *summary, enum action_result result);
+void action_free(struct action* action);
 
 #endif

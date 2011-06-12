@@ -19,6 +19,7 @@ int main(int argc, char **argv)
 	TEST_SUITE(stree);
 	TEST_SUITE(cert);
 	TEST_SUITE(string);
+	TEST_SUITE(job);
 
 	test_setup(argc, argv);
 	run_active = 0;

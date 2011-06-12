@@ -221,6 +221,11 @@ diagrams: doc/proto-agent.png doc/proto-cert.png
 ############################################################
 # Unit Tests
 
+UNIT_TEST_SRC        := $(shell ls -1 test/*.c)
+UNIT_TEST_TARGET_SRC := $(shell cd test; ls -1 *.c | egrep -v '(assertions|bits|fact|list|run|stree|test).c') stringlist.c log.c prompt.c
+UNIT_TEST_OBJ        := $(UNIT_TEST_SRC:.c=.o)
+UNIT_TEST_TARGET_OBJ := $(UNIT_TEST_TARGET_SRC:.c=.o)
+
 test: unit_tests functional_tests
 	find . -name '*.gcda' | xargs rm -f
 	test/setup.sh
@@ -253,25 +258,7 @@ unit: unit_tests
 
 unit_tests: test/run
 
-test/run: test/run.o test/test.o \
-          test/assertions.o \
-          test/bits.o \
-          mem.o exec.o \
-          job.o log.o \
-          test/mem.o \
-          test/list.o \
-          test/stringlist.o stringlist.o \
-          test/string.o string.o \
-          test/hash.o hash.o \
-          test/userdb.o userdb.o \
-          test/pack.o pack.o \
-          test/resource.o resource.o \
-          test/resources.o resources.o \
-          $(MANAGER_OBJECTS) \
-          test/policy.o test/stree.o test/fact.o policy.o \
-          test/cert.o cert.o prompt.o \
-          test/sha1.o sha1.o
-
+test/run: $(UNIT_TEST_OBJ) $(UNIT_TEST_TARGET_OBJ)
 	$(CC) -o $@ $+
 
 test/%.o: test/%.c test/test.h
@@ -359,7 +346,7 @@ dist: clean
 	rm -rf doc/coverage
 
 fixme:
-	find . -name '*.[ch]' | xargs grep -n FIXME: | sed -e 's/:[^:]*FIXME: /:/' -e 's/ *\*\///' | column -t -s :
+	find . -name '*.[ch]' -not -path './ext/**' | xargs grep -n FIXME: | sed -e 's/:[^:]*FIXME: /:/' -e 's/ *\*\///' | column -t -s :
 
 stats: clean
 	find . -name '*.[ch]' -not -path './test/**' 2>/dev/null | xargs ./util/nocomment | wc -l

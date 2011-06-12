@@ -16,6 +16,8 @@ static client default_options = {
 	.request_file = "/etc/clockwork/ssl/request.pem",
 	.key_file     = "/etc/clockwork/ssl/key.pem",
 
+	.db_file      = "/var/lib/clockwork/agent.db",
+
 	.gatherers = "/etc/clockwork/gather.d/*",
 
 	.s_address = "clockwork",
@@ -50,6 +52,9 @@ static client* configured_options(const char *path)
 
 		v = hash_get(config, "key_file");
 		if (v) { c->key_file = strdup(v); }
+
+		v = hash_get(config, "db_file");
+		if (v) { c->db_file = strdup(v); }
 
 		v = hash_get(config, "gatherers");
 		if (v) { c->gatherers = strdup(v); }
@@ -97,6 +102,7 @@ static int merge_clients(client *a, client *b)
 	MERGE_STRING_OPTION(a,b,cert_file);
 	MERGE_STRING_OPTION(a,b,request_file);
 	MERGE_STRING_OPTION(a,b,key_file);
+	MERGE_STRING_OPTION(a,b,db_file);
 	MERGE_STRING_OPTION(a,b,gatherers);
 	MERGE_STRING_OPTION(a,b,s_address);
 	MERGE_STRING_OPTION(a,b,s_port);

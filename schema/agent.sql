@@ -21,10 +21,10 @@
 --       policy master reporting database.
 --
 create table stats (
-  last_run_at           DATETIME, -- Used to spread out checks
-  next_run_after        DATETIME, -- Used for cwa in daemon mode?
+  last_run_at           INTEGER,  -- Used to spread out checks
+  next_run_after        INTEGER,  -- Used for cwa in daemon mode?
   last_policy_version   INTEGER,
-  num_failures          INTEGER -- Safety net for bad policy?
+  num_failures          INTEGER   -- Safety net for bad policy?
 );
 
 --
@@ -32,10 +32,9 @@ create table stats (
 --
 create table jobs (
   id              INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-  started_at      DATETIME,
-  ended_at        DATETIME,
-  duration        INTEGER,
-  result          VARCHAR(20)
+  started_at      INTEGER,
+  ended_at        INTEGER,
+  duration        INTEGER
 );
 
 --
@@ -44,10 +43,11 @@ create table jobs (
 create table resources (
   id              INTEGER NOT NULL PRIMARY KEY,
   job_id          INTEGER,
-  restype         VARCHAR(30),
-  name            VARCHAR(100),
+  type            TEXT,
+  name            TEXT,
   sequence        INTEGER,
-  result          VARCHAR(20)
+  compliant       INTEGER,
+  fixed           INTEGER
 );
 
 --
@@ -57,5 +57,5 @@ create table actions (
   resource_id     INTEGER,
   summary         TEXT,
   sequence        INTEGER,
-  result          VARCHAR(20)
+  result          INTEGER
 );

@@ -44,6 +44,9 @@ typedef struct {
 	/** Path to this node's private key */
 	char *key_file;
 
+	/** Path to the agent database file */
+	char *db_file;
+
 	/** Shell glob matching the fact gathering scripts to run. */
 	char *gatherers;
 

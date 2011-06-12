@@ -6,6 +6,7 @@
 #include <glob.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/time.h>
 
 #include "proto.h"
 #include "policy.h"
@@ -14,6 +15,8 @@
 
 /* FIXME: one-off weirdness for fixup res_file */
 #include "resources.h"
+
+#include "reportdb.h"
 
 static client* cwa_options(int argc, char **argv);
 static void show_help(void);
@@ -26,6 +29,7 @@ static int enforce_policy(client *c, struct list *report);
 static int autodetect_managers(struct resource_env *env, const struct hash *facts);
 static int print_report(FILE *io, struct list *report);
 static int send_report(client *c);
+static int save_report(client *c, struct list *report, struct timeval *start, struct timeval *end);
 
 /**************************************************************/
 
@@ -33,6 +37,7 @@ int main(int argc, char **argv)
 {
 	client *c;
 	LIST(report);
+	struct timeval start, end;
 
 	c = cwa_options(argc, argv);
 	if (client_options(c) != 0) {
@@ -42,6 +47,10 @@ int main(int argc, char **argv)
 	c->log_level = log_level(c->log_level);
 	INFO("Log level is %s (%u)", log_level_name(c->log_level), c->log_level);
 
+	if (gettimeofday(&start, NULL) != 0) {
+		CRITICAL("Unable to get time of day: %s", strerror(errno));
+		exit(1);
+	}
 	INFO("Gathering facts");
 	if (gather_facts(c) != 0) {
 		CRITICAL("Unable to gather facts");
@@ -62,8 +71,20 @@ int main(int argc, char **argv)
 
 	get_policy(c);
 	enforce_policy(c, &report);
+
+	if (gettimeofday(&end, NULL) != 0) {
+		CRITICAL("Unable to get time of day: %s", strerror(errno));
+		exit(1);
+	}
+
 	print_report(stdout, &report);
 	send_report(c);
+	if (save_report(c, &report, &start, &end)) {
+		ERROR("Unable to store report in local database.");
+
+		client_bye(c);
+		exit(3);
+	}
 
 	client_bye(c);
 	return 0;
@@ -413,5 +434,22 @@ static int print_report(FILE *io, struct list *report)
 
 static int send_report(client *c)
 {
+	return 0;
+}
+
+static int save_report(client *c, struct list *report, struct timeval *start, struct timeval *end)
+{
+	struct reportdb *db;
+	db = reportdb_open(DB_AGENT, c->db_file);
+	if (!db) {
+		return -1;
+	}
+
+	if (agentdb_store_report(db, report, start, end) != 0) {
+		reportdb_close(db);
+		return -1;
+	}
+
+	reportdb_close(db);
 	return 0;
 }

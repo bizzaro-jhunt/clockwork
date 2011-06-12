@@ -21,6 +21,8 @@ static server default_options = {
 	.cert_file    = "/etc/clockwork/ssl/cert.pem",
 	.key_file     = "/etc/clockwork/ssl/key.pem",
 
+	.db_file      = "/var/lib/clockwork/master.db",
+
 	.requests_dir = "/etc/clockwork/ssl/pending",
 	.certs_dir    = "/etc/clockwork/ssl/signed",
 
@@ -74,6 +76,9 @@ static server* configured_options(const char *path)
 		v = hash_get(config, "manifest_file");
 		if (v) { s->manifest_file = strdup(v); }
 
+		v = hash_get(config, "db_file");
+		if (v) { s->db_file = strdup(v); }
+
 		v = hash_get(config, "log_level");
 		if (v) {
 			if (strcmp(v, "critical") == 0) {
@@ -124,6 +129,7 @@ static int merge_servers(server *a, server *b)
 	MERGE_STRING_OPTION(a,b,crl_file);
 	MERGE_STRING_OPTION(a,b,cert_file);
 	MERGE_STRING_OPTION(a,b,key_file);
+	MERGE_STRING_OPTION(a,b,db_file);
 	MERGE_STRING_OPTION(a,b,requests_dir);
 	MERGE_STRING_OPTION(a,b,certs_dir);
 	MERGE_STRING_OPTION(a,b,port);

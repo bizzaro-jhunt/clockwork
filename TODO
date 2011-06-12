@@ -51,6 +51,9 @@ Reporting
   storage and analysis parts.  Might want to look into database
   backends.
 
+  Need job start/end/duration and result
+  Switch from varchar to result codes?
+
 More resources
   Check the RESOURCE file for the most up-to-date information.
 

@@ -44,6 +44,9 @@ typedef struct {
 	/** Path to this node's private key */
 	char *key_file;
 
+	/** Path to the policy master reporting database file */
+	char *db_file;
+
 	/** Directory in which to store/find client certificate signing requests. */
 	char *requests_dir;
 	/** Directory in which to store/find client certificates. */

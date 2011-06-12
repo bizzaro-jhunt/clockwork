@@ -3,12 +3,13 @@
 
 #include "clockwork.h"
 #include "list.h"
+#include "pack.h"
 
 /**
   Possible results of a single operation.
  */
 enum action_result {
-	ACTION_SUCCEEDED,
+	ACTION_SUCCEEDED = 0,
 	ACTION_FAILED,
 	ACTION_SKIPPED
 };
@@ -57,6 +58,11 @@ void report_free(struct report *report);
 
 int report_action(struct report *report, char *summary, enum action_result result);
 void report_print(FILE *io, struct report *report);
+
+char* report_pack(const struct report *report);
+struct report* report_unpack(const char *packed);
+char* action_pack(const struct action *action);
+struct action* action_unpack(const char *packed, struct report *report);
 
 
 #endif

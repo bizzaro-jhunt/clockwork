@@ -349,7 +349,7 @@ static int handle_FILE(worker *w)
 	}
 
 	file = NULL;
-	for_each_node(res, &w->policy->resources, l) {
+	for_each_resource(res, policy) {
 		if (res->type == RES_FILE) {
 			match = (struct res_file*)(res->resource);
 			if (sha1_cmp(&match->rf_rsha1, &checksum) == 0) {

@@ -16,6 +16,7 @@ struct test_suite {
 
 int add_test_suite(const char *name, test_suite_f runner, int active);
 #define TEST_SUITE(x) extern void test_suite_ ## x(); add_test_suite(#x, test_suite_ ## x, 0)
+void teardown_test_suites(void);
 
 int activate_test(const char *name);
 int run_active_tests(void);

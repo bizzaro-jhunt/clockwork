@@ -39,6 +39,12 @@ int add_test_suite(const char *name, test_suite_f runner, int active)
 	return 0;
 }
 
+void teardown_test_suites(void)
+{
+	free(test_suites);
+	test_suites = NULL;
+}
+
 int activate_test(const char *name)
 {
 	int i;

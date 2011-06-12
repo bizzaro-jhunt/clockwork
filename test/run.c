@@ -28,5 +28,6 @@ int main(int argc, char **argv)
 	}
 
 	(run_active ? run_active_tests() : run_all_tests());
+	teardown_test_suites();
 	return test_status();
 }

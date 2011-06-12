@@ -6,13 +6,16 @@
 void test_resource_callbacks()
 {
 	struct resource *res;
+	char *key;
 
 	test("RESOURCE: Resource Callbacks");
 	res = resource_new("user", "user1");
 	assert_not_null("resource_new allocates a resource structure", res);
 	assert_not_null("resource_new allocates a res_* member", res->resource);
 
-	assert_str_eq("resource_key returns the appropriate key", "res_user:user1", resource_key(res));
+	key = resource_key(res);
+	assert_str_eq("resource_key returns the appropriate key", "res_user:user1", key);
+	xfree(key);
 
 	resource_free(res);
 }

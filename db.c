@@ -37,11 +37,11 @@
 	if (rc != SQLITE_OK) { goto failure; } \
 } while (0)
 
-struct reportdb* reportdb_open(enum reportdb_type type, const char *path)
+DB* db_open(enum db_type type, const char *path)
 {
 	assert(path);
 
-	struct reportdb *db = xmalloc(sizeof(struct reportdb));
+	DB *db = xmalloc(sizeof(DB));
 	db->db_type = type;
 
 	if (sqlite3_open(path, &db->db) != 0) {
@@ -55,7 +55,7 @@ struct reportdb* reportdb_open(enum reportdb_type type, const char *path)
 	return db;
 }
 
-int reportdb_close(struct reportdb *db)
+int db_close(DB *db)
 {
 	assert(db);
 	sqlite3_close(db->db);
@@ -64,10 +64,10 @@ int reportdb_close(struct reportdb *db)
 }
 
 /* FIXME: split this up into statics; let the compiler optimize */
-rowid masterdb_host(struct reportdb *db, const char *host)
+rowid masterdb_host(DB *db, const char *host)
 {
 	rowid host_id = NULL_ROWID;
-	const char *select = "SELECT id FROM hosts WHERE host_name = ?;";
+	const char *select = "SELECT id FROM hosts WHERE name = ?;";
 	const char *create = "INSERT INTO hosts (name) VALUES (?);";
 	sqlite3_stmt *stmt = NULL;
 	int rc;
@@ -106,7 +106,7 @@ failure:
 }
 
 /* FIXME: split this up into statics; let the compiler optimize */
-int masterdb_store_report(struct reportdb *db, rowid host_id, struct job *job)
+int masterdb_store_report(DB *db, rowid host_id, struct job *job)
 {
 	const char *j_sql = "INSERT INTO jobs (host_id, started_at, ended_at, duration) VALUES (?,?,?,?)";
 	sqlite3_stmt *j_stmt = NULL;
@@ -151,10 +151,10 @@ int masterdb_store_report(struct reportdb *db, rowid host_id, struct job *job)
 		r_id = sqlite3_last_insert_rowid(db->db);
 		a_seq = 0;
 		for_each_action(action, report) {
-			BIND_INT64(a_stmt, 0, r_id);
-			BIND_TEXT(a_stmt,  1, action->summary);
-			BIND_INT(a_stmt,   2, a_seq++);
-			BIND_INT(a_stmt,   3, action->result);
+			BIND_INT64(a_stmt, 1, r_id);
+			BIND_TEXT(a_stmt,  2, action->summary);
+			BIND_INT(a_stmt,   3, a_seq++);
+			BIND_INT(a_stmt,   4, action->result);
 
 			EXEC_SQL(a_stmt);
 			RESET_SQL(a_stmt);
@@ -173,7 +173,7 @@ failure:
 }
 
 /* FIXME: split this up into statics; let the compiler optimize */
-int agentdb_store_report(struct reportdb *db, struct job *job)
+int agentdb_store_report(DB *db, struct job *job)
 {
 	const char *j_sql = "INSERT INTO jobs (started_at, ended_at, duration) VALUES (?,?,?)";
 	sqlite3_stmt *j_stmt = NULL;

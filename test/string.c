@@ -62,6 +62,8 @@ void test_string_interpolation()
 		string_interpolate(buf, 8192, tests[i][0], context);
 		assert_str_equals("interpolate(tpl) == str", tests[i][1], buf);
 	}
+
+	hash_free(context);
 }
 
 void test_string_automatic()

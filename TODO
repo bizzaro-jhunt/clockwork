@@ -27,7 +27,7 @@ Figure out how to manage parts of a file (like augeas)
 
 Tests for cert.o module
 
-cwdb for Database Reporting (cwreport?)
+cwdb for Database Reporting (cwreport?) - IN PROGRESS
 
 Client / Server
   - Test remediation in chroot

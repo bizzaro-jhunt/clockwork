@@ -1,0 +1,216 @@
+#!/usr/bin/perl
+
+use DBI;
+use POSIX;
+
+use constant MASTERDB => 1;
+use constant AGENTDB  => 2;
+use constant HUMAN    => 3;
+use constant COMPUTER => 4;
+
+use constant HUMAN_DATE => "%Y-%m-%d %H:%M:%S";
+
+our $db = DBI->connect('dbi:SQLite:dbname=db/master.db') or
+	die "Database connection failed: $!";
+our $dbtype = MASTERDB;
+
+#$db = DBI->connect('dbi:SQLite:dbname=db/agent.db') or
+#	die "Database connection failed: $!";
+#$dbtype = AGENTDB;
+
+our $display = HUMAN;
+#$display = COMPUTER;
+
+###########################################################
+#
+# Master DB // Types of Reports:
+#
+# lastseen - All hosts and when they were last seen
+#  -t             ORDER BY last_seen_at ASC (or DESC with -r)
+#  --reverse, -r  reverse the sort order (ASC->DESC, DESC->ASC)
+#
+# host - Full report for a single host
+#  --after,  -a   only show jobs after a specific date/time
+#  --before, -b   only show jobs before a specific date/time
+#  --failed       only show non-compliant resources / actions
+#  --fixed        only show fixed resources / actions
+#  --compliant    only show compliant resources (no actions)
+#  --reverse, -r  ORDER BY started_at DESC
+#  --sumary, -s   Only show summary of resources
+#
+# summary - Summary for all hosts
+#
+#
+###########################################################
+
+sub bail($$)
+{
+	my $rc = shift;
+	print shift() . "\n";
+	exit $rc;
+}
+
+sub datef($$$)
+{
+	my $f = shift;
+	my $t = shift;
+	my $z = shift;
+
+	return $t == 0 ? $z : strftime($f, localtime($t+0));
+}
+
+sub percf($$)
+{
+	my $a = shift;
+	my $b = shift;
+
+	return sprintf("%0.2f", $a * 100.0 / $b);
+}
+
+sub find_host_by_name($)
+{
+	$dbtype == MASTERDB or bail 1, "tried to find a host in an agent context";
+	my $st = $db->prepare("SELECT id FROM hosts WHERE name = ?") or
+		die "SQL failed: $!";
+
+	my $name = shift;
+	$st->execute($name) or die "SQL failed: $!";
+
+	my $id = 0;
+	while (@host = $st->fetchrow_array()) {
+		$id = $host[0];
+	}
+	return $id;
+}
+
+sub lastseen()
+{
+	$dbtype == MASTERDB or bail 1, "lastseen makes no sense in agent context";
+	my $st = $db->prepare("SELECT name, last_seen_at FROM hosts ORDER BY name ASC") or
+		die "SQL failed: $!";
+
+	if ($display == HUMAN) {
+		$~=LAST_SEEN;
+		$^=LAST_SEEN_TOP;
+	}
+
+	$st->execute() or die "SQL failed: $!";
+	while (my @d = $st->fetchrow_array()) {
+		$hostname = $d[0];
+		$last_seen_at = datef(HUMAN_DATE, $d[1], "never");
+		if ($display == HUMAN) { write; } else { print "$hostname $last_seen_at\n"; }
+	}
+}
+
+sub host($)
+{
+	$dbtype == MASTERDB or bail 1, "host makes no sense in agent context";
+	my $st_j = $db->prepare("SELECT id, started_at, ended_at, duration FROM jobs WHERE host_id = ? ORDER BY started_at ASC") or
+		die "SQL failed: $!";
+
+	my $st_r = $db->prepare("SELECT id, type, name, compliant, fixed FROM resources WHERE job_id = ? ORDER BY sequence ASC") or
+		die "SQL failed: $!";
+
+	my $st_a = $db->prepare("SELECT summary, result FROM actions WHERE resource_id = ? ORDER BY sequence ASC") or
+		die "SQL failed: $!";
+
+	my %summary = (
+		'total'        => 0,
+		'compliant'    => 0,
+		'noncompliant' => 0,
+		'fixed'        => 0);
+
+	my $host_id = shift;
+	$st_j->execute($host_id) or die "SQL failed: $!";
+	while (@jobs = $st_j->fetchrow_array()) {
+		$job_id = $jobs[0];
+		if ($display == HUMAN) {
+			$~ = HOST_JOB;
+			$started_at = datef(HUMAN_DATE, $jobs[1], "unknown");
+			$ended_at   = datef(HUMAN_DATE, $jobs[2], "unknown");
+			$duration   = $jobs[3] * 1.0 / 1000000;
+			write;
+		}
+
+		$summary{compliant} = $summary{noncompliant} = $summary{fixed} = 0;
+		$st_r->execute($job_id);
+		while (@resource = $st_r->fetchrow_array()) {
+			$resource_id = $resource[0];
+			if (!$resource[3]) {
+				$result = "NON-COMPLIANT";
+				$summary{noncompliant}++;
+			} elsif ($resource[4]) {
+				$result = "FIXED";
+				$summary{fixed}++;
+			} else {
+				$result = "COMPLIANT";
+				$summary{compliant}++;
+			}
+			if ($display == HUMAN) {
+				$~ = HOST_RESOURCE;
+				$description = $resource[1] . " " . $resource[2];
+				write;
+			}
+
+			$st_a->execute($resource_id);
+			while (@action = $st_a->fetchrow_array()) {
+				if ($display == HUMAN) {
+					$~ = HOST_ACTION;
+					$description = $action[0];
+					$result = $action[1];
+					write;
+				}
+			}
+		}
+
+		if ($display == HUMAN) {
+			$good = $summary{compliant} + $summary{fixed};
+			$bad  = $summary{noncompliant};
+			$pgood = percf($good, $good + $bad);
+			$pbad  = percf($bad,  $good + $bad);
+
+			$job_summary = "$good ($pgood%) OK";
+			if ($bad > 0) { $job_summary .= "; $bad ($pbad%) NON-COMPLIANT"; }
+			$~ = HOST_JOB_SUMMARY; 
+			write;
+		}
+	}
+}
+
+#lastseen();
+host(find_host_by_name("jade.niftylogic.net"));
+
+# FORMATS
+
+format LAST_SEEN_TOP =
+Hostname                             Last Seen At
+--------                             ------------
+.
+
+format LAST_SEEN =
+@<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<  @<<<<<<<<<<<<<<<<<
+$hostname                            $last_seen_at
+.
+
+format HOST_JOB =
+
+@<<<<<<<<<<<<<<<<<<<<<<<<<<<<                   @####.#### s
+$started_at                                     $duration
+------------------------------------------------------------
+.
+
+format HOST_RESOURCE =
+  @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<   @>>>>>>>>>>>>
+  $description                                 $result
+.
+
+format HOST_ACTION =
+      @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<   @>>>>>>>>>>>>
+    - $description                             $result
+.
+
+format HOST_JOB_SUMMARY =
+------------------------------------------------------------
+@<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+$job_summary
+.

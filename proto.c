@@ -25,6 +25,7 @@ static const char *protocol_op_names[] = {
 	"SEND_CERT",
 	NULL
 };
+#define protocol_op_max 10
 
 static int pdu_allocate(protocol_data_unit *pdu, uint16_t op, uint16_t len)
 {
@@ -597,6 +598,7 @@ void protocol_ssl_init(void)
 
 const char* protocol_op_name(protocol_op op)
 {
+	if (op > protocol_op_max) { return NULL; }
 	return protocol_op_names[op];
 }
 
@@ -703,7 +705,7 @@ void protocol_ssl_backtrace(void)
 	unsigned long e;
 
 	while ( (e = ERR_get_error()) != 0 ) {
-		DEBUG("SSL: %s", ERR_reason_error_string(e));
+		DEBUG("SSL(%u): %s", e, ERR_reason_error_string(e));
 	}
 }
 

@@ -20,6 +20,7 @@ int main(int argc, char **argv)
 	TEST_SUITE(cert);
 	TEST_SUITE(string);
 	TEST_SUITE(job);
+	TEST_SUITE(proto);
 
 	test_setup(argc, argv);
 	run_active = 0;

@@ -344,6 +344,7 @@ clean: clean_lcov
 
 dist: clean
 	rm -rf doc/coverage
+	rm -rf ext/openssl
 
 fixme:
 	find . -name '*.[ch]' -not -path './ext/**' | xargs grep -n FIXME: | sed -e 's/:[^:]*FIXME: /:/' -e 's/ *\*\///' | column -t -s :

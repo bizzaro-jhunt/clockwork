@@ -13,7 +13,6 @@ static struct job* fake_job(void)
 	struct job *job;
 	struct report *report;
 
-	/* FIXME: assertions on job/report/action creation */
 	job = job_new();
 	assert_not_null("fake_job created a valid job", job);
 

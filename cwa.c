@@ -12,8 +12,6 @@
 #include "policy.h"
 #include "userdb.h"
 #include "client.h"
-
-/* FIXME: one-off weirdness for fixup res_file */
 #include "resources.h"
 
 #include "db.h"
@@ -323,7 +321,6 @@ static int enforce_policy(client *c, struct job *job)
 	for_each_resource(res, c->policy) {
 		DEBUG("Fixing up %s", res->key);
 
-		/* FIXME: one-off weirdness for res_file */
 		env.file_fd = -1;
 		env.file_len = 0;
 		if (res->type == RES_FILE) {
@@ -334,7 +331,6 @@ static int enforce_policy(client *c, struct job *job)
 
 		resource_stat(res, &env);
 
-		/* FIXME: one-off weirdness for res_file */
 		if (res->type == RES_FILE) {
 			rf = (struct res_file*)(res->resource);
 			if (DIFFERENT(rf, RES_FILE_SHA1)) {

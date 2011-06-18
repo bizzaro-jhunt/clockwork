@@ -97,6 +97,7 @@ struct cwcert_opts* cwcert_options(int argc, char **argv)
 	args = xmalloc(sizeof(struct cwcert_opts));
 	args->command = strdup("help");
 	args->config  = xmalloc(sizeof(client));
+	args->config->mode = CLIENT_MODE_ONLINE;
 
 	while ( (opt = getopt_long(argc, argv, short_opts, long_opts, &idx)) != -1) {
 		switch (opt) {
@@ -108,7 +109,7 @@ struct cwcert_opts* cwcert_options(int argc, char **argv)
 			args->config->log_level = LOG_LEVEL_DEBUG;
 			break;
 		case 'O':
-			args->config->offline = 1;
+			args->config->mode = CLIENT_MODE_OFFLINE;
 			break;
 		case 'v':
 			args->config->log_level++;
@@ -252,7 +253,7 @@ static int cwcert_new_main(const struct cwcert_opts *args)
 		}
 	}
 
-	if (args->config->offline) {
+	if (args->config->mode == CLIENT_MODE_OFFLINE) {
 		INFO("Skipping check with policy master (offline mode)");
 
 	} else {
@@ -311,7 +312,7 @@ static int cwcert_new_main(const struct cwcert_opts *args)
 	INFO("Removing old certificate %s", args->config->cert_file);
 	unlink(args->config->cert_file);
 
-	if (args->config->offline) {
+	if (args->config->mode == CLIENT_MODE_OFFLINE) {
 		INFO("Skipping verification with policy master (offline mode)");
 		return CWCERT_SUCCESS;
 
@@ -356,7 +357,7 @@ static int cwcert_test_main(const struct cwcert_opts *args)
 		return CWCERT_OTHER_ERR;
 	}
 
-	if (args->config->offline) {
+	if (args->config->mode == CLIENT_MODE_OFFLINE) {
 		INFO("Skipping test against policy master (offline mode)");
 		return CWCERT_SUCCESS;
 	}

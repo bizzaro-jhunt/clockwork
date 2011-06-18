@@ -5,6 +5,19 @@
 #include "proto.h"
 #include "policy.h"
 
+/** Online Mode: Connect to the policy master and do stuff. */
+#define CLIENT_MODE_ONLINE  1
+
+/** Offline Mode: Do not connect to the policy master. */
+#define CLIENT_MODE_OFFLINE 2
+
+/** Facts Mode: (cwa) Generate facts to standard out. */
+#define CLIENT_MODE_FACTS   3
+
+/** Test / Dry-Run Mode: Connect to the policy mode, but don't
+    actually change the local system to enforce policy. */
+#define CLIENT_MODE_TEST    4
+
 /**
   A Client-side Interaction
  */
@@ -26,11 +39,8 @@ typedef struct {
 	/** Requested log verbosity level (option) */
 	int log_level;
 
-	/** Whether or not to actually apply changes required by policy. */
-	int dryrun;
-
-	/** Whether to run 'offline', without connecting to the policy master. */
-	int offline;
+	/** Operational mode; determines what the client app does. */
+	int mode;
 
 	/** Path to the agent configuration file. */
 	char *config_file;

@@ -6,8 +6,7 @@
 
 static client default_options = {
 	.log_level   = LOG_LEVEL_ERROR,
-	.dryrun      = 0,
-	.offline     = 0,
+	.mode        = 0,
 
 	.config_file  = "/etc/clockwork/cwa.conf",
 
@@ -106,8 +105,7 @@ static int merge_clients(client *a, client *b)
 	MERGE_STRING_OPTION(a,b,gatherers);
 	MERGE_STRING_OPTION(a,b,s_address);
 	MERGE_STRING_OPTION(a,b,s_port);
-
-	a->dryrun = (b->dryrun ? 1 : a->dryrun);
+	if (a->mode == 0) { a->mode = b->mode; }
 
 	return 0;
 }

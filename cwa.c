@@ -21,6 +21,7 @@ static void show_help(void);
 
 static int gather_facts_from_script(const char *script, struct hash *facts);
 static int gather_facts(client *c);
+static void print_facts(struct hash *facts);
 static int get_policy(client *c);
 static int get_file(protocol_session *session, sha1 *checksum, int fd);
 static int enforce_policy(client *c, struct job *job);
@@ -44,11 +45,17 @@ int main(int argc, char **argv)
 	}
 	c->log_level = log_level(c->log_level);
 	INFO("Log level is %s (%u)", log_level_name(c->log_level), c->log_level);
+	INFO("Running in mode %u", c->mode);
 
 	INFO("Gathering facts");
 	if (gather_facts(c) != 0) {
 		CRITICAL("Unable to gather facts");
 		exit(1);
+	}
+
+	if (c->mode == CLIENT_MODE_FACTS) {
+		print_facts(c->facts);
+		exit(0);
 	}
 
 	if (client_connect(c) != 0) {
@@ -67,7 +74,7 @@ int main(int argc, char **argv)
 	get_policy(c);
 	enforce_policy(c, job);
 	print_summary(stdout, job);
-	if (!c->dryrun) {
+	if (c->mode != CLIENT_MODE_TEST) {
 		if (save_report(c, job) != 0) {
 			WARNING("Unable to store report in local database.");
 		}
@@ -86,7 +93,7 @@ static client* cwa_options(int argc, char **argv)
 {
 	client *c;
 
-	const char *short_opts = "h?c:s:p:nvq";
+	const char *short_opts = "h?c:s:p:nvqF";
 	struct option long_opts[] = {
 		{ "help",   no_argument,       NULL, 'h' },
 		{ "config", required_argument, NULL, 'c' },
@@ -95,6 +102,7 @@ static client* cwa_options(int argc, char **argv)
 		{ "dry-run", no_argument,      NULL, 'n' },
 		{ "verbose", no_argument,      NULL, 'v' },
 		{ "quiet",  no_argument,       NULL, 'q' },
+		{ "facts",  no_argument,       NULL, 'F' },
 		{ 0, 0, 0, 0 },
 	};
 
@@ -121,13 +129,16 @@ static client* cwa_options(int argc, char **argv)
 			c->s_port = strdup(optarg);
 			break;
 		case 'n':
-			c->dryrun = 1;
+			c->mode = CLIENT_MODE_TEST;
 			break;
 		case 'v':
 			c->log_level++;
 			break;
 		case 'q':
 			c->log_level--;
+			break;
+		case 'F':
+			c->mode = CLIENT_MODE_FACTS;
 			break;
 		}
 	}
@@ -234,6 +245,16 @@ static int gather_facts(client *c)
 	return 0;
 }
 
+static void print_facts(struct hash *facts)
+{
+	struct hash_cursor cur;
+	char *key, *val;
+
+	for_each_key_value(facts, &cur, key, val) {
+		printf("%s = %s\n", key, val);
+	}
+}
+
 static int get_policy(client *c)
 {
 	if (pdu_send_FACTS(&c->session, c->facts) < 0) { goto disconnect; }
@@ -311,7 +332,7 @@ static int enforce_policy(client *c, struct job *job)
 		exit(2);
 	}
 
-	if (c->dryrun) {
+	if (c->mode == CLIENT_MODE_TEST) {
 		INFO("Enforcement skipped (--dry-run specified)");
 	} else {
 		INFO("Enforcing policy on local system");
@@ -350,7 +371,7 @@ static int enforce_policy(client *c, struct job *job)
 			}
 		}
 
-		r = resource_fixup(res, c->dryrun, &env);
+		r = resource_fixup(res, c->mode == CLIENT_MODE_TEST, &env);
 		if (r->compliant && r->fixed) {
 			policy_notify(c->policy, res);
 		}
@@ -361,7 +382,7 @@ static int enforce_policy(client *c, struct job *job)
 		list_add_tail(&r->l, &job->reports);
 	}
 
-	if (!c->dryrun) {
+	if (c->mode != CLIENT_MODE_TEST) {
 		pwdb_write(env.user_pwdb,  SYS_PASSWD);
 		spdb_write(env.user_spdb,  SYS_SHADOW);
 		grdb_write(env.group_grdb, SYS_GROUP);

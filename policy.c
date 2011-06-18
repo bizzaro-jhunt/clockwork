@@ -30,7 +30,7 @@ static void stree_free(struct stree *n)
 	}
 }
 
-static int _policy_normalize(struct policy *pol)
+static int _policy_normalize(struct policy *pol, struct hash *facts)
 {
 	assert(pol);
 
@@ -39,7 +39,7 @@ static int _policy_normalize(struct policy *pol)
 	struct dependency *dep;
 
 	for_each_resource(r1, pol) {
-		if (resource_norm(r1, pol) != 0) { return -1; }
+		if (resource_norm(r1, pol, facts) != 0) { return -1; }
 	}
 
 	/* expand defered dependencies */
@@ -350,7 +350,7 @@ struct policy* policy_generate(struct stree *root, struct hash *facts)
 		return NULL;
 	}
 
-	_policy_normalize(pgen.policy);
+	_policy_normalize(pgen.policy, facts);
 
 	return pgen.policy;
 }

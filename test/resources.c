@@ -57,25 +57,25 @@ void test_resource_noops()
 	assert_int_equals("res_user_notify does nothing", 0, res_user_notify(NULL, NULL));
 
 	test("RES_USER: norm is a NOOP");
-	assert_int_equals("res_user_norm does nothing", 0, res_user_norm(NULL, NULL));
+	assert_int_equals("res_user_norm does nothing", 0, res_user_norm(NULL, NULL, NULL));
 
 	test("RES_GROUP: notify is a NOOP");
 	assert_int_equals("res_group_notify does nothing", 0, res_group_notify(NULL, NULL));
 
 	test("RES_GROUP: norm is a NOOP");
-	assert_int_equals("res_group_norm does nothing", 0, res_group_norm(NULL, NULL));
+	assert_int_equals("res_group_norm does nothing", 0, res_group_norm(NULL, NULL, NULL));
 
 	test("RES_FILE: notify is a NOOP");
 	assert_int_equals("res_file_notify does nothing", 0, res_file_notify(NULL, NULL));
 
 	test("RES_SERVICE: norm is a NOOP");
-	assert_int_equals("res_service_norm does nothing", 0, res_service_norm(NULL, NULL));
+	assert_int_equals("res_service_norm does nothing", 0, res_service_norm(NULL, NULL, NULL));
 
 	test("RES_PACKAGE: notify is a NOOP");
 	assert_int_equals("res_package_notify does nothing", 0, res_package_notify(NULL, NULL));
 
 	test("RES_PACKAGE: norm is a NOOP");
-	assert_int_equals("res_package_norm does nothing", 0, res_package_norm(NULL, NULL));
+	assert_int_equals("res_package_norm does nothing", 0, res_package_norm(NULL, NULL, NULL));
 
 
 }
@@ -972,7 +972,6 @@ void test_res_file_enforcement()
 	test("RES_FILE: SHA1 / rpath enforcement");
 	res_file_set(rf, "source", src);
 	assert_true("SHA1 enforced", ENFORCED(rf, RES_FILE_SHA1));
-	assert_str_equals("SHA1 set properly", rf->rf_rsha1.hex, TESTFILE_SHA1_file1);
 	assert_str_equals("rf_rpath set properly", rf->rf_rpath, src);
 
 	test("RES_FILE: SHA1 / lpath 'enforcement'");

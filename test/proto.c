@@ -372,9 +372,9 @@ void test_proto_pdu_DATA()
 
 	pid = fork_test(&server, child_expects_DATA);
 	assert_int_ne("first pdu_send_DATA returns non-zero",
-		pdu_send_DATA(&server.session, fd[0]), 0);
+		pdu_send_DATA(&server.session, fd[0], NULL), 0);
 	assert_int_eq("second pdu_send_DATA returns zero",
-		pdu_send_DATA(&server.session, fd[0]), 0);
+		pdu_send_DATA(&server.session, fd[0], NULL), 0);
 	close(fd[0]);
 	waitfork(pid, &server);
 

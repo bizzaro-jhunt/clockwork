@@ -357,7 +357,7 @@ int pdu_send_FILE(protocol_session *session, sha1 *checksum);
            or -1 on failure.  When an EOF occurs on \a srcfd,
            0 is returned and the EOF DATA PDU is sent.
  */
-int pdu_send_DATA(protocol_session *session, int srcfd);
+int pdu_send_DATA(protocol_session *session, int srcfd, const char *data);
 
 /**
   Send a GET_CERT PDU to the server.

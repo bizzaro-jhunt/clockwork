@@ -271,20 +271,29 @@ int pdu_send_FILE(protocol_session *session, sha1 *checksum)
 	return pdu_write(session->io, pdu);
 }
 
-int pdu_send_DATA(protocol_session *session, int srcfd)
+int pdu_send_DATA(protocol_session *session, int srcfd, const char *data)
 {
 	assert(session);
+	assert(srcfd >= 0 || data);
 
 	protocol_data_unit *pdu = SEND_PDU(session);
 
-	char chunk[FILE_DATA_BLOCK_SIZE];
+	char chunk[FILE_DATA_BLOCK_SIZE] = {0};
 	size_t len = 0, nread = 0;
 	int write_status;
 
-	do {
-		nread = read(srcfd, chunk + len, FILE_DATA_BLOCK_SIZE - len);
-		len += nread;
-	} while (nread != 0 && len < FILE_DATA_BLOCK_SIZE);
+	if (srcfd >= 0) {
+		do {
+			nread = read(srcfd, chunk + len, FILE_DATA_BLOCK_SIZE - len);
+			len += nread;
+		} while (nread != 0 && len < FILE_DATA_BLOCK_SIZE);
+	} else {
+		nread = strlen(data);
+		len = (nread > FILE_DATA_BLOCK_SIZE
+			     ? FILE_DATA_BLOCK_SIZE
+			     : nread);
+		memcpy(chunk, data, len);
+	}
 
 	if (pdu_allocate(pdu, PROTOCOL_OP_DATA, len) < 0) {
 		return -1;

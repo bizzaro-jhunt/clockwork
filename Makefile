@@ -67,23 +67,23 @@ DEBUGGERS := debug/service-manager debug/package-manager
 MANAGER_OBJECTS := managers/service.o managers/package.o
 MANAGER_HEADERS := managers/service.h managers/package.h
 
+# Parser object files
+SPEC_PARSER_OBJECTS := spec/lexer.o spec/grammar.o spec/parser.o
+CONFIG_PARSER_OBJECTS := config/lexer.o config/grammar.o config/parser.o
+TEMPLATE_PARSER_OBJECTS := tpl/lexer.o tpl/grammar.o tpl/parser.o
+
+# Template system object files
+TEMPLATE_OBJECTS := template.o $(TEMPLATE_PARSER_OBJECTS)
+
 # Resource types
-RESOURCE_OBJECTS := resource.o resources.o job.o $(MANAGER_OBJECTS)
-RESOURCE_HEADERS := resource.h resources.h job.h $(MANAGER_HEADERS)
+RESOURCE_OBJECTS := resource.o resources.o job.o $(MANAGER_OBJECTS) $(TEMPLATE_OBJECTS)
+RESOURCE_HEADERS := resource.h resources.h job.h $(MANAGER_HEADERS) template.h
 
 # Supporting object files
 CORE_OBJECTS := mem.o sha1.o pack.o hash.o stringlist.o userdb.o log.o cert.o prompt.o exec.o string.o
 
 # Policy object files
 POLICY_OBJECTS := policy.o $(RESOURCE_OBJECTS)
-
-# Template system object files
-TEMPLATE_OBJECTS := template.o
-
-# Parser object files
-SPEC_PARSER_OBJECTS := spec/lexer.o spec/grammar.o spec/parser.o
-CONFIG_PARSER_OBJECTS := config/lexer.o config/grammar.o config/parser.o
-TEMPLATE_PARSER_OBJECTS := tpl/lexer.o tpl/grammar.o tpl/parser.o
 
 NO_LCOV :=
 NO_LCOV += test/test.c
@@ -223,7 +223,7 @@ diagrams: doc/proto-agent.png doc/proto-cert.png
 
 UNIT_TEST_SRC        := $(shell ls -1 test/*.c)
 UNIT_TEST_TARGET_SRC := $(shell cd test; ls -1 *.c | egrep -v '(assertions|bits|fact|list|run|stree|test).c') stringlist.c log.c prompt.c
-UNIT_TEST_OBJ        := $(UNIT_TEST_SRC:.c=.o)
+UNIT_TEST_OBJ        := $(UNIT_TEST_SRC:.c=.o) $(TEMPLATE_PARSER_OBJECTS)
 UNIT_TEST_TARGET_OBJ := $(UNIT_TEST_TARGET_SRC:.c=.o)
 
 test: unit_tests functional_tests

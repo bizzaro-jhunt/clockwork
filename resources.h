@@ -16,6 +16,7 @@
 #include "stringlist.h"
 #include "hash.h"
 #include "policy.h"
+#include "template.h"
 
 /** @file resources.h
 
@@ -28,7 +29,7 @@
 void*          res_ ## t ## _new(const char *key); \
 void           res_ ## t ## _free(void *res); \
 char*          res_ ## t ## _key(const void *res); \
-int            res_ ## t ## _norm(void *res, struct policy *pol); \
+int            res_ ## t ## _norm(void *res, struct policy *pol, struct hash *facts); \
 int            res_ ## t ## _set(void *res, const char *attr, const char *value); \
 int            res_ ## t ## _match(const void *res, const char *attr, const char *value); \
 int            res_ ## t ## _stat(void *res, const struct resource_env *env); \
@@ -326,8 +327,15 @@ struct res_file {
 	/** Local path (client-side) to the file. */
 	char *rf_lpath;
 
-	/** Remote path (server-side) to the desired file. */
+	/** Remote path (server-side) to the desired file.
+	    This is an alternative method to rf_template
+	    for specifying file contents. */
 	char *rf_rpath;
+
+	/** Path (server-side) to a file template.  This is
+	    an alternative method to rf_rpath for specifying
+	    file contents. */
+	char *rf_template;
 
 	/** Name of the file user owner. */
 	char *rf_owner;

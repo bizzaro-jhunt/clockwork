@@ -33,6 +33,7 @@
 %token T_KEYWORD_END
 %token T_KEYWORD_IS
 %token T_KEYWORD_NOT
+%token T_OP_ASSIGN
 
 /* These token definitions identify the expected type of the lvalue.
    The name 'string' comes from the union members of the YYSTYPE
@@ -56,7 +57,7 @@
 %type <tnode> echo
 %type <tnode> expressions expression
 %type <tnode> conditional conditional_test alt_condition
-%type <tnode> literal reference
+%type <tnode> literal reference assignment
 %type <string> value
 
 %{
@@ -82,6 +83,7 @@ expression: echo
 	  | literal
 	  | conditional
 	  | reference
+	  | assignment
 	  ;
 
 echo: T_ECHO expression
@@ -130,3 +132,7 @@ conditional_test: T_IDENTIFIER T_KEYWORD_IS value
 
 reference: T_IDENTIFIER
 		{ $$ = NODE(TNODE_REF, $1, NULL); }
+
+assignment: T_IDENTIFIER T_OP_ASSIGN value
+		{ $$ = NODE(TNODE_ASSIGN, $1, $3); }
+	;

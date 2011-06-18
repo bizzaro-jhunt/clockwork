@@ -1,5 +1,6 @@
 #include "resources.h"
 #include "pack.h"
+#include "template.h"
 
 #include <fts.h>
 #include <fcntl.h>
@@ -12,6 +13,7 @@
 #define _FD2FD_CHUNKSIZE 16384
 
 static int _res_user_populate_home(const char *home, const char *skel, uid_t uid, gid_t gid);
+static int _res_file_gen_rsha1(struct res_file *rf, struct hash *facts);
 static int _res_file_fd2fd(int dest, int src, ssize_t bytes);
 static int _group_update(stringlist*, stringlist*, const char*);
 
@@ -84,6 +86,32 @@ static int _res_file_fd2fd(int dest, int src, ssize_t bytes)
 	}
 
 	return 0;
+}
+
+static int _res_file_gen_rsha1(struct res_file *rf, struct hash *facts)
+{
+	assert(rf);
+
+	int rc;
+	char *contents = NULL;
+	struct template *t = NULL;
+
+
+	if (rf->rf_rpath) {
+		return sha1_file(rf->rf_rpath, &rf->rf_rsha1);
+
+	} else if (rf->rf_template) {
+		t = template_create(rf->rf_template, facts);
+		contents = template_render(t);
+
+		rc = sha1_data(contents, strlen(contents), &rf->rf_rsha1);
+
+		template_free(t);
+		free(contents);
+		return rc;
+	}
+
+	return -1;
 }
 
 static int _group_update(stringlist *add, stringlist *rm, const char *user)
@@ -166,7 +194,7 @@ char* res_user_key(const void *res)
 	return string("res_user:%s", ru->key);
 }
 
-int res_user_norm(void *res, struct policy *pol) { return 0; }
+int res_user_norm(void *res, struct policy *pol, struct hash *facts) { return 0; }
 
 int res_user_set(void *res, const char *name, const char *value)
 {
@@ -702,6 +730,7 @@ void* res_file_new(const char *key)
 
 	rf->rf_lpath = NULL;
 	rf->rf_rpath = NULL;
+	rf->rf_template = NULL;
 
 	sha1_init(&(rf->rf_lsha1), NULL);
 	sha1_init(&(rf->rf_rsha1), NULL);
@@ -722,6 +751,7 @@ void res_file_free(void *res)
 	if (rf) {
 		free(rf->rf_rpath);
 		free(rf->rf_lpath);
+		free(rf->rf_template);
 		free(rf->rf_owner);
 		free(rf->rf_group);
 		free(rf->key);
@@ -738,7 +768,7 @@ char* res_file_key(const void *res)
 	return string("res_file:%s", rf->key);
 }
 
-int res_file_norm(void *res, struct policy *pol) {
+int res_file_norm(void *res, struct policy *pol, struct hash *facts) {
 	struct res_file *rf = (struct res_file*)(res);
 	assert(rf);
 
@@ -773,7 +803,8 @@ int res_file_norm(void *res, struct policy *pol) {
 	}
 
 	free(key);
-	return sha1_file(rf->rf_rpath, &rf->rf_rsha1);
+
+	return _res_file_gen_rsha1(rf, facts);
 }
 
 int res_file_set(void *res, const char *name, const char *value)
@@ -797,11 +828,15 @@ int res_file_set(void *res, const char *name, const char *value)
 		ENFORCE(rf, RES_FILE_MODE);
 
 	} else if (strcmp(name, "source") == 0) {
+		xfree(rf->rf_template);
 		free(rf->rf_rpath);
 		rf->rf_rpath = strdup(value);
-		if (sha1_file(rf->rf_rpath, &rf->rf_rsha1) != 0) {
-			return -1;
-		}
+		ENFORCE(rf, RES_FILE_SHA1);
+
+	} else if (strcmp(name, "template") == 0) {
+		xfree(rf->rf_rpath);
+		free(rf->rf_template);
+		rf->rf_template = strdup(value);
 		ENFORCE(rf, RES_FILE_SHA1);
 
 	} else if (strcmp(name, "path") == 0) {
@@ -1118,7 +1153,7 @@ char* res_group_key(const void *res)
 	return string("res_group:%s", rg->key);
 }
 
-int res_group_norm(void *res, struct policy *pol) { return 0; }
+int res_group_norm(void *res, struct policy *pol, struct hash *facts) { return 0; }
 
 int res_group_set(void *res, const char *name, const char *value)
 {
@@ -1578,7 +1613,7 @@ char* res_package_key(const void *res)
 	return string("res_package:%s", rp->key);
 }
 
-int res_package_norm(void *res, struct policy *pol) { return 0; }
+int res_package_norm(void *res, struct policy *pol, struct hash *facts) { return 0; }
 
 int res_package_set(void *res, const char *name, const char *value)
 {
@@ -1771,7 +1806,7 @@ char* res_service_key(const void *res)
 	return string("res_service:%s", rs->key);
 }
 
-int res_service_norm(void *res, struct policy *pol) { return 0; }
+int res_service_norm(void *res, struct policy *pol, struct hash *facts) { return 0; }
 
 int res_service_set(void *res, const char *name, const char *value)
 {

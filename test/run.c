@@ -21,6 +21,7 @@ int main(int argc, char **argv)
 	TEST_SUITE(string);
 	TEST_SUITE(job);
 	TEST_SUITE(proto);
+	TEST_SUITE(template);
 
 	test_setup(argc, argv);
 	run_active = 0;

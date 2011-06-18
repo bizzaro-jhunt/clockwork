@@ -56,6 +56,11 @@ again:
 		n = (xstrcmp(n->d2, template_deref_var(t, n->d1)) != 0 ? n->nodes[0] : n->nodes[1]);
 		goto again;
 
+	case TNODE_ASSIGN:
+		if (ctx->echo) { string_append(ctx->out, n->d2); }
+		template_add_var(t, n->d1, n->d2);
+		return 0;
+
 	default:
 		ERROR("Bad node type: %i", n->type);
 		return -1;

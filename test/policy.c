@@ -80,10 +80,10 @@ void test_policy_pack()
 	resource_set(r, "owner",  "george");       /* rf_enf == 0000 1001 */
 	resource_set(r, "group",  "thoroughgood"); /* rf_enf == 0000 1011 */
 	resource_set(r, "mode",   "0600");         /* rf_enf == 0000 1111 */
+	policy_add_resource(pol, r);
 	/* sneakily override the checksum */
 	sha1_init(&((struct res_file*)(r->resource))->rf_rsha1,
 	          "0123456789abcdef0123456789abcdef01234567");
-	policy_add_resource(pol, r);
 
 	packed = policy_pack(pol);
 	assert_not_null("policy_pack succeeds", packed);

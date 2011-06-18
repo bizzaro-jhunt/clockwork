@@ -4,6 +4,7 @@
 #include "clockwork.h"
 #include "list.h"
 #include "userdb.h"
+#include "hash.h"
 
 #include "managers/package.h"
 #include "managers/service.h"
@@ -215,7 +216,7 @@ char *resource_key(const struct resource *r);
 
   @returns 0 on succes, non-zero on failure.
  */
-int resource_norm(struct resource *r, struct policy *pol);
+int resource_norm(struct resource *r, struct policy *pol, struct hash *facts);
 
 /**
   Set a Resource Attribute

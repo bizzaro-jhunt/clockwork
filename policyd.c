@@ -53,6 +53,7 @@ static worker* spawn(server *s);
 static int worker_prep(worker *w);
 static int verify_peer(worker *w);
 static int send_file(worker *w, const char *path);
+static int send_template(worker *w, const char *path);
 
 static int handle_HELLO(worker *w);
 static int handle_GET_CERT(worker *w);
@@ -349,7 +350,7 @@ static int handle_FILE(worker *w)
 	}
 
 	file = NULL;
-	for_each_resource(res, policy) {
+	for_each_resource(res, w->policy) {
 		if (res->type == RES_FILE) {
 			match = (struct res_file*)(res->resource);
 			if (sha1_cmp(&match->rf_rsha1, &checksum) == 0) {
@@ -360,9 +361,18 @@ static int handle_FILE(worker *w)
 	}
 
 	if (file) {
-		INFO("Matched %s to %s", checksum.hex, file->rf_rpath);
-		if (send_file(w, file->rf_rpath) != 0) {
-			DEBUG("Unable to send file");
+		if (file->rf_rpath) {
+			INFO("Matched %s to %s", checksum.hex, file->rf_rpath);
+			if (send_file(w, file->rf_rpath) != 0) {
+				DEBUG("Unable to send file");
+			}
+		} else if (file->rf_template) {
+			INFO("Matched %s to template %s", checksum.hex, file->rf_template);
+			if (send_template(w, file->rf_template) != 0) {
+				DEBUG("Unable to send template contents");
+			}
+		} else {
+			DEBUG("Unknown file source type (not rpath / not template)");
 		}
 	} else {
 		INFO("File Not Found: %s", checksum.hex);
@@ -463,9 +473,26 @@ static int send_file(worker *w, const char *path)
 {
 	int fd = open(path, O_RDONLY);
 	int n;
-	while ((n = pdu_send_DATA(&w->session, fd)) > 0)
+	while ((n = pdu_send_DATA(&w->session, fd, NULL)) > 0)
 		;
 
+	return n;
+}
+
+static int send_template(worker *w, const char *path)
+{
+	struct template *t;
+	char *data, *p;
+	int n;
+
+	t = template_create(path, w->facts);
+	p = data = template_render(t);
+
+	while ((n = pdu_send_DATA(&w->session, -1, p)) > 0) {
+		p += n;
+	}
+
+	free(t); free(data);
 	return n;
 }
 

@@ -13,7 +13,8 @@ enum tnode_type {
 	TNODE_VALUE,
 	TNODE_REF,
 	TNODE_IF_EQ,
-	TNODE_IF_NE
+	TNODE_IF_NE,
+	TNODE_ASSIGN
 };
 
 /**

@@ -72,8 +72,9 @@
 <TPL>"is"     { return T_KEYWORD_IS; }
 <TPL>"not"    { return T_KEYWORD_NOT; }
 <TPL>"end"    { return T_KEYWORD_END; }
+<TPL>"="      { return T_OP_ASSIGN; }
 
-<TPL>([a-z_]+\.)+[a-z_]+ { /* fact */
+<TPL>([a-z0-9_]+\.)+[a-z0-9_]+ { /* fact */
 	yylval->string = strdup(yytext);
 	return T_IDENTIFIER;
 }

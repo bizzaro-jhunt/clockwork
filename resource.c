@@ -5,7 +5,7 @@
 typedef void* (*resource_new_f)(const char *key);
 typedef void (*resource_free_f)(void *res);
 typedef char* (*resource_key_f)(const void *res);
-typedef int (*resource_norm_f)(void *res, struct policy *pol);
+typedef int (*resource_norm_f)(void *res, struct policy *pol, struct hash *facts);
 typedef int (*resource_set_f)(void *res, const char *attr, const char *value);
 typedef int (*resource_match_f)(const void *res, const char *attr, const char *value);
 typedef int (*resource_stat_f)(void *res, const struct resource_env *env);
@@ -100,12 +100,12 @@ char *resource_key(const struct resource *r)
 	return (*(resource_types[r->type].key_callback))(r->resource);
 }
 
-int resource_norm(struct resource *r, struct policy *pol)
+int resource_norm(struct resource *r, struct policy *pol, struct hash *facts)
 {
 	assert(r);
 	assert(r->type != RES_UNKNOWN);
 
-	return (*(resource_types[r->type].norm_callback))(r->resource, pol);
+	return (*(resource_types[r->type].norm_callback))(r->resource, pol, facts);
 }
 
 int resource_set(struct resource *r, const char *attr, const char *value)

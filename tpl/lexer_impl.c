@@ -40,10 +40,6 @@ void template_parser_warning(void *user, const char *fmt, ...)
 	}
 }
 
-int yywrap(yyscan_t scanner) {
-	return -1;
-}
-
 int template_parser_use_file(const char *path, template_parser_context *ctx)
 {
 	FILE *io;

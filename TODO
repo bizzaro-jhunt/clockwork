@@ -1,11 +1,9 @@
 List of Things To Do
 ====================
 
-autostr implementation as standalone
 Variable Strings for Attribute Values
 
 res_file -> parent-directory implicit dependencies
-res_file template support
 Figure out how to manage parts of a file (like augeas)
   - Instead of resources like res_mount, what if integrate
     augeas under the stanza type of "config":

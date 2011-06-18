@@ -4,11 +4,12 @@
 
 #include <ctype.h>
 
+/** @cond false */
 struct template_context {
-
 	struct string *out;
 	int echo;
 };
+/** @endcond */
 
 /***********************************************************************/
 

@@ -409,7 +409,31 @@ int pdu_send_SEND_CERT(protocol_session *session, X509  *cert);
  */
 int pdu_decode_SEND_CERT(protocol_data_unit *pdu, X509 **cert);
 
+/**
+  Send a REPORT PDU to the policy master.
+
+  REPORT PDUs are sent to the policy master by clients after they
+  have evaluated and enforced their policy locally.  The PDU contains
+  a packed job structure that represents the run and everything that
+  was attempted to bring the local system into compliance.
+
+  @param  session    The current session.  Contains the IO stream,
+                     and the PDU buffer.
+  @param  job        The job representing the report to send.
+
+  @returns 0 on success, non-zero on failure.
+ */
 int pdu_send_REPORT(protocol_session *session, struct job *job);
+
+/**
+  Decode a REPORT PDU sent by the client.
+
+  @param  pdu      PDU to decode.
+  @param  job      Pointer to a pointer to a job structure,
+                   where the report will be stored.
+
+  @returns 0 on success, non-zero on failure.
+ */
 int pdu_decode_REPORT(protocol_data_unit *pdu, struct job **job);
 
 #endif

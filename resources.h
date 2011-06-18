@@ -17,7 +17,13 @@
 #include "hash.h"
 #include "policy.h"
 
+/** @file resources.h
 
+  All core resource types are defined in this file.
+
+  */
+
+/** @cond false */
 #define NEW_RESOURCE(t) \
 void*          res_ ## t ## _new(const char *key); \
 void           res_ ## t ## _free(void *res); \
@@ -30,8 +36,9 @@ struct report* res_ ## t ## _fixup(void *res, int dryrun, const struct resource_
 int            res_ ## t ## _notify(void *res, const struct resource *dep); \
 char*          res_ ## t ## _pack(const void *res); \
 void*          res_ ## t ## _unpack(const char *packed)
+/** @endcond */
 
-
+/** Enforce the absence of user / user is present. */
 #define RES_USER_ABSENT   0x80000000
 
 /** No fields to enforce / No fields are different. */
@@ -134,7 +141,9 @@ struct res_user {
 	unsigned int different;
 };
 
+/** @cond false */
 NEW_RESOURCE(user);
+/** @endcond */
 
 
 /** Enforce absence of group / group is present . */
@@ -195,7 +204,9 @@ struct res_group {
 	unsigned int different;
 };
 
+/** @cond false */
 NEW_RESOURCE(group);
+/** @endcond */
 
 /**
   Set enforcement mode for group membership.
@@ -291,7 +302,7 @@ int res_group_remove_admin(struct res_group *rg, const char *user);
 
 
 
-/** Enforce absence of file / file is absent. */
+/** Enforce absence of file / file is present. */
 #define RES_FILE_ABSENT   0x80000000
 
 /** No fields to enforce /  No fields are different. */
@@ -351,7 +362,9 @@ struct res_file {
 	unsigned int different;
 };
 
+/** @cond false */
 NEW_RESOURCE(file);
+/** @endcond */
 
 /**
   Retrieve an open stdio FILE handle for a file resource.
@@ -369,8 +382,9 @@ NEW_RESOURCE(file);
 FILE* res_file_io(struct res_file *rf);
 
 
-
+/** Enforce absence of package / package is installed. */
 #define RES_PACKAGE_ABSENT   0x80000000
+/** No fields to enforce / no fields are different. */
 #define RES_PACKAGE_NONE     0x0
 
 /**
@@ -395,14 +409,20 @@ struct res_package {
 	unsigned int different;
 };
 
+/** @cond false */
 NEW_RESOURCE(package);
+/** @endcond */
 
 
-
+/** Service should be running / service is running. */
 #define RES_SERVICE_RUNNING   0x0001
+/** Service should be stopped / service is stopped. */
 #define RES_SERVICE_STOPPED   0x0002
+/** Service should be enabled / service is enabled. */
 #define RES_SERVICE_ENABLED   0x0004
+/** Service should be disabled / service is disabled. */
 #define RES_SERVICE_DISABLED  0x0010
+/** No fields to enforce / no fields differ. */
 #define RES_SERVICE_NONE      0x0
 
 /**
@@ -432,7 +452,9 @@ struct res_service {
 	unsigned int different;
 };
 
+/** @cond false */
 NEW_RESOURCE(service);
+/** @endcond */
 
 #undef NEW_RESOURCE
 

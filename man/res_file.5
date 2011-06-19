@@ -1,0 +1,219 @@
+.TH res_file "5" "June 2011" "Clockwork" " Clockwork Resource Types"'"
+\"----------------------------------------------------------------
+.SH NAME
+res_file \- Clockwork Resource Type for managing files
+.br
+
+\"----------------------------------------------------------------
+.SH DESCRIPTION
+A fair portion of Linux system administration involves creating and
+maintaining configuration files.  The \fBres_file\fR resource for
+Clockwork automates much of this work by allowing an administrator
+to specify almost every attribute of a file in a system policy:
+.PP
+.RS 4
+.nr attrs 1 1
+.IP \n[attrs]. 3
+.B Ownership
+(user and group)
+
+.IP \n+[attrs].
+.B Permissions
+
+.IP \n+[attrs].
+.B Contents
+(both static and dynamic)
+
+.RE
+.PP
+
+
+\"----------------------------------------------------------------
+.SH ATTRIBUTES
+
+.B owner
+.RS 4
+The name or UID of the user who should own the file or directory.
+.RE
+.PP
+
+.B group
+.RS 4
+The name or GID of the group who should own this file or directory.
+.RE
+.PP
+
+.B mode
+.RS 4
+The permissions set for this file or directory.  The value must be
+specified in octal notation, i.e. 0755 for rwxr-xr-x.
+.RE
+.PP
+
+.B source
+.RS 4
+The path (from the policy master's point of view) to the source file.
+If specified, the client-side file will be updated to match this static
+file.
+.PP
+Has no affect on directories, hard links or symbolic links.
+.RE
+.PP
+
+.B template
+.RS 4
+The path (from the policy master's point of view) to a source file template.
+Like the
+.B source
+attribute, specifying this will cause the client-side file to be updated
+from the copy on the master.  A template, however, is evaluated against
+the client's set of facts and a custom source file is generated.
+.PP
+Has no affect on directories, hard links or symbolic links.
+.RE
+.PP
+
+.B path
+.RS 4
+The path (from the client's point of view) to the file to be managed.
+.RE
+.PP
+
+.B present
+.RS 4
+Whether or not this file or directory should exist.  Valid values are
+"yes" and "no".  The default value is "yes".
+.RE
+.PP
+
+
+\"----------------------------------------------------------------
+.SH EXAMPLES
+.SS Ownership and Permissions
+Ensure ownership and permissions on /etc/sudoers:
+.PP
+.RS 4
+.nf
+file "/etc/sudoers" {
+    owner: "root"
+    group: "root"
+    mode:  "0440" # required mode for sudo to work
+}
+.fi
+.RE
+.PP
+
+.SS Complete Control
+In this scenario, local changes to /etc/foo.conf, including edits,
+file removal, and ownership / permissions changes will be undone
+by the Clockwork agent.
+.PP
+.RS 4
+.nf
+file "/etc/foo.conf" {
+    owner:  "foo"
+    group:  "root"
+    mode:   "0640"
+    source: "/clockwork/files/foo.conf"
+}
+.fi
+.RE
+.PP
+
+.SS Templates
+Templates can be used to flexibly push out files that are similar
+on all hosts, but differ with host-specific details.  Assuming the
+following template (/clockwork/templates/banner.tpl):
+.PP
+.RS 4
+.nf
+------------------------------------------------------------------
+<%= sys.fqdn %> - Widgets Co. Ltd.
+
+Unauthorized access to this machine is prohibited.
+Use of this system is limited to authorized individuals only.
+All activity is monitored.
+------------------------------------------------------------------
+.fi
+.RE
+.PP
+This host resource will enforce a banner for all hosts that contains
+the standard "warning" verbiage as well as the local hostname:
+.PP
+.RS 4
+.nf
+file "/etc/banner" {
+    owner:    "root"
+    group:    "root"
+    mode:     "0400"
+    template: "/clockwork/templates/banner.tpl"
+}
+.fi
+.RE
+.PP
+When evaluated on the host named 'labs.example.net', /etc/banner
+will contain the following (emphasis added):
+.PP
+.RS 4
+.nf
+------------------------------------------------------------------
+\fBlabs.example.net\fR - Widgets Co. Ltd.
+
+Unauthorized access to this machine is prohibited.
+Use of this system is limited to authorized individuals only.
+All activity is monitored.
+------------------------------------------------------------------
+.fi
+.RE
+.PP
+
+
+
+\"----------------------------------------------------------------
+.SH CAVEATS
+
+.SS 1. Parent Directories
+File resources do not currently create parent directories.
+.PP
+
+.SS 2. Link Support
+Symbolic links and hard links cannot yet be created wth the file
+resource.
+.PP
+
+.SS 3. Directory Support
+Directories cannot yet be created with the file resource.
+
+\"----------------------------------------------------------------
+.SH DEPENDENCIES
+File resources implicitly create the following dependencies:
+.PP
+.SS User Owner (owner)
+If the
+.B owner
+attribute is specified, the file resource will depend on the
+existence of that user.  This is designed to ensure that files are
+owned by valid system users.
+.PP
+
+.SS Group Owner (group)
+If the
+.B group
+attribute is specified, the file resource will depend on the
+existence of that group.  This is designed to ensure that files are
+owned by valid system groups.
+.PP
+
+\"----------------------------------------------------------------
+.SH AUTHOR
+Clockwork was conceived and written by James Hunt.
+.PP
+Original ideas were stolen from
+.B CFEngine
+(Mark Burgess) and
+.B Puppet
+(Luke Kanies).
+
+\"----------------------------------------------------------------
+.SH BUGS
+None.

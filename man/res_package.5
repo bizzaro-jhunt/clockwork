@@ -1,0 +1,156 @@
+.TH res_package "5" "June 2011" "Clockwork" " Clockwork Resource Types"'"
+\"----------------------------------------------------------------
+.SH NAME
+res_package \- Clockwork Resource Type for software packages
+.br
+
+\"----------------------------------------------------------------
+.SH DESCRIPTION
+The package resource allows administrators to specify what software
+should be installed (or not installed) on what hosts.  Package
+management is performed through the local system's package manager;
+standalone installation scripts (i.e. .bin files) are not supported.
+.PP
+The following Linux package managers are currently supported:
+.nr mgrs 1 1
+.IP \n[mgrs]. 3
+.B YUM
+\- For RPM-based platforms (RedHat, CentOS, SuSE, OEL, etc.)
+.IP \n+[mgrs]
+.B APT
+\- For DPKG-based platforms (Debian, Ubuntu, etc.)
+.PP
+
+\"----------------------------------------------------------------
+.SH ATTRIBUTES
+
+.B name
+.RS 8
+The name of the software package, according to the local package
+manager.  This may be different based on host architecture; conditional
+policy constructs should be used to get the correct name.
+.RE
+.PP
+
+.B version
+.RS 8
+The (optional) version of the package to install.  If not specified,
+the latest available version from all known repositories will be used.
+.RE
+.PP
+
+.B installed
+.RS 8
+Whether or not the package should be installed on the system.  Valid
+values are \fB"yes"\fR and \fB"no"\fR.  Default value is \fB"yes"\fR.
+.RE
+.PP
+
+\"----------------------------------------------------------------
+.SH EXAMPLES
+
+.SS Installation of Packages
+Ensure that the apache web server package, httpd, is installed and
+up-to-date:
+.PP
+.RS 4
+.nf
+package "httpd" { }
+.fi
+.RE
+.PP
+Even though the default behavior of the package resource is to install
+the software package, explicitly specifying this is considered good
+practice:
+.PP
+.RS 4
+.nf
+package "httpd" {
+    installed: "yes"
+}
+.fi
+.RE
+.PP
+Same as the above, but use the 2.2 version of Apache, not the latest
+available version:
+.PP
+.RS 4
+.nf
+package "httpd" {
+    installed: "yes"
+    version:   "2.2"
+}
+.fi
+.RE
+.PP
+
+.SS Removal of Packages
+Removing packages is easy; just set \fBinstalled\fR to \fB"no"\fR:
+.PP
+.RS 4
+.nf
+package "emacs" {
+    installed: "no"
+}
+.fi
+.RE
+
+.SS Platform Detection and Package Names
+Not all distributions name their packages the same way.  Using \fIif\fR
+constructs in the policy definition makes it easy to accommodate
+different naming schemes.
+.PP
+For this example, assume we want to install \fImypackage\fR on CentOS and
+Ubuntu machines in your infrastructure.  The Ubuntu package name is 
+\fImy-package-core\fR, but the CentOS package name is \fImypackage\fR.
+.PP
+(We also assume that there are no other platforms to worry about.)
+.PP
+.RS 4
+.nf
+package "mypackage" {
+
+    # override the package name for Ubuntu
+    if (lsb.distro.id is "Ubuntu") {
+        name: "my-package-core"
+    }
+
+    installed: "yes"
+}
+.fi
+.RE
+.PP
+The above resource definition works because the initial package name will
+be set to "mypackage", and then overidden if the agent is running on Ubuntu.
+
+\"----------------------------------------------------------------
+.SH CAVEATS
+.PP
+.SS 1. Package Removal and Versioning
+.PP
+Version information (set by the \fBversion\fR attribute) is ignored
+if the package is set to be removed.
+.PP
+
+\"----------------------------------------------------------------
+.SH DEPENDENCIES
+None.
+.PP
+.B Note:
+Package dependency resolution (i.e. apache depends on the apr-util
+package) is handled solely by the package manager.
+.PP
+
+\"----------------------------------------------------------------
+.SH AUTHOR
+Clockwork was conceived and written by James Hunt.
+.PP
+Original ideas were stolen from
+.B CFEngine
+(Mark Burgess) and
+.B Puppet
+(Luke Kanies).
+
+\"----------------------------------------------------------------
+.SH BUGS
+None.

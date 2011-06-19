@@ -348,7 +348,7 @@ dist: clean
 	rm -rf ext/build/*
 
 fixme:
-	find . -name '*.[ch]' -not -path './ext/**' | xargs grep -n FIXME: | sed -e 's/:[^:]*FIXME: /:/' -e 's/ *\*\///' | column -t -s :
+	find . -name '*.[ch15]' -not -path './ext/**' -not -path './man/tpl/*' | xargs grep -n FIXME: | sed -e 's/:[^:]*FIXME: /:/' -e 's/ *\*\///' | column -t -s :
 
 stats: clean
 	find . -name '*.[ch]' -not -path './test/**' 2>/dev/null | xargs ./util/nocomment | wc -l

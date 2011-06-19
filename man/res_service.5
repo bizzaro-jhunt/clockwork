@@ -1,0 +1,174 @@
+.TH res_service "5" "June 2011" "Clockwork" " Clockwork Resource Types"'"
+\"----------------------------------------------------------------
+.SH NAME
+res_service \- Clockwork Resource Type for system init services
+.br
+
+\"----------------------------------------------------------------
+.SH DESCRIPTION
+The service resource manages system services, normally found in
+/etc/init.d.  It can be used to restart or reload services in
+response to other system configuration changes through explicit
+dependencies.  It can also be used to enable or disable specific
+services on boot.
+.PP
+To manage boot-time services, Clockwork relies on the native service
+management tools like chkconfig.  The following tools are currently
+supported:
+.PP
+.nr mgrs 1 1
+.IP \n[mgrs]. 3
+.B invoke-rc.d
+\- For Debian and Ubuntu
+
+\"----------------------------------------------------------------
+.SH ATTRIBUTES
+
+.B name
+.br
+.B service
+.RS 8
+The name of the service, derived from its init script name in
+/etc/init.d.
+.RE
+.PP
+
+.B running
+.br
+.B stopped
+.RS 8
+Whether or not the service should be alive and running.  Valid
+values are "yes" and "no".  There is no default value; if not
+specified, Clockwork will not inspect the running state of the
+service.
+.PP
+Which attribute you use is a matter of personal preference.
+.PP
+.B running = "yes"
+has the same meaning as
+.B stopped = "no"
+.PP
+.B running = "no"
+has the same meaning as
+.B stopped = "yes"
+.RE
+.PP
+
+.B enabled
+.br
+.B disabled
+.RS 8
+Whether or not the service should be started at boot.  Valid
+values are "yes" and "no".  There is no default value; if not
+specified, Clockwork will not inspect the boot-state of the
+service.
+.PP
+Which attribute you use is a matter of personal preference.
+.PP
+.B enabled = "yes"
+has the same meaning as
+.B disabled = "no"
+.PP
+.B enabled = "no"
+has the same meaning as
+.B disabled = "yes"
+.PP
+
+\"----------------------------------------------------------------
+.SH EXAMPLES
+
+.SS Starting and Enabling Services
+To ensure that SSH is running, and that it will automatically
+start when the system boots:
+.PP
+.RS 4
+.nf
+service "sshd" {
+    running: "yes"
+    enabled: "yes"
+}
+.fi
+.RE
+.PP
+If you are of a pessimistic persuasion, you can use double negatives
+to accomplish the same thing:
+.PP
+.RS 4
+.nf
+service "sshd" {
+    stopped:  "no"
+    disabled: "no"
+}
+.fi
+.RE
+.PP
+
+.SS Stopping and Disabling Services
+To ensure that avahi never runs, ever:
+.PP
+.RS 4
+.nf
+service "avahi-daemon" {
+    running:  "no"
+    disabled: "yes"
+}
+.fi
+.RE
+.PP
+
+\"----------------------------------------------------------------
+.SH CAVEATS
+
+.SS 1. Default Behavior
+.PP
+By default, Clockwork does nothing with services unless you tell
+it what to do.  For example, this policy snippet is useless:
+.PP
+.RS 4
+.nf
+service "apache" { }
+.fi
+.RE
+.PP
+
+\"----------------------------------------------------------------
+.SH DEPENDENCIES
+The service resource does not create implicit dependencies, but
+you can leverage explicit dependencies to reload services when their
+configuration changes.
+.PP
+For example, to restart syslog-ng when its global configuration file
+changes:
+.PP
+.RS 4
+.nf
+file "/etc/syslog-ng.conf" {
+    # configuration omitted for clarity
+}
+
+service "syslog-ng" {
+    running: "yes"
+    enabled: "yes"
+}
+
+service("syslog-ng") depends on file("/etc/syslog-ng.conf")
+.fi
+.RE
+.PP
+Now, the \fIsyslog-ng\fR service will be reloaded if Clockwork has
+to do anything to the \fI/etc/syslog-ng.conf\fR file.
+.PP
+
+\"----------------------------------------------------------------
+.SH AUTHOR
+Clockwork was conceived and written by James Hunt.
+.PP
+Original ideas were stolen from
+.B CFEngine
+(Mark Burgess) and
+.B Puppet
+(Luke Kanies).
+
+\"----------------------------------------------------------------
+.SH BUGS
+None.

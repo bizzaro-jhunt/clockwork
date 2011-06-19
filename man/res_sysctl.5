@@ -1,0 +1,119 @@
+.TH res_sysctl "5" "June 2011" "Clockwork" " Clockwork Resource Types"'"
+\"----------------------------------------------------------------
+.SH NAME
+res_sysctl \- Clockwork Resource Type for Kernel Parameters
+.br
+
+\"----------------------------------------------------------------
+.SH DESCRIPTION
+The sysctl resource allows administrators to manage kernel and
+system parameters that are usually modified through the /proc/sys
+virtual mountpoing and /etc/sysctl.conf.
+.PP
+\fBres_sysctl\fR has the advantage of being able to manage only
+parts of the /etc/sysctl.conf file, and make changes live to a running
+kernel.
+.PP
+
+\"----------------------------------------------------------------
+.SH ATTRIBUTES
+
+.B name
+.RS 8
+The name of the kernel parameter in dotted notation,
+.br
+i.e.
+.I kernel.printk
+.RE
+.PP
+
+.B value
+.RS 8
+The value to assign to the kernel parameter.  Clockwork does not
+verify or validate this value.  Specifying incorrect values may
+render your system unusable, so please be careful.
+.RE
+.PP
+
+.B persist
+.RS 8
+Whether or not the value should persist across reboots.  Valid
+values are "yes" and "no".  Default value is "yes".  If you specify
+that the parameter change should not persist, then it will not be
+put in the /etc/sysctl.conf file.
+.RE
+.PP
+
+\"----------------------------------------------------------------
+.SH EXAMPLES
+
+.SS Basic Usage
+Here are a few examples that will turn on spoof protection
+(reverse-path filter) in the kernel's IP stack:
+.PP
+.RS 4
+.nf
+sysctl "net.ipv4.conf.default.rp_filter" { value: "1" }
+sysctl "net.ipv4.conf.all.rp_filter"     { value: "1" }
+.fi
+.RE
+.PP
+This example does the same thing, but only for the live kernel.
+Changes will be undone after the next reboot:
+.PP
+.RS 4
+.nf
+sysctl "net.ipv4.conf.default.rp_filter" {
+    value:   "1"
+    persist: "no"
+}
+sysctl "net.ipv4.conf.all.rp_filter" {
+    value:   "1"
+    persist: "no"
+}
+.fi
+.RE
+.PP
+
+
+\"----------------------------------------------------------------
+.SH CAVEATS
+
+.SS 1. Use With CAUTION
+Mucking about with kernel parameters can lead to unusable and
+broken systems.  Make sure you research the changes you are making
+and understand the consequences.  If possible, use a test server
+to stage sysctl changes.
+.PP
+
+.SS 2. Parameter \fIvalue\fB is Required
+It does not make sense to set a kernel parameter without a value.
+If you do not specify one with the \fBvalue\fR attribute, Clockwork
+will essentially ignore the resource definition.  For example,
+the following policy configuration does nothing:
+.PP
+.RS 4
+.nf
+# nonsensical
+sysctl "kernel.printk" { }
+.fi
+.RE
+.PP
+
+\"----------------------------------------------------------------
+.SH DEPENDENCIES
+None.
+
+\"----------------------------------------------------------------
+.SH AUTHOR
+Clockwork was conceived and written by James Hunt.
+.PP
+Original ideas were stolen from
+.B CFEngine
+(Mark Burgess) and
+.B Puppet
+(Luke Kanies).
+
+\"----------------------------------------------------------------
+.SH BUGS
+None.

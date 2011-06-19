@@ -135,6 +135,6 @@ res_net_route
 
 res_sysctl
 ----------
-  name
-  value
-  persist
++ name
++ value
++ persist

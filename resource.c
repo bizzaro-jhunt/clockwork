@@ -51,7 +51,8 @@ typedef void* (*resource_unpack_f)(const char *packed);
 		RESOURCE_TYPE(file),
 		RESOURCE_TYPE(package),
 		RESOURCE_TYPE(service),
-		RESOURCE_TYPE(host)
+		RESOURCE_TYPE(host),
+		RESOURCE_TYPE(sysctl)
 	};
 
 #undef RESOURCE_TYPE

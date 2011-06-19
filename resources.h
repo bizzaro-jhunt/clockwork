@@ -484,6 +484,26 @@ struct res_host {
 NEW_RESOURCE(host);
 /** @encond */
 
+#define RES_SYSCTL_ABSENT   0x80000000
+#define RES_SYSCTL_VALUE    0x01
+#define RES_SYSCTL_PERSIST  0x02
+
+struct res_sysctl {
+	char *key;
+
+	char *param;
+	char *value;
+
+	int persist;
+
+	unsigned int enforced;
+	unsigned int different;
+};
+
+/** @cond false */
+NEW_RESOURCE(sysctl);
+/** @endcond */
+
 #undef NEW_RESOURCE
 
 #endif

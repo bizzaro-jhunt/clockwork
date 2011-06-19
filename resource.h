@@ -23,6 +23,7 @@ enum restype {
 	RES_PACKAGE,
 	RES_SERVICE,
 	RES_HOST,
+	RES_SYSCTL,
 	RES_UNKNOWN /* must be the LAST enumerated value */
 };
 

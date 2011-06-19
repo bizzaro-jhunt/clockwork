@@ -16,6 +16,9 @@ static int _res_user_populate_home(const char *home, const char *skel, uid_t uid
 static int _res_file_gen_rsha1(struct res_file *rf, struct hash *facts);
 static int _res_file_fd2fd(int dest, int src, ssize_t bytes);
 static int _group_update(stringlist*, stringlist*, const char*);
+static char* _sysctl_path(const char *param);
+static int _sysctl_read(const char *param, char **value);
+static int _sysctl_write(const char *param, const char *value);
 
 /*****************************************************************/
 
@@ -127,6 +130,66 @@ static int _group_update(stringlist *add, stringlist *rm, const char *user)
 	}
 
 	return 0;
+}
+
+static char* _sysctl_path(const char *param)
+{
+	char *path, *p;
+
+	path = string("/proc/sys/%s", param);
+	for (p = path; *p; p++) {
+		if (*p == '.') {
+			*p = '/';
+		}
+	}
+
+	return path;
+}
+
+static int _sysctl_read(const char *param, char **value)
+{
+	char *path, buf[256] = {0};
+	int fd;
+
+	path = _sysctl_path(param);
+	fd = open(path, O_RDONLY);
+	free(path);
+
+	if (fd < 0 || read(fd, buf, 255) < 0) {
+		return -1;
+	}
+
+	/** FIXME: should we clean up spaces and tabs? */
+
+	if (value) {
+		*value = strdup(buf);
+	}
+	return 0;
+}
+
+static int _sysctl_write(const char *param, const char *value)
+{
+	char *path;
+	int fd;
+	size_t len, nwritten, n;
+
+	path = _sysctl_path(param);
+	fd = open(path, O_WRONLY);
+	free(path);
+
+	if (fd < 0) {
+		return -1;
+	}
+
+	len = strlen(value);
+	nwritten = 0;
+	do {
+		n = write(fd, param + nwritten, len - nwritten);
+		if (n <= 0) { return n; }
+		nwritten += n;
+	} while (nwritten < len);
+
+	return nwritten;
 }
 
 /*****************************************************************/
@@ -2282,4 +2345,201 @@ void* res_host_unpack(const char *packed)
 #undef PACK_FORMAT
 
 int res_host_notify(void *res, const struct resource *dep) { return 0; }
+
+
+void* res_sysctl_new(const char *key)
+{
+	struct res_sysctl *rs;
+
+	rs = xmalloc(sizeof(struct res_sysctl));
+
+	rs->persist = 1; /* persist values by default... */
+	rs->enforced = RES_SYSCTL_PERSIST;
+	rs->different = 0;
+
+	rs->key = NULL;
+	if (key) {
+		rs->key = strdup(key);
+		res_sysctl_set(rs, "param", key);
+	}
+
+	return rs;
+}
+
+void res_sysctl_free(void *res)
+{
+	struct res_sysctl *rs = (struct res_sysctl*)(res);
+	if (rs) {
+		free(rs->param);
+		free(rs->value);
+
+		free(rs->key);
+	}
+
+	free(rs);
+}
+
+char* res_sysctl_key(const void *res)
+{
+	const struct res_sysctl *rs = (struct res_sysctl*)(res);
+	assert(rs);
+
+	return string("res_sysctl:%s", rs->key);
+}
+
+int res_sysctl_norm(void *res, struct policy *pol, struct hash *facts) { return 0; }
+
+int res_sysctl_set(void *res, const char *name, const char *value)
+{
+	struct res_sysctl *rs = (struct res_sysctl*)(res);
+	assert(rs);
+
+	if (strcmp(name, "param") == 0) {
+		free(rs->param);
+		rs->param = strdup(value);
+
+	} else if (strcmp(name, "value") == 0) {
+		free(rs->value);
+		rs->value = strdup(value);
+		ENFORCE(rs, RES_SYSCTL_VALUE);
+
+	} else if (strcmp(name, "persist") == 0) {
+		rs->persist = strcmp(value, "no");
+		if (rs->persist) {
+			ENFORCE(rs, RES_SYSCTL_PERSIST);
+		} else {
+			UNENFORCE(rs, RES_SYSCTL_PERSIST);
+		}
+
+	} else {
+		return -1;
+	}
+
+	return 0;
+}
+
+int res_sysctl_match(const void *res, const char *name, const char *value)
+{
+	const struct res_sysctl *rs = (const struct res_sysctl*)(res);
+	assert(rs);
+
+	char *test_value;
+	int rc;
+
+	if (strcmp(name, "param") == 0) {
+		test_value = string("%s", rs->param);
+	} else {
+		return 1;
+	}
+
+	rc = strcmp(test_value, value);
+	free(test_value);
+	return rc;
+}
+
+int res_sysctl_stat(void *res, const struct resource_env *env)
+{
+	struct res_sysctl *rs = (struct res_sysctl*)(res);
+	assert(rs);
+
+	char *tmp;
+	const char *aug_value;
+
+	if (ENFORCED(rs, RES_SYSCTL_VALUE)) {
+		if (_sysctl_read(rs->param, &tmp) != 0) {
+			WARNING("res_sysctl: failed to get live value of %s", rs->param);
+			return -1;
+		}
+
+		if (strcmp(rs->value, tmp) != 0) {
+			DIFF(rs, RES_SYSCTL_VALUE);
+		}
+		xfree(tmp);
+
+		if (ENFORCED(rs, RES_SYSCTL_PERSIST)) {
+			tmp = string("/files/etc/sysctl.conf/%s", rs->param);
+			if (aug_get(env->aug_context, tmp, &aug_value) != 1
+			 || strcmp(aug_value, rs->value) != 0) {
+
+				DIFF(rs, RES_SYSCTL_PERSIST);
+			}
+			xfree(tmp);
+		}
+	}
+
+	return 0;
+}
+
+struct report* res_sysctl_fixup(void *res, int dryrun, const struct resource_env *env)
+{
+	struct res_sysctl *rs = (struct res_sysctl*)(res);
+	assert(rs);
+
+	char *aug_path;
+
+	struct report *report;
+	char *action;
+
+	report = report_new("Sysctl", rs->param);
+
+	if (DIFFERENT(rs, RES_SYSCTL_VALUE)) {
+		action = string("setting kernel parameter via /proc/sys");
+		if (dryrun) {
+			report_action(report, action, ACTION_SKIPPED);
+		} else {
+			if (_sysctl_write(rs->param, rs->value) > 0) {
+				report_action(report, action, ACTION_SUCCEEDED);
+			} else {
+				report_action(report, action, ACTION_FAILED);
+			}
+		}
+	}
+
+	if (DIFFERENT(rs, RES_SYSCTL_PERSIST)) {
+		action = string("save setting in /etc/sysctl.conf");
+		if (dryrun) {
+			report_action(report, action, ACTION_SKIPPED);
+		} else {
+			aug_path = string("/files/etc/sysctl.conf/%s", rs->param);
+			if (aug_set(env->aug_context, aug_path, rs->value) < 0) {
+				report_action(report, action, ACTION_FAILED);
+			} else {
+				report_action(report, action, ACTION_SUCCEEDED);
+			}
+			free(aug_path);
+		}
+	}
+
+	return report;
+}
+
+#define PACK_FORMAT "aLaaL"
+char* res_sysctl_pack(const void *res)
+{
+	const struct res_sysctl *rs = (const struct res_sysctl*)(res);
+	assert(rs);
+
+	return pack("res_sysctl::", PACK_FORMAT,
+		rs->key, rs->enforced,
+		rs->param, rs->value, rs->persist ? 1 : 0);
+}
+
+void* res_sysctl_unpack(const char *packed)
+{
+	struct res_sysctl *rs = res_sysctl_new(NULL);
+
+	if (unpack(packed, "res_sysctl::", PACK_FORMAT,
+		&rs->key, &rs->enforced,
+		&rs->param, &rs->value, &rs->persist) != 0) {
+
+		res_sysctl_free(rs);
+		return NULL;
+	}
+
+	return rs;
+}
+#undef PACK_FORMAT
+
+int res_sysctl_notify(void* res, const struct resource *dep) { return 0; }
+
 

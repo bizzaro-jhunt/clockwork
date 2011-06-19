@@ -132,6 +132,11 @@ resource: T_IDENTIFIER value '{' attributes '}'
 		  $$->op = RESOURCE;
 		  $$->data1 = xstrdup($1);
 		  $$->data2 = xstrdup($2); }
+	| T_KEYWORD_HOST value '{' attributes '}'
+		{ $$ = $4;
+		  $$->op = RESOURCE;
+		  $$->data1 = xstrdup("host");
+		  $$->data2 = xstrdup($2); }
 	;
 
 attributes:

@@ -317,8 +317,7 @@ stringlist *stringlist_intersect(const stringlist *a, const stringlist *b);
   @param  a    A pointer to a stringlist.
   @param  b    A pointer to a stringlist.
 
-  @returns 0 if \a a and \a b are equivalent and represent the same
-           list of strings; or non-zero if not.
+  @returns 0 if \a a and \a b are diferent, and non-zero if not.
  */
 int stringlist_diff(stringlist *a, stringlist *b);
 

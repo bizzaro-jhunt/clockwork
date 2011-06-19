@@ -464,6 +464,26 @@ struct res_service {
 NEW_RESOURCE(service);
 /** @endcond */
 
+#define RES_HOST_ABSENT   0x80000000
+#define RES_HOST_ALIASES  0x01
+
+struct res_host {
+	char *key;
+
+	char *hostname;
+	char *ip;
+	stringlist *aliases;
+
+	unsigned int enforced;
+	unsigned int different;
+
+	char *aug_root;
+};
+
+/** @cond false */
+NEW_RESOURCE(host);
+/** @encond */
+
 #undef NEW_RESOURCE
 
 #endif

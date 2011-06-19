@@ -15,7 +15,7 @@ LEX_FLAGS := --verbose --header-file --yylineno
 
 YACC_FLAGS := -Wall --token-table --defines --report=all
 
-CC_FLAGS := -Wall -lssl -lpthread -lsqlite3
+CC_FLAGS := -Wall -lssl -lpthread -lsqlite3 -laugeas
 
 OPENSSL := $(shell if [ -f ext/openssl/lib/libssl.so ]; then echo local; else echo system; fi)
 ifeq ($(OPENSSL), local)

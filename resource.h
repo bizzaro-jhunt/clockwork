@@ -2,6 +2,9 @@
 #define RESOURCE_H
 
 #include "clockwork.h"
+
+#include <augeas.h>
+
 #include "list.h"
 #include "userdb.h"
 #include "hash.h"
@@ -19,6 +22,7 @@ enum restype {
 	RES_FILE,
 	RES_PACKAGE,
 	RES_SERVICE,
+	RES_HOST,
 	RES_UNKNOWN /* must be the LAST enumerated value */
 };
 
@@ -49,7 +53,8 @@ struct resource_env {
 	/** Parsed /etc/gshadow database, for res_group */
 	struct sgdb *group_sgdb;
 
-	/* Used by res_file to refresh local files from remote copies */
+	/** Augeas context for sub-file configuration edit support */
+	augeas *aug_context;
 
 	/** File descriptor used by res_file to refresh local files
 	    from remote copies */

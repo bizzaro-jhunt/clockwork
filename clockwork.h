@@ -23,6 +23,12 @@
 #define SYS_GSHADOW "/etc/gshadow"
 #endif
 
+#ifdef DEVEL
+#  define clockwork_aug_init() aug_init("test/augeas/", "augeas/lenses", AUG_NONE)
+#else
+#  define clockwork_aug_init() aug_init("/", "/var/clockwork/augeas/lenses", AUG_NO_STDINC)
+#endif
+
 #include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>

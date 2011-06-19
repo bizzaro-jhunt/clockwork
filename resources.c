@@ -1999,3 +1999,287 @@ int res_service_notify(void *res, const struct resource *dep)
 
 	return 0;
 }
+
+
+void* res_host_new(const char *key)
+{
+	struct res_host *rh;
+
+	rh = xmalloc(sizeof(struct res_host));
+
+	rh->enforced = 0;
+	rh->different = 0;
+
+	rh->aliases = stringlist_new(NULL);
+
+	rh->key = NULL;
+	if (key) {
+		rh->key = strdup(key);
+		res_host_set(rh, "hostname", key);
+	}
+
+	return rh;
+}
+
+void res_host_free(void *res)
+{
+	struct res_host *rh = (struct res_host*)(res);
+	if (rh) {
+		free(rh->hostname);
+		stringlist_free(rh->aliases);
+
+		free(rh->key);
+	}
+
+	free(rh);
+}
+
+char* res_host_key(const void *res)
+{
+	const struct res_host *rh = (struct res_host*)(res);
+	assert(rh);
+
+	return string("res_host:%s", rh->key);
+}
+
+int res_host_norm(void *res, struct policy *pol, struct hash *facts) { return 0; }
+
+int res_host_set(void *res, const char *name, const char *value)
+{
+	struct res_host *rh = (struct res_host*)(res);
+	assert(rh);
+	stringlist *alias_tmp;
+
+	if (strcmp(name, "hostname") == 0) {
+		free(rh->hostname);
+		rh->hostname = strdup(value);
+
+	} else if (strcmp(name, "ip") == 0 || strcmp(name, "address") == 0) {
+		free(rh->ip);
+		rh->ip = strdup(value);
+
+	} else if (strcmp(name, "aliases") == 0 || strcmp(name, "alias") == 0) {
+		alias_tmp = stringlist_split(value, strlen(value), " ");
+		if (stringlist_add_all(rh->aliases, alias_tmp) != 0) {
+			stringlist_free(alias_tmp);
+			return -1;
+		}
+		stringlist_free(alias_tmp);
+
+		ENFORCE(rh, RES_HOST_ALIASES);
+
+	} else {
+		return -1;
+	}
+
+	return 0;
+}
+
+int res_host_match(const void *res, const char *name, const char *value)
+{
+	const struct res_host *rh = (const struct res_host*)(res);
+	assert(rh);
+
+	char *test_value;
+	int rc;
+
+	if (strcmp(name, "hostname") == 0) {
+		test_value = string("%s", rh->hostname);
+	} else if (strcmp(name, "ip") == 0 || strcmp(name, "address") == 0) {
+		test_value = string("%s", rh->ip);
+	} else {
+		return 1;
+	}
+
+	rc = strcmp(test_value, value);
+	free(test_value);
+	return rc;
+}
+
+int res_host_stat(void *res, const struct resource_env *env)
+{
+	struct res_host *rh = (struct res_host*)(res);
+	assert(rh);
+	assert(env);
+	assert(env->aug_context);
+
+	char *tmp, **results;
+	const char *value;
+	int rc, i;
+	stringlist *real_aliases = NULL;
+
+	rc = aug_match(env->aug_context, "/files/etc/hosts/*", &results);
+	for (i = 0; i < rc; i++) {
+		tmp = string("%s/ipaddr", results[i]);
+		aug_get(env->aug_context, tmp, &value);
+		free(tmp);
+
+		if (value && strcmp(value, rh->ip) == 0) { // ip matched
+			tmp = string("%s/canonical", results[i]);
+			aug_get(env->aug_context, tmp, &value);
+			free(tmp);
+
+			if (value && strcmp(value, rh->hostname) == 0) {
+				rh->aug_root = strdup(results[i]);
+				break;
+			}
+		}
+	}
+	free(results);
+
+	if (ENFORCED(rh, RES_HOST_ALIASES)) {
+		if (rh->aug_root) {
+			tmp = string("%s/alias");
+			rc = aug_match(env->aug_context, tmp, &results);
+			free(tmp);
+
+			real_aliases = stringlist_new(results);
+			free(results);
+
+			if (stringlist_diff(rh->aliases, real_aliases) == 0){
+				DIFF(rh, RES_HOST_ALIASES);
+			}
+			stringlist_free(real_aliases);
+
+		} else {
+			DIFF(rh, RES_HOST_ALIASES);
+		}
+	}
+
+	return 0;
+}
+
+struct report* res_host_fixup(void *res, int dryrun, const struct resource_env *env)
+{
+	struct res_host *rh = (struct res_host*)(res);
+	assert(rh);
+	assert(env);
+
+	char *tmp1, *tmp2;
+	int i;
+
+	struct report *report;
+	char *action;
+
+	int just_created = 0;
+
+	report = report_new("Host Entry", rh->hostname);
+
+	if (ENFORCED(rh, RES_HOST_ABSENT)) {
+		if (rh->aug_root) {
+			action = string("remove host entry");
+
+			if (dryrun) {
+				report_action(report, action, ACTION_SKIPPED);
+				return report;
+			}
+
+			if (aug_rm(env->aug_context, rh->aug_root) >= 0) {
+				report_action(report, action, ACTION_FAILED);
+			} else {
+				report_action(report, action, ACTION_SUCCEEDED);
+			}
+
+			return report;
+		}
+
+	} else {
+		if (!rh->aug_root) {
+			action = string("create host entry");
+
+			if (dryrun) {
+				report_action(report, action, ACTION_SKIPPED);
+			} else {
+				tmp1 = string("/files/etc/hosts/0%u/ipaddr", rh);
+				tmp2 = string("/files/etc/hosts/0%u/canonical", rh);
+
+				if (aug_set(env->aug_context, tmp1, rh->ip) < 0
+				 || aug_set(env->aug_context, tmp2, rh->hostname) < 0) {
+					report_action(report, action, ACTION_FAILED);
+				} else {
+					report_action(report, action, ACTION_SUCCEEDED);
+				}
+
+				free(tmp1);
+				free(tmp2);
+
+				rh->aug_root = string("/files/etc/hosts/0%u");
+				just_created = 1;
+			}
+		}
+	}
+
+	if (DIFFERENT(rh, RES_HOST_ALIASES) && rh->aliases) {
+		action = string("setting host aliases");
+
+		if (dryrun && !just_created) {
+			report_action(report, action, ACTION_SKIPPED);
+		} else {
+			tmp1 = string("%s/alias");
+			if (aug_rm(env->aug_context, tmp1) < 0) {
+				report_action(report, action, ACTION_FAILED);
+				action = NULL; // prevent future report for this action
+			}
+			free(tmp1);
+
+			for (i = 0; i < rh->aliases->num; i++) {
+				tmp1 = string("%s/alias[%u]", rh->aug_root, i+1);
+				if (aug_set(env->aug_context, tmp1, rh->aliases->strings[i]) < 0
+				 && action) {
+					report_action(report, action, ACTION_FAILED);
+					action = NULL; // prevent future report
+				}
+				free(tmp1);
+			}
+
+			if (action) {
+				report_action(report, action, ACTION_SUCCEEDED);
+			}
+		}
+	}
+
+	return report;
+}
+
+#define PACK_FORMAT "aLaaa"
+char* res_host_pack(const void *res)
+{
+	const struct res_host *rh = (const struct res_host*)(res);
+	assert(rh);
+
+	char *joined;
+	char *p;
+
+	joined = stringlist_join(rh->aliases, " ");
+
+	p = pack("res_host::", PACK_FORMAT,
+	         rh->key, rh->enforced,
+	         rh->hostname, rh->ip, joined);
+
+	free(joined);
+	return p;
+}
+
+void* res_host_unpack(const char *packed)
+{
+	struct res_host *rh = res_host_new(NULL);
+	char *joined = NULL;
+
+	if (unpack(packed, "res_host::", PACK_FORMAT,
+		&rh->key, &rh->enforced,
+		&rh->hostname, &rh->ip, &joined) != 0) {
+
+		res_host_free(rh);
+		free(joined);
+		return NULL;
+	}
+
+	stringlist_free(rh->aliases);
+	rh->aliases = stringlist_split(joined, strlen(joined), " ");
+
+	return rh;
+}
+#undef PACK_FORMAT
+
+int res_host_notify(void *res, const struct resource *dep) { return 0; }
+

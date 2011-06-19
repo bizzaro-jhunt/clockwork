@@ -116,8 +116,8 @@ res_cron
 
 res_host
 --------
-  hostname
-  aliases
++ hostname
++ aliases
 
 res_net_interface
 -----------------

@@ -31,6 +31,8 @@ static int print_summary(FILE *io, struct job *job);
 static int send_report(client *c, struct job *job);
 static int save_report(client *c, struct job *job);
 
+static void print_aug_errors(augeas *au);
+
 /**************************************************************/
 
 int main(int argc, char **argv)
@@ -324,6 +326,12 @@ static int enforce_policy(client *c, struct job *job)
 		exit(2);
 	}
 
+	env.aug_context = clockwork_aug_init();
+	if (!env.aug_context) {
+		CRITICAL("Unable to initialize Augeas subsystem");
+		exit(2);
+	}
+
 	if ((env.user_pwdb  = pwdb_init(SYS_PASSWD)) == NULL
 	 || (env.user_spdb  = spdb_init(SYS_SHADOW)) == NULL
 	 || (env.group_grdb = grdb_init(SYS_GROUP))  == NULL
@@ -387,6 +395,10 @@ static int enforce_policy(client *c, struct job *job)
 		spdb_write(env.user_spdb,  SYS_SHADOW);
 		grdb_write(env.group_grdb, SYS_GROUP);
 		sgdb_write(env.group_sgdb, SYS_GSHADOW);
+
+		if (aug_save(env.aug_context) != 0) {
+			print_aug_errors(env.aug_context);
+		}
 	}
 
 	if (job_end(job) != 0) {
@@ -514,4 +526,23 @@ static int save_report(client *c, struct job *job)
 
 	db_close(db);
 	return 0;
+}
+
+static void print_aug_errors(augeas *au)
+{
+	char **results = NULL;
+	const char *v;
+	int rc, i;
+
+	rc = aug_match(au, "/augeas//error/*", &results);
+	fprintf(stderr, "%i augeas errors found\n", rc);
+	for (i = 0; i < rc; i++) {
+		fprintf(stderr, "[augeas]: %s\n", results[i]);
+		aug_get(au, results[i], &v);
+		if (v) {
+			fprintf(stderr, "          %s\n", v);
+		}
+	}
+
+	free(results);
 }

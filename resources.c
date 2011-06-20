@@ -148,7 +148,8 @@ static char* _sysctl_path(const char *param)
 
 static int _sysctl_read(const char *param, char **value)
 {
-	char *path, buf[256] = {0};
+	char *path;
+	char *p, buf[256] = {0};
 	int fd;
 
 	path = _sysctl_path(param);
@@ -159,9 +160,12 @@ static int _sysctl_read(const char *param, char **value)
 		return -1;
 	}
 
-	/** FIXME: should we clean up spaces and tabs? */
-
 	if (value) {
+		for (p = buf; *p; p++) {
+			if (*p == '\t') { *p = ' '; }
+			if (*p == '\n') { *p = '\0'; }
+		}
+
 		*value = strdup(buf);
 	}
 	return 0;
@@ -171,9 +175,11 @@ static int _sysctl_write(const char *param, const char *value)
 {
 	char *path;
 	int fd;
-	size_t len, nwritten, n;
+	size_t len;
+	ssize_t n, nwritten;
 
 	path = _sysctl_path(param);
+	DEBUG("sysctl: Writing value to %s", path);
 	fd = open(path, O_WRONLY);
 	free(path);
 
@@ -184,7 +190,8 @@ static int _sysctl_write(const char *param, const char *value)
 	len = strlen(value);
 	nwritten = 0;
 	do {
-		n = write(fd, param + nwritten, len - nwritten);
+		n = write(fd, value + nwritten, len - nwritten);
+		DEBUG("%i/%u bytes written; n = %i", nwritten, len, n);
 		if (n <= 0) { return n; }
 		nwritten += n;
 	} while (nwritten < len);
@@ -2449,6 +2456,7 @@ int res_sysctl_stat(void *res, const struct resource_env *env)
 		}
 
 		if (strcmp(rs->value, tmp) != 0) {
+			DEBUG("'%s' != '%s'", rs->value, tmp);
 			DIFF(rs, RES_SYSCTL_VALUE);
 		}
 		xfree(tmp);
@@ -2480,7 +2488,7 @@ struct report* res_sysctl_fixup(void *res, int dryrun, const struct resource_env
 	report = report_new("Sysctl", rs->param);
 
 	if (DIFFERENT(rs, RES_SYSCTL_VALUE)) {
-		action = string("setting kernel parameter via /proc/sys");
+		action = string("set kernel param to '%s' via /proc/sys", rs->value);
 		if (dryrun) {
 			report_action(report, action, ACTION_SKIPPED);
 		} else {

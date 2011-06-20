@@ -354,12 +354,6 @@ static int enforce_policy(client *c, struct job *job)
 
 		env.file_fd = -1;
 		env.file_len = 0;
-		if (res->type == RES_FILE) {
-			rf = (struct res_file*)(res->resource);
-			rf->rf_uid = pwdb_lookup_uid(env.user_pwdb,  rf->rf_owner);
-			rf->rf_gid = grdb_lookup_gid(env.group_grdb, rf->rf_group);
-		}
-
 		resource_stat(res, &env);
 
 		if (res->type == RES_FILE) {

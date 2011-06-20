@@ -959,6 +959,9 @@ int res_file_stat(void *res, const struct resource_env *env)
 	assert(rf);
 	assert(rf->rf_lpath);
 
+	rf->rf_uid = pwdb_lookup_uid(env->user_pwdb,  rf->rf_owner);
+	rf->rf_gid = grdb_lookup_gid(env->group_grdb, rf->rf_group);
+
 	if (stat(rf->rf_lpath, &rf->rf_stat) == -1) { /* new file */
 		rf->different = rf->enforced;
 		rf->rf_exists = 0;

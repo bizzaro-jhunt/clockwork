@@ -196,8 +196,15 @@ static void show_help(void)
 static worker* spawn(server *s)
 {
 	worker *w;
+	DEBUG("Spawning new worker");
 
+unintr:
+	errno = 0;
 	if (BIO_do_accept(s->listener) <= 0) {
+		if (errno == EINTR) {
+			DEBUG("Catching interruption due to SIGHUP(?)");
+			goto unintr;
+		}
 		WARNING("Couldn't accept inbound connection");
 		protocol_ssl_backtrace();
 		return NULL;
@@ -229,6 +236,8 @@ static int worker_prep(worker *w)
 	assert(w);
 
 	sigset_t blocked_signals;
+
+	DEBUG("Preparing new worker");
 
 	/* block SIGPIPE for clients that close early. */
 	sigemptyset(&blocked_signals);

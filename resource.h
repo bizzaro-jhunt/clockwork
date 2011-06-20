@@ -24,6 +24,7 @@ enum restype {
 	RES_SERVICE,
 	RES_HOST,
 	RES_SYSCTL,
+	RES_DIR,
 	RES_UNKNOWN /* must be the LAST enumerated value */
 };
 

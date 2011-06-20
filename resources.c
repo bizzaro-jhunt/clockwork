@@ -2543,3 +2543,293 @@ void* res_sysctl_unpack(const char *packed)
 int res_sysctl_notify(void* res, const struct resource *dep) { return 0; }
 
 
+void* res_dir_new(const char *key)
+{
+	struct res_dir *rd;
+
+	rd = xmalloc(sizeof(struct res_dir));
+
+	rd->enforced = 0;
+	rd->different = 0;
+	memset(&rd->stat, 0, sizeof(struct stat));
+	rd->exists = 0;
+
+	rd->uid = 0;
+	rd->gid = 0;
+	rd->mode = 0700; /* sane default... */
+
+	rd->key = NULL;
+	if (key) {
+		rd->key = strdup(key);
+		res_dir_set(rd, "path", key);
+	}
+
+	return rd;
+}
+
+void res_dir_free(void *res)
+{
+	struct res_dir *rd = (struct res_dir*)(res);
+	if (rd) {
+		free(rd->path);
+		free(rd->owner);
+		free(rd->group);
+		free(rd->key);
+	}
+	free(rd);
+}
+
+char *res_dir_key(const void *res)
+{
+	const struct res_dir *rd = (const struct res_dir*)(res);
+	assert(rd);
+
+	return string("res_dir:%s", rd->key);
+}
+
+int res_dir_norm(void *res, struct policy *pol, struct hash *facts)
+{
+	struct res_dir *rd = (struct res_dir*)(res);
+	assert(rd);
+
+	struct dependency *dep;
+	struct resource *other;
+	char *key = res_dir_key(rd);
+
+	/* directories depend on their owner and group */
+	if (ENFORCED(rd, RES_DIR_UID)) {
+		other = policy_find_resource(pol, RES_USER, "username", rd->owner);
+		if (other) {
+			dep = dependency_new(key, other->key);
+			if (policy_add_dependency(pol, dep) != 0) {
+				dependency_free(dep);
+				free(key);
+				return -1;
+			}
+		}
+	}
+
+	if (ENFORCED(rd, RES_DIR_GID)) {
+		other = policy_find_resource(pol, RES_GROUP, "name", rd->group);
+		if (other) {
+			dep = dependency_new(key, other->key);
+			if (policy_add_dependency(pol, dep) != 0) {
+				dependency_free(dep);
+				free(key);
+				return -1;
+			}
+		}
+	}
+
+	free(key);
+	return 0;
+}
+
+int res_dir_set(void *res, const char *name, const char *value)
+{
+	struct res_dir *rd = (struct res_dir*)(res);
+	assert(rd);
+
+	if (strcmp(name, "owner") == 0) {
+		free(rd->owner);
+		rd->owner = strdup(value);
+		ENFORCE(rd, RES_DIR_UID);
+
+	} else if (strcmp(name, "group") == 0) {
+		free(rd->group);
+		rd->group = strdup(value);
+		ENFORCE(rd, RES_DIR_GID);
+
+	} else if (strcmp(name, "mode") == 0) {
+		/* Mask off non-permission bits */
+		rd->mode = strtoll(value, NULL, 0) & 07777;
+		ENFORCE(rd, RES_DIR_MODE);
+
+	} else if (strcmp(name, "path") == 0) {
+		free(rd->path);
+		rd->path = strdup(value);
+
+	} else if (strcmp(name, "present") == 0) {
+		if (strcmp(value, "no") != 0) {
+			UNENFORCE(rd, RES_DIR_ABSENT);
+		} else {
+			ENFORCE(rd, RES_DIR_ABSENT);
+		}
+
+	} else {
+		return -1;
+
+	}
+
+	return 0;
+}
+
+int res_dir_match(const void *res, const char *name, const char *value)
+{
+	const struct res_dir *rd = (struct res_dir*)(res);
+	assert(rd);
+
+	char *test_value;
+	int rc;
+
+	if (strcmp(name, "path") == 0) {
+		test_value = string("%s", rd->path);
+	} else {
+		return 1;
+	}
+
+	rc = strcmp(test_value, value);
+	free(test_value);
+	return rc;
+}
+
+int res_dir_stat(void *res, const struct resource_env *env)
+{
+	struct res_dir *rd = (struct res_dir*)(res);
+	assert(rd);
+	assert(rd->path);
+
+	if (stat(rd->path, &rd->stat) == -1) { /* new directory */
+		rd->different = rd->enforced;
+		rd->exists = 0;
+		return 0;
+	}
+	rd->exists = 1;
+
+	rd->different = RES_DIR_NONE;
+
+	if (ENFORCED(rd, RES_DIR_UID) && rd->uid != rd->stat.st_uid) {
+		DIFF(rd, RES_DIR_UID);
+	}
+	if (ENFORCED(rd, RES_DIR_GID) && rd->gid != rd->stat.st_gid) {
+		DIFF(rd, RES_DIR_GID);
+	}
+	if (ENFORCED(rd, RES_DIR_MODE) && (rd->stat.st_mode & 07777) != rd->mode) {
+		DIFF(rd, RES_DIR_MODE);
+	}
+
+	return 0;
+}
+
+struct report* res_dir_fixup(void *res, int dryrun, const struct resource_env *env)
+{
+	struct res_dir *rd = (struct res_dir*)(res);
+	assert(rd);
+	assert(env);
+
+	struct report *report = report_new("Directory", rd->path);
+	char *action;
+	int new_dir = 0;
+
+	/* Remove the directory */
+	/* FIXME: do we remove the entire directory? */
+	if (ENFORCED(rd, RES_DIR_ABSENT)) {
+		if (rd->exists == 1) {
+			action = string("remove directory");
+
+			if (dryrun) {
+				report_action(report, action, ACTION_SKIPPED);
+			} else if (rmdir(rd->path) == 0) {
+				report_action(report, action, ACTION_SUCCEEDED);
+			} else {
+				report_action(report, action, ACTION_FAILED);
+			}
+		}
+
+		return report;
+	}
+
+	if (!rd->exists) {
+		new_dir = 1;
+		action = string("create directory");
+
+		if (dryrun) {
+			report_action(report, action, ACTION_SKIPPED);
+		} else if (mkdir(rd->path, rd->mode) == 0) {
+			report_action(report, action, ACTION_SUCCEEDED);
+		} else {
+			report_action(report, action, ACTION_FAILED);
+			return report;
+		}
+
+		rd->different = rd->enforced;
+		UNDIFF(rd, RES_DIR_MODE);
+	}
+
+	if (DIFFERENT(rd, RES_DIR_UID)) {
+		if (new_dir) {
+			action = string("set owner to %s(%u)", rd->owner, rd->uid);
+		} else {
+			action = string("change owner from %u to %s(%u)", rd->stat.st_uid, rd->owner, rd->uid);
+		}
+
+		if (dryrun) {
+			report_action(report, action, ACTION_SKIPPED);
+		} else if (chown(rd->path, rd->uid, -1) == 0) {
+			report_action(report, action, ACTION_SUCCEEDED);
+		} else {
+			report_action(report, action, ACTION_FAILED);
+		}
+	}
+
+	if (DIFFERENT(rd, RES_DIR_GID)) {
+		if (new_dir) {
+			action = string("set group to %s(%u)", rd->group, rd->gid);
+		} else {
+			action = string("change group from %u to %s(%u)", rd->stat.st_gid, rd->group, rd->gid);
+		}
+
+		if (dryrun) {
+			report_action(report, action, ACTION_SKIPPED);
+		} else if (chown(rd->path, -1, rd->gid) == 0) {
+			report_action(report, action, ACTION_SUCCEEDED);
+		} else {
+			report_action(report, action, ACTION_FAILED);
+		}
+	}
+
+	if (DIFFERENT(rd, RES_DIR_MODE)) {
+		action = string("change permissions from %04o to %04o", rd->stat.st_mode & 07777, rd->mode);
+
+		if (dryrun) {
+			report_action(report, action, ACTION_SKIPPED);
+		} else if (chmod(rd->path, rd->mode) == 0) {
+			report_action(report, action, ACTION_SUCCEEDED);
+		} else {
+			report_action(report, action, ACTION_FAILED);
+		}
+	}
+
+	return report;
+}
+
+#define PACK_FORMAT "aLaaaL"
+char *res_dir_pack(const void *res)
+{
+	const struct res_dir *rd = (const struct res_dir*)(res);
+	assert(rd);
+
+	return pack("res_dir::", PACK_FORMAT,
+		rd->key, rd->enforced,
+		rd->path, rd->owner, rd->group, rd->mode);
+}
+
+void* res_dir_unpack(const char *packed)
+{
+	struct res_dir *rd = res_dir_new(NULL);
+
+	if (unpack(packed, "res_dir::", PACK_FORMAT,
+		&rd->key, &rd->enforced,
+		&rd->path, &rd->owner, &rd->group, &rd->mode) != 0) {
+
+		res_dir_free(rd);
+		return NULL;
+	}
+
+	return rd;
+}
+#undef PACK_FORMAT
+
+int res_dir_notify(void *res, const struct resource *dep) { return 0; }
+
+

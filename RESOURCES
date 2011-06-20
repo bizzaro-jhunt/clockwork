@@ -12,6 +12,12 @@ res_file (done)
 + mode
 + source / contents
 
+res_dir
+-------
+  owner
+  group
+  mode
+
 res_package
 -----------
 + name

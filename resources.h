@@ -504,6 +504,36 @@ struct res_sysctl {
 NEW_RESOURCE(sysctl);
 /** @endcond */
 
+#define RES_DIR_NONE    0
+#define RES_DIR_ABSENT  0x80000000
+#define RES_DIR_MODE    0x01
+#define RES_DIR_UID     0x02
+#define RES_DIR_GID     0x04
+
+struct res_dir {
+	char *key;
+
+	char *path;
+
+	char *owner;
+	uid_t uid;
+
+	char *group;
+	gid_t gid;
+
+	mode_t mode;
+
+	short exists;
+	struct stat stat;
+
+	unsigned int enforced;
+	unsigned int different;
+};
+
+/** @cond false */
+NEW_RESOURCE(dir);
+/** @endcond */
+
 #undef NEW_RESOURCE
 
 #endif

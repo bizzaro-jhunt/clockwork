@@ -23,10 +23,10 @@ test/data/x509/*
 test/chroot/*.chroot
 test/data/passwd-uid
 
-config/lexer.c
-config/grammar.c
-config/grammar.h
-config/*.output
+conf/lexer.c
+conf/grammar.c
+conf/grammar.h
+conf/*.output
 
 spec/lexer.c
 spec/grammar.c

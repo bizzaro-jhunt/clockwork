@@ -14,8 +14,8 @@
 
 /* The following two macros are a convenience only, and CANNOT
    be used outside of a token action rule. */
-#define lexer_error(s) config_parser_error(yyget_extra(yyscanner), s);
-#define lexer_warning(s) config_parser_warning(yyget_extra(yyscanner), s);
+#define lexer_error(s) conf_parser_error(yyget_extra(yyscanner), s);
+#define lexer_warning(s) conf_parser_warning(yyget_extra(yyscanner), s);
 
 /*
   The following flex options are necessary for proper operation
@@ -38,7 +38,7 @@
 %option yylineno noyywrap
 %option noinput nounput
 
-%option prefix="yyconfig"
+%option prefix="yyconf"
 %%
 
 #.* { /* ignore comments */ }
@@ -65,7 +65,7 @@
 	}
 	return T_QSTRING;
 }
-. { config_parser_error(yyget_extra(yyscanner), "unexpected character '%c'", yytext[0]); }
+. { conf_parser_error(yyget_extra(yyscanner), "unexpected character '%c'", yytext[0]); }
 
 %%
 /* lexer_impl.c contains the implementation for routines used

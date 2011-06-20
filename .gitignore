@@ -40,3 +40,5 @@ tpl/*.output
 
 ext/build
 ext/openssl
+
+config

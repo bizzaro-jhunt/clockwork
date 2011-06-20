@@ -1,21 +1,20 @@
 
+# Include our configuration, if we've got it; otherwise,
+# GNU make will run ./configure because we have a target for
+# config; then it will load config like we asked.
+#
+# Thanks GNU make!
+#
+-include config
 
 ############################################################
 # Global Variables
 
 ROOT := $(shell pwd)
 
-DO_PROFILING := yes
-#DO_PROFILING := no
-
-DO_DEBUGGING := yes
-#DO_DEBUGGING := no
-
-LEX_FLAGS := --verbose --header-file --yylineno
-
+LEX_FLAGS  := --verbose --header-file --yylineno
 YACC_FLAGS := -Wall --token-table --defines --report=all
-
-CC_FLAGS := -Wall -lssl -lpthread -lsqlite3 -laugeas
+CC_FLAGS   := -Wall -lssl -lpthread -lsqlite3 -laugeas
 
 OPENSSL := $(shell if [ -f ext/openssl/lib/libssl.so ]; then echo local; else echo system; fi)
 ifeq ($(OPENSSL), local)
@@ -29,18 +28,19 @@ ifeq ($(OPENSSL), local)
   CC_FLAGS := -L./ext/openssl/lib -lcrypto $(CC_FLAGS)
 endif
 
-ifeq ($(DO_DEBUGGING),yes)
+ifeq ($(BUILD_MODE),development)
+  # In development mode, turn on DWARF2 for Valgrind and gcov/lcov support
+  CC_FLAGS += -gdwarf-2 -fprofile-arcs -ftest-coverage
+  #CC_FLAGS += -pg # gprof runtime support
+
+  # In development mode, turn on all debugging support
   LEX_FLAGS  += --debug
   YACC_FLAGS += --debug
   CC_FLAGS   += -g -DDEVEL
-else
-  CC_FLAGS   += -DNDEBUG
-endif
 
-ifeq ($(DO_PROFILING),yes)
-  # In profiling mode, turn on DWARF2 for Valgrind and gcov/lcov support
-  CC_FLAGS += -gdwarf-2 -fprofile-arcs -ftest-coverage
-  #CC_FLAGS += -pg # gprof runtime support
+else
+  # In release mode, turn off all debugging support
+  CC_FLAGS += -DNDEBUG
 endif
 
 CC      := gcc $(CC_FLAGS)
@@ -69,7 +69,7 @@ MANAGER_HEADERS := managers/service.h managers/package.h
 
 # Parser object files
 SPEC_PARSER_OBJECTS := spec/lexer.o spec/grammar.o spec/parser.o
-CONFIG_PARSER_OBJECTS := config/lexer.o config/grammar.o config/parser.o
+CONFIG_PARSER_OBJECTS := conf/lexer.o conf/grammar.o conf/parser.o
 TEMPLATE_PARSER_OBJECTS := tpl/lexer.o tpl/grammar.o tpl/parser.o
 
 # Template system object files
@@ -85,17 +85,42 @@ CORE_OBJECTS := mem.o sha1.o pack.o hash.o stringlist.o userdb.o log.o cert.o pr
 # Policy object files
 POLICY_OBJECTS := policy.o $(RESOURCE_OBJECTS)
 
+# Manpages
+MANPAGE_SRC     := $(shell ls -1 man/*.1 man/*.5)
+MANPAGE_OBJECTS := $(shell ls -1 man/*.1 man/*.5 | sed -e 's/\.\([0-9]\)/.\1.gz/')
+
 NO_LCOV :=
 NO_LCOV += test/test.c
-NO_LCOV += spec/grammar.c   spec/lexer.c
-NO_LCOV += config/grammar.c config/lexer.c
+NO_LCOV += spec/grammar.c spec/lexer.c
+NO_LCOV += conf/grammar.c conf/lexer.c
 NO_LCOV += log.c # Can't easily test syslog-based logging methods
 
 
 ############################################################
 # Group Target
 
-all: $(UTILS) $(CORE)
+all: $(UTILS) $(CORE) manpages
+
+manpages: $(MANPAGE_OBJECTS)
+
+install: all
+	@echo "Installing to $(DESTDIR)/"
+	@echo install -d -u $(CLOCKWORK_USER) -g $(CLOCKWORK_GROUP) -m 0750 $(VARDIR)
+	@echo install -d -u $(CLOCKWORK_USER) -g $(CLOCKWORK_GROUP) -m 0750 $(VARDIR)/db
+	@echo install -d -u $(CLOCKWORK_USER) -g $(CLOCKWORK_GROUP) -m 0750 $(VARDIR)/run
+	@echo install -d -u $(CLOCKWORK_USER) -g $(CLOCKWORK_GROUP) -m 0750 $(ETCDIR)
+	@echo install -d -u $(CLOCKWORK_USER) -g $(CLOCKWORK_GROUP) -m 0750 $(ETCDIR)/ssl
+	@echo install -d -u $(CLOCKWORK_USER) -g $(CLOCKWORK_GROUP) -m 0750 $(ETCDIR)/ssl/pending
+	@echo install -d -u $(CLOCKWORK_USER) -g $(CLOCKWORK_GROUP) -m 0750 $(ETCDIR)/ssl/certs
+	@echo install    -u $(CLOCKWORK_USER) -g $(CLOCKWORK_GROUP) -m 0640 samples/policyd.conf $(ETCDIR)
+	@echo install    -u $(CLOCKWORK_USER) -g $(CLOCKWORK_GROUP) -m 0640 samples/cwa.conf     $(ETCDIR)
+	@echo install    -u $(CLOCKWORK_USER) -g $(CLOCKWORK_GROUP) -m 0640 samples/manifest.pol $(ETCDIR)
+	@echo install policyd cwca cwa cwcert $(SBINDIR)
+	@echo install man/*.1.gz $(MANDIR)/man1
+	@echo install man/*.5.gz $(MANDIR)/man5
+
+config: config.dist
+	./configure
 
 debuggers: $(DEBUGGERS)
 
@@ -106,8 +131,7 @@ summary:
 	@echo "============="
 	@echo
 	@echo "CONFIGURATION"
-	@echo " Profile?: $(DO_PROFILING)"
-	@echo " Debug?:   $(DO_DEBUGGING)"
+	@echo " Mode:     $(BUILD_MODE)"
 	@echo " OpenSSL:  $(OPENSSL)"
 	@echo
 	@echo "PATHS"
@@ -121,7 +145,6 @@ summary:
 	@echo " lcov:     $(LCOV)"
 	@echo " genhtml:  $(GENHTML)"
 	@echo
-
 
 ############################################################
 # Main Binaries
@@ -144,7 +167,7 @@ sha1sum: sha1.o sha1sum.o mem.o log.o
 polspec: polspec.o $(CORE_OBJECTS) $(POLICY_OBJECTS) $(SPEC_PARSER_OBJECTS)
 	$(CC) -o $@ $+
 
-tplspec: tplspec.o $(CORE_OBJECTS) $(POLICY_OBJECTS) $(TEMPLATE_OBJECTS) $(TEMPLATE_PARSER_OBJECTS)
+tplspec: tplspec.o $(CORE_OBJECTS) $(POLICY_OBJECTS)
 	$(CC) -o $@ $+
 
 
@@ -185,13 +208,13 @@ tpl/grammar.c tpl/grammar.h: tpl/grammar.y tpl/parser.c tpl/parser.h tpl/private
 tpl/parser.o: tpl/parser.c tpl/parser.h tpl/private.h
 	$(CC) -c -o $@ $<
 
-config/lexer.c: config/lexer.l config/grammar.h config/lexer_impl.c config/private.h
+conf/lexer.c: conf/lexer.l conf/grammar.h conf/lexer_impl.c conf/private.h
 	$(LEX) --outfile=$@ $<
 
-config/grammar.c config/grammar.h: config/grammar.y config/parser.c config/parser.h config/private.h
-	$(YACC) -p yyconfig --output-file=config/grammar.c $<
+conf/grammar.c conf/grammar.h: conf/grammar.y conf/parser.c conf/parser.h conf/private.h
+	$(YACC) -p yyconf --output-file=conf/grammar.c $<
 
-config/parser.o: config/parser.c config/parser.h config/private.h
+conf/parser.o: conf/parser.c conf/parser.h conf/private.h
 	$(CC) -c -o $@ $<
 
 
@@ -309,7 +332,7 @@ test/util/daemoncfg: test/util/daemoncfg.o \
                     $(CORE_OBJECTS) $(CONFIG_PARSER_OBJECTS)
 	$(CC) -o $@ $+
 
-test/util/daemoncfg.o: test/util/daemoncfg.c config/lexer.l
+test/util/daemoncfg.o: test/util/daemoncfg.c conf/lexer.l
 	$(CC) -c -o $@ $<
 
 test/util/presence: test/util/presence.o \
@@ -336,16 +359,18 @@ clean_lcov:
 clean: clean_lcov
 	rm -f $(UTILS) $(CORE) $(DEBUGGERS) test/run polspec
 	rm -f spec/lexer.c spec/grammar.c spec/grammar.h spec/*.output
-	rm -f config/lexer.c config/grammar.c config/grammar.h config/*.output
+	rm -f conf/lexer.c conf/grammar.c conf/grammar.h conf/*.output
 	rm -f tpl/lexer.c tpl/grammar.c tpl/grammar.h tpl/*.output
 	rm -f test/util/includer test/util/factchecker test/util/presence test/util/daemoncfg test/util/executive test/util/prompter
 	rm -rf $(APIDOC_ROOT)/*
 	rm -rf doc/coverage/*
+	rm -f man/*.*.gz
 
 dist: clean
 	rm -rf doc/coverage
 	rm -rf ext/openssl
 	rm -rf ext/build/*
+	rm -f config
 
 fixme:
 	find . -name '*.[ch15]' -not -path './ext/**' -not -path './man/tpl/*' | xargs grep -n FIXME: | sed -e 's/:[^:]*FIXME: /:/' -e 's/ *\*\///' | column -t -s :
@@ -360,4 +385,5 @@ stats: clean
 %.o: %.c %.h
 	$(CC) -c -o $@ $<
 
-
+%.gz: %
+	gzip -c $+ > $@

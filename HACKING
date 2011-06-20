@@ -1,0 +1,140 @@
+------------------------
+Developing for Clockwork
+------------------------
+
+So you want to hack on Clockwork, eh?
+
+Well, you're in luck.  I have looked at far too much open source
+code that is a pain in the a** to dive into, with cryptic and
+undocumented build systems.  I vowed long ago not to repeat that
+mistake.
+
+
+
+
+1. TOOLS YOU WILL NEED
+----------------------
+
+A Linux Development Environment
+
+  Clockwork does not (at this time) support any platform other
+  than Linux.  If you are interested in *porting* Clockwork to
+  another platform, I'll gladly accept patches.
+
+  Otherwise, get a Linux box to develop on.  I strongly urge
+  you to get a dedicated machine (it can be a virtual machine)
+  to do your testing on.  As a configuration management system,
+  Clockwork needs root access and with root access, bugs can
+  wreak some serious havok on your build box.
+
+An ANSI C99-compliant C compiler
+
+  The policy master and agent components are written entirely in
+  ANSI C99 C (at least its *supposed* to be ANSI C99).  The build
+  environment uses several GCC-specific flags to catch code errors.
+
+  I personally use GCC 4.4.3 out of the Ubunut repositories
+
+Supporting Library Development Headers
+
+  Clockwork currently relies on the following 3rd party libraries:
+
+  - Augeas          Used by several resources for config file mods
+  - SQLite3         For the reporting database backend
+  - OpenSSL         Provides the TLS security later
+
+Supporting Software Development Tools
+
+  The Clockwork build system relies on the following auxiliary
+  tools to do its job:
+
+  - GNU Flex/Bison   For config / manifest / template parsers
+  - GCOV / LCOV      Code coverage profiler with HTML reports
+  - Perl             Functional test suite is written entirely in Perl
+
+
+
+
+2. SETTING UP THE ENVIRONMENT
+-----------------------------
+
+To get started, you'll want to configure your build environment.
+If you run the ./configure script with the --development flag,
+Clockwork will generate a Makefile component in ./config with
+all the settings you will need to compile with profiling and
+debugging support.
+
+  $ ./configure --development
+  ===================================
+  Clockwork will be built as follows:
+
+  Environment: development
+
+  User:  clockwork
+  Group: clockwork
+
+  DESTDIR: /
+
+  SBINDIR: /sbin
+  VARDIR:  /var/clockwork
+  ETCDIR:  /etc/clockwork
+  MANDIR:  /usr/share/man
+
+  Build agent tools?    [ Y ]
+  Build master tools?   [ Y ]
+
+  ===================================
+  configuration saved to ./config
+
+(or something like that).
+
+You can ignore the path variables (SBINDIR, VARDIR, etc.) for now;
+unless you issue a `make install', they will remain unused.
+
+You can get a full summary of the build configuration by issuing:
+
+  $ ./configure --show
+
+More technical detail is given by:
+
+  $ make summary
+  =============
+  BUILD SUMMARY
+  =============
+
+  CONFIGURATION
+   Mode:     development
+   OpenSSL:  system
+
+  PATHS
+   ROOT:     /home/jrhunt/code/cfm
+
+  COMMANDS
+   cc:       gcc -Wall -lssl -lpthread -lsqlite3 -laugeas -gdwarf-2 -fprofile-arcs -ftest-coverage -g -DDEVEL
+   lex:      flex --verbose --header-file --yylineno --debug
+   yacc:     bison -Wall --token-table --defines --report=all --debug
+   valgrind: build/valgrind
+   lcov:     lcov --directory . --base-directory .
+   genhtml:  genhtml --prefix /home/jrhunt/code
+
+
+
+
+3. CONTRIBUTING PATCHES
+-----------------------
+
+If you have worked up a bugfix or feature-enhancement patch for Clockwork,
+email it to me.  The only thing I ask is that you:
+
+ 1. Use `diff -u -C5' to generate the patch
+
+ 2. Include test cases to exercise your code
+
+ 3. Describe your changes in the body of your email
+    (not in the comments, unless necessary)
+
+ 4. Explicitly license your code under a BSD or MIT license.
+    (I will add you to the CONTRIBUTORS file and retain your copyright notice)
+
+My email address is (currently) filefrog@gmail.com
+

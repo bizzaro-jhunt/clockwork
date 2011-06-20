@@ -1,6 +1,6 @@
 #include "client.h"
 #include "cert.h"
-#include "config/parser.h"
+#include "conf/parser.h"
 
 /**************************************************************/
 

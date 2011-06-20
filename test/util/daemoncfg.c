@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-#include "../../config/parser.h"
+#include "../../conf/parser.h"
 #include "../../hash.h"
 
 /** daemoncfg - a test utility

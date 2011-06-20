@@ -8,20 +8,20 @@
 
 struct hash* parse_config(const char *path)
 {
-	config_parser_context ctx;
+	conf_parser_context ctx;
 	struct hash *hash;
 
 	ctx.file = NULL;
 	ctx.warnings = ctx.errors = 0;
 
-	yyconfiglex_init_extra(&ctx, &ctx.scanner);
-	if (config_parser_use_file(path, &ctx) != 0) {
+	yyconflex_init_extra(&ctx, &ctx.scanner);
+	if (conf_parser_use_file(path, &ctx) != 0) {
 		return NULL;
 	}
-	yyconfigparse(&ctx);
+	yyconfparse(&ctx);
 
 	hash = ctx.config;
-	yyconfiglex_destroy(ctx.scanner);
+	yyconflex_destroy(ctx.scanner);
 
 	if (ctx.errors > 0) {
 		ERROR("Errors encountered; aborting...");

@@ -1,0 +1,30 @@
+#
+# config.dist - Base Configuration
+#
+# This file is read during configuration and provides
+# a sane collection of default values for installation
+# of clockwork.
+#
+
+# By default, install Clockwork into the / directory.
+# (this variable is provided for package maintainers
+#  to override for their build environment).
+#
+DESTDIR=
+
+# By default, files are owned by clockwork:clockwork,
+# and the install target will create the user and
+# group accounts locally.
+#
+# This can be override by the --user and --group
+# arguments to the ./configure script.
+#
+CLOCKWORK_USER=clockwork
+CLOCKWORK_GROUP=clockwork
+
+# All components of Clockwork are built by default.
+#
+# The --agent-only and --master-only arguments to
+# the ./configure script will change this.
+BUILD_AGENT=Y
+BUILD_MASTER=Y

@@ -1,7 +1,7 @@
 #include "clockwork.h"
 
 #include "server.h"
-#include "config/parser.h"
+#include "conf/parser.h"
 
 /**************************************************************/
 

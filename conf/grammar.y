@@ -39,7 +39,7 @@
 %type <string> value
 
 %{
-#define CONFIG(ctx) (((config_parser_context*)ctx)->config)
+#define CONFIG(ctx) (((conf_parser_context*)ctx)->config)
 %}
 %%
 

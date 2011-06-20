@@ -1,0 +1,16 @@
+#!/bin/bash
+
+fact()
+{
+	echo "$1=$2"
+}
+
+TIME=$(date +"%Y %m %d %H %M %S %a %j" | tr A-Z a-z)
+fact "time.year"    $(echo "$TIME" | awk '{print $1}')
+fact "time.month"   $(echo "$TIME" | awk '{print $2}')
+fact "time.mday"    $(echo "$TIME" | awk '{print $3}')
+fact "time.hour"    $(echo "$TIME" | awk '{print $4}')
+fact "time.minute"  $(echo "$TIME" | awk '{print $5}')
+fact "time.second"  $(echo "$TIME" | awk '{print $6}')
+fact "time.weekday" $(echo "$TIME" | awk '{print $7}')
+fact "time.yearday" $(echo "$TIME" | awk '{print $8}')

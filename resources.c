@@ -2697,6 +2697,9 @@ int res_dir_stat(void *res, const struct resource_env *env)
 	assert(rd);
 	assert(rd->path);
 
+	rd->uid = pwdb_lookup_uid(env->user_pwdb,  rd->owner);
+	rd->gid = grdb_lookup_gid(env->group_grdb, rd->group);
+
 	if (stat(rd->path, &rd->stat) == -1) { /* new directory */
 		rd->different = rd->enforced;
 		rd->exists = 0;

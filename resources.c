@@ -114,7 +114,7 @@ static int _res_file_gen_rsha1(struct res_file *rf, struct hash *facts)
 		return rc;
 	}
 
-	return -1;
+	return 0;
 }
 
 static int _group_update(stringlist *add, stringlist *rm, const char *user)
@@ -831,7 +831,8 @@ char* res_file_key(const void *res)
 	return string("res_file:%s", rf->key);
 }
 
-int res_file_norm(void *res, struct policy *pol, struct hash *facts) {
+int res_file_norm(void *res, struct policy *pol, struct hash *facts)
+{
 	struct res_file *rf = (struct res_file*)(res);
 	assert(rf);
 
@@ -1095,11 +1096,7 @@ struct report* res_file_fixup(void *res, int dryrun, const struct resource_env *
 	}
 
 	if (DIFFERENT(rf, RES_FILE_MODE)) {
-		if (new_file) {
-			action = string("set permissions to %04o", rf->rf_mode);
-		} else {
-			action = string("change permissions from %04o to %04o", rf->rf_stat.st_mode & 07777, rf->rf_mode);
-		}
+		action = string("change permissions from %04o to %04o", rf->rf_stat.st_mode & 07777, rf->rf_mode);
 
 		if (dryrun) {
 			report_action(report, action, ACTION_SKIPPED);

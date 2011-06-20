@@ -33,19 +33,19 @@ to specify almost every attribute of a file in a system policy:
 
 .B owner
 .RS 4
-The name or UID of the user who should own the file or directory.
+The name or UID of the user who should own the file.
 .RE
 .PP
 
 .B group
 .RS 4
-The name or GID of the group who should own this file or directory.
+The name or GID of the group who should own this file.
 .RE
 .PP
 
 .B mode
 .RS 4
-The permissions set for this file or directory.  The value must be
+The permissions set for this file.  The value must be
 specified in octal notation, i.e. 0755 for rwxr-xr-x.
 .RE
 .PP
@@ -81,7 +81,7 @@ The path (from the client's point of view) to the file to be managed.
 
 .B present
 .RS 4
-Whether or not this file or directory should exist.  Valid values are
+Whether or not this file should exist.  Valid values are
 "yes" and "no".  The default value is "yes".
 .RE
 .PP
@@ -167,8 +167,6 @@ All activity is monitored.
 .RE
 .PP
 
-
-
 \"----------------------------------------------------------------
 .SH CAVEATS
 
@@ -181,8 +179,12 @@ Symbolic links and hard links cannot yet be created wth the file
 resource.
 .PP
 
-.SS 3. Directory Support
-Directories cannot yet be created with the file resource.
+.SS 3. UID / GID Support
+Even though the documentation above says that the \fBowner\fR and
+\fBgroup\fR attributes can be set to either a name or an ID, the
+system only works with names.  IDs will be ignored, as if the ID
+was 0.
+.PP
 
 \"----------------------------------------------------------------
 .SH DEPENDENCIES

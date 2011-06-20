@@ -26,9 +26,6 @@ chroot testing
   mkjail is coming along.  To do this right, we need passphrase-less
   certificates, and very long expirations (i.e. 100 years).
 
-More resources
-  Check the RESOURCE file for the most up-to-date information.
-
 Logo / Branding
   Get the logo drawn and vectorized.  Determine what legal stuff
   needs to happen for Trademarks, Copyright etc.
@@ -53,3 +50,4 @@ Perpetual List of Things To Do
   - cwca
   - cwa
   - cwcert
+  - res_* (one for each resource)

@@ -14,9 +14,9 @@ res_file (done)
 
 res_dir
 -------
-  owner
-  group
-  mode
++ owner
++ group
++ mode
 
 res_package
 -----------

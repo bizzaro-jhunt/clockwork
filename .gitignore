@@ -22,6 +22,7 @@ test/data/res_file/new_file
 test/data/x509/*
 test/chroot/*.chroot
 test/data/passwd-uid
+test/augeas
 
 conf/lexer.c
 conf/grammar.c
@@ -42,3 +43,5 @@ ext/build
 ext/openssl
 
 config
+
+local

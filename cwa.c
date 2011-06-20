@@ -292,7 +292,9 @@ static int get_file(protocol_session *session, sha1 *checksum, int fd)
 	if (pdu_send_FILE(session, checksum) != 0) { return -1; }
 
 	do {
-		pdu_receive(session);
+		if (pdu_receive(session) != 0) {
+			return -1;
+		}
 		if (RECV_PDU(session)->op != PROTOCOL_OP_DATA) {
 			pdu_send_ERROR(session, 505, "Protocol Error");
 			return -1;
@@ -366,6 +368,7 @@ static int enforce_policy(client *c, struct job *job)
 				if (pipe(pipefd) != 0) {
 					pipefd[0] = -1;
 				} else {
+					DEBUG("Attempting to retrieve file contents for %s", rf->rf_lpath);
 					bytes = get_file(&c->session, &rf->rf_rsha1, pipefd[1]);
 					if (bytes <= 0) {
 						close(pipefd[0]);

@@ -373,6 +373,8 @@ static int handle_FILE(worker *w)
 			}
 		} else {
 			DEBUG("Unknown file source type (not rpath / not template)");
+			INFO("File Not Found: %s", checksum.hex);
+			pdu_send_ERROR(&w->session, 404, "File Not Found");
 		}
 	} else {
 		INFO("File Not Found: %s", checksum.hex);

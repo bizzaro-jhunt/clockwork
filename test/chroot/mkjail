@@ -5,22 +5,47 @@
 #
 # author:  James Hunt <filefrog@gmailcom>
 # created: 2010-12-20
+# updated: 2011-06-20 jrh - Docs and setup script supoprt
 #
 # This script generates chroot jails suitable for testing Clockwork's
 # ability to enforce policies, without breaking developer machines.
+#
+# The trick to building a chroot jail is tracking down all of the
+# shared library dependencies for the binaries to be jailed.
+#
+# mkjail creates a chroot jail based on a config file and a pre-jail
+# directory.  The pre-jail directory (i.e. testchroot1.pre) contains
+# a full filesystem overlay that should be copied as-is into the
+# actual chroot jail.  The config file lists files from the host
+# installation that should be copied into the chroot jail.
+#
+# For any executable file copied into the chroot jail, mkjail
+# determines what libraries it requires (and what libraries they
+# require, ad infitum) and copies those into the jail.
+#
+# mkjail also creates "standard" device files in /dev and sets up
+# the /proc and /sys mountpoints for use.
+#
+# After the jail is created, mkjail looks for a setup file, named
+# [jailname].setup.  If this file exists and is executable, mkjail
+# executes it, passing the name of the jail (from which the script
+# can construct the path to the jail)
 #
 
 sub jail_file($$);
 sub jail_libdeps;
 sub mkdir_v($$);
+sub mknod_v($$$$$);
 
 if (!$ARGV[0]) {
 	print "USAGE: mkjail <name>\n";
 	exit 1;
 }
-my $jail    = $ARGV[0] . ".chroot/";
-my $config  = $ARGV[0] . ".conf";
-my $prejail = $ARGV[0] . ".pre/";
+my $name    = $ARGV[0];
+my $jail    = $name . ".chroot";
+my $config  = $name . ".conf";
+my $prejail = $name . ".pre";
+my $setup   = $name . ".setup";
 
 ######################################################################
 
@@ -29,12 +54,16 @@ if (! -f $config) {
 	exit 1;
 }
 
+print "\n*** Removing existing jail ***\n";
+print "REMOVE $jail\n";
+system("rm -rf $jail");
+
 if (! -d $jail) { system("mkdir -p $jail"); }
 
 if (-d $prejail) {
 	print "\n*** Initializing jail ***\n";
 	print "PRESEED $prejail -> $jail\n";
-	system("rsync -av $prejail $jail >/dev/null");
+	system("rsync -av $prejail/ $jail/ >/dev/null");
 
 	open my $find, "find $prejail -type f -perm -111 |";
 	while (<$find>) {
@@ -49,19 +78,40 @@ if (-d $prejail) {
 }
 
 print "\n*** Setting up / filesystem ***\n";
+mkdir_v $jail, "/bin";
 mkdir_v $jail, "/dev";
-mkdir_v $jail, "/sys";
-mkdir_v $jail, "/proc";
-mkdir_v $jail, "/var/log";
-mkdir_v $jail, "/var/lock";
-mkdir_v $jail, "/var/run";
-mkdir_v $jail, "/tmp";
+mkdir_v $jail, "/etc";
 mkdir_v $jail, "/home";
+mkdir_v $jail, "/lib";
+mkdir_v $jail, "/opt";
+mkdir_v $jail, "/proc";
+mkdir_v $jail, "/root";
+mkdir_v $jail, "/sbin";
+mkdir_v $jail, "/srv";
+mkdir_v $jail, "/sys";
+mkdir_v $jail, "/tmp";
+mkdir_v $jail, "/usr";
+mkdir_v $jail, "/usr/bin";
+mkdir_v $jail, "/usr/sbin";
+mkdir_v $jail, "/var";
+mkdir_v $jail, "/var/lock";
+mkdir_v $jail, "/var/log";
+mkdir_v $jail, "/var/run";
+mkdir_v $jail, "/var/tmp";
+
+print "\n*** Setting up /dev filesystem ***\n";
+mknod_v $jail, 'c', 1, 3, "/dev/null";
+mknod_v $jail, 'c', 1, 5, "/dev/zero";
+mknod_v $jail, 'c', 1, 8, "/dev/random";
+mknod_v $jail, 'c', 1, 9, "/dev/urandom";
 
 print "\n*** Copying binaries and libraries ***\n";
 open CONFIG, $config;
 while (<CONFIG>) {
 	chomp;
+	s/\s*#.*//;
+	if (m/^\s*$/) { next; }
+
 	my $file = $_;
 
 	print "COPY $file\n";
@@ -70,6 +120,21 @@ while (<CONFIG>) {
 
 }
 close CONFIG;
+
+print "\n*** Setting jail-name inside the jail ***\n";
+print "CREATE $jail/chroot\n";
+open NAME, ">$jail/chroot";
+my $tmp = $name; $tmp =~ s/.*\///;
+print NAME "$tmp\n";
+close NAME;
+
+if (-f $setup and -e $setup) {
+	print "\n*** Running jail-specific setup script ***\n";
+	print "SETUP $setup $name\n";
+	print "(output below is from the setup script)\n";
+	print "--------------------------------------------------\n";
+	print `./$setup $name`;
+}
 
 ######################################################################
 
@@ -81,6 +146,17 @@ sub mkdir_v($$) {
 	system("mkdir -p $jail/$dir");
 }
 
+sub mknod_v($$$$$) {
+	my $jail = shift;
+	my $type = shift;
+	my $maj = shift;
+	my $min = shift;
+	my $dev = shift;
+
+	print "MKNOD $dev ($maj,$min)\n";
+	system("mknod $jail$dev $type $maj $min");
+}
+
 sub jail_file($$) {
 	my $root = shift;
 	my $file = shift;
@@ -88,8 +164,12 @@ sub jail_file($$) {
 	my $dirname = $file;
 	$dirname =~ s/\/[^\/]*$//;
 
-	system("mkdir -p $jail$dirname");
-	system("cp $file $jail$file");
+	system("mkdir -p $jail/$dirname");
+	if (-d "$file") {
+		system("cp -dR $file $jail/$file");
+	} else {
+		system("cp $file $jail/$file");
+	}
 }
 
 my %LIBDEPS = ();
@@ -98,6 +178,8 @@ sub jail_libdeps() {
 	my $root = shift;
 	my $file = shift;
 	my $prefix = shift || "   ";
+
+	if (-d "$file") { return; }
 
 	open my $ldd, "ldd $file|";
 	while (<$ldd>) {

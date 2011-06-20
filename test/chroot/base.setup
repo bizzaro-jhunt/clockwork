@@ -1,0 +1,3 @@
+#!/bin/bash
+
+echo "Setting up jail $1";

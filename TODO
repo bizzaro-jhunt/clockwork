@@ -23,7 +23,7 @@ chroot testing
   so that functional tests can be reproduced, without requiring
   specific build machine system changes, or root access.
 
-  mkjail is coming along.  To do this right, we need passphrase-less
+  mkjail is done.  To do this right, we need passphrase-less
   certificates, and very long expirations (i.e. 100 years).
 
 Logo / Branding

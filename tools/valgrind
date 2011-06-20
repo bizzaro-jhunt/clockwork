@@ -1,0 +1,8 @@
+#!/bin/bash
+
+valgrind --leak-check=full \
+         --show-reachable=yes \
+         --read-var-info=yes \
+         --track-origins=yes \
+         --suppressions=valgrind.supp \
+         $@

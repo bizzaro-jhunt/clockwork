@@ -46,7 +46,7 @@ endif
 CC      := gcc $(CC_FLAGS)
 LEX     := flex $(LEX_FLAGS)
 YACC    := bison $(YACC_FLAGS)
-VG      := build/valgrind
+VG      := tools/valgrind
 LCOV    := lcov --directory . --base-directory .
 GENHTML := genhtml --prefix $(shell dirname `pwd`)
 MOG     := ./mog

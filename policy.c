@@ -39,6 +39,7 @@ static int _policy_normalize(struct policy *pol, struct hash *facts)
 	struct dependency *dep;
 
 	for_each_resource(r1, pol) {
+		DEBUG("Normalizing resource %s", r1->key);
 		if (resource_norm(r1, pol, facts) != 0) { return -1; }
 	}
 

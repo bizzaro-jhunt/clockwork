@@ -41,6 +41,22 @@ ifeq ($(BUILD_MODE),development)
 else
   # In release mode, turn off all debugging support
   CC_FLAGS += -DNDEBUG
+
+  # In release mode, create REALLY small binaries
+  CC_FLAGS += -fdata-sections -ffunction-sections 
+  CC_FLAGS += -Wl,--gc-sections -Wl,-s
+endif
+
+inst_targets    :=
+build_targets   :=
+ifeq ($(BUILD_AGENT), Y)
+  inst_targets  += install-agent
+  build_targets += build-agent
+endif
+
+ifeq ($(BUILD_MASTER), Y)
+  inst_targets  += install-master
+  build_targets += build-master
 endif
 
 CC      := gcc $(CC_FLAGS)
@@ -59,70 +75,102 @@ APIDOC_ROOT := doc/api
 ############################################################
 # Object Group Variables
 
-UTILS := sha1sum polspec tplspec
-CORE  := cwa cwcert cwca policyd
-DEBUGGERS := debug/service-manager debug/package-manager
+util_bin      := sha1sum polspec tplspec
+agent_bin     := cwa cwcert
+master_bin    := policyd cwca
+debug_bin     := debug/service-manager debug/package-manager
 
-# Managers
-MANAGER_OBJECTS := managers/service.o managers/package.o
-MANAGER_HEADERS := managers/service.h managers/package.h
+# Compiled binaries (candidates for `make clean')
+COMPILED      := $(util_bin) $(agent_bin) $(master_bin) $(debug_bin)
+
+# C header files that are automatically generated
+auto_h        := spec/grammar.h conf/grammar.h tpl/grammar.h
+
+# C source files that are automatically generated
+auto_c        := spec/lexer.c   conf/lexer.c   tpl/lexer.c
+auto_c        += spec/grammar.c conf/grammar.c tpl/grammar.c
+
+# C source files that should not participate in code coverage analysis
+no_lcov_c     := test/test.c log.c $(auto_c)
 
 # Parser object files
-SPEC_PARSER_OBJECTS := spec/lexer.o spec/grammar.o spec/parser.o
-CONFIG_PARSER_OBJECTS := conf/lexer.o conf/grammar.o conf/parser.o
-TEMPLATE_PARSER_OBJECTS := tpl/lexer.o tpl/grammar.o tpl/parser.o
+parser_spec_o := spec/lexer.o spec/grammar.o spec/parser.o
+parser_conf_o := conf/lexer.o conf/grammar.o conf/parser.o
+parser_tpl_o  := tpl/lexer.o tpl/grammar.o tpl/parser.o
 
-# Template system object files
-TEMPLATE_OBJECTS := template.o $(TEMPLATE_PARSER_OBJECTS)
-
-# Resource types
-RESOURCE_OBJECTS := resource.o resources.o job.o $(MANAGER_OBJECTS) $(TEMPLATE_OBJECTS)
-RESOURCE_HEADERS := resource.h resources.h job.h $(MANAGER_HEADERS) template.h
-
-# Supporting object files
-CORE_OBJECTS := mem.o sha1.o pack.o hash.o stringlist.o userdb.o log.o cert.o prompt.o exec.o string.o
+# Core Supporting object files
+core_o        := mem.o sha1.o pack.o hash.o stringlist.o userdb.o log.o
+core_o        += cert.o prompt.o exec.o string.o
 
 # Policy object files
-POLICY_OBJECTS := policy.o $(RESOURCE_OBJECTS)
+policy_o      := policy.o resource.o resources.o job.o template.o
+policy_o      += managers/service.o managers/package.o template.o
+policy_o      += $(parser_tpl_o)
 
 # Manpages
-MANPAGE_SRC     := $(shell ls -1 man/*.1 man/*.5)
-MANPAGE_OBJECTS := $(shell ls -1 man/*.1 man/*.5 | sed -e 's/\.\([0-9]\)/.\1.gz/')
+man_gz        := $(shell ls -1 man/*.1 man/*.5 | \
+                   sed -e 's/\.\([0-9]\)/.\1.gz/')
 
-NO_LCOV :=
-NO_LCOV += test/test.c
-NO_LCOV += spec/grammar.c spec/lexer.c
-NO_LCOV += conf/grammar.c conf/lexer.c
-NO_LCOV += log.c # Can't easily test syslog-based logging methods
+# Unit Tests (test suites + test targets)
+unit_test_o   := $(subst .c,.o,$(shell ls -1 test/*.c))
+unit_test_o   += $(subst .c,.o,$(shell cd test; ls -1 *.c | \
+                   egrep -v '(assertions|bits|fact|list|run|stree|test).c'))
+unit_test_o   += stringlist.o log.o prompt.o
+unit_test_o   += $(parser_tpl_o)
+
+# Functional Test runners
+fun_tests     := test/util/includer test/util/factchecker test/util/daemoncfg
+fun_tests     += test/util/presence test/util/prompter    test/util/executive
 
 
 ############################################################
 # Group Target
 
-all: $(UTILS) $(CORE) manpages
+all: $(COMPILED) manpages
 
-manpages: $(MANPAGE_OBJECTS)
+build: $(build_targets)
 
-install: all
-	@echo "Installing to $(DESTDIR)/"
-	@echo install -d -u $(CLOCKWORK_USER) -g $(CLOCKWORK_GROUP) -m 0750 $(VARDIR)
-	@echo install -d -u $(CLOCKWORK_USER) -g $(CLOCKWORK_GROUP) -m 0750 $(VARDIR)/db
-	@echo install -d -u $(CLOCKWORK_USER) -g $(CLOCKWORK_GROUP) -m 0750 $(VARDIR)/run
-	@echo install -d -u $(CLOCKWORK_USER) -g $(CLOCKWORK_GROUP) -m 0750 $(ETCDIR)
-	@echo install -d -u $(CLOCKWORK_USER) -g $(CLOCKWORK_GROUP) -m 0750 $(ETCDIR)/ssl
-	@echo install -d -u $(CLOCKWORK_USER) -g $(CLOCKWORK_GROUP) -m 0750 $(ETCDIR)/ssl/pending
-	@echo install -d -u $(CLOCKWORK_USER) -g $(CLOCKWORK_GROUP) -m 0750 $(ETCDIR)/ssl/certs
-	@echo install    -u $(CLOCKWORK_USER) -g $(CLOCKWORK_GROUP) -m 0640 samples/policyd.conf $(ETCDIR)
-	@echo install    -u $(CLOCKWORK_USER) -g $(CLOCKWORK_GROUP) -m 0640 samples/cwa.conf     $(ETCDIR)
-	@echo install    -u $(CLOCKWORK_USER) -g $(CLOCKWORK_GROUP) -m 0640 samples/manifest.pol $(ETCDIR)
-	@echo install policyd cwca cwa cwcert $(SBINDIR)
-	@echo install man/*.1.gz $(MANDIR)/man1
-	@echo install man/*.5.gz $(MANDIR)/man5
+build-utils:  $(util_bin)
+build-agent:  $(agent_bin)
+build-master: $(master_bin)
+
+manpages: $(man_gz)
+
+install: $(inst_targets)
+
+install-agent: install-base build-agent manpages
+	install    -o $(CWUSER) -g $(CWGROUP) -m 0700 cwa cwcert            $(SBINDIR)
+	install    -o $(CWUSER) -g $(CWGROUP) -m 0640 samples/cwa.conf      $(ETCDIR)
+	install    -o root      -g root       -m 0644 man/cwa.1.gz          $(MANDIR)/man1
+	install    -o root      -g root       -m 0644 man/cwa.conf.5.gz     $(MANDIR)/man5
+
+install-master: install-base build-master manpages
+	install -d -o $(CWUSER) -g $(CWGROUP) -m 0750 $(VARDIR)/run
+	install -d -o $(CWUSER) -g $(CWGROUP) -m 0750 $(ETCDIR)/ssl/pending
+	install -d -o $(CWUSER) -g $(CWGROUP) -m 0750 $(ETCDIR)/ssl/certs
+	install    -o $(CWUSER) -g $(CWGROUP) -m 0700 policyd cwca          $(SBINDIR)
+	install    -o $(CWUSER) -g $(CWGROUP) -m 0640 samples/policyd.conf  $(ETCDIR)
+	install    -o $(CWUSER) -g $(CWGROUP) -m 0640 samples/manifest.pol  $(ETCDIR)
+	install    -o root      -g root       -m 0644 man/policyd.1.gz      $(MANDIR)/man1
+	install    -o root      -g root       -m 0644 man/policyd.conf.5.gz $(MANDIR)/man5
+	install    -o root      -g root       -m 0644 man/res_*.5.gz        $(MANDIR)/man5
+
+install-base:
+	getent group $(CWGROUP) >/dev/null || groupadd -r $(CWGROUP)
+	getent passwd $(CWUSER) >/dev/null || useradd -MNr -c "Clockwork" -g $(CWGROUP) -d $(HOMEDIR) $(CWUSER)
+	install -d -o root      -g root       -m 0755 $(SBINDIR)
+	install -d -o root      -g root       -m 0755 $(MANDIR)
+	install -d -o root      -g root       -m 0755 $(MANDIR)/man1
+	install -d -o root      -g root       -m 0755 $(MANDIR)/man5
+	install -d -o $(CWUSER) -g $(CWGROUP) -m 0750 $(VARDIR)
+	install -d -o $(CWUSER) -g $(CWGROUP) -m 0750 $(VARDIR)/db
+	install -d -o $(CWUSER) -g $(CWGROUP) -m 0750 $(ETCDIR)
+	install -d -o $(CWUSER) -g $(CWGROUP) -m 0750 $(ETCDIR)/ssl
 
 config: config.dist
 	./configure
 
-debuggers: $(DEBUGGERS)
+debuggers: $(debug_bin)
 
 summary:
 	@echo
@@ -149,26 +197,20 @@ summary:
 ############################################################
 # Main Binaries
 
-policyd: policyd.o $(CORE_OBJECTS) $(POLICY_OBJECTS) $(SPEC_PARSER_OBJECTS) $(CONFIG_PARSER_OBJECTS) proto.o server.o db.o
-	$(CC) -o $@ $+
+policyd: $(core_o) $(policy_o) policyd.o $(parser_spec_o) $(parser_conf_o) proto.o server.o db.o
+cwa:     $(core_o) $(policy_o) cwa.o     $(parser_conf_o) proto.o client.o db.o
+cwcert:  $(core_o) $(policy_o) cwcert.o  $(parser_conf_o) proto.o client.o
+cwca:    $(core_o) $(policy_o) cwca.o    $(parser_conf_o) server.o
+polspec: $(core_o) $(policy_o) polspec.o $(parser_spec_o)
+tplspec: $(core_o) $(policy_o) tplspec.o
+sha1sum: sha1.o sha1sum.o mem.o log.o $(core_o) $(policy_o) $(parser_spec_o) $(parser_conf_o)
 
-cwa: cwa.o $(CORE_OBJECTS) $(POLICY_OBJECTS) $(CONFIG_PARSER_OBJECTS) proto.o client.o db.o
-	$(CC) -o $@ $+
 
-cwcert: cwcert.o $(CORE_OBJECTS) $(POLICY_OBJECTS) $(CONFIG_PARSER_OBJECTS) proto.o client.o
-	$(CC) -o $@ $+
+############################################################
+# Debugging Tools (mainly for CW developers)
 
-cwca: cwca.o $(CORE_OBJECTS) $(CONFIG_PARSER_OBJECTS) server.o
-	$(CC) -o $@ $+
-
-sha1sum: sha1.o sha1sum.o mem.o log.o
-	$(CC) -o $@ $+
-
-polspec: polspec.o $(CORE_OBJECTS) $(POLICY_OBJECTS) $(SPEC_PARSER_OBJECTS)
-	$(CC) -o $@ $+
-
-tplspec: tplspec.o $(CORE_OBJECTS) $(POLICY_OBJECTS)
-	$(CC) -o $@ $+
+debug/service-manager: debug/service-manager.o managers/service.o log.o exec.o mem.o
+debug/package-manager: debug/package-manager.o managers/package.o log.o exec.o mem.o
 
 
 ############################################################
@@ -179,15 +221,6 @@ externals:
 
 
 ############################################################
-# Debugging Tools (mainly for CW developers)
-
-debug/service-manager: debug/service-manager.o managers/service.o log.o exec.o mem.o
-	$(CC) -o $@ $+
-
-debug/package-manager: debug/package-manager.o managers/package.o log.o exec.o mem.o
-	$(CC) -o $@ $+
-
-############################################################
 # Lex/YACC Parsers
 
 spec/lexer.c: spec/lexer.l spec/grammar.h spec/lexer_impl.c spec/parser.h spec/private.h
@@ -196,26 +229,17 @@ spec/lexer.c: spec/lexer.l spec/grammar.h spec/lexer_impl.c spec/parser.h spec/p
 spec/grammar.c spec/grammar.h: spec/grammar.y spec/grammar_impl.c spec/parser.c spec/parser.h spec/private.h
 	$(YACC) --output-file=spec/grammar.c $<
 
-spec/parser.o: spec/parser.c spec/parser.h spec/private.h
-	$(CC) -c -o $@ $<
-
 tpl/lexer.c: tpl/lexer.l tpl/grammar.h tpl/lexer_impl.c tpl/parser.h tpl/private.h
 	$(LEX) --outfile=$@ $<
 
 tpl/grammar.c tpl/grammar.h: tpl/grammar.y tpl/parser.c tpl/parser.h tpl/private.h
 	$(YACC) -p yytpl --output-file=tpl/grammar.c $<
 
-tpl/parser.o: tpl/parser.c tpl/parser.h tpl/private.h
-	$(CC) -c -o $@ $<
-
 conf/lexer.c: conf/lexer.l conf/grammar.h conf/lexer_impl.c conf/private.h
 	$(LEX) --outfile=$@ $<
 
 conf/grammar.c conf/grammar.h: conf/grammar.y conf/parser.c conf/parser.h conf/private.h
 	$(YACC) -p yyconf --output-file=conf/grammar.c $<
-
-conf/parser.o: conf/parser.c conf/parser.h conf/private.h
-	$(CC) -c -o $@ $<
 
 
 ############################################################
@@ -244,13 +268,8 @@ diagrams: doc/proto-agent.png doc/proto-cert.png
 ############################################################
 # Unit Tests
 
-UNIT_TEST_SRC        := $(shell ls -1 test/*.c)
-UNIT_TEST_TARGET_SRC := $(shell cd test; ls -1 *.c | egrep -v '(assertions|bits|fact|list|run|stree|test).c') stringlist.c log.c prompt.c
-UNIT_TEST_OBJ        := $(UNIT_TEST_SRC:.c=.o) $(TEMPLATE_PARSER_OBJECTS)
-UNIT_TEST_TARGET_OBJ := $(UNIT_TEST_TARGET_SRC:.c=.o)
-
 test: unit_tests functional_tests
-	find . -name '*.gcda' | xargs rm -f
+	find . -name '*.gcda' 2>/dev/null | xargs rm -f
 	test/setup.sh
 	@echo; echo;
 	test/run $(TESTS)
@@ -267,13 +286,13 @@ coverage: lcov.info unit_tests functional_tests
 	$(GENHTML) -o doc/coverage lcov.info
 
 unit: unit_tests
-	find . -name '*.gcda' | xargs rm -f
+	find . -name '*.gcda' 2>/dev/null | xargs rm -f
 	test/setup.sh
 	@echo; echo;
 	test/run $(TESTS)
 	@echo; echo;
 	$(LCOV) --capture -o $@.tmp
-	$(LCOV) --remove $@.tmp $(NO_LCOV) > lcov.info
+	$(LCOV) --remove $@.tmp $(no_lcov_c) > lcov.info
 	rm -f $@.tmp
 	rm -rf doc/coverage
 	mkdir -p doc/coverage
@@ -281,23 +300,16 @@ unit: unit_tests
 
 unit_tests: test/run
 
-test/run: $(UNIT_TEST_OBJ) $(UNIT_TEST_TARGET_OBJ)
-	$(CC) -o $@ $+
-
-test/%.o: test/%.c test/test.h
-	$(CC) -c -o $@ $<
+test/run: $(unit_test_o)
 
 lcov.info: unit_tests functional_tests
-	find . -name '*.gcda' | xargs rm -f
+	find . -name '*.gcda' 2>/dev/null | xargs rm -f
 	test/setup.sh
 	test/run
 	test/functional/run
 	$(LCOV) --capture -o $@.tmp
-	$(LCOV) --remove $@.tmp $(NO_LCOV) > $@
+	$(LCOV) --remove $@.tmp $(no_lcov_c) > $@
 	rm -f $@.tmp
-
-test/resources.o: test/resources.c resources.h test/sha1_files.h
-	$(CC) -c -o $@ $<
 
 test/sha1_files.h:
 	$(MOG) sha1_tests
@@ -306,84 +318,46 @@ test/sha1_files.h:
 ############################################################
 # Functional Tests
 
-functional_tests: test/util/includer \
-                  test/util/factchecker \
-                  test/util/daemoncfg \
-                  test/util/presence \
-                  test/util/prompter \
-                  test/util/executive \
-                  cwcert
+functional_tests: $(fun_tests) cwcert
 
-test/util/includer: test/util/includer.o \
-                    $(CORE_OBJECTS) $(SPEC_PARSER_OBJECTS) $(POLICY_OBJECTS)
-	$(CC) -o $@ $+
-
-test/util/includer.o: test/util/includer.c spec/lexer.l
-	$(CC) -c -o $@ $<
-
-test/util/factchecker: test/util/factchecker.o \
-                    $(CORE_OBJECTS) $(SPEC_PARSER_OBJECTS) $(POLICY_OBJECTS)
-	$(CC) -o $@ $+
-
-test/util/factchecker.o: test/util/factchecker.c spec/lexer.l
-	$(CC) -c -o $@ $<
-
-test/util/daemoncfg: test/util/daemoncfg.o \
-                    $(CORE_OBJECTS) $(CONFIG_PARSER_OBJECTS)
-	$(CC) -o $@ $+
-
-test/util/daemoncfg.o: test/util/daemoncfg.c conf/lexer.l
-	$(CC) -c -o $@ $<
-
-test/util/presence: test/util/presence.o \
-                    $(CORE_OBJECTS) $(SPEC_PARSER_OBJECTS) $(POLICY_OBJECTS)
-	$(CC) -o $@ $+
-
-test/util/presence.o: test/util/presence.c spec/lexer.l
-	$(CC) -c -o $@ $<
-
-test/util/prompter: test/util/prompter.o \
-                    $(CORE_OBJECTS)
-
-test/util/executive: test/util/executive.o $(CORE_OBJECTS)
-	$(CC) -o $@ $+
+test/util/includer:    test/util/includer.o    $(core_o) $(parser_spec_o) $(policy_o)
+test/util/factchecker: test/util/factchecker.o $(core_o) $(parser_spec_o) $(policy_o)
+test/util/daemoncfg:   test/util/daemoncfg.o   $(core_o) $(parser_conf_o)
+test/util/presence:    test/util/presence.o    $(core_o) $(parser_spec_o) $(policy_o)
+test/util/prompter:    test/util/prompter.o    $(core_o)
+test/util/executive:   test/util/executive.o   $(core_o)
 
 
 ############################################################
 # Maintenance
 
-clean_lcov:
-	find . -name '*.o' -o -name '*.gc??' | xargs rm -f
+tidy:
+	find . -name '*.o' -o -name '*.gc??' 2>/dev/null | xargs rm -f
 	rm -f lcov.info
 
-clean: clean_lcov
-	rm -f $(UTILS) $(CORE) $(DEBUGGERS) test/run polspec
-	rm -f spec/lexer.c spec/grammar.c spec/grammar.h spec/*.output
-	rm -f conf/lexer.c conf/grammar.c conf/grammar.h conf/*.output
-	rm -f tpl/lexer.c tpl/grammar.c tpl/grammar.h tpl/*.output
-	rm -f test/util/includer test/util/factchecker test/util/presence test/util/daemoncfg test/util/executive test/util/prompter
-	rm -rf $(APIDOC_ROOT)/*
-	rm -rf doc/coverage/*
-	rm -f man/*.*.gz
+clean: tidy
+	rm -f $(COMPILED) test/run $(fun_tests) $(auto_c) $(auto_h) man/*.*.gz
+	rm -f spec/*.output conf/*.output tpl/*.output
+	rm -rf $(APIDOC_ROOT)/* doc/coverage/*
 
 dist: clean
-	rm -rf doc/coverage
-	rm -rf ext/openssl
-	rm -rf ext/build/*
+	rm -rf doc/coverage ext/openssl ext/build/*
 	rm -f config
 
 fixme:
-	find . -name '*.[ch15]' -not -path './ext/**' -not -path './man/tpl/*' | xargs grep -n FIXME: | sed -e 's/:[^:]*FIXME: /:/' -e 's/ *\*\///' | column -t -s :
-
-stats: clean
-	find . -name '*.[ch]' -not -path './test/**' 2>/dev/null | xargs ./util/nocomment | wc -l
+	find . -name '*.[ch15]' -not -path './ext/**' -not -path './man/tpl/*' 2>/dev/null | \
+	  xargs grep -n FIXME: | sed -e 's/:[^:]*FIXME: /:/' -e 's/ *\*\///' | column -t -s :
 
 
 ############################################################
 # Pattern Rules
 
-%.o: %.c %.h
-	$(CC) -c -o $@ $<
-
+# gzip man pages
 %.gz: %
-	gzip -c $+ > $@
+	gzip -c $^ > $@
+
+
+Makefile.deps:
+	gcc -MM *.c > Makefile.deps
+
+include Makefile.deps

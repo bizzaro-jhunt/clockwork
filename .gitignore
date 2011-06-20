@@ -11,6 +11,9 @@ sha1sum
 polspec
 tplspec
 
+debug/package-manager
+debug/service-manager
+
 doc/*.png
 doc/api/doxygen.log
 
@@ -43,5 +46,6 @@ ext/build
 ext/openssl
 
 config
+Makefile.deps
 
 local

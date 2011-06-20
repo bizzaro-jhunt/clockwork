@@ -19,8 +19,8 @@ DESTDIR=
 # This can be override by the --user and --group
 # arguments to the ./configure script.
 #
-CLOCKWORK_USER=clockwork
-CLOCKWORK_GROUP=clockwork
+CWUSER=clockwork
+CWGROUP=clockwork
 
 # All components of Clockwork are built by default.
 #

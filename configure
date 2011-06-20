@@ -26,6 +26,16 @@ OPTIONS
 
      Default: clockwork
 
+ --userhome </path/to/home>
+
+     Path to use for the clockwork user's home directory.  This option is
+     intended for developers to install to a chroot.pre directory, but with
+     a chroot-relative path for the clockwork user's home directory.
+
+     This directory is not explicitly created during installation.
+
+     Default: \$VARDIR (see --destdir and --vardir)
+
  --group <name>
 
      Change the name of the clockwork system group that will own all of
@@ -124,11 +134,15 @@ process()
 			;;
 
 		--user)
-			shift; CLOCKWORK_USER=$1
+			shift; CWUSER=$1
 			;;
 
 		--group)
-			shift; CLOCKWORK_GROUP=$1
+			shift; CWGROUP=$1
+			;;
+
+		--userhome)
+			shift; HOMEDIR=$1;
 			;;
 
 		--destdir)
@@ -167,6 +181,7 @@ process()
 
 		*)
 			echo "Unknown option: $1"
+			echo "Try $0 --help for configuration options"
 			exit 1;
 			;;
 		esac
@@ -181,6 +196,7 @@ normalize()
 	[[ -z "$VARDIR"  ]] && VARDIR="$DESTDIR/var/clockwork"
 	[[ -z "$ETCDIR"  ]] && ETCDIR="$DESTDIR/etc/clockwork"
 	[[ -z "$MANDIR"  ]] && MANDIR="$DESTDIR/usr/share/man"
+	[[ -z "$HOMEDIR" ]] && HOMEDIR=$VARDIR
 }
 
 summary()
@@ -190,8 +206,8 @@ summary()
 	echo
 	echo "Environment: $BUILD_MODE"
 	echo
-	echo "User:  $CLOCKWORK_USER"
-	echo "Group: $CLOCKWORK_GROUP"
+	echo "User:  $CWUSER"
+	echo "Group: $CWGROUP"
 	echo
 	echo "DESTDIR: $DESTDIR/"
 	echo
@@ -199,6 +215,7 @@ summary()
 	echo "VARDIR:  $VARDIR"
 	echo "ETCDIR:  $ETCDIR"
 	echo "MANDIR:  $MANDIR"
+	echo "HOMEDIR: $HOMEDIR"
 	echo
 	echo "Build agent tools?    [ $BUILD_AGENT ]"
 	echo "Build master tools?   [ $BUILD_MASTER ]"
@@ -210,8 +227,8 @@ save()
 {
 	(echo "# Clockwork build / install configuration generated $(date)"
 	 echo
-	 for VAR in CLOCKWORK_USER CLOCKWORK_GROUP \
-		DESTDIR SBINDIR VARDIR ETCDIR MANDIR \
+	 for VAR in CWUSER CWGROUP \
+		DESTDIR SBINDIR VARDIR ETCDIR MANDIR HOMEDIR \
 		BUILD_MODE BUILD_AGENT BUILD_MASTER; do
 		echo "$VAR=$(eval echo \$$VAR)"
 	 done) > config

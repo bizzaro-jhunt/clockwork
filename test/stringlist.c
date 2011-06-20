@@ -8,9 +8,9 @@ static stringlist* setup_stringlist(const char *s1, const char *s2, const char *
 
 	sl = stringlist_new(NULL);
 	assert_not_null("stringlist_new returns a non-null pointer", sl);
-	assert_int_equals("adding the s1 string to the list", stringlist_add(sl, s1), 0);
-	assert_int_equals("adding the s2 string to the list", stringlist_add(sl, s2), 0);
-	assert_int_equals("adding the s3 string to the list", stringlist_add(sl, s3), 0);
+	assert_int_eq("adding the s1 string to the list", stringlist_add(sl, s1), 0);
+	assert_int_eq("adding the s2 string to the list", stringlist_add(sl, s2), 0);
+	assert_int_eq("adding the s3 string to the list", stringlist_add(sl, s3), 0);
 
 	return sl;
 }
@@ -23,8 +23,8 @@ void test_stringlist_init()
 
 	test("stringlist: Initialization Routines");
 	assert_not_null("stringlist_new returns a non-null pointer", sl);
-	assert_int_equals("a new stringlist is empty", sl->num, 0);
-	assert_int_not_equal("a new stringlist has extra capacity", sl->len, 0);
+	assert_int_eq("a new stringlist is empty", sl->num, 0);
+	assert_int_ne("a new stringlist has extra capacity", sl->len, 0);
 
 	stringlist_free(sl);
 }
@@ -44,12 +44,12 @@ void test_stringlist_init_with_data()
 
 	sl = stringlist_new(data);
 	test("stringlist: Initialization (with data)");
-	assert_int_equals("stringlist should have 32 strings", sl->num, 32);
-	assert_int_greater_than("stringlist should have more than 32 slots", sl->len, 32);
-	assert_str_equals("spot-check strings[0]", sl->strings[0], "data0");
-	assert_str_equals("spot-check strings[14]", sl->strings[14], "data14");
-	assert_str_equals("spot-check strings[28]", sl->strings[28], "data28");
-	assert_str_equals("spot-check strings[31]", sl->strings[31], "data31");
+	assert_int_eq("stringlist should have 32 strings", sl->num, 32);
+	assert_int_gt("stringlist should have more than 32 slots", sl->len, 32);
+	assert_str_eq("spot-check strings[0]", sl->strings[0], "data0");
+	assert_str_eq("spot-check strings[14]", sl->strings[14], "data14");
+	assert_str_eq("spot-check strings[28]", sl->strings[28], "data28");
+	assert_str_eq("spot-check strings[31]", sl->strings[31], "data31");
 	assert_null("strings[32] should be a NULL terminator", sl->strings[32]);
 
 	stringlist_free(sl);
@@ -74,20 +74,20 @@ void test_stringlist_dup()
 	orig = stringlist_new(data);
 	dup  = stringlist_dup(orig);
 
-	assert_int_equals("original stringlist has 4 strings", orig->num, 4);
-	assert_int_equals("duplicate stringlist has 4 strings", orig->num, 4);
+	assert_int_eq("original stringlist has 4 strings", orig->num, 4);
+	assert_int_eq("duplicate stringlist has 4 strings", orig->num, 4);
 
-	assert_str_equals("original->strings[0]",  orig->strings[0], "data0");
-	assert_str_equals("duplicate->strings[0]", dup->strings[0], "data0");
+	assert_str_eq("original->strings[0]",  orig->strings[0], "data0");
+	assert_str_eq("duplicate->strings[0]", dup->strings[0], "data0");
 
-	assert_str_equals("original->strings[1]",  orig->strings[1], "data1");
-	assert_str_equals("duplicate->strings[1]", dup->strings[1], "data1");
+	assert_str_eq("original->strings[1]",  orig->strings[1], "data1");
+	assert_str_eq("duplicate->strings[1]", dup->strings[1], "data1");
 
-	assert_str_equals("original->strings[2]",  orig->strings[2], "data2");
-	assert_str_equals("duplicate->strings[2]", dup->strings[2], "data2");
+	assert_str_eq("original->strings[2]",  orig->strings[2], "data2");
+	assert_str_eq("duplicate->strings[2]", dup->strings[2], "data2");
 
-	assert_str_equals("original->strings[3]",  orig->strings[3], "data3");
-	assert_str_equals("duplicate->strings[3]", dup->strings[3], "data3");
+	assert_str_eq("original->strings[3]",  orig->strings[3], "data3");
+	assert_str_eq("duplicate->strings[3]", dup->strings[3], "data3");
 
 	stringlist_free(orig);
 	stringlist_free(dup);
@@ -106,19 +106,19 @@ void test_stringlist_basic_add_remove_search()
 	test("stringlist: Basic Add/Remove/Search");
 	assert_not_null("have a non-null stringlist", sl);
 
-	assert_int_equals("add 'first string' to string list", stringlist_add(sl, "first string"), 0);
-	assert_int_equals("add 'second string' to string list", stringlist_add(sl, "second string"), 0);
+	assert_int_eq("add 'first string' to string list", stringlist_add(sl, "first string"), 0);
+	assert_int_eq("add 'second string' to string list", stringlist_add(sl, "second string"), 0);
 
 	assert_stringlist(sl, "sl", 2, "first string", "second string");
 
-	assert_int_equals("search for 'first string' succeeds", stringlist_search(sl, "first string"), 0);
-	assert_int_equals("search for 'second string' succeeds", stringlist_search(sl, "second string"), 0);
-	assert_int_not_equal("search for 'no such string' fails", stringlist_search(sl, "no such string"), 0);
+	assert_int_eq("search for 'first string' succeeds", stringlist_search(sl, "first string"), 0);
+	assert_int_eq("search for 'second string' succeeds", stringlist_search(sl, "second string"), 0);
+	assert_int_ne("search for 'no such string' fails", stringlist_search(sl, "no such string"), 0);
 
-	assert_int_equals("removal of 'first string' succeeds", stringlist_remove(sl, "first string"), 0);
+	assert_int_eq("removal of 'first string' succeeds", stringlist_remove(sl, "first string"), 0);
 	assert_stringlist(sl, "sl", 1, "second string");
 
-	assert_int_equals("search for 'second string' still succeeds", stringlist_search(sl, "second string"), 0);
+	assert_int_eq("search for 'second string' still succeeds", stringlist_search(sl, "second string"), 0);
 
 	stringlist_free(sl);
 }
@@ -134,7 +134,7 @@ void test_stringlist_add_all()
 	assert_stringlist(sl1, "pre-combine sl1", 3, "lorem", "ipsum", "dolor");
 	assert_stringlist(sl2, "pre-combine sl2", 3, "sit", "amet", "consectetur");
 
-	assert_int_equals("combine sl1 and sl2 successfully", stringlist_add_all(sl1, sl2), 0);
+	assert_int_eq("combine sl1 and sl2 successfully", stringlist_add_all(sl1, sl2), 0);
 	assert_stringlist(sl1, "post-combine sl1", 6, "lorem", "ipsum", "dolor", "sit", "amet", "consectetur");
 	assert_stringlist(sl2, "post-combine sl2", 3, "sit", "amet", "consectetur");
 
@@ -153,7 +153,7 @@ void test_stringlist_remove_all()
 	assert_stringlist(sl1, "pre-remove sl1", 3, "lorem", "ipsum", "dolor");
 	assert_stringlist(sl2, "pre-remove sl2", 3, "ipsum", "dolor", "sit");
 
-	assert_int_equals("remove sl2 from sl1 successfully", stringlist_remove_all(sl1, sl2), 0);
+	assert_int_eq("remove sl2 from sl1 successfully", stringlist_remove_all(sl1, sl2), 0);
 	assert_stringlist(sl1, "post-remove sl1", 1, "lorem");
 	assert_stringlist(sl2, "post-remove sl2", 3, "ipsum", "dolor", "sit");
 
@@ -176,13 +176,13 @@ void test_stringlist_expansion()
 	for (i = 0; i < max * 2 + 1; i++) {
 		snprintf(buf, 32, "string%u", i);
 		snprintf(assertion, 128, "add 'string%u' to stringlist", i);
-		assert_int_equals(assertion, stringlist_add(sl, buf), 0);
+		assert_int_eq(assertion, stringlist_add(sl, buf), 0);
 
 		snprintf(assertion, 128, "stringlist should have %u strings", i + 1);
-		assert_int_equals(assertion, sl->num, i + 1);
+		assert_int_eq(assertion, sl->num, i + 1);
 	}
 
-	assert_int_not_equal("sl->len should have changed", sl->len, max);
+	assert_int_ne("sl->len should have changed", sl->len, max);
 
 	stringlist_free(sl);
 }
@@ -196,7 +196,7 @@ void test_stringlist_remove_nonexistent()
 
 	test("stringlist: Remove non-existent");
 	assert_stringlist(sl, "pre-remove sl", 3, "apple", "pear", "banana");
-	assert_int_not_equal("removal of 'tomato' from stringlist fails", stringlist_remove(sl, tomato), 0);
+	assert_int_ne("removal of 'tomato' from stringlist fails", stringlist_remove(sl, tomato), 0);
 	assert_stringlist(sl, "pre-remove sl", 3, "apple", "pear", "banana");
 
 	stringlist_free(sl);
@@ -277,13 +277,13 @@ void test_stringlist_diff()
 	sl2 = setup_stringlist(b, c, a);
 
 	test("stringlist: Diff");
-	assert_int_not_equal("sl1 and sl2 are equivalent", stringlist_diff(sl1, sl2), 0);
+	assert_int_ne("sl1 and sl2 are equivalent", stringlist_diff(sl1, sl2), 0);
 
 	stringlist_add(sl2, d);
-	assert_int_equals("after addition of 'david' to sl2, sl1 and sl2 differ", stringlist_diff(sl1, sl2), 0);
+	assert_int_eq("after addition of 'david' to sl2, sl1 and sl2 differ", stringlist_diff(sl1, sl2), 0);
 
 	stringlist_add(sl1, e);
-	assert_int_equals("after addition of 'ethan' to sl1, sl1 and sl2 differ", stringlist_diff(sl1, sl2), 0);
+	assert_int_eq("after addition of 'ethan' to sl1, sl1 and sl2 differ", stringlist_diff(sl1, sl2), 0);
 
 	stringlist_free(sl1);
 	stringlist_free(sl2);
@@ -301,8 +301,8 @@ void test_stringlist_diff_non_uniq()
 	sl2 = setup_stringlist(s1, s2, s3);
 
 	test("stringlist: Diff (non-unique entries)");
-	assert_int_equals("sl1 and sl2 are different (forward)", stringlist_diff(sl1, sl2), 0);
-	assert_int_equals("sl2 and sl1 are different (reverse)", stringlist_diff(sl2, sl1), 0);
+	assert_int_eq("sl1 and sl2 are different (forward)", stringlist_diff(sl1, sl2), 0);
+	assert_int_eq("sl2 and sl1 are different (reverse)", stringlist_diff(sl2, sl1), 0);
 
 	stringlist_free(sl1);
 	stringlist_free(sl2);
@@ -321,8 +321,8 @@ void test_stringlist_diff_single_string()
 	stringlist_add(sl2, b);
 
 	test("stringlist: Diff (single string)");
-	assert_int_equals("sl1 and sl2 are different (forward)", stringlist_diff(sl1, sl2), 0);
-	assert_int_equals("sl2 and sl1 are different (reverse)", stringlist_diff(sl2, sl1), 0);
+	assert_int_eq("sl1 and sl2 are different (forward)", stringlist_diff(sl1, sl2), 0);
+	assert_int_eq("sl2 and sl1 are different (reverse)", stringlist_diff(sl2, sl1), 0);
 
 	stringlist_free(sl1);
 	stringlist_free(sl2);
@@ -337,19 +337,19 @@ void test_stringlist_join()
 	test("stringlist: Join stringlist with a delimiter");
 	free(joined);
 	joined = stringlist_join(list, "::");
-	assert_str_equals("Check joined string with '::' delimiter", "item1::item2::item3", joined);
+	assert_str_eq("Check joined string with '::' delimiter", "item1::item2::item3", joined);
 
 	free(joined);
 	joined = stringlist_join(list, "");
-	assert_str_equals("Check joined string with '' delimiter", "item1item2item3", joined);
+	assert_str_eq("Check joined string with '' delimiter", "item1item2item3", joined);
 
 	free(joined);
 	joined = stringlist_join(list, "\n");
-	assert_str_equals("Check joined string with '' delimiter", "item1\nitem2\nitem3", joined);
+	assert_str_eq("Check joined string with '' delimiter", "item1\nitem2\nitem3", joined);
 
 	free(joined);
 	joined = stringlist_join(empty, "!!");
-	assert_str_equals("Check empty join", "", joined);
+	assert_str_eq("Check empty join", "", joined);
 
 	free(joined);
 	stringlist_free(list);

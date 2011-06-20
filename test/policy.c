@@ -12,7 +12,7 @@ void test_policy_creation()
 
 	test("policy: Initialization of policy structure");
 	pol = policy_new("policy name");
-	assert_str_equals("Policy name is set correctly", pol->name, "policy name");
+	assert_str_eq("Policy name is set correctly", pol->name, "policy name");
 	assert_true("resources is an empty list head", list_empty(&pol->resources));
 
 	policy_free(pol);
@@ -30,12 +30,12 @@ void test_policy_resource_addition()
 	assert_policy_has_files( "Policy (initially) has no files",  pol, 0);
 
 	res1 = resource_new("user", "user1");
-	assert_str_equals("User details are correct (before addition)", "user1",
+	assert_str_eq("User details are correct (before addition)", "user1",
 		((struct res_user*)(res1->resource))->ru_name);
 	policy_add_resource(pol, res1);
 
 	res2 = resource_new("group", "group1");
-	assert_str_equals("Group details are correct (before addition)", "group1",
+	assert_str_eq("Group details are correct (before addition)", "group1",
 		((struct res_group*)(res2->resource))->rg_name);
 	policy_add_resource(pol, res2);
 
@@ -58,7 +58,7 @@ void test_policy_pack()
 	pol = policy_new("empty");
 	packed = policy_pack(pol);
 	assert_not_null("policy_pack succeeds", packed);
-	assert_str_equals("packed empty policy should be empty string",
+	assert_str_eq("packed empty policy should be empty string",
 		"policy::\"empty\"", packed);
 	policy_free(pol);
 	xfree(packed);
@@ -87,7 +87,7 @@ void test_policy_pack()
 
 	packed = policy_pack(pol);
 	assert_not_null("policy_pack succeeds", packed);
-	assert_str_equals("packed policy with 1 user, 1 group, and 1 file",
+	assert_str_eq("packed policy with 1 user, 1 group, and 1 file",
 		"policy::\"1 user, 1 group, and 1 file\"\n"
 		"res_user::\"bourbon\"0000000d\"bourbon\"\"\"" "00000065" "000007d0" "\"\"\"\"\"\"" "00" "\"\"" "01" "00000000" "00000000" "00000000" "00000000" "00000000\n"
 		"res_group::\"scotch\"00000005\"scotch\"\"\"000007d0\"\"\"\"\"\"\"\"\n"
@@ -117,7 +117,7 @@ void test_policy_unpack()
 	/* The George Thoroughgood test */
 	pol = policy_unpack(packed);
 	assert_not_null("policy_unpack succeeds", pol);
-	assert_str_equals("policy name unpacked", "1 user, 1 group, and 1 file", pol->name);
+	assert_str_eq("policy name unpacked", "1 user, 1 group, and 1 file", pol->name);
 	assert_true("resources is NOT an empty list head", !list_empty(&pol->resources));
 	assert_policy_has_files("Policy has 1 file",   pol, 1);
 	assert_policy_has_groups("Policy has 1 group", pol, 1);

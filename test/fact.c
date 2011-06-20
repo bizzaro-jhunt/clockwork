@@ -9,8 +9,8 @@ void test_fact_parsing()
 
 	test("fact: parsing a string fact");
 	fact_parse("sys.kernel.version=2.6.32-194.distro5-generic\n", &name, &value);
-	assert_str_equals("name parsed correctly", "sys.kernel.version", name);
-	assert_str_equals("value parsed correctly", "2.6.32-194.distro5-generic", value);
+	assert_str_eq("name parsed correctly", "sys.kernel.version", name);
+	assert_str_eq("value parsed correctly", "2.6.32-194.distro5-generic", value);
 
 	xfree(name);
 	xfree(value);
@@ -28,9 +28,9 @@ void test_fact_read_io()
 	facts = fact_read(io, NULL);
 	assert_not_null("fact_read() succeeds", facts);
 
-	assert_str_equals("Checking test.fact1", "fact1", hash_get(facts, "test.fact1"));
-	assert_str_equals("Checking test.fact2", "fact2", hash_get(facts, "test.fact2"));
-	assert_str_equals("Checking test.multi.level.fact", "multilevel fact", hash_get(facts, "test.multi.level.fact"));
+	assert_str_eq("Checking test.fact1", "fact1", hash_get(facts, "test.fact1"));
+	assert_str_eq("Checking test.fact2", "fact2", hash_get(facts, "test.fact2"));
+	assert_str_eq("Checking test.multi.level.fact", "multilevel fact", hash_get(facts, "test.multi.level.fact"));
 	fclose(io);
 
 	/* Because hashes only do memory management for their keys,
@@ -57,9 +57,9 @@ void test_fact_read_overrides()
 	hash_set(facts, "test.fact2", "OVERRIDE ME");
 	assert_not_null("fact_read() succeeds", fact_read(io, facts));
 
-	assert_str_equals("Checking test.fact1", "fact1", hash_get(facts, "test.fact1"));
-	assert_str_equals("Checking test.fact2", "fact2", hash_get(facts, "test.fact2"));
-	assert_str_equals("Checking test.multi.level.fact", "multilevel fact", hash_get(facts, "test.multi.level.fact"));
+	assert_str_eq("Checking test.fact1", "fact1", hash_get(facts, "test.fact1"));
+	assert_str_eq("Checking test.fact2", "fact2", hash_get(facts, "test.fact2"));
+	assert_str_eq("Checking test.multi.level.fact", "multilevel fact", hash_get(facts, "test.multi.level.fact"));
 	fclose(io);
 
 	/* Because hashes only do memory management for their keys,

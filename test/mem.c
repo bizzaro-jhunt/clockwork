@@ -25,7 +25,7 @@ void test_mem_xmalloc()
 	test("MEM: xmalloc(10) succeeds");
 	s = xmalloc(10);
 	assert_not_null("s was allocated properly", s);
-	assert_str_equals("s is all '\0's", "", s);
+	assert_str_eq("s is all '\0's", "", s);
 	xfree(s);
 
 	/** "failure" = exit(42) on this one...
@@ -47,13 +47,13 @@ void test_mem_xstrdup()
 	test("MEM:xstrdup(\"\") is NOT NULL");
 	s = xstrdup("");
 	assert_not_null("s is NOT NULL", s);
-	assert_str_equals("s is \"\" (empty string)", "", s);
+	assert_str_eq("s is \"\" (empty string)", "", s);
 	xfree(s);
 
 	test("MEM:xstrdup(\"There once was a man from Nantucket...\")");
 	s = xstrdup("There once was a man from Nantucket...");
 	assert_not_null("s is NOT NULL", s);
-	assert_str_equals("duplication worked", "There once was a man from Nantucket...", s);
+	assert_str_eq("duplication worked", "There once was a man from Nantucket...", s);
 	xfree(s);
 }
 
@@ -95,19 +95,19 @@ void test_mem_xstrncpy()
 	test("MEM: xstrncpy() - normal usage case");
 	ret = xstrncpy(s, buffer, 6+1);
 	assert_not_null("return value is not NULL", ret);
-	assert_ptr("return value is address of dest. buffer", s, ret);
-	assert_str_equals("dest. buffer contains 'AAABBB'", "AAABBB", s);
+	assert_ptr_eq("return value is address of dest. buffer", s, ret);
+	assert_str_eq("dest. buffer contains 'AAABBB'", "AAABBB", s);
 
 	ret = xstrncpy(s, buffer, 19);
 	assert_not_null("return value is not NULL", ret);
-	assert_ptr("return value is address of dest. buffer", s, ret);
-	assert_str_equals("dest. buffer contains full string", buffer, s);
+	assert_ptr_eq("return value is address of dest. buffer", s, ret);
+	assert_str_eq("dest. buffer contains full string", buffer, s);
 
 	test("MEM: xstrncpy() - small src, large dest");
 	ret = xstrncpy(s, "hi!", 19);
 	assert_not_null("return value is not NULL", ret);
-	assert_ptr("return value is address of dest. buffer", s, ret);
-	assert_str_equals("dest. buffer contains full string (hi!)", "hi!", s);
+	assert_ptr_eq("return value is address of dest. buffer", s, ret);
+	assert_str_eq("dest. buffer contains full string (hi!)", "hi!", s);
 }
 
 void test_mem_xarrdup()
@@ -128,11 +128,11 @@ void test_mem_xarrdup()
 	copy = xarrdup(original);
 	assert_ptr_ne("different root pointer returned", original, copy);
 	assert_not_null("copy[0] is a valid pointer", copy[0]);
-	assert_str_equals("copy[0] is a faithful copy", original[0], copy[0]);
+	assert_str_eq("copy[0] is a faithful copy", original[0], copy[0]);
 	assert_not_null("copy[1] is a valid pointer", copy[1]);
-	assert_str_equals("copy[1] is a faithful copy", original[1], copy[1]);
+	assert_str_eq("copy[1] is a faithful copy", original[1], copy[1]);
 	assert_not_null("copy[2] is a valid pointer", copy[2]);
-	assert_str_equals("copy[3] is a faithful copy", original[3], copy[3]);
+	assert_str_eq("copy[3] is a faithful copy", original[3], copy[3]);
 	assert_null("copy[3] is NULL (sigil)", copy[3]);
 
 	xarrfree(copy);
@@ -169,14 +169,14 @@ void test_mem_string()
 	test("MEM: string() - normal use");
 	s = string("%s: %u 0x%08x", "Clockwork test build", 1025, 1025);
 	assert_not_null("string() returns valid pointer", s);
-	assert_str_equals("string() formats properly", "Clockwork test build: 1025 0x00000401", s);
+	assert_str_eq("string() formats properly", "Clockwork test build: 1025 0x00000401", s);
 	free(s);
 
 	test("MEM: string() - large buffer required");
 	memset(buf, 'x', 128); buf[128] = '\0';
-	assert_int_equals("buffer should be 128 octets long", 128, strlen(buf));
+	assert_int_eq("buffer should be 128 octets long", 128, strlen(buf));
 	s = string("%sA%sB%sC%sD", buf, buf, buf, buf);
-	assert_int_equals("s should be 4+(128*4) octets long", 4+(128*4), strlen(s));
+	assert_int_eq("s should be 4+(128*4) octets long", 4+(128*4), strlen(s));
 	free(s);
 
 }

@@ -76,7 +76,7 @@ void test_job_timer()
 	assert_int_ne("Job has non-zero end time (seconds)", job->end.tv_sec, 0);
 	assert_int_ne("Job has non-zero end time (microseconds)", job->end.tv_usec, 0);
 	assert_int_ne("Job has non-zero duration", job->duration, 0);
-	assert_int_gte("End time (seconds) is greater than or equal to start time", job->end.tv_sec, job->start.tv_sec);
+	assert_int_ge("End time (seconds) is greater than or equal to start time", job->end.tv_sec, job->start.tv_sec);
 
 	/* duration should be over 1 second, thanks to usleep(3) call */
 	assert_int_gt("Job 'ran' for more than 1 second", job->duration, 1000000);

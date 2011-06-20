@@ -102,7 +102,7 @@ static pid_t fork_test(struct test_proto_conn *server, child_fn test)
 
 	assert_int_eq("s2c pipe created successfully", pipe(s2c), 0);
 	assert_int_eq("c2s pipe created successfully", pipe(c2s), 0);
-	assert_int_gte("forked successfully", pid = fork(), 0);
+	assert_int_ge("forked successfully", pid = fork(), 0);
 
 	if (pid == 0) {
 		close(s2c[1]);

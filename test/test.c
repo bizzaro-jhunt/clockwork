@@ -184,17 +184,17 @@ void assert_null(const char *s, const void *ptr)
 	} \
 } while (0)
 
-void assert_unsigned_equals(const char *s, unsigned long int expected, unsigned long int actual)
+void assert_unsigned_eq(const char *s, unsigned long int expected, unsigned long int actual)
 {
 	_assert_numeric_equals(s, "%lu", expected, actual);
 }
 
-void assert_signed_equals(const char *s, signed long int expected, signed long int actual)
+void assert_signed_eq(const char *s, signed long int expected, signed long int actual)
 {
 	_assert_numeric_equals(s, "%li", expected, actual);
 }
 
-void assert_ptr(const char *s, const void *expected, const void *actual)
+void assert_ptr_eq(const char *s, const void *expected, const void *actual)
 {
 	_assert_numeric_equals(s, "0x%lx", (unsigned long)expected, (unsigned long)actual);
 }
@@ -213,7 +213,7 @@ void assert_ptr_ne(const char *s, const void *unexpected, const void *actual)
 	}
 }
 
-void assert_int_equals(const char *s, int expected, int actual)
+void assert_int_eq(const char *s, int expected, int actual)
 {
 	++__ASSERTIONS;
 	if (expected == actual) {
@@ -226,7 +226,7 @@ void assert_int_equals(const char *s, int expected, int actual)
 	}
 }
 
-void assert_int_not_equal(const char *s, int actual, int unexpected)
+void assert_int_ne(const char *s, int actual, int unexpected)
 {
 	++__ASSERTIONS;
 	if (unexpected == actual) {
@@ -239,7 +239,7 @@ void assert_int_not_equal(const char *s, int actual, int unexpected)
 	}
 }
 
-void assert_int_greater_than(const char *s, int actual, int threshold)
+void assert_int_gt(const char *s, int actual, int threshold)
 {
 	++__ASSERTIONS;
 	if (actual <= threshold) {
@@ -252,7 +252,7 @@ void assert_int_greater_than(const char *s, int actual, int threshold)
 	}
 }
 
-void assert_int_greater_than_or_equal(const char *s, int actual, int threshold)
+void assert_int_ge(const char *s, int actual, int threshold)
 {
 	++__ASSERTIONS;
 	if (actual < threshold) {
@@ -265,7 +265,7 @@ void assert_int_greater_than_or_equal(const char *s, int actual, int threshold)
 	}
 }
 
-void assert_int_less_than(const char *s, int actual, int threshold)
+void assert_int_lt(const char *s, int actual, int threshold)
 {
 	++__ASSERTIONS;
 	if (actual >= threshold) {
@@ -278,7 +278,7 @@ void assert_int_less_than(const char *s, int actual, int threshold)
 	}
 }
 
-void assert_int_less_than_or_equal(const char *s, int actual, int threshold)
+void assert_int_le(const char *s, int actual, int threshold)
 {
 	++__ASSERTIONS;
 	if (actual > threshold) {
@@ -291,7 +291,7 @@ void assert_int_less_than_or_equal(const char *s, int actual, int threshold)
 	}
 }
 
-void assert_str_equals(const char *s, const char *actual, const char *expected)
+void assert_str_eq(const char *s, const char *actual, const char *expected)
 {
 	++__ASSERTIONS;
 	if (expected == NULL) { expected = "(null)"; }
@@ -307,7 +307,7 @@ void assert_str_equals(const char *s, const char *actual, const char *expected)
 	}
 }
 
-void assert_str_not_equal(const char *s, const char *actual, const char *unexpected)
+void assert_str_ne(const char *s, const char *actual, const char *unexpected)
 {
 	++__ASSERTIONS;
 	if (unexpected == NULL) { unexpected = "(null)"; }

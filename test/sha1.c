@@ -19,11 +19,11 @@ void test_sha1_FIPS()
 
 	sha1_init(&cksum, NULL);
 	sha1_data(FIPS1_IN, strlen(FIPS1_IN), &cksum);
-	assert_str_equals("sha1(" FIPS1_IN ")", cksum.hex, FIPS1_OUT);
+	assert_str_eq("sha1(" FIPS1_IN ")", cksum.hex, FIPS1_OUT);
 
 	sha1_init(&cksum, NULL);
 	sha1_data(FIPS2_IN, strlen(FIPS2_IN), &cksum);
-	assert_str_equals("sha1(" FIPS2_IN ")", cksum.hex, FIPS2_OUT);
+	assert_str_eq("sha1(" FIPS2_IN ")", cksum.hex, FIPS2_OUT);
 
 	/* it's hard to define a string constant for 1 mil 'a's... */
 	sha1_ctx_init(&ctx);
@@ -32,7 +32,7 @@ void test_sha1_FIPS()
 	}
 	sha1_ctx_final(&ctx, cksum.raw);
 	sha1_hexdigest(&cksum);
-	assert_str_equals("sha1(<1,000,000 x s>)", cksum.hex, FIPS3_OUT);
+	assert_str_eq("sha1(<1,000,000 x s>)", cksum.hex, FIPS3_OUT);
 }
 
 void test_sha1_init()
@@ -41,19 +41,19 @@ void test_sha1_init()
 	sha1 init;
 
 	sha1_init(&calc, NULL);
-	assert_str_equals("sha1()", calc.hex, "");
+	assert_str_eq("sha1()", calc.hex, "");
 	/* Borrow from FIPS checks */
 	sha1_data(FIPS1_IN, strlen(FIPS1_IN), &calc);
-	assert_str_equals("sha1(" FIPS1_IN ")", calc.hex, FIPS1_OUT);
+	assert_str_eq("sha1(" FIPS1_IN ")", calc.hex, FIPS1_OUT);
 
 	sha1_init(&init, calc.hex);
-	assert_str_equals("init.hex == calc.hex", calc.hex, init.hex);
+	assert_str_eq("init.hex == calc.hex", calc.hex, init.hex);
 
 	unsigned int i;
 	char buf[256];
 	for (i = 0; i < SHA1_DIGEST_SIZE; i++) {
 		snprintf(buf, 256, "octet[%i] equality", i);
-		assert_int_equals(buf, calc.raw[i], init.raw[i]);
+		assert_int_eq(buf, calc.raw[i], init.raw[i]);
 	}
 }
 
@@ -69,8 +69,8 @@ void test_sha1_comparison()
 	sha1_data(s1, strlen(s1), &a);
 	sha1_data(s2, strlen(s2), &b);
 
-	assert_int_equals("identical checksums are equal", sha1_cmp(&a, &a), 0);
-	assert_int_not_equal("different checksums are not equal", sha1_cmp(&a, &b), 0);
+	assert_int_eq("identical checksums are equal", sha1_cmp(&a, &a), 0);
+	assert_int_ne("different checksums are not equal", sha1_cmp(&a, &b), 0);
 }
 
 void test_suite_sha1()

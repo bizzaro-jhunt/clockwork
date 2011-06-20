@@ -110,13 +110,13 @@ static void assert_passwd(struct passwd *pw, const char *name, uid_t uid, gid_t 
 	char buf[256];
 
 	snprintf(buf, 256, "%s UID should be %u", name, uid);
-	assert_int_equals(buf, pw->pw_uid, uid);
+	assert_int_eq(buf, pw->pw_uid, uid);
 
 	snprintf(buf, 256, "%s GID should be %u", name, gid);
-	assert_int_equals(buf, pw->pw_gid, gid);
+	assert_int_eq(buf, pw->pw_gid, gid);
 
 	snprintf(buf, 256, "%s username should be %s", name, name);
-	assert_str_equals(buf, pw->pw_name, name);
+	assert_str_eq(buf, pw->pw_name, name);
 }
 
 static void assert_pwdb_get(struct pwdb *db, const char *name, uid_t uid, gid_t gid)
@@ -148,7 +148,7 @@ static void assert_spdb_get(struct spdb *db, const char *name)
 	assert_not_null(buf, sp);
 
 	snprintf(buf, 256, "%s username should be %s", name, name);
-	assert_str_equals(buf, sp->sp_namp, name);
+	assert_str_eq(buf, sp->sp_namp, name);
 }
 
 static void assert_group(struct group *gr, const char *name, gid_t gid)
@@ -156,10 +156,10 @@ static void assert_group(struct group *gr, const char *name, gid_t gid)
 	char buf[256];
 
 	snprintf(buf, 256, "%s GID should be %u", name, gid);
-	assert_int_equals(buf, gr->gr_gid, gid);
+	assert_int_eq(buf, gr->gr_gid, gid);
 
 	snprintf(buf, 256, "%s username should be %s", name, name);
-	assert_str_equals(buf, gr->gr_name, name);
+	assert_str_eq(buf, gr->gr_name, name);
 }
 
 static void assert_grdb_get(struct grdb *db, const char *name, gid_t gid)
@@ -189,7 +189,7 @@ static void assert_sgdb_get(struct sgdb *db, const char *name)
 
 	snprintf(buf, 256, "Look up %s sgrp by name", name);
 	assert_not_null(buf, gr);
-	assert_str_equals(buf, gr->sg_namp, name);
+	assert_str_eq(buf, gr->sg_namp, name);
 }
 
 /*********************************************************/
@@ -251,13 +251,13 @@ void test_pwdb_add()
 	db = open_passwd(PWFILE_NEW);
 	assert_not_null("re-read new entry from " PWFILE_NEW, ent = pwdb_get_by_name(db, pw.pw_name));
 
-	assert_str_equals("  check equality of pw_name",   "new_user",       ent->pw_name);
-	assert_str_equals("  check equality of pw_passwd", "x",              ent->pw_passwd);
-	assert_int_equals("  check equality of pw_uid",    500,              ent->pw_uid);
-	assert_int_equals("  check equality of pw_gid",    500,              ent->pw_gid);
-	assert_str_equals("  check equality of pw_gecos",  "New User,,,",    ent->pw_gecos);
-	assert_str_equals("  check equality of pw_dir",    "/home/new_user", ent->pw_dir);
-	assert_str_equals("  check equality of pw_shell",  "/bin/bash",      ent->pw_shell);
+	assert_str_eq("  check equality of pw_name",   "new_user",       ent->pw_name);
+	assert_str_eq("  check equality of pw_passwd", "x",              ent->pw_passwd);
+	assert_int_eq("  check equality of pw_uid",    500,              ent->pw_uid);
+	assert_int_eq("  check equality of pw_gid",    500,              ent->pw_gid);
+	assert_str_eq("  check equality of pw_gecos",  "New User,,,",    ent->pw_gecos);
+	assert_str_eq("  check equality of pw_dir",    "/home/new_user", ent->pw_dir);
+	assert_str_eq("  check equality of pw_shell",  "/bin/bash",      ent->pw_shell);
 
 	if (unlink(PWFILE_NEW) == -1) {
 		perror("Unable to remove " PWFILE_NEW);
@@ -327,13 +327,13 @@ void test_pwdb_new_entry()
 
 	pw = pwdb_new_entry(db, name, 1001, 2002);
 	assert_not_null("pwdb_new_entry returns a passwd structure", pw);
-	assert_str_equals("pw_name is set properly", pw->pw_name, name);
-	assert_str_equals("pw_passwd default is sane", pw->pw_passwd, "x");
-	assert_int_equals("pw_uid is set properly", pw->pw_uid, 1001);
-	assert_int_equals("pw_gid is set properly", pw->pw_gid, 2002);
-	assert_str_equals("pw_gecos default is sane", pw->pw_gecos, "");
-	assert_str_equals("pw_dir default is sane", pw->pw_dir, "/");
-	assert_str_equals("pw_shell default is sane", pw->pw_shell, "/sbin/nologin");
+	assert_str_eq("pw_name is set properly", pw->pw_name, name);
+	assert_str_eq("pw_passwd default is sane", pw->pw_passwd, "x");
+	assert_int_eq("pw_uid is set properly", pw->pw_uid, 1001);
+	assert_int_eq("pw_gid is set properly", pw->pw_gid, 2002);
+	assert_str_eq("pw_gecos default is sane", pw->pw_gecos, "");
+	assert_str_eq("pw_dir default is sane", pw->pw_dir, "/");
+	assert_str_eq("pw_shell default is sane", pw->pw_shell, "/sbin/nologin");
 
 	pwdb_free(db);
 }
@@ -348,7 +348,7 @@ void test_pwdb_next_uid_out_of_order()
 	test("PWDB: Next UID out of order");
 	next = pwdb_next_uid(db);
 
-	assert_int_equals("Next UID should be 8192 (not 1016)", 8192, next);
+	assert_int_eq("Next UID should be 8192 (not 1016)", 8192, next);
 
 	pwdb_free(db);
 }
@@ -410,14 +410,14 @@ void test_spdb_add()
 	db = open_shadow(SPFILE_NEW);
 
 	assert_not_null("re-read net entry from " SPFILE_NEW, ent = spdb_get_by_name(db, sp.sp_namp));
-	assert_str_equals("  check equality of sp_namp",   "new_user",  ent->sp_namp);
-	assert_str_equals("  check equality of sp_pwdp",   "$6$pwhash", ent->sp_pwdp);
-	assert_int_equals("  check equality of sp_lstchg", 14800,       ent->sp_lstchg);
-	assert_int_equals("  check equality of sp_min",    1,           ent->sp_min);
-	assert_int_equals("  check equality of sp_max",    6,           ent->sp_max);
-	assert_int_equals("  check equality of sp_warn",   4,           ent->sp_warn);
-	assert_int_equals("  check equality of sp_inact",  0,           ent->sp_inact);
-	assert_int_equals("  check equality of sp_expire", 0,           ent->sp_expire);
+	assert_str_eq("  check equality of sp_namp",   "new_user",  ent->sp_namp);
+	assert_str_eq("  check equality of sp_pwdp",   "$6$pwhash", ent->sp_pwdp);
+	assert_int_eq("  check equality of sp_lstchg", 14800,       ent->sp_lstchg);
+	assert_int_eq("  check equality of sp_min",    1,           ent->sp_min);
+	assert_int_eq("  check equality of sp_max",    6,           ent->sp_max);
+	assert_int_eq("  check equality of sp_warn",   4,           ent->sp_warn);
+	assert_int_eq("  check equality of sp_inact",  0,           ent->sp_inact);
+	assert_int_eq("  check equality of sp_expire", 0,           ent->sp_expire);
 
 	if (unlink(SPFILE_NEW) == -1) {
 		perror("Unable to remove " SPFILE_NEW);
@@ -487,13 +487,13 @@ void test_spdb_new_entry()
 
 	sp = spdb_new_entry(db, name);
 	assert_not_null("spdb_new_entry returns an spwd structure", sp);
-	assert_str_equals("sp_namp is set properly", sp->sp_namp, name);
-	assert_str_equals("sp_pwdp default is sane", sp->sp_pwdp, "!");
-	assert_int_equals("sp_min default is sane", sp->sp_min, 0);
-	assert_int_equals("sp_max default is sane", sp->sp_max, 99999);
-	assert_int_equals("sp_warn default is sane", sp->sp_warn, 7);
-	assert_int_equals("sp_inact default is sane", sp->sp_inact, 0);
-	assert_int_equals("sp_expire default is sane", sp->sp_expire, 0);
+	assert_str_eq("sp_namp is set properly", sp->sp_namp, name);
+	assert_str_eq("sp_pwdp default is sane", sp->sp_pwdp, "!");
+	assert_int_eq("sp_min default is sane", sp->sp_min, 0);
+	assert_int_eq("sp_max default is sane", sp->sp_max, 99999);
+	assert_int_eq("sp_warn default is sane", sp->sp_warn, 7);
+	assert_int_eq("sp_inact default is sane", sp->sp_inact, 0);
+	assert_int_eq("sp_expire default is sane", sp->sp_expire, 0);
 
 	spdb_free(db);
 }
@@ -550,8 +550,8 @@ void test_grdb_add()
 	db = open_group(GRFILE_NEW);
 	assert_not_null("re-read new entry from " GRFILE_NEW, ent = grdb_get_by_name(db, gr.gr_name));
 
-	assert_str_equals("  check equality of gr_name",   "new_group",       ent->gr_name);
-	assert_int_equals("  check equality of gr_gid",    500,              ent->gr_gid);
+	assert_str_eq("  check equality of gr_name",   "new_group",       ent->gr_name);
+	assert_int_eq("  check equality of gr_gid",    500,              ent->gr_gid);
 
 	if (unlink(GRFILE_NEW) == -1) {
 		perror("Unable to remove " GRFILE_NEW);
@@ -631,9 +631,9 @@ void test_grdb_new_entry()
 
 	gr = grdb_new_entry(db, name, 2002);
 	assert_not_null("grdb_new_entry returns a group structure", gr);
-	assert_str_equals("gr_name is set properly", gr->gr_name, name);
-	assert_str_equals("gr_passwd default is sane", gr->gr_passwd, "x");
-	assert_int_equals("gr_gid is set properly", gr->gr_gid, 2002);
+	assert_str_eq("gr_name is set properly", gr->gr_name, name);
+	assert_str_eq("gr_passwd default is sane", gr->gr_passwd, "x");
+	assert_int_eq("gr_gid is set properly", gr->gr_gid, 2002);
 
 	grdb_free(db);
 }
@@ -656,15 +656,15 @@ void test_grdb_gr_mem_support()
 
 	memb = *(gr_mem++);
 	assert_not_null("gr_mem[0] is not null", memb);
-	assert_str_equals("gr_mem[0] is the account1 user", memb, "account1");
+	assert_str_eq("gr_mem[0] is the account1 user", memb, "account1");
 
 	memb = *(gr_mem++);
 	assert_not_null("gr_mem[1] is not null", memb);
-	assert_str_equals("gr_mem[1] is the account2 user", memb, "account2");
+	assert_str_eq("gr_mem[1] is the account2 user", memb, "account2");
 
 	memb = *(gr_mem++);
 	assert_not_null("gr_mem[2] is not null", memb);
-	assert_str_equals("gr_mem[2] is the account3 user", memb, "account3");
+	assert_str_eq("gr_mem[2] is the account3 user", memb, "account3");
 
 	memb = *(gr_mem++);
 	assert_null("no more gr_mem entries", memb);
@@ -723,8 +723,8 @@ void test_sgdb_add()
 	db = open_gshadow(SGFILE_NEW);
 
 	assert_not_null("re-read net entry from " SGFILE_NEW, ent = sgdb_get_by_name(db, sp.sg_namp));
-	assert_str_equals("  check equality of sg_namp",   "new_group",  ent->sg_namp);
-	assert_str_equals("  check equality of sg_passwd", "$6$pwhash", ent->sg_passwd);
+	assert_str_eq("  check equality of sg_namp",   "new_group",  ent->sg_namp);
+	assert_str_eq("  check equality of sg_passwd", "$6$pwhash", ent->sg_passwd);
 
 	if (unlink(SGFILE_NEW) == -1) {
 		perror("Unable to remove " SGFILE_NEW);
@@ -794,7 +794,7 @@ void test_sgdb_new_entry()
 
 	sg = sgdb_new_entry(db, name);
 	assert_not_null("sgdb_new_entry returns an sgrp structure", sg);
-	assert_str_equals("sg_namp is set properly", sg->sg_namp, name);
+	assert_str_eq("sg_namp is set properly", sg->sg_namp, name);
 
 	sgdb_free(db);
 }
@@ -818,15 +818,15 @@ void test_sgdb_sg_mem_support()
 
 	memb = *(sg_mem++);
 	assert_not_null("sg_mem[0] is not null", memb);
-	assert_str_equals("sg_mem[0] is the account1 user", memb, "account1");
+	assert_str_eq("sg_mem[0] is the account1 user", memb, "account1");
 
 	memb = *(sg_mem++);
 	assert_not_null("sg_mem[1] is not null", memb);
-	assert_str_equals("sg_mem[1] is the account2 user", memb, "account2");
+	assert_str_eq("sg_mem[1] is the account2 user", memb, "account2");
 
 	memb = *(sg_mem++);
 	assert_not_null("sg_mem[2] is not null", memb);
-	assert_str_equals("sg_mem[2] is the account3 user", memb, "account3");
+	assert_str_eq("sg_mem[2] is the account3 user", memb, "account3");
 
 	memb = *(sg_mem++);
 	assert_null("no more sg_mem entries", memb);
@@ -853,11 +853,11 @@ void test_sgdb_sg_adm_support()
 
 	admin = *(sg_adm++);
 	assert_not_null("sg_adm[0] is not null", admin);
-	assert_str_equals("sg_adm[0] is the admin1 user", admin, "admin1");
+	assert_str_eq("sg_adm[0] is the admin1 user", admin, "admin1");
 
 	admin = *(sg_adm++);
 	assert_not_null("sg_adm[1] is not null", admin);
-	assert_str_equals("sg_adm[1] is the admin2 user", admin, "admin2");
+	assert_str_eq("sg_adm[1] is the admin2 user", admin, "admin2");
 
 	admin = *(sg_adm++);
 	assert_null("no more sg_adm entries", admin);

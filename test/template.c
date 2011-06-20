@@ -20,13 +20,13 @@ static int template_file(const char *path, const char *contents)
 	if (!contents || !path) { goto failed; }
 
 	fd = open(path, O_TRUNC|O_CREAT|O_WRONLY, 0644);
-	assert_int_gte("template_file: handle opened successfully", fd, 0);
+	assert_int_ge("template_file: handle opened successfully", fd, 0);
 	if (fd < 0) { goto failed; }
 
 	len = strlen(contents);
 	do {
 		nwritten = write(fd, contents, len);
-		assert_int_gte("template_file: bytes written >= 0", nwritten, 0);
+		assert_int_ge("template_file: bytes written >= 0", nwritten, 0);
 		if (nwritten < 0) { goto failed; }
 
 		contents += nwritten;

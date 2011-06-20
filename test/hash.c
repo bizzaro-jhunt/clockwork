@@ -6,7 +6,7 @@ void test_hash_functions()
 {
 	test("hash: H64");
 
-	assert_int_equals("H64 equivalency", H64("test"), H64("test"));
+	assert_int_eq("H64 equivalency", H64("test"), H64("test"));
 }
 
 void test_hash_basics()
@@ -17,7 +17,7 @@ void test_hash_basics()
 	char *name = strdup("staff");
 
 	test("hash: Insertion and Lookup");
-	assert_int_not_equal("no H64 collision", H64("path"), H64("name"));
+	assert_int_ne("no H64 collision", H64("path"), H64("name"));
 
 	h = hash_new();
 	assert_not_null("hash_new returns a pointer", h);
@@ -25,11 +25,11 @@ void test_hash_basics()
 	assert_null("get 'path' fails prior to set", hash_get(h, "path"));
 	assert_null("get 'name' fails prior to set", hash_get(h, "name"));
 
-	assert_ptr("set 'path' succeeds", path, hash_set(h, "path", path));
-	assert_ptr("set 'name' succeeds", name, hash_set(h, "name", name));
+	assert_ptr_eq("set 'path' succeeds", path, hash_set(h, "path", path));
+	assert_ptr_eq("set 'name' succeeds", name, hash_set(h, "name", name));
 
-	assert_str_equals("get 'path' succeeds", path, hash_get(h, "path"));
-	assert_str_equals("get 'name' succeeds", name, hash_get(h, "name"));
+	assert_str_eq("get 'path' succeeds", path, hash_get(h, "path"));
+	assert_str_eq("get 'name' succeeds", name, hash_get(h, "name"));
 
 	hash_free(h);
 	free(path);
@@ -43,7 +43,7 @@ void test_hash_collisions()
 	char *group = strdup("staff");
 
 	test("hash: Handling of Keyspace Collisions");
-	assert_int_equals("H64 collision", H64("path"), H64("group"));
+	assert_int_eq("H64 collision", H64("path"), H64("group"));
 
 	h = hash_new();
 	assert_not_null("hash_new returns a pointer", h);
@@ -51,11 +51,11 @@ void test_hash_collisions()
 	assert_null("get 'path' fails prior to set",  hash_get(h, "path"));
 	assert_null("get 'group' fails prior to set", hash_get(h, "group"));
 
-	assert_ptr("set 'path' succeeds",  path,  hash_set(h, "path",  path));
-	assert_ptr("set 'group' succeeds", group, hash_set(h, "group", group));
+	assert_ptr_eq("set 'path' succeeds",  path,  hash_set(h, "path",  path));
+	assert_ptr_eq("set 'group' succeeds", group, hash_set(h, "group", group));
 
-	assert_str_equals("get 'path' succeeds",  path,  hash_get(h, "path"));
-	assert_str_equals("get 'group' succeeds", group, hash_get(h, "group"));
+	assert_str_eq("get 'path' succeeds",  path,  hash_get(h, "path"));
+	assert_str_eq("get 'group' succeeds", group, hash_get(h, "group"));
 
 	hash_free(h);
 	free(path);
@@ -74,11 +74,11 @@ void test_hash_overrides()
 	h = hash_new();
 	assert_not_null("hash_new returns a pointer", h);
 
-	assert_ptr("set (1st) succeeds", value1, hash_set(h, "key", value1));
-	assert_str_equals("get (1st) succeeds", "value1", hash_get(h, "key"));
+	assert_ptr_eq("set (1st) succeeds", value1, hash_set(h, "key", value1));
+	assert_str_eq("get (1st) succeeds", "value1", hash_get(h, "key"));
 
-	assert_ptr("set (2nd) succeeds (returning prev. value ptr)", value1, hash_set(h, "key", value2));
-	assert_str_equals("get (2nd) succeeds", "value2", hash_get(h, "key"));
+	assert_ptr_eq("set (2nd) succeeds (returning prev. value ptr)", value1, hash_set(h, "key", value2));
+	assert_str_eq("get (2nd) succeeds", "value2", hash_get(h, "key"));
 
 	hash_free(h);
 	free(value1);
@@ -115,16 +115,16 @@ void test_hash_for_each()
 	for_each_key_value(h, &c, key, value) {
 		if (strcmp(key, "promise") == 0) {
 			saw_promise = 1;
-			assert_str_equals("Check value of 'promise'", "esimorp", value);
+			assert_str_eq("Check value of 'promise'", "esimorp", value);
 		} else if (strcmp(key, "snooze") == 0) {
 			saw_snooze = 1;
-			assert_str_equals("Check value of 'snooze'", "ezoons", value);
+			assert_str_eq("Check value of 'snooze'", "ezoons", value);
 		} else if (strcmp(key, "central") == 0) {
 			saw_central = 1;
-			assert_str_equals("Check value of 'central'", "lartnec", value);
+			assert_str_eq("Check value of 'central'", "lartnec", value);
 		} else if (strcmp(key, "bridge") == 0) {
 			saw_bridge = 1;
-			assert_str_equals("Check value of 'bridge'", "egdirb", value);
+			assert_str_eq("Check value of 'bridge'", "egdirb", value);
 		} else {
 			assert_fail("Unexpected value found during for_each_key_value");
 		}

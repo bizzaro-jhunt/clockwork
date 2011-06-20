@@ -22,31 +22,31 @@ void test_resource_keys()
 	test("RES_*: Resource Key Generation");
 	user = res_user_new("user-key");
 	k = res_user_key(user);
-	assert_str_equals("user key formatted properly", "res_user:user-key", k);
+	assert_str_eq("user key formatted properly", "res_user:user-key", k);
 	free(k);
 	res_user_free(user);
 
 	group = res_group_new("group-key");
 	k = res_group_key(group);
-	assert_str_equals("group key formatted properly", "res_group:group-key", k);
+	assert_str_eq("group key formatted properly", "res_group:group-key", k);
 	free(k);
 	res_group_free(group);
 
 	file = res_file_new("file-key");
 	k = res_file_key(file);
-	assert_str_equals("file key formatted properly", "res_file:file-key", k);
+	assert_str_eq("file key formatted properly", "res_file:file-key", k);
 	free(k);
 	res_file_free(file);
 
 	service = res_service_new("service-key");
 	k = res_service_key(service);
-	assert_str_equals("service key formatted properly", "res_service:service-key", k);
+	assert_str_eq("service key formatted properly", "res_service:service-key", k);
 	free(k);
 	res_service_free(service);
 
 	package = res_package_new("package-key");
 	k = res_package_key(package);
-	assert_str_equals("package key formatted properly", "res_package:package-key", k);
+	assert_str_eq("package key formatted properly", "res_package:package-key", k);
 	free(k);
 	res_package_free(package);
 }
@@ -54,28 +54,28 @@ void test_resource_keys()
 void test_resource_noops()
 {
 	test("RES_USER: notify is a NOOP");
-	assert_int_equals("res_user_notify does nothing", 0, res_user_notify(NULL, NULL));
+	assert_int_eq("res_user_notify does nothing", 0, res_user_notify(NULL, NULL));
 
 	test("RES_USER: norm is a NOOP");
-	assert_int_equals("res_user_norm does nothing", 0, res_user_norm(NULL, NULL, NULL));
+	assert_int_eq("res_user_norm does nothing", 0, res_user_norm(NULL, NULL, NULL));
 
 	test("RES_GROUP: notify is a NOOP");
-	assert_int_equals("res_group_notify does nothing", 0, res_group_notify(NULL, NULL));
+	assert_int_eq("res_group_notify does nothing", 0, res_group_notify(NULL, NULL));
 
 	test("RES_GROUP: norm is a NOOP");
-	assert_int_equals("res_group_norm does nothing", 0, res_group_norm(NULL, NULL, NULL));
+	assert_int_eq("res_group_norm does nothing", 0, res_group_norm(NULL, NULL, NULL));
 
 	test("RES_FILE: notify is a NOOP");
-	assert_int_equals("res_file_notify does nothing", 0, res_file_notify(NULL, NULL));
+	assert_int_eq("res_file_notify does nothing", 0, res_file_notify(NULL, NULL));
 
 	test("RES_SERVICE: norm is a NOOP");
-	assert_int_equals("res_service_norm does nothing", 0, res_service_norm(NULL, NULL, NULL));
+	assert_int_eq("res_service_norm does nothing", 0, res_service_norm(NULL, NULL, NULL));
 
 	test("RES_PACKAGE: notify is a NOOP");
-	assert_int_equals("res_package_notify does nothing", 0, res_package_notify(NULL, NULL));
+	assert_int_eq("res_package_notify does nothing", 0, res_package_notify(NULL, NULL));
 
 	test("RES_PACKAGE: norm is a NOOP");
-	assert_int_equals("res_package_norm does nothing", 0, res_package_norm(NULL, NULL, NULL));
+	assert_int_eq("res_package_norm does nothing", 0, res_package_norm(NULL, NULL, NULL));
 
 
 }
@@ -129,12 +129,12 @@ void test_res_user_enforcement()
 	test("RES_USER: MKHOME enforcement");
 	res_user_set(ru, "makehome", "/etc/skel.admin");
 	assert_true("MKHOME enforced", ENFORCED(ru, RES_USER_MKHOME));
-	assert_int_equals("MKHOME set properly", ru->ru_mkhome, 1);
-	assert_str_equals("SKEL set properly", ru->ru_skel, "/etc/skel.admin");
+	assert_int_eq("MKHOME set properly", ru->ru_mkhome, 1);
+	assert_str_eq("SKEL set properly", ru->ru_skel, "/etc/skel.admin");
 
 	res_user_set(ru, "makehome", "no");
 	assert_true("MKHOME re-re-enforced", ENFORCED(ru, RES_USER_MKHOME));
-	assert_int_equals("MKHOME re-re-set properly", ru->ru_mkhome, 0);
+	assert_int_eq("MKHOME re-re-set properly", ru->ru_mkhome, 0);
 	assert_null("SKEL is NULL", ru->ru_skel);
 
 	test("RES_USER: PWMIN enforcement");
@@ -200,7 +200,7 @@ void test_res_user_diffstat_fixup()
 	}
 
 	test("RES_USER: Diffstat");
-	assert_int_equals("res_user_stat returns zero", res_user_stat(ru, &env), 0);
+	assert_int_eq("res_user_stat returns zero", res_user_stat(ru, &env), 0);
 	assert_true("NAME is in compliance", !DIFFERENT(ru, RES_USER_NAME));
 	assert_true("UID is out of compliance", DIFFERENT(ru, RES_USER_UID));
 	assert_true("GID is out of compliance", DIFFERENT(ru, RES_USER_GID));
@@ -215,20 +215,20 @@ void test_res_user_diffstat_fixup()
 	test("RES_USER: Fixups (existing account)");
 	report = res_user_fixup(ru, 0, &env);
 	assert_not_null("res_user_fixup returns a report", report);
-	assert_int_equals("user is fixed", report->fixed, 1);
-	assert_int_equals("user is now compliant", report->compliant, 1);
+	assert_int_eq("user is fixed", report->fixed, 1);
+	assert_int_eq("user is now compliant", report->compliant, 1);
 
-	assert_str_equals("pw_name is still set properly", ru->ru_pw->pw_name, "svc");
-	assert_int_equals("pw_uid is updated properly", ru->ru_pw->pw_uid, 7001);
-	assert_int_equals("pw_gid is updated properly", ru->ru_pw->pw_gid, 8001);
-	assert_str_equals("pw_gecos is updated properly", ru->ru_pw->pw_gecos, "SVC service account");
-	assert_str_equals("pw_shell is still set properly", ru->ru_pw->pw_shell, "/sbin/nologin");
-	assert_str_equals("pw_dir is still set properly", ru->ru_pw->pw_dir, "/tmp/nonexistent");
+	assert_str_eq("pw_name is still set properly", ru->ru_pw->pw_name, "svc");
+	assert_int_eq("pw_uid is updated properly", ru->ru_pw->pw_uid, 7001);
+	assert_int_eq("pw_gid is updated properly", ru->ru_pw->pw_gid, 8001);
+	assert_str_eq("pw_gecos is updated properly", ru->ru_pw->pw_gecos, "SVC service account");
+	assert_str_eq("pw_shell is still set properly", ru->ru_pw->pw_shell, "/sbin/nologin");
+	assert_str_eq("pw_dir is still set properly", ru->ru_pw->pw_dir, "/tmp/nonexistent");
 
-	assert_str_equals("sp_namp is still set properly", ru->ru_sp->sp_namp, "svc");
-	assert_int_equals("sp_min is still set properly", ru->ru_sp->sp_min, 4);
-	assert_int_equals("sp_max is still set properly", ru->ru_sp->sp_max, 45);
-	assert_int_equals("sp_warn is still set properly", ru->ru_sp->sp_warn, 3);
+	assert_str_eq("sp_namp is still set properly", ru->ru_sp->sp_namp, "svc");
+	assert_int_eq("sp_min is still set properly", ru->ru_sp->sp_min, 4);
+	assert_int_eq("sp_max is still set properly", ru->ru_sp->sp_max, 45);
+	assert_int_eq("sp_warn is still set properly", ru->ru_sp->sp_warn, 3);
 
 	res_user_free(ru);
 	pwdb_free(env.user_pwdb);
@@ -263,21 +263,21 @@ void test_res_user_fixup_new()
 	}
 
 	test("RES_USER: Fixups (new account)");
-	assert_int_equals("res_user_stat returns zero", res_user_stat(ru, &env), 0);
+	assert_int_eq("res_user_stat returns zero", res_user_stat(ru, &env), 0);
 
 	report = res_user_fixup(ru, 0, &env);
 	assert_not_null("res_user_fixup returns a report", report);
-	assert_int_equals("user is fixed", report->fixed, 1);
-	assert_int_equals("user is now compliant", report->compliant, 1);
+	assert_int_eq("user is fixed", report->fixed, 1);
+	assert_int_eq("user is now compliant", report->compliant, 1);
 
-	assert_str_equals("pw_name is set properly", ru->ru_pw->pw_name, "new_user");
-	assert_int_equals("pw_uid is set properly", ru->ru_pw->pw_uid, 7010);
-	assert_int_equals("pw_gid is set properly", ru->ru_pw->pw_gid, 20);
-	assert_str_equals("pw_gecos is set properly", ru->ru_pw->pw_gecos, "New Account");
-	assert_str_equals("pw_shell is set properly", ru->ru_pw->pw_shell, "/sbin/nologin");
-	assert_str_equals("pw_dir is set properly", ru->ru_pw->pw_dir, "test/tmp/new_user.home");
+	assert_str_eq("pw_name is set properly", ru->ru_pw->pw_name, "new_user");
+	assert_int_eq("pw_uid is set properly", ru->ru_pw->pw_uid, 7010);
+	assert_int_eq("pw_gid is set properly", ru->ru_pw->pw_gid, 20);
+	assert_str_eq("pw_gecos is set properly", ru->ru_pw->pw_gecos, "New Account");
+	assert_str_eq("pw_shell is set properly", ru->ru_pw->pw_shell, "/sbin/nologin");
+	assert_str_eq("pw_dir is set properly", ru->ru_pw->pw_dir, "test/tmp/new_user.home");
 
-	assert_str_equals("sp_namp is set properly", ru->ru_sp->sp_namp, "new_user");
+	assert_str_eq("sp_namp is set properly", ru->ru_sp->sp_namp, "new_user");
 
 	res_user_free(ru);
 	pwdb_free(env.user_pwdb);
@@ -307,17 +307,17 @@ void test_res_user_fixup_remove_existing()
 	}
 
 	test("RES_USER: Fixups (remove existing account)");
-	assert_int_equals("res_user_stat returns zero", res_user_stat(ru, &env), 0);
+	assert_int_eq("res_user_stat returns zero", res_user_stat(ru, &env), 0);
 	assert_not_null("(test sanity) user found in passwd file", ru->ru_pw);
 	assert_not_null("(test sanity) user found in shadow file", ru->ru_sp);
 
 	report = res_user_fixup(ru, 0, &env);
 	assert_not_null("res_user_fixup returns a report", report);
-	assert_int_equals("user is fixed", report->fixed, 1);
-	assert_int_equals("user is now compliant", report->compliant, 1);
+	assert_int_eq("user is fixed", report->fixed, 1);
+	assert_int_eq("user is now compliant", report->compliant, 1);
 
-	assert_int_equals("pwdb_write succeeds", 0, pwdb_write(env.user_pwdb, "test/tmp/passwd.new"));
-	assert_int_equals("spdb_write succeeds", 0, spdb_write(env.user_spdb, "test/tmp/shadow.new"));
+	assert_int_eq("pwdb_write succeeds", 0, pwdb_write(env.user_pwdb, "test/tmp/passwd.new"));
+	assert_int_eq("spdb_write succeeds", 0, spdb_write(env.user_spdb, "test/tmp/shadow.new"));
 
 	env_after.user_pwdb = pwdb_init("test/tmp/passwd.new");
 	if (!env_after.user_pwdb) {
@@ -333,7 +333,7 @@ void test_res_user_fixup_remove_existing()
 
 	res_user_free(ru);
 	ru = res_user_new("sys");
-	assert_int_equals("res_user_stat returns zero (after)", res_user_stat(ru, &env_after), 0);
+	assert_int_eq("res_user_stat returns zero (after)", res_user_stat(ru, &env_after), 0);
 	assert_null("No passwd entry exists after fixup", ru->ru_pw);
 	assert_null("No shadow entry exists after fixup", ru->ru_sp);
 
@@ -367,17 +367,17 @@ void test_res_user_fixup_remove_nonexistent()
 	}
 
 	test("RES_USER: Fixups (remove non-existent account)");
-	assert_int_equals("res_user_stat returns zero", res_user_stat(ru, &env), 0);
+	assert_int_eq("res_user_stat returns zero", res_user_stat(ru, &env), 0);
 	assert_null("(test sanity) user not found in passwd file", ru->ru_pw);
 	assert_null("(test sanity) user not found in shadow file", ru->ru_sp);
 
 	report = res_user_fixup(ru, 0, &env);
 	assert_not_null("res_user_fixup returns a report", report);
-	assert_int_equals("user was already compliant", report->fixed, 0);
-	assert_int_equals("user is now compliant", report->compliant, 1);
+	assert_int_eq("user was already compliant", report->fixed, 0);
+	assert_int_eq("user is now compliant", report->compliant, 1);
 
-	assert_int_equals("pwdb_write succeeds", 0, pwdb_write(env.user_pwdb, "test/tmp/passwd.new"));
-	assert_int_equals("spdb_write succeeds", 0, spdb_write(env.user_spdb, "test/tmp/shadow.new"));
+	assert_int_eq("pwdb_write succeeds", 0, pwdb_write(env.user_pwdb, "test/tmp/passwd.new"));
+	assert_int_eq("spdb_write succeeds", 0, spdb_write(env.user_spdb, "test/tmp/shadow.new"));
 
 	env_after.user_pwdb = pwdb_init("test/tmp/passwd.new");
 	if (!env_after.user_pwdb) {
@@ -393,7 +393,7 @@ void test_res_user_fixup_remove_nonexistent()
 
 	res_user_free(ru);
 	ru = res_user_new("non_existent_user");
-	assert_int_equals("res_user_stat returns zero (after)", res_user_stat(ru, &env_after), 0);
+	assert_int_eq("res_user_stat returns zero (after)", res_user_stat(ru, &env_after), 0);
 	assert_null("No passwd entry exists after fixup", ru->ru_pw);
 	assert_null("No shadow entry exists after fixup", ru->ru_sp);
 
@@ -417,17 +417,17 @@ void test_res_user_match()
 	res_user_set(ru, "password", "sooper.seecret");
 
 	test("RES_USER: attribute matching");
-	assert_int_equals("user42 matches username=user42", 0, res_user_match(ru, "username", "user42"));
-	assert_int_equals("user42 matches uid=123", 0, res_user_match(ru, "uid", "123"));
-	assert_int_equals("user42 matches gid=999", 0, res_user_match(ru, "gid", "999"));
-	assert_int_equals("user42 matches home=/home/user", 0, res_user_match(ru, "home", "/home/user"));
+	assert_int_eq("user42 matches username=user42", 0, res_user_match(ru, "username", "user42"));
+	assert_int_eq("user42 matches uid=123", 0, res_user_match(ru, "uid", "123"));
+	assert_int_eq("user42 matches gid=999", 0, res_user_match(ru, "gid", "999"));
+	assert_int_eq("user42 matches home=/home/user", 0, res_user_match(ru, "home", "/home/user"));
 
-	assert_int_not_equals("user42 does not match username=bob", 0, res_user_match(ru, "username", "bob"));
-	assert_int_not_equals("user42 does not match uid=42", 0, res_user_match(ru, "uid", "42"));
-	assert_int_not_equals("user42 does not match gid=16", 0, res_user_match(ru, "gid", "16"));
-	assert_int_not_equals("user42 does not match home=/root", 0, res_user_match(ru, "home", "/root"));
+	assert_int_ne("user42 does not match username=bob", 0, res_user_match(ru, "username", "bob"));
+	assert_int_ne("user42 does not match uid=42", 0, res_user_match(ru, "uid", "42"));
+	assert_int_ne("user42 does not match gid=16", 0, res_user_match(ru, "gid", "16"));
+	assert_int_ne("user42 does not match home=/root", 0, res_user_match(ru, "home", "/root"));
 
-	assert_int_not_equals("password is not a matchable attr", 0, res_user_match(ru, "password", "sooper.seecret"));
+	assert_int_ne("password is not a matchable attr", 0, res_user_match(ru, "password", "sooper.seecret"));
 
 	res_user_free(ru);
 }
@@ -470,7 +470,7 @@ void test_res_user_pack()
 		"000003e8" /* inact 1000 */
 		"000007d0" /* expire 2000 */
 		"";
-	assert_str_equals("packs properly (normal case)", expected, packed);
+	assert_str_eq("packs properly (normal case)", expected, packed);
 
 	res_user_free(ru);
 	free(packed);
@@ -503,48 +503,48 @@ void test_res_user_unpack()
 
 	test("RES_USER: unpack res_user");
 	assert_not_null("res_user_unpack succeeds", ru);
-	assert_str_equals("res_user->key is \"userkey\"", "userkey", ru->key);
-	assert_str_equals("res_user->ru_name is \"user\"", "user", ru->ru_name);
+	assert_str_eq("res_user->key is \"userkey\"", "userkey", ru->key);
+	assert_str_eq("res_user->ru_name is \"user\"", "user", ru->ru_name);
 	assert_true("NAME is enforced", ENFORCED(ru, RES_USER_NAME));
 
-	assert_str_equals("res_user->ru_passwd is \"secret\"", "secret", ru->ru_passwd);
+	assert_str_eq("res_user->ru_passwd is \"secret\"", "secret", ru->ru_passwd);
 	assert_true("PASSWD is NOT enforced", !ENFORCED(ru, RES_USER_PASSWD));
 
-	assert_int_equals("res_user->ru_uid is 45", 45, ru->ru_uid);
+	assert_int_eq("res_user->ru_uid is 45", 45, ru->ru_uid);
 	assert_true("UID is NOT enforced", !ENFORCED(ru, RES_USER_UID));
 
-	assert_int_equals("res_user->ru_gid is 90", 90, ru->ru_gid);
+	assert_int_eq("res_user->ru_gid is 90", 90, ru->ru_gid);
 	assert_true("GID is NOT enforced", !ENFORCED(ru, RES_USER_GID));
 
-	assert_str_equals("res_user->ru_gecos is \"GECOS\"", "GECOS", ru->ru_gecos);
+	assert_str_eq("res_user->ru_gecos is \"GECOS\"", "GECOS", ru->ru_gecos);
 	assert_true("GECOS is NOT enforced", !ENFORCED(ru, RES_USER_GECOS));
 
-	assert_str_equals("res_user->ru_dir is \"/home/user\"", "/home/user", ru->ru_dir);
+	assert_str_eq("res_user->ru_dir is \"/home/user\"", "/home/user", ru->ru_dir);
 	assert_true("DIR is NOT enforced", !ENFORCED(ru, RES_USER_DIR));
 
-	assert_str_equals("res_user->ru_shell is \"/bin/bash\"", "/bin/bash", ru->ru_shell);
+	assert_str_eq("res_user->ru_shell is \"/bin/bash\"", "/bin/bash", ru->ru_shell);
 	assert_true("SHELL is NOT enforced", !ENFORCED(ru, RES_USER_SHELL));
 
-	assert_int_equals("res_user->ru_mkhome is 1", 1, ru->ru_mkhome);
-	assert_str_equals("res_user->ru_skel is \"/etc/skel.oper\"", "/etc/skel.oper", ru->ru_skel);
+	assert_int_eq("res_user->ru_mkhome is 1", 1, ru->ru_mkhome);
+	assert_str_eq("res_user->ru_skel is \"/etc/skel.oper\"", "/etc/skel.oper", ru->ru_skel);
 	assert_true("MKHOME is NOT enforced", !ENFORCED(ru, RES_USER_MKHOME));
 
-	assert_int_equals("res_user->ru_lock is 0", 0, ru->ru_lock);
+	assert_int_eq("res_user->ru_lock is 0", 0, ru->ru_lock);
 	assert_true("LOCK is enforced", ENFORCED(ru, RES_USER_LOCK));
 
-	assert_int_equals("res_user->ru_pwmin is 4", 4, ru->ru_pwmin);
+	assert_int_eq("res_user->ru_pwmin is 4", 4, ru->ru_pwmin);
 	assert_true("PWMIN is NOT enforced", !ENFORCED(ru, RES_USER_PWMIN));
 
-	assert_int_equals("res_user->ru_pwmax is 50", 50, ru->ru_pwmax);
+	assert_int_eq("res_user->ru_pwmax is 50", 50, ru->ru_pwmax);
 	assert_true("PWMAX is NOT enforced", !ENFORCED(ru, RES_USER_PWMAX));
 
-	assert_int_equals("res_user->ru_pwwarn is 7", 7, ru->ru_pwwarn);
+	assert_int_eq("res_user->ru_pwwarn is 7", 7, ru->ru_pwwarn);
 	assert_true("PWWARN is NOT enforced", !ENFORCED(ru, RES_USER_PWWARN));
 
-	assert_int_equals("res_user->ru_inact is 6000", 6000, ru->ru_inact);
+	assert_int_eq("res_user->ru_inact is 6000", 6000, ru->ru_inact);
 	assert_true("INACT is NOT enforced", !ENFORCED(ru, RES_USER_INACT));
 
-	assert_int_equals("res_user->ru_expire is 9000", 9000, ru->ru_expire);
+	assert_int_eq("res_user->ru_expire is 9000", 9000, ru->ru_expire);
 	assert_true("EXPIRE is enforced", ENFORCED(ru, RES_USER_EXPIRE));
 
 	res_user_free(ru);
@@ -626,7 +626,7 @@ void test_res_group_diffstat_fixup()
 	}
 
 	test("RES_GROUP: Diffstat");
-	assert_int_equals("res_group_stat returns 0", res_group_stat(rg, &env), 0);
+	assert_int_eq("res_group_stat returns 0", res_group_stat(rg, &env), 0);
 
 	assert_true("NAME is in compliance", !DIFFERENT(rg, RES_GROUP_NAME));
 	assert_true("GID is not in compliance", DIFFERENT(rg, RES_GROUP_GID));
@@ -636,17 +636,17 @@ void test_res_group_diffstat_fixup()
 	test("RES_GROUP: Fixups (existing account)");
 	report = res_group_fixup(rg, 0, &env);
 	assert_not_null("res_group_fixup returns a report", report);
-	assert_int_equals("group is fixed", report->fixed, 1);
-	assert_int_equals("group is now compliant", report->compliant, 1);
+	assert_int_eq("group is fixed", report->fixed, 1);
+	assert_int_eq("group is now compliant", report->compliant, 1);
 
-	assert_str_equals("rg_name is still set properly", rg->rg_grp->gr_name, "service");
+	assert_str_eq("rg_name is still set properly", rg->rg_grp->gr_name, "service");
 
 	list = stringlist_new(rg->rg_grp->gr_mem);
 	assert_stringlist(list, "post-fixup gr_mem", 2, "account2", "account3");
 	stringlist_free(list);
 
-	assert_str_equals("sg_namp is still set properly", rg->rg_sg->sg_namp, "service");
-	assert_int_equals("rg_gid is updated properly", rg->rg_grp->gr_gid, 6000);
+	assert_str_eq("sg_namp is still set properly", rg->rg_sg->sg_namp, "service");
+	assert_int_eq("rg_gid is updated properly", rg->rg_grp->gr_gid, 6000);
 
 	list = stringlist_new(rg->rg_sg->sg_mem);
 	assert_stringlist(list, "post-fixup sg_mem", 2, "account2", "account3");
@@ -685,16 +685,16 @@ void test_res_group_fixup_new()
 	}
 
 	test("RES_GROUP: Fixups (new account)");
-	assert_int_equals("res_group_stat returns 0", res_group_stat(rg, &env), 0);
+	assert_int_eq("res_group_stat returns 0", res_group_stat(rg, &env), 0);
 	report = res_group_fixup(rg, 0, &env);
 	assert_not_null("res_group_fixup returns a report", report);
-	assert_int_equals("group is fixed", report->fixed, 1);
-	assert_int_equals("group is now compliant", report->compliant, 1);
+	assert_int_eq("group is fixed", report->fixed, 1);
+	assert_int_eq("group is now compliant", report->compliant, 1);
 
-	assert_str_equals("rg_name is still set properly", rg->rg_grp->gr_name, "new_group");
+	assert_str_eq("rg_name is still set properly", rg->rg_grp->gr_name, "new_group");
 
-	assert_str_equals("sg_namp is still set properly", rg->rg_sg->sg_namp, "new_group");
-	assert_int_equals("rg_gid is updated properly", rg->rg_grp->gr_gid, 6010);
+	assert_str_eq("sg_namp is still set properly", rg->rg_sg->sg_namp, "new_group");
+	assert_int_eq("rg_gid is updated properly", rg->rg_grp->gr_gid, 6010);
 
 	res_group_free(rg);
 	grdb_free(env.group_grdb);
@@ -726,17 +726,17 @@ void test_res_group_fixup_remove_existing()
 	}
 
 	test("RES_GROUP: Fixups (remove existing account)");
-	assert_int_equals("res_group_stat returns 0", res_group_stat(rg, &env), 0);
+	assert_int_eq("res_group_stat returns 0", res_group_stat(rg, &env), 0);
 	assert_not_null("(test sanity) group found in group file",   rg->rg_grp);
 	assert_not_null("(test sanity) group found in gshadow file", rg->rg_sg);
 
 	report = res_group_fixup(rg, 0, &env);
 	assert_not_null("res_group_fixup returns a report", report);
-	assert_int_equals("group is fixed", report->fixed, 1);
-	assert_int_equals("group is now compliant", report->compliant, 1);
+	assert_int_eq("group is fixed", report->fixed, 1);
+	assert_int_eq("group is now compliant", report->compliant, 1);
 
-	assert_int_equals("grdb_write succeeds", 0, grdb_write(env.group_grdb, "test/tmp/group.new"));
-	assert_int_equals("sgdb_write succeeds", 0, sgdb_write(env.group_sgdb, "test/tmp/gshadow.new"));
+	assert_int_eq("grdb_write succeeds", 0, grdb_write(env.group_grdb, "test/tmp/group.new"));
+	assert_int_eq("sgdb_write succeeds", 0, sgdb_write(env.group_sgdb, "test/tmp/gshadow.new"));
 
 	env_after.group_grdb = grdb_init("test/tmp/group.new");
 	if (!env_after.group_grdb) {
@@ -754,7 +754,7 @@ void test_res_group_fixup_remove_existing()
 	res_group_free(rg);
 	rg = res_group_new("non_existent_group");
 
-	assert_int_equals("res_group_stat returns zero (after)", res_group_stat(rg, &env_after), 0);
+	assert_int_eq("res_group_stat returns zero (after)", res_group_stat(rg, &env_after), 0);
 	assert_null("No group entry exists after fixup", rg->rg_grp);
 	assert_null("No gshadow entry exists after fixup", rg->rg_sg);
 
@@ -790,17 +790,17 @@ void test_res_group_fixup_remove_nonexistent()
 	}
 
 	test("RES_GROUP: Fixups (remove nonexistent account)");
-	assert_int_equals("res_group_stat returns 0", res_group_stat(rg, &env), 0);
+	assert_int_eq("res_group_stat returns 0", res_group_stat(rg, &env), 0);
 	assert_null("(test sanity) group not found in group file",   rg->rg_grp);
 	assert_null("(test sanity) group not found in gshadow file", rg->rg_sg);
 
 	report = res_group_fixup(rg, 0, &env);
 	assert_not_null("res_group_fixup returns a report", report);
-	assert_int_equals("group was already compliant", report->fixed, 0);
-	assert_int_equals("group is now compliant", report->compliant, 1);
+	assert_int_eq("group was already compliant", report->fixed, 0);
+	assert_int_eq("group is now compliant", report->compliant, 1);
 
-	assert_int_equals("grdb_write succeeds", 0, grdb_write(env.group_grdb, "test/tmp/group.new"));
-	assert_int_equals("sgdb_write succeeds", 0, sgdb_write(env.group_sgdb, "test/tmp/gshadow.new"));
+	assert_int_eq("grdb_write succeeds", 0, grdb_write(env.group_grdb, "test/tmp/group.new"));
+	assert_int_eq("sgdb_write succeeds", 0, sgdb_write(env.group_sgdb, "test/tmp/gshadow.new"));
 
 	env_after.group_grdb = grdb_init("test/tmp/group.new");
 	if (!env_after.group_grdb) {
@@ -818,7 +818,7 @@ void test_res_group_fixup_remove_nonexistent()
 	res_group_free(rg);
 	rg = res_group_new("non_existent_group");
 
-	assert_int_equals("res_group_stat returns zero (after)", res_group_stat(rg, &env_after), 0);
+	assert_int_eq("res_group_stat returns zero (after)", res_group_stat(rg, &env_after), 0);
 	assert_null("No group entry exists after fixups", rg->rg_grp);
 	assert_null("No gshadow entry exists after fixups", rg->rg_sg);
 
@@ -841,13 +841,13 @@ void test_res_group_match()
 	res_group_set(rg, "password", "sesame");
 
 	test("RES_GROUP: attribute matching");
-	assert_int_equals("group2 matches name=group2", 0, res_group_match(rg, "name", "group2"));
-	assert_int_equals("group2 matches gid=1337", 0, res_group_match(rg, "gid", "1337"));
+	assert_int_eq("group2 matches name=group2", 0, res_group_match(rg, "name", "group2"));
+	assert_int_eq("group2 matches gid=1337", 0, res_group_match(rg, "gid", "1337"));
 
-	assert_int_not_equals("group2 does not match name=wheel", 0, res_group_match(rg, "name", "wheel"));
-	assert_int_not_equals("group2 does not match gid=6", 0, res_group_match(rg, "gid", "6"));
+	assert_int_ne("group2 does not match name=wheel", 0, res_group_match(rg, "name", "wheel"));
+	assert_int_ne("group2 does not match gid=6", 0, res_group_match(rg, "gid", "6"));
 
-	assert_int_not_equals("password is not a matchable attr", 0, res_group_match(rg, "password", "sesame"));
+	assert_int_ne("password is not a matchable attr", 0, res_group_match(rg, "password", "sesame"));
 
 	res_group_free(rg);
 }
@@ -871,7 +871,7 @@ void test_res_group_pack()
 	test("RES_GROUP: pack res_group");
 	packed = res_group_pack(rg);
 	expected = "res_group::\"staff\"0000001f\"staff\"\"sesame\"00000587\"admin1.admin2.admin3.admin4\"\"user\"\"admin1\"\"\"";
-	assert_str_equals("packs properly (normal case)", expected, packed);
+	assert_str_eq("packs properly (normal case)", expected, packed);
 
 	res_group_free(rg);
 	free(packed);
@@ -889,14 +889,14 @@ void test_res_group_unpack()
 
 	rg = res_group_unpack(packed);
 	assert_not_null("res_group_unpack succeeds", rg);
-	assert_str_equals("res_group->key is \"groupkey\"", "groupkey", rg->key);
-	assert_str_equals("res_group->rg_name is \"staff\"", "staff", rg->rg_name);
+	assert_str_eq("res_group->key is \"groupkey\"", "groupkey", rg->key);
+	assert_str_eq("res_group->rg_name is \"staff\"", "staff", rg->rg_name);
 	assert_true("'name' is enforced", ENFORCED(rg, RES_GROUP_NAME));
 
-	assert_str_equals("res_group->rg_passwd is \"sesame\"", "sesame", rg->rg_passwd);
+	assert_str_eq("res_group->rg_passwd is \"sesame\"", "sesame", rg->rg_passwd);
 	assert_true("'password' is NOT enforced", !ENFORCED(rg, RES_GROUP_PASSWD));
 
-	assert_int_equals("res_group->rg_gid is 1415", 1415, rg->rg_gid); // 1415(10) == 0587(16)
+	assert_int_eq("res_group->rg_gid is 1415", 1415, rg->rg_gid); // 1415(10) == 0587(16)
 	assert_true("'gid' is enforced", ENFORCED(rg, RES_GROUP_GID));
 
 	assert_stringlist(rg->rg_mem_add, "res_group->rg_mem_add", 4, "admin1", "admin2", "admin3", "admin4");
@@ -957,26 +957,26 @@ void test_res_file_enforcement()
 	test("RES_FILE: UID enforcement");
 	res_file_set(rf, "owner", "someone");
 	assert_true("owner enforced", ENFORCED(rf, RES_FILE_UID));
-	assert_str_equals("owner set properly", rf->rf_owner, "someone");
+	assert_str_eq("owner set properly", rf->rf_owner, "someone");
 
 	test("RES_FILE: GID enforcement");
 	res_file_set(rf, "group", "somegroup");
 	assert_true("group enforced", ENFORCED(rf, RES_FILE_GID));
-	assert_str_equals("group set properly", rf->rf_group, "somegroup");
+	assert_str_eq("group set properly", rf->rf_group, "somegroup");
 
 	test("RES_FILE: MODE enforcement");
 	res_file_set(rf,"mode", "0755");
 	assert_true("mode enforced", ENFORCED(rf, RES_FILE_MODE));
-	assert_int_equals("mode set properly", rf->rf_mode, 0755);
+	assert_int_eq("mode set properly", rf->rf_mode, 0755);
 
 	test("RES_FILE: SHA1 / rpath enforcement");
 	res_file_set(rf, "source", src);
 	assert_true("SHA1 enforced", ENFORCED(rf, RES_FILE_SHA1));
-	assert_str_equals("rf_rpath set properly", rf->rf_rpath, src);
+	assert_str_eq("rf_rpath set properly", rf->rf_rpath, src);
 
 	test("RES_FILE: SHA1 / lpath 'enforcement'");
 	res_file_set(rf, "path", src);
-	assert_str_equals("rf_lpath set properly", rf->rf_lpath, src);
+	assert_str_eq("rf_lpath set properly", rf->rf_lpath, src);
 
 	res_file_free(rf);
 }
@@ -995,8 +995,8 @@ void test_res_file_diffstat()
 
 	test("RES_FILE: res_file_diffstat picks up file differences");
 	/* 2nd arg to res_file_stat is NULL, because we don't need it in res_file */
-	assert_int_equals("res_file_stat returns zero", res_file_stat(rf, NULL), 0);
-	assert_int_equals("File exists", 1, rf->rf_exists);
+	assert_int_eq("res_file_stat returns zero", res_file_stat(rf, NULL), 0);
+	assert_int_eq("File exists", 1, rf->rf_exists);
 	assert_true("UID is out of compliance",  DIFFERENT(rf, RES_FILE_UID));
 	assert_true("GID is out of compliance",  DIFFERENT(rf, RES_FILE_GID));
 	assert_true("MODE is out of compliance", DIFFERENT(rf, RES_FILE_MODE));
@@ -1022,9 +1022,9 @@ void test_res_file_remedy()
 		assert_fail("RES_FILE: Unable to stat pre-remediation file");
 		return;
 	}
-	assert_int_not_equal("Pre-remediation: file owner UID is not 65542", st.st_uid, 65542);
-	assert_int_not_equal("Pre-remediation: file group GID is not 65524", st.st_gid, 65524);
-	assert_int_not_equal("Pre-remediation: file permissions are not 0754", st.st_mode & 07777, 0754);
+	assert_int_ne("Pre-remediation: file owner UID is not 65542", st.st_uid, 65542);
+	assert_int_ne("Pre-remediation: file group GID is not 65524", st.st_gid, 65524);
+	assert_int_ne("Pre-remediation: file permissions are not 0754", st.st_mode & 07777, 0754);
 
 	rf = res_file_new("fstab");
 	res_file_set(rf, "path",  "test/data/res_file/fstab");
@@ -1037,26 +1037,26 @@ void test_res_file_remedy()
 
 	/* set up the resource_env for content remediation */
 	env.file_fd = open(src, O_RDONLY);
-	assert_int_greater_than("(test sanity) able to open 'remote' file", env.file_fd, 0);
+	assert_int_gt("(test sanity) able to open 'remote' file", env.file_fd, 0);
 	env.file_len = st.st_size;
 
-	assert_int_equals("res_file_stat succeeds", res_file_stat(rf, &env), 0);
-	assert_int_equals("File exists", 1, rf->rf_exists);
+	assert_int_eq("res_file_stat succeeds", res_file_stat(rf, &env), 0);
+	assert_int_eq("File exists", 1, rf->rf_exists);
 	assert_true("UID is out of compliance",  DIFFERENT(rf, RES_FILE_UID));
 	assert_true("GID is out of compliance",  DIFFERENT(rf, RES_FILE_GID));
 	report = res_file_fixup(rf, 0, &env);
 	assert_not_null("res_file_fixup returns a report", report);
-	assert_int_equals("file was fixed", report->fixed, 1);
-	assert_int_equals("file is now compliant", report->compliant, 1);
+	assert_int_eq("file was fixed", report->fixed, 1);
+	assert_int_eq("file is now compliant", report->compliant, 1);
 
 	/* STAT the fixed up file */
 	if (stat(path, &st) != 0) {
 		assert_fail("RES_FILE: Unable to stat post-remediation file");
 		return;
 	}
-	assert_int_equals("Post-remediation: file owner UID 65542", st.st_uid, 65542);
-	assert_int_equals("Post-remediation: file group GID 65524", st.st_gid, 65524);
-	assert_int_equals("Post-remediation: file permissions are 0754", st.st_mode & 07777, 0754);
+	assert_int_eq("Post-remediation: file owner UID 65542", st.st_uid, 65542);
+	assert_int_eq("Post-remediation: file group GID 65524", st.st_gid, 65524);
+	assert_int_eq("Post-remediation: file permissions are 0754", st.st_mode & 07777, 0754);
 
 	res_file_free(rf);
 	report_free(report);
@@ -1082,24 +1082,24 @@ void test_res_file_fixup_new()
 	rf->rf_gid = 65524;
 	res_file_set(rf, "mode",  "0754");
 
-	assert_int_equals("res_file_stat succeeds", res_file_stat(rf, &env), 0);
-	assert_int_equals("File does not already exist", 0, rf->rf_exists);
-	assert_int_not_equal("stat pre-remediation file returns non-zero", 0, stat(path, &st));
+	assert_int_eq("res_file_stat succeeds", res_file_stat(rf, &env), 0);
+	assert_int_eq("File does not already exist", 0, rf->rf_exists);
+	assert_int_ne("stat pre-remediation file returns non-zero", 0, stat(path, &st));
 
 	report = res_file_fixup(rf, 0, &env);
 	assert_not_null("res_file_fixup returns a report", report);
-	assert_int_equals("file is fixed", report->fixed, 1);
-	assert_int_equals("file is now compliant", report->compliant, 1);
-	assert_int_equals("stat post-remediation file returns zero", 0, stat(path, &st));
+	assert_int_eq("file is fixed", report->fixed, 1);
+	assert_int_eq("file is now compliant", report->compliant, 1);
+	assert_int_eq("stat post-remediation file returns zero", 0, stat(path, &st));
 
 	/* STAT the fixed up file */
 	if (stat(path, &st) != 0) {
 		assert_fail("RES_FILE: Unable to stat post-remediation file");
 		return;
 	}
-	assert_int_equals("Post-remediation: file owner UID 65542", st.st_uid, 65542);
-	assert_int_equals("Post-remediation: file group GID 65524", st.st_gid, 65524);
-	assert_int_equals("Post-remediation: file permissions are 0754", st.st_mode & 07777, 0754);
+	assert_int_eq("Post-remediation: file owner UID 65542", st.st_uid, 65542);
+	assert_int_eq("Post-remediation: file group GID 65524", st.st_gid, 65524);
+	assert_int_eq("Post-remediation: file permissions are 0754", st.st_mode & 07777, 0754);
 
 	res_file_free(rf);
 	report_free(report);
@@ -1121,15 +1121,15 @@ void test_res_file_fixup_remove_existing()
 	rf = res_file_new(path);
 	res_file_set(rf, "present", "no"); /* Remove the file */
 
-	assert_int_equals("res_file_stat succeeds", res_file_stat(rf, &env), 0);
-	assert_int_equals("File exists", 1, rf->rf_exists);
-	assert_int_equals("stat pre-remediation file returns zero", 0, stat(path, &st));
+	assert_int_eq("res_file_stat succeeds", res_file_stat(rf, &env), 0);
+	assert_int_eq("File exists", 1, rf->rf_exists);
+	assert_int_eq("stat pre-remediation file returns zero", 0, stat(path, &st));
 
 	report = res_file_fixup(rf, 0, &env);
 	assert_not_null("res_file_fixup returns a report", report);
-	assert_int_equals("file is fixed", report->fixed, 1);
-	assert_int_equals("file is now compliant", report->compliant, 1);
-	assert_int_not_equal("stat post-remediation file returns non-zero", 0, stat(path, &st));
+	assert_int_eq("file is fixed", report->fixed, 1);
+	assert_int_eq("file is now compliant", report->compliant, 1);
+	assert_int_ne("stat post-remediation file returns non-zero", 0, stat(path, &st));
 
 	res_file_free(rf);
 	report_free(report);
@@ -1151,15 +1151,15 @@ void test_res_file_fixup_remove_nonexistent()
 	rf = res_file_new(path);
 	res_file_set(rf, "present", "no"); /* Remove the file */
 
-	assert_int_equals("res_file_stat succeeds", res_file_stat(rf, &env), 0);
-	assert_int_equals("File does not already exist", 0, rf->rf_exists);
-	assert_int_not_equal("stat pre-remediation file returns non-zero", 0, stat(path, &st));
+	assert_int_eq("res_file_stat succeeds", res_file_stat(rf, &env), 0);
+	assert_int_eq("File does not already exist", 0, rf->rf_exists);
+	assert_int_ne("stat pre-remediation file returns non-zero", 0, stat(path, &st));
 
 	report = res_file_fixup(rf, 0, &env);
 	assert_not_null("res_file_fixup returns a report", report);
-	assert_int_equals("file was already compliant", report->fixed, 0);
-	assert_int_equals("file is now compliant", report->compliant, 1);
-	assert_int_not_equal("stat post-remediation file returns non-zero", 0, stat(path, &st));
+	assert_int_eq("file was already compliant", report->fixed, 0);
+	assert_int_eq("file is now compliant", report->compliant, 1);
+	assert_int_ne("stat post-remediation file returns non-zero", 0, stat(path, &st));
 
 	res_file_free(rf);
 	report_free(report);
@@ -1176,11 +1176,11 @@ void test_res_file_match()
 	res_file_set(rf, "source", "/etc/issue");
 
 	test("RES_FILE: attribute matching");
-	assert_int_equals("SUDO matches path=/etc/sudoers", 0, res_file_match(rf, "path", "/etc/sudoers"));
+	assert_int_eq("SUDO matches path=/etc/sudoers", 0, res_file_match(rf, "path", "/etc/sudoers"));
 
-	assert_int_not_equals("SUDO does not match path=/tmp/wrong/file", 0, res_file_match(rf, "path", "/tmp/wrong/file"));
+	assert_int_ne("SUDO does not match path=/tmp/wrong/file", 0, res_file_match(rf, "path", "/tmp/wrong/file"));
 
-	assert_int_not_equals("owner is not a matchable attr", 0, res_file_match(rf, "owner", "someuser"));
+	assert_int_ne("owner is not a matchable attr", 0, res_file_match(rf, "owner", "someuser"));
 
 	res_file_free(rf);
 }
@@ -1210,7 +1210,7 @@ void test_res_file_pack()
 		"\"somegroup\"" /* rf_group */
 		"000001a4" /* rf_mode 0644 */
 		"";
-	assert_str_equals("packs properly (normal case)", expected, packed);
+	assert_str_eq("packs properly (normal case)", expected, packed);
 
 	res_file_free(rf);
 	free(packed);
@@ -1235,19 +1235,19 @@ void test_res_file_unpack()
 
 	rf = res_file_unpack(packed);
 	assert_not_null("res_file_unpack succeeds", rf);
-	assert_str_equals("res_file->key is \"somefile\"", "somefile", rf->key);
-	assert_str_equals("res_file->rf_lpath is \"/etc/sudoers\"", "/etc/sudoers", rf->rf_lpath);
-	assert_str_equals("res_file->rf_rsha1.hex is \"0123456789abcdef0123456789abcdef01234567\"",
+	assert_str_eq("res_file->key is \"somefile\"", "somefile", rf->key);
+	assert_str_eq("res_file->rf_lpath is \"/etc/sudoers\"", "/etc/sudoers", rf->rf_lpath);
+	assert_str_eq("res_file->rf_rsha1.hex is \"0123456789abcdef0123456789abcdef01234567\"",
 	                  "0123456789abcdef0123456789abcdef01234567", rf->rf_rsha1.hex);
 	assert_true("SHA1 is NOT enforced", !ENFORCED(rf, RES_FILE_SHA1));
 
-	assert_str_equals("res_file->rf_owner is \"someuser\"", "someuser", rf->rf_owner);
+	assert_str_eq("res_file->rf_owner is \"someuser\"", "someuser", rf->rf_owner);
 	assert_true("UID is enforced", ENFORCED(rf, RES_FILE_UID));
 
-	assert_str_equals("Res_file->rf_group is \"somegroup\"", "somegroup", rf->rf_group);
+	assert_str_eq("Res_file->rf_group is \"somegroup\"", "somegroup", rf->rf_group);
 	assert_true("GID is enforced", ENFORCED(rf, RES_FILE_GID));
 
-	assert_int_equals("res_file->rf_mode is 0644", 0644, rf->rf_mode);
+	assert_int_eq("res_file->rf_mode is 0644", 0644, rf->rf_mode);
 	assert_true("MODE is NOT enforced", !ENFORCED(rf, RES_FILE_MODE));
 
 	res_file_free(rf);
@@ -1310,9 +1310,9 @@ void test_res_package_unpack()
 
 	r = res_package_unpack(packed);
 	assert_not_null("res_package_unpack succeeds", r);
-	assert_str_equals("res_package->key is \"pkgkey\"", "pkgkey", r->key);
-	assert_str_equals("res_package->name is \"libtao-dev\"", "libtao-dev", r->name);
-	assert_str_equals("res_package->version is \"5.6.3\"", "5.6.3", r->version);
+	assert_str_eq("res_package->key is \"pkgkey\"", "pkgkey", r->key);
+	assert_str_eq("res_package->name is \"libtao-dev\"", "libtao-dev", r->name);
+	assert_str_eq("res_package->version is \"5.6.3\"", "5.6.3", r->version);
 	res_package_free(r);
 
 	packed = "res_package::\"pkgkey\""
@@ -1363,7 +1363,7 @@ void test_res_service_pack()
 		"00000005"
 		"\"service-name\"";
 
-	assert_str_equals("packs properly (normal case)", expected, packed);
+	assert_str_eq("packs properly (normal case)", expected, packed);
 	res_service_free(r);
 	free(packed);
 }
@@ -1382,8 +1382,8 @@ void test_res_service_unpack()
 
 	r = res_service_unpack(packed);
 	assert_not_null("res_service_unpack succeeds", r);
-	assert_str_equals("res_service->key is \"svckey\"", "svckey", r->key);
-	assert_str_equals("res_service->service is \"service-name\"", "service-name", r->service);
+	assert_str_eq("res_service->key is \"svckey\"", "svckey", r->key);
+	assert_str_eq("res_service->service is \"service-name\"", "service-name", r->service);
 	assert_true("RUNNING is enforced", ENFORCED(r, RES_SERVICE_RUNNING));
 	assert_false("STOPPED is NOT enforced", ENFORCED(r, RES_SERVICE_STOPPED));
 	assert_true("ENABLED is enforced", ENFORCED(r, RES_SERVICE_ENABLED));

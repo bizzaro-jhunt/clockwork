@@ -60,7 +60,7 @@ void test_string_interpolation()
 	size_t i;
 	for (i = 0; tests[i][0]; i++) {
 		string_interpolate(buf, 8192, tests[i][0], context);
-		assert_str_equals("interpolate(tpl) == str", tests[i][1], buf);
+		assert_str_eq("interpolate(tpl) == str", tests[i][1], buf);
 	}
 
 	hash_free(context);

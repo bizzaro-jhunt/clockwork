@@ -46,10 +46,10 @@ static void assert_list_bounds(struct list *l, const char *desc, int head, int t
 	assert_true(buf, !list_empty(l));
 
 	snprintf(buf, 128, "head of list %s is %d", desc, head);
-	assert_int_equals(buf, list_head(l, struct test_struct, entry)->value, head);
+	assert_int_eq(buf, list_head(l, struct test_struct, entry)->value, head);
 
 	snprintf(buf, 128, "tail of list %s is %d", desc, tail);
-	assert_int_equals(buf, list_tail(l, struct test_struct, entry)->value, tail);
+	assert_int_eq(buf, list_tail(l, struct test_struct, entry)->value, tail);
 }
 
 static void assert_list_sum(const char *msg, struct list *head, int expected)
@@ -58,7 +58,7 @@ static void assert_list_sum(const char *msg, struct list *head, int expected)
 	int sum = 0;
 
 	for_each_node(ts, head, entry) { sum += ts->value; }
-	assert_int_equals(msg, sum, expected);
+	assert_int_eq(msg, sum, expected);
 }
 
 /*************************************************************************/
@@ -139,11 +139,11 @@ void test_list_iteration()
 	test("List: for_each* macros for list traversal");
 	sum = 0;
 	for_each_node(ts, &l, entry) { sum += ts->value; }
-	assert_int_equals("for_each_node traversal", sum, 108);
+	assert_int_eq("for_each_node traversal", sum, 108);
 
 	sum = 0;
 	for_each_node_r(ts, &l, entry) { sum += ts->value; }
-	assert_int_equals("for_each_node_r traversal", sum, 108);
+	assert_int_eq("for_each_node_r traversal", sum, 108);
 
 	TEARDOWN_THE_NUMBERS;
 }

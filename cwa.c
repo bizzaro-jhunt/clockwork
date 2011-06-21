@@ -32,6 +32,7 @@ static int send_report(client *c, struct job *job);
 static int save_report(client *c, struct job *job);
 
 static void print_aug_errors(augeas *au);
+static int clockwork_aug_load(augeas *au);
 
 /**************************************************************/
 
@@ -329,7 +330,7 @@ static int enforce_policy(client *c, struct job *job)
 	}
 
 	env.aug_context = clockwork_aug_init();
-	if (!env.aug_context) {
+	if (!env.aug_context || clockwork_aug_load(env.aug_context) != 0) {
 		CRITICAL("Unable to initialize Augeas subsystem");
 		exit(2);
 	}
@@ -542,4 +543,13 @@ static void print_aug_errors(augeas *au)
 	}
 
 	free(results);
+}
+
+static int clockwork_aug_load(augeas *au)
+{
+	if (aug_set(au, "/augeas/load/Hosts/lens", "Host.lns") < 0
+	 || aug_set(au, "/augeas/load/Hosts/incl", "/etc/hosts") < 0) {
+		return -1;
+	}
+	return aug_load(au);
 }

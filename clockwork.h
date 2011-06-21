@@ -24,9 +24,13 @@
 #endif
 
 #ifdef DEVEL
-#  define clockwork_aug_init() aug_init("test/augeas/", "augeas/lenses", AUG_NONE)
+#  define clockwork_aug_init() aug_init( \
+	"test/augeas/", "augeas/lenses", \
+	AUG_NO_STDINC|AUG_NO_LOAD|AUG_NO_MODL_AUTOLOAD)
 #else
-#  define clockwork_aug_init() aug_init("/", "/var/clockwork/augeas/lenses", AUG_NO_STDINC)
+#  define clockwork_aug_init() aug_init( \
+	"/", "/var/clockwork/augeas/lenses", \
+	AUG_NO_STDINC|AUG_NO_LOAD|AUG_NO_MODL_AUTOLOAD)
 #endif
 
 #include <assert.h>

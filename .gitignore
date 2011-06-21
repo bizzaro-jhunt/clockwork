@@ -2,6 +2,7 @@
 *.gc??
 lcov.info
 gmon.out
+callgrind.out.*
 
 policyd
 cwa

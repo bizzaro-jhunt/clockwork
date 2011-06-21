@@ -18,6 +18,10 @@ Client / Server
        More intrusive signing / verification procedure
        How to handle renewals / revocation?
 
+profiling
+  Look at callgrind / oprofile and see if we can't get the agent
+  run down to a more reasonable level (1.2s for 17 resources?)
+
 chroot testing
   Need to be able to run full-sim tests in chroot environments,
   so that functional tests can be reproduced, without requiring

@@ -39,9 +39,14 @@ void log_init(const char *ident) {
 	}
 }
 
-int log_level(int l)
+int log_set(int l)
 {
 	return LOG_LEVEL = (l > LOG_LEVEL_ALL ? LOG_LEVEL_ALL : (l < LOG_LEVEL_NONE ? LOG_LEVEL_NONE : l));
+}
+
+int log_level(void)
+{
+	return LOG_LEVEL;
 }
 
 const char* log_level_name(int l)

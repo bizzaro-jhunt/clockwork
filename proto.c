@@ -52,6 +52,9 @@ static void pdu_dump(protocol_data_unit *pdu)
 {
 	assert(pdu);
 
+	/* no point in going any further if we aren't debugging... */
+	if (log_level() < LOG_LEVEL_DEBUG) { return; }
+
 /*
 Op:   XXX (xx)
 Len:  xxx

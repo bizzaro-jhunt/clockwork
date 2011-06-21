@@ -45,7 +45,7 @@ int main(int argc, char **argv)
 		fprintf(stderr, "Unable to process server options");
 		exit(2);
 	}
-	c->log_level = log_level(c->log_level);
+	c->log_level = log_set(c->log_level);
 	INFO("Log level is %s (%u)", log_level_name(c->log_level), c->log_level);
 	INFO("Running in mode %u", c->mode);
 

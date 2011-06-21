@@ -52,7 +52,7 @@ int main(int argc, char **argv)
 	cert_init();
 
 	args = cwcert_options(argc, argv);
-	args->config->log_level = log_level(args->config->log_level);
+	args->config->log_level = log_set(args->config->log_level);
 	INFO("Log level is now %s (%u)",
 	     log_level_name(args->config->log_level),
 	     args->config->log_level);

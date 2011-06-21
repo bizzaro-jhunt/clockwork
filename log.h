@@ -36,15 +36,15 @@
   Here's an example:
 
   @verbatim
-  log_level(LOG_LEVEL_ERROR);
+  log_set(LOG_LEVEL_ERROR);
   ERROR("this will get logged");            // processed
   CRITICAL("so will this critical");        // processed
   NOTICE("notices will be discarded");      // IGNORED
 
-  log_level(LOG_LEVEL_DEBUG);
+  log_set(LOG_LEVEL_DEBUG);
   NOTICE("now, notices will be processed"); // processed
 
-  log_level(LOG_LEVEL_NONE);
+  log_set(LOG_LEVEL_NONE);
   CRITICAL("silent emergency");             // IGNORED
   @endverbatim
 
@@ -57,7 +57,7 @@
   facility.
 
   @verbatim
-  log_level(LOG_LEVEL_ALL);
+  log_set(LOG_LEVEL_ALL);
   ERROR("pre-log_init message"); // prints to stderr
 
   log_init("daemon-name");
@@ -96,11 +96,11 @@ void log_init(const char *ident);
   int l;
 
   // Too low...
-  l = log_level(-1)      // l = LOG_LEVEL_NONE
-  l = log_level(-999)    // l = LOG_LEVEL_NONE
+  l = log_set(-1)      // l = LOG_LEVEL_NONE
+  l = log_set(-999)    // l = LOG_LEVEL_NONE
 
   // Too high!
-  l = log_level(1000)    // l = LOG_LEVEL_ALL
+  l = log_set(1000)    // l = LOG_LEVEL_ALL
   @endverbatim
 
   @param  level    Desired log verbosity level (a LOG_LEVEL_* constant)
@@ -108,7 +108,18 @@ void log_init(const char *ident);
   @returns the actual log level, which may differ if \a level is an unknown
            log level (i.e. too high or too low)
  */
-int log_level(int level);
+int log_set(int level);
+
+/**
+  Return the current log level
+
+  This function should be used to avoid expending cycles on
+  log message creation when the current log level would force
+  that message to be discarded.
+
+  @returns the current log level, as set by log_set(int)
+ */
+int log_level(void);
 
 /**
   Return a human-friendly description of a log level
@@ -119,7 +130,7 @@ int log_level(int level);
   @verbatim
   int l;
 
-  l = log_level(LOG_LEVEL_INFO);
+  l = log_set(LOG_LEVEL_INFO);
   INFO("Log level is now %s", log_level_name(l));
   @endverbatim
 

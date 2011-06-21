@@ -622,7 +622,7 @@ static int server_init(server *s)
 		return -1;
 	}
 
-	s->log_level = log_level(s->log_level);
+	s->log_level = log_set(s->log_level);
 	INFO("Log level is %s (%u)", log_level_name(s->log_level), s->log_level);
 
 	pthread_mutex_lock(&manifest_mutex);

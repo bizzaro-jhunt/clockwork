@@ -66,7 +66,7 @@ int main(int argc, char **argv)
 	struct cwca_opts *args;
 
 	cert_init();
-	log_level(LOG_LEVEL_DEBUG);
+	log_set(LOG_LEVEL_DEBUG);
 
 	args = cwca_options(argc, argv);
 	if (strcmp(args->command, "new") == 0) {

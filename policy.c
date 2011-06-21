@@ -319,6 +319,9 @@ again:
 
 	case PROG:
 	case NOOP:
+	case HOST:
+	case POLICY:
+	case INCLUDE:
 		/* do nothing */
 		break;
 

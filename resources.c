@@ -1,9 +1,11 @@
 #include "resources.h"
 #include "pack.h"
 #include "template.h"
+#include "path.h"
 
 #include <fts.h>
 #include <fcntl.h>
+#include <libgen.h>
 
 #define ENFORCE(r,f)   (r)->enforced  |=  (f)
 #define UNENFORCE(r,f) (r)->enforced  &= ~(f)
@@ -19,6 +21,9 @@ static int _group_update(stringlist*, stringlist*, const char*);
 static char* _sysctl_path(const char *param);
 static int _sysctl_read(const char *param, char **value);
 static int _sysctl_write(const char *param, const char *value);
+static int _mkdir_p(const char *path);
+static int _mkdir_c(const char *path);
+static int _setup_path_deps(const char *key, const char *path, struct policy *pol);
 
 /*****************************************************************/
 
@@ -199,6 +204,87 @@ static int _sysctl_write(const char *param, const char *value)
 	return nwritten;
 }
 
+static int _mkdir_p(const char *s)
+{
+	PATH *p;
+	struct stat st;
+	memset(&st, 0, sizeof(struct stat));
+
+	p = path_new(s);
+	if (path_canon(p) != 0) { goto failed; }
+
+	do {
+		errno = 0;
+		if (stat(path(p), &st) == 0) { break; }
+		if (errno != ENOENT) { goto failed; }
+
+		DEBUG("mkdir: %s does not exist...", path(p));
+	} while (path_pop(p) != 0);
+
+	while (path_push(p) != 0) {
+		DEBUG("mkdir: creating %s", path(p));
+		if (mkdir(path(p), 0755) != 0) { goto failed; }
+	}
+
+	path_free(p);
+	return 0;
+
+failed:
+	path_free(p);
+	return -1;
+}
+
+static int _mkdir_c(const char *s)
+{
+	char *copy = strdup(s);
+	char *dir = dirname(copy);
+	int rc;
+
+	DEBUG("mkdir_c: passing %s to _mkdir_p", dir);
+	rc =_mkdir_p(dir);
+
+	free(copy);
+	return rc;
+}
+
+static int _setup_path_deps(const char *key, const char *spath, struct policy *pol)
+{
+	PATH *p;
+	struct dependency *dep;
+	struct resource *dir;
+
+	DEBUG("setup_path_deps: setting up for %s (%s)", spath, key);
+	p = path_new(spath);
+	if (!p) {
+		return -1;
+	}
+	if (path_canon(p) != 0) { goto failed; }
+
+	while (path_pop(p) != 0) {
+		/* look for deps, and add them. */
+		DEBUG("setup_path_deps: looking for %s", path(p));
+		dir = policy_find_resource(pol, RES_DIR, "path", path(p));
+		if (dir) {
+			dep = dependency_new(key, dir->key);
+			if (policy_add_dependency(pol, dep) != 0) {
+				dependency_free(dep);
+				goto failed;
+			}
+		} else {
+			DEBUG("setup_path_deps: no res_dir defined for '%s'", path(p));
+		}
+	}
+
+	path_free(p);
+	return 0;
+
+failed:
+	DEBUG("setup_path_deps: unspecified failure");
+	path_free(p);
+	return -1;
+}
+
+
 /*****************************************************************/
 
 void* res_user_new(const char *key)
@@ -215,7 +301,6 @@ void* res_user_new(const char *key)
 	ru->ru_pwmax  = 0;
 	ru->ru_pwwarn = 0;
 	ru->ru_inact  = 0;
-	ru->ru_expire = 0;
 
 	ru->enforced = RES_USER_NONE;
 	ru->different = RES_USER_NONE;
@@ -873,6 +958,12 @@ int res_file_norm(void *res, struct policy *pol, struct hash *facts)
 		}
 	}
 
+	/* files depend on res_dir resources between them and / */
+	if (_setup_path_deps(key, rf->rf_lpath, pol) != 0) {
+		free(key);
+		return -1;
+	}
+
 	free(key);
 
 	return _res_file_gen_rsha1(rf, facts);
@@ -1038,6 +1129,7 @@ struct report* res_file_fixup(void *res, int dryrun, const struct resource_env *
 		if (dryrun) {
 			report_action(report, action, ACTION_SKIPPED);
 		} else {
+			_mkdir_c(rf->rf_lpath);
 			local_fd = creat(rf->rf_lpath, rf->rf_mode);
 			if (local_fd >= 0) {
 				report_action(report, action, ACTION_SUCCEEDED);
@@ -2637,6 +2729,12 @@ int res_dir_norm(void *res, struct policy *pol, struct hash *facts)
 		}
 	}
 
+	/* directories depend on other res_dir resources between them and / */
+	if (_setup_path_deps(key, rd->path, pol) != 0) {
+		free(key);
+		return -1;
+	}
+
 	free(key);
 	return 0;
 }
@@ -2764,7 +2862,7 @@ struct report* res_dir_fixup(void *res, int dryrun, const struct resource_env *e
 
 		if (dryrun) {
 			report_action(report, action, ACTION_SKIPPED);
-		} else if (mkdir(rd->path, rd->mode) == 0) {
+		} else if (_mkdir_p(rd->path) == 0) {
 			report_action(report, action, ACTION_SUCCEEDED);
 		} else {
 			report_action(report, action, ACTION_FAILED);
@@ -2772,7 +2870,6 @@ struct report* res_dir_fixup(void *res, int dryrun, const struct resource_env *e
 		}
 
 		rd->different = rd->enforced;
-		UNDIFF(rd, RES_DIR_MODE);
 	}
 
 	if (DIFFERENT(rd, RES_DIR_UID)) {

@@ -1,8 +1,6 @@
-\" FIXME: Adjust Title Line
 .TH res_dir "5" "June 2011" "Clockwork" " Clockwork Resource Types"'"
 \"----------------------------------------------------------------
 .SH NAME
-\" FIXME: Adjust NAME section
 res_dir \- Clockwork Resource Type for system directories
 .br
 
@@ -64,11 +62,7 @@ directory "/srv/www" {
 \"----------------------------------------------------------------
 .SH CAVEATS
 
-.SS 1. Parent Directories
-Directory resources do not currently create parent directories.
-.PP
-
-.SS 2. UID / GID Support
+.SS 1. UID / GID Support
 Even though the documentation above says that the \fBowner\fR and
 \fBgroup\fR attributes can be set to either a name or an ID, the
 system only works with names.  IDs will be ignored, as if the ID
@@ -93,6 +87,43 @@ If the
 attribute is specified, the directory resource will depend on the
 existence of that group.  This is designed to ensure that directories
 are owned by valid system groups.
+.PP
+
+.SS Parent Directories
+Missing directories in between the directory path and the root (/)
+will be created if necessary (for existant resources).
+By default, these parent directories will be owned by root:root with
+mode 0755.  However, if the policy defines other directory resources
+with matching paths, they will be marked as dependencies.
+.PP
+An example should clear up any confusion:
+.PP
+.RS 4
+.nf
+dir "/u/apps" {
+    owner: "webmaster"
+    group: "web"
+    mode:  0755
+}
+
+dir "/u/apps/test.example.net" {
+    owner: "apache"
+    group: "web"
+    mode:  0775
+}
+.fi
+.RE
+.PP
+If the above policy was enforced on a host without the /u directory,
+the following would happen (in order):
+.PP
+.nr steps 1 1
+.IP \n[steps]. 3
+Create /u, per defaults (root:root; 0755)
+.IP \n+[steps].
+Create /u/apps, per policy (webmaster:web; 0755)
+.IP \n+[steps].
+Create /u/apps/test.example.net, per policy (apache:web; 0775)
 .PP
 
 \"----------------------------------------------------------------

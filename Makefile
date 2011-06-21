@@ -100,7 +100,7 @@ parser_tpl_o  := tpl/lexer.o tpl/grammar.o tpl/parser.o
 
 # Core Supporting object files
 core_o        := mem.o sha1.o pack.o hash.o stringlist.o userdb.o log.o
-core_o        += cert.o prompt.o exec.o string.o
+core_o        += cert.o prompt.o exec.o string.o path.o
 
 # Policy object files
 policy_o      := policy.o resource.o resources.o job.o template.o
@@ -272,7 +272,7 @@ test: unit_tests functional_tests
 	find . -name '*.gcda' 2>/dev/null | xargs rm -f
 	test/setup.sh
 	@echo; echo;
-	test/run $(TESTS)
+	test/run $(TEST) $(TESTS)
 	@echo; echo;
 	test/functional/run
 
@@ -337,7 +337,7 @@ tidy:
 
 clean: tidy
 	rm -f $(COMPILED) test/run $(fun_tests) $(auto_c) $(auto_h) man/*.*.gz
-	rm -f spec/*.output conf/*.output tpl/*.output
+	rm -f spec/*.output conf/*.output tpl/*.output Makefile.deps
 	rm -rf $(APIDOC_ROOT)/* doc/coverage/*
 
 dist: clean
@@ -360,4 +360,4 @@ fixme:
 Makefile.deps:
 	gcc -MM *.c > Makefile.deps
 
-include Makefile.deps
+-include Makefile.deps

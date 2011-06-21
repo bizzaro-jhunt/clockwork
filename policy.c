@@ -402,11 +402,13 @@ struct resource* policy_find_resource(struct policy *pol, enum restype type, con
 {
 	struct resource *r;
 
+	DEBUG("Looking for resource %u matching %s => '%s'", type, attr, value);
 	for_each_resource(r, pol) {
 		if (r->type == type && resource_match(r, attr, value) == 0) {
 			return r;
 		}
 	}
+	DEBUG("  none found...");
 
 	return NULL;
 }

@@ -22,11 +22,11 @@ int main(int argc, char **argv)
 	TEST_SUITE(job);
 	TEST_SUITE(proto);
 	TEST_SUITE(template);
+	TEST_SUITE(path);
 
 	test_setup(argc, argv);
 	run_active = 0;
 	while (*(++argv)) {
-		printf("to_run = %p (%s)\n", *argv, *argv);
 		run_active += activate_test(*argv);
 	}
 

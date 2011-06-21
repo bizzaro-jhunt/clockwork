@@ -170,16 +170,12 @@ All activity is monitored.
 \"----------------------------------------------------------------
 .SH CAVEATS
 
-.SS 1. Parent Directories
-File resources do not currently create parent directories.
-.PP
-
-.SS 2. Link Support
+.SS 1. Link Support
 Symbolic links and hard links cannot yet be created wth the file
 resource.
 .PP
 
-.SS 3. UID / GID Support
+.SS 2. UID / GID Support
 Even though the documentation above says that the \fBowner\fR and
 \fBgroup\fR attributes can be set to either a name or an ID, the
 system only works with names.  IDs will be ignored, as if the ID
@@ -204,6 +200,53 @@ If the
 attribute is specified, the file resource will depend on the
 existence of that group.  This is designed to ensure that files are
 owned by valid system groups.
+.PP
+
+.SS Parent Directories
+All parent components of the file path will be created if the file
+should exist and does not.  By default, these parent directories
+will be owned by root:root with mode 0755.  However, if the policy
+defines \fBres_dir\fR(5) resources with paths matching any component
+of the parent directory chain, the file resource will be set to
+depend on them.
+.PP
+An example should clear up any confusion:
+.PP
+.RS 4
+.nf
+file "/u/apps/test.example.net/index.html" {
+    owner: "apache"
+    group: "web"
+    mode:  0664
+    source: "/srv/clockwork/www/under-constr.html"
+}
+
+dir "/u/apps" {
+    owner: "webmaster"
+    group: "web"
+    mode:  0755
+}
+
+dir "/u/apps/test.example.net" {
+    owner: "apache"
+    group: "web"
+    mode:  0775
+}
+.fi
+.RE
+.PP
+If the above policy was enforced on a host without the /u directory,
+the following would happen (in order):
+.PP
+.nr steps 1 1
+.IP \n[steps]. 3
+Create /u, per defaults (root:root; 0755)
+.IP \n+[steps].
+Create /u/apps, per policy (webmaster:web; 0755)
+.IP \n+[steps].
+Create /u/apps/test.example.net, per policy (apache:web; 0775)
+.IP \n+[steps].
+Create the file and retrieve its contents from the policy master.
 .PP
 
 \"----------------------------------------------------------------

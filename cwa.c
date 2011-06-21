@@ -483,7 +483,7 @@ static int print_summary(FILE *io, struct job *job)
 
 	fprintf(io, "%u resource(s); %u OK, %u fixed, %u non-compliant\n",
 	        (ok+fixed+non), ok, fixed, non);
-	fprintf(io, "run duration: %0.4fs\n", job->duration / 1000000.0);
+	fprintf(io, "run duration: %0.2fs\n", job->duration / 1000000.0);
 
 	return 0;
 }

@@ -1,6 +1,73 @@
 List of Things To Do
 ====================
 
+Policy Explorer -
+  shell-like interface to the in-memory representation of
+  a policy manifest.  Invaluable to sys admins for testing
+  and troubleshooting purposes.
+
+  If we could modify the policy master to store the facts
+  it receives from the clients, they can be fed back into
+  the policy explorer to see how a policy change will
+  affect live systems.
+
+  Example session:
+  $ cwpol /path/to/manifest.pol
+  Clockwork Policy Explorer vX.Y.Z
+  Reading in /path/to/manifest.pol
+
+  top> show hosts
+  jade.niftylogic.net
+  rd.niftylogic.net
+
+  top> show policy
+  base
+  testing
+  web-server
+
+  top> use policy base
+  !! No facts have been defined
+
+  top> show facts
+  (none defined)
+
+  top> read facts from /path/to/static/file
+  static.fact1 = "This is my fact"
+
+  top> clear facts
+  top> gather facts from /path/to/facts.d/*.sh
+  sys.fqdn = "hostname.domain"
+  lsb.distro = "Ubuntu"
+
+  top> show facts like lsb.
+  lsb.distro = "Ubuntu"
+
+  top> fact lsb.distro = "Debian"
+  lsb.distro = "Debian"
+
+  top> show facts
+  sys.fqdn = "hostname.domain"
+  lsb.distro = "Debian"
+
+  top> use policy base
+  /p/base> show resources
+  file: /etc/tmp1
+  file: /etc/tmp2
+  user: jrhunt
+
+  /p/base> show user resources
+  user: jrhunt
+
+  /p/base> show user:jrhunt
+  user "jrhunt" {
+    uid: 1001
+    gid: 1002
+    home: "/home/jrhunt"
+  }
+
+  /p/base> exit
+  $
+
 Variable Strings for Attribute Values
 res_file -> parent-directory implicit dependencies
 Tests for cert.o module

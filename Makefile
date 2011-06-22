@@ -12,9 +12,12 @@
 
 ROOT := $(shell pwd)
 
-LEX_FLAGS  := --verbose --header-file --yylineno
-YACC_FLAGS := -Wall --token-table --defines --report=all
-CC_FLAGS   := -Wall -lssl -lpthread -lsqlite3 -laugeas
+LEX_FLAGS  := --header-file --yylineno
+YACC_FLAGS := -Wall --token-table --defines
+CC_FLAGS   := -Wall
+
+# Required libraries
+CC_FLAGS   := -lssl -lpthread -lsqlite3 -laugeas
 
 OPENSSL := $(shell if [ -f ext/openssl/lib/libssl.so ]; then echo local; else echo system; fi)
 ifeq ($(OPENSSL), local)
@@ -29,14 +32,13 @@ ifeq ($(OPENSSL), local)
 endif
 
 ifeq ($(BUILD_MODE),development)
-  # In development mode, turn on DWARF2 for Valgrind and gcov/lcov support
-  CC_FLAGS += -gdwarf-2 -fprofile-arcs -ftest-coverage
-  #CC_FLAGS += -pg # gprof runtime support
+  # In development mode, turn on gcov/lcov support
+  CC_FLAGS += -fprofile-arcs -ftest-coverage
 
   # In development mode, turn on all debugging support
-  LEX_FLAGS  += --debug
-  YACC_FLAGS += --debug
-  CC_FLAGS   += -g -DDEVEL
+  LEX_FLAGS  += --debug --verbose
+  YACC_FLAGS += --debug --report=all
+  CC_FLAGS   += -gdwarf-2 -g -DDEVEL
 
 else
   # In release mode, turn off all debugging support

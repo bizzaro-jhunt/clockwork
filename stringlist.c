@@ -112,17 +112,13 @@ stringlist* stringlist_dup(stringlist *orig)
 
 void stringlist_free(stringlist *sl)
 {
-	assert(sl);
-
 	size_t i;
-
-	for (i = 0; i < sl->num; i++) {
-		free(sl->strings[i]);
+	if (sl) {
+		for (i = 0; i < sl->num; i++) {
+			free(sl->strings[i]);
+		}
+		free(sl->strings);
 	}
-	free(sl->strings);
-
-	sl->num = 0;
-	sl->len = 0;
 	free(sl);
 }
 

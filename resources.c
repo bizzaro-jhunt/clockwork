@@ -2,6 +2,7 @@
 #include "pack.h"
 #include "template.h"
 #include "path.h"
+#include "augcw.h"
 
 #include <fts.h>
 #include <fcntl.h>
@@ -2306,26 +2307,16 @@ int res_host_stat(void *res, const struct resource_env *env)
 
 	if (ENFORCED(rh, RES_HOST_ALIASES)) {
 		if (rh->aug_root) {
-			tmp = string("%s/alias");
-			rc = aug_match(env->aug_context, tmp, &results);
+			tmp = string("%s/alias", rh->aug_root);
+			real_aliases = augcw_getm(env->aug_context, tmp);
 			free(tmp);
 
-			if (rc > 0) {
-				real_aliases = stringlist_new(NULL);
-				for (i = 0; i < rc; i++) {
-					if (aug_get(env->aug_context, results[i], &value) != 1
-					 || stringlist_add(real_aliases, value) != 0) {
-						stringlist_free(real_aliases);
-						return -1;
-					}
-				}
-				free(results);
+			if (!real_aliases ||
+			    stringlist_diff(rh->aliases, real_aliases) == 0) {
 
-				if (stringlist_diff(rh->aliases, real_aliases) == 0){
-					DIFF(rh, RES_HOST_ALIASES);
-				}
-				stringlist_free(real_aliases);
+				DIFF(rh, RES_HOST_ALIASES);
 			}
+			stringlist_free(real_aliases);
 
 		} else {
 			DIFF(rh, RES_HOST_ALIASES);

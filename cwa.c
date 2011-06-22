@@ -13,7 +13,7 @@
 #include "userdb.h"
 #include "client.h"
 #include "resources.h"
-
+#include "augcw.h"
 #include "db.h"
 
 static client* cwa_options(int argc, char **argv);
@@ -30,9 +30,6 @@ static void print_report(FILE *io, struct report *r);
 static int print_summary(FILE *io, struct job *job);
 static int send_report(client *c, struct job *job);
 static int save_report(client *c, struct job *job);
-
-static void print_aug_errors(augeas *au);
-static int clockwork_aug_load(augeas *au);
 
 /**************************************************************/
 
@@ -329,8 +326,9 @@ static int enforce_policy(client *c, struct job *job)
 		exit(2);
 	}
 
-	env.aug_context = clockwork_aug_init();
-	if (!env.aug_context || clockwork_aug_load(env.aug_context) != 0) {
+	DEBUG("Initializing Augeas subsystem");
+	env.aug_context = augcw_init();
+	if (!env.aug_context) {
 		CRITICAL("Unable to initialize Augeas subsystem");
 		exit(2);
 	}
@@ -398,8 +396,8 @@ static int enforce_policy(client *c, struct job *job)
 		sgdb_write(env.group_sgdb, SYS_GSHADOW);
 
 		if (aug_save(env.aug_context) != 0) {
-			CRITICAL("aug_save failed; sub-config resources not properly saved!");
-			print_aug_errors(env.aug_context);
+			CRITICAL("augeas save failed; sub-config resources not properly saved!");
+			augcw_errors(env.aug_context);
 			exit(2);
 		}
 	}
@@ -529,32 +527,4 @@ static int save_report(client *c, struct job *job)
 
 	db_close(db);
 	return 0;
-}
-
-static void print_aug_errors(augeas *au)
-{
-	char **results = NULL;
-	const char *v;
-	int rc, i;
-
-	rc = aug_match(au, "/augeas//error", &results);
-	fprintf(stderr, "%i augeas errors found\n", rc);
-	for (i = 0; i < rc; i++) {
-		fprintf(stderr, "[augeas]: %s\n", results[i]);
-		aug_get(au, results[i], &v);
-		if (v) {
-			fprintf(stderr, "          %s\n", v);
-		}
-	}
-
-	free(results);
-}
-
-static int clockwork_aug_load(augeas *au)
-{
-	if (aug_set(au, "/augeas/load/Hosts/lens", "Hosts.lns") < 0
-	 || aug_set(au, "/augeas/load/Hosts/incl", "/etc/hosts") < 0) {
-		return -1;
-	}
-	return aug_load(au);
 }

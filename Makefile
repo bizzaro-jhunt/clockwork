@@ -100,7 +100,7 @@ parser_tpl_o  := tpl/lexer.o tpl/grammar.o tpl/parser.o
 
 # Core Supporting object files
 core_o        := mem.o sha1.o pack.o hash.o stringlist.o userdb.o log.o
-core_o        += cert.o prompt.o exec.o string.o path.o
+core_o        += cert.o prompt.o exec.o string.o path.o augcw.o
 
 # Policy object files
 policy_o      := policy.o resource.o resources.o job.o template.o

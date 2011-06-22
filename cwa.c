@@ -355,7 +355,10 @@ static int enforce_policy(client *c, struct job *job)
 
 		env.file_fd = -1;
 		env.file_len = 0;
-		resource_stat(res, &env);
+		if (resource_stat(res, &env) != 0) {
+			CRITICAL("Failed to stat %s", res->key);
+			exit(2);
+		}
 
 		if (res->type == RES_FILE) {
 			rf = (struct res_file*)(res->resource);
@@ -395,7 +398,9 @@ static int enforce_policy(client *c, struct job *job)
 		sgdb_write(env.group_sgdb, SYS_GSHADOW);
 
 		if (aug_save(env.aug_context) != 0) {
+			CRITICAL("aug_save failed; sub-config resources not properly saved!");
 			print_aug_errors(env.aug_context);
+			exit(2);
 		}
 	}
 
@@ -532,7 +537,7 @@ static void print_aug_errors(augeas *au)
 	const char *v;
 	int rc, i;
 
-	rc = aug_match(au, "/augeas//error/*", &results);
+	rc = aug_match(au, "/augeas//error", &results);
 	fprintf(stderr, "%i augeas errors found\n", rc);
 	for (i = 0; i < rc; i++) {
 		fprintf(stderr, "[augeas]: %s\n", results[i]);
@@ -547,7 +552,7 @@ static void print_aug_errors(augeas *au)
 
 static int clockwork_aug_load(augeas *au)
 {
-	if (aug_set(au, "/augeas/load/Hosts/lens", "Host.lns") < 0
+	if (aug_set(au, "/augeas/load/Hosts/lens", "Hosts.lns") < 0
 	 || aug_set(au, "/augeas/load/Hosts/incl", "/etc/hosts") < 0) {
 		return -1;
 	}

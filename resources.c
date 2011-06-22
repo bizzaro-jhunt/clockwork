@@ -2278,19 +2278,26 @@ int res_host_stat(void *res, const struct resource_env *env)
 	int rc, i;
 	stringlist *real_aliases = NULL;
 
+	DEBUG("res_host: stat %p // %s", rh, rh->hostname);
 	rc = aug_match(env->aug_context, "/files/etc/hosts/*", &results);
+	DEBUG("res_host: found %u entries under /files/etc/hosts", rc);
 	for (i = 0; i < rc; i++) {
 		tmp = string("%s/ipaddr", results[i]);
+		DEBUG("res_host: checking %s", tmp);
 		aug_get(env->aug_context, tmp, &value);
 		free(tmp);
 
+		DEBUG("res_host: eval found ip(%s) against res_host ip(%s)", value, rh->ip);
 		if (value && strcmp(value, rh->ip) == 0) { // ip matched
 			tmp = string("%s/canonical", results[i]);
+			DEBUG("res_host: checking %s", tmp);
 			aug_get(env->aug_context, tmp, &value);
 			free(tmp);
 
+			DEBUG("res_host: eval found hostname(%s) against res_host hostname(%s)", value, rh->hostname);
 			if (value && strcmp(value, rh->hostname) == 0) {
 				rh->aug_root = strdup(results[i]);
+				DEBUG("res_host: found match at %s", rh->aug_root);
 				break;
 			}
 		}
@@ -2303,13 +2310,22 @@ int res_host_stat(void *res, const struct resource_env *env)
 			rc = aug_match(env->aug_context, tmp, &results);
 			free(tmp);
 
-			real_aliases = stringlist_new(results);
-			free(results);
+			if (rc > 0) {
+				real_aliases = stringlist_new(NULL);
+				for (i = 0; i < rc; i++) {
+					if (aug_get(env->aug_context, results[i], &value) != 1
+					 || stringlist_add(real_aliases, value) != 0) {
+						stringlist_free(real_aliases);
+						return -1;
+					}
+				}
+				free(results);
 
-			if (stringlist_diff(rh->aliases, real_aliases) == 0){
-				DIFF(rh, RES_HOST_ALIASES);
+				if (stringlist_diff(rh->aliases, real_aliases) == 0){
+					DIFF(rh, RES_HOST_ALIASES);
+				}
+				stringlist_free(real_aliases);
 			}
-			stringlist_free(real_aliases);
 
 		} else {
 			DIFF(rh, RES_HOST_ALIASES);
@@ -2360,21 +2376,26 @@ struct report* res_host_fixup(void *res, int dryrun, const struct resource_env *
 			if (dryrun) {
 				report_action(report, action, ACTION_SKIPPED);
 			} else {
-				tmp1 = string("/files/etc/hosts/0%u/ipaddr", rh);
-				tmp2 = string("/files/etc/hosts/0%u/canonical", rh);
+				rh->aug_root = string("/files/etc/hosts/0%u", rh);
+				tmp1 = string("%s/ipaddr",    rh->aug_root);
+				tmp2 = string("%s/canonical", rh->aug_root);
+
+				DEBUG("res_host: Setting %s to %s", tmp1, rh->ip);
+				DEBUG("res_host: Setting %s to %s", tmp2, rh->hostname);
 
 				if (aug_set(env->aug_context, tmp1, rh->ip) < 0
 				 || aug_set(env->aug_context, tmp2, rh->hostname) < 0) {
+
 					report_action(report, action, ACTION_FAILED);
+					free(rh->aug_root);
+					rh->aug_root = NULL;
 				} else {
 					report_action(report, action, ACTION_SUCCEEDED);
+					just_created = 1;
 				}
 
 				free(tmp1);
 				free(tmp2);
-
-				rh->aug_root = string("/files/etc/hosts/0%u");
-				just_created = 1;
 			}
 		}
 	}
@@ -2385,7 +2406,8 @@ struct report* res_host_fixup(void *res, int dryrun, const struct resource_env *
 		if (dryrun && !just_created) {
 			report_action(report, action, ACTION_SKIPPED);
 		} else {
-			tmp1 = string("%s/alias");
+			tmp1 = string("%s/alias", rh->aug_root);
+			DEBUG("res_host: removing %s", tmp1);
 			if (aug_rm(env->aug_context, tmp1) < 0) {
 				report_action(report, action, ACTION_FAILED);
 				action = NULL; // prevent future report for this action
@@ -2394,6 +2416,7 @@ struct report* res_host_fixup(void *res, int dryrun, const struct resource_env *
 
 			for (i = 0; i < rh->aliases->num; i++) {
 				tmp1 = string("%s/alias[%u]", rh->aug_root, i+1);
+				DEBUG("res_host: set %s to %s", tmp1, rh->aliases->strings[i]);
 				if (aug_set(env->aug_context, tmp1, rh->aliases->strings[i]) < 0
 				 && action) {
 					report_action(report, action, ACTION_FAILED);

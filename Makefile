@@ -333,13 +333,16 @@ test/util/executive:   test/util/executive.o   $(core_o)
 ############################################################
 # Maintenance
 
+cleandep:
+	rm -f Makefile.deps
+
 tidy:
 	find . -name '*.o' -o -name '*.gc??' 2>/dev/null | xargs rm -f
 	rm -f lcov.info
 
-clean: tidy
+clean: tidy cleandep
 	rm -f $(COMPILED) test/run $(fun_tests) $(auto_c) $(auto_h) man/*.*.gz
-	rm -f spec/*.output conf/*.output tpl/*.output Makefile.deps
+	rm -f spec/*.output conf/*.output tpl/*.output
 	rm -rf $(APIDOC_ROOT)/* doc/coverage/*
 
 dist: clean

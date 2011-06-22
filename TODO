@@ -69,7 +69,6 @@ Policy Explorer -
   $
 
 Variable Strings for Attribute Values
-res_file -> parent-directory implicit dependencies
 Tests for cert.o module
 cwdb for Database Reporting (cwreport?) - IN PROGRESS
 
@@ -84,10 +83,6 @@ Client / Server
      Communication between cwcert and cwca
        More intrusive signing / verification procedure
        How to handle renewals / revocation?
-
-profiling
-  Look at callgrind / oprofile and see if we can't get the agent
-  run down to a more reasonable level (1.2s for 17 resources?)
 
 chroot testing
   Need to be able to run full-sim tests in chroot environments,

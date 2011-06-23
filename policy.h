@@ -248,12 +248,11 @@ struct hash* fact_read(FILE *io, struct hash *facts);
   @see fact_read for more useful fact handling.
 
   @param  line    NULL-terminated line buffer
-  @param  k       Value-result argument to store the parsed key in.
-  @param  v       Value-result argument to store the parsed value in.
+  @param  hash    Hash to store the parsed fact in.
 
   @returns 0 on success, non-zero on failure.
  */
-int fact_parse(const char *line, char **k, char **v);
+int fact_parse(const char *line, struct hash *hash);
 
 /**
   Generate a policy, given a set of facts.

@@ -199,7 +199,6 @@ int pdu_decode_FACTS(protocol_data_unit *pdu, struct hash *facts)
 	assert(facts);
 
 	size_t i;
-	char *k, *v;
 
 	stringlist *lines = stringlist_split((char*)pdu->data, pdu->len, "\n");
 	if (!lines) {
@@ -207,10 +206,7 @@ int pdu_decode_FACTS(protocol_data_unit *pdu, struct hash *facts)
 	}
 
 	for (i = 0; i < lines->num; i++) {
-		if (fact_parse(lines->strings[i], &k, &v) == 0) {
-			hash_set(facts, k, v);
-			free(k);
-		}
+		fact_parse(lines->strings[i], facts);
 	}
 
 	DEBUG("RECV FACTS (op:%u) - %u facts", pdu->op, lines->num);

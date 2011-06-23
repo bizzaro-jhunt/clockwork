@@ -5,15 +5,15 @@
 
 void test_fact_parsing()
 {
-	char *name, *value;
+	struct hash *h;
 
 	test("fact: parsing a string fact");
-	fact_parse("sys.kernel.version=2.6.32-194.distro5-generic\n", &name, &value);
-	assert_str_eq("name parsed correctly", "sys.kernel.version", name);
-	assert_str_eq("value parsed correctly", "2.6.32-194.distro5-generic", value);
+	h = hash_new();
+	assert_not_null("facts hash allocated", h);
+	fact_parse("sys.kernel.version=2.6.32-194.distro5-generic\n", h);
+	assert_str_eq("fact parsed correctly", hash_get(h, "sys.kernel.version"), "2.6.32-194.distro5-generic");
 
-	xfree(name);
-	xfree(value);
+	hash_free(h);
 }
 
 void test_fact_read_io()

@@ -185,9 +185,10 @@ int stree_compare(const struct stree *a, const struct stree *b)
 	return 0;
 }
 
-int fact_parse(const char *line, char **k, char **v)
+int fact_parse(const char *line, struct hash *h)
 {
 	assert(line);
+	assert(h);
 
 	char *buf, *name, *value;
 	char *stp; /* string traversal pointer */
@@ -202,9 +203,7 @@ int fact_parse(const char *line, char **k, char **v)
 		;
 	*stp = '\0';
 
-	*k = xstrdup(name);
-	*v = xstrdup(value);
-
+	hash_set(h, name, xstrdup(value));
 	free(buf);
 	return 0;
 }
@@ -214,7 +213,6 @@ struct hash* fact_read(FILE *io, struct hash *facts)
 	assert(io);
 
 	char buf[8192] = {0};
-	char *k, *v;
 	int allocated = 0;
 
 	if (!facts) {
@@ -237,11 +235,7 @@ struct hash* fact_read(FILE *io, struct hash *facts)
 			}
 			break;
 		}
-
-		if (fact_parse(buf, &k, &v) == 0) {
-			hash_set(facts, k, v);
-			free(k);
-		}
+		fact_parse(buf, facts);
 	}
 
 	return facts;

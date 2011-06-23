@@ -1,8 +1,15 @@
 #!/bin/bash
 
-valgrind --leak-check=full \
-         --show-reachable=yes \
-         --read-var-info=yes \
-         --track-origins=yes \
-         --suppressions=valgrind.supp \
-         $@
+VG_OPTS=""
+VG_OPTS="$VG_OPTS --leak-check=full"
+VG_OPTS="$VG_OPTS --show-reachable=yes"
+VG_OPTS="$VG_OPTS --read-var-info=yes"
+VG_OPTS="$VG_OPTS --track-origins=yes"
+VG_OPTS="$VG_OPTS --track-fds=yes"
+VG_OPTS="$VG_OPTS --error-exitcode=42"
+for SUPP in openssl perl; do
+	VG_OPTS="$VG_OPTS --suppressions=tools/$SUPP.supp"
+done
+
+set -x
+valgrind $VG_OPTS $@

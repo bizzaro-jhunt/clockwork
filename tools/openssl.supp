@@ -1,0 +1,78 @@
+#
+# Clockwork Valgrind Suppressions for OpenSSL
+#
+# These suppression rules were gathered via the
+# --gen-suppressions=all Valgrind option, and
+# subsequently hand-tuned for terseness.
+#
+
+# Suppress conditional jump errors in libssl
+{
+   clockwork//openssl--libssl
+   Memcheck:Cond
+   ...
+   obj:*/libssl.so.*
+}
+
+# Suppress conditional jump errors in libcrypto
+{
+   clockwork//openssl--libcrypto
+   Memcheck:Cond
+   ...
+   obj:*/libcrypto.so.*
+}
+
+# Suppress uninitialized value errors in libssl
+{
+   clockwork//openssl--libssl
+   Memcheck:Value4
+   ...
+   obj:*/libssl.so.*
+}
+
+# Suppress uninitialized value errors in libcrypto
+{
+   clockwork//openssl--libcrypto
+   Memcheck:Value4
+   ...
+   obj:*/libcrypto.so.*
+}
+
+# Suppress syscall parameter issues in libssl
+{
+   clockwork//openssl--libssl
+   Memcheck:Param
+   ...
+   obj:*/libssl.so.*
+}
+
+# Suppress syscall parameter issues in libcrypto
+{
+   clockwork//openssl--libcrypto
+   Memcheck:Param
+   ...
+   obj:*/libcrypto.so.*
+}
+
+# Supress write syscall parameter issue
+{
+   clockwork//openssl--__write_nocancel/fd_write
+   Memcheck:Param
+   fun:__write_nocancel
+   fun:fd_write
+}
+
+# Known memory "leaks" from Memcheck's point-of-view
+# (can't do anything to fix them, so shut up...)
+{
+   clockwork//openssl--malloc-leak
+   Memcheck:Leak
+   fun:malloc
+   fun:default_malloc_ex
+}
+{
+   clockwork//openssl--realloc-leak
+   Memcheck:Leak
+   fun:realloc
+   fun:default_realloc_ex
+}

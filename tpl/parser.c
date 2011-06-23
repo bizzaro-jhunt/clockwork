@@ -28,9 +28,10 @@ struct template* parse_template(const char *path)
 
 	yytpllex_destroy(ctx.scanner);
 	xfree(ctx.file);
+	fclose(ctx.io);
 
 	if (ctx.errors > 0) {
-		ERROR("Manifest parse errors encountered; aborting...");
+		ERROR("Template parse errors encountered; aborting...");
 		return NULL;
 	}
 

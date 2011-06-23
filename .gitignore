@@ -27,6 +27,7 @@ test/data/x509/*
 test/chroot/*.chroot
 test/data/passwd-uid
 test/augeas
+test/sub/proto
 
 conf/lexer.c
 conf/grammar.c

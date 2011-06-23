@@ -17,7 +17,6 @@ struct policy_generator {
 	struct resource *res;
 	struct dependency *dep;
 };
-
 /** @endcond */
 
 static void stree_free(struct stree *n)
@@ -26,8 +25,8 @@ static void stree_free(struct stree *n)
 		free(n->data1);
 		free(n->data2);
 		free(n->nodes);
-		free(n);
 	}
+	free(n);
 }
 
 static int _policy_normalize(struct policy *pol, struct hash *facts)

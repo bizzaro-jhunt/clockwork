@@ -19,8 +19,8 @@ CC_FLAGS   := -Wall
 # Required libraries
 CC_FLAGS   := -lssl -lpthread -lsqlite3 -laugeas
 
-OPENSSL := $(shell if [ -f ext/openssl/lib/libssl.so ]; then echo local; else echo system; fi)
-ifeq ($(OPENSSL), local)
+openssl_mode := $(shell if [ -f ext/openssl/lib/libssl.so ]; then echo local; else echo system; fi)
+ifeq ($(openssl_mode), local)
   export LD_LIBRARY_PATH=./ext/openssl/lib
 
   # Have to specify -lcrypto so that gcc/ld look for it in
@@ -70,9 +70,6 @@ GENHTML := genhtml --prefix $(shell dirname `pwd`)
 MOG     := ./mog
 DOXYGEN := doxygen
 
-APIDOC_CONF := doc/doxy.api.conf
-APIDOC_ROOT := doc/api
-
 
 ############################################################
 # Object Group Variables
@@ -117,12 +114,16 @@ man_gz        := $(shell ls -1 man/*.1 man/*.5 | \
 unit_test_o   := $(subst .c,.o,$(shell ls -1 test/*.c))
 unit_test_o   += $(subst .c,.o,$(shell cd test; ls -1 *.c | \
                    egrep -v '(assertions|bits|fact|list|run|stree|test).c'))
-unit_test_o   += stringlist.o log.o prompt.o
-unit_test_o   += $(parser_tpl_o)
+unit_test_o   += stringlist.o log.o prompt.o augcw.o
+unit_test_o   += $(parser_tpl_o) $(core_o)
 
 # Functional Test runners
 fun_tests     := test/util/includer test/util/factchecker test/util/daemoncfg
 fun_tests     += test/util/presence test/util/prompter    test/util/executive
+
+# Doxygen configuration for API docs
+apidocs_conf  := doc/doxy.api.conf
+apidocs_root  := doc/api
 
 
 ############################################################
@@ -175,25 +176,26 @@ config: config.dist
 debuggers: $(debug_bin)
 
 summary:
+	@./configure --show
+	@echo "Build-specific options"
 	@echo
-	@echo "============="
-	@echo "BUILD SUMMARY"
-	@echo "============="
+	@echo "ROOT:      $(ROOT)"
 	@echo
-	@echo "CONFIGURATION"
-	@echo " Mode:     $(BUILD_MODE)"
-	@echo " OpenSSL:  $(OPENSSL)"
+	@echo "Externals"
+	@echo " OpenSSL:  $(openssl_mode)"
 	@echo
-	@echo "PATHS"
-	@echo " ROOT:     $(ROOT)"
+	@echo "Doyxgen (API Docs)"
+	@echo " root:     $(apidocs_root)"
+	@echo " config:   $(apidocs_conf)"
 	@echo
-	@echo "COMMANDS"
+	@echo "Commands"
 	@echo " cc:       $(CC)"
 	@echo " lex:      $(LEX)"
 	@echo " yacc:     $(YACC)"
 	@echo " valgrind: $(VG)"
 	@echo " lcov:     $(LCOV)"
 	@echo " genhtml:  $(GENHTML)"
+	@echo " doxygen:  $(DOXYGEN)"
 	@echo
 
 ############################################################
@@ -250,16 +252,16 @@ conf/grammar.c conf/grammar.h: conf/grammar.y conf/parser.c conf/parser.h conf/p
 docs: apidocs diagrams
 
 apidocs:
-	rm -rf $(APIDOC_ROOT)/*
-	$(DOXYGEN) $(APIDOC_CONF) 2>&1 | tee $(APIDOC_ROOT)/doxygen.log
+	rm -rf $(apidocs_root)/*
+	$(DOXYGEN) $(apidocs_conf) 2>&1 | tee $(apidocs_root)/doxygen.log
 	@echo
 	@echo === DOXYGEN ERROR SUMMARY ===================================================
 	@echo
-	@grep Warning $(APIDOC_ROOT)/doxygen.log | sed -e "s;.*$(PWD)/\([^:]*\).*;\1;" | sort | uniq -c
+	@grep Warning $(apidocs_root)/doxygen.log | sed -e "s;.*$(PWD)/\([^:]*\).*;\1;" | sort | uniq -c
 	@echo
 	@echo === DOXYGEN ERROR DETAILS ===================================================
 	@echo
-	@grep Warning $(APIDOC_ROOT)/doxygen.log | sed -e 's/Parsing file //'
+	@grep Warning $(apidocs_root)/doxygen.log | sed -e 's/Parsing file //'
 
 diagrams: doc/proto-agent.png doc/proto-cert.png
 
@@ -278,15 +280,6 @@ test: unit_tests functional_tests
 	@echo; echo;
 	test/functional/run
 
-memtest: unit_tests
-	test/setup.sh
-	$(VG) test/run $(TESTS)
-
-coverage: lcov.info unit_tests functional_tests
-	rm -rf doc/coverage
-	mkdir -p doc/coverage
-	$(GENHTML) -o doc/coverage lcov.info
-
 unit: unit_tests
 	find . -name '*.gcda' 2>/dev/null | xargs rm -f
 	test/setup.sh
@@ -300,7 +293,7 @@ unit: unit_tests
 	mkdir -p doc/coverage
 	$(GENHTML) -o doc/coverage lcov.info
 
-unit_tests: test/run
+unit_tests: test/run test/sub/proto
 
 test/run: $(unit_test_o)
 
@@ -315,6 +308,41 @@ lcov.info: unit_tests functional_tests
 
 test/sha1_files.h:
 	$(MOG) sha1_tests
+
+test/sub/proto: $(core_o) $(policy_o) proto.o
+
+##
+## Conditional Test Targets
+##
+## Unless we are running in development mode, the `coverage' and
+## `memtest' targets are nearly useless:
+##
+##  coverage - Depends on gcov support (only enabled in development mode)
+##  memtest  - If you do find mem leaks, there is no way to track them
+##             down, because the release-mode binaries are stripped.
+##
+ifeq ($(BUILD_MODE),development)
+memtest: unit_tests functional_tests
+	find . -name '*.gcda' 2>/dev/null | xargs rm -f
+	test/setup.sh
+	@echo; echo;
+	$(VG) test/run $(TEST) $(TESTS)
+	@echo; echo;
+	$(VG) test/functional/run
+
+coverage: lcov.info unit_tests functional_tests
+	rm -rf doc/coverage
+	mkdir -p doc/coverage
+	$(GENHTML) -o doc/coverage lcov.info
+else
+coverage:
+	@echo "The \`coverage' target only makes sense in 'development' mode"
+	@echo "(use ./configure --development)"
+
+memtest:
+	@echo "The \`memtest' target only makes sense in 'development' mode"
+	@echo "(use ./configure --development)"
+endif
 
 
 ############################################################
@@ -343,7 +371,7 @@ tidy:
 clean: tidy cleandep
 	rm -f $(COMPILED) test/run $(fun_tests) $(auto_c) $(auto_h) man/*.*.gz
 	rm -f spec/*.output conf/*.output tpl/*.output
-	rm -rf $(APIDOC_ROOT)/* doc/coverage/*
+	rm -rf $(apidocs_root)/* doc/coverage/*
 
 dist: clean
 	rm -rf doc/coverage ext/openssl ext/build/*

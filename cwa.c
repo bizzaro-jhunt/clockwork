@@ -400,6 +400,7 @@ static int enforce_policy(client *c, struct job *job)
 			augcw_errors(env.aug_context);
 			exit(2);
 		}
+		aug_close(env.aug_context);
 	}
 
 	if (job_end(job) != 0) {

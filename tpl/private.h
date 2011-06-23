@@ -1,12 +1,12 @@
-#ifndef _SPEC_PRIVATE_H
-#define _SPEC_PRIVATE_H
+#ifndef _TPL_PRIVATE_H
+#define _TPL_PRIVATE_H
 
 #include <sys/stat.h>
 
 /* This headers is "private" and includes structure definitions
    and function prototypes that are ONLY of interest to the
-   internals of the lexer and grammar modules, spec/lexer.o
-   and spec/grammar.o.
+   internals of the lexer and grammar modules, tpl/lexer.o
+   and tpl/grammar.o.
  */
 
 #include "../list.h"

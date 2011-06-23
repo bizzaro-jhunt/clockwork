@@ -151,11 +151,15 @@ char* template_render(struct template *t);
   @param  d1    Value of the first operation-specific data member
   @param  d2    Value of the second operation-specific data member
 
+  @note for reasons of optimization, the d1 and d2 pointers
+        are "taken over" by this function.  Do not free() them
+        after a call to template_new_tnode; you risk a double-free.
+
   @returns a heap-allocated tnode structure, which also exists in
            the template::nodes member.  NULL is returned on failure
            (in which case template::nodes is untouched).
  */
-struct tnode* template_new_tnode(struct template *t, enum tnode_type type, const char *d1, const char *d2);
+struct tnode* template_new_tnode(struct template *t, enum tnode_type type, char *d1, char *d2);
 
 /**
   Add a template node as a child of another

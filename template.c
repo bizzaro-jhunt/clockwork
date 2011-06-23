@@ -90,7 +90,9 @@ struct template* template_new(void)
 struct template* template_create(const char *path, struct hash *facts)
 {
 	struct template *t = parse_template(path);
-	t->facts = facts;
+	if (t) {
+		t->facts = facts;
+	}
 	return t;
 }
 
@@ -101,7 +103,8 @@ void template_free(struct template *t)
 	if (t) {
 		for (i = 0; i < t->nodes_len; i++) { tnode_free(t->nodes[i]); }
 		free(t->nodes);
-		free(t->vars);
+		/* free variable store; including values */
+		hash_free_all(t->vars);
 		/* don't free t->facts; it's not ours */
 	}
 	free(t);
@@ -135,7 +138,7 @@ char* template_render(struct template *t)
 	return data;
 }
 
-struct tnode* template_new_tnode(struct template *t, enum tnode_type type, const char *d1, const char *d2)
+struct tnode* template_new_tnode(struct template *t, enum tnode_type type, char *d1, char *d2)
 {
 	struct tnode *node;
 	struct tnode **nodes;
@@ -150,8 +153,8 @@ struct tnode* template_new_tnode(struct template *t, enum tnode_type type, const
 	}
 
 	node->type = type;
-	node->d1 = xstrdup(d1);
-	node->d2 = xstrdup(d2);
+	node->d1 = d1;
+	node->d2 = d2;
 
 	nodes[t->nodes_len++] = node;
 	t->nodes = nodes;

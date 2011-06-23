@@ -52,6 +52,7 @@ int template_parser_use_file(const char *path, template_parser_context *ctx)
 
 	buf = yytpl_create_buffer(io, YY_BUF_SIZE, ctx->scanner);
 	yytplpush_buffer_state(buf, ctx->scanner);
+	ctx->io   = io;
 	ctx->file = strdup(path);
 
 	return 0;

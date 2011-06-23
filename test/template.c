@@ -41,6 +41,29 @@ failed:
 	return -1;
 }
 
+void test_template_static()
+{
+	struct template *t;
+	const char *tpl = "static\n";
+	const char *expect = tpl;
+	char *actual;
+
+	test("template: static template (nothing fancy)");
+	assert_int_eq("Creation of template file succeeds",
+		template_file(TPL_FILE, tpl), 0);
+
+	t = template_create(TPL_FILE, NULL);
+	assert_not_null("template created", t);
+
+	actual = template_render(t);
+	assert_not_null("template rendered", t);
+
+	assert_str_eq("rendered value == expected value", actual, expect);
+
+	free(actual);
+	template_free(t);
+}
+
 void test_template_var_expansion()
 {
 	struct hash *v;
@@ -136,6 +159,7 @@ void test_template_local_vars()
 
 void test_suite_template()
 {
+	test_template_static();
 	test_template_var_expansion();
 	test_template_if();
 	test_template_local_vars();

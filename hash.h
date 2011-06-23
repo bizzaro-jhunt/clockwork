@@ -89,7 +89,7 @@ unsigned char H64(const char *s);
   Allocate a new hash structure, on the heap.
 
   Memory allocated by this function should only be freed through a call to
-  hash_free.
+  hash_free or hash_free_all.
 
   @returns A pointer to a dynamically allocated hash structure, or NULL if
            one could not be allocated.
@@ -99,9 +99,25 @@ struct hash *hash_new(void);
 /**
   Free the memory allocated to a hash structure.
 
+  This function does not free the memory housing the values of
+  the hash, since that is considered to be the responsibility
+  of the calling code.  To free the values as well, look at
+  hash_free_all.
+
   @param  h    Hash structure to free.
  */
 void hash_free(struct hash *h);
+
+/**
+  Free all memory allocated to a hash structure.
+
+  This function also frees the memory housing the hash values.
+  If the calling code wishes to manage that memory, hash_free is
+  a better alternative.
+
+  @param  h    Hash structure to free.
+ */
+void hash_free_all(struct hash *h);
 
 /**
   Retrieve the value stored in a hash for a given key.

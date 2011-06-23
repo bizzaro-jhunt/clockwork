@@ -34,7 +34,20 @@ void hash_free(struct hash *h)
 			free(h->entries[i].keys[j]);
 		}
 		free(h->entries[i].keys);
+		free(h->entries[i].values);
+	}
+	free(h);
+}
 
+void hash_free_all(struct hash *h)
+{
+	ssize_t i, j;
+	for (i = 0; i < 64; i++) {
+		for (j = 0; j < h->entries[i].len; j++) {
+			free(h->entries[i].keys[j]);
+			free(h->entries[i].values[j]);
+		}
+		free(h->entries[i].keys);
 		free(h->entries[i].values);
 	}
 	free(h);

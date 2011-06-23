@@ -21,7 +21,7 @@ static char* escape_newlines(const char *s)
 {
 	char *b,   *b1;
 	const char *s1;
-	size_t n;
+	size_t n = 0;
 
 	for (s1 = s; *s1; s1++) {
 		if (*s1 == '\r' || *s1 == '\n') { n++; }
@@ -79,13 +79,13 @@ int main(int argc, char **argv)
 
 	if (argc < 2) {
 		fprintf(stderr, "USAGE: %s /path/to/template\n", argv[0]);
-		exit(1);
+		return ;
 	}
 
 	fact_read(stdin, facts);
 	template = template_create(argv[1], facts);
 	if (!template) {
-		exit(2);
+		return 2;
 	}
 
 	traverse(template->root, 0);
@@ -100,6 +100,10 @@ int main(int argc, char **argv)
 	       "%s"
 	       "----------------------------------------------------------------------\n",
 	       output);
+
+	xfree(output);
+	hash_free_all(facts);
+	template_free(template);
 
 	return 0;
 }

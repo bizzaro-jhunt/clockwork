@@ -61,6 +61,7 @@ typedef struct {
 	unsigned int warnings; /* Number of times template_parser_warning called */
 	unsigned int errors;   /* Number of times template_parser_error called */
 
+	FILE *io;
 	char *file;
 
 	struct template *root;

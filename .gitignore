@@ -3,6 +3,7 @@
 lcov.info
 gmon.out
 callgrind.out.*
+*.swp
 
 policyd
 cwa
@@ -51,3 +52,4 @@ config
 Makefile.deps
 
 local
+.commit

@@ -178,6 +178,7 @@ int pdu_send_FACTS(protocol_session *session, const struct hash *facts)
 	}
 
 	buf = stringlist_join(list, "");
+	DEBUG("SEND FACTS (op:%u) - %u facts", pdu->op, list->num);
 	stringlist_free(list);
 	len = strlen(buf);
 
@@ -186,8 +187,8 @@ int pdu_send_FACTS(protocol_session *session, const struct hash *facts)
 	}
 
 	memcpy(pdu->data, buf, len);
+	free(buf);
 
-	DEBUG("SEND FACTS (op:%u) - %u facts", pdu->op, list->num);
 	return pdu_write(session->io, SEND_PDU(session));
 }
 

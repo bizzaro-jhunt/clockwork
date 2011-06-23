@@ -83,7 +83,7 @@ include[ \t]+  { BEGIN(INCLUDE); }
 
 [{}\(\)\[\],:] { return yytext[0]; }
 
-([a-z_]+\.)+[a-z_]+ { /* fact */
+([a-z_][a-z_0-9]*\.)+[a-z_][a-z_0-9]* { /* fact */
 	yylval->string = strdup(yytext);
 	return T_FACT;
 }

@@ -46,7 +46,8 @@
 configuration:
 		{ CONFIG(ctx) = hash_new(); }
 	| configuration directive
-		{ hash_set(CONFIG(ctx), $2[0], $2[1]); }
+		{ hash_set(CONFIG(ctx), $2[0], $2[1]);
+		  free($2[0]); }
 	;
 
 directive: T_IDENTIFIER '=' value

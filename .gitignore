@@ -12,6 +12,7 @@ cwca
 sha1sum
 polspec
 tplspec
+confdump
 
 debug/package-manager
 debug/service-manager

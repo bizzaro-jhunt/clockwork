@@ -207,6 +207,7 @@ cwcert:  $(core_o) $(policy_o) cwcert.o  $(parser_conf_o) proto.o client.o
 cwca:    $(core_o) $(policy_o) cwca.o    $(parser_conf_o) server.o
 polspec: $(core_o) $(policy_o) polspec.o $(parser_spec_o)
 tplspec: $(core_o) $(policy_o) tplspec.o
+confdump: $(core_o) confdump.o $(parser_conf_o)
 sha1sum: sha1.o sha1sum.o mem.o log.o $(core_o) $(policy_o) $(parser_spec_o) $(parser_conf_o)
 
 

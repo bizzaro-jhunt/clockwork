@@ -1,12 +1,13 @@
-#ifndef _CONFIG_PRIVATE_H
-#define _CONFIG_PRIVATE_H
+#ifndef _CONF_PRIVATE_H
+#define _CONF_PRIVATE_H
 
 /* This headers is "private" and includes structure definitions
    and function prototypes that are ONLY of interest to the
-   internals of the lexer and grammar modules, spec/lexer.o
-   and spec/grammar.o.
+   internals of the lexer and grammar modules, conf/lexer.o
+   and conf/grammar.o.
  */
 
+#include <stdio.h>
 #include "../hash.h"
 
 /**
@@ -26,7 +27,8 @@ typedef struct {
 	unsigned int warnings; /* Number of times conf_parser_warning called */
 	unsigned int errors;   /* Number of times conf_parser_error called */
 
-	const char *file;      /* Name of the current file being parsed */
+	char *file;            /* Name of the current file being parsed */
+	FILE *io;
 	struct hash *config;
 } conf_parser_context;
 

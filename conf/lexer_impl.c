@@ -1,5 +1,6 @@
 #include <libgen.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <glob.h>
 #include <sys/stat.h>
 #include <stdarg.h>
@@ -54,6 +55,7 @@ int conf_parser_use_file(const char *path, conf_parser_context *ctx)
 	buf = yyconf_create_buffer(io, YY_BUF_SIZE, ctx->scanner);
 	yyconfpush_buffer_state(buf, ctx->scanner);
 	ctx->file = strdup(path);
+	ctx->io = io;
 
 	return 0;
 }

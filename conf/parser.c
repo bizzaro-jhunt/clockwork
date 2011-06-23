@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <errno.h>
 
@@ -22,6 +23,8 @@ struct hash* parse_config(const char *path)
 
 	hash = ctx.config;
 	yyconflex_destroy(ctx.scanner);
+	free(ctx.file);
+	fclose(ctx.io);
 
 	if (ctx.errors > 0) {
 		ERROR("Errors encountered; aborting...");

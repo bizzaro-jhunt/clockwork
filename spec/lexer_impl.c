@@ -9,20 +9,21 @@
 
 /** STATIC functions used only by other, non-static functions in this file **/
 
-static int lexer_check_file(const char *path, spec_parser_context *ctx)
+static FILE* lexer_open(const char *path, spec_parser_context *ctx)
 {
+	FILE *io;
 	struct stat st;
 	parser_file *seen;
 
 	if (stat(path, &st) != 0) {
 		/* NOTE: strerror not reentrant */
 		spec_parser_error(ctx, "can't stat %s: %s", path, strerror(errno));
-		return -1;
+		return NULL;
 	}
 
 	if (!S_ISREG(st.st_mode)) {
 		spec_parser_error(ctx, "can't open %s: not a regular file", path);
-		return -1;
+		return NULL;
 	}
 
 	/* Combination of st_dev and st_ino is guaranteed to be unique
@@ -31,20 +32,41 @@ static int lexer_check_file(const char *path, spec_parser_context *ctx)
 		if (seen->st_dev == st.st_dev
 		 && seen->st_ino == st.st_ino) {
 			spec_parser_warning(ctx, "skipping %s (already seen)", path);
-			return -1;
+			return NULL;
 		}
+	}
+
+	io = fopen(path, "r");
+	if (!io) {
+		spec_parser_error(ctx, "can't open %s: %s", path, strerror(errno));
+		return NULL;
 	}
 
 	seen = malloc(sizeof(parser_file));
 	if (!seen) {
 		spec_parser_error(ctx, "out of memory");
-		return -1;
+		fclose(io);
+		return NULL;
 	}
 
 	seen->st_dev = st.st_dev;
 	seen->st_ino = st.st_ino;
+	seen->io     = io;
 	list_add_tail(&seen->ls, &ctx->fseen);
-	return 0;
+	return io;
+}
+
+static int lexer_close(spec_parser_context *ctx)
+{
+	parser_file *seen;
+
+	seen = list_node(ctx->fseen.prev, parser_file, ls);
+	if (seen && seen->io) {
+		fclose(seen->io);
+		seen->io = NULL;
+		return 0;
+	}
+	return -1;
 }
 
 static void lexer_process_file(const char *path, spec_parser_context *ctx)
@@ -52,15 +74,9 @@ static void lexer_process_file(const char *path, spec_parser_context *ctx)
 	FILE *io;
 	void *buf;
 
-	if (lexer_check_file(path, ctx) != 0) { /* already seen */
+	io = lexer_open(path, ctx);
+	if (!io) { /* already seen or some other error */
 		return; /* bail; lexer_check_file already printed warnings */
-	}
-
-	io = fopen(path, "r");
-	if (!io) {
-		/* NOTE: strerror not reentrant */
-		spec_parser_error(ctx, "can't open %s: %s", path, strerror(errno));
-		return;
 	}
 
 	buf = yy_create_buffer(io, YY_BUF_SIZE, ctx->scanner);
@@ -169,6 +185,8 @@ void lexer_include_file(const char *path, spec_parser_context *ctx)
 int lexer_include_return(spec_parser_context *ctx)
 {
 	stringlist_remove(ctx->files, ctx->file);
+	lexer_close(ctx);
+
 	if (ctx->files->num == 0) {
 		return -1; /* no more files */
 	}

@@ -110,6 +110,7 @@ static void traverse(struct stree *node, unsigned int depth)
 	buf[2 * depth] = '\0';
 
 	printf("%s(%u:%s // %s // %s) [%u] 0x%p\n", buf, node->op, OP_NAMES[node->op], node->data1, node->data2, node->size, node);
+	free(buf);
 
 	for (i = 0; i < node->size; i++) {
 		traverse(node->nodes[i], depth + 1);
@@ -166,5 +167,7 @@ int main(int argc, char **argv)
 			printf("%p\n", p);
 		}
 	}
+
+	manifest_free(manifest);
 	return 0;
 }

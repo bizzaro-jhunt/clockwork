@@ -5,6 +5,7 @@
 #include "parser.h"
 #include "../policy.h"
 #include "../log.h"
+#include "../list.h"
 
 static int _manifest_expand(struct manifest *manifest)
 {
@@ -33,6 +34,7 @@ struct manifest* parse_file(const char *path)
 	spec_parser_context ctx;
 	struct manifest *manifest;
 	struct stat init_stat;
+	parser_file *seen, *tmp;
 
 	/* check the file first. */
 	if (stat(path, &init_stat) != 0) {
@@ -52,6 +54,9 @@ struct manifest* parse_file(const char *path)
 
 	yylex_destroy(ctx.scanner);
 	stringlist_free(ctx.files);
+	for_each_node_safe(seen, tmp, &ctx.fseen, ls) {
+		free(seen);
+	}
 
 	if (ctx.errors > 0) {
 		ERROR("Manifest parse errors encountered; aborting...");

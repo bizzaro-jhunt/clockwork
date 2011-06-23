@@ -99,7 +99,7 @@ manifest:
 host: T_KEYWORD_HOST qstring '{' enforcing '}'
 		{ $$ = $4;
 		  $$->op = HOST;
-		  $$->data1 = xstrdup($2); }
+		  $$->data1 = $2; }
 	;
 
 enforcing:
@@ -115,7 +115,7 @@ enforce: T_KEYWORD_ENFORCE qstring
 policy: T_KEYWORD_POLICY qstring '{' blocks '}'
 		{ $$ = $4;
 		  $$->op = POLICY;
-		  $$->data1 = xstrdup($2); }
+		  $$->data1 = $2; }
 	;
 
 blocks:
@@ -130,13 +130,13 @@ block: resource | conditional | extension | dependency
 resource: T_IDENTIFIER value '{' attributes '}'
 		{ $$ = $4;
 		  $$->op = RESOURCE;
-		  $$->data1 = xstrdup($1);
-		  $$->data2 = xstrdup($2); }
+		  $$->data1 = $1;
+		  $$->data2 = $2; }
 	| T_KEYWORD_HOST value '{' attributes '}'
 		{ $$ = $4;
 		  $$->op = RESOURCE;
-		  $$->data1 = xstrdup("host");
-		  $$->data2 = xstrdup($2); }
+		  $$->data1 = xstrdup("host"); /* dynamic string for stree_free */
+		  $$->data2 = $2; }
 	;
 
 attributes:
@@ -149,7 +149,8 @@ attribute: T_IDENTIFIER ':' value
 		{ $$ = NODE(ATTR, $1, $3); }
 	| T_IDENTIFIER ':' conditional_inline
 		{ $3->attribute = $1;
-		  $$ = map_expand(MANIFEST(ctx),$3); }
+		  $$ = map_expand(MANIFEST(ctx),$3);
+		  map_free($3); }
 	;
 
 value: qstring | T_NUMERIC
@@ -157,11 +158,13 @@ value: qstring | T_NUMERIC
 
 conditional: T_KEYWORD_IF '(' conditional_test ')' '{' blocks '}' alt_condition
 		{ branch_connect($3, $6, $8);
-		  $$ = branch_expand(MANIFEST(ctx), $3); }
+		  $$ = branch_expand(MANIFEST(ctx), $3);
+		  branch_free($3); }
 	| T_KEYWORD_UNLESS '(' conditional_test ')' '{' blocks '}' alt_condition
 		{ $3->affirmative = 1 ? 0 : 1;
 		  branch_connect($3, $6, $8);
-		  $$ = branch_expand(MANIFEST(ctx), $3); }
+		  $$ = branch_expand(MANIFEST(ctx), $3);
+		  branch_free($3); }
 	;
 
 alt_condition:
@@ -180,16 +183,19 @@ conditional_test: T_FACT T_KEYWORD_IS value_list
 
 value_list: value
 		{ $$ = stringlist_new(NULL);
-		  stringlist_add($$, $1); }
+		  stringlist_add($$, $1);
+		  free($1); }
 	| '[' explicit_value_list ']'
 		{ $$ = $2; }
 	;
 
 explicit_value_list: value
 		{ $$ = stringlist_new(NULL);
-		  stringlist_add($$, $1); }
+		  stringlist_add($$, $1);
+		  free($1); }
 	| explicit_value_list ',' value
-		{ stringlist_add($$, $3); }
+		{ stringlist_add($$, $3);
+		  free($3); }
 	;
 
 extension: T_KEYWORD_EXTEND qstring
@@ -218,7 +224,9 @@ mapped_value_set:
 		  $$[1] = stringlist_new(NULL); }
 	| mapped_value_set mapped_value
 		{ stringlist_add($$[0], $2[0]);
-		  stringlist_add($$[1], $2[1]); }
+		  stringlist_add($$[1], $2[1]);
+		  free($2[0]);
+		  free($2[1]); }
 	;
 
 mapped_value: qstring ':' value

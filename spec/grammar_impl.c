@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 
-static parser_branch* branch_new(const char *fact, stringlist *values, unsigned char affirmative)
+static parser_branch* branch_new(char *fact, stringlist *values, unsigned char affirmative)
 {
 	parser_branch *branch;
 
@@ -16,6 +16,15 @@ static parser_branch* branch_new(const char *fact, stringlist *values, unsigned 
 	}
 
 	return branch;
+}
+
+static void branch_free(parser_branch* branch)
+{
+	if (branch) {
+		free(branch->fact);
+		stringlist_free(branch->values);
+	}
+	free(branch);
 }
 
 static void branch_connect(parser_branch *branch, struct stree *then, struct stree *otherwise)
@@ -35,7 +44,10 @@ static struct stree* branch_expand(struct manifest *m, parser_branch *branch)
 	unsigned int i;
 
 	for (i = 0; i < branch->values->num; i++) {
-		current = manifest_new_stree(m, IF, branch->fact, branch->values->strings[i]);
+		current = manifest_new_stree(m, IF,
+			strdup(branch->fact),
+			strdup(branch->values->strings[i]));
+
 		stree_add(current, branch->then);
 		if (!top) {
 			stree_add(current, branch->otherwise);
@@ -47,7 +59,7 @@ static struct stree* branch_expand(struct manifest *m, parser_branch *branch)
 	return top;
 }
 
-static parser_map* map_new(const char *fact, const char *attr, stringlist *fact_values, stringlist *attr_values, const char *default_value)
+static parser_map* map_new(char *fact, char *attr, stringlist *fact_values, stringlist *attr_values, char *default_value)
 {
 	parser_map *map;
 
@@ -63,6 +75,16 @@ static parser_map* map_new(const char *fact, const char *attr, stringlist *fact_
 	return map;
 }
 
+static void map_free(parser_map *map)
+{
+	if (map) {
+		free(map->fact);
+		stringlist_free(map->fact_values);
+		stringlist_free(map->attr_values);
+	}
+	free(map);
+}
+
 static struct stree* map_expand(struct manifest *m, parser_map *map)
 {
 	assert(map->fact_values);
@@ -73,8 +95,15 @@ static struct stree* map_expand(struct manifest *m, parser_map *map)
 	unsigned int i;
 
 	for (i = 0; i < map->fact_values->num; i++) {
-		current = manifest_new_stree(m, IF, map->fact, map->fact_values->strings[i]);
-		stree_add(current, manifest_new_stree(m, ATTR, map->attribute, map->attr_values->strings[i]));
+		current = manifest_new_stree(m, IF,
+			strdup(map->fact),
+			strdup(map->fact_values->strings[i]));
+
+		stree_add(current,
+			manifest_new_stree(m, ATTR,
+				strdup(map->attribute),
+				strdup(map->attr_values->strings[i])));
+
 		if (!top) {
 			if (map->default_value) {
 				stree_add(current, manifest_new_stree(m, ATTR, map->attribute, map->default_value));

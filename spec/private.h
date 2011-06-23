@@ -33,7 +33,7 @@
   string list, 'otherwise' is followed.  If not, 'then' is followed.
  */
 typedef struct {
-	const char     *fact;         /* Name of fact to test */
+	char           *fact;         /* Name of fact to test */
 	stringlist     *values;       /* List of values to check */
 	unsigned char   affirmative;  /* see above */
 	struct stree   *then;         /* The 'then' node, used in syntax tree conversion */
@@ -55,19 +55,34 @@ typedef struct {
   will not be set.
  */
 typedef struct {
-	const char     *fact;          /* Name of fact to test */
-	const char     *attribute;     /* Name of attribute to set */
+	char           *fact;          /* Name of fact to test */
+	char           *attribute;     /* Name of attribute to set */
 
 	stringlist     *fact_values;   /* List of values to check */
 	stringlist     *attr_values;   /* List of values to set attribute to */
 
-	const char     *default_value; /* Default value (else clause) for attribute */
+	char           *default_value; /* Default value (else clause) for attribute */
 } parser_map;
 
+/**
+  parser_file - Keep track of 'seen' files, by dev/inode
+
+  Whenver the lexer encounters an 'include' macro, it needs
+  to evaluate whether or not it has already seen that file,
+  to avoid inclusion loops.  It also needs to keep track of
+  the FILE* associated with the included file, so that it can
+  be closed when the file has been completely read (otherwise,
+  we leak the memory attached to the file handle).
+
+  Device ID and Inode must be used n conjunction, in case an
+  include macro reaches across filesystems / devices.
+ */
 typedef struct {
-	dev_t st_dev;
-	ino_t st_ino;
-	struct list ls;
+	dev_t           st_dev;        /* Device ID (filesystem) */
+	ino_t           st_ino;        /* File Inode number */
+	FILE           *io;            /* Open file handle */
+
+	struct list     ls;            /* For stacking parse_files */
 } parser_file;
 
 /**

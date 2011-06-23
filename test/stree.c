@@ -4,7 +4,7 @@
 
 static struct manifest *MANIFEST;
 
-#define NODE(op,d1,d2) manifest_new_stree(MANIFEST, (op), (d1), (d2))
+#define NODE(op,d1,d2) manifest_new_stree(MANIFEST, (op), xstrdup(d1), xstrdup(d2))
 
 struct stree* child_of(struct stree *parent, struct stree *new)
 {

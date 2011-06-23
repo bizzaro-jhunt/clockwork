@@ -116,22 +116,25 @@ void manifest_free(struct manifest *m)
 	free(m);
 }
 
-struct stree* manifest_new_stree(struct manifest *m, enum oper op, const char *data1, const char *data2)
+struct stree* manifest_new_stree(struct manifest *m, enum oper op, char *data1, char *data2)
 {
 	struct stree *stree;
 	struct stree **list;
 
 	stree = xmalloc(sizeof(struct stree));
+	if (!stree) {
+		return NULL;
+	}
 	list = realloc(m->nodes, sizeof(struct stree*) * (m->nodes_len + 1));
-	if (!stree || !list) {
+	if (!list) {
 		free(stree);
-		free(list);
+		xfree(m->nodes);
 		return NULL;
 	}
 
 	stree->op = op;
-	stree->data1 = xstrdup(data1);
-	stree->data2 = xstrdup(data2);
+	stree->data1 = data1;
+	stree->data2 = data2;
 
 	list[m->nodes_len++] = stree;
 	m->nodes = list;

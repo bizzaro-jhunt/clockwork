@@ -175,10 +175,14 @@ void manifest_free(struct manifest *m);
   @param  data1    Operation specific data.
   @param  data2    Operation specific data.
 
+  @note for reasons of optimization, the data1 and data2 pointers
+        are "taken over" by this function.  Do not free() them
+        after a call to manifest_new_stree; you risk a double-free.
+
   @returns a heap-allocated stree structure, containing \a op, \a data1
            and \a data2 on success, or NULL on failure.
  */
-struct stree* manifest_new_stree(struct manifest *m, enum oper op, const char *data1, const char *data2);
+struct stree* manifest_new_stree(struct manifest *m, enum oper op, char *data1, char *data2);
 
 /**
   Add one abstract syntax tree node as a child of another.

@@ -45,7 +45,8 @@ int path_canon(PATH *p)
 				;
 			if (b-a == 3 && memcmp(a, "/..", b-a) == 0) {
 				for (a--; a >= s && *a != '/'; a--)
-					;
+						;
+				if (a <= s) a = s; // avoid underflow
 				memset(a, 0, b-a);
 			} else if (b-a == 2 && memcmp(a, "/.", b-a) == 0) {
 				memset(a, 0, b-a);
@@ -56,9 +57,12 @@ int path_canon(PATH *p)
 	for (a = b = s; a != end; a++) {
 		if (*a) { *b++ = *a; }
 	}
+	if (b == s) {
+		*b++ = '/';
+	} else if (*(b-1) == '/') {
+		*b-- = '\0';
+	}
 	*b = '\0';
-	/* remove trailing '/' if present */
-	if (*(--b) == '/' && b != s) { *b = '\0'; }
 
 	p->n = p->len = strlen(s);
 	if (p->len == 0) {

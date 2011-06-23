@@ -73,6 +73,9 @@ void test_path_canon()
 	assert_canon("/usr/local/sbin/../../../", "/");
 	assert_canon("/usr/local/sbin/../../..",  "/");
 
+	test("path: Canonicalization (stay at /)");
+	assert_canon("/././././", "/");
+
 	test("path: Canonicalization (free-for-all)");
 	assert_canon("/etc/sysconfig/../.././etc/././../usr/local/./bin/../sbin", "/usr/local/sbin");
 

@@ -201,6 +201,8 @@ void resource_free(struct resource *r);
  */
 char *resource_key(const struct resource *r);
 
+struct hash* resource_attrs(const struct resource *r);
+
 /**
   Normalize a Resource
 

@@ -5,6 +5,7 @@
 typedef void* (*resource_new_f)(const char *key);
 typedef void (*resource_free_f)(void *res);
 typedef char* (*resource_key_f)(const void *res);
+typedef int (*resource_attrs_f)(const void *res, struct hash *attrs);
 typedef int (*resource_norm_f)(void *res, struct policy *pol, struct hash *facts);
 typedef int (*resource_set_f)(void *res, const char *attr, const char *value);
 typedef int (*resource_match_f)(const void *res, const char *attr, const char *value);
@@ -20,6 +21,7 @@ typedef void* (*resource_unpack_f)(const char *packed);
 	     .new_callback = res_ ## t ## _new,     \
 	    .free_callback = res_ ## t ## _free,    \
 	     .key_callback = res_ ## t ## _key,     \
+	   .attrs_callback = res_ ## t ## _attrs,   \
 	    .norm_callback = res_ ## t ## _norm,    \
 	     .set_callback = res_ ## t ## _set,     \
 	   .match_callback = res_ ## t ## _match,   \
@@ -36,6 +38,7 @@ typedef void* (*resource_unpack_f)(const char *packed);
 		resource_new_f      new_callback;
 		resource_free_f     free_callback;
 		resource_key_f      key_callback;
+		resource_attrs_f    attrs_callback;
 		resource_norm_f     norm_callback;
 		resource_set_f      set_callback;
 		resource_match_f    match_callback;
@@ -101,6 +104,22 @@ char *resource_key(const struct resource *r)
 	assert(r->type != RES_UNKNOWN);
 
 	return (*(resource_types[r->type].key_callback))(r->resource);
+}
+
+struct hash* resource_attrs(const struct resource *r)
+{
+	assert(r);
+	assert(r->type != RES_UNKNOWN);
+
+	struct hash *attrs = hash_new();
+	if (!attrs) { return NULL; }
+
+	if ((*(resource_types[r->type].attrs_callback))(r->resource, attrs) != 0) {
+		hash_free_all(attrs);
+		return NULL;
+	}
+
+	return attrs;
 }
 
 int resource_norm(struct resource *r, struct policy *pol, struct hash *facts)

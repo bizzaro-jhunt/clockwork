@@ -1,0 +1,17 @@
+
+         about - Read about Clockwork and the cwpol tool
+   clear facts - Forget all loaded facts
+          fact - Define a fact, ad-hoc
+          help - Access Help System
+    load facts - Load facts from a file
+          load - Load policy manifest from a file
+    show facts - Show the loaded facts
+    show hosts - List hosts defined in the policy manifest
+ show policies - List policies defined in the policy manifest
+show resources - List resources defined in a host or policy
+          show - Show a full resource definition (for a host or policy)
+      use host - Set the current referential context to a named host
+    use policy - Set the current referential context to a given policy
+          quit - Exit the Policy Explorer
+
+Try 'help <command>' for command-specific help.

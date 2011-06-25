@@ -1,0 +1,10 @@
+clear - Clear Configuration
+===========================
+
+The clear command clears runtime configuration.
+
+INVOCATION
+
+clear facts
+  Remove all defined facts.
+

@@ -1,0 +1,9 @@
+
+quit - Exit Policy Explorer
+===========================
+
+The quit command terminates the policy explorer session.
+
+For scripted or unattended use of the policy explorer, quit is not
+necessary; the utility will exit normally when it reaches end-of-file.
+

@@ -205,6 +205,7 @@ policyd: $(core_o) $(policy_o) policyd.o $(parser_spec_o) $(parser_conf_o) proto
 cwa:     $(core_o) $(policy_o) cwa.o     $(parser_conf_o) proto.o client.o db.o
 cwcert:  $(core_o) $(policy_o) cwcert.o  $(parser_conf_o) proto.o client.o
 cwca:    $(core_o) $(policy_o) cwca.o    $(parser_conf_o) server.o
+cwpol:   $(core_o) $(policy_o) cwpol.o   $(parser_spec_o)
 polspec: $(core_o) $(policy_o) polspec.o $(parser_spec_o)
 tplspec: $(core_o) $(policy_o) tplspec.o
 confdump: $(core_o) confdump.o $(parser_conf_o)

@@ -1,0 +1,26 @@
+use - Change Referential Context
+================================
+
+Some policy explorer commands operate differently based on their
+referential context.  For example, the `show resources' command
+behaves one way for a host and another for a policy.
+
+The use command changes your current referential context.
+
+INVOCATION
+
+ use policy <name>
+   Set the policy called <name> as the current referential context.
+   Commands that understand referential context will operate with
+   respect to the given policy.
+
+ use host <name>
+   Set the host called <name> (usually a fully-qualified domain) as
+   the current referential context.  Certain commands will then
+   operate with respect to that host.
+
+ use global
+   Return to the global referential context.
+
+Note: Some commands only work under a given context.
+

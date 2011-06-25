@@ -29,6 +29,7 @@
 void*          res_ ## t ## _new(const char *key); \
 void           res_ ## t ## _free(void *res); \
 char*          res_ ## t ## _key(const void *res); \
+int            res_ ## t ## _attrs(const void *res, struct hash *attrs); \
 int            res_ ## t ## _norm(void *res, struct policy *pol, struct hash *facts); \
 int            res_ ## t ## _set(void *res, const char *attr, const char *value); \
 int            res_ ## t ## _match(const void *res, const char *attr, const char *value); \

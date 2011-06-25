@@ -1,0 +1,13 @@
+fact - Create a New Fact
+========================
+
+The fact command adds a new fact to the list of currently known facts.
+If a fact with the specified name already exists, it is overwritten
+with the new value.
+
+INVOCATION
+
+ fact <a.fact.name>=<value>
+   Set the <a.fact.name> fact to <value>.  The value should not be
+   enclosed in quotes.
+

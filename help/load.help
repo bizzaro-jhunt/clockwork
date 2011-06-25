@@ -1,0 +1,16 @@
+load - Load Configuration
+=========================
+
+The load command lets you specify runtime configuration, including
+the current list of facts and the policy manifest.
+
+INVOCATION
+
+load /path/to/manifest.pol
+  Parse and load a policy manifest file into memory.
+  The existing manifest (if any) will be cleared.
+
+load facts from /path/to/facts.file
+  Read facts from a file.
+  The existing list of facts (if any) will be cleared.
+

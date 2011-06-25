@@ -347,7 +347,30 @@ char* res_user_key(const void *res)
 	const struct res_user *ru = (struct res_user*)(res);
 	assert(ru);
 
-	return string("res_user:%s", ru->key);
+	return string("user:%s", ru->key);
+}
+
+int res_user_attrs(const void *res, struct hash *attrs)
+{
+	const struct res_user *ru = (const struct res_user*)(res);
+	assert(ru);
+
+	hash_set(attrs, "uid", ENFORCED(ru, RES_USER_UID) ? string("%u",ru->ru_uid) : NULL);
+	hash_set(attrs, "gid", ENFORCED(ru, RES_USER_GID) ? string("%u",ru->ru_gid) : NULL);
+	hash_set(attrs, "username", ENFORCED(ru, RES_USER_NAME) ? strdup(ru->ru_name) : NULL);
+	hash_set(attrs, "home", ENFORCED(ru, RES_USER_DIR) ? strdup(ru->ru_dir) : NULL);
+	hash_set(attrs, "present", strdup(ENFORCED(ru, RES_USER_ABSENT) ? "no" : "yes"));
+	hash_set(attrs, "locked", ENFORCED(ru, RES_USER_LOCK) ? strdup(ru->ru_lock ? "yes" : "no") : NULL);
+	hash_set(attrs, "comment", ENFORCED(ru, RES_USER_GECOS) ? strdup(ru->ru_gecos) : NULL);
+	hash_set(attrs, "shell", ENFORCED(ru, RES_USER_SHELL) ? strdup(ru->ru_shell) : NULL);
+	hash_set(attrs, "password", ENFORCED(ru, RES_USER_PASSWD) ? strdup(ru->ru_passwd) : NULL);
+	hash_set(attrs, "pwmin", ENFORCED(ru, RES_USER_PWMIN) ? string("%u", ru->ru_pwmin) : NULL);
+	hash_set(attrs, "pwmax", ENFORCED(ru, RES_USER_PWMAX) ? string("%u", ru->ru_pwmax) : NULL);
+	hash_set(attrs, "pwwarn", ENFORCED(ru, RES_USER_PWWARN) ? string("%u", ru->ru_pwwarn) : NULL);
+	hash_set(attrs, "inact", ENFORCED(ru, RES_USER_INACT) ? string("%u", ru->ru_inact) : NULL);
+	hash_set(attrs, "expiration", ENFORCED(ru, RES_USER_EXPIRE) ? string("%u", ru->ru_expire) : NULL);
+	hash_set(attrs, "skeleton", ENFORCED(ru, RES_USER_MKHOME) ? strdup(ru->ru_skel) : NULL);
+	return 0;
 }
 
 int res_user_norm(void *res, struct policy *pol, struct hash *facts) { return 0; }
@@ -921,7 +944,32 @@ char* res_file_key(const void *res)
 	const struct res_file *rf = (struct res_file*)(res);
 	assert(rf);
 
-	return string("res_file:%s", rf->key);
+	return string("file:%s", rf->key);
+}
+
+#define DUMP_UNSPEC(io,s) fprintf(io, "# %s unspecified\n", s)
+
+int res_file_attrs(const void *res, struct hash *attrs)
+{
+	const struct res_file *rf = (const struct res_file*)(res);
+	assert(rf);
+
+	hash_set(attrs, "path", rf->rf_lpath);
+	hash_set(attrs, "present", strdup(ENFORCED(rf, RES_FILE_ABSENT) ? "no" : "yes"));
+
+	hash_set(attrs, "owner", ENFORCED(rf, RES_FILE_UID) ? strdup(rf->rf_owner) : NULL);
+	hash_set(attrs, "group", ENFORCED(rf, RES_FILE_GID) ? strdup(rf->rf_group) : NULL);
+	hash_set(attrs, "mode", ENFORCED(rf, RES_FILE_MODE) ? string("%04o", rf->rf_mode) : NULL);
+
+	if (ENFORCED(rf, RES_FILE_SHA1)) {
+		hash_set(attrs, "template", rf->rf_template ? strdup(rf->rf_template) : NULL);
+		hash_set(attrs, "source",   rf->rf_rpath    ? strdup(rf->rf_rpath)    : NULL);
+	} else {
+		hash_set(attrs, "template", NULL);
+		hash_set(attrs, "source",   NULL);
+	}
+
+	return 0;
 }
 
 int res_file_norm(void *res, struct policy *pol, struct hash *facts)
@@ -1321,7 +1369,21 @@ char* res_group_key(const void *res)
 	const struct res_group *rg = (struct res_group*)(res);
 	assert(rg);
 
-	return string("res_group:%s", rg->key);
+	return string("group:%s", rg->key);
+}
+
+int res_group_attrs(const void *res, struct hash *attrs)
+{
+	const struct res_group *rg = (const struct res_group*)(res);
+	assert(rg);
+
+	hash_set(attrs, "gid", ENFORCED(rg, RES_GROUP_GID) ? string("%u",rg->rg_gid) : NULL);
+	hash_set(attrs, "name", ENFORCED(rg, RES_GROUP_NAME) ? strdup(rg->rg_name) : NULL);
+	hash_set(attrs, "present", strdup(ENFORCED(rg, RES_GROUP_ABSENT) ? "no" : "yes"));
+	hash_set(attrs, "password", ENFORCED(rg, RES_GROUP_PASSWD) ? strdup(rg->rg_passwd) : NULL);
+
+	/* FIXME: how to handle repeated attributes like member ? */
+	return 0;
 }
 
 int res_group_norm(void *res, struct policy *pol, struct hash *facts) { return 0; }
@@ -1347,12 +1409,14 @@ int res_group_set(void *res, const char *name, const char *value)
 			ENFORCE(rg, RES_GROUP_ABSENT);
 		}
 
+	/* FIXME: support for 'members' attribute? */
 	} else if (strcmp(name, "member") == 0) {
 		if (value[0] == '!') {
 			return res_group_remove_member(rg, value+1);
 		} else {
 			return res_group_add_member(rg, value);
 		}
+	/* FIXME: support for 'admins' attribute? */
 	} else if (strcmp(name, "admin") == 0) {
 		if (value[0] == '!') {
 			return res_group_remove_admin(rg, value+1);
@@ -1781,7 +1845,18 @@ char* res_package_key(const void *res)
 	const struct res_package *rp = (struct res_package*)(res);
 	assert(rp);
 
-	return string("res_package:%s", rp->key);
+	return string("package:%s", rp->key);
+}
+
+int res_package_attrs(const void *res, struct hash *attrs)
+{
+	const struct res_package *rp = (const struct res_package*)(res);
+	assert(rp);
+
+	hash_set(attrs, "name", xstrdup(rp->name));
+	hash_set(attrs, "version", xstrdup(rp->version));
+	hash_set(attrs, "installed", strdup(ENFORCED(rp, RES_PACKAGE_ABSENT) ? "no" : "yes"));
+	return 0;
 }
 
 int res_package_norm(void *res, struct policy *pol, struct hash *facts) { return 0; }
@@ -1974,7 +2049,18 @@ char* res_service_key(const void *res)
 	const struct res_service *rs = (struct res_service*)(res);
 	assert(rs);
 
-	return string("res_service:%s", rs->key);
+	return string("service:%s", rs->key);
+}
+
+int res_service_attrs(const void *res, struct hash *attrs)
+{
+	const struct res_service *rs = (const struct res_service*)(res);
+	assert(rs);
+
+	hash_set(attrs, "name", xstrdup(rs->service));
+	hash_set(attrs, "running", strdup(ENFORCED(rs, RES_SERVICE_RUNNING) ? "yes" : "no"));
+	hash_set(attrs, "enabled", strdup(ENFORCED(rs, RES_SERVICE_ENABLED) ? "yes" : "no"));
+	return 0;
 }
 
 int res_service_norm(void *res, struct policy *pol, struct hash *facts) { return 0; }
@@ -2210,7 +2296,18 @@ char* res_host_key(const void *res)
 	const struct res_host *rh = (struct res_host*)(res);
 	assert(rh);
 
-	return string("res_host:%s", rh->key);
+	return string("host:%s", rh->key);
+}
+
+int res_host_attrs(const void *res, struct hash *attrs)
+{
+	const struct res_host *rh = (const struct res_host*)(res);
+	assert(rh);
+
+	hash_set(attrs, "hostname", xstrdup(rh->hostname));
+	hash_set(attrs, "ip", xstrdup(rh->ip));
+	/* FIXME: how to handle repeated attributes like aliases? */
+	return 0;
 }
 
 int res_host_norm(void *res, struct policy *pol, struct hash *facts) { return 0; }
@@ -2505,7 +2602,18 @@ char* res_sysctl_key(const void *res)
 	const struct res_sysctl *rs = (struct res_sysctl*)(res);
 	assert(rs);
 
-	return string("res_sysctl:%s", rs->key);
+	return string("sysctl:%s", rs->key);
+}
+
+int res_sysctl_attrs(const void *res, struct hash *attrs)
+{
+	const struct res_sysctl *rs = (const struct res_sysctl*)(res);
+	assert(rs);
+
+	hash_set(attrs, "param", xstrdup(rs->param));
+	hash_set(attrs, "value", ENFORCED(rs, RES_SYSCTL_VALUE) ? strdup(rs->value) : NULL);
+	hash_set(attrs, "persist", strdup(ENFORCED(rs, RES_SYSCTL_VALUE) ? "yes" : "no"));
+	return 0;
 }
 
 int res_sysctl_norm(void *res, struct policy *pol, struct hash *facts) { return 0; }
@@ -2706,7 +2814,20 @@ char *res_dir_key(const void *res)
 	const struct res_dir *rd = (const struct res_dir*)(res);
 	assert(rd);
 
-	return string("res_dir:%s", rd->key);
+	return string("dir:%s", rd->key);
+}
+
+int res_dir_attrs(const void *res, struct hash *attrs)
+{
+	const struct res_dir *rd = (const struct res_dir*)(res);
+	assert(rd);
+
+	hash_set(attrs, "path", xstrdup(rd->path));
+	hash_set(attrs, "owner", ENFORCED(rd, RES_DIR_UID) ? strdup(rd->owner) : NULL);
+	hash_set(attrs, "group", ENFORCED(rd, RES_DIR_GID) ? strdup(rd->group) : NULL);
+	hash_set(attrs, "mode", ENFORCED(rd, RES_DIR_MODE) ? string("%04o", rd->mode) : NULL);
+	hash_set(attrs, "present", strdup(ENFORCED(rd, RES_DIR_ABSENT) ? "no" : "yes"));
+	return 0;
 }
 
 int res_dir_norm(void *res, struct policy *pol, struct hash *facts)

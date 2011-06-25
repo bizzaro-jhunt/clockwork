@@ -1,0 +1,14 @@
+
+help - Help Screen
+==================
+
+The help command access the policy explorer's built-in help system.
+
+INVOCATION
+
+ help
+   Show a list of commands
+
+ help <command>
+   Show usage for a specific command, by name.
+

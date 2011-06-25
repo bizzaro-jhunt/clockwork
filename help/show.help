@@ -1,0 +1,30 @@
+
+show - Show Information
+=======================
+
+The show command lists summary and detail information for different
+parts of a manifest.
+
+INVOCATION
+
+ show facts
+   Lists the facts currently known.
+
+ show policies
+   Lists defined policies.
+
+ show hosts
+   Lists defined hosts.
+
+ show resources
+   Lists the resources defined in a policy or a host.
+   (This command only makes sense after a successful 'use' command.)
+
+show <resource-type> <name>
+   Show the details of a specific resource defined for a policy or host.
+
+   <resource-type> should be a type name, like "user" or "file"
+
+   <name> should be the name (key) of the resource.  The 'show resources'
+   command will show you the types and names for all defined resources.
+

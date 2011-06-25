@@ -31,6 +31,9 @@ struct string {
   the new variable-length string will contain a copy of the
   contents of \a str.
 
+  If \a block is negative, a suitable default block size will
+  be used.
+
   @note The pointer returned by this function must be passed to
         string_free in order to reclaim the memory it uses.
 

@@ -10,6 +10,13 @@ void test_mem_xfree()
 	s = NULL; xfree(s);
 	assert_null("xfree(NULL) doesn't segfault", s);
 
+	/* test internal implementation of xfree;
+	   This is **NOT** the normal use case, but does
+	   test an internal safety-net in __xfree. */
+	test("MEM: __xfree(NULL)");
+	s = NULL; __xfree((void**)s);
+	assert_null("__xfree(NULL) doesn't segfault", s);
+
 	s = malloc(42);
 	test("MEM: xfree(s) nullifies s");
 	assert_not_null("s was allocated properly", s);
@@ -85,12 +92,12 @@ void test_mem_xstrncpy()
 {
 	const char *buffer = "AAABBBCCCDDDEEEFFF";
 	char *ret;
-	char s[19];
+	char s[19] = "init";
 
 	test("MEM: xstrncpy() with bad args always returns NULL");
 	assert_null("xstrncpy() with NULL dest is NULL", xstrncpy(NULL, buffer, 19));
 	assert_null("xstrncpy() with NULL src is NULL",  xstrncpy(s, NULL, 19));
-	assert_null("xstrncpy() with bad length is NULL", xstrncpy(s, NULL, -25));
+	assert_null("xstrncpy() with bad length is NULL", xstrncpy(s, buffer, 0));
 
 	test("MEM: xstrncpy() - normal usage case");
 	ret = xstrncpy(s, buffer, 6+1);
@@ -150,9 +157,15 @@ void test_mem_xarrfree()
 	char **copy;
 
 	test("MEM: xarrfree(NULL) doesn't fail");
-	copy = NULL;
-	xarrfree(copy);
+	copy = NULL; xarrfree(copy);
 	assert_null("copy is NULL after xarrfree", copy);
+
+	/* test internal implemenation of xarrfree;
+	   This is **NOT** the normal use case, but does
+	   test an internal safety-net in __xarfree. */
+	test("MEM: __xarrfree(NULL) doesn't fail");
+	copy = NULL; __xarrfree(NULL);
+	assert_null("copy is NULL after __xarrfree", copy);
 
 	copy = xarrdup(original);
 	test("MEM: xarrfree() - normal use");

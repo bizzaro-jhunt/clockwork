@@ -19,6 +19,12 @@ void* __xmalloc(size_t size, const char *func, const char *file, unsigned int li
 	if (!buf) {
 		CRITICAL("%s, %s:%u - memory allocation failed: %s",
 		      func, file, line, strerror(errno));
+		/* If anyone wants to gripe about the exit call, please see:
+
+		     http://www.reddit.com/comments/60vys/how_not_to_write_a_shared_library/
+		     http://pulseaudio.org/ticket/158
+
+		   I personally agree with lennart (PA author) */
 		exit(42);
 	}
 	return buf;
@@ -36,7 +42,8 @@ int xstrcmp(const char *a, const char *b)
 
 char* xstrncpy(char *dest, const char *src, size_t n)
 {
-	if (!dest || !src || n <= 0) {
+	/* Note: size_t is unsigned, so n can never be < 0 */
+	if (!dest || !src || n == 0) {
 		return NULL;
 	}
 

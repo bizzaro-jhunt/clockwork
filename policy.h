@@ -240,6 +240,20 @@ int stree_compare(const struct stree *a, const struct stree *b);
 struct hash* fact_read(FILE *io, struct hash *facts);
 
 /**
+  Write facts to a FILE IO stream.
+
+  This function writes a set of facts, in key=value\\n form,
+  to the given FILE object.  Facts are read from the given
+  hash, and will be written in order, sorted lexically by key.
+
+  @param  io       FILE object to write to.
+  @param  facts    POinter to a hash containing the facts.
+
+  @returns 0 on success, non-zero otherwise.
+ */
+int fact_write(FILE *io, struct hash *facts);
+
+/**
   Parse a single fact, from a key=value\\n line buffer.
 
   This function parses a single fact, placing the key in \a k, and

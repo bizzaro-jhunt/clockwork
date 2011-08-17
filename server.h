@@ -52,6 +52,9 @@ typedef struct {
 	/** Directory in which to store/find client certificates. */
 	char *certs_dir;
 
+	/** Directory to cache data from the clients (facts, etc.) */
+	char *cache_dir;
+
 	/** TCP port to listen on for incoming client connections. */
 	char *port;
 } server;

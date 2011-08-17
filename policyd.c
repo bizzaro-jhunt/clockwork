@@ -25,6 +25,7 @@ typedef struct {
 	char *requests_dir;
 	char *certs_dir;
 	char *db_file;
+	char *cache_dir;
 
 	struct hash   *facts;
 	struct policy *policy;
@@ -68,6 +69,8 @@ static void daemonize(const char *lock_file, const char *pid_file);
 
 static int server_init_ssl(server *s);
 static int server_init(server *s);
+
+static int save_facts(worker *w);
 
 /* Thread execution functions */
 static void* worker_thread(void *arg);
@@ -214,9 +217,11 @@ unintr:
 	w->facts = hash_new();
 	w->peer_verified = 0;
 
+	/* FIXME: can worker point to server config as const char? */
 	w->requests_dir = strdup(s->requests_dir);
 	w->certs_dir    = strdup(s->certs_dir);
 	w->db_file      = strdup(s->db_file);
+	w->cache_dir    = strdup(s->cache_dir);
 
 	w->socket = BIO_pop(s->listener);
 	if (!(w->ssl = SSL_new(s->ssl_ctx))) {
@@ -314,6 +319,10 @@ static int handle_FACTS(worker *w)
 	if (pdu_decode_FACTS(RECV_PDU(&w->session), w->facts) != 0) {
 		CRITICAL("Unable to decode FACTS");
 		return 0;
+	}
+
+	if (save_facts(w) != 0) {
+		WARNING("Failed to save facts to a local file");
 	}
 
 	if (!w->policy && w->pnode) {
@@ -658,6 +667,59 @@ static int server_init(server *s)
 		return -1;
 	}
 
+	return 0;
+}
+
+static int save_facts(worker *w)
+{
+	char filename[100];
+	char *path;
+	time_t ts;
+	struct tm *now;
+	FILE *out;
+	struct stat dir;
+
+	/* generate the filename
+	   create the path in cache dir
+	   open the file
+	   save the facts
+	   close the file
+	   return 0 */
+
+	ts = time(NULL);
+	if (!(now = localtime(&ts))) {
+		DEBUG("save_facts: localtime failed in generating file name");
+		return -1;
+	}
+	if (strftime(filename, 100, "%Y-%m-%dT%H-%M-%S.facts", now) == 0) {
+		DEBUG("save_facts: strftime failed in generating file name");
+		return -1;
+	}
+
+	path = string("%s/facts/%s", w->cache_dir, w->peer);
+	errno = 0;
+	if (mkdir(path, 0700) != 0 && errno != EEXIST) {
+		free(path);
+		DEBUG("save_facts: mkdir failed in generating file");
+		return -2;
+	}
+	free(path);
+
+	path = string("%s/facts/%s/%s", w->cache_dir, w->peer, filename);
+	out = fopen(path, "w");
+	free(path);
+	if (!out) {
+		DEBUG("save_facts: failed to fopen() facts file");
+		return -2;
+	}
+
+	if (fact_write(out, w->facts) != 0) {
+		fclose(out);
+		DEBUG("save_facts: fact_write call failed");
+		return -3;
+	}
+
+	fclose(out);
 	return 0;
 }
 

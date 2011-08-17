@@ -241,6 +241,31 @@ struct hash* fact_read(FILE *io, struct hash *facts)
 	return facts;
 }
 
+int fact_write(FILE *io, struct hash *facts)
+{
+	assert(io);
+	assert(facts);
+
+	stringlist *lines;
+	char buf[8192] = {0};
+	char *k; void *v;
+	struct hash_cursor cursor;
+	size_t i;
+
+	lines = stringlist_new(NULL);
+	for_each_key_value(facts, &cursor, k, v) {
+		snprintf(buf, 8192, "%s=%s\n", k, (const char*)v);
+		stringlist_add(lines, buf);
+	}
+
+	stringlist_sort(lines, STRINGLIST_SORT_ASC); /* FIXME: check ret val? */
+	for_each_string(lines, i) {
+		fputs(lines->strings[i], io);
+	}
+
+	return 0;
+}
+
 static struct resource * _policy_find_resource(struct policy_generator *pgen, const char *type, const char *id)
 {
 	assert(pgen);

@@ -27,12 +27,6 @@ Re-org Make targets for tests:
   The unit, functional and auxmem targets will also have a build_*
   variant for building the executables needed to run their respecitve tests
 
-Policy Explorer -
-  If we could modify the policy master to store the facts
-  it receives from the clients, they can be fed back into
-  the policy explorer to see how a policy change will
-  affect live systems.
-
 Variable Strings for Attribute Values
 Tests for cert.o module
 

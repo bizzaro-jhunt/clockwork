@@ -26,6 +26,8 @@ static server default_options = {
 	.requests_dir = "/etc/clockwork/ssl/pending",
 	.certs_dir    = "/etc/clockwork/ssl/signed",
 
+	.cache_dir    = "/var/cache/clockwork",
+
 	.port = "7890"
 };
 
@@ -63,6 +65,9 @@ static server* configured_options(const char *path)
 
 		v = hash_get(config, "certs_dir");
 		if (v) { s->certs_dir = strdup(v); }
+
+		v = hash_get(config, "cache_dir");
+		if (v) { s->cache_dir = strdup(v); }
 
 		v = hash_get(config, "port");
 		if (v) { s->port = strdup(v); }
@@ -132,6 +137,7 @@ static int merge_servers(server *a, server *b)
 	MERGE_STRING_OPTION(a,b,db_file);
 	MERGE_STRING_OPTION(a,b,requests_dir);
 	MERGE_STRING_OPTION(a,b,certs_dir);
+	MERGE_STRING_OPTION(a,b,cache_dir);
 	MERGE_STRING_OPTION(a,b,port);
 
 	return 0;

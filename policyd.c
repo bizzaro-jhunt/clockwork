@@ -33,8 +33,6 @@ typedef struct {
 
 	protocol_session session;
 
-	struct hash *config;
-
 	unsigned short peer_verified;
 } worker;
 /** @endcond */

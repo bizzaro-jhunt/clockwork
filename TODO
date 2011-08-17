@@ -35,7 +35,9 @@ Policy Explorer -
 
 Variable Strings for Attribute Values
 Tests for cert.o module
-cwdb for Database Reporting (cwreport?) - IN PROGRESS
+
+cwdb for Database Reporting
+  - Implement 'summary' command
 
 
 Client / Server
@@ -81,4 +83,6 @@ Perpetual List of Things To Do
   - cwca
   - cwa
   - cwcert
+  - cwpol   [NEW]
+  - cwdb    [NEW]
   - res_* (one for each resource)

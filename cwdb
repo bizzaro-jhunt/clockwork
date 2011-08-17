@@ -1,7 +1,9 @@
-#!/usr/bin/perl
+#!/usr/bin/perl -w
 
 use DBI;
 use POSIX;
+use Getopt::Long;
+use Date::Parse;
 
 use constant MASTERDB => 1;
 use constant AGENTDB  => 2;
@@ -10,7 +12,13 @@ use constant COMPUTER => 4;
 
 use constant HUMAN_DATE => "%Y-%m-%d %H:%M:%S";
 
-our $db = DBI->connect('dbi:SQLite:dbname=db/master.db') or
+our %ACTION_RESULT = (
+	0 => 'succeeded',
+	1 => 'FAILED',
+	2 => 'skipped'
+);
+
+our $db = DBI->connect('dbi:SQLite:dbname=local/db/master.db') or
 	die "Database connection failed: $!";
 our $dbtype = MASTERDB;
 
@@ -20,6 +28,8 @@ our $dbtype = MASTERDB;
 
 our $display = HUMAN;
 #$display = COMPUTER;
+
+our %options = ();
 
 ###########################################################
 #
@@ -36,12 +46,83 @@ our $display = HUMAN;
 #  --fixed        only show fixed resources / actions
 #  --compliant    only show compliant resources (no actions)
 #  --reverse, -r  ORDER BY started_at DESC
-#  --sumary, -s   Only show summary of resources
+#  --summary, -s  Only show summary of resources
 #
 # summary - Summary for all hosts
 #
 #
 ###########################################################
+
+sub get_options_lastseen()
+{
+	my ($opt_t, $opt_r);
+	GetOptions(
+		't'         => \$opt_t,
+		'reverse|r' => \$opt_r);
+
+	$options{SORT_BY} = $opt_t ? 'last_seen_at' : 'host_name';
+	$options{ORDER}   = $opt_r ? 'DESC' : 'ASC';
+}
+
+sub get_options_host()
+{
+	my ($opt_after, $opt_before,
+	    $opt_failed, $opt_fixed, $opt_compliant,
+	    $opt_summary,
+	    $opt_reverse);
+
+	$opt_after  = '1970-01-01';
+	$opt_before = '2037-12-31';
+	GetOptions(
+		'after|a=s'  => \$opt_after,
+		'before|b=s' => \$opt_before,
+		'failed'     => \$opt_failed,
+		'fixed'      => \$opt_fixed,
+		'compliant'  => \$opt_compliant,
+		'reverse|r'  => \$opt_reverse,
+		'summary|s'  => \$opt_summary
+	);
+
+	$options{FILTER} = 'all';
+	if ($opt_compliant) { $options{FILTER} = 'compliant'; }
+	if ($opt_fixed)     { $options{FILTER} = 'fixed';     }
+	if ($opt_failed)    { $options{FILTER} = 'failed';    }
+
+	$options{AFTER}  = str2time($opt_after);
+	$options{BEFORE} = str2time($opt_before);
+
+	$options{DISPLAY} = $opt_summary ? 'summary' : 'full';
+	$options{ORDER}   = $opt_reverse ? 'DESC' : 'ASC';
+}
+
+sub get_options_summary()
+{
+	# no-op; not yet implemented
+}
+
+sub dispatch()
+{
+	my $command = shift(@ARGV) || '';
+
+	if ($command eq "lastseen") {
+		get_options_lastseen();
+		lastseen();
+		exit 0;
+
+	} elsif ($command eq "host") {
+		get_options_host();
+		host(find_host_by_name(shift @ARGV));
+		exit 0;
+
+	} elsif ($command eq "summary") {
+		print "`summary' not implemented quite yet...\n";
+		exit 42;
+
+	} else {
+		print "Unknown command: '$command'\n";
+		exit 1;
+	}
+}
 
 sub bail($$)
 {
@@ -63,8 +144,7 @@ sub percf($$)
 {
 	my $a = shift;
 	my $b = shift;
-
-	return sprintf("%0.2f", $a * 100.0 / $b);
+	return sprintf("%0.2f", $a * 100.0 / ($a+$b == 0 ? 1 : $b));
 }
 
 sub find_host_by_name($)
@@ -105,7 +185,9 @@ sub lastseen()
 sub host($)
 {
 	$dbtype == MASTERDB or bail 1, "host makes no sense in agent context";
-	my $st_j = $db->prepare("SELECT id, started_at, ended_at, duration FROM jobs WHERE host_id = ? ORDER BY started_at ASC") or
+	my $where = "WHERE host_id = ? AND started_at > ? AND started_at < ?";
+
+	my $st_j = $db->prepare("SELECT id, started_at, ended_at, duration FROM jobs $where ORDER BY started_at $options{ORDER}") or
 		die "SQL failed: $!";
 
 	my $st_r = $db->prepare("SELECT id, type, name, compliant, fixed FROM resources WHERE job_id = ? ORDER BY sequence ASC") or
@@ -121,13 +203,13 @@ sub host($)
 		'fixed'        => 0);
 
 	my $host_id = shift;
-	$st_j->execute($host_id) or die "SQL failed: $!";
+	$st_j->execute($host_id, $options{AFTER}, $options{BEFORE}) or die "SQL failed: $!";
 	while (@jobs = $st_j->fetchrow_array()) {
 		$job_id = $jobs[0];
 		if ($display == HUMAN) {
 			$~ = HOST_JOB;
 			$started_at = datef(HUMAN_DATE, $jobs[1], "unknown");
-			$ended_at   = datef(HUMAN_DATE, $jobs[2], "unknown");
+			#$ended_at   = datef(HUMAN_DATE, $jobs[2], "unknown");
 			$duration   = $jobs[3] * 1.0 / 1000000;
 			write;
 		}
@@ -139,12 +221,18 @@ sub host($)
 			if (!$resource[3]) {
 				$result = "NON-COMPLIANT";
 				$summary{noncompliant}++;
+				if ($options{FILTER} ne 'all' and $options{FILTER} ne 'failed') { next; }
+
 			} elsif ($resource[4]) {
 				$result = "FIXED";
 				$summary{fixed}++;
+				if ($options{FILTER} ne 'all' and $options{FILTER} ne 'fixed') { next; }
+
 			} else {
-				$result = "COMPLIANT";
+				$result = "compliant";
 				$summary{compliant}++;
+				if ($options{FILTER} ne 'all' and $options{FILTER} ne 'compliant') { next; }
+
 			}
 			if ($display == HUMAN) {
 				$~ = HOST_RESOURCE;
@@ -152,13 +240,15 @@ sub host($)
 				write;
 			}
 
-			$st_a->execute($resource_id);
-			while (@action = $st_a->fetchrow_array()) {
-				if ($display == HUMAN) {
-					$~ = HOST_ACTION;
-					$description = $action[0];
-					$result = $action[1];
-					write;
+			if ($options{DISPLAY} eq 'full') {
+				$st_a->execute($resource_id);
+				while (@action = $st_a->fetchrow_array()) {
+					if ($display == HUMAN) {
+						$~ = HOST_ACTION;
+						$description = $action[0];
+						$result = $ACTION_RESULT{$action[1]};
+						write;
+					}
 				}
 			}
 		}
@@ -177,8 +267,7 @@ sub host($)
 	}
 }
 
-#lastseen();
-host(find_host_by_name("jade.niftylogic.net"));
+dispatch;
 
 # FORMATS
 
@@ -188,25 +277,25 @@ Hostname                             Last Seen At
 .
 
 format LAST_SEEN =
-@<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<  @<<<<<<<<<<<<<<<<<
-$hostname                            $last_seen_at
+@<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<  @<<<<<<<<<<<<<<<<<
+$hostname,                           $last_seen_at
 .
 
 format HOST_JOB =
 
 @<<<<<<<<<<<<<<<<<<<<<<<<<<<<                   @####.#### s
-$started_at                                     $duration
+$started_at,                                    $duration
 ------------------------------------------------------------
 .
 
 format HOST_RESOURCE =
   @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<   @>>>>>>>>>>>>
-  $description                                 $result
+  $description,                                $result
 .
 
 format HOST_ACTION =
       @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<   @>>>>>>>>>>>>
-    - $description                             $result
+    - $description,                            $result
 .
 
 format HOST_JOB_SUMMARY =

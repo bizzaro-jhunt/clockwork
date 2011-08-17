@@ -220,6 +220,17 @@ void test_stringlist_qsort()
 	assert_stringlist(sl, "post-sort DESC sl", 3, "candace", "bob", "alice");
 
 	stringlist_free(sl);
+
+	sl = stringlist_new(NULL);
+	stringlist_add(sl, b);
+	assert_stringlist(sl, "pre-sort sl", 1, "bob");
+
+	stringlist_sort(sl, STRINGLIST_SORT_ASC);
+	assert_stringlist(sl, "post-sort ASC sl", 1, "bob");
+	stringlist_sort(sl, STRINGLIST_SORT_DESC);
+	assert_stringlist(sl, "post-sort DESC sl", 1, "bob");
+
+	stringlist_free(sl);
 }
 
 void test_stringlist_uniq()
@@ -380,6 +391,15 @@ void test_stringlist_split()
 	stringlist_free(list);
 }
 
+void test_stringlist_free_null()
+{
+	stringlist *sl;
+
+	test("stringlist: stringlist_free(NULL)");
+	sl = NULL; stringlist_free(sl);
+	assert_null("stringist_free(NULL) doesn't segfault", sl);
+}
+
 void test_suite_stringlist()
 {
 	test_stringlist_init();
@@ -400,4 +420,6 @@ void test_suite_stringlist()
 
 	test_stringlist_join();
 	test_stringlist_split();
+
+	test_stringlist_free_null();
 }

@@ -48,9 +48,11 @@ static int _stringlist_reduce(stringlist *sl)
 			sl->num--;
 		}
 
+		/*
 		if (ptr == end) {
 			break;
 		}
+		*/
 
 		*ins++ = *ptr++;
 	}

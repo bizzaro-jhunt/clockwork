@@ -21,7 +21,6 @@ static void show_help(void);
 
 static int gather_facts_from_script(const char *script, struct hash *facts);
 static int gather_facts(client *c);
-static void print_facts(struct hash *facts);
 static int get_policy(client *c);
 static int get_file(protocol_session *session, sha1 *checksum, int fd);
 static int enforce_policy(client *c, struct job *job);
@@ -54,7 +53,7 @@ int main(int argc, char **argv)
 	}
 
 	if (c->mode == CLIENT_MODE_FACTS) {
-		print_facts(c->facts);
+		fact_write(stdout, c->facts);
 		exit(0);
 	}
 
@@ -243,16 +242,6 @@ static int gather_facts(client *c)
 
 	globfree(&scripts);
 	return 0;
-}
-
-static void print_facts(struct hash *facts)
-{
-	struct hash_cursor cur;
-	char *key, *val;
-
-	for_each_key_value(facts, &cur, key, val) {
-		printf("%s = %s\n", key, val);
-	}
 }
 
 static int get_policy(client *c)

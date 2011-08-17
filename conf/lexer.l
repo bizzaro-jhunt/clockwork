@@ -48,7 +48,7 @@
 	yylval->string = strdup(yytext);
 	return T_NUMERIC;
 }
-[a-z][a-z0-9_]* { /* identifier */
+[a-zA-Z][a-zA-Z0-9_]* { /* identifier */
 	yylval->string = strdup(yytext);
 	return T_IDENTIFIER;
 }

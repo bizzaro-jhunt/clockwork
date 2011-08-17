@@ -28,7 +28,12 @@ static server default_options = {
 
 	.cache_dir    = "/var/cache/clockwork",
 
-	.port = "7890"
+	.port = "7890",
+
+	/* Options below here are not available in the
+	   configuration file, only as defaults / CLI opts. */
+
+	.show_config = SERVER_OPT_FALSE
 };
 
 /**************************************************************/
@@ -86,19 +91,19 @@ static server* configured_options(const char *path)
 
 		v = hash_get(config, "log_level");
 		if (v) {
-			if (strcmp(v, "critical") == 0) {
+			if (strcasecmp(v, "critical") == 0) {
 				s->log_level = LOG_LEVEL_CRITICAL;
-			} else if (strcmp(v, "error") == 0) {
+			} else if (strcasecmp(v, "error") == 0) {
 				s->log_level = LOG_LEVEL_ERROR;
-			} else if (strcmp(v, "warning") == 0) {
+			} else if (strcasecmp(v, "warning") == 0) {
 				s->log_level = LOG_LEVEL_WARNING;
-			} else if (strcmp(v, "notice") == 0) {
+			} else if (strcasecmp(v, "notice") == 0) {
 				s->log_level = LOG_LEVEL_NOTICE;
-			} else if (strcmp(v, "info") == 0) {
+			} else if (strcasecmp(v, "info") == 0) {
 				s->log_level = LOG_LEVEL_INFO;
-			} else if (strcmp(v, "debug") == 0) {
+			} else if (strcasecmp(v, "debug") == 0) {
 				s->log_level = LOG_LEVEL_DEBUG;
-			} else if (strcmp(v, "all") == 0) {
+			} else if (strcasecmp(v, "all") == 0) {
 				s->log_level = LOG_LEVEL_ALL;
 			} else { // handle "none" implicitly
 				s->log_level = LOG_LEVEL_NONE;
@@ -123,6 +128,7 @@ static int merge_servers(server *a, server *b)
 {
 	MERGE_BOOLEAN_OPTION(a,b,debug);
 	MERGE_BOOLEAN_OPTION(a,b,daemonize);
+	MERGE_BOOLEAN_OPTION(a,b,show_config);
 
 	/* note: log_level handled differently */
 

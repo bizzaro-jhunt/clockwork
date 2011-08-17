@@ -67,6 +67,8 @@ static void sighup_handler(int, siginfo_t*, void*);
 
 static void daemonize(const char *lock_file, const char *pid_file);
 
+static void show_config(server *s);
+
 static int server_init_ssl(server *s);
 static int server_init(server *s);
 
@@ -87,6 +89,12 @@ int main(int argc, char **argv)
 	if (server_options(s) != 0) {
 		fprintf(stderr, "Unable to process server options");
 		exit(2);
+	}
+
+	if (s->show_config == SERVER_OPT_TRUE) {
+		INFO("Dumping policyd configuration");
+		show_config(s);
+		exit(0);
 	}
 
 	INFO("policyd starting up");
@@ -122,6 +130,7 @@ static server* policyd_options(int argc, char **argv)
 		{ "debug",        no_argument,       NULL, 'D' },
 		{ "silent",       no_argument,       NULL, 'Q' },
 		{ "config",       required_argument, NULL, 'c' },
+		{ "show-config",  no_argument,       NULL, 's' },
 		{ "port",         required_argument, NULL, 'p' },
 		{ 0, 0, 0, 0 },
 	};
@@ -155,6 +164,9 @@ static server* policyd_options(int argc, char **argv)
 		case 'c':
 			free(s->config_file);
 			s->config_file = strdup(optarg);
+			break;
+		case 's':
+			s->show_config = SERVER_OPT_TRUE;
 			break;
 		case 'p':
 			free(s->port);
@@ -190,6 +202,9 @@ static void show_help(void)
 	       "                        others are discarded.  See -q and -v.\n"
 	       "\n"
 	       "  -c, --config          Specify the path to an alternate configuration file.\n"
+	       "\n"
+	       "  -s, --show-config     Dump the policyd configuration values to standard\n"
+	       "                        output, and then exit.\n"
 	       "\n"
 	       "  -p, --port            Override the TCP port number that policyd should\n"
 	       "                        bind to and listen on.\n"
@@ -618,6 +633,31 @@ static void daemonize(const char *lock_file, const char *pid_file)
 	freopen("/dev/null", "r", stdin);
 	freopen("/dev/null", "w", stdout);
 	freopen("/dev/null", "w", stderr);
+}
+
+static void show_config(server *s)
+{
+	printf("# Clockwork Policy Master Configuration\n");
+	printf("\n");
+	printf("ca_cert_file  = \"%s\"\n", s->ca_cert_file);
+	printf("cert_file     = \"%s\"\n", s->cert_file);
+	printf("key_file      = \"%s\"\n", s->key_file);
+	printf("crl_file      = \"%s\"\n", s->crl_file);
+	printf("\n");
+	printf("requests_dir  = \"%s\"\n", s->requests_dir);
+	printf("certs_dir     = \"%s\"\n", s->certs_dir);
+	printf("cache_dir     = \"%s\"\n", s->cache_dir);
+	printf("\n");
+	printf("lock_file     = \"%s\"\n", s->lock_file);
+	printf("pid_file      = \"%s\"\n", s->pid_file);
+	printf("\n");
+	printf("manifest_file = \"%s\"\n", s->manifest_file);
+	printf("db_file       = \"%s\"\n", s->db_file);
+	printf("\n");
+	printf("port          = %s\n", s->port);
+	printf("\n");
+	printf("log_level     = %s\n", log_level_name(s->log_level));
+	printf("\n");
 }
 
 static int server_init(server *s)

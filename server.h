@@ -57,6 +57,9 @@ typedef struct {
 
 	/** TCP port to listen on for incoming client connections. */
 	char *port;
+
+	/** Whether or not to invoke the --show-config behavior. */
+	int show_config;
 } server;
 
 int server_options(server *args);

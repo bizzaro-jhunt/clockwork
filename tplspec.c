@@ -16,7 +16,6 @@ static const char *OP_NAMES[] = {
 	NULL
 };
 
-/* FIXME: move this into string.o? */
 static char* escape_newlines(const char *s)
 {
 	char *b,   *b1;

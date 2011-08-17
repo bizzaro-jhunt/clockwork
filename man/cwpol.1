@@ -1,0 +1,79 @@
+.TH cwpol "1" "August 2011" "Clockwork" "Clockwork Policy Agent"
+.SH NAME
+cwpol \- Clockwork Policy Explorer
+.br
+.SH SYNOPSIS
+.B cwpol
+[options]
+.I /path/to/manifest/file
+
+.SH DESCRIPTION
+.B Clockwork
+is a system configuration management system designed to securely enforce
+policies on one or more host systems.  It can ensure that files have the
+prescribed attributes (owner, group, permissions, etc.) and content.  It
+can maintain a specific set of installed packages, and even make sure that
+system user accounts exist.
+.PP
+.B cwpol
+is a utility for administrators and policy developers that exposes the
+internals of a policy manifest, letting you explore how a policy would
+be implemented by the client agents.
+
+.SH OPTIONS
+
+\fB\-e\fR, \fB\-\-execute\fR \fIcommand\fR
+.RS 8
+Execute arbitrary commands.  Multiple commands must be separated by
+a semi-colon (;) with optional whitespace.
+.RE
+
+.PP
+\fB\-h\fR, \fB\-\-help\fR
+.RS 8
+Show a brief summary of the options that \fBcwpol\fR takes.
+.RE
+
+.PP
+\fB\-v\fR, \fB\-\-verbose\fR
+.RS 8
+Increase the verbosity of \fBcwpol\fR.  Can be used multple
+times; each time it increases the log level by one.
+.PP
+\fBNote: cwpol\fR doesn't log to a file, it write all log messages
+to standard output.  If you wish to save cwpol output, use your shell's
+IO redirection capabilities.
+.RE
+
+.PP
+\fB\-V\fR, \fB\-\-version\fR
+.RS 8
+Print version and copyright information, and then exit.  If specified,
+any command script is ignored, as well as the \fB\-e\fR option.
+.RE
+
+.SH EXIT STATUS
+\" FIXME: need more content
+
+.SH FILES
+None
+
+.SH SEE ALSO
+\fBclockwork\fR(7), \fBpolicyd\fR(1), \fBpolicyd.conf\fR(5) and \fBcwa.conf\fR(5)
+
+.SH AUTHOR
+Clockwork was conceived and written by James Hunt.
+.PP
+Original ideas were stolen from
+.B CFEngine
+(Mark Burgess) and
+.B Puppet
+(Luke Kanies).
+
+.SH BUGS
+Lots.  Clockwork is still evolving, and your input is appreciated.
+.PP
+Unfortunately, Clockwork doesn\(cqt even have a web site, let alone a
+worthwhile bug tracker.  Send bugs to
+.B filefrog@gmail.com
+with the word 'clockwork' in the subject.

@@ -68,7 +68,7 @@ Infrastructure
 Perpetual List of Things To Do
 ==============================
 
-(These are things that will never get "done", but need to be tracked.
+(These are things that will never get "done", but need to be tracked)
 
 * Doxygen API Documentation
 * man pages:
@@ -77,6 +77,6 @@ Perpetual List of Things To Do
   - cwca
   - cwa
   - cwcert
-  - cwpol   [NEW]
+  - cwpol
   - cwdb    [NEW]
   - res_* (one for each resource)

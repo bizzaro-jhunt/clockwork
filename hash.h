@@ -171,7 +171,7 @@ void *hash_next(const struct hash *h, struct hash_cursor *c, char **key, void **
   @verbatim
   // assume that h is a hash with some stuff in it.
 
-  char *k, void *v;
+  char *k; void *v;
   struct hash_cursor cursor;
 
   for_each_key_value(h, &cursor, k, v) {

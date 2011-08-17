@@ -353,6 +353,27 @@ void test_pwdb_next_uid_out_of_order()
 	pwdb_free(db);
 }
 
+void test_pwdb_lookup_uid()
+{
+	struct pwdb *db;
+	uid_t uid;
+
+	db = open_passwd(PWFILE_UID);
+	test("PWDB: Lookup UID by username");
+
+	uid = pwdb_lookup_uid(db, NULL);
+	assert_int_eq("Lookup with NULL username returns 0", uid, 0);
+
+	uid = pwdb_lookup_uid(db, "nonexistent-user");
+	assert_int_eq("Lookup with bad username returns -1", uid, -1);
+
+	// see test/data/passwd-uid for valid users
+	uid = pwdb_lookup_uid(db, "jrh1");
+	assert_int_eq("jrh1 account has UID of 2048", uid, 2048);
+
+	pwdb_free(db);
+}
+
 void test_spdb_init()
 {
 	struct spdb *db;
@@ -672,6 +693,27 @@ void test_grdb_gr_mem_support()
 	grdb_free(db);
 }
 
+void test_grdb_lookup_gid()
+{
+	struct grdb *db;
+	gid_t gid;
+
+	db = open_group(GRFILE);
+
+	test("GRDB: Lookup GID");
+	gid = grdb_lookup_gid(db, NULL);
+	assert_int_eq("Lookup with NULL group name returns 0", gid, 0);
+
+	gid = grdb_lookup_gid(db, "nonexistent-group");
+	assert_int_eq("Lookup with bad group name returns -1", gid, -1);
+
+	// see test/data/group for group definitions
+	gid = grdb_lookup_gid(db, "service");
+	assert_int_eq("service group has GID 909", gid, 909);
+
+	grdb_free(db);
+}
+
 void test_sgdb_init()
 {
 	struct sgdb *db;
@@ -875,6 +917,7 @@ void test_suite_userdb() {
 	test_pwdb_rm_head();
 	test_pwdb_new_entry();
 	test_pwdb_next_uid_out_of_order();
+	test_pwdb_lookup_uid();
 
 	/* shadow db tests */
 	test_spdb_init();
@@ -892,6 +935,7 @@ void test_suite_userdb() {
 	test_grdb_rm_head();
 	test_grdb_new_entry();
 	test_grdb_gr_mem_support();
+	test_grdb_lookup_gid();
 
 	/* gshadow db tests */
 	test_sgdb_init();

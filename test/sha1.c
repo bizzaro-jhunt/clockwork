@@ -40,6 +40,7 @@ void test_sha1_init()
 	sha1 calc;
 	sha1 init;
 
+	test("SHA1: Initialization");
 	sha1_init(&calc, NULL);
 	assert_str_eq("sha1()", calc.hex, "");
 	/* Borrow from FIPS checks */
@@ -55,6 +56,18 @@ void test_sha1_init()
 		snprintf(buf, 256, "octet[%i] equality", i);
 		assert_int_eq(buf, calc.raw[i], init.raw[i]);
 	}
+
+	test("SHA1: Initialization (valid checksum)");
+	sha1_init(&calc, "0123456789abcd0123456789abcd0123456789ab");
+	assert_str_ne("valid checksum != ''", calc.hex, "");
+
+	test("SHA1: Initialization (invalid checksum -- to short)");
+	sha1_init(&calc, "0123456789abcd0123456789");
+	assert_str_eq("short checksum == ''", calc.hex, "");
+
+	test("SHA1: Initialization (invalid checksum -- bad chars)");
+	sha1_init(&calc, "0123456789abcd0123456789abcdefghijklmnop");
+	assert_str_eq("short checksum == ''", calc.hex, "");
 }
 
 void test_sha1_comparison()
@@ -73,9 +86,19 @@ void test_sha1_comparison()
 	assert_int_ne("different checksums are not equal", sha1_cmp(&a, &b), 0);
 }
 
+void test_sha1_file()
+{
+	sha1 cksum;
+
+	test("SHA1: sha1_file");
+	assert_int_eq("sha1_file on directory fails", sha1_file("/tmp", &cksum), -1);
+	assert_int_eq("sha1_file on non-existent", sha1_file("/tmp/nonexistent", &cksum), -1);
+}
+
 void test_suite_sha1()
 {
 	test_sha1_FIPS();
 	test_sha1_init();
 	test_sha1_comparison();
+	test_sha1_file();
 }

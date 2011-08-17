@@ -22,10 +22,10 @@ typedef struct {
 
 	char *peer;
 
-	char *requests_dir;
-	char *certs_dir;
-	char *db_file;
-	char *cache_dir;
+	const char *requests_dir;
+	const char *certs_dir;
+	const char *db_file;
+	const char *cache_dir;
 
 	struct hash   *facts;
 	struct policy *policy;
@@ -232,11 +232,11 @@ unintr:
 	w->facts = hash_new();
 	w->peer_verified = 0;
 
-	/* FIXME: can worker point to server config as const char? */
-	w->requests_dir = strdup(s->requests_dir);
-	w->certs_dir    = strdup(s->certs_dir);
-	w->db_file      = strdup(s->db_file);
-	w->cache_dir    = strdup(s->cache_dir);
+	/* constant references to server config */
+	w->requests_dir = s->requests_dir;
+	w->certs_dir    = s->certs_dir;
+	w->db_file      = s->db_file;
+	w->cache_dir    = s->cache_dir;
 
 	w->socket = BIO_pop(s->listener);
 	if (!(w->ssl = SSL_new(s->ssl_ctx))) {
@@ -815,9 +815,6 @@ die:
 	ERR_remove_state(0);
 
 	free(w->peer);
-	free(w->db_file);
-	free(w->certs_dir);
-	free(w->requests_dir);
 	free(w);
 
 	return NULL;

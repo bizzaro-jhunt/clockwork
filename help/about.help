@@ -3,9 +3,9 @@ cwpol - Clockwork Policy Explorer
 
 The policy explorer allows you to poke around a manifest,
 inspecting resources, policies and hosts.  It lets you load
-p arbitrary sets of facts and see how the manifest will
-react (what resources are defined, what values are assigned
-to attributes, etc.)
+arbitrary sets of facts and see how the manifest will react
+(what resources are defined, what values are assigned to
+attributes, etc.)
 
 cwpol is part of Clockwork, a Configuration Management System
 that enforces configuration policies on any number of host

@@ -1,8 +1,10 @@
+
 #include "clockwork.h"
 #include "stringlist.h"
 #include "hash.h"
 #include "policy.h"
 #include "spec/parser.h"
+#include <getopt.h>
 
 struct command {
 	char       *cmd;
@@ -10,7 +12,7 @@ struct command {
 	stringlist *args;
 	char       *orig;
 };
-typedef int (*command_fn)(struct command*);
+typedef int (*command_fn)(struct command*, int);
 
 #define slv(sl,i) (sl)->strings[(i)]
 #define HELP_ROOT "help"
@@ -18,24 +20,21 @@ typedef int (*command_fn)(struct command*);
 #define LINE_BUFSIZ 1024
 #define TOKEN_DELIM " \t"
 
-static struct command* parse_command(char *s);
+static struct command* parse_command(const char *s);
 static void set_context(int type, const char *name, struct stree *obj);
 static void clear_policy(void);
 static void make_policy(void);
 static void load_facts_from_path(const char *path);
-/* FIXME: move hash_keys to hash.o ?? */
 static stringlist* hash_keys(struct hash*);
-/* FIXME: move for_each_string to stringlist.h ?? */
-#define for_each_string(sl,i) for ((i)=0; (i)<(sl)->num; (i)++)
 static int show_help_file(const char *path);
 static void show_hash_keys(struct hash *h);
-static void show_facts(void);
+static void show_facts(const char *pattern);
 static void show_hosts(void);
 static void show_policies(void);
 static void show_resources(void);
 static void show_resource(const char *type, const char *name);
 
-#define COMMAND(x) static int command_ ## x (struct command *c)
+#define COMMAND(x) static int command_ ## x (struct command *c, int interactive)
 COMMAND(about);
 COMMAND(help);
 COMMAND(quit);
@@ -44,6 +43,13 @@ COMMAND(use);
 COMMAND(fact);
 COMMAND(load);
 COMMAND(clear);
+COMMAND(log);
+
+struct cwpol_opts {
+	char *command;
+	char *manifest;
+	char *facts;
+};
 
 #define CONTEXT_NONE   0
 #define CONTEXT_HOST   1
@@ -59,47 +65,59 @@ static struct {
 	.root = NULL,
 	.policy = NULL
 };
-static struct hash     *FACTS = NULL;
+static struct hash     *DISPATCH = NULL;
+static struct hash     *FACTS    = NULL;
 static struct manifest *MANIFEST = NULL;
+
+static void setup(void);
+static int dispatch(const char *command, int interactive);
+static int dispatch1(const char *command, int interactive);
 
 #define PS_TOP "top"
 
+static struct cwpol_opts* cwpol_options(int argc, char **argv);
+
+/** Options
+
+  -e, --execute 'some command'
+  -v, --verbose
+  -V, --version
+  -h, --help
+  </path/to/manifest/file>
+
+ */
+
 int main(int argc, char **argv)
 {
-	int done = 0;
 	const char *prompt = PS_TOP;
 	char line[LINE_BUFSIZ];
-	struct command *command;
-	struct hash *dispatch;
-	command_fn run;
+	struct cwpol_opts *opts;
+	int interactive;
 
-	if (isatty(0)) {
+	opts = cwpol_options(argc, argv);
+	interactive = isatty(0);
+
+	setup();
+	if (opts->manifest) {
+		DEBUG("pre-loading manifest: %s", opts->manifest);
+		dispatch1(opts->manifest, 0);
+	}
+	if (opts->facts) {
+		DEBUG("pre-loading facts: %s", opts->facts);
+		dispatch1(opts->facts, 0);
+	}
+	if (opts->command) {
+		exit(dispatch(opts->command, 0));
+	}
+
+	if (interactive) {
 		printf("%s - Clockwork Policy Shell\n\n", argv[0]);
 		printf("Type `about' for information on this program.\n");
 		printf("Type `help' to get help on shell commands.\n");
 	}
 
-	dispatch = hash_new();
-	hash_set(dispatch, "about",   command_about);
-
-	hash_set(dispatch, "help",    command_help);
-	hash_set(dispatch, "?",       command_help);
-
-	hash_set(dispatch, "q",       command_quit);
-	hash_set(dispatch, "quit",    command_quit);
-	hash_set(dispatch, "exit",    command_quit);
-
-	hash_set(dispatch, "show",    command_show);
-	hash_set(dispatch, "use",     command_use);
-	hash_set(dispatch, "fact",    command_fact);
-	hash_set(dispatch, "load",    command_load);
-	hash_set(dispatch, "clear",   command_clear);
-
-	FACTS = hash_new();
-	MANIFEST = NULL;
-
 	do {
-		if (isatty(0)) { /* only show the prompt if we are interactive */
+		if (interactive) {
 			switch (CONTEXT.type) {
 			case CONTEXT_NONE:   printf("\nglobal> ");                  break;
 			case CONTEXT_HOST:   printf("\nhost:%s> ",   CONTEXT.name); break;
@@ -109,32 +127,25 @@ int main(int argc, char **argv)
 		}
 
 		if (!fgets(line, LINE_BUFSIZ, stdin)) { break; }
-		if (!(command = parse_command(line))) { continue; }
-
-		run = hash_get(dispatch, command->cmd);
-		if (run) {
-			done = (*run)(command);
-		} else {
-			printf("!! Unknown command: %s\n", command->cmd);
-		}
-	} while (!done);
+	} while (!dispatch(line, interactive));
 
 	return 0;
 }
 
-static struct command* parse_command(char *s)
+static struct command* parse_command(const char *s)
 {
 	struct command *c;
 	char *tok, *ctx;
 	size_t n;
 
-	/* kill the newline */
-	n = strlen(s);
-	if (s[n-1] == '\n') { s[n-1] = '\0'; }
-
 	c = xmalloc(sizeof(struct command));
 	c->orig = strdup(s);
-	c->cmd = strtok_r(s, TOKEN_DELIM, &ctx);
+
+	/* kill the newline */
+	n = strlen(c->orig);
+	if (c->orig[n-1] == '\n') { c->orig[n-1] = '\0'; }
+
+	c->cmd = strtok_r(c->orig, TOKEN_DELIM, &ctx);
 	if (!c->cmd) {
 		free(c);
 		return NULL;
@@ -153,8 +164,8 @@ static struct command* parse_command(char *s)
 COMMAND(about)
 {
 	if (show_help_file(HELP_ROOT "/about.help")) {
-		printf("!! Can't find help files...\n");
-		printf("You may want to check your installation.\n");
+		ERROR("Can't find help files.");
+		WARNING("You may want to check your installation.");
 	}
 	return 0;
 }
@@ -172,13 +183,13 @@ COMMAND(help)
 		path = strdup(HELP_ROOT "/main");
 	}
 
-	if (!show_help_file(path)) {
+	if (show_help_file(path) != 0 && interactive) {
 		if (main) {
-			printf("!! Can't find main help file...\n");
-			printf("You may want to check your installation.\n");
+			ERROR("Can't find main help file.");
+			INFO("You may want to check your installation.");
 		} else {
-			printf("!! Nothing known about '%s'.\n", slv(c->args,0));
-			printf("Try 'help' for a list of commands.\n");
+			ERROR("Nothing known about '%s'.", slv(c->args,0));
+			INFO("Try 'help' for a list of commands.");
 		}
 	}
 	return 0;
@@ -186,7 +197,7 @@ COMMAND(help)
 
 COMMAND(quit)
 {
-	printf("Goodbye...\n");
+	INFO("Goodbye...");
 	return 1;
 }
 
@@ -195,7 +206,11 @@ COMMAND(show)
 	char *type = c->argc > 0 ? slv(c->args,0) : NULL;
 
 	if (c->argc == 1 && strcmp(type, "facts") == 0) {
-		show_facts();
+		show_facts(NULL);
+
+	} else if (c->argc == 3 && strcmp(type, "facts") == 0
+	           && strcmp(slv(c->args,1), "like") == 0) {
+		show_facts(slv(c->args,2));
 
 	} else if (c->argc == 1 && strcmp(type, "hosts") == 0) {
 		show_hosts();
@@ -205,8 +220,8 @@ COMMAND(show)
 
 	} else if (c->argc == 1 && strcmp(type, "resources") == 0) {
 		if (!CONTEXT.root) {
-			printf("!! Invalid referential context\n"
-			       "!! Select a host or policy through the 'use' command\n");
+			ERROR("Invalid referential context");
+			INFO("Select a host or policy through the 'use' command");
 			return 0;
 		}
 
@@ -214,19 +229,19 @@ COMMAND(show)
 
 	} else if (c->argc == 2) {
 		if (!CONTEXT.root) {
-			printf("!! Invalid referential context\n"
-			       "!! Select a host or policy through the 'use' command\n");
+			ERROR("Invalid referential context");
+			INFO("Select a host or policy through the 'use' command");
 			return 0;
 		}
 
 		show_resource(slv(c->args,0), slv(c->args,1));
 	} else {
-		printf("!! Missing required arguments\n");
-		printf("      show facts\n");
-		printf("      show hosts\n");
-		printf("      show policies\n");
-		printf("      show resources\n");
-		printf("      show <resource-type> <name>\n");
+		ERROR("Missing required arguments");
+		INFO("   show facts [like pattern]");
+		INFO("   show hosts");
+		INFO("   show policies");
+		INFO("   show resources");
+		INFO("   show <resource-type> <name>");
 	}
 	return 0;
 }
@@ -246,32 +261,32 @@ COMMAND(use)
 		set_context(CONTEXT_NONE, NULL, NULL);
 		return 0;
 	} else {
-		printf("!! Missing required arguments\n");
-		printf("      use global\n");
-		printf("      use host <hostname>\n");
-		printf("      use policy <policy>\n");
+		ERROR("Missing required arguments");
+		INFO("   use global");
+		INFO("   use host <hostname>");
+		INFO("   use policy <policy>");
 		return 0;
 	}
 
 	if (!MANIFEST) {
-		printf("!! No manifest loaded\n");
+		ERROR("No manifest loaded");
 		return 0;
 	}
 
 	if (strcmp(type, "host") == 0) {
 		if (!(root = hash_get(MANIFEST->hosts, target))) {
-			printf("!! No such host '%s'\n", target);
+			ERROR("No such host '%s'", target);
 		} else {
 			set_context(CONTEXT_HOST, target, root);
 		}
 	} else if (strcmp(type, "policy") == 0) {
 		if (!(root = hash_get(MANIFEST->policies, target))) {
-			printf("!! No such policy '%s'\n", target);
+			ERROR("No such policy '%s'", target);
 		} else {
 			set_context(CONTEXT_POLICY, target, root);
 		}
 	} else {
-		printf("!! Unknown context type: '%s'\n", type);
+		ERROR("Unknown context type: '%s'", type);
 	}
 	return 0;
 }
@@ -301,12 +316,12 @@ COMMAND(fact)
 		hash_set(FACTS, k, v);
 		xfree(k);
 
-		show_facts();
+		show_facts(NULL);
 		return 0;
 	}
 
-	printf("!! Missing required arguments\n");
-	printf("      fact new.fact.name = fact.value\n");
+	ERROR("Missing required arguments");
+	INFO("   fact new.fact.name = fact.value");
 	return 0;
 }
 
@@ -316,27 +331,27 @@ COMMAND(load)
 	 && strcmp(slv(c->args,0), "facts") == 0
 	 && strcmp(slv(c->args,1), "from")  == 0) {
 		load_facts_from_path(slv(c->args,2));
-		show_facts();
+		if (interactive) { show_facts(NULL); }
 		return 0;
 	}
 
 	if (c->argc == 1) {
-		printf("Reading in %s\n", slv(c->args,0));
+		if (interactive) { INFO("Reading in %s", slv(c->args,0)); }
 
 		manifest_free(MANIFEST);
 		MANIFEST = parse_file(slv(c->args,0));
 		if (!MANIFEST) {
-			printf("!! Failed to load manifest\n");
+			INFO("Failed to load manifest");
 			return 0;
 		}
 
-		printf("Loaded manifest.\n");
+		if (interactive) { INFO("Loaded manifest."); }
 		return 0;
 	}
 
-	printf("!! Missing required arguments\n");
-	printf("      load facts from /path/to/file\n");
-	printf("      load /path/to/manifest.pol\n");
+	ERROR("Missing required arguments");
+	INFO("   load facts from /path/to/file");
+	INFO("   load /path/to/manifest.pol");
 
 	return 0;
 }
@@ -350,8 +365,43 @@ COMMAND(clear)
 		return 0;
 	}
 
-	printf("!! Missing required arguments\n");
-	printf("      clear facts\n");
+	ERROR("Missing required arguments");
+	INFO("   clear facts");
+	return 0;
+}
+
+COMMAND(log)
+{
+	static const char *levels[] = {
+		NULL,
+		"none",
+		"critical",
+		"error",
+		"warning",
+		"notice",
+		"info",
+		"debug",
+		"all"
+	};
+	int i;
+	char *arg;
+
+	if (c->argc != 1) {
+		i = log_level();
+		printf("log level is %s (%i)\n", levels[i], i);
+		return 0;
+	}
+	arg = slv(c->args, 0);
+	for (i = 1; i <= LOG_LEVEL_ALL; i++) {
+		if (strcasecmp(levels[i], arg) == 0) {
+			log_set(i);
+			if (interactive) {
+				printf("log level set to %s (%i)\n", arg, i);
+			}
+			return 0;
+		}
+	}
+	ERROR("Unknown log level: '%s'", arg);
 	return 0;
 }
 
@@ -381,12 +431,12 @@ static void load_facts_from_path(const char *path)
 	FILE* io = fopen(path, "r");
 
 	if (!io) {
-		printf("!! Load failed:%s: %s\n", path, strerror(errno));
+		ERROR("Load failed:%s: %s", path, strerror(errno));
 		return;
 	}
 
 	if (!fact_read(io, FACTS)) {
-		printf("!! Load failed\n");
+		ERROR("Load failed");
 	}
 	fclose(io);
 }
@@ -428,7 +478,7 @@ static void show_hash_keys(struct hash *h)
 
 	stringlist_sort(keys, STRINGLIST_SORT_ASC);
 	if (keys->num == 0) {
-		printf("(none defined)\n");
+		INFO("(none defined)");
 	} else {
 		for_each_string(keys, i) {
 			printf("%s\n", slv(keys,i));
@@ -436,14 +486,15 @@ static void show_hash_keys(struct hash *h)
 	}
 }
 
-static void show_facts(void)
+static void show_facts(const char *pattern)
 {
 	char *k, *v;
 	size_t i;
+	size_t cmpn = (pattern ? strlen(pattern) : 0);
 
 	stringlist *keys = hash_keys(FACTS);
 	if (keys->num == 0) {
-		printf("(none defined)\n");
+		INFO("(none defined)");
 		return;
 	}
 
@@ -451,14 +502,17 @@ static void show_facts(void)
 	for_each_string(keys,i) {
 		k = slv(keys, i);
 		v = hash_get(FACTS, k);
-		printf("%s = %s\n", k, v);
+
+		if (!pattern || strncmp(pattern, k, cmpn) == 0) {
+			printf("%s = %s\n", k, v);
+		}
 	}
 }
 
 static void show_hosts(void)
 {
 	if (!MANIFEST) {
-		printf("!! No manifest loaded\n");
+		ERROR("No manifest loaded");
 		return;
 	}
 	show_hash_keys(MANIFEST->hosts);
@@ -467,7 +521,7 @@ static void show_hosts(void)
 static void show_policies(void)
 {
 	if (!MANIFEST) {
-		printf("!! No manifest loaded\n");
+		ERROR("No manifest loaded");
 		return;
 	}
 	show_hash_keys(MANIFEST->policies);
@@ -482,7 +536,7 @@ static void show_resources(void)
 
 	make_policy();
 	if (!CONTEXT.policy) {
-		printf("!! Failed to generate policy\n");
+		ERROR("Failed to generate policy");
 		return;
 	}
 
@@ -490,8 +544,12 @@ static void show_resources(void)
 	for_each_resource(r, CONTEXT.policy) {
 		stringlist_add(list, r->key);
 	}
-	stringlist_sort(list, STRINGLIST_SORT_ASC);
+	if (list->num == 0) {
+		INFO("(none defined)");
+		return;
+	}
 
+	stringlist_sort(list, STRINGLIST_SORT_ASC);
 	for_each_string(list, i) {
 		strncpy(type, slv(list,i), 255); type[255] = '\0';
 
@@ -516,12 +574,12 @@ static void show_resource(const char *type, const char *name)
 
 	make_policy();
 	if (!CONTEXT.policy) {
-		printf("!! Failed to generate policy\n");
+		ERROR("Failed to generate policy");
 		return;
 	}
 
 	if (!(r = hash_get(CONTEXT.policy->index, target))) {
-		printf("!! No such %s resource: %s\n", type, name);
+		ERROR("!! No such %s resource: %s", type, name);
 	} else {
 		attrs = resource_attrs(r);
 		keys = hash_keys(attrs);
@@ -551,3 +609,132 @@ static void show_resource(const char *type, const char *name)
 
 	free(target);
 }
+
+static struct cwpol_opts* cwpol_options(int argc, char **argv)
+{
+	struct cwpol_opts *o;
+	const char *short_opts = "h?e:f:vV";
+	struct option long_opts[] = {
+		{ "help",    no_argument,       NULL, 'h' },
+		{ "execute", required_argument, NULL, 'e' },
+		{ "facts",   required_argument, NULL, 'f' },
+		{ "verbose", no_argument,       NULL, 'v' },
+		{ "version", no_argument,       NULL, 'V' },
+		{ 0, 0, 0, 0 },
+	};
+
+	int v = LOG_LEVEL_ERROR;
+	int opt, idx = 0;
+
+	o = xmalloc(sizeof(struct cwpol_opts));
+
+	while ( (opt = getopt_long(argc, argv, short_opts, long_opts, &idx)) != -1) {
+		switch(opt) {
+		case 'h':
+		case '?':
+			free(o->command);
+			o->command = strdup("help");
+			break;
+
+		case 'e':
+			free(o->command);
+			o->command = strdup(optarg);
+			break;
+
+		case 'f':
+			free(o->facts);
+			o->facts = string("load facts from %s", optarg);
+			break;
+
+		case 'v':
+			v++;
+			break;
+
+		case 'V':
+			free(o->command);
+			o->command = strdup("about");
+			break;
+		}
+	}
+
+	if (optind == argc - 1) {
+		free(o->manifest);
+		o->manifest = string("load %s", argv[optind]);
+	} else if (optind < argc) {
+		free(o->command);
+		o->command = strdup("help");
+	}
+
+	log_set(v);
+	return o;
+}
+
+static void setup(void)
+{
+	DISPATCH = hash_new();
+	hash_set(DISPATCH, "about",   command_about);
+
+	hash_set(DISPATCH, "help",    command_help);
+	hash_set(DISPATCH, "?",       command_help);
+
+	hash_set(DISPATCH, "q",       command_quit);
+	hash_set(DISPATCH, "quit",    command_quit);
+	hash_set(DISPATCH, "exit",    command_quit);
+
+	hash_set(DISPATCH, "show",    command_show);
+	hash_set(DISPATCH, "use",     command_use);
+	hash_set(DISPATCH, "fact",    command_fact);
+	hash_set(DISPATCH, "load",    command_load);
+	hash_set(DISPATCH, "clear",   command_clear);
+
+	hash_set(DISPATCH, "log",     command_log);
+
+	FACTS = hash_new();
+
+	MANIFEST = NULL;
+}
+
+static int dispatch(const char *c, int interactive)
+{
+	stringlist *commands;
+	size_t i;
+	int rc = 0, t;
+
+	commands = stringlist_split(c, strlen(c), ";");
+	for_each_string(commands, i) {
+		t = dispatch1(slv(commands, i), interactive);
+		if (t && !interactive) {
+			return rc;
+		}
+
+		if (!rc && t > 0) { rc = t; }
+	}
+	return rc;
+}
+
+static int dispatch1(const char *c, int interactive)
+{
+	command_fn f;
+	struct command *command;
+	int rc;
+
+	command = parse_command(c);
+	if (!command) {
+		if (!interactive) {
+			ERROR("Failed to execute '%s'", c);
+		}
+		return 1;
+	}
+
+	DEBUG("dispatching '%s'", command->cmd);
+	if ((f = hash_get(DISPATCH, command->cmd))) {
+		rc = (*f)(command, interactive);
+	} else {
+		ERROR("Unknown command: %s", command->cmd);
+		rc = -1;
+	}
+	free(command); /* FIXME: good enough? */
+	return rc;
+}
+
+

@@ -7,8 +7,9 @@ parts of a manifest.
 
 INVOCATION
 
- show facts
-   Lists the facts currently known.
+ show facts [like pattern]
+   Lists the facts currently known.  If the optional "like" clause is
+   given, facts are only shown if they start with 'pattern'.
 
  show policies
    Lists defined policies.

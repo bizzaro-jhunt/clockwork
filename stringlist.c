@@ -114,7 +114,7 @@ void stringlist_free(stringlist *sl)
 {
 	size_t i;
 	if (sl) {
-		for (i = 0; i < sl->num; i++) {
+		for_each_string(sl,i) {
 			free(sl->strings[i]);
 		}
 		free(sl->strings);
@@ -155,7 +155,7 @@ int stringlist_search(const stringlist *sl, const char* needle)
 	assert(needle);
 
 	size_t i;
-	for (i = 0; i < sl->num; i++) {
+	for_each_string(sl,i) {
 		if ( strcmp(sl->strings[i], needle) == 0 ) {
 			return 0;
 		}
@@ -190,7 +190,7 @@ int stringlist_add_all(stringlist *dst, const stringlist *src)
 		return -1;
 	}
 
-	for (i = 0; i < src->num; i++) {
+	for_each_string(src,i) {
 		dst->strings[dst->num++] = strdup(src->strings[i]);
 	}
 	dst->strings[dst->num] = NULL;
@@ -231,8 +231,8 @@ int stringlist_remove_all(stringlist *dst, stringlist *src)
 	assert(dst);
 
 	size_t s, d;
-	for (d = 0; d < dst->num; d++) {
-		for (s = 0; s < src->num; s++) {
+	for_each_string(dst,d) {
+		for_each_string(src,s) {
 			if ( strcmp(dst->strings[d], src->strings[s]) == 0 ) {
 				free(dst->strings[d]);
 				dst->strings[d] = NULL;
@@ -249,8 +249,8 @@ stringlist *stringlist_intersect(const stringlist *a, const stringlist *b)
 	stringlist *intersect = stringlist_new(NULL);
 	size_t i, j;
 
-	for (i = 0; i < a->num; i++) {
-		for (j = 0; j < b->num; j++) {
+	for_each_string(a,i) {
+		for_each_string(b,j) {
 			if (strcmp(a->strings[i], b->strings[j]) == 0) {
 				stringlist_add(intersect, a->strings[i]);
 			}
@@ -268,7 +268,7 @@ int stringlist_diff(stringlist* a, stringlist* b)
 	size_t i;
 
 	if (a->num != b->num) { return 0; }
-	for (i = 0; i < a->num; i++) {
+	for_each_string(a,i) {
 		if (stringlist_search(b, a->strings[i]) != 0
 		 || stringlist_search(a, b->strings[i]) != 0) {
 			return 0;
@@ -290,13 +290,13 @@ char* stringlist_join(stringlist *list, const char *delim)
 		return strdup("");
 	}
 
-	for (i = 0; i < list->num; i++) {
+	for_each_string(list,i) {
 		len += strlen(list->strings[i]);
 	}
 	len += (list->num - 1) * delim_len;
 
 	ptr = joined = xmalloc(len + 1);
-	for (i = 0; i < list->num; i++) {
+	for_each_string(list,i) {
 		if (i != 0) {
 			memcpy(ptr, delim, delim_len);
 			ptr += delim_len;

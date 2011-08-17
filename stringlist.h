@@ -73,6 +73,8 @@ typedef struct {
  */
 typedef int (*sl_comparator)(const void*, const void*);
 
+#define for_each_string(l,i) for ((i)=0; (i)<(l)->num; (i)++)
+
 /** @cond false */
 int STRINGLIST_SORT_ASC(const void *a, const void *b);
 int STRINGLIST_SORT_DESC(const void *a, const void *b);

@@ -92,8 +92,11 @@ void test_hash_get_null()
 	test("hash: Lookups against a NULL hash pointer");
 	assert_null("get('test') always returns NULL", hash_get(h, "test"));
 
+	h = hash_new();
+	hash_set(h, "test", "valid");
 	test("hash: Lookup a NULL key against a valid hash");
-	assert_null("get(NULL) always returns NULL", hash_get(h, "test"));
+	assert_null("get(NULL) always returns NULL", hash_get(h, NULL));
+	hash_free(h);
 }
 
 void test_hash_for_each()

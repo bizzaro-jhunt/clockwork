@@ -117,10 +117,20 @@ void test_string_initial_value() {
 	string_free(s);
 }
 
+void test_string_free_null()
+{
+	struct string *s;
+
+	test("STRING: string_free(NULL)");
+	s = NULL; string_free(s);
+	assert_null("string_free(NULL) doesn't segfault", s);
+}
+
 void test_suite_string()
 {
 	test_string_interpolation();
 	test_string_automatic();
 	test_string_extension();
 	test_string_initial_value();
+	test_string_free_null();
 }

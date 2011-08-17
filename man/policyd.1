@@ -32,6 +32,14 @@ default configuration file (/etc/clockwork/policyd.conf) is used instead.
 .RE
 
 .PP
+\fB\-s, \-\-show\-config\fR
+.RS 8
+After parsing the Policy Master configuration file (respecting the \fB\-c\fR
+option), write that configuration to standard output and exit.  Useful
+for troubleshooting and debugging the Policy Master.
+.RE
+
+.PP
 \fB\-p, \-\-port\fR \fItcp-port-number\fR
 .RS 8
 Override the TCP port number to bind to and listen on.

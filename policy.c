@@ -258,7 +258,7 @@ int fact_write(FILE *io, struct hash *facts)
 		stringlist_add(lines, buf);
 	}
 
-	stringlist_sort(lines, STRINGLIST_SORT_ASC); /* FIXME: check ret val? */
+	stringlist_sort(lines, STRINGLIST_SORT_ASC);
 	for_each_string(lines, i) {
 		fputs(lines->strings[i], io);
 	}

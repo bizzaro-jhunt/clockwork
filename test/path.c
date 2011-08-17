@@ -34,6 +34,9 @@ void test_path_canon()
 	test("path: Canonicalization (normal case)");
 	assert_canon("/usr/local/sbin", "/usr/local/sbin");
 
+	test("path: Canonicalization (empty path)");
+	assert_canon("", "");
+
 	test("path: Canonicalization (single . component)");
 	assert_canon("/usr/./local/sbin", "/usr/local/sbin");
 	test("path: Canonicalization (multiple . components)");
@@ -119,9 +122,20 @@ void test_path_push_pop()
 	path_free(p);
 }
 
+void test_path_free_null()
+{
+	PATH *p;
+
+	test("path: path_free(NULL)");
+	p = NULL;
+	path_free(p);
+	assert_null("path_free(NULL) doesn't segfault", p);
+}
+
 void test_suite_path()
 {
 	test_path_creation();
 	test_path_canon();
 	test_path_push_pop();
+	test_path_free_null();
 }

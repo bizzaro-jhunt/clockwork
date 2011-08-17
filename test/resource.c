@@ -14,7 +14,7 @@ void test_resource_callbacks()
 	assert_not_null("resource_new allocates a res_* member", res->resource);
 
 	key = resource_key(res);
-	assert_str_eq("resource_key returns the appropriate key", "res_user:user1", key);
+	assert_str_eq("resource_key returns the appropriate key", "user:user1", key);
 	xfree(key);
 
 	resource_free(res);

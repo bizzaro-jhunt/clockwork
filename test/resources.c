@@ -22,31 +22,31 @@ void test_resource_keys()
 	test("RES_*: Resource Key Generation");
 	user = res_user_new("user-key");
 	k = res_user_key(user);
-	assert_str_eq("user key formatted properly", "res_user:user-key", k);
+	assert_str_eq("user key formatted properly", "user:user-key", k);
 	free(k);
 	res_user_free(user);
 
 	group = res_group_new("group-key");
 	k = res_group_key(group);
-	assert_str_eq("group key formatted properly", "res_group:group-key", k);
+	assert_str_eq("group key formatted properly", "group:group-key", k);
 	free(k);
 	res_group_free(group);
 
 	file = res_file_new("file-key");
 	k = res_file_key(file);
-	assert_str_eq("file key formatted properly", "res_file:file-key", k);
+	assert_str_eq("file key formatted properly", "file:file-key", k);
 	free(k);
 	res_file_free(file);
 
 	service = res_service_new("service-key");
 	k = res_service_key(service);
-	assert_str_eq("service key formatted properly", "res_service:service-key", k);
+	assert_str_eq("service key formatted properly", "service:service-key", k);
 	free(k);
 	res_service_free(service);
 
 	package = res_package_new("package-key");
 	k = res_package_key(package);
-	assert_str_eq("package key formatted properly", "res_package:package-key", k);
+	assert_str_eq("package key formatted properly", "package:package-key", k);
 	free(k);
 	res_package_free(package);
 }

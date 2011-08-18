@@ -118,8 +118,12 @@ unit_test_o   += stringlist.o log.o prompt.o augcw.o
 unit_test_o   += $(parser_tpl_o) $(core_o)
 
 # Functional Test runners
-fun_tests     := test/util/includer test/util/factchecker test/util/daemoncfg
-fun_tests     += test/util/presence test/util/prompter    test/util/executive
+fun_tests     := test/functional/includer
+fun_tests     += test/functional/factchecker
+fun_tests     += test/functional/daemoncfg
+fun_tests     += test/functional/presence
+fun_tests     += test/functional/prompter
+fun_tests     += test/functional/executive
 
 # Doxygen configuration for API docs
 apidocs_conf  := doc/doxy.api.conf
@@ -351,12 +355,12 @@ test/sub/proto: $(core_o) $(policy_o) proto.o
 
 functional-tests: $(fun_tests) cwcert
 
-test/util/includer:    test/util/includer.o    $(core_o) $(parser_spec_o) $(policy_o)
-test/util/factchecker: test/util/factchecker.o $(core_o) $(parser_spec_o) $(policy_o)
-test/util/daemoncfg:   test/util/daemoncfg.o   $(core_o) $(parser_conf_o)
-test/util/presence:    test/util/presence.o    $(core_o) $(parser_spec_o) $(policy_o)
-test/util/prompter:    test/util/prompter.o    $(core_o)
-test/util/executive:   test/util/executive.o   $(core_o)
+test/functional/includer:    test/functional/includer.o    $(core_o) $(parser_spec_o) $(policy_o)
+test/functional/factchecker: test/functional/factchecker.o $(core_o) $(parser_spec_o) $(policy_o)
+test/functional/daemoncfg:   test/functional/daemoncfg.o   $(core_o) $(parser_conf_o)
+test/functional/presence:    test/functional/presence.o    $(core_o) $(parser_spec_o) $(policy_o)
+test/functional/prompter:    test/functional/prompter.o    $(core_o)
+test/functional/executive:   test/functional/executive.o   $(core_o)
 
 
 ############################################################

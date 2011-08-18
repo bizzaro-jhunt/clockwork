@@ -5,7 +5,8 @@ use IO::Pipe;
 our $FAILURES = 0;
 our $TESTS = 0;
 our $ASSERTIONS = 0;
-our $DATAROOT = "test/functional/data";
+our $TESTROOT = "test/functional";
+our $DATAROOT = "$TESTROOT/data";
 
 sub finish_tests()
 {
@@ -108,7 +109,7 @@ sub test_parser_inclusion()
 	$TESTS++;
 	print "parser: inclusion tests\n";
 
-	my $includer = "./test/util/includer";
+	my $includer = "./$TESTROOT/includer";
 	my $root = "$DATAROOT/includer";
 
 	my $no_stderr = "2>/dev/null";
@@ -154,7 +155,7 @@ sub test_fact_checking()
 	$TESTS++;
 	print "parser: fact checking (if and map)\n";
 
-	my $factchecker = "./test/util/factchecker";
+	my $factchecker = "./$TESTROOT/factchecker";
 	my $root = "$DATAROOT/factchecker";
 
 	# if
@@ -242,7 +243,7 @@ sub test_overrides()
 	$TESTS++;
 	print "parser: resource overrides\n";
 
-	my $checker = "echo \"sys.hostname=test\" | ./test/util/factchecker";
+	my $checker = "echo \"sys.hostname=test\" | ./$TESTROOT/factchecker";
 	my $root = "$DATAROOT/overrides";
 
 	assert_str_equals("overrides: user GID value overridden in same policy", "res_user:override:2125:3125",
@@ -260,7 +261,7 @@ sub test_daemon_config()
 	$TESTS++;
 	print "config: basic parsing scenarios\n";
 
-	my $checker = "./test/util/daemoncfg";
+	my $checker = "./$TESTROOT/daemoncfg";
 	my $root = "$DATAROOT/daemoncfg";
 
 	assert_str_equals("unable to parse non-existent file", "unable to parse file!",
@@ -288,7 +289,7 @@ sub test_presence()
 	$TESTS++;
 	print "config: presence / absence\n";
 
-	my $checker = "./test/util/presence";
+	my $checker = "./$TESTROOT/presence";
 	my $root = "$DATAROOT/presence";
 
 	assert_str_equals("implicitly, users are defined as 'present'",
@@ -328,7 +329,7 @@ sub test_prompter()
 	$TESTS++;
 	print "prompter: echo prompts\n";
 
-	my $checker = "./test/util/prompter";
+	my $checker = "./$TESTROOT/prompter";
 	my $str;
 
 	for (my $i = 1; $i < 64; $i++) {
@@ -344,7 +345,7 @@ sub test_executive()
 	$TESTS++;
 	print "executive: capture stdout\n";
 
-	my $checker = "./test/util/executive";
+	my $checker = "./$TESTROOT/executive";
 	my $scripts = "./$DATAROOT/exec";
 
 	assert_str_equals("Can capture both stdout and stderr",

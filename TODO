@@ -4,25 +4,26 @@ List of Things To Do
 Re-org test/:
   test/unit/           -> source / object files for unit tests
   test/unit/data/      -> data for unit tests
-  test/run_unit        -> unit test runner
+  test/unit/run        -> unit test runner
 
   test/functional/     -> utils for functional tests
-  test/functional/data -> data for functional tests
-  test/run_functional  -> functional test runner
+D test/functional/data -> data for functional tests
+D test/functional/run  -> functional test runner
 
   test/memory/         -> source / object files for auxiliary memory tests
   test/memory/data     -> data for auxiliary memory tests
   test/memory/reports  -> valgrind/memcheck transcripts from aux mem tests
-  test/run_memory      -> auxiliary memory test runner
+  test/memory/run      -> auxiliary memory test runner
 
   test/setup           -> unit / functional test setup tool
+  test/run             -> test runner entry point (calls setup as needed)
 
 Re-org Make targets for tests:
-  unit        -> build / run unit tests only
-  functional  -> build / run functional tests only
+D unit        -> build / run unit tests only
+D functional  -> build / run functional tests only
   auxmem      -> build / run auxiliary memory tests only
-  test        -> build / run unit, functional and auxiliary memory tests
-  memtest     -> same as test, but run unit and functional tests under valgrind
+D test        -> build / run unit, functional and auxiliary memory tests
+D memtest     -> same as test, but run unit and functional tests under valgrind
 
   The unit, functional and auxmem targets will also have a build_*
   variant for building the executables needed to run their respecitve tests

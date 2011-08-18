@@ -208,7 +208,6 @@ cwca:    $(core_o) $(policy_o) cwca.o    $(parser_conf_o) server.o
 cwpol:   $(core_o) $(policy_o) cwpol.o   $(parser_spec_o)
 polspec: $(core_o) $(policy_o) polspec.o $(parser_spec_o)
 tplspec: $(core_o) $(policy_o) tplspec.o
-confdump: $(core_o) confdump.o $(parser_conf_o)
 sha1sum: sha1.o sha1sum.o mem.o log.o $(core_o) $(policy_o) $(parser_spec_o) $(parser_conf_o)
 
 
@@ -272,9 +271,9 @@ diagrams: doc/proto-agent.png doc/proto-cert.png
 
 
 ############################################################
-# Unit Tests
+# Regression Test Targets
 
-test: unit_tests functional_tests
+test: unit-tests functional-tests
 	find . -name '*.gcda' 2>/dev/null | xargs rm -f
 	test/setup.sh
 	@echo; echo;
@@ -282,36 +281,22 @@ test: unit_tests functional_tests
 	@echo; echo;
 	test/functional/run
 
-unit: unit_tests
-	find . -name '*.gcda' 2>/dev/null | xargs rm -f
+test-unit: coverage-clean unit-tests
 	test/setup.sh
 	@echo; echo;
 	test/run $(TESTS)
 	@echo; echo;
-	$(LCOV) --capture -o $@.tmp
-	$(LCOV) --remove $@.tmp $(no_lcov_c) > lcov.info
-	rm -f $@.tmp
+
+test-functional: coverage-clean functional-tests
+	test/setup.sh
+	@echo; echo;
+	test/functional/run
+	@echo; echo;
+
+coverage-clean:
+	find . -name '*.gcda' 2>/dev/null | xargs rm -f
 	rm -rf doc/coverage
 	mkdir -p doc/coverage
-	$(GENHTML) -o doc/coverage lcov.info
-
-unit_tests: test/run test/sub/proto
-
-test/run: $(unit_test_o)
-
-lcov.info: unit_tests functional_tests
-	find . -name '*.gcda' 2>/dev/null | xargs rm -f
-	test/setup.sh
-	test/run
-	test/functional/run
-	$(LCOV) --capture -o $@.tmp
-	$(LCOV) --remove $@.tmp $(no_lcov_c) > $@
-	rm -f $@.tmp
-
-test/sha1_files.h:
-	$(MOG) sha1_tests
-
-test/sub/proto: $(core_o) $(policy_o) proto.o
 
 ##
 ## Conditional Test Targets
@@ -324,18 +309,19 @@ test/sub/proto: $(core_o) $(policy_o) proto.o
 ##             down, because the release-mode binaries are stripped.
 ##
 ifeq ($(BUILD_MODE),development)
-memtest: unit_tests functional_tests
-	find . -name '*.gcda' 2>/dev/null | xargs rm -f
+memtest: coverage-clean unit-tests functional-tests
 	test/setup.sh
 	@echo; echo;
 	$(VG) test/run $(TEST) $(TESTS)
 	@echo; echo;
 	$(VG) test/functional/run
 
-coverage: lcov.info unit_tests functional_tests
-	rm -rf doc/coverage
-	mkdir -p doc/coverage
+coverage:
+	$(LCOV) --capture -o $@.tmp
+	$(LCOV) --remove $@.tmp $(no_lcov_c) > lcov.info
+	rm -f $@.tmp
 	$(GENHTML) -o doc/coverage lcov.info
+
 else
 coverage:
 	@echo "The \`coverage' target only makes sense in 'development' mode"
@@ -348,9 +334,22 @@ endif
 
 
 ############################################################
+# Unit Tests
+
+# Build all unit tests
+unit-tests: test/run test/sub/proto
+
+test/sha1_files.h:
+	$(MOG) sha1_tests
+
+test/run: $(unit_test_o)
+test/sub/proto: $(core_o) $(policy_o) proto.o
+
+
+############################################################
 # Functional Tests
 
-functional_tests: $(fun_tests) cwcert
+functional-tests: $(fun_tests) cwcert
 
 test/util/includer:    test/util/includer.o    $(core_o) $(parser_spec_o) $(policy_o)
 test/util/factchecker: test/util/factchecker.o $(core_o) $(parser_spec_o) $(policy_o)

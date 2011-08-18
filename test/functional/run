@@ -5,6 +5,7 @@ use IO::Pipe;
 our $FAILURES = 0;
 our $TESTS = 0;
 our $ASSERTIONS = 0;
+our $DATAROOT = "test/functional/data";
 
 sub finish_tests()
 {
@@ -108,7 +109,7 @@ sub test_parser_inclusion()
 	print "parser: inclusion tests\n";
 
 	my $includer = "./test/util/includer";
-	my $root = "test/functional/includer";
+	my $root = "$DATAROOT/includer";
 
 	my $no_stderr = "2>/dev/null";
 	my $stderr_only = "2>&1 >/dev/null";
@@ -154,7 +155,7 @@ sub test_fact_checking()
 	print "parser: fact checking (if and map)\n";
 
 	my $factchecker = "./test/util/factchecker";
-	my $root = "test/functional/factchecker";
+	my $root = "$DATAROOT/factchecker";
 
 	# if
 	assert_str_equals("factchecker: [if] if branch followed", "res_user:jade-user:2125:3125",
@@ -242,7 +243,7 @@ sub test_overrides()
 	print "parser: resource overrides\n";
 
 	my $checker = "echo \"sys.hostname=test\" | ./test/util/factchecker";
-	my $root = "test/functional/overrides";
+	my $root = "$DATAROOT/overrides";
 
 	assert_str_equals("overrides: user GID value overridden in same policy", "res_user:override:2125:3125",
 		run(qq($checker "$root/same-policy.pol" 2>/dev/null)));
@@ -260,7 +261,7 @@ sub test_daemon_config()
 	print "config: basic parsing scenarios\n";
 
 	my $checker = "./test/util/daemoncfg";
-	my $root = "test/functional/daemoncfg";
+	my $root = "$DATAROOT/daemoncfg";
 
 	assert_str_equals("unable to parse non-existent file", "unable to parse file!",
 		run(qq($checker "$root/enoent.conf" directive 2>/dev/null)));
@@ -288,7 +289,7 @@ sub test_presence()
 	print "config: presence / absence\n";
 
 	my $checker = "./test/util/presence";
-	my $root = "test/functional/presence";
+	my $root = "$DATAROOT/presence";
 
 	assert_str_equals("implicitly, users are defined as 'present'",
 		"present:user1:user2:user3\nabsent:none",
@@ -344,7 +345,7 @@ sub test_executive()
 	print "executive: capture stdout\n";
 
 	my $checker = "./test/util/executive";
-	my $scripts = "./test/functional/exec";
+	my $scripts = "./$DATAROOT/exec";
 
 	assert_str_equals("Can capture both stdout and stderr",
 		"STDOUT:this is standard output\nSTDERR:this is standard error",
@@ -368,19 +369,19 @@ sub test_cwcert()
 	$TESTS++;
 	print "cwcert: certificate and key generation\n";
 
-	my $config = "test/functional/cwcert/main.conf";
+	my $config = "$DATAROOT/cwcert/main.conf";
 	my $cwcert = "./cwcert --offline --config $config";
 
-	my $key_f = "test/tmp/key.pem";
-	my $cert_f = "test/tmp/cert.pem";
-	my $req_f = "test/tmp/request.pem";
+	my $key_f  = "test/functional/tmp/key.pem";
+	my $cert_f = "test/functional/tmp/cert.pem";
+	my $req_f  = "test/functional/tmp/request.pem";
 
 	run(qq(rm -f $key_f $cert_f $req_f));
 	assert_file_not_exists("Key does not exist initially", $key_f);
 	assert_file_not_exists("Request does not exist initially", $req_f);
 	assert_file_not_exists("Certificate does not exist initially", $cert_f);
 
-	run(qq(expect -f test/functional/cwcert/cwcert-new.expect));
+	run(qq(expect -f $DATAROOT/cwcert/cwcert-new.expect));
 
 	assert_file_exists("Key exists after `cwcert new`", $key_f);
 	assert_file_exists("Request exists after `cwcert new`", $req_f);

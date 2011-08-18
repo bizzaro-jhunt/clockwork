@@ -31,6 +31,85 @@ our $display = HUMAN;
 
 our %options = ();
 
+sub help($)
+{
+	my $topic = shift;
+
+	print "cwdb - Clockwork Database Reporting\n";
+	print "USAGE: cwdb <command> [options]\n";
+	print "\n";
+
+	if ($topic eq "lastseen") {
+		print "lastseen [options]\n";
+		print "Show all hosts and when they last checked in.\n";
+		print "\n";
+		print "OPTIONS\n";
+		print "\n";
+		print "  -t             Sort the list of hosts chronologically by their\n";
+		print "                 last seen date and time.  By default, the list is\n";
+		print "                 sorted alphabetically.\n";
+		print "\n";
+		print "  -r, --reverse  Reverse the sort order.  If used with -t, hosts\n";
+		print "                 that have checked in most recently will be at the\n";
+		print "                 top of the list.\n";
+		print "\n";
+
+	} elsif ($topic eq "host") {
+		print "host <hostname> [options]\n";
+		print "Full report for a single host.\n";
+		print "\n";
+		print "OPTIONS\n";
+		print "\n";
+		print "  -a, --after    Only show job runs after a specific date / time.\n";
+		print "\n";
+		print "  -b, --before   Only show job runs before a specific date / time.\n";
+		print "\n";
+		print "  --failed       Filter the list of resources to show only resources\n";
+		print "                 that Clockwork was unable to bring into compliance.\n";
+		print "                 Note: --failed is mutually exclusive with --fixed\n";
+		print "                       and --compliant.\n";
+		print "\n";
+		print "  --fixed        Show only resources that Clockwork fixed.\n";
+		print "\n";
+		print "  --compliant    Do not show fixed or failed resources; only display\n";
+		print "                 resources that were found to be compliant already.\n";
+		print "\n";
+		print "  -r, --reverse  By default, job runs are sorted chronologically, with\n";
+		print "                 the oldest jobs listed first.  This option reverses\n";
+		print "                 the default sort order.\n";
+		print "\n";
+		print "  -s, --summary  Summarize job runs; do not display the individual\n";
+		print "                 actions taken to enforce compliance.\n";
+		print "\n";
+
+	} elsif ($topic eq "summary") {
+		print "summary\n";
+		print "Compliance Summary for all hosts (last run).\n";
+		print "\n";
+		print "  The 'summary' command does not take any command-line arguments.\n";
+		print "\n";
+
+	} elsif ($topic eq "help") {
+		print "help [topic]\n";
+		print "Display cwdb help screens.\n";
+		print "\n";
+		print "To see command-line usage for cwdb commands, run\n";
+		print "cwdb help <command-name>\n";
+		print "\n";
+		print "For more in-depth information, please see the man pages.\n";
+		print "\n";
+
+	} else {
+		print "Commands:\n";
+		print "\n";
+		print "  lastseen  Show all hosts and when they last checked in.\n";
+		print "  host      Full report for a single host.\n";
+		print "  summary   Compliance Summary for all hosts (last run).\n";
+		print "  help      Display cwdb help screens.\n";
+		print "\n";
+	}
+}
+
 ###########################################################
 #
 # Master DB // Types of Reports:
@@ -48,7 +127,7 @@ our %options = ();
 #  --reverse, -r  ORDER BY started_at DESC
 #  --summary, -s  Only show summary of resources
 #
-# summary - Summary for all hosts
+# summary - Summary for all hosts of last run (compliance)
 #
 #
 ###########################################################
@@ -115,8 +194,13 @@ sub dispatch()
 		exit 0;
 
 	} elsif ($command eq "summary") {
-		print "`summary' not implemented quite yet...\n";
-		exit 42;
+		get_options_summary();
+		summary();
+		exit 0;
+
+	} elsif ($command eq "help") {
+		help(shift(@ARGV) || '');
+		exit 0;
 
 	} else {
 		print "Unknown command: '$command'\n";
@@ -145,6 +229,20 @@ sub percf($$)
 	my $a = shift;
 	my $b = shift;
 	return sprintf("%0.2f", $a * 100.0 / ($a+$b == 0 ? 1 : $b));
+}
+
+sub job_summary_line($)
+{
+	my $h = shift;
+	$good  = $h->{compliant} + $h->{fixed};
+	$bad   = $h->{noncompliant};
+	$pgood = percf($good, $good + $bad);
+	$pbad  = percf($bad,  $good + $bad);
+
+	$s = "$good ($pgood%) OK";
+	if ($bad > 0) { $s .= "; $bad ($pbad%) NON-COMPLIANT"; }
+
+	return $s;
 }
 
 sub find_host_by_name($)
@@ -182,6 +280,52 @@ sub lastseen()
 	}
 }
 
+sub summary()
+{
+	$dbtype == MASTERDB or bail 1, "summary makes no sense in agent context";
+
+	my $st_h = $db->prepare("SELECT id, name FROM hosts") or
+		die "SQL failed: $!";
+
+	my $st_j = $db->prepare("SELECT id FROM jobs WHERE host_id = ? ORDER BY started_at DESC LIMIT 1") or
+		die "SQL failed: $!";
+
+	my $st_r = $db->prepare("SELECT compliant, fixed FROM resources WHERE job_id = ?") or
+		die "SQL failed: $!";
+
+	my @host;
+	$st_h->execute();
+	while (@host = $st_h->fetchrow_array()) {
+		my %stats = (
+			'compliant'    => 0,
+			'noncompliant' => 0,
+			'fixed'        => 0
+		);
+
+		$st_j->execute($host[0]);
+		my @job = $st_j->fetchrow_array();
+		if (!@job) { next; }
+
+		$st_r->execute($job[0]);
+		my @resource;
+		while (@resource = $st_r->fetchrow_array()) {
+			if (!$resource[0]) {
+				$stats{noncompliant}++;
+			} elsif ($resource[1]) {
+				$stats{fixed}++;
+			} else {
+				$stats{compliant}++;
+			}
+		}
+
+		$~ = HOST_SUMMARY;
+		$^ = HOST_SUMMARY_TOP;
+		$host_name = $host[1];
+		$summary = job_summary_line(\%stats);
+		write;
+	}
+}
+
 sub host($)
 {
 	$dbtype == MASTERDB or bail 1, "host makes no sense in agent context";
@@ -196,8 +340,7 @@ sub host($)
 	my $st_a = $db->prepare("SELECT summary, result FROM actions WHERE resource_id = ? ORDER BY sequence ASC") or
 		die "SQL failed: $!";
 
-	my %summary = (
-		'total'        => 0,
+	my %stats = (
 		'compliant'    => 0,
 		'noncompliant' => 0,
 		'fixed'        => 0);
@@ -214,23 +357,23 @@ sub host($)
 			write;
 		}
 
-		$summary{compliant} = $summary{noncompliant} = $summary{fixed} = 0;
+		$stats{compliant} = $stats{noncompliant} = $stats{fixed} = 0;
 		$st_r->execute($job_id);
 		while (@resource = $st_r->fetchrow_array()) {
 			$resource_id = $resource[0];
 			if (!$resource[3]) {
 				$result = "NON-COMPLIANT";
-				$summary{noncompliant}++;
+				$stats{noncompliant}++;
 				if ($options{FILTER} ne 'all' and $options{FILTER} ne 'failed') { next; }
 
 			} elsif ($resource[4]) {
 				$result = "FIXED";
-				$summary{fixed}++;
+				$stats{fixed}++;
 				if ($options{FILTER} ne 'all' and $options{FILTER} ne 'fixed') { next; }
 
 			} else {
 				$result = "compliant";
-				$summary{compliant}++;
+				$stats{compliant}++;
 				if ($options{FILTER} ne 'all' and $options{FILTER} ne 'compliant') { next; }
 
 			}
@@ -254,14 +397,8 @@ sub host($)
 		}
 
 		if ($display == HUMAN) {
-			$good = $summary{compliant} + $summary{fixed};
-			$bad  = $summary{noncompliant};
-			$pgood = percf($good, $good + $bad);
-			$pbad  = percf($bad,  $good + $bad);
-
-			$job_summary = "$good ($pgood%) OK";
-			if ($bad > 0) { $job_summary .= "; $bad ($pbad%) NON-COMPLIANT"; }
-			$~ = HOST_JOB_SUMMARY; 
+			$~ = HOST_JOB_SUMMARY;
+			$job_summary = job_summary_line(\%stats);
 			write;
 		}
 	}
@@ -302,4 +439,14 @@ format HOST_JOB_SUMMARY =
 ------------------------------------------------------------
 @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 $job_summary
+.
+
+format HOST_SUMMARY_TOP =
+Hostname                           Compliance Summary
+--------                           ------------------
+.
+
+format HOST_SUMMARY =
+@<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<   @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+$host_name,                        $summary
 .

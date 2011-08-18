@@ -30,10 +30,6 @@ Re-org Make targets for tests:
 Variable Strings for Attribute Values
 Tests for cert.o module
 
-cwdb for Database Reporting
-  - Implement 'summary' command
-
-
 Client / Server
   - Test remediation in chroot
   - Automatic certificate enrolment

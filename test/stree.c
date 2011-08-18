@@ -372,6 +372,10 @@ void test_stree_comparison()
 	assert_int_eq("stree(a) == stree(b)", 0, stree_compare(a,b));
 	assert_int_ne("stree(b) != stree(c)", 0, stree_compare(b,c));
 	assert_int_ne("stree(a) != stree(c)", 0, stree_compare(a,c));
+
+	assert_int_eq("stree(a) == NULL", 1, stree_compare(a,NULL));
+	assert_int_eq("NULL == stree(b)", 1, stree_compare(NULL,b));
+	assert_int_eq("NULL == NULL", 1, stree_compare(NULL,NULL));
 }
 
 void test_suite_stree()

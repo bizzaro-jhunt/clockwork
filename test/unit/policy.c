@@ -2,9 +2,9 @@
 
 #include "test.h"
 #include "assertions.h"
-#include "../policy.h"
-#include "../resources.h"
-#include "../mem.h"
+#include "../../policy.h"
+#include "../../resources.h"
+#include "../../mem.h"
 
 void test_policy_creation()
 {

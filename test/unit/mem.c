@@ -1,6 +1,6 @@
 #include "test.h"
 #include "assertions.h"
-#include "../mem.h"
+#include "../../mem.h"
 
 void test_mem_xfree()
 {

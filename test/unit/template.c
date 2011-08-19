@@ -1,13 +1,13 @@
 #include "test.h"
 #include "assertions.h"
 
-#include "../template.h"
+#include "../../template.h"
 
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <fcntl.h>
 
-#define TPL_FILE "test/tmp/working_template.tpl"
+#define TPL_FILE TMPROOT "/working_template.tpl"
 
 static int template_file(const char *path, const char *contents)
 {
@@ -39,6 +39,33 @@ static int template_file(const char *path, const char *contents)
 failed:
 	close(fd);
 	return -1;
+}
+
+static void assert_template_run(const char *template, const char *expect)
+{
+	struct hash *v;
+	struct template *t;
+
+	char *actual;
+
+	v = hash_new();
+	assert_not_null("var hash is valid", v);
+	hash_set(v, "local.v1", "regression...");
+
+	assert_int_eq("Creation of template file succeeds",
+		template_file(TPL_FILE, template), 0);
+
+	t = template_create(TPL_FILE, v);
+	assert_not_null("template created", t);
+
+	actual = template_render(t);
+	assert_not_null("template rendered", t);
+
+	assert_str_eq("rendered value == expected value", actual, expect);
+
+	hash_free(v);
+	free(actual);
+	template_free(t);
 }
 
 void test_template_static()
@@ -129,32 +156,28 @@ void test_template_if()
 
 void test_template_local_vars()
 {
-	struct hash *v;
-	struct template *t;
-	const char *tpl = "<\% local.var1 = \"World!\" \%>Hello, <\%= local.var1 \%>\n";
-	const char *expect = "Hello, World!\n";
-	char *actual;
-
 	test("template: local variable expansion");
+	assert_template_run(
+		"<\% local.var1 = \"World!\" \%>Hello, <\%= local.var1 \%>\n",
+		"Hello, World!\n");
+}
 
-	v = hash_new();
-	assert_not_null("var hash is valid", v);
-	hash_set(v, "local.var1", "regression...");
+void test_template_non_echo()
+{
+	test("template: non-echo variable assignment");
+	assert_template_run(
+		"This is <\% local.var1 = \"NOT \" \%>great!\n",
+		"This is great!\n");
 
-	assert_int_eq("Creation of template file succeeds",
-		template_file(TPL_FILE, tpl), 0);
+	test("template: non-echo reference");
+	assert_template_run(
+		"Non-echo refs<\% local.var \%>\n",
+		"Non-echo refs\n");
 
-	t = template_create(TPL_FILE, v);
-	assert_not_null("template created", t);
-
-	actual = template_render(t);
-	assert_not_null("template rendered", t);
-
-	assert_str_eq("rendered value == expected value", actual, expect);
-
-	hash_free(v);
-	free(actual);
-	template_free(t);
+	test("template: non-echo string literal");
+	assert_template_run(
+		"Non-echo vals<\% \" REGRESS\" \%>\n",
+		"Non-echo vals\n");
 }
 
 void test_suite_template()
@@ -163,4 +186,5 @@ void test_suite_template()
 	test_template_var_expansion();
 	test_template_if();
 	test_template_local_vars();
+	test_template_non_echo();
 }

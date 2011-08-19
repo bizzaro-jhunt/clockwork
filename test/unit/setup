@@ -3,11 +3,18 @@
 set -e # stop on errors
 #set -x # show commands as they run
 
-DATAROOT=test/data
+DATAROOT=test/unit/data
+TMPROOT=test/unit/tmp
 SAFE_UID=100
 SAFE_GID=100
 
 ######################################################
+
+setup_tmp() {
+	rm -rf $TMPROOT
+	mkdir -p $TMPROOT
+	mkdir -p $TMPROOT/x509 # for test/unit/cert.o
+}
 
 setup_res_file() {
 	cp -a $DATAROOT/res_file/ORIG/* $DATAROOT/res_file/
@@ -22,18 +29,18 @@ setup_res_file() {
 
 setup_res_user() {
 	rm -rf /tmp/nonexistent
-	rm -rf test/tmp/new_user.home
+	rm -rf $TMPROOT/new_user.home
 }
 
 setup_userdb() {
-	rm -f test/tmp/passwd.new
-	rm -f test/tmp/shadow.new
-	rm -f test/tmp/group.new
-	rm -f test/tmp/gshadow.new
+	rm -f $TMPROOT/passwd.new
+	rm -f $TMPROOT/shadow.new
+	rm -f $TMPROOT/group.new
+	rm -f $TMPROOT/gshadow.new
 }
 
 setup_cert() {
-	X509=test/data/x509
+	X509=$DATAROOT/x509
 
 	rm -rf $X509; mkdir -p $X509
 	mkdir -p $X509/keys
@@ -92,7 +99,7 @@ organizationName       = Test CFM Root Certification Authority
 [ root_ca_extensions ]
 basicConstraints       = CA:true
 EOF
-	export OPENSSL_CONF=test/data/x509/ca.conf
+	export OPENSSL_CONF=$DATAROOT/x509/ca.conf
 	rm -f  $X509/ca/key.pem
 	rm -f  $X509/ca/cert.pem
 	rm -f  $X509/ca/index.txt
@@ -124,6 +131,7 @@ EOF
 
 ######################################################
 
+setup_tmp
 setup_res_file
 setup_res_user
 setup_userdb

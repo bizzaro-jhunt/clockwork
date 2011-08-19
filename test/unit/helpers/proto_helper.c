@@ -1,6 +1,6 @@
-#include "../../clockwork.h"
-#include "../../proto.h"
-#include "../../cert.h"
+#include "../../../clockwork.h"
+#include "../../../proto.h"
+#include "../../../cert.h"
 
 /* usage: ./test/sub/proto PDU_TYPE
 

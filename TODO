@@ -2,10 +2,6 @@ List of Things To Do
 ====================
 
 Re-org test/:
-  test/unit/           -> source / object files for unit tests
-  test/unit/data/      -> data for unit tests
-  test/unit/run        -> unit test runner
-
   test/memory/         -> source / object files for auxiliary memory tests
   test/memory/data     -> data for auxiliary memory tests
   test/memory/reports  -> valgrind/memcheck transcripts from aux mem tests

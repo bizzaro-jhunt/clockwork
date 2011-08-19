@@ -1,6 +1,6 @@
 #include "test.h"
 #include "assertions.h"
-#include "../policy.h"
+#include "../../policy.h"
 
 static struct manifest *MANIFEST;
 

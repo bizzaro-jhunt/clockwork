@@ -90,7 +90,7 @@ auto_c        := spec/lexer.c   conf/lexer.c   tpl/lexer.c
 auto_c        += spec/grammar.c conf/grammar.c tpl/grammar.c
 
 # C source files that should not participate in code coverage analysis
-no_lcov_c     := test/test.c log.c $(auto_c)
+no_lcov_c     := log.c $(auto_c) test/unit/**/* test/unit/* test/functional/*
 
 # Parser object files
 parser_spec_o := spec/lexer.o spec/grammar.o spec/parser.o
@@ -111,8 +111,8 @@ man_gz        := $(shell ls -1 man/*.1 man/*.5 | \
                    sed -e 's/\.\([0-9]\)/.\1.gz/')
 
 # Unit Tests (test suites + test targets)
-unit_test_o   := $(subst .c,.o,$(shell ls -1 test/*.c))
-unit_test_o   += $(subst .c,.o,$(shell cd test; ls -1 *.c | \
+unit_test_o   := $(subst .c,.o,$(shell ls -1 test/unit/*.c))
+unit_test_o   += $(subst .c,.o,$(shell cd test/unit; ls -1 *.c | \
                    egrep -v '(assertions|bits|fact|list|run|stree|test).c'))
 unit_test_o   += stringlist.o log.o prompt.o augcw.o
 unit_test_o   += $(parser_tpl_o) $(core_o)
@@ -277,30 +277,24 @@ diagrams: doc/proto-agent.png doc/proto-cert.png
 ############################################################
 # Regression Test Targets
 
-test: unit-tests functional-tests
-	find . -name '*.gcda' 2>/dev/null | xargs rm -f
-	test/setup.sh
-	@echo; echo;
-	test/run $(TEST) $(TESTS)
-	@echo; echo;
-	test/functional/run
-
-test-unit: coverage-clean unit-tests
-	test/setup.sh
-	@echo; echo;
-	test/run $(TESTS)
-	@echo; echo;
-
-test-functional: coverage-clean functional-tests
-	test/setup.sh
-	@echo; echo;
-	test/functional/run
-	@echo; echo;
+test: coverage-clean unit-tests run-unit-tests run-functional-tests
+test-unit: coverage-clean run-unit-tests
+test-functional: coverage-clean run-functional-tests
 
 coverage-clean:
 	find . -name '*.gcda' 2>/dev/null | xargs rm -f
 	rm -rf doc/coverage
-	mkdir -p doc/coverage
+
+run-unit-tests: unit-tests
+	test/unit/setup
+	@echo; echo;
+	test/unit/run $(TESTS)
+	@echo; echo;
+
+run-functional-tests: functional-tests
+	@echo; echo;
+	test/functional/run
+	@echo; echo;
 
 ##
 ## Conditional Test Targets
@@ -316,7 +310,7 @@ ifeq ($(BUILD_MODE),development)
 memtest: coverage-clean unit-tests functional-tests
 	test/setup.sh
 	@echo; echo;
-	$(VG) test/run $(TEST) $(TESTS)
+	$(VG) test/unit/run $(TEST) $(TESTS)
 	@echo; echo;
 	$(VG) test/functional/run
 
@@ -341,13 +335,13 @@ endif
 # Unit Tests
 
 # Build all unit tests
-unit-tests: test/run test/sub/proto
+unit-tests: test/unit/run test/unit/helpers/proto_helper
 
 test/sha1_files.h:
 	$(MOG) sha1_tests
 
-test/run: $(unit_test_o)
-test/sub/proto: $(core_o) $(policy_o) proto.o
+test/unit/run: $(unit_test_o)
+test/unit/helpers/proto_helper: $(core_o) $(policy_o) proto.o
 
 
 ############################################################
@@ -374,7 +368,7 @@ tidy:
 	rm -f lcov.info
 
 clean: tidy cleandep
-	rm -f $(COMPILED) test/run $(fun_tests) $(auto_c) $(auto_h) man/*.*.gz
+	rm -f $(COMPILED) test/unit/run $(fun_tests) $(auto_c) $(auto_h) man/*.*.gz
 	rm -f spec/*.output conf/*.output tpl/*.output
 	rm -rf $(apidocs_root)/* doc/coverage/*
 

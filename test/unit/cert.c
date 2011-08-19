@@ -1,6 +1,6 @@
 #include "test.h"
 #include "assertions.h"
-#include "../cert.h"
+#include "../../cert.h"
 
 void test_cert_key_retrieve()
 {
@@ -8,19 +8,19 @@ void test_cert_key_retrieve()
 
 	test("Cert: Private Key retrieval");
 
-	key = cert_retrieve_key("test/data/x509/keys/rsa128.pem");
+	key = cert_retrieve_key(DATAROOT "/x509/keys/rsa128.pem");
 	assert_not_null("128-bit RSA key retrieval", key);
 	assert_int_eq("rsa128.pem should be an RSA key", key->type, EVP_PKEY_RSA);
 	assert_int_eq("rsa128.pem should be 128-bit", RSA_size(key->pkey.rsa) * 8, 128);
 	EVP_PKEY_free(key);
 
-	key = cert_retrieve_key("test/data/x509/keys/rsa1024.pem");
+	key = cert_retrieve_key(DATAROOT "/x509/keys/rsa1024.pem");
 	assert_not_null("1024-bit RSA key retrieval", key);
 	assert_int_eq("rsa1024.pem should be an RSA key", key->type, EVP_PKEY_RSA);
 	assert_int_eq("rsa1024.pem should be 1024-bit", RSA_size(key->pkey.rsa) * 8, 1024);
 	EVP_PKEY_free(key);
 
-	key = cert_retrieve_key("test/data/x509/keys/rsa2048.pem");
+	key = cert_retrieve_key(DATAROOT "/x509/keys/rsa2048.pem");
 	assert_not_null("2048-bit RSA key retrieval", key);
 	assert_int_eq("rsa2048.pem should be an RSA key", key->type, EVP_PKEY_RSA);
 	assert_int_eq("rsa2048.pem should be 2048-bit", RSA_size(key->pkey.rsa) * 8, 2048);
@@ -42,12 +42,12 @@ void test_cert_key_generation()
 void test_cert_key_storage()
 {
 	EVP_PKEY *key, *reread;
-	const char *path = "test/tmp/x509/key1.pem";
+	const char *path = TMPROOT "/x509/key1.pem";
 	const char *badpath = "/path/to/nonexistent/file.pem";
 
 	test("Cert: Private Key storage");
 
-	key = cert_retrieve_key("test/data/x509/keys/rsa2048.pem");
+	key = cert_retrieve_key(DATAROOT "/x509/keys/rsa2048.pem");
 	assert_not_null("Key Retrieval (prior to store and check)", key);
 
 	assert_int_eq("Storing key in temp file succeeds", cert_store_key(key, path), 0);
@@ -65,7 +65,7 @@ void test_cert_key_storage()
 void test_cert_csr_retrieve()
 {
 	X509_REQ *request;
-	const char *path = "test/data/x509/csrs/request.pem";
+	const char *path = DATAROOT "/x509/csrs/request.pem";
 	const char *badpath = "/path/to/nonexistent/csr.pem";
 	char *subject_name;
 	const char *expected = "NiftyLogic - test.rd.niftylogic.net";
@@ -102,7 +102,7 @@ void test_cert_csr_generation()
 		.fqdn     = "c.example.net"
 	};
 
-	key = cert_retrieve_key("test/data/x509/keys/rsa2048.pem");
+	key = cert_retrieve_key(DATAROOT "/x509/keys/rsa2048.pem");
 	assert_not_null("Key for CSR generation is not null", key);
 
 	request = cert_generate_request(key, &subj);
@@ -120,12 +120,12 @@ void test_cert_csr_generation()
 void test_cert_csr_storage()
 {
 	X509_REQ *request, *reread;
-	const char *path = "test/tmp/x509/csr1.pem";
+	const char *path = TMPROOT "/x509/csr1.pem";
 	const char *badpath = "/path/to/nonexistent/file.pem";
 
 	test("Cert: CSR storage");
 
-	request = cert_retrieve_request("test/data/x509/csrs/request.pem");
+	request = cert_retrieve_request(DATAROOT "/x509/csrs/request.pem");
 	assert_not_null("CSR retrieval (prior to store and check)", request);
 
 	assert_int_eq("Storing CSR in temp file succeeds", cert_store_request(request, path), 0);

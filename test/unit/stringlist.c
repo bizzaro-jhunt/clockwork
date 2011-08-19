@@ -1,6 +1,6 @@
 #include "test.h"
 #include "assertions.h"
-#include "../stringlist.h"
+#include "../../stringlist.h"
 
 static stringlist* setup_stringlist(const char *s1, const char *s2, const char *s3)
 {

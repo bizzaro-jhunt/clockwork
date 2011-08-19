@@ -2,7 +2,7 @@
 
 #include "test.h"
 #include "assertions.h"
-#include "../userdb.h"
+#include "../../userdb.h"
 
 /*********************************************************/
 
@@ -13,21 +13,21 @@
 #define NOT_DIR  "/etc/passwd/is/not/a/directory"
 
 /* test /etc/passwd file */
-#define PWFILE     "test/data/passwd"
-#define PWFILE_UID "test/data/passwd-uid"
-#define PWFILE_NEW "test/tmp/passwd.new"
+#define PWFILE     DATAROOT "/passwd"
+#define PWFILE_UID DATAROOT "/passwd-uid"
+#define PWFILE_NEW TMPROOT  "/passwd.new"
 
 /* test /etc/shadow file */
-#define SPFILE     "test/data/shadow"
-#define SPFILE_NEW "test/tmp/shadow.new"
+#define SPFILE     DATAROOT "/shadow"
+#define SPFILE_NEW TMPROOT  "/shadow.new"
 
 /* test /etc/group file */
-#define GRFILE     "test/data/group"
-#define GRFILE_NEW "test/tmp/group.new"
+#define GRFILE     DATAROOT "/group"
+#define GRFILE_NEW TMPROOT  "/group.new"
 
 /* test /etc/gshadow file */
-#define SGFILE     "test/data/gshadow"
-#define SGFILE_NEW "test/tmp/gshadow.new"
+#define SGFILE     DATAROOT "/gshadow"
+#define SGFILE_NEW TMPROOT  "/gshadow.new"
 
 /*********************************************************/
 

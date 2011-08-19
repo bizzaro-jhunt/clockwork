@@ -1,6 +1,6 @@
 #include "test.h"
 #include "assertions.h"
-#include "../sha1.h"
+#include "../../sha1.h"
 
 #define FIPS1_IN "abc"
 #define FIPS2_IN "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"

@@ -1,16 +1,16 @@
 #include "test.h"
 #include "assertions.h"
 
-#include "../proto.h"
-#include "../cert.h"
+#include "../../proto.h"
+#include "../../cert.h"
 
 #include <sys/types.h>
 #include <sys/wait.h>
 
 #define assert_op_name(op) assert_str_eq("Op name for " #op, protocol_op_name(PROTOCOL_OP_ ## op), #op)
 
-#define SUB  "./test/sub/proto"
-#define ARG0 "proto"
+#define SUB  "./test/unit/helpers/proto_helper"
+#define ARG0 "proto_helper"
 
 struct test_proto_conn {
 	pid_t             pid;

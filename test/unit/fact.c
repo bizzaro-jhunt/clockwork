@@ -1,7 +1,7 @@
 #include "test.h"
 #include "assertions.h"
-#include "../policy.h"
-#include "../mem.h"
+#include "../../policy.h"
+#include "../../mem.h"
 
 void test_fact_parsing()
 {
@@ -22,7 +22,7 @@ void test_fact_read_io()
 	FILE *io;
 
 	test("fact: reading facts from a FILE*");
-	io = fopen("test/data/facts/good.facts", "r");
+	io = fopen(DATAROOT "/facts/good.facts", "r");
 	assert_not_null("(test sanity) good.facts file opened successfully", io);
 
 	facts = fact_read(io, NULL);
@@ -50,7 +50,7 @@ void test_fact_read_overrides()
 	test("fact: reading facts from a FILE* (overrides)");
 	facts = hash_new();
 	assert_not_null("Pre-read fact hash is valid pointer", facts);
-	io = fopen("test/data/facts/good.facts", "r");
+	io = fopen(DATAROOT "/facts/good.facts", "r");
 	assert_not_null("(test sanity) good.facts file opened successfully", io);
 
 	hash_set(facts, "test.fact1", "OVERRIDE ME");

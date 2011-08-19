@@ -1,7 +1,7 @@
 #include "test.h"
 #include "assertions.h"
-#include "../clockwork.h"
-#include "../resource.h"
+#include "../../clockwork.h"
+#include "../../resource.h"
 
 void test_resource_callbacks()
 {

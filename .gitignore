@@ -23,14 +23,15 @@ doc/api/doxygen.log
 
 certs
 
-test/run
-test/sha1_files.h
-test/data/res_file/new_file
-test/data/x509/*
+test/unit/run
+test/unit/sha1_files.h
+test/unti/data/res_file/new_file
+test/unit/data/x509/*
+test/unit/helpers/proto_helper
+test/unit/tmp/*
 test/chroot/*.chroot
 test/data/passwd-uid
 test/augeas
-test/sub/proto
 
 conf/lexer.c
 conf/grammar.c

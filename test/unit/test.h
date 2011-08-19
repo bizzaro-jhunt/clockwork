@@ -6,6 +6,9 @@
 #include <string.h>
 #include <stdlib.h>
 
+#define DATAROOT "test/unit/data"
+#define TMPROOT  "test/unit/tmp"
+
 typedef void (*test_suite_f)(void);
 
 struct test_suite {

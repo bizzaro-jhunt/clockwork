@@ -1,6 +1,6 @@
 #include "test.h"
 #include "assertions.h"
-#include "../pack.h"
+#include "../../pack.h"
 
 void test_pack_encoding_integers()
 {

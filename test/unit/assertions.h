@@ -4,8 +4,8 @@
 #include <sys/types.h>
 #include <stdarg.h>
 
-#include "../stringlist.h"
-#include "../policy.h"
+#include "../../stringlist.h"
+#include "../../policy.h"
 
 void assert_stringlist(stringlist *sl, const char *name, size_t n, ...);
 void assert_policy_has(const char *msg, const struct policy *pol, enum restype t, int num);

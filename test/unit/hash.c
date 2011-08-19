@@ -1,6 +1,6 @@
 #include "test.h"
 #include "assertions.h"
-#include "../hash.h"
+#include "../../hash.h"
 
 void test_hash_functions()
 {

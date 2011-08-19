@@ -1,6 +1,6 @@
 #include "test.h"
 #include "assertions.h"
-#include "../string.h"
+#include "../../string.h"
 
 void assert_auto_string(struct string *s, const char *value)
 {

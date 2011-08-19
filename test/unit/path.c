@@ -1,7 +1,7 @@
 #include "test.h"
 #include "assertions.h"
 
-#include "../path.h"
+#include "../../path.h"
 
 static void assert_canon(const char *orig_path, const char *expected)
 {

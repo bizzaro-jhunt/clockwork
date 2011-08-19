@@ -1,6 +1,6 @@
 #include "test.h"
 #include "assertions.h"
-#include "../list.h"
+#include "../../list.h"
 
 struct test_struct {
 	int value;

@@ -108,9 +108,9 @@ int string_append1(struct string *s, char c)
 
 int string_interpolate(char *buf, size_t len, const char *src, const struct hash *ctx)
 {
-	assert(buf);
-	assert(src);
-	assert(ctx);
+	assert(buf); // LCOV_EXCL_LINE
+	assert(src); // LCOV_EXCL_LINE
+	assert(ctx); // LCOV_EXCL_LINE
 
 	int state = SI_COPY;
 	const char *ref;

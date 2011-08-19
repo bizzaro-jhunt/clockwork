@@ -16,8 +16,8 @@ static size_t _stringlist_capacity(stringlist*);
 
 static int _stringlist_expand(stringlist *sl, size_t expand)
 {
-	assert(sl);
-	assert(expand > 0);
+	assert(sl);         // LCOV_EXCL_LINE
+	assert(expand > 0); // LCOV_EXCL_LINE
 
 	char **s;
 	expand = EXPAND_LEN(expand) + sl->len;
@@ -126,8 +126,8 @@ void stringlist_free(stringlist *sl)
 
 void stringlist_sort(stringlist* sl, sl_comparator cmp)
 {
-	assert(sl);
-	assert(cmp);
+	assert(sl);  // LCOV_EXCL_LINE
+	assert(cmp); // LCOV_EXCL_LINE
 
 	if (sl->num < 2) { return; }
 	qsort(sl->strings, sl->num, sizeof(char *), cmp);
@@ -135,7 +135,7 @@ void stringlist_sort(stringlist* sl, sl_comparator cmp)
 
 void stringlist_uniq(stringlist *sl)
 {
-	assert(sl);
+	assert(sl); // LCOV_EXCL_LINE
 
 	size_t i;
 
@@ -153,8 +153,8 @@ void stringlist_uniq(stringlist *sl)
 
 int stringlist_search(const stringlist *sl, const char* needle)
 {
-	assert(sl);
-	assert(needle);
+	assert(sl);     // LCOV_EXCL_LINE
+	assert(needle); // LCOV_EXCL_LINE
 
 	size_t i;
 	for_each_string(sl,i) {
@@ -167,8 +167,8 @@ int stringlist_search(const stringlist *sl, const char* needle)
 
 int stringlist_add(stringlist *sl, const char* str)
 {
-	assert(sl);
-	assert(str);
+	assert(sl);  // LCOV_EXCL_LINE
+	assert(str); // LCOV_EXCL_LINE
 
 	/* expand as needed */
 	if (_stringlist_capacity(sl) == 0 && _stringlist_expand(sl, 1) != 0) {
@@ -183,8 +183,8 @@ int stringlist_add(stringlist *sl, const char* str)
 
 int stringlist_add_all(stringlist *dst, const stringlist *src)
 {
-	assert(src);
-	assert(dst);
+	assert(src); // LCOV_EXCL_LINE
+	assert(dst); // LCOV_EXCL_LINE
 
 	size_t i;
 
@@ -202,8 +202,8 @@ int stringlist_add_all(stringlist *dst, const stringlist *src)
 
 int stringlist_remove(stringlist *sl, const char *str)
 {
-	assert(sl);
-	assert(str);
+	assert(sl);  // LCOV_EXCL_LINE
+	assert(str); // LCOV_EXCL_LINE
 
 	char *removed = NULL;
 	size_t i;
@@ -229,8 +229,8 @@ int stringlist_remove(stringlist *sl, const char *str)
 
 int stringlist_remove_all(stringlist *dst, stringlist *src)
 {
-	assert(src);
-	assert(dst);
+	assert(src); // LCOV_EXCL_LINE
+	assert(dst); // LCOV_EXCL_LINE
 
 	size_t s, d;
 	for_each_string(dst,d) {
@@ -264,8 +264,8 @@ stringlist *stringlist_intersect(const stringlist *a, const stringlist *b)
 
 int stringlist_diff(stringlist* a, stringlist* b)
 {
-	assert(a);
-	assert(b);
+	assert(a); // LCOV_EXCL_LINE
+	assert(b); // LCOV_EXCL_LINE
 
 	size_t i;
 
@@ -282,8 +282,8 @@ int stringlist_diff(stringlist* a, stringlist* b)
 
 char* stringlist_join(stringlist *list, const char *delim)
 {
-	assert(list);
-	assert(delim);
+	assert(list);  // LCOV_EXCL_LINE
+	assert(delim); // LCOV_EXCL_LINE
 
 	size_t i, len = 0, delim_len = strlen(delim);
 	char *joined, *ptr;

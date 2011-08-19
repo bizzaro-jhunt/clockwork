@@ -25,13 +25,13 @@ void job_free(struct job *job)
 
 int job_start(struct job *job)
 {
-	assert(job);
+	assert(job); // LCOV_EXCL_LINE
 	return gettimeofday(&job->start, NULL);
 }
 
 int job_end(struct job *job)
 {
-	assert(job);
+	assert(job); // LCOV_EXCL_LINE
 
 	struct timeval diff;
 
@@ -46,8 +46,8 @@ int job_end(struct job *job)
 
 int job_add_report(struct job *job, struct report *report)
 {
-	assert(job);
-	assert(report);
+	assert(job); // LCOV_EXCL_LINE
+	assert(report); // LCOV_EXCL_LINE
 
 	list_add_tail(&report->l, &job->reports);
 	return 0;
@@ -58,7 +58,7 @@ int job_add_report(struct job *job, struct report *report)
 #define ACTION_PACK_FORMAT "aL"
 char* job_pack(const struct job *job)
 {
-	assert(job);
+	assert(job); // LCOV_EXCL_LINE
 
 	struct report *report = NULL;
 	struct action *action = NULL;
@@ -108,7 +108,7 @@ pack_failed:
 
 struct job* job_unpack(const char *packed_job)
 {
-	assert(packed_job);
+	assert(packed_job); // LCOV_EXCL_LINE
 
 	struct job *job = NULL;
 	struct report *report = NULL;
@@ -211,8 +211,8 @@ void report_free(struct report *r)
 
 int report_add_action(struct report *report, struct action *action)
 {
-	assert(report);
-	assert(action);
+	assert(report); // LCOV_EXCL_LINE
+	assert(action); // LCOV_EXCL_LINE
 
 	list_add_tail(&action->l, &report->actions);
 	if (action->result == ACTION_FAILED) {
@@ -225,8 +225,8 @@ int report_add_action(struct report *report, struct action *action)
 
 int report_action(struct report *report, char *summary, enum action_result result)
 {
-	assert(report);
-	assert(summary);
+	assert(report); // LCOV_EXCL_LINE
+	assert(summary); // LCOV_EXCL_LINE
 
 	struct action *action = action_new(summary, result);;
 	return report_add_action(report, action);

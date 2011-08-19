@@ -251,7 +251,7 @@ unintr:
 
 static int worker_prep(worker *w)
 {
-	assert(w);
+	assert(w); // LCOV_EXCL_LINE
 
 	sigset_t blocked_signals;
 
@@ -474,7 +474,7 @@ static int handle_unknown(worker *w)
 
 static int verify_peer(worker *w)
 {
-	assert(w);
+	assert(w); // LCOV_EXCL_LINE
 
 	long err;
 	int sock;
@@ -660,7 +660,7 @@ static void show_config(server *s)
 
 static int server_init(server *s)
 {
-	assert(s);
+	assert(s); // LCOV_EXCL_LINE
 
 	struct sigaction sig;
 
@@ -837,9 +837,9 @@ static void* manager_thread(void *arg)
 
 static int server_init_ssl(server *s)
 {
-	assert(s->ca_cert_file);
-	assert(s->cert_file);
-	assert(s->key_file);
+	assert(s->ca_cert_file); // LCOV_EXCL_LINE
+	assert(s->cert_file); // LCOV_EXCL_LINE
+	assert(s->key_file); // LCOV_EXCL_LINE
 
 	X509_STORE *store;
 	X509_CRL *crl;

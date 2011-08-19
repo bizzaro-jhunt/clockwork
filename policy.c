@@ -31,7 +31,7 @@ static void stree_free(struct stree *n)
 
 static int _policy_normalize(struct policy *pol, struct hash *facts)
 {
-	assert(pol);
+	assert(pol); // LCOV_EXCL_LINE
 
 	LIST(deps);
 	struct resource *r1, *r2, *tmp;
@@ -143,7 +143,7 @@ struct stree* manifest_new_stree(struct manifest *m, enum oper op, char *data1, 
 
 int stree_add(struct stree *parent, struct stree *child)
 {
-	assert(parent);
+	assert(parent); // LCOV_EXCL_LINE
 
 	struct stree **list;
 
@@ -187,8 +187,8 @@ int stree_compare(const struct stree *a, const struct stree *b)
 
 int fact_parse(const char *line, struct hash *h)
 {
-	assert(line);
-	assert(h);
+	assert(line); // LCOV_EXCL_LINE
+	assert(h); // LCOV_EXCL_LINE
 
 	char *buf, *name, *value;
 	char *stp; /* string traversal pointer */
@@ -210,7 +210,7 @@ int fact_parse(const char *line, struct hash *h)
 
 struct hash* fact_read(FILE *io, struct hash *facts)
 {
-	assert(io);
+	assert(io); // LCOV_EXCL_LINE
 
 	char buf[8192] = {0};
 	int allocated = 0;
@@ -243,8 +243,8 @@ struct hash* fact_read(FILE *io, struct hash *facts)
 
 int fact_write(FILE *io, struct hash *facts)
 {
-	assert(io);
-	assert(facts);
+	assert(io); // LCOV_EXCL_LINE
+	assert(facts); // LCOV_EXCL_LINE
 
 	stringlist *lines;
 	char buf[8192] = {0};
@@ -268,7 +268,7 @@ int fact_write(FILE *io, struct hash *facts)
 
 static struct resource * _policy_find_resource(struct policy_generator *pgen, const char *type, const char *id)
 {
-	assert(pgen);
+	assert(pgen); // LCOV_EXCL_LINE
 
 	char *key;
 	struct resource *r = NULL;
@@ -283,8 +283,8 @@ static struct resource * _policy_find_resource(struct policy_generator *pgen, co
 
 static int _policy_generate(struct stree *node, struct policy_generator *pgen)
 {
-	assert(node);
-	assert(pgen);
+	assert(node); // LCOV_EXCL_LINE
+	assert(pgen); // LCOV_EXCL_LINE
 
 	unsigned int i;
 	struct dependency dep;
@@ -363,7 +363,7 @@ again:
 
 struct policy* policy_generate(struct stree *root, struct hash *facts)
 {
-	assert(root);
+	assert(root); // LCOV_EXCL_LINE
 
 	struct policy_generator pgen;
 
@@ -413,8 +413,8 @@ void policy_free_all(struct policy *pol)
 
 int policy_add_resource(struct policy *pol, struct resource *res)
 {
-	assert(pol);
-	assert(res);
+	assert(pol); // LCOV_EXCL_LINE
+	assert(res); // LCOV_EXCL_LINE
 
 	list_add_tail(&res->l, &pol->resources);
 	DEBUG("Adding resource %s to policy", res->key);
@@ -439,8 +439,8 @@ struct resource* policy_find_resource(struct policy *pol, enum restype type, con
 
 int policy_add_dependency(struct policy *pol, struct dependency *dep)
 {
-	assert(pol);
-	assert(dep);
+	assert(pol); // LCOV_EXCL_LINE
+	assert(dep); // LCOV_EXCL_LINE
 
 	struct dependency *d;
 	for_each_dependency(d, pol) {
@@ -458,8 +458,8 @@ int policy_add_dependency(struct policy *pol, struct dependency *dep)
 
 int policy_notify(const struct policy *pol, const struct resource *cause)
 {
-	assert(pol);
-	assert(cause);
+	assert(pol); // LCOV_EXCL_LINE
+	assert(cause); // LCOV_EXCL_LINE
 
 	struct dependency *d;
 
@@ -478,7 +478,7 @@ int policy_notify(const struct policy *pol, const struct resource *cause)
 
 char* policy_pack(const struct policy *pol)
 {
-	assert(pol);
+	assert(pol); // LCOV_EXCL_LINE
 
 	char *packed = NULL;
 	stringlist *pack_list;
@@ -525,7 +525,7 @@ policy_pack_failed:
 
 struct policy* policy_unpack(const char *packed_policy)
 {
-	assert(packed_policy);
+	assert(packed_policy); // LCOV_EXCL_LINE
 
 	struct policy *pol;
 	stringlist *pack_list;

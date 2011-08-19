@@ -122,8 +122,8 @@ void* hash_set(struct hash *h, const char *k, void *v)
  */
 static int _cursor_next(const struct hash *h, struct hash_cursor *c)
 {
-	assert(h);
-	assert(c);
+	assert(h); // LCOV_EXCL_LINE
+	assert(c); // LCOV_EXCL_LINE
 
 	const struct hash_list *hl;
 
@@ -143,8 +143,8 @@ static int _cursor_next(const struct hash *h, struct hash_cursor *c)
 
 void *hash_next(const struct hash *h, struct hash_cursor *c, char **key, void **val)
 {
-	assert(h); assert(c);
-	assert(key); assert(val);
+	assert(h); assert(c); // LCOV_EXCL_LINE
+	assert(key); assert(val); // LCOV_EXCL_LINE
 
 	const struct hash_list *hl;
 

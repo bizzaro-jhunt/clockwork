@@ -48,9 +48,9 @@ error:
 
 static int cert_X509_CRL_get0_by_serial(X509_CRL *crl, X509_REVOKED **revoked_cert, ASN1_INTEGER *serial)
 {
-	assert(crl);
-	assert(revoked_cert);
-	assert(serial);
+	assert(crl); // LCOV_EXCL_LINE
+	assert(revoked_cert); // LCOV_EXCL_LINE
+	assert(serial); // LCOV_EXCL_LINE
 
 	X509_REVOKED *needle = NULL;
 	int i, len = sk_X509_CRL_num(crl->crl->revoked);
@@ -102,7 +102,7 @@ int cert_my_hostname(char *hostname, size_t len)
 
 EVP_PKEY* cert_retrieve_key(const char *keyfile)
 {
-	assert(keyfile);
+	assert(keyfile); // LCOV_EXCL_LINE
 
 	FILE *fp;
 	EVP_PKEY *key = NULL;
@@ -119,7 +119,7 @@ EVP_PKEY* cert_retrieve_key(const char *keyfile)
 
 int cert_store_key(EVP_PKEY *key, const char *keyfile)
 {
-	assert(keyfile);
+	assert(keyfile); // LCOV_EXCL_LINE
 
 	FILE *fp;
 
@@ -531,8 +531,8 @@ int cert_store_crl(X509_CRL *crl, const char *crlfile)
 
 int cert_revoke_certificate(X509_CRL *crl, X509 *cert, EVP_PKEY *key)
 {
-	assert(crl);
-	assert(cert);
+	assert(crl); // LCOV_EXCL_LINE
+	assert(cert); // LCOV_EXCL_LINE
 
 	X509_REVOKED *revoked_cert;
 	ASN1_ENUMERATED *reason_code;

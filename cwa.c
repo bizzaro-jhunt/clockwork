@@ -402,8 +402,8 @@ static int enforce_policy(client *c, struct job *job)
 
 static int autodetect_managers(struct resource_env *env, const struct hash *facts)
 {
-	assert(env);
-	assert(facts);
+	assert(env); // LCOV_EXCL_LINE
+	assert(facts); // LCOV_EXCL_LINE
 
 	const char *dist = hash_get(facts, "lsb.distro.id");
 	if (!dist) { return -1; }

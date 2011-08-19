@@ -99,7 +99,7 @@ static int _res_file_fd2fd(int dest, int src, ssize_t bytes)
 
 static int _res_file_gen_rsha1(struct res_file *rf, struct hash *facts)
 {
-	assert(rf);
+	assert(rf); // LCOV_EXCL_LINE
 
 	int rc;
 	char *contents = NULL;
@@ -345,7 +345,7 @@ void res_user_free(void *res)
 char* res_user_key(const void *res)
 {
 	const struct res_user *ru = (struct res_user*)(res);
-	assert(ru);
+	assert(ru); // LCOV_EXCL_LINE
 
 	return string("user:%s", ru->key);
 }
@@ -353,7 +353,7 @@ char* res_user_key(const void *res)
 int res_user_attrs(const void *res, struct hash *attrs)
 {
 	const struct res_user *ru = (const struct res_user*)(res);
-	assert(ru);
+	assert(ru); // LCOV_EXCL_LINE
 
 	hash_set(attrs, "uid", ENFORCED(ru, RES_USER_UID) ? string("%u",ru->ru_uid) : NULL);
 	hash_set(attrs, "gid", ENFORCED(ru, RES_USER_GID) ? string("%u",ru->ru_gid) : NULL);
@@ -378,7 +378,7 @@ int res_user_norm(void *res, struct policy *pol, struct hash *facts) { return 0;
 int res_user_set(void *res, const char *name, const char *value)
 {
 	struct res_user *ru = (struct res_user*)(res);
-	assert(ru);
+	assert(ru); // LCOV_EXCL_LINE
 
 	if (strcmp(name, "uid") == 0) {
 		ru->ru_uid = strtoll(value, NULL, 10);
@@ -460,7 +460,7 @@ int res_user_set(void *res, const char *name, const char *value)
 int res_user_match(const void *res, const char *name, const char *value)
 {
 	const struct res_user *ru = (const struct res_user*)(res);
-	assert(ru);
+	assert(ru); // LCOV_EXCL_LINE
 
 	char *test_value;
 	int rc;
@@ -488,10 +488,10 @@ int res_user_stat(void *res, const struct resource_env *env)
 	unsigned char locked;
 	struct stat home;
 
-	assert(ru);
-	assert(env);
-	assert(env->user_pwdb);
-	assert(env->user_spdb);
+	assert(ru); // LCOV_EXCL_LINE
+	assert(env); // LCOV_EXCL_LINE
+	assert(env->user_pwdb); // LCOV_EXCL_LINE
+	assert(env->user_spdb); // LCOV_EXCL_LINE
 
 	ru->ru_pw = pwdb_get_by_name(env->user_pwdb, ru->ru_name);
 	ru->ru_sp = spdb_get_by_name(env->user_spdb, ru->ru_name);
@@ -566,10 +566,10 @@ int res_user_stat(void *res, const struct resource_env *env)
 struct report* res_user_fixup(void *res, int dryrun, const struct resource_env *env)
 {
 	struct res_user *ru = (struct res_user*)(res);
-	assert(ru);
-	assert(env);
-	assert(env->user_pwdb);
-	assert(env->user_spdb);
+	assert(ru); // LCOV_EXCL_LINE
+	assert(env); // LCOV_EXCL_LINE
+	assert(env->user_pwdb); // LCOV_EXCL_LINE
+	assert(env->user_spdb); // LCOV_EXCL_LINE
 
 	struct report *report;
 	char *action;
@@ -853,7 +853,7 @@ struct report* res_user_fixup(void *res, int dryrun, const struct resource_env *
 char* res_user_pack(const void *res)
 {
 	const struct res_user *ru = (const struct res_user*)(res);
-	assert(ru);
+	assert(ru); // LCOV_EXCL_LINE
 
 	return pack("res_user::", PACK_FORMAT,
 	            ru->key, ru->enforced,
@@ -942,7 +942,7 @@ void res_file_free(void *res)
 char* res_file_key(const void *res)
 {
 	const struct res_file *rf = (struct res_file*)(res);
-	assert(rf);
+	assert(rf); // LCOV_EXCL_LINE
 
 	return string("file:%s", rf->key);
 }
@@ -952,7 +952,7 @@ char* res_file_key(const void *res)
 int res_file_attrs(const void *res, struct hash *attrs)
 {
 	const struct res_file *rf = (const struct res_file*)(res);
-	assert(rf);
+	assert(rf); // LCOV_EXCL_LINE
 
 	hash_set(attrs, "path", rf->rf_lpath);
 	hash_set(attrs, "present", strdup(ENFORCED(rf, RES_FILE_ABSENT) ? "no" : "yes"));
@@ -975,7 +975,7 @@ int res_file_attrs(const void *res, struct hash *attrs)
 int res_file_norm(void *res, struct policy *pol, struct hash *facts)
 {
 	struct res_file *rf = (struct res_file*)(res);
-	assert(rf);
+	assert(rf); // LCOV_EXCL_LINE
 
 	struct dependency *dep;
 	struct resource *other;
@@ -1021,7 +1021,7 @@ int res_file_norm(void *res, struct policy *pol, struct hash *facts)
 int res_file_set(void *res, const char *name, const char *value)
 {
 	struct res_file *rf = (struct res_file*)(res);
-	assert(rf);
+	assert(rf); // LCOV_EXCL_LINE
 
 	if (strcmp(name, "owner") == 0) {
 		free(rf->rf_owner);
@@ -1072,7 +1072,7 @@ int res_file_set(void *res, const char *name, const char *value)
 int res_file_match(const void *res, const char *name, const char *value)
 {
 	const struct res_file *rf = (struct res_file*)(res);
-	assert(rf);
+	assert(rf); // LCOV_EXCL_LINE
 
 	char *test_value;
 	int rc;
@@ -1096,17 +1096,17 @@ int res_file_stat(void *res, const struct resource_env *env)
 {
 	struct res_file *rf = (struct res_file*)(res);
 
-	assert(rf);
-	assert(rf->rf_lpath);
+	assert(rf); // LCOV_EXCL_LINE
+	assert(rf->rf_lpath); // LCOV_EXCL_LINE
 
 	if (!rf->rf_uid && rf->rf_owner) {
-		assert(env);
-		assert(env->user_pwdb);
+		assert(env); // LCOV_EXCL_LINE
+		assert(env->user_pwdb); // LCOV_EXCL_LINE
 		rf->rf_uid = pwdb_lookup_uid(env->user_pwdb,  rf->rf_owner);
 	}
 	if (!rf->rf_gid && rf->rf_group) {
-		assert(env);
-		assert(env->group_grdb);
+		assert(env); // LCOV_EXCL_LINE
+		assert(env->group_grdb); // LCOV_EXCL_LINE
 		rf->rf_gid = grdb_lookup_gid(env->group_grdb, rf->rf_group);
 	}
 
@@ -1146,8 +1146,8 @@ int res_file_stat(void *res, const struct resource_env *env)
 struct report* res_file_fixup(void *res, int dryrun, const struct resource_env *env)
 {
 	struct res_file *rf = (struct res_file*)(res);
-	assert(rf);
-	assert(env);
+	assert(rf); // LCOV_EXCL_LINE
+	assert(env); // LCOV_EXCL_LINE
 
 	struct report *report = report_new("File", rf->rf_lpath);
 	char *action;
@@ -1194,7 +1194,7 @@ struct report* res_file_fixup(void *res, int dryrun, const struct resource_env *
 	}
 
 	if (DIFFERENT(rf, RES_FILE_SHA1)) {
-		assert(rf->rf_lpath);
+		assert(rf->rf_lpath); // LCOV_EXCL_LINE
 
 		action = string("update content from master copy");
 		if (dryrun) {
@@ -1273,7 +1273,7 @@ struct report* res_file_fixup(void *res, int dryrun, const struct resource_env *
 char* res_file_pack(const void *res)
 {
 	const struct res_file *rf = (const struct res_file*)(res);
-	assert(rf);
+	assert(rf); // LCOV_EXCL_LINE
 
 	return pack("res_file::", PACK_FORMAT,
 	            rf->key, rf->enforced,
@@ -1367,7 +1367,7 @@ void res_group_free(void *res)
 char* res_group_key(const void *res)
 {
 	const struct res_group *rg = (struct res_group*)(res);
-	assert(rg);
+	assert(rg); // LCOV_EXCL_LINE
 
 	return string("group:%s", rg->key);
 }
@@ -1407,7 +1407,7 @@ static char* _res_group_roster_mv(stringlist *add, stringlist *rm)
 int res_group_attrs(const void *res, struct hash *attrs)
 {
 	const struct res_group *rg = (const struct res_group*)(res);
-	assert(rg);
+	assert(rg); // LCOV_EXCL_LINE
 
 	hash_set(attrs, "gid", ENFORCED(rg, RES_GROUP_GID) ? string("%u",rg->rg_gid) : NULL);
 	hash_set(attrs, "name", ENFORCED(rg, RES_GROUP_NAME) ? strdup(rg->rg_name) : NULL);
@@ -1436,7 +1436,7 @@ int res_group_set(void *res, const char *name, const char *value)
 	stringlist *multi;
 	size_t i;
 
-	assert(rg);
+	assert(rg); // LCOV_EXCL_LINE
 
 	if (strcmp(name, "gid") == 0) {
 		rg->rg_gid = strtoll(value, NULL, 10);
@@ -1497,7 +1497,7 @@ int res_group_set(void *res, const char *name, const char *value)
 int res_group_match(const void *res, const char *name, const char *value)
 {
 	const struct res_group *rg = (struct res_group*)(res);
-	assert(rg);
+	assert(rg); // LCOV_EXCL_LINE
 
 	char *test_value;
 	int rc;
@@ -1517,7 +1517,7 @@ int res_group_match(const void *res, const char *name, const char *value)
 
 int res_group_enforce_members(struct res_group *rg, int enforce)
 {
-	assert(rg);
+	assert(rg); // LCOV_EXCL_LINE
 
 	if (enforce) {
 		ENFORCE(rg, RES_GROUP_MEMBERS);
@@ -1530,8 +1530,8 @@ int res_group_enforce_members(struct res_group *rg, int enforce)
 /* updates rg_mem_add */
 int res_group_add_member(struct res_group *rg, const char *user)
 {
-	assert(rg);
-	assert(user);
+	assert(rg); // LCOV_EXCL_LINE
+	assert(user); // LCOV_EXCL_LINE
 
 	res_group_enforce_members(rg, 1);
 	/* add to rg_mem_add, remove from rg_mem_rm */
@@ -1540,8 +1540,8 @@ int res_group_add_member(struct res_group *rg, const char *user)
 /* updates rg_mem_rm */
 int res_group_remove_member(struct res_group *rg, const char *user)
 {
-	assert(rg);
-	assert(user);
+	assert(rg); // LCOV_EXCL_LINE
+	assert(user); // LCOV_EXCL_LINE
 
 	res_group_enforce_members(rg, 1);
 	/* add to rg_mem_rm, remove from rg_mem_add */
@@ -1550,7 +1550,7 @@ int res_group_remove_member(struct res_group *rg, const char *user)
 
 int res_group_enforce_admins(struct res_group *rg, int enforce)
 {
-	assert(rg);
+	assert(rg); // LCOV_EXCL_LINE
 
 	if (enforce) {
 		ENFORCE(rg, RES_GROUP_ADMINS);
@@ -1563,8 +1563,8 @@ int res_group_enforce_admins(struct res_group *rg, int enforce)
 /* updates rg_adm_add */
 int res_group_add_admin(struct res_group *rg, const char *user)
 {
-	assert(rg);
-	assert(user);
+	assert(rg); // LCOV_EXCL_LINE
+	assert(user); // LCOV_EXCL_LINE
 
 	res_group_enforce_admins(rg, 1);
 	/* add to rg_adm_add, remove from rg_adm_rm */
@@ -1574,8 +1574,8 @@ int res_group_add_admin(struct res_group *rg, const char *user)
 /* updates rg_adm_rm */
 int res_group_remove_admin(struct res_group *rg, const char *user)
 {
-	assert(rg);
-	assert(user);
+	assert(rg); // LCOV_EXCL_LINE
+	assert(user); // LCOV_EXCL_LINE
 
 	res_group_enforce_admins(rg, 1);
 	/* add to rg_adm_rm, remove from rg_adm_add */
@@ -1587,10 +1587,10 @@ int res_group_stat(void *res, const struct resource_env *env)
 	struct res_group *rg = (struct res_group*)(res);
 	stringlist *list;
 
-	assert(rg);
-	assert(env);
-	assert(env->group_grdb);
-	assert(env->group_sgdb);
+	assert(rg); // LCOV_EXCL_LINE
+	assert(env); // LCOV_EXCL_LINE
+	assert(env->group_grdb); // LCOV_EXCL_LINE
+	assert(env->group_sgdb); // LCOV_EXCL_LINE
 
 	rg->rg_grp = grdb_get_by_name(env->group_grdb, rg->rg_name);
 	rg->rg_sg = sgdb_get_by_name(env->group_sgdb, rg->rg_name);
@@ -1656,10 +1656,10 @@ int res_group_stat(void *res, const struct resource_env *env)
 struct report* res_group_fixup(void *res, int dryrun, const struct resource_env *env)
 {
 	struct res_group *rg = (struct res_group*)(res);
-	assert(rg);
-	assert(env);
-	assert(env->group_grdb);
-	assert(env->group_sgdb);
+	assert(rg); // LCOV_EXCL_LINE
+	assert(env); // LCOV_EXCL_LINE
+	assert(env->group_grdb); // LCOV_EXCL_LINE
+	assert(env->group_sgdb); // LCOV_EXCL_LINE
 
 	struct report *report;
 	char *action;
@@ -1803,7 +1803,7 @@ struct report* res_group_fixup(void *res, int dryrun, const struct resource_env 
 char *res_group_pack(const void *res)
 {
 	const struct res_group *rg = (const struct res_group*)(res);
-	assert(rg);
+	assert(rg); // LCOV_EXCL_LINE
 
 	char *tmp;
 	char *mem_add = NULL, *mem_rm = NULL,
@@ -1902,7 +1902,7 @@ void res_package_free(void *res)
 char* res_package_key(const void *res)
 {
 	const struct res_package *rp = (struct res_package*)(res);
-	assert(rp);
+	assert(rp); // LCOV_EXCL_LINE
 
 	return string("package:%s", rp->key);
 }
@@ -1910,7 +1910,7 @@ char* res_package_key(const void *res)
 int res_package_attrs(const void *res, struct hash *attrs)
 {
 	const struct res_package *rp = (const struct res_package*)(res);
-	assert(rp);
+	assert(rp); // LCOV_EXCL_LINE
 
 	hash_set(attrs, "name", xstrdup(rp->name));
 	hash_set(attrs, "version", xstrdup(rp->version));
@@ -1923,7 +1923,7 @@ int res_package_norm(void *res, struct policy *pol, struct hash *facts) { return
 int res_package_set(void *res, const char *name, const char *value)
 {
 	struct res_package *rp = (struct res_package*)(res);
-	assert(rp);
+	assert(rp); // LCOV_EXCL_LINE
 
 	if (strcmp(name, "name") == 0) {
 		free(rp->name);
@@ -1950,7 +1950,7 @@ int res_package_set(void *res, const char *name, const char *value)
 int res_package_match(const void *res, const char *name, const char *value)
 {
 	const struct res_package *rp = (const struct res_package*)(res);
-	assert(rp);
+	assert(rp); // LCOV_EXCL_LINE
 
 	char *test_value;
 	int rc;
@@ -1970,9 +1970,9 @@ int res_package_stat(void *res, const struct resource_env *env)
 {
 	struct res_package *rp = (struct res_package*)(res);
 
-	assert(rp);
-	assert(env);
-	assert(env->package_manager);
+	assert(rp); // LCOV_EXCL_LINE
+	assert(env); // LCOV_EXCL_LINE
+	assert(env->package_manager); // LCOV_EXCL_LINE
 
 	free(rp->installed);
 	rp->installed = package_version(env->package_manager, rp->name);
@@ -1984,9 +1984,9 @@ struct report* res_package_fixup(void *res, int dryrun, const struct resource_en
 {
 	struct res_package *rp = (struct res_package*)(res);
 
-	assert(rp);
-	assert(env);
-	assert(env->package_manager);
+	assert(rp); // LCOV_EXCL_LINE
+	assert(env); // LCOV_EXCL_LINE
+	assert(env->package_manager); // LCOV_EXCL_LINE
 
 	struct report *report = report_new("Package", rp->name);
 	char *action;
@@ -2043,7 +2043,7 @@ struct report* res_package_fixup(void *res, int dryrun, const struct resource_en
 char* res_package_pack(const void *res)
 {
 	const struct res_package *rp = (const struct res_package*)(res);
-	assert(rp);
+	assert(rp); // LCOV_EXCL_LINE
 
 	return pack("res_package::", PACK_FORMAT,
 	            rp->key, rp->enforced, rp->name, rp->version);
@@ -2106,7 +2106,7 @@ void res_service_free(void *res)
 char* res_service_key(const void *res)
 {
 	const struct res_service *rs = (struct res_service*)(res);
-	assert(rs);
+	assert(rs); // LCOV_EXCL_LINE
 
 	return string("service:%s", rs->key);
 }
@@ -2114,7 +2114,7 @@ char* res_service_key(const void *res)
 int res_service_attrs(const void *res, struct hash *attrs)
 {
 	const struct res_service *rs = (const struct res_service*)(res);
-	assert(rs);
+	assert(rs); // LCOV_EXCL_LINE
 
 	hash_set(attrs, "name", xstrdup(rs->service));
 	hash_set(attrs, "running", strdup(ENFORCED(rs, RES_SERVICE_RUNNING) ? "yes" : "no"));
@@ -2127,7 +2127,7 @@ int res_service_norm(void *res, struct policy *pol, struct hash *facts) { return
 int res_service_set(void *res, const char *name, const char *value)
 {
 	struct res_service *rs = (struct res_service*)(res);
-	assert(rs);
+	assert(rs); // LCOV_EXCL_LINE
 
 	if (strcmp(name, "name") == 0 || strcmp(name, "service") == 0) {
 		free(rs->service);
@@ -2179,7 +2179,7 @@ int res_service_set(void *res, const char *name, const char *value)
 int res_service_match(const void *res, const char *name, const char *value)
 {
 	const struct res_service *rs = (const struct res_service*)(res);
-	assert(rs);
+	assert(rs); // LCOV_EXCL_LINE
 
 	char *test_value;
 	int rc;
@@ -2199,9 +2199,9 @@ int res_service_stat(void *res, const struct resource_env *env)
 {
 	struct res_service *rs = (struct res_service*)(res);
 
-	assert(rs);
-	assert(env);
-	assert(env->service_manager);
+	assert(rs); // LCOV_EXCL_LINE
+	assert(env); // LCOV_EXCL_LINE
+	assert(env->service_manager); // LCOV_EXCL_LINE
 
 	rs->enabled = (service_enabled(env->service_manager, rs->service) == 0 ? 1 : 0);
 	rs->running = (service_running(env->service_manager, rs->service) == 0 ? 1 : 0);
@@ -2213,9 +2213,9 @@ struct report* res_service_fixup(void *res, int dryrun, const struct resource_en
 {
 	struct res_service *rs = (struct res_service*)(res);
 
-	assert(rs);
-	assert(env);
-	assert(env->service_manager);
+	assert(rs); // LCOV_EXCL_LINE
+	assert(env); // LCOV_EXCL_LINE
+	assert(env->service_manager); // LCOV_EXCL_LINE
 
 	struct report *report = report_new("Service", rs->service);
 	char *action;
@@ -2285,7 +2285,7 @@ struct report* res_service_fixup(void *res, int dryrun, const struct resource_en
 char* res_service_pack(const void *res)
 {
 	const struct res_service *rs = (const struct res_service*)(res);
-	assert(rs);
+	assert(rs); // LCOV_EXCL_LINE
 
 	return pack("res_service::", PACK_FORMAT,
 	            rs->key, rs->enforced, rs->service);
@@ -2309,7 +2309,7 @@ void* res_service_unpack(const char *packed)
 int res_service_notify(void *res, const struct resource *dep)
 {
 	struct res_service *rs = (struct res_service*)(res);
-	assert(rs);
+	assert(rs); // LCOV_EXCL_LINE
 
 	rs->notified = 1;
 
@@ -2353,7 +2353,7 @@ void res_host_free(void *res)
 char* res_host_key(const void *res)
 {
 	const struct res_host *rh = (struct res_host*)(res);
-	assert(rh);
+	assert(rh); // LCOV_EXCL_LINE
 
 	return string("host:%s", rh->key);
 }
@@ -2361,7 +2361,7 @@ char* res_host_key(const void *res)
 int res_host_attrs(const void *res, struct hash *attrs)
 {
 	const struct res_host *rh = (const struct res_host*)(res);
-	assert(rh);
+	assert(rh); // LCOV_EXCL_LINE
 
 	hash_set(attrs, "hostname", xstrdup(rh->hostname));
 	hash_set(attrs, "ip", xstrdup(rh->ip));
@@ -2378,7 +2378,7 @@ int res_host_norm(void *res, struct policy *pol, struct hash *facts) { return 0;
 int res_host_set(void *res, const char *name, const char *value)
 {
 	struct res_host *rh = (struct res_host*)(res);
-	assert(rh);
+	assert(rh); // LCOV_EXCL_LINE
 	stringlist *alias_tmp;
 
 	if (strcmp(name, "hostname") == 0) {
@@ -2409,7 +2409,7 @@ int res_host_set(void *res, const char *name, const char *value)
 int res_host_match(const void *res, const char *name, const char *value)
 {
 	const struct res_host *rh = (const struct res_host*)(res);
-	assert(rh);
+	assert(rh); // LCOV_EXCL_LINE
 
 	char *test_value;
 	int rc;
@@ -2430,9 +2430,9 @@ int res_host_match(const void *res, const char *name, const char *value)
 int res_host_stat(void *res, const struct resource_env *env)
 {
 	struct res_host *rh = (struct res_host*)(res);
-	assert(rh);
-	assert(env);
-	assert(env->aug_context);
+	assert(rh); // LCOV_EXCL_LINE
+	assert(env); // LCOV_EXCL_LINE
+	assert(env->aug_context); // LCOV_EXCL_LINE
 
 	char *tmp, **results;
 	const char *value;
@@ -2489,8 +2489,8 @@ int res_host_stat(void *res, const struct resource_env *env)
 struct report* res_host_fixup(void *res, int dryrun, const struct resource_env *env)
 {
 	struct res_host *rh = (struct res_host*)(res);
-	assert(rh);
-	assert(env);
+	assert(rh); // LCOV_EXCL_LINE
+	assert(env); // LCOV_EXCL_LINE
 
 	char *tmp1, *tmp2;
 	int i;
@@ -2589,7 +2589,7 @@ struct report* res_host_fixup(void *res, int dryrun, const struct resource_env *
 char* res_host_pack(const void *res)
 {
 	const struct res_host *rh = (const struct res_host*)(res);
-	assert(rh);
+	assert(rh); // LCOV_EXCL_LINE
 
 	char *joined;
 	char *p;
@@ -2663,7 +2663,7 @@ void res_sysctl_free(void *res)
 char* res_sysctl_key(const void *res)
 {
 	const struct res_sysctl *rs = (struct res_sysctl*)(res);
-	assert(rs);
+	assert(rs); // LCOV_EXCL_LINE
 
 	return string("sysctl:%s", rs->key);
 }
@@ -2671,7 +2671,7 @@ char* res_sysctl_key(const void *res)
 int res_sysctl_attrs(const void *res, struct hash *attrs)
 {
 	const struct res_sysctl *rs = (const struct res_sysctl*)(res);
-	assert(rs);
+	assert(rs); // LCOV_EXCL_LINE
 
 	hash_set(attrs, "param", xstrdup(rs->param));
 	hash_set(attrs, "value", ENFORCED(rs, RES_SYSCTL_VALUE) ? strdup(rs->value) : NULL);
@@ -2684,7 +2684,7 @@ int res_sysctl_norm(void *res, struct policy *pol, struct hash *facts) { return 
 int res_sysctl_set(void *res, const char *name, const char *value)
 {
 	struct res_sysctl *rs = (struct res_sysctl*)(res);
-	assert(rs);
+	assert(rs); // LCOV_EXCL_LINE
 
 	if (strcmp(name, "param") == 0) {
 		free(rs->param);
@@ -2713,7 +2713,7 @@ int res_sysctl_set(void *res, const char *name, const char *value)
 int res_sysctl_match(const void *res, const char *name, const char *value)
 {
 	const struct res_sysctl *rs = (const struct res_sysctl*)(res);
-	assert(rs);
+	assert(rs); // LCOV_EXCL_LINE
 
 	char *test_value;
 	int rc;
@@ -2732,7 +2732,7 @@ int res_sysctl_match(const void *res, const char *name, const char *value)
 int res_sysctl_stat(void *res, const struct resource_env *env)
 {
 	struct res_sysctl *rs = (struct res_sysctl*)(res);
-	assert(rs);
+	assert(rs); // LCOV_EXCL_LINE
 
 	char *tmp;
 	const char *aug_value;
@@ -2766,7 +2766,7 @@ int res_sysctl_stat(void *res, const struct resource_env *env)
 struct report* res_sysctl_fixup(void *res, int dryrun, const struct resource_env *env)
 {
 	struct res_sysctl *rs = (struct res_sysctl*)(res);
-	assert(rs);
+	assert(rs); // LCOV_EXCL_LINE
 
 	char *aug_path;
 
@@ -2810,7 +2810,7 @@ struct report* res_sysctl_fixup(void *res, int dryrun, const struct resource_env
 char* res_sysctl_pack(const void *res)
 {
 	const struct res_sysctl *rs = (const struct res_sysctl*)(res);
-	assert(rs);
+	assert(rs); // LCOV_EXCL_LINE
 
 	return pack("res_sysctl::", PACK_FORMAT,
 		rs->key, rs->enforced,
@@ -2875,7 +2875,7 @@ void res_dir_free(void *res)
 char *res_dir_key(const void *res)
 {
 	const struct res_dir *rd = (const struct res_dir*)(res);
-	assert(rd);
+	assert(rd); // LCOV_EXCL_LINE
 
 	return string("dir:%s", rd->key);
 }
@@ -2883,7 +2883,7 @@ char *res_dir_key(const void *res)
 int res_dir_attrs(const void *res, struct hash *attrs)
 {
 	const struct res_dir *rd = (const struct res_dir*)(res);
-	assert(rd);
+	assert(rd); // LCOV_EXCL_LINE
 
 	hash_set(attrs, "path", xstrdup(rd->path));
 	hash_set(attrs, "owner", ENFORCED(rd, RES_DIR_UID) ? strdup(rd->owner) : NULL);
@@ -2896,7 +2896,7 @@ int res_dir_attrs(const void *res, struct hash *attrs)
 int res_dir_norm(void *res, struct policy *pol, struct hash *facts)
 {
 	struct res_dir *rd = (struct res_dir*)(res);
-	assert(rd);
+	assert(rd); // LCOV_EXCL_LINE
 
 	struct dependency *dep;
 	struct resource *other;
@@ -2940,7 +2940,7 @@ int res_dir_norm(void *res, struct policy *pol, struct hash *facts)
 int res_dir_set(void *res, const char *name, const char *value)
 {
 	struct res_dir *rd = (struct res_dir*)(res);
-	assert(rd);
+	assert(rd); // LCOV_EXCL_LINE
 
 	if (strcmp(name, "owner") == 0) {
 		free(rd->owner);
@@ -2979,7 +2979,7 @@ int res_dir_set(void *res, const char *name, const char *value)
 int res_dir_match(const void *res, const char *name, const char *value)
 {
 	const struct res_dir *rd = (struct res_dir*)(res);
-	assert(rd);
+	assert(rd); // LCOV_EXCL_LINE
 
 	char *test_value;
 	int rc;
@@ -2998,8 +2998,8 @@ int res_dir_match(const void *res, const char *name, const char *value)
 int res_dir_stat(void *res, const struct resource_env *env)
 {
 	struct res_dir *rd = (struct res_dir*)(res);
-	assert(rd);
-	assert(rd->path);
+	assert(rd); // LCOV_EXCL_LINE
+	assert(rd->path); // LCOV_EXCL_LINE
 
 	rd->uid = pwdb_lookup_uid(env->user_pwdb,  rd->owner);
 	rd->gid = grdb_lookup_gid(env->group_grdb, rd->group);
@@ -3029,8 +3029,8 @@ int res_dir_stat(void *res, const struct resource_env *env)
 struct report* res_dir_fixup(void *res, int dryrun, const struct resource_env *env)
 {
 	struct res_dir *rd = (struct res_dir*)(res);
-	assert(rd);
-	assert(env);
+	assert(rd); // LCOV_EXCL_LINE
+	assert(env); // LCOV_EXCL_LINE
 
 	struct report *report = report_new("Directory", rd->path);
 	char *action;
@@ -3121,7 +3121,7 @@ struct report* res_dir_fixup(void *res, int dryrun, const struct resource_env *e
 char *res_dir_pack(const void *res)
 {
 	const struct res_dir *rd = (const struct res_dir*)(res);
-	assert(rd);
+	assert(rd); // LCOV_EXCL_LINE
 
 	return pack("res_dir::", PACK_FORMAT,
 		rd->key, rd->enforced,

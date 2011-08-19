@@ -63,8 +63,8 @@ typedef void* (*resource_unpack_f)(const char *packed);
 
 struct resource* resource_new(const char *type, const char *key)
 {
-	assert(type);
-	assert(key);
+	assert(type); // LCOV_EXCL_LINE
+	assert(key); // LCOV_EXCL_LINE
 
 	enum restype i;
 	struct resource *r = xmalloc(sizeof(struct resource));
@@ -100,16 +100,16 @@ void resource_free(struct resource *r)
 
 char *resource_key(const struct resource *r)
 {
-	assert(r);
-	assert(r->type != RES_UNKNOWN);
+	assert(r); // LCOV_EXCL_LINE
+	assert(r->type != RES_UNKNOWN); // LCOV_EXCL_LINE
 
 	return (*(resource_types[r->type].key_callback))(r->resource);
 }
 
 struct hash* resource_attrs(const struct resource *r)
 {
-	assert(r);
-	assert(r->type != RES_UNKNOWN);
+	assert(r); // LCOV_EXCL_LINE
+	assert(r->type != RES_UNKNOWN); // LCOV_EXCL_LINE
 
 	struct hash *attrs = hash_new();
 	if (!attrs) { return NULL; }
@@ -124,59 +124,59 @@ struct hash* resource_attrs(const struct resource *r)
 
 int resource_norm(struct resource *r, struct policy *pol, struct hash *facts)
 {
-	assert(r);
-	assert(r->type != RES_UNKNOWN);
+	assert(r); // LCOV_EXCL_LINE
+	assert(r->type != RES_UNKNOWN); // LCOV_EXCL_LINE
 
 	return (*(resource_types[r->type].norm_callback))(r->resource, pol, facts);
 }
 
 int resource_set(struct resource *r, const char *attr, const char *value)
 {
-	assert(r);
-	assert(r->type != RES_UNKNOWN);
-	assert(attr);
-	assert(value);
+	assert(r); // LCOV_EXCL_LINE
+	assert(r->type != RES_UNKNOWN); // LCOV_EXCL_LINE
+	assert(attr); // LCOV_EXCL_LINE
+	assert(value); // LCOV_EXCL_LINE
 
 	return (*(resource_types[r->type].set_callback))(r->resource, attr, value);
 }
 
 int resource_stat(struct resource *r, const struct resource_env *env)
 {
-	assert(r);
-	assert(r->type != RES_UNKNOWN);
-	assert(env);
+	assert(r); // LCOV_EXCL_LINE
+	assert(r->type != RES_UNKNOWN); // LCOV_EXCL_LINE
+	assert(env); // LCOV_EXCL_LINE
 
 	return (*(resource_types[r->type].stat_callback))(r->resource, env);
 }
 
 struct report* resource_fixup(struct resource *r, int dryrun, const struct resource_env *env)
 {
-	assert(r);
-	assert(r->type != RES_UNKNOWN);
-	assert(env);
+	assert(r); // LCOV_EXCL_LINE
+	assert(r->type != RES_UNKNOWN); // LCOV_EXCL_LINE
+	assert(env); // LCOV_EXCL_LINE
 
 	return (*(resource_types[r->type].fixup_callback))(r->resource, dryrun, env);
 }
 
 int resource_notify(struct resource *r, const struct resource *dep)
 {
-	assert(r);
-	assert(r->type != RES_UNKNOWN);
+	assert(r); // LCOV_EXCL_LINE
+	assert(r->type != RES_UNKNOWN); // LCOV_EXCL_LINE
 
 	return (*(resource_types[r->type].notify_callback))(r->resource, dep);
 }
 
 char *resource_pack(const struct resource *r)
 {
-	assert(r);
-	assert(r->type != RES_UNKNOWN);
+	assert(r); // LCOV_EXCL_LINE
+	assert(r->type != RES_UNKNOWN); // LCOV_EXCL_LINE
 
 	return (*(resource_types[r->type].pack_callback))(r->resource);
 }
 
 struct resource *resource_unpack(const char *packed)
 {
-	assert(packed);
+	assert(packed); // LCOV_EXCL_LINE
 	struct resource *r = NULL;
 
 	/* This one is a bit different, because we need to determine
@@ -199,8 +199,8 @@ struct resource *resource_unpack(const char *packed)
 
 int resource_add_dependency(struct resource *r, struct resource *dep)
 {
-	assert(r);
-	assert(dep);
+	assert(r); // LCOV_EXCL_LINE
+	assert(dep); // LCOV_EXCL_LINE
 
 	r->deps = realloc(r->deps, sizeof(struct resource*) * (r->ndeps+1));
 	r->deps[r->ndeps++] = dep;
@@ -209,8 +209,8 @@ int resource_add_dependency(struct resource *r, struct resource *dep)
 
 int resource_drop_dependency(struct resource *r, struct resource *dep)
 {
-	assert(r);
-	assert(dep);
+	assert(r); // LCOV_EXCL_LINE
+	assert(dep); // LCOV_EXCL_LINE
 
 	int i, j;
 	for (i = 0; i < r->ndeps; i++) {
@@ -241,8 +241,8 @@ int resource_depends_on(const struct resource *r, const struct resource *dep)
 
 int resource_match(const struct resource *r, const char *attr, const char *value)
 {
-	assert(r);
-	assert(r->type != RES_UNKNOWN);
+	assert(r); // LCOV_EXCL_LINE
+	assert(r->type != RES_UNKNOWN); // LCOV_EXCL_LINE
 
 	return (*(resource_types[r->type].match_callback))(r->resource, attr, value);
 }
@@ -273,7 +273,7 @@ void dependency_free(struct dependency *dep)
 #define PACK_FORMAT "aa"
 char *dependency_pack(const struct dependency *dep)
 {
-	assert(dep);
+	assert(dep); // LCOV_EXCL_LINE
 
 	return pack("dependency::", PACK_FORMAT, dep->a, dep->b);
 }

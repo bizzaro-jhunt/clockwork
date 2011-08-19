@@ -33,7 +33,7 @@ static void _sgdb_entry_free(struct sgdb *entry);
 
 static struct pwdb* _pwdb_entry(struct passwd *passwd)
 {
-	assert(passwd);
+	assert(passwd); // LCOV_EXCL_LINE
 
 	struct pwdb *ent;
 	ent = xmalloc(sizeof(struct pwdb));
@@ -52,7 +52,7 @@ static struct pwdb* _pwdb_entry(struct passwd *passwd)
 
 static struct pwdb* _pwdb_fgetpwent(FILE *input)
 {
-	assert(input);
+	assert(input); // LCOV_EXCL_LINE
 
 	struct passwd *passwd = fgetpwent(input);
 	if (!passwd) { return NULL; }
@@ -79,7 +79,7 @@ static void _pwdb_entry_free(struct pwdb *entry)
 
 static struct spdb* _spdb_entry(struct spwd *spwd)
 {
-	assert(spwd);
+	assert(spwd); // LCOV_EXCL_LINE
 
 	struct spdb *ent;
 	ent = xmalloc(sizeof(struct spdb));
@@ -100,7 +100,7 @@ static struct spdb* _spdb_entry(struct spwd *spwd)
 
 static struct spdb* _spdb_fgetspent(FILE *input)
 {
-	assert(input);
+	assert(input); // LCOV_EXCL_LINE
 
 	struct spwd *spwd = fgetspent(input);
 	if (!spwd) { return NULL; }
@@ -123,7 +123,7 @@ static void _spdb_entry_free(struct spdb *entry) {
 
 static struct grdb* _grdb_entry(struct group *group)
 {
-	assert(group);
+	assert(group); // LCOV_EXCL_LINE
 
 	struct grdb *ent;
 	ent = xmalloc(sizeof(struct grdb));
@@ -139,7 +139,7 @@ static struct grdb* _grdb_entry(struct group *group)
 
 static struct grdb* _grdb_fgetgrent(FILE *input)
 {
-	assert(input);
+	assert(input); // LCOV_EXCL_LINE
 
 	struct group *group = fgetgrent(input);
 	if (!group) { return NULL; }
@@ -170,7 +170,7 @@ static void _grdb_entry_free(struct grdb *entry)
 
 static struct sgdb* _sgdb_entry(struct sgrp *sgrp)
 {
-	assert(sgrp);
+	assert(sgrp); // LCOV_EXCL_LINE
 
 	struct sgdb *ent;
 	ent = xmalloc(sizeof(struct sgdb));
@@ -186,7 +186,7 @@ static struct sgdb* _sgdb_entry(struct sgrp *sgrp)
 
 static struct sgdb* _sgdb_fgetsgent(FILE *input)
 {
-	assert(input);
+	assert(input); // LCOV_EXCL_LINE
 
 	struct sgrp *sgrp = fgetsgent(input);
 	if (!sgrp) { return NULL; }
@@ -250,7 +250,7 @@ struct pwdb* pwdb_init(const char *path)
 
 struct passwd* pwdb_get_by_name(struct pwdb *db, const char *name)
 {
-	assert(name);
+	assert(name); // LCOV_EXCL_LINE
 
 	for (; db; db = db->next) {
 		if (db->passwd && strcmp(db->passwd->pw_name, name) == 0) {
@@ -295,7 +295,7 @@ struct passwd* pwdb_get_by_uid(struct pwdb *db, uid_t uid)
 
 struct passwd* pwdb_new_entry(struct pwdb *db, const char *name, uid_t uid, gid_t gid)
 {
-	assert(name);
+	assert(name); // LCOV_EXCL_LINE
 
 	struct passwd *pw;
 
@@ -422,7 +422,7 @@ struct spdb* spdb_init(const char *path)
 
 struct spwd* spdb_get_by_name(struct spdb *db, const char *name)
 {
-	assert(name);
+	assert(name); // LCOV_EXCL_LINE
 
 	struct spdb *ent;
 	for (ent = db; ent; ent = ent->next) {
@@ -436,7 +436,7 @@ struct spwd* spdb_get_by_name(struct spdb *db, const char *name)
 
 struct spwd* spdb_new_entry(struct spdb *db, const char *name)
 {
-	assert(name);
+	assert(name); // LCOV_EXCL_LINE
 
 	struct spwd *sp;
 
@@ -563,7 +563,7 @@ struct grdb* grdb_init(const char *path)
 
 struct group* grdb_get_by_name(struct grdb *db, const char *name)
 {
-	assert(name);
+	assert(name); // LCOV_EXCL_LINE
 
 	for (; db; db = db->next) {
 		if (db->group && strcmp(db->group->gr_name, name) == 0) {
@@ -595,7 +595,7 @@ struct group* grdb_get_by_gid(struct grdb *db, gid_t gid)
 
 struct group* grdb_new_entry(struct grdb *db, const char *name, gid_t gid)
 {
-	assert(name);
+	assert(name); // LCOV_EXCL_LINE
 
 	struct group *gr;
 
@@ -719,7 +719,7 @@ struct sgdb* sgdb_init(const char *path)
 
 struct sgrp* sgdb_get_by_name(struct sgdb *db, const char *name)
 {
-	assert(name);
+	assert(name); // LCOV_EXCL_LINE
 
 	for (; db; db = db->next) {
 		if (db->sgrp && strcmp(db->sgrp->sg_namp, name) == 0) {
@@ -732,7 +732,7 @@ struct sgrp* sgdb_get_by_name(struct sgdb *db, const char *name)
 
 struct sgrp* sgdb_new_entry(struct sgdb *db, const char *name)
 {
-	assert(name);
+	assert(name); // LCOV_EXCL_LINE
 
 	struct sgrp *sg;
 

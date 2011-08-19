@@ -111,8 +111,8 @@ static size_t _packlen(const char *prefix, const char *format, va_list args)
 
 char* pack(const char *prefix, const char *format, ...)
 {
-	assert(prefix);
-	assert(format);
+	assert(prefix); // LCOV_EXCL_LINE
+	assert(format); // LCOV_EXCL_LINE
 
 	char *dst, *p;
 	size_t n, len = 0;
@@ -224,7 +224,7 @@ static char* _extract_string(const char *start)
 
 int unpack(const char *packed, const char *prefix, const char *format, ...)
 {
-	assert(format);
+	assert(format); // LCOV_EXCL_LINE
 
 	char hex[9]; /* MAX size of integer hex string */
 	va_list args;

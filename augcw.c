@@ -38,7 +38,7 @@ augeas* augcw_init(void)
 
 void augcw_errors(augeas* au)
 {
-	assert(au);
+	assert(au); // LCOV_EXCL_LINE
 
 	char **results = NULL;
 	const char *value;

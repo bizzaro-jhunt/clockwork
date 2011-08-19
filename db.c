@@ -39,7 +39,7 @@
 
 DB* db_open(enum db_type type, const char *path)
 {
-	assert(path);
+	assert(path); // LCOV_EXCL_LINE
 
 	DB *db = xmalloc(sizeof(DB));
 	db->db_type = type;
@@ -57,7 +57,7 @@ DB* db_open(enum db_type type, const char *path)
 
 int db_close(DB *db)
 {
-	assert(db);
+	assert(db); // LCOV_EXCL_LINE
 	sqlite3_close(db->db);
 	db->db = NULL;
 	return 0;

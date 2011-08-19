@@ -29,7 +29,7 @@ static const char *protocol_op_names[] = {
 
 static int pdu_allocate(protocol_data_unit *pdu, uint16_t op, uint16_t len)
 {
-	assert(pdu);
+	assert(pdu); // LCOV_EXCL_LINE
 
 	pdu->op = op;
 
@@ -42,7 +42,7 @@ static int pdu_allocate(protocol_data_unit *pdu, uint16_t op, uint16_t len)
 
 static void pdu_deallocate(protocol_data_unit *pdu)
 {
-	assert(pdu);
+	assert(pdu); // LCOV_EXCL_LINE
 
 	free(pdu->data);
 	pdu->data = NULL;
@@ -50,7 +50,7 @@ static void pdu_deallocate(protocol_data_unit *pdu)
 
 static void pdu_dump(protocol_data_unit *pdu)
 {
-	assert(pdu);
+	assert(pdu); // LCOV_EXCL_LINE
 
 	/* no point in going any further if we aren't debugging... */
 	if (log_level() < LOG_LEVEL_DEBUG) { return; }
@@ -102,7 +102,7 @@ Data: xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx
 
 int pdu_send_simple(protocol_session *session, protocol_op op)
 {
-	assert(session);
+	assert(session); // LCOV_EXCL_LINE
 
 	if (pdu_allocate(SEND_PDU(session), op, 0) < 0) {
 		return -1;
@@ -114,7 +114,7 @@ int pdu_send_simple(protocol_session *session, protocol_op op)
 
 int pdu_send_ERROR(protocol_session *session, uint16_t err_code, const char *str)
 {
-	assert(session);
+	assert(session); // LCOV_EXCL_LINE
 
 	size_t len = strlen(str);
 	protocol_data_unit *pdu = SEND_PDU(session);
@@ -135,10 +135,10 @@ int pdu_send_ERROR(protocol_session *session, uint16_t err_code, const char *str
 
 int pdu_decode_ERROR(protocol_data_unit *pdu, uint16_t *err_code, uint8_t **str, size_t *len)
 {
-	assert(pdu);
-	assert(pdu->op == PROTOCOL_OP_ERROR);
-	assert(err_code);
-	assert(str);
+	assert(pdu); // LCOV_EXCL_LINE
+	assert(pdu->op == PROTOCOL_OP_ERROR); // LCOV_EXCL_LINE
+	assert(err_code); // LCOV_EXCL_LINE
+	assert(str); // LCOV_EXCL_LINE
 	/* len parameter is optional */
 
 	size_t my_len;
@@ -159,8 +159,8 @@ int pdu_decode_ERROR(protocol_data_unit *pdu, uint16_t *err_code, uint8_t **str,
 
 int pdu_send_FACTS(protocol_session *session, const struct hash *facts)
 {
-	assert(session);
-	assert(facts);
+	assert(session); // LCOV_EXCL_LINE
+	assert(facts); // LCOV_EXCL_LINE
 
 	protocol_data_unit *pdu = SEND_PDU(session);
 	stringlist *list = stringlist_new(NULL);
@@ -194,9 +194,9 @@ int pdu_send_FACTS(protocol_session *session, const struct hash *facts)
 
 int pdu_decode_FACTS(protocol_data_unit *pdu, struct hash *facts)
 {
-	assert(pdu);
-	assert(pdu->op == PROTOCOL_OP_FACTS);
-	assert(facts);
+	assert(pdu); // LCOV_EXCL_LINE
+	assert(pdu->op == PROTOCOL_OP_FACTS); // LCOV_EXCL_LINE
+	assert(facts); // LCOV_EXCL_LINE
 
 	size_t i;
 
@@ -215,8 +215,8 @@ int pdu_decode_FACTS(protocol_data_unit *pdu, struct hash *facts)
 
 int pdu_send_POLICY(protocol_session *session, const struct policy *policy)
 {
-	assert(session);
-	assert(policy);
+	assert(session); // LCOV_EXCL_LINE
+	assert(policy); // LCOV_EXCL_LINE
 
 	protocol_data_unit *pdu = SEND_PDU(session);
 	char *packed;
@@ -243,9 +243,9 @@ int pdu_send_POLICY(protocol_session *session, const struct policy *policy)
 
 int pdu_decode_POLICY(protocol_data_unit *pdu, struct policy **policy)
 {
-	assert(pdu);
-	assert(pdu->op == PROTOCOL_OP_POLICY);
-	assert(policy);
+	assert(pdu); // LCOV_EXCL_LINE
+	assert(pdu->op == PROTOCOL_OP_POLICY); // LCOV_EXCL_LINE
+	assert(policy); // LCOV_EXCL_LINE
 
 	*policy = policy_unpack((char*)pdu->data);
 	if (*policy) {
@@ -257,8 +257,8 @@ int pdu_decode_POLICY(protocol_data_unit *pdu, struct policy **policy)
 
 int pdu_send_FILE(protocol_session *session, sha1 *checksum)
 {
-	assert(session);
-	assert(checksum);
+	assert(session); // LCOV_EXCL_LINE
+	assert(checksum); // LCOV_EXCL_LINE
 
 	protocol_data_unit *pdu = SEND_PDU(session);
 
@@ -273,8 +273,8 @@ int pdu_send_FILE(protocol_session *session, sha1 *checksum)
 
 int pdu_send_DATA(protocol_session *session, int srcfd, const char *data)
 {
-	assert(session);
-	assert(srcfd >= 0 || data);
+	assert(session); // LCOV_EXCL_LINE
+	assert(srcfd >= 0 || data); // LCOV_EXCL_LINE
 
 	protocol_data_unit *pdu = SEND_PDU(session);
 
@@ -311,8 +311,8 @@ int pdu_send_DATA(protocol_session *session, int srcfd, const char *data)
 
 int pdu_send_GET_CERT(protocol_session *session, X509_REQ *csr)
 {
-	assert(session);
-	assert(csr);
+	assert(session); // LCOV_EXCL_LINE
+	assert(csr); // LCOV_EXCL_LINE
 
 	protocol_data_unit *pdu = SEND_PDU(session);
 	BIO *bio;
@@ -349,9 +349,9 @@ int pdu_send_GET_CERT(protocol_session *session, X509_REQ *csr)
 
 int pdu_decode_GET_CERT(protocol_data_unit *pdu, X509_REQ **csr)
 {
-	assert(pdu);
-	assert(pdu->op == PROTOCOL_OP_GET_CERT);
-	assert(csr);
+	assert(pdu); // LCOV_EXCL_LINE
+	assert(pdu->op == PROTOCOL_OP_GET_CERT); // LCOV_EXCL_LINE
+	assert(csr); // LCOV_EXCL_LINE
 
 	BIO *bio;
 
@@ -372,7 +372,7 @@ int pdu_decode_GET_CERT(protocol_data_unit *pdu, X509_REQ **csr)
 
 int pdu_send_SEND_CERT(protocol_session *session, X509 *cert)
 {
-	assert(session);
+	assert(session); // LCOV_EXCL_LINE
 
 	protocol_data_unit *pdu = SEND_PDU(session);
 	BIO *bio;
@@ -418,9 +418,9 @@ int pdu_send_SEND_CERT(protocol_session *session, X509 *cert)
 
 int pdu_decode_SEND_CERT(protocol_data_unit *pdu, X509 **cert)
 {
-	assert(pdu);
-	assert(pdu->op == PROTOCOL_OP_SEND_CERT);
-	assert(cert);
+	assert(pdu); // LCOV_EXCL_LINE
+	assert(pdu->op == PROTOCOL_OP_SEND_CERT); // LCOV_EXCL_LINE
+	assert(cert); // LCOV_EXCL_LINE
 
 	BIO *bio;
 
@@ -445,8 +445,8 @@ int pdu_decode_SEND_CERT(protocol_data_unit *pdu, X509 **cert)
 
 int pdu_send_REPORT(protocol_session *session, struct job *job)
 {
-	assert(session);
-	assert(job);
+	assert(session); // LCOV_EXCL_LINE
+	assert(job); // LCOV_EXCL_LINE
 
 	protocol_data_unit *pdu = SEND_PDU(session);
 	char *packed;
@@ -473,9 +473,9 @@ int pdu_send_REPORT(protocol_session *session, struct job *job)
 
 int pdu_decode_REPORT(protocol_data_unit *pdu, struct job **job)
 {
-	assert(pdu);
-	assert(pdu->op == PROTOCOL_OP_REPORT);
-	assert(job);
+	assert(pdu); // LCOV_EXCL_LINE
+	assert(pdu->op == PROTOCOL_OP_REPORT); // LCOV_EXCL_LINE
+	assert(job); // LCOV_EXCL_LINE
 
 	*job = job_unpack((char*)pdu->data);
 	if (*job) {
@@ -487,8 +487,8 @@ int pdu_decode_REPORT(protocol_data_unit *pdu, struct job **job)
 
 int pdu_read(SSL *io, protocol_data_unit *pdu)
 {
-	assert(io);
-	assert(pdu);
+	assert(io); // LCOV_EXCL_LINE
+	assert(pdu); // LCOV_EXCL_LINE
 
 	uint16_t op, len;
 	int nread;
@@ -523,8 +523,8 @@ int pdu_read(SSL *io, protocol_data_unit *pdu)
 
 int pdu_write(SSL *io, protocol_data_unit *pdu)
 {
-	assert(io);
-	assert(pdu);
+	assert(io); // LCOV_EXCL_LINE
+	assert(pdu); // LCOV_EXCL_LINE
 
 	uint16_t op, len;
 	int nwritten;
@@ -563,7 +563,7 @@ int pdu_write(SSL *io, protocol_data_unit *pdu)
  */
 int pdu_receive(protocol_session *session)
 {
-	assert(session);
+	assert(session); // LCOV_EXCL_LINE
 
 	protocol_data_unit *pdu = RECV_PDU(session);
 	int rc;

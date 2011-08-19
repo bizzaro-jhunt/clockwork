@@ -2,18 +2,36 @@
 #include "assertions.h"
 #include "../../stringlist.h"
 
-static stringlist* setup_stringlist(const char *s1, const char *s2, const char *s3)
+static int setup_list_item(stringlist *list, const char *item)
 {
-	stringlist *sl;
+	char buf[128];
+	int ret;
 
-	sl = stringlist_new(NULL);
-	assert_not_null("stringlist_new returns a non-null pointer", sl);
-	assert_int_eq("adding the s1 string to the list", stringlist_add(sl, s1), 0);
-	assert_int_eq("adding the s2 string to the list", stringlist_add(sl, s2), 0);
-	assert_int_eq("adding the s3 string to the list", stringlist_add(sl, s3), 0);
-
-	return sl;
+	snprintf(buf, 128, "adding item '%s' to list", item);
+	assert_int_eq(buf, 0, ret = stringlist_add(list, item));
+	return ret;
 }
+
+static stringlist* setup_list(const char *first, ...)
+{
+	va_list args;
+	stringlist *list;
+	const char *item;
+
+	list = stringlist_new(NULL);
+	assert_not_null("stringlist_new returns a non-NULL pointer", list);
+
+	if (setup_list_item(list, first) != 0) { return list; }
+
+	va_start(args, first);
+	while ( (item = va_arg(args, const char*)) != NULL) {
+		if (setup_list_item(list, item) != 0) { break; }
+	}
+	va_end(args);
+	return list;
+}
+
+/**********************************************************************/
 
 void test_stringlist_init()
 {
@@ -127,8 +145,8 @@ void test_stringlist_add_all()
 {
 	stringlist *sl1, *sl2;
 
-	sl1 = setup_stringlist("lorem", "ipsum", "dolor");
-	sl2 = setup_stringlist("sit", "amet", "consectetur");
+	sl1 = setup_list("lorem", "ipsum", "dolor", NULL);
+	sl2 = setup_list("sit", "amet", "consectetur", NULL);
 
 	test("stringlist: Combination of string lists");
 	assert_stringlist(sl1, "pre-combine sl1", 3, "lorem", "ipsum", "dolor");
@@ -142,12 +160,42 @@ void test_stringlist_add_all()
 	stringlist_free(sl2);
 }
 
+void test_stringlist_add_all_with_expansion()
+{
+	stringlist *sl1, *sl2;
+	int total = 0;
+	int capacity = 0;
+
+	test("stringlist: add_all with capacity expansion");
+	sl1 = setup_list("a", "b", "c", "d", "e", "f", "g",
+	                 "h", "i", "j", "k", "l", "m", "n", NULL);
+	assert_stringlist(sl1, "sl1", 14,
+		"a", "b", "c", "d", "e", "f", "g",
+		"h", "i", "j", "k", "l", "m", "n");
+
+	sl2 = setup_list("o", "p", "q", NULL);
+	assert_stringlist(sl2, "sl2", 3, "o", "p", "q");
+
+	total = sl1->num + sl2->num;
+	capacity = sl1->len;
+	assert_int_gt("combined len should be > capacity", total, capacity);
+	assert_int_eq("add_all succeeds", stringlist_add_all(sl1, sl2), 0);
+	assert_stringlist(sl1, "combined", 17,
+		"a", "b", "c", "d", "e", "f", "g",
+		"h", "i", "j", "k", "l", "m", "n",
+		"o", "p", "q");
+	assert_int_ge("new capacity >= old capacity", sl1->len, capacity);
+
+	stringlist_free(sl1);
+	stringlist_free(sl2);
+}
+
 void test_stringlist_remove_all()
 {
 	stringlist *sl1, *sl2;
 
-	sl1 = setup_stringlist("lorem", "ipsum", "dolor");
-	sl2 = setup_stringlist("ipsum", "dolor", "sit");
+	sl1 = setup_list("lorem", "ipsum", "dolor", NULL);
+	sl2 = setup_list("ipsum", "dolor", "sit", NULL);
 
 	test("stringlist: Removal of string lists");
 	assert_stringlist(sl1, "pre-remove sl1", 3, "lorem", "ipsum", "dolor");
@@ -192,7 +240,7 @@ void test_stringlist_remove_nonexistent()
 	const char *tomato = "tomato";
 
 	stringlist *sl;
-	sl = setup_stringlist("apple", "pear", "banana");
+	sl = setup_list("apple", "pear", "banana", NULL);
 
 	test("stringlist: Remove non-existent");
 	assert_stringlist(sl, "pre-remove sl", 3, "apple", "pear", "banana");
@@ -210,7 +258,7 @@ void test_stringlist_qsort()
 
 	stringlist *sl;
 	test("stringlist: Sorting");
-	sl = setup_stringlist(b, c, a);
+	sl = setup_list(b, c, a, NULL);
 	assert_stringlist(sl, "pre-sort sl", 3, "bob", "candace", "alice");
 
 	stringlist_sort(sl, STRINGLIST_SORT_ASC);
@@ -221,8 +269,8 @@ void test_stringlist_qsort()
 
 	stringlist_free(sl);
 
-	sl = stringlist_new(NULL);
-	stringlist_add(sl, b);
+	test("stringlist: Sorting 1-item string list");
+	sl = setup_list(b, NULL);
 	assert_stringlist(sl, "pre-sort sl", 1, "bob");
 
 	stringlist_sort(sl, STRINGLIST_SORT_ASC);
@@ -241,12 +289,8 @@ void test_stringlist_uniq()
 
 	stringlist *sl;
 
-	sl = setup_stringlist(b, c, a);
-	stringlist_add(sl, b);
-	stringlist_add(sl, b);
-	stringlist_add(sl, c);
-
 	test("stringlist: Uniq");
+	sl = setup_list(b, c, a, b, b, c, NULL);
 	assert_stringlist(sl, "pre-uniq sl", 6, "bob", "candace", "alice", "bob", "bob", "candace");
 
 	stringlist_uniq(sl);
@@ -263,9 +307,8 @@ void test_stringlist_uniq_already()
 
 	stringlist *sl;
 
-	sl = setup_stringlist(b, c, a);
-
 	test("stringlist: Uniq (no changes needed)");
+	sl = setup_list(b, c, a, NULL);
 	assert_stringlist(sl, "pre-uniq sl", 3, "bob", "candace", "alice");
 
 	stringlist_uniq(sl);
@@ -284,8 +327,8 @@ void test_stringlist_diff()
 
 	stringlist *sl1, *sl2;
 
-	sl1 = setup_stringlist(b, c, a);
-	sl2 = setup_stringlist(b, c, a);
+	sl1 = setup_list(b, c, a, NULL);
+	sl2 = setup_list(b, c, a, NULL);
 
 	test("stringlist: Diff");
 	assert_int_ne("sl1 and sl2 are equivalent", stringlist_diff(sl1, sl2), 0);
@@ -308,8 +351,8 @@ void test_stringlist_diff_non_uniq()
 
 	stringlist *sl1, *sl2;
 
-	sl1 = setup_stringlist(s1, s2, s2);
-	sl2 = setup_stringlist(s1, s2, s3);
+	sl1 = setup_list(s1, s2, s2, NULL);
+	sl2 = setup_list(s1, s2, s3, NULL);
 
 	test("stringlist: Diff (non-unique entries)");
 	assert_int_eq("sl1 and sl2 are different (forward)", stringlist_diff(sl1, sl2), 0);
@@ -325,11 +368,8 @@ void test_stringlist_diff_single_string()
 	const char *a = "string a";
 	const char *b = "string b";
 
-	sl1 = stringlist_new(NULL);
-	stringlist_add(sl1, a);
-
-	sl2 = stringlist_new(NULL);
-	stringlist_add(sl2, b);
+	sl1 = setup_list(a, NULL);
+	sl2 = setup_list(b, NULL);
 
 	test("stringlist: Diff (single string)");
 	assert_int_eq("sl1 and sl2 are different (forward)", stringlist_diff(sl1, sl2), 0);
@@ -342,7 +382,7 @@ void test_stringlist_diff_single_string()
 void test_stringlist_join()
 {
 	char *joined = NULL;
-	stringlist *list = setup_stringlist("item1","item2","item3");
+	stringlist *list = setup_list("item1","item2","item3", NULL);
 	stringlist *empty = stringlist_new(NULL);
 
 	test("stringlist: Join stringlist with a delimiter");
@@ -413,6 +453,7 @@ void test_suite_stringlist()
 	test_stringlist_dup();
 	test_stringlist_basic_add_remove_search();
 	test_stringlist_add_all();
+	test_stringlist_add_all_with_expansion();
 	test_stringlist_remove_all();
 	test_stringlist_expansion();
 	test_stringlist_remove_nonexistent();

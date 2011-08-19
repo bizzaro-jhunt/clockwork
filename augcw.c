@@ -6,7 +6,6 @@
 #  define AUGCW_INC  "augeas/lenses"
 #else
 #  define AUGCW_ROOT "/"
-/** FIXME: what if lenses aren't in /var/clockwork? */
 #  define AUGCW_INC  "/var/clockwork/augeas/lenses"
 #endif
 

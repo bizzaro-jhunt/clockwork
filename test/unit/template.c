@@ -51,6 +51,7 @@ static void assert_template_run(const char *template, const char *expect)
 	v = hash_new();
 	assert_not_null("var hash is valid", v);
 	hash_set(v, "local.v1", "regression...");
+	hash_set(v, "local.var1", "Var 1");
 
 	assert_int_eq("Creation of template file succeeds",
 		template_file(TPL_FILE, template), 0);
@@ -154,12 +155,62 @@ void test_template_if()
 	template_free(t);
 }
 
+void test_template_else()
+{
+	struct hash *v;
+	struct template *t;
+	const char *tpl = "v1: <\% if v.v1 is \"1\" \%>one<\% else \%>not one<\% end \%>\n"
+	                  "v2: <\% if v.v2 is not \"2\" \%>not two<\% else \%>two<\% end \%>\n";
+	const char *expect = "v1: not one\nv2: two\n";
+	char *actual;
+
+	test("template: conditional if statements");
+
+	v = hash_new();
+	assert_not_null("var hash is valid", v);
+	hash_set(v, "v.v1", "3");
+	hash_set(v, "v.v2", "2");
+
+	assert_int_eq("Creation of template file succeeds",
+		template_file(TPL_FILE, tpl), 0);
+
+	t = template_create(TPL_FILE, v);
+	assert_not_null("template created", t);
+
+	actual = template_render(t);
+	assert_not_null("template rendered", t);
+
+	assert_str_eq("rendered value == expected value", actual, expect);
+
+	hash_free(v);
+	free(actual);
+	template_free(t);
+}
+
 void test_template_local_vars()
 {
 	test("template: local variable expansion");
 	assert_template_run(
 		"<\% local.var1 = \"World!\" \%>Hello, <\%= local.var1 \%>\n",
 		"Hello, World!\n");
+}
+
+void test_template_echo()
+{
+	test("template: echo variable assignment");
+	assert_template_run(
+		"This is <\%= local.var1 = \"SO \" \%>great!\n",
+		"This is SO great!\n");
+
+	test("template: echo reference");
+	assert_template_run(
+		"ref = <\%= local.var1 \%>\n",
+		"ref = Var 1\n");
+
+	test("template: echo string literal");
+	assert_template_run(
+		"Echo vals<\%= \" rock!\" \%>\n",
+		"Echo vals rock!\n");
 }
 
 void test_template_non_echo()
@@ -180,11 +231,27 @@ void test_template_non_echo()
 		"Non-echo vals\n");
 }
 
+void test_template_free()
+{
+	struct template *t;
+
+	test("template: template_free(NULL)");
+	t = NULL;
+	template_free(t);
+	assert_null("template_free(NULL) doesn't segfault", t);
+
+}
+
 void test_suite_template()
 {
 	test_template_static();
 	test_template_var_expansion();
 	test_template_if();
+	test_template_else();
 	test_template_local_vars();
+
+	test_template_echo();
 	test_template_non_echo();
+
+	test_template_free();
 }

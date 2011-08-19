@@ -700,7 +700,7 @@ static int dispatch(const char *c, int interactive)
 	size_t i;
 	int rc = 0, t;
 
-	commands = stringlist_split(c, strlen(c), ";");
+	commands = stringlist_split(c, strlen(c), ";", SPLIT_GREEDY);
 	for_each_string(commands, i) {
 		t = dispatch1(slv(commands, i), interactive);
 		if (t && !interactive) {

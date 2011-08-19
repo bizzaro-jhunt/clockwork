@@ -1372,6 +1372,38 @@ char* res_group_key(const void *res)
 	return string("group:%s", rg->key);
 }
 
+static char* _res_group_roster_mv(stringlist *add, stringlist *rm)
+{
+	char *added   = NULL;
+	char *removed = NULL;
+	char *final   = NULL;
+
+	if (add->num > 0) {
+		added = stringlist_join(add, " ");
+	}
+	if (rm->num > 0) {
+		removed = stringlist_join(rm, " !");
+	}
+
+	if (added && removed) {
+		final = string("%s !%s", added, removed);
+		xfree(added);
+		xfree(removed);
+
+	} else if (added && !removed) {
+		final = added;
+
+	} else if (!added && removed) {
+		final = string("!%s", removed);
+		xfree(removed);
+
+	} else {
+		final = strdup("");
+
+	}
+	return final;
+}
+
 int res_group_attrs(const void *res, struct hash *attrs)
 {
 	const struct res_group *rg = (const struct res_group*)(res);
@@ -1381,8 +1413,16 @@ int res_group_attrs(const void *res, struct hash *attrs)
 	hash_set(attrs, "name", ENFORCED(rg, RES_GROUP_NAME) ? strdup(rg->rg_name) : NULL);
 	hash_set(attrs, "present", strdup(ENFORCED(rg, RES_GROUP_ABSENT) ? "no" : "yes"));
 	hash_set(attrs, "password", ENFORCED(rg, RES_GROUP_PASSWD) ? strdup(rg->rg_passwd) : NULL);
-
-	/* FIXME: how to handle repeated attributes like member ? */
+	if (ENFORCED(rg, RES_GROUP_MEMBERS)) {
+		hash_set(attrs, "members", _res_group_roster_mv(rg->rg_mem_add, rg->rg_mem_rm));
+	} else {
+		hash_set(attrs, "members", NULL);
+	}
+	if (ENFORCED(rg, RES_GROUP_ADMINS)) {
+		hash_set(attrs, "admins", _res_group_roster_mv(rg->rg_adm_add, rg->rg_adm_rm));
+	} else {
+		hash_set(attrs, "admins", NULL);
+	}
 	return 0;
 }
 
@@ -1391,6 +1431,11 @@ int res_group_norm(void *res, struct policy *pol, struct hash *facts) { return 0
 int res_group_set(void *res, const char *name, const char *value)
 {
 	struct res_group *rg = (struct res_group*)(res);
+
+	/* for multi-value attributes */
+	stringlist *multi;
+	size_t i;
+
 	assert(rg);
 
 	if (strcmp(name, "gid") == 0) {
@@ -1409,20 +1454,34 @@ int res_group_set(void *res, const char *name, const char *value)
 			ENFORCE(rg, RES_GROUP_ABSENT);
 		}
 
-	/* FIXME: support for 'members' attribute? */
 	} else if (strcmp(name, "member") == 0) {
 		if (value[0] == '!') {
 			return res_group_remove_member(rg, value+1);
 		} else {
 			return res_group_add_member(rg, value);
 		}
-	/* FIXME: support for 'admins' attribute? */
+
+	} else if (strcmp(name, "members") == 0) {
+		multi = stringlist_split(value, strlen(value), " ", SPLIT_GREEDY);
+		for_each_string(multi, i) {
+			res_group_set(res, "member", multi->strings[i]);
+		}
+		stringlist_free(multi);
+
 	} else if (strcmp(name, "admin") == 0) {
 		if (value[0] == '!') {
 			return res_group_remove_admin(rg, value+1);
 		} else {
 			return res_group_add_admin(rg, value);
 		}
+
+	} else if (strcmp(name, "admins") == 0) {
+		multi = stringlist_split(value, strlen(value), " ", SPLIT_GREEDY);
+		for_each_string(multi, i) {
+			res_group_set(res, "admin", multi->strings[i]);
+		}
+		stringlist_free(multi);
+
 	} else if (strcmp(name, "pwhash") == 0 || strcmp(name, "password") == 0) {
 		free(rg->rg_passwd);
 		rg->rg_passwd = strdup(value);
@@ -1786,16 +1845,16 @@ void* res_group_unpack(const char *packed)
 	}
 
 	stringlist_free(rg->rg_mem_add);
-	rg->rg_mem_add = stringlist_split(mem_add, strlen(mem_add), ".");
+	rg->rg_mem_add = stringlist_split(mem_add, strlen(mem_add), ".", 0);
 
 	stringlist_free(rg->rg_mem_rm);
-	rg->rg_mem_rm  = stringlist_split(mem_rm,  strlen(mem_rm),  ".");
+	rg->rg_mem_rm  = stringlist_split(mem_rm,  strlen(mem_rm),  ".", 0);
 
 	stringlist_free(rg->rg_adm_add);
-	rg->rg_adm_add = stringlist_split(adm_add, strlen(adm_add), ".");
+	rg->rg_adm_add = stringlist_split(adm_add, strlen(adm_add), ".", 0);
 
 	stringlist_free(rg->rg_adm_rm);
-	rg->rg_adm_rm  = stringlist_split(adm_rm,  strlen(adm_rm),  ".");
+	rg->rg_adm_rm  = stringlist_split(adm_rm,  strlen(adm_rm),  ".", 0);
 
 	free(mem_add); free(mem_rm);
 	free(adm_add); free(adm_rm);
@@ -2306,7 +2365,11 @@ int res_host_attrs(const void *res, struct hash *attrs)
 
 	hash_set(attrs, "hostname", xstrdup(rh->hostname));
 	hash_set(attrs, "ip", xstrdup(rh->ip));
-	/* FIXME: how to handle repeated attributes like aliases? */
+	if (ENFORCED(rh, RES_HOST_ALIASES)) {
+		hash_set(attrs, "aliases", stringlist_join(rh->aliases, " "));
+	} else {
+		hash_set(attrs, "aliases", NULL);
+	}
 	return 0;
 }
 
@@ -2327,7 +2390,7 @@ int res_host_set(void *res, const char *name, const char *value)
 		rh->ip = strdup(value);
 
 	} else if (strcmp(name, "aliases") == 0 || strcmp(name, "alias") == 0) {
-		alias_tmp = stringlist_split(value, strlen(value), " ");
+		alias_tmp = stringlist_split(value, strlen(value), " ", SPLIT_GREEDY);
 		if (stringlist_add_all(rh->aliases, alias_tmp) != 0) {
 			stringlist_free(alias_tmp);
 			return -1;
@@ -2556,7 +2619,7 @@ void* res_host_unpack(const char *packed)
 	}
 
 	stringlist_free(rh->aliases);
-	rh->aliases = stringlist_split(joined, strlen(joined), " ");
+	rh->aliases = stringlist_split(joined, strlen(joined), " ", SPLIT_GREEDY);
 
 	return rh;
 }

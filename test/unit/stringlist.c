@@ -372,22 +372,28 @@ void test_stringlist_split()
 	stringlist *list;
 	char *joined = "apple--mango--pear";
 	char *single = "loganberry";
+	char *nulls  = "a space    separated  list";
 
 	test("stringlist: Split strings with delimiters");
-	list = stringlist_split(joined, strlen(joined), "--");
+	list = stringlist_split(joined, strlen(joined), "--", 0);
 	assert_stringlist(list, "split by '--'", 3, "apple", "mango","pear");
 	stringlist_free(list);
 
-	list = stringlist_split(joined, strlen(joined), "-");
+	list = stringlist_split(joined, strlen(joined), "-", 0);
 	assert_stringlist(list, "split by '-'", 5, "apple", "", "mango", "", "pear");
 	stringlist_free(list);
 
-	list = stringlist_split(single, strlen(single), "/");
+	list = stringlist_split(single, strlen(single), "/", 0);
 	assert_stringlist(list, "split single-entry list string", 1, "loganberry");
 	stringlist_free(list);
 
-	list = stringlist_split(single, strlen(""), "/");
+	list = stringlist_split(single, strlen(""), "/", 0);
 	assert_stringlist(list, "split empty list string", 0);
+	stringlist_free(list);
+
+	list = stringlist_split(nulls, strlen(nulls), " ", SPLIT_GREEDY);
+	assert_stringlist(list, "greedy split",
+		4, "a", "space", "separated", "list");
 	stringlist_free(list);
 }
 

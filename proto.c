@@ -200,7 +200,7 @@ int pdu_decode_FACTS(protocol_data_unit *pdu, struct hash *facts)
 
 	size_t i;
 
-	stringlist *lines = stringlist_split((char*)pdu->data, pdu->len, "\n");
+	stringlist *lines = stringlist_split((char*)pdu->data, pdu->len, "\n", SPLIT_GREEDY);
 	if (!lines) {
 		return -1;
 	}

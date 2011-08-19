@@ -118,7 +118,7 @@ struct job* job_unpack(const char *packed_job)
 	char *packed;
 	size_t i;
 
-	pack_list = stringlist_split(packed_job, strlen(packed_job), "\n");
+	pack_list = stringlist_split(packed_job, strlen(packed_job), "\n", SPLIT_GREEDY);
 	if (!pack_list) {
 		return NULL;
 	}

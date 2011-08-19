@@ -536,7 +536,7 @@ struct policy* policy_unpack(const char *packed_policy)
 	struct resource *r;
 	struct dependency *d;
 
-	pack_list = stringlist_split(packed_policy, strlen(packed_policy), "\n");
+	pack_list = stringlist_split(packed_policy, strlen(packed_policy), "\n", SPLIT_GREEDY);
 	if (!pack_list) {
 		return NULL;
 	}

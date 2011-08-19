@@ -80,6 +80,11 @@ int STRINGLIST_SORT_ASC(const void *a, const void *b);
 int STRINGLIST_SORT_DESC(const void *a, const void *b);
 /** @endcond */
 
+/** Perform normal split operation in stringlist_split */
+#define SPLIT_NORMAL  0x00
+/** Perform greedy split operation in stringlist_split */
+#define SPLIT_GREEDY  0x01
+
 /**
   Allocate and initialize a new stringlist.
 
@@ -364,7 +369,7 @@ char* stringlist_join(stringlist *list, const char *delim);
   Examples:
 
   @verbatim
-  stringlist *l = stringlist_split("one::two::three", 15, "::");
+  stringlist *l = stringlist_split("one::two::three", 15, "::", 0);
   // List l now contains three strings: 'one', 'two', and 'three'
   @endverbatim
 
@@ -372,10 +377,11 @@ char* stringlist_join(stringlist *list, const char *delim);
   @param  len      Length of \a str.
   @param  delim    Delimiter to split string on (can be more than
                    one character).
+  @param  opt      Option flag; see SPLIT_* constants.
 
   @returns a heap-allocated stringlist containing the split tokens,
            or NULL on failure.
  */
-stringlist* stringlist_split(const char *str, size_t len, const char *delim);
+stringlist* stringlist_split(const char *str, size_t len, const char *delim, int opt);
 
 #endif /* STRINGLIST_H */

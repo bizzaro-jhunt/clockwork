@@ -313,7 +313,7 @@ char* stringlist_join(stringlist *list, const char *delim)
 	return joined;
 }
 
-stringlist* stringlist_split(const char *str, size_t len, const char *delim)
+stringlist* stringlist_split(const char *str, size_t len, const char *delim, int opt)
 {
 	stringlist *list = stringlist_new(NULL);
 	const char *a, *b, *end = str + len;
@@ -328,16 +328,18 @@ stringlist* stringlist_split(const char *str, size_t len, const char *delim)
 			}
 		}
 
-		item = xmalloc(b - a + 1);
-		memcpy(item, a, b - a);
-		item[b-a] = '\0';
+		if (opt != SPLIT_GREEDY || a != b) {
+			item = xmalloc(b - a + 1);
+			memcpy(item, a, b - a);
+			item[b-a] = '\0';
 
-		if (stringlist_add(list, item) != 0) {
-			stringlist_free(list);
-			return NULL;
+			if (stringlist_add(list, item) != 0) {
+				stringlist_free(list);
+				return NULL;
+			}
+
+			free(item);
 		}
-
-		free(item);
 		a = b + delim_len;
 	}
 

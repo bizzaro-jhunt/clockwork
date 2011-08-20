@@ -379,7 +379,7 @@ dist: clean
 	rm -f config
 
 fixme:
-	find . -name '*.[ch15]' -not -path './ext/**' -not -path './man/tpl/*' 2>/dev/null | \
+	find . -name '*.[ch15]' -not -path './ext/**' -not -path './man/tpl/*' -not -path './local/**' 2>/dev/null | \
 	  xargs grep -n FIXME: | sed -e 's/:[^:]*FIXME: /:/' -e 's/ *\*\///' | column -t -s :
 
 

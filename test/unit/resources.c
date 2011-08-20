@@ -1893,6 +1893,48 @@ void test_res_service_notify()
 
 /*****************************************************************************/
 
+void test_res_host_diffstat_fixup()
+{
+	struct res_host *r;
+	struct resource_env env;
+	struct report *report;
+
+	env.aug_context = augcw_init();
+
+	test("RES_HOST: stat / fixup (initial)");
+	r = res_host_new("dne.niftylogic.net");
+	res_host_set(r, "ip", "192.168.224.1");
+	res_host_set(r, "alias", "bad.cw.niftylogic.net");
+
+	assert_int_eq("res_host_stat succeeds", res_host_stat(r, &env), 0);
+	report = res_host_fixup(r, 0, &env);
+	assert_not_null("res_host_fixup returns a report", report);
+	report_free(report);
+
+	test("RES_HOST: stat / fixup (host needs removed)");
+	res_host_set(r, "present", "no");
+
+	assert_int_eq("res_host_stat succeeds", res_host_stat(r, &env), 0);
+	assert_not_null("r->aug_root is NOT NULL (found a match)", r->aug_root);
+	report = res_host_fixup(r, 0, &env);
+	assert_not_null("res_host_fixup returns a report", report);
+	assert_true("resource was fixed", report->fixed);
+	assert_true("resource is compliant", report->compliant);
+	report_free(report);
+
+	test("RES_HOST: stat / fixup (host needs added)");
+	res_host_set(r, "present", "yes");
+	assert_int_eq("res_host_stat succeeds", res_host_stat(r, &env), 0);
+	assert_null("r->aug_root is NULL (not found)", r->aug_root);
+	report = res_host_fixup(r, 0, &env);
+	assert_not_null("res_host_fixup returns a report", report);
+	assert_true("resource was fixed", report->fixed);
+	assert_true("resource is compliant", report->compliant);
+	report_free(report);
+
+	res_host_free(r);
+}
+
 void test_res_host_match()
 {
 	struct res_host *rh;

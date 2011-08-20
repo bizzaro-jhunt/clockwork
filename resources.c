@@ -2451,7 +2451,9 @@ int res_host_stat(void *res, const struct resource_env *env)
 	stringlist *real_aliases = NULL;
 
 	rh->different = 0;
+	xfree(rh->aug_root);
 	DEBUG("res_host: stat %p // %s", rh, rh->hostname);
+
 	rc = aug_match(env->aug_context, "/files/etc/hosts/*", &results);
 	DEBUG("res_host: found %u entries under /files/etc/hosts", rc);
 	for (i = 0; i < rc; i++) {
@@ -2523,10 +2525,10 @@ struct report* res_host_fixup(void *res, int dryrun, const struct resource_env *
 				return report;
 			}
 
-			if (aug_rm(env->aug_context, rh->aug_root) >= 0) {
-				report_action(report, action, ACTION_FAILED);
-			} else {
+			if (aug_rm(env->aug_context, rh->aug_root) > 0) {
 				report_action(report, action, ACTION_SUCCEEDED);
+			} else {
+				report_action(report, action, ACTION_FAILED);
 			}
 
 			return report;

@@ -111,9 +111,19 @@ void test_job_pack_unpack()
 	job_free(unpacked);
 }
 
+void test_job_free_NULL()
+{
+	test("job: data structure frees with NULL args");
+	job_free(NULL);    assert_true("job_free(NULL) does not segfault", 1);
+	report_free(NULL); assert_true("report_free(NULL) does not segfault", 1);
+	action_free(NULL); assert_true("action_free(NULL) does not segfault", 1);
+}
+
 void test_suite_job()
 {
 	test_job_creation();
 	test_job_timer();
 	test_job_pack_unpack();
+
+	test_job_free_NULL();
 }

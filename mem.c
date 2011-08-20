@@ -40,6 +40,11 @@ int xstrcmp(const char *a, const char *b)
 	return ((!a || !b) ? -1 : strcmp(a,b));
 }
 
+int streq(const char *a, const char *b)
+{
+	return xstrcmp(a,b) == 0;
+}
+
 char* xstrncpy(char *dest, const char *src, size_t n)
 {
 	/* Note: size_t is unsigned, so n can never be < 0 */

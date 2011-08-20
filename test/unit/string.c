@@ -43,6 +43,9 @@ void test_string_interpolation()
 		{ "Dollar sign at end of string: \\$",
 		  "Dollar sign at end of string: $" },
 
+		{ "Bare dollar sign at end: $",
+		  "Bare dollar sign at end: " },
+
 		{ NULL, NULL }
 	};
 
@@ -62,6 +65,21 @@ void test_string_interpolation()
 		string_interpolate(buf, 8192, tests[i][0], context);
 		assert_str_eq("interpolate(tpl) == str", tests[i][1], buf);
 	}
+
+	hash_free(context);
+}
+
+void test_string_interpolate_short_stroke()
+{
+	char buf[512]; // extra-large
+	struct hash *context;
+
+	test("STRING: Interpolation (short-stroke the buffer)");
+	context = hash_new();
+	hash_set(context, "ref", "1234567890abcdef");
+
+	string_interpolate(buf, 8, "$ref is 16 characters long", context);
+	assert_str_eq("interpolated value cut short", buf, "1234567");
 
 	hash_free(context);
 }
@@ -129,6 +147,7 @@ void test_string_free_null()
 void test_suite_string()
 {
 	test_string_interpolation();
+	test_string_interpolate_short_stroke();
 	test_string_automatic();
 	test_string_extension();
 	test_string_initial_value();

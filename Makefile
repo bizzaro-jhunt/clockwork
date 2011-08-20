@@ -115,7 +115,9 @@ unit_test_o   := $(subst .c,.o,$(shell ls -1 test/unit/*.c))
 unit_test_o   += $(subst .c,.o,$(shell cd test/unit; ls -1 *.c | \
                    egrep -v '(assertions|bits|fact|list|run|stree|test).c'))
 unit_test_o   += stringlist.o log.o prompt.o augcw.o
-unit_test_o   += $(parser_tpl_o) $(core_o)
+unit_test_o   += $(parser_tpl_o)
+unit_test_o   += $(parser_spec_o)
+unit_test_o   += $(core_o)
 
 # Functional Test runners
 fun_tests     := test/functional/includer
@@ -283,7 +285,6 @@ test-functional: coverage-clean run-functional-tests
 
 coverage-clean:
 	find . -name '*.gcda' 2>/dev/null | xargs rm -f
-	rm -rf doc/coverage
 
 run-unit-tests: unit-tests
 	test/unit/setup
@@ -318,6 +319,7 @@ coverage:
 	$(LCOV) --capture -o $@.tmp
 	$(LCOV) --remove $@.tmp $(no_lcov_c) > lcov.info
 	rm -f $@.tmp
+	rm -rf doc/coverage
 	$(GENHTML) -o doc/coverage lcov.info
 
 else

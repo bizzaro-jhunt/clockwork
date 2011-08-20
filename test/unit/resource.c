@@ -17,7 +17,75 @@ void test_resource_callbacks()
 	assert_str_eq("resource_key returns the appropriate key", "user:user1", key);
 	xfree(key);
 
+	/* safe to call resource_notify on a res_user; it is a NOOP */
+	assert_int_eq("resource_notify returns 0 for res_user (NOOP)",
+		resource_notify(res, NULL), 0);
+
 	resource_free(res);
+}
+
+void test_resource_attrs_callback()
+{
+	struct resource *res;
+	struct hash *h;
+
+	test("RESOURCE: Attribute Retrieval via Callback");
+	res = resource_new("host", "localhost");
+
+	resource_set(res, "ip", "127.0.0.1");
+	h = resource_attrs(res);
+	assert_not_null("retrieved attributes", h);
+	assert_str_eq("r->hostname is \"localhost\"", hash_get(h, "hostname"), "localhost");
+	assert_str_eq("r->ip is \"127.0.0.1\"", hash_get(h, "ip"), "127.0.0.1");
+	assert_null("r->aliases is NULL (unset)", hash_get(h, "aliases"));
+
+	hash_free(h);
+	resource_free(res);
+}
+
+void test_resource_stat_fixup_callback()
+{
+	struct resource *res;
+	struct res_dir *rd;
+	struct resource_env env;
+
+	struct report *report;
+
+	const char *path = DATAROOT "/resource/dir";
+	struct stat st;
+
+	test("RESOURCE: Stat via Callback");
+	if (stat(path, &st) != 0) {
+		assert_fail("Unable to stat directory (pre-callback)");
+		return;
+	}
+	assert_int_ne("Pre-stat mode is not 0705", st.st_mode & 07777, 0705);
+
+	res = resource_new("dir", path);
+	assert_not_null("res is not NULL", res);
+	resource_set(res, "mode", "0705");
+
+	assert_int_eq("resource_stat succeeds", resource_stat(res, &env), 0);
+	rd = (struct res_dir *)(res->resource);
+	assert_not_null("res->resource is not NULL (cast)", rd);
+	assert_true("Directory exists", rd->exists);
+
+	assert_true("Post-stat, mode is out of compliance", DIFFERENT(rd, RES_DIR_MODE));
+
+	test("RESOURCE: Fixup via Callback");
+	report = resource_fixup(res, 0, &env);
+	assert_not_null("resource_fixup returns a report", report);
+
+	if (stat(path, &st) != 0) {
+		assert_fail("Unable to stat directory (post-fixup)");
+		return;
+	}
+	assert_int_eq("Post-fixup, mode is 0705", st.st_mode & 07777, 0705);
+	assert_int_eq("resource was fixed", report->fixed, 1);
+	assert_int_eq("resource is now compliant", report->compliant, 1);
+
+	resource_free(res);
+	report_free(report);
 }
 
 void test_resource_deps()
@@ -86,6 +154,10 @@ void test_resource_deps()
 
 	assert_int_ne("Dropping non-existent dependency fails", resource_drop_dependency(c, b), 0);
 
+	test("RESOURCE: dependency_free(NULL)");
+	dependency_free(NULL);
+	assert_true("dependency_free(NULL) does not segfault", 1);
+
 	resource_free(a);
 	resource_free(b);
 	resource_free(c);
@@ -98,6 +170,9 @@ void test_resource_unknown()
 	test("RESOURCE: Unknown Resource Type");
 	r = resource_new("nonexistent_resource", "DNF");
 	assert_null("resource_new wont create a resource of UNKNOWN type", r);
+
+	r = resource_unpack("no-such-resource::\"key\"00000001");
+	assert_null("resource_unpack returns NULL on UNKNOWN type", r);
 }
 
 void test_resource_dependency_pack()
@@ -139,12 +214,31 @@ void test_resource_dependency_unpack()
 	dependency_free(d);
 }
 
+void test_resource_free_NULL()
+{
+	test("RESOURCE: resource_free(NULL)");
+	resource_free(NULL);
+	assert_true("resource_free(NULL) doesn't segfault", 1);
+}
+
+void test_dependency_free_NULL()
+{
+	test("RESOURCE: dependency_free(NULL)");
+	dependency_free(NULL);
+	assert_true("dependency_free(NULL) doesn't segfault", 1);
+}
+
 void test_suite_resource()
 {
 	test_resource_callbacks();
+	test_resource_attrs_callback();
+	test_resource_stat_fixup_callback();
 	test_resource_deps();
 	test_resource_unknown();
 
 	test_resource_dependency_pack();
 	test_resource_dependency_unpack();
+
+	test_resource_free_NULL();
+	test_dependency_free_NULL();
 }

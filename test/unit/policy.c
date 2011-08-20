@@ -5,6 +5,7 @@
 #include "../../policy.h"
 #include "../../resources.h"
 #include "../../mem.h"
+#include "../../spec/parser.h"
 
 void test_policy_creation()
 {
@@ -126,6 +127,37 @@ void test_policy_unpack()
 	policy_free_all(pol);
 }
 
+void test_policy_deps()
+{
+	struct manifest *m;
+	struct policy *pol;
+	struct hash *facts;
+
+	test("policy: dependencies");
+	facts = hash_new();
+	m = parse_file(DATAROOT "/policy/norm/policy.pol");
+
+	assert_not_null("Manifest parsed properly", m);
+	pol = policy_generate(hash_get(m->policies, "base"), facts);
+	assert_not_null("Policy 'base' found", pol);
+
+	test("policy: file deps");
+	assert_dep(pol, "file:test-file", "user:james");
+	assert_dep(pol, "file:test-file", "group:staff");
+	assert_dep(pol, "file:test-file", "dir:parent");
+
+	test("policy: dir deps");
+	assert_dep(pol, "dir:test-dir", "user:james");
+	assert_dep(pol, "dir:test-dir", "group:staff");
+	assert_dep(pol, "dir:test-dir", "dir:parent");
+
+	assert_dep(pol, "dir:parent", "user:james");
+	assert_dep(pol, "dir:parent", "group:staff");
+
+	policy_free_all(pol);
+	manifest_free(m);
+}
+
 void test_suite_policy()
 {
 	test_policy_creation();
@@ -134,4 +166,6 @@ void test_suite_policy()
 
 	test_policy_pack();
 	test_policy_unpack();
+
+	test_policy_deps();
 }

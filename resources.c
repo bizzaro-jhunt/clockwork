@@ -355,9 +355,9 @@ int res_user_attrs(const void *res, struct hash *attrs)
 	const struct res_user *ru = (const struct res_user*)(res);
 	assert(ru); // LCOV_EXCL_LINE
 
+	hash_set(attrs, "username", strdup(ru->ru_name));
 	hash_set(attrs, "uid", ENFORCED(ru, RES_USER_UID) ? string("%u",ru->ru_uid) : NULL);
 	hash_set(attrs, "gid", ENFORCED(ru, RES_USER_GID) ? string("%u",ru->ru_gid) : NULL);
-	hash_set(attrs, "username", ENFORCED(ru, RES_USER_NAME) ? strdup(ru->ru_name) : NULL);
 	hash_set(attrs, "home", ENFORCED(ru, RES_USER_DIR) ? strdup(ru->ru_dir) : NULL);
 	hash_set(attrs, "present", strdup(ENFORCED(ru, RES_USER_ABSENT) ? "no" : "yes"));
 	hash_set(attrs, "locked", ENFORCED(ru, RES_USER_LOCK) ? strdup(ru->ru_lock ? "yes" : "no") : NULL);
@@ -1390,10 +1390,10 @@ static char* _res_group_roster_mv(stringlist *add, stringlist *rm)
 		xfree(added);
 		xfree(removed);
 
-	} else if (added && !removed) {
+	} else if (added) {
 		final = added;
 
-	} else if (!added && removed) {
+	} else if (removed) {
 		final = string("!%s", removed);
 		xfree(removed);
 
@@ -1409,8 +1409,8 @@ int res_group_attrs(const void *res, struct hash *attrs)
 	const struct res_group *rg = (const struct res_group*)(res);
 	assert(rg); // LCOV_EXCL_LINE
 
+	hash_set(attrs, "name", strdup(rg->rg_name));
 	hash_set(attrs, "gid", ENFORCED(rg, RES_GROUP_GID) ? string("%u",rg->rg_gid) : NULL);
-	hash_set(attrs, "name", ENFORCED(rg, RES_GROUP_NAME) ? strdup(rg->rg_name) : NULL);
 	hash_set(attrs, "present", strdup(ENFORCED(rg, RES_GROUP_ABSENT) ? "no" : "yes"));
 	hash_set(attrs, "password", ENFORCED(rg, RES_GROUP_PASSWD) ? strdup(rg->rg_passwd) : NULL);
 	if (ENFORCED(rg, RES_GROUP_MEMBERS)) {
@@ -2364,6 +2364,7 @@ int res_host_attrs(const void *res, struct hash *attrs)
 	assert(rh); // LCOV_EXCL_LINE
 
 	hash_set(attrs, "hostname", xstrdup(rh->hostname));
+	hash_set(attrs, "present",  strdup(ENFORCED(rh, RES_HOST_ABSENT) ? "no" : "yes"));
 	hash_set(attrs, "ip", xstrdup(rh->ip));
 	if (ENFORCED(rh, RES_HOST_ALIASES)) {
 		hash_set(attrs, "aliases", stringlist_join(rh->aliases, " "));
@@ -2381,15 +2382,15 @@ int res_host_set(void *res, const char *name, const char *value)
 	assert(rh); // LCOV_EXCL_LINE
 	stringlist *alias_tmp;
 
-	if (strcmp(name, "hostname") == 0) {
+	if (streq(name, "hostname")) {
 		free(rh->hostname);
 		rh->hostname = strdup(value);
 
-	} else if (strcmp(name, "ip") == 0 || strcmp(name, "address") == 0) {
+	} else if (streq(name, "ip") || streq(name, "address")) {
 		free(rh->ip);
 		rh->ip = strdup(value);
 
-	} else if (strcmp(name, "aliases") == 0 || strcmp(name, "alias") == 0) {
+	} else if (streq(name, "aliases") || streq(name, "alias")) {
 		alias_tmp = stringlist_split(value, strlen(value), " ", SPLIT_GREEDY);
 		if (stringlist_add_all(rh->aliases, alias_tmp) != 0) {
 			stringlist_free(alias_tmp);
@@ -2398,6 +2399,13 @@ int res_host_set(void *res, const char *name, const char *value)
 		stringlist_free(alias_tmp);
 
 		ENFORCE(rh, RES_HOST_ALIASES);
+
+	} else if (streq(name, "present")) {
+		if (streq(value, "no")) {
+			ENFORCE(rh, RES_HOST_ABSENT);
+		} else {
+			UNENFORCE(rh, RES_HOST_ABSENT);
+		}
 
 	} else {
 		return -1;
@@ -2675,7 +2683,7 @@ int res_sysctl_attrs(const void *res, struct hash *attrs)
 
 	hash_set(attrs, "param", xstrdup(rs->param));
 	hash_set(attrs, "value", ENFORCED(rs, RES_SYSCTL_VALUE) ? strdup(rs->value) : NULL);
-	hash_set(attrs, "persist", strdup(ENFORCED(rs, RES_SYSCTL_VALUE) ? "yes" : "no"));
+	hash_set(attrs, "persist", strdup(ENFORCED(rs, RES_SYSCTL_PERSIST) ? "yes" : "no"));
 	return 0;
 }
 
@@ -2806,7 +2814,7 @@ struct report* res_sysctl_fixup(void *res, int dryrun, const struct resource_env
 	return report;
 }
 
-#define PACK_FORMAT "aLaaL"
+#define PACK_FORMAT "aLaaS"
 char* res_sysctl_pack(const void *res)
 {
 	const struct res_sysctl *rs = (const struct res_sysctl*)(res);
@@ -3001,8 +3009,16 @@ int res_dir_stat(void *res, const struct resource_env *env)
 	assert(rd); // LCOV_EXCL_LINE
 	assert(rd->path); // LCOV_EXCL_LINE
 
-	rd->uid = pwdb_lookup_uid(env->user_pwdb,  rd->owner);
-	rd->gid = grdb_lookup_gid(env->group_grdb, rd->group);
+	if (!rd->uid && rd->owner) {
+		assert(env);            // LCOV_EXCL_LINE
+		assert(env->user_pwdb); // LCOV_EXCL_LINE
+		rd->uid = pwdb_lookup_uid(env->user_pwdb,  rd->owner);
+	}
+	if (!rd->gid && rd->group) {
+		assert(env);             // LCOV_EXCL_LINE
+		assert(env->group_grdb); // LCOV_EXCL_LINE
+		rd->gid = grdb_lookup_gid(env->group_grdb, rd->group);
+	}
 
 	if (stat(rd->path, &rd->stat) == -1) { /* new directory */
 		rd->different = rd->enforced;

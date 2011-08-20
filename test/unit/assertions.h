@@ -14,4 +14,6 @@ void assert_policy_has(const char *msg, const struct policy *pol, enum restype t
 #define assert_policy_has_groups(msg,p,n) assert_policy_has(msg,p,RES_GROUP,n)
 #define assert_policy_has_files(msg,p,n)  assert_policy_has(msg,p,RES_FILE, n)
 
+void assert_dep(const struct policy *pol, const char *a, const char *b);
+
 #endif

@@ -57,6 +57,8 @@ char* xstrdup(const char *s);
  */
 int xstrcmp(const char *a, const char *b);
 
+int streq(const char *a, const char *b);
+
 /**
   Copy one string into another buffer.
 

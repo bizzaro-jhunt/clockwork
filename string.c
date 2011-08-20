@@ -118,6 +118,7 @@ int string_interpolate(char *buf, size_t len, const char *src, const struct hash
 	memset(buf, 0, len);
 	//char *debug = buf;
 
+	--len; // we really only have len-1 character slots (trailing \0)
 	while (*src && len > 0) {
 		if (state == SI_SREF) {
 			if (!isalnum(*src)) {

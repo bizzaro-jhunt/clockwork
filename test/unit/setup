@@ -16,6 +16,50 @@ setup_tmp() {
 	mkdir -p $TMPROOT/x509 # for test/unit/cert.o
 }
 
+setup_resource() {
+	mkdir -p $DATAROOT/resource/dir
+	chown $SAFE_UID:$SAFE_GID $DATAROOT/resource/dir
+	chmod 0700 $DATAROOT/resource/dir
+}
+
+setup_policy() {
+	rm -rf $DATAROOT/policy/norm
+	mkdir -p $DATAROOT/policy/norm
+	cat > $DATAROOT/policy/norm/policy.pol <<EOF
+policy "base" {
+	user "james" {
+		uid: 1009
+		gid: 2001
+	}
+
+	group "staff" {
+		gid: 2001
+	}
+
+	file "test-file" {
+		path:  "$DATAROOT/policy/norm/data/file"
+		owner: "james"
+		group: "staff"
+
+	}
+
+	dir "parent" {
+		path:  "$DATAROOT/policy/norm/data"
+		owner: "james"
+		group: "staff"
+		mode:  0750
+	}
+
+	dir "test-dir" {
+		path:  "$DATAROOT/policy/norm/data/dir"
+		owner: "james"
+		group: "staff"
+		mode:  0750
+	}
+}
+EOF
+}
+
 setup_res_file() {
 	cp -a $DATAROOT/res_file/ORIG/* $DATAROOT/res_file/
 
@@ -30,6 +74,18 @@ setup_res_file() {
 setup_res_user() {
 	rm -rf /tmp/nonexistent
 	rm -rf $TMPROOT/new_user.home
+}
+
+setup_res_dir() {
+	# for test_res_dir_diffstat
+	mkdir -p $DATAROOT/res_dir/dir1
+	chown $SAFE_UID:$SAFE_GID $DATAROOT/res_dir/dir1
+	chmod 0755 $DATAROOT/res_dir/dir1
+
+	# for test_res_dir_fixup_existing
+	mkdir -p $DATAROOT/res_dir/fixme
+	chown $SAFE_UID:$SAFE_GID $DATAROOT/res_dir/fixme
+	chmod 0700 $DATAROOT/res_dir/fixme
 }
 
 setup_userdb() {
@@ -132,8 +188,11 @@ EOF
 ######################################################
 
 setup_tmp
+setup_resource
+setup_policy
 setup_res_file
 setup_res_user
+setup_res_dir
 setup_userdb
 setup_cert
 

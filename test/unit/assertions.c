@@ -36,3 +36,17 @@ void assert_policy_has(const char *msg, const struct policy *pol, enum restype t
 	assert_int_eq(msg, num, n);
 }
 
+void assert_dep(const struct policy *pol, const char *a, const char *b)
+{
+	char msg[128];
+	struct dependency *dep;
+
+	snprintf(msg, 128, "'%s' should depend on '%s'", a, b);
+	for_each_dependency(dep, pol) {
+		if (streq(dep->a, a) && streq(dep->b, b)) {
+			assert_true(msg, 1);
+			return;
+		}
+	}
+	assert_fail(msg);
+}

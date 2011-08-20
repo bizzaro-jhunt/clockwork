@@ -373,8 +373,35 @@ void test_pack_interpretation()
 	     -8502 251 173
 
 	 */
+}
+
+void test_pack_bad_format()
+{
+	char *s1, *s2, *s3;
+	char *packed;
 
 
+	test("pack: Bad Format String");
+	packed = pack("bad::", "aaZ", "string1", "string2", "string3");
+	assert_not_null("pack handles bad format strings", packed);
+	assert_str_eq("pack ignores bad format options", packed,
+		"bad::\"string1\"\"string2\"");
+	free(packed);
+
+	s1 = s2 = s3 = NULL;
+	assert_int_eq("unpack handles bad fmt string", 0,
+		unpack("bad::\"string1\"\"string2\"\"string3\"", "bad::", "aaZ",
+			&s1, &s2, &s3));
+	assert_not_null("s1 was used ('a' fmt)", s1);
+	assert_not_null("s2 was used ('a' fmt)", s2);
+	assert_null("s3 was ignored ('Z' fmt)", s3);
+
+	assert_str_eq("s1 set properly ('a' fmt)", s1, "string1");
+	assert_str_eq("s2 set properly ('a' fmt)", s2, "string2");
+
+	free(s1);
+	free(s2);
+	free(s3);
 }
 
 void test_pack_failure()
@@ -386,11 +413,9 @@ void test_pack_failure()
 		unpack("\"s1\"\"s2\"\"s3\"", "prefix::", "aaa",
 	               &s1, &s2, &s3));
 
-	/** Not currently working
 	assert_int_ne("unpack fails with bad data", 0,
-		unpack("prefix::<invalid data>", "prefix::", "aaa",
+		unpack("<invalid data>", "prefix::", "aaa",
 	               &s1, &s2, &s3));
-	 **/
 }
 
 void test_suite_pack() {
@@ -403,6 +428,8 @@ void test_suite_pack() {
 
 	test_pack_DECAFBAD();
 	test_pack_interpretation();
+
+	test_pack_bad_format();
 
 	test_pack_failure();
 }

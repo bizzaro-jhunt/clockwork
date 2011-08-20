@@ -9,6 +9,15 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+static void assert_attr_hash(const char *obj, struct hash *h, const char *attr, const char *val)
+{
+	char buf[128];
+	snprintf(buf, 128, "%s.%s == '%s'", obj, attr, val);
+	assert_str_eq(buf, val, hash_get(h, attr));
+}
+
+/***********************************************************************/
+
 void test_resource_keys()
 {
 	struct res_user     *user;
@@ -16,6 +25,9 @@ void test_resource_keys()
 	struct res_file     *file;
 	struct res_service  *service;
 	struct res_package  *package;
+	struct res_dir      *dir;
+	struct res_host     *host;
+	struct res_sysctl   *sysctl;
 
 	char *k;
 
@@ -49,35 +61,78 @@ void test_resource_keys()
 	assert_str_eq("package key formatted properly", "package:package-key", k);
 	free(k);
 	res_package_free(package);
+
+	dir = res_dir_new("/path/to/dir");
+	k = res_dir_key(dir);
+	assert_str_eq("dir key formatted properly", "dir:/path/to/dir", k);
+	free(k);
+	res_dir_free(dir);
+
+	host = res_host_new("localhost");
+	k = res_host_key(host);
+	assert_str_eq("host key formatted properly", "host:localhost", k);
+	free(k);
+	res_host_free(host);
+
+	sysctl = res_sysctl_new("kernel.param1");
+	k = res_sysctl_key(sysctl);
+	assert_str_eq("sysctl key formatted properly", "sysctl:kernel.param1", k);
+	free(k);
+	res_sysctl_free(sysctl);
 }
 
 void test_resource_noops()
 {
-	test("RES_USER: notify is a NOOP");
+	test("RES_*: NOOPs");
 	assert_int_eq("res_user_notify does nothing", 0, res_user_notify(NULL, NULL));
-
-	test("RES_USER: norm is a NOOP");
 	assert_int_eq("res_user_norm does nothing", 0, res_user_norm(NULL, NULL, NULL));
 
-	test("RES_GROUP: notify is a NOOP");
 	assert_int_eq("res_group_notify does nothing", 0, res_group_notify(NULL, NULL));
-
-	test("RES_GROUP: norm is a NOOP");
 	assert_int_eq("res_group_norm does nothing", 0, res_group_norm(NULL, NULL, NULL));
 
-	test("RES_FILE: notify is a NOOP");
 	assert_int_eq("res_file_notify does nothing", 0, res_file_notify(NULL, NULL));
 
-	test("RES_SERVICE: norm is a NOOP");
 	assert_int_eq("res_service_norm does nothing", 0, res_service_norm(NULL, NULL, NULL));
 
-	test("RES_PACKAGE: notify is a NOOP");
 	assert_int_eq("res_package_notify does nothing", 0, res_package_notify(NULL, NULL));
-
-	test("RES_PACKAGE: norm is a NOOP");
 	assert_int_eq("res_package_norm does nothing", 0, res_package_norm(NULL, NULL, NULL));
 
+	assert_int_eq("res_dir_notify does nothing", 0, res_dir_notify(NULL, NULL));
+	assert_int_eq("res_sysctl_notify does nothing", 0, res_sysctl_notify(NULL, NULL));
 
+	assert_int_eq("res_sysctl_norm does nothing", 0, res_sysctl_norm(NULL, NULL, NULL));
+
+	assert_int_eq("res_host_notify does nothing", 0, res_host_notify(NULL, NULL));
+	assert_int_eq("res_host_norm does nothing", 0, res_host_norm(NULL, NULL, NULL));
+}
+
+void test_resource_free_null()
+{
+	test("RES_*: free(NULL)");
+
+	res_user_free(NULL);
+	assert_true("res_user_free(NULL) doesn't segfault", 1);
+
+	res_group_free(NULL);
+	assert_true("res_group_free(NULL) doesn't segfault", 1);
+
+	res_file_free(NULL);
+	assert_true("res_file_free(NULL) doesn't segfault", 1);
+
+	res_service_free(NULL);
+	assert_true("res_service_free(NULL) doesn't segfault", 1);
+
+	res_package_free(NULL);
+	assert_true("res_package_free(NULL) doesn't segfault", 1);
+
+	res_dir_free(NULL);
+	assert_true("res_dir_free(NULL) doesn't segfault", 1);
+
+	res_sysctl_free(NULL);
+	assert_true("res_sysctl_free(NULL) doesn't segfault", 1);
+
+	res_host_free(NULL);
+	assert_true("res_host_free(NULL) doesn't segfault", 1);
 }
 
 void test_res_user_enforcement()
@@ -497,11 +552,11 @@ void test_res_user_unpack()
 		"00002328" /* expire 9000 */
 		"";
 
+	test("RES_USER: unpack res_user");
 	assert_null("res_user_unpack returns NULL on failure", res_user_unpack("<invalid packed data>"));
 
 	ru = res_user_unpack(packed);
 
-	test("RES_USER: unpack res_user");
 	assert_not_null("res_user_unpack succeeds", ru);
 	assert_str_eq("res_user->key is \"userkey\"", "userkey", ru->key);
 	assert_str_eq("res_user->ru_name is \"user\"", "user", ru->ru_name);
@@ -547,6 +602,69 @@ void test_res_user_unpack()
 	assert_int_eq("res_user->ru_expire is 9000", 9000, ru->ru_expire);
 	assert_true("EXPIRE is enforced", ENFORCED(ru, RES_USER_EXPIRE));
 
+	res_user_free(ru);
+}
+
+void test_res_user_attrs()
+{
+	struct res_user *ru;
+	struct hash *h;
+
+	test("RES_USER: attribute retrieval");
+	h = hash_new();
+	ru = res_user_new("user");
+	assert_int_eq("retrieved res_user attrs", 0, res_user_attrs(ru, h));
+	assert_attr_hash("ru", h, "username", "user");
+	assert_attr_hash("ru", h, "present",  "yes"); // default
+	assert_null("h[uid] is NULL (unset)", hash_get(h, "uid"));
+	assert_null("h[gid] is NULL (unset)", hash_get(h, "gid"));
+	assert_null("h[home] is NULL (unset)", hash_get(h, "home"));
+	assert_null("h[locked] is NULL (unset)", hash_get(h, "locked"));
+	assert_null("h[comment] is NULL (unset)", hash_get(h, "comment"));
+	assert_null("h[shell] is NULL (unset)", hash_get(h, "shell"));
+	assert_null("h[password] is NULL (unset)", hash_get(h, "password"));
+	assert_null("h[pwmin] is NULL (unset)", hash_get(h, "pwmin"));
+	assert_null("h[pwmax] is NULL (unset)", hash_get(h, "pwmax"));
+	assert_null("h[pwwarn] is NULL (unset)", hash_get(h, "pwwarn"));
+	assert_null("h[inact] is NULL (unset)", hash_get(h, "inact"));
+	assert_null("h[expiration] is NULL (unset)", hash_get(h, "expiration"));
+	assert_null("h[skeleton] is NULL (unset)", hash_get(h, "skeleton"));
+
+	res_user_set(ru, "uid",        "1001");
+	res_user_set(ru, "gid",        "2002");
+	res_user_set(ru, "home",       "/home/user");
+	res_user_set(ru, "locked",     "yes");
+	res_user_set(ru, "comment",    "User");
+	res_user_set(ru, "shell",      "/bin/bash");
+	res_user_set(ru, "password",   "secret");
+	res_user_set(ru, "pwmin",      "2");
+	res_user_set(ru, "pwmax",      "30");
+	res_user_set(ru, "pwwarn",     "7");
+	res_user_set(ru, "inact",      "14");
+	res_user_set(ru, "expiration", "365");
+	res_user_set(ru, "skeleton",   "/etc/skel");
+	res_user_set(ru, "present",    "no");
+	assert_int_eq("retrieved res_user attrs", 0, res_user_attrs(ru, h));
+	assert_attr_hash("ru", h, "uid",        "1001");
+	assert_attr_hash("ru", h, "gid",        "2002");
+	assert_attr_hash("ru", h, "home",       "/home/user");
+	assert_attr_hash("ru", h, "locked",     "yes");
+	assert_attr_hash("ru", h, "comment",    "User");
+	assert_attr_hash("ru", h, "shell",      "/bin/bash");
+	assert_attr_hash("ru", h, "password",   "secret");
+	assert_attr_hash("ru", h, "pwmin",      "2");
+	assert_attr_hash("ru", h, "pwmax",      "30");
+	assert_attr_hash("ru", h, "pwwarn",     "7");
+	assert_attr_hash("ru", h, "inact",      "14");
+	assert_attr_hash("ru", h, "expiration", "365");
+	assert_attr_hash("ru", h, "skeleton",   "/etc/skel");
+	assert_attr_hash("ru", h, "present",    "no");
+
+	res_user_set(ru, "locked", "no");
+	assert_int_eq("retrieved res_user attrs", 0, res_user_attrs(ru, h));
+	assert_attr_hash("ru", h, "locked", "no");
+
+	hash_free(h);
 	res_user_free(ru);
 }
 
@@ -940,6 +1058,90 @@ void test_res_group_add_remove_members_via_set()
 	res_group_free(rg);
 }
 
+void test_res_group_attrs()
+{
+	struct res_group *rg;
+	struct hash *h;
+
+	h = hash_new();
+	test("RES_GROUP: attribute retrieval");
+	rg = res_group_new("gr1");
+	assert_int_eq("retrieved res_group attrs", 0, res_group_attrs(rg, h));
+	assert_attr_hash("rg", h, "name", "gr1");
+	assert_attr_hash("rg", h, "present", "yes");
+	assert_null("h[gid] is NULL (unset)", hash_get(h, "gid"));
+	assert_null("h[password] is NULL (unset)", hash_get(h, "password"));
+	assert_null("h[members] is NULL (unset)", hash_get(h, "members"));
+	assert_null("h[admins] is NULL (unset)", hash_get(h, "admins"));
+
+	res_group_set(rg, "gid", "707");
+	res_group_set(rg, "password", "secret");
+	assert_int_eq("retrieved res_group attrs", 0, res_group_attrs(rg, h));
+	assert_attr_hash("rg", h, "name", "gr1");
+	assert_attr_hash("rg", h, "gid", "707");
+	assert_attr_hash("rg", h, "password", "secret");
+
+	res_group_set(rg, "member", "u1");
+	res_group_set(rg, "member", "!bad");
+	res_group_set(rg, "admin", "a1");
+	res_group_set(rg, "admin", "!bad");
+	res_group_set(rg, "present", "no");
+	assert_int_eq("retrieved res_group attrs", 0, res_group_attrs(rg, h));
+	assert_attr_hash("rg", h, "members", "u1 !bad");
+	assert_attr_hash("rg", h, "admins",  "a1 !bad");
+	assert_attr_hash("rg", h, "present", "no");
+
+	assert_int_ne("xyzzy is not a valid attribute", 0, res_group_set(rg, "xyzzy", "BAD"));
+	assert_int_eq("retrieved attrs", 0, res_group_attrs(rg, h));
+	assert_null("h[xyzzy] is NULL (bad attr)", hash_get(h, "xyzzy"));
+
+	res_group_free(rg);
+	hash_free(h);
+}
+
+void test_res_group_attrs_multivalue()
+{
+	struct res_group *add_only;
+	struct res_group *rm_only;
+	struct res_group *no_change;
+	struct hash *h;
+
+	h = hash_new();
+	test("RES_GROUP: Multi-value attribute hash retrieval");
+	add_only = res_group_new("gr1");
+	res_group_set(add_only, "member", "joe");
+	res_group_set(add_only, "member", "bob");
+	res_group_set(add_only, "admin",  "alice");
+	res_group_set(add_only, "admin",  "zelda");
+	assert_int_eq("retrieved res_group attrs", 0, res_group_attrs(add_only, h));
+	assert_attr_hash("add_only", h, "members", "joe bob");
+	assert_attr_hash("add_only", h, "admins",  "alice zelda");
+	res_group_free(add_only);
+	hash_free(h);
+
+	h = hash_new();
+	rm_only = res_group_new("gr2");
+	res_group_set(rm_only, "member", "!joe");
+	res_group_set(rm_only, "member", "!bob");
+	res_group_set(rm_only, "admin",  "!alice");
+	res_group_set(rm_only, "admin",  "!zelda");
+	assert_int_eq("retrieved res_group attrs", 0, res_group_attrs(rm_only, h));
+	assert_attr_hash("rm_only", h, "members", "!joe !bob");
+	assert_attr_hash("rm_only", h, "admins",  "!alice !zelda");
+	res_group_free(rm_only);
+	hash_free(h);
+
+	h = hash_new();
+	no_change = res_group_new("gr3");
+	/* whitebox hack testing */
+	no_change->enforced |= RES_GROUP_MEMBERS | RES_GROUP_ADMINS;
+	assert_int_eq("retrieved res_group attrs", 0, res_group_attrs(no_change, h));
+	assert_attr_hash("no_change", h, "members", "");
+	assert_attr_hash("no_change", h, "admins",  "");
+	res_group_free(no_change);
+	hash_free(h);
+}
+
 /*****************************************************************************/
 
 void test_res_file_enforcement()
@@ -994,7 +1196,7 @@ void test_res_file_diffstat()
 	res_file_set(rf, "mode", "0440");
 
 	test("RES_FILE: res_file_diffstat picks up file differences");
-	/* 2nd arg to res_file_stat is NULL, because we don't need it in res_file */
+	/* don't need to pass in an env arg (2nd param) */
 	assert_int_eq("res_file_stat returns zero", res_file_stat(rf, NULL), 0);
 	assert_int_eq("File exists", 1, rf->rf_exists);
 	assert_true("UID is out of compliance",  DIFFERENT(rf, RES_FILE_UID));
@@ -1253,6 +1455,49 @@ void test_res_file_unpack()
 	res_file_free(rf);
 }
 
+void test_res_file_attrs()
+{
+	struct res_file *rf;
+	struct hash *h;
+
+	h = hash_new();
+	test("RES_FILE: attribute retrieval via hash");
+	rf = res_file_new("/etc/sudoers");
+	assert_int_eq("attr retrieval worked", 0, res_file_attrs(rf, h));
+	assert_attr_hash("rf", h, "path", "/etc/sudoers");
+	assert_attr_hash("rf", h, "present", "yes"); // default
+	assert_null("h[owner] is NULL (unset)", hash_get(h, "owner"));
+	assert_null("h[group] is NULL (unset)", hash_get(h, "group"));
+	assert_null("h[mode] is NULL (unset)", hash_get(h, "mode"));
+	assert_null("h[template] is NULL (unset)", hash_get(h, "template"));
+	assert_null("h[source] is NULL (unset)", hash_get(h, "source"));
+
+	res_file_set(rf, "owner",  "root");
+	res_file_set(rf, "group",  "sys");
+	res_file_set(rf, "mode",   "0644");
+	res_file_set(rf, "source", "/srv/files/sudo");
+	assert_int_eq("attr retrieval worked", 0, res_file_attrs(rf, h));
+	assert_attr_hash("rf", h, "owner",  "root");
+	assert_attr_hash("rf", h, "group",  "sys");
+	assert_attr_hash("rf", h, "mode",   "0644");
+	assert_attr_hash("rf", h, "source", "/srv/files/sudo");
+	assert_null("h[template] is NULL (unset)", hash_get(h, "template"));
+
+	res_file_set(rf, "template", "/srv/tpl/sudo");
+	res_file_set(rf, "present", "no");
+	assert_int_eq("attr retrieval worked", 0, res_file_attrs(rf, h));
+	assert_attr_hash("rf", h, "template", "/srv/tpl/sudo");
+	assert_attr_hash("rf", h, "present",  "no");
+	assert_null("h[source] is NULL (unset)", hash_get(h, "source"));
+
+	assert_int_ne("xyzzy is not a valid attribute", 0, res_file_set(rf, "xyzzy", "BAD"));
+	assert_int_eq("retrieved attrs", 0, res_file_attrs(rf, h));
+	assert_null("h[xyzzy] is NULL (bad attr)", hash_get(h, "xyzzy"));
+
+	hash_free(h);
+	res_file_free(rf);
+}
+
 /*****************************************************************************/
 
 void test_res_package_match()
@@ -1326,6 +1571,35 @@ void test_res_package_unpack()
 	res_package_free(r);
 }
 
+void test_res_package_attrs()
+{
+	struct res_package *r;
+	struct hash *h;
+
+	test("RES_PACKAGE: attribute retrieval");
+	h = hash_new();
+	r = res_package_new("pkg");
+	assert_int_eq("retrieved attrs", 0, res_package_attrs(r, h));
+	assert_attr_hash("r", h, "name", "pkg");
+	assert_attr_hash("r", h, "installed", "yes"); // default
+	assert_null("h[version] is NULL (not set)", hash_get(h, "version"));
+
+	res_package_set(r, "name", "extra-tools");
+	res_package_set(r, "version", "1.2.3-4.5.6");
+	res_package_set(r, "installed", "no");
+	assert_int_eq("retrieved attrs", 0, res_package_attrs(r, h));
+	assert_attr_hash("r", h, "name", "extra-tools");
+	assert_attr_hash("r", h, "version", "1.2.3-4.5.6");
+	assert_attr_hash("r", h, "installed", "no");
+
+	assert_int_ne("xyzzy is not a valid attribute", 0, res_package_set(r, "xyzzy", "BAD"));
+	assert_int_eq("retrieved attrs", 0, res_package_attrs(r, h));
+	assert_null("h[xyzzy] is NULL (bad attr)", hash_get(h, "xyzzy"));
+
+	hash_free(h);
+	res_package_free(r);
+}
+
 /*****************************************************************************/
 
 void test_res_service_match()
@@ -1392,12 +1666,501 @@ void test_res_service_unpack()
 	res_service_free(r);
 }
 
+void test_res_service_attrs()
+{
+	struct res_service *r;
+	struct hash *h;
+
+	h = hash_new();
+	test("RES_SERVICE: attribute retrieval");
+	r = res_service_new("svc");
+	assert_int_eq("retrieved attrs", 0, res_service_attrs(r, h));
+	assert_attr_hash("r", h, "name", "svc");
+	assert_attr_hash("r", h, "running", "no"); // default
+	assert_attr_hash("r", h, "enabled", "no"); // default
+
+	res_service_set(r, "running", "yes");
+	res_service_set(r, "enabled", "yes");
+	assert_int_eq("retrieved attrs", 0, res_service_attrs(r, h));
+	assert_attr_hash("r", h, "running", "yes");
+	assert_attr_hash("r", h, "enabled", "yes");
+
+	res_service_set(r, "service", "httpd");
+	res_service_set(r, "running", "no");
+	res_service_set(r, "enabled", "no");
+	assert_int_eq("retrieved attrs", 0, res_service_attrs(r, h));
+	assert_attr_hash("r", h, "name", "httpd");
+	assert_attr_hash("r", h, "running", "no");
+	assert_attr_hash("r", h, "enabled", "no");
+
+	res_service_set(r, "stopped", "no");
+	res_service_set(r, "disabled", "no");
+	assert_int_eq("retrieved attrs", 0, res_service_attrs(r, h));
+	assert_attr_hash("r", h, "running", "yes");
+	assert_attr_hash("r", h, "enabled", "yes");
+
+	res_service_set(r, "stopped", "yes");
+	res_service_set(r, "disabled", "yes");
+	assert_int_eq("retrieved attrs", 0, res_service_attrs(r, h));
+	assert_attr_hash("r", h, "running", "no");
+	assert_attr_hash("r", h, "enabled", "no");
+
+	assert_int_ne("xyzzy is not a valid attribute", 0, res_service_set(r, "xyzzy", "BAD"));
+	assert_int_eq("retrieved attrs", 0, res_service_attrs(r, h));
+	assert_null("h[xyzzy] is NULL (bad attr)", hash_get(h, "xyzzy"));
+
+	hash_free(h);
+	res_service_free(r);
+}
+
+void test_res_service_notify()
+{
+	struct res_service *r;
+
+	test("RES_SERVICE: notify");
+	r = res_service_new("svc");
+	assert_int_ne("By default, service hasn't been notified", r->notified, 1);
+	assert_int_eq("res_service_notify returns 0", res_service_notify(r, NULL), 0);
+	assert_int_eq("Service has now been notified", r->notified, 1);
+
+	res_service_free(r);
+}
+
+/*****************************************************************************/
+
+void test_res_host_match()
+{
+	struct res_host *rh;
+
+	rh = res_host_new("host1");
+	res_host_set(rh, "ip", "192.168.1.1");
+	res_host_set(rh, "alias", "host1.example.net");
+
+	test("RES_HOST: attribute matching");
+	assert_int_eq("host1 matches hostname=host1", 0, res_host_match(rh, "hostname", "host1"));
+	assert_int_eq("host1 matches ip=192.168.1.1", 0, res_host_match(rh, "ip", "192.168.1.1"));
+	assert_int_eq("host1 matches address=192.168.1.1", 0, res_host_match(rh, "address", "192.168.1.1"));
+
+	assert_int_ne("host1 does not match hostname=h2", 0, res_host_match(rh, "hostname", "h2"));
+	assert_int_ne("host1 does not match ip=1.1.1.1",  0, res_host_match(rh, "ip", "1.1.1.1"));
+	assert_int_ne("host1 does not match address=1.1.1.1",  0, res_host_match(rh, "address", "1.1.1.1"));
+
+	assert_int_ne("alias is not a matchable attr", 0, res_host_match(rh, "alias", "host1.example.net"));
+
+	res_host_free(rh);
+}
+
+void test_res_host_pack()
+{
+	struct res_host *rh;
+	char *packed;
+	const char *expected;
+
+	test("RES_HOST: pack res_host");
+	rh = res_host_new("127");
+	res_host_set(rh, "hostname", "localhost");
+	res_host_set(rh, "address",  "127.0.0.1");
+	res_host_set(rh, "aliases",  "localhost.localdomain box1");
+
+	packed = res_host_pack(rh);
+	expected = "res_host::\"127\""
+		"00000001" /* RES_HOST_ALIASES only */
+		"\"localhost\""
+		"\"127.0.0.1\""
+		"\"localhost.localdomain box1\"";
+	assert_str_eq("packs properly (normal case)", expected, packed);
+
+	free(packed);
+	res_host_free(rh);
+}
+
+void test_res_host_unpack()
+{
+	const char *packed;
+	struct res_host *rh;
+
+	test("RES_HOST: unpack res_host");
+	packed = "res_host::\"127\""
+		"00000001" /* RES_HOST_ALIASES only */
+		"\"localhost\""
+		"\"127.0.0.1\""
+		"\"localhost.localdomain box1\"";
+
+	assert_null("res_host_unpack returns NULL on failure", res_host_unpack("<invalid pack data>"));
+	rh = res_host_unpack(packed);
+	assert_not_null("unpacks successfully (normal case)", rh);
+
+	assert_str_eq("r->key is \"127\"", "127", rh->key);
+	assert_str_eq("r->hostname is \"localhost\"", "localhost", rh->hostname);
+	assert_str_eq("r->ip is \"127.0.0.1\"", "127.0.0.1", rh->ip);
+	assert_stringlist(rh->aliases, "r->aliases", 2, "localhost.localdomain", "box1");
+
+	res_host_free(rh);
+}
+
+void test_res_host_attrs()
+{
+	struct res_host *rh;
+	struct hash *h;
+
+	h = hash_new();
+	test("RES_HOST: attribute retrieval");
+	rh = res_host_new("localhost");
+	assert_int_eq("attribute retrieval succeeded", 0, res_host_attrs(rh, h));
+	assert_attr_hash("rh", h, "hostname", "localhost");
+	assert_attr_hash("rh", h, "present",  "yes"); // default
+	assert_null("h[ip] is NULL (unset)", hash_get(h, "ip"));
+	assert_null("h[aliases] is NULL (unset)", hash_get(h, "aliases"));
+
+	res_host_set(rh, "ip", "192.168.1.10");
+	res_host_set(rh, "alias", "localhost.localdomain");
+	res_host_set(rh, "alias", "special");
+	assert_int_eq("attribute retrieval succeeded", 0, res_host_attrs(rh, h));
+	assert_attr_hash("rh", h, "ip", "192.168.1.10");
+	assert_attr_hash("rh", h, "aliases", "localhost.localdomain special");
+
+	res_host_set(rh, "present", "no");
+	assert_int_eq("attribute retrieval succeeded", 0, res_host_attrs(rh, h));
+	assert_attr_hash("rh", h, "present",  "no");
+
+	hash_free(h);
+	res_host_free(rh);
+}
+
+/*****************************************************************************/
+
+void test_res_sysctl_match()
+{
+	struct res_sysctl *rs;
+
+	rs = res_sysctl_new("sys.ctl");
+	res_sysctl_set(rs, "value", "0 5 6 1");
+	res_sysctl_set(rs, "persist", "yes");
+
+	test("RES_SYSCTL: attribute matching");
+	assert_int_eq("sys.ctl matches param=sys.ctl", 0, res_sysctl_match(rs, "param", "sys.ctl"));
+
+	assert_int_ne("sys.ctl does not match param=sys.p", 0, res_sysctl_match(rs, "param", "sys.p"));
+
+	assert_int_ne("value is not a matchable attr",   0, res_sysctl_match(rs, "value", "0 5 6 1"));
+	assert_int_ne("persist is not a matchable attr", 0, res_sysctl_match(rs, "persist", "yes"));
+
+	res_sysctl_free(rs);
+}
+
+void test_res_sysctl_pack()
+{
+	struct res_sysctl *rs;
+	char *packed;
+	const char *expected;
+
+	test("RES_SYSCTL: pack res_sysctl");
+	rs = res_sysctl_new("ip");
+	res_sysctl_set(rs, "param", "kernel.net.ip");
+	res_sysctl_set(rs, "value", "1");
+	res_sysctl_set(rs, "persist", "yes");
+
+	packed = res_sysctl_pack(rs);
+	expected = "res_sysctl::\"ip\"00000003\"kernel.net.ip\"\"1\"0001";
+	assert_str_eq("packs properly (normal case)", expected, packed);
+
+	res_sysctl_free(rs);
+	free(packed);
+}
+
+void test_res_sysctl_unpack()
+{
+	struct res_sysctl *rs;
+	const char *packed;
+
+	test("RES_SYSCTL: unpack res_sysctl");
+	packed = "res_sysctl::\"param\""
+		"00000003"
+		"\"net.ipv4.echo\""
+		"\"2\""
+		"0001";
+
+	assert_null("returns NULL on failure", res_sysctl_unpack("<invalid pack data>"));
+	rs = res_sysctl_unpack(packed);
+	assert_not_null("res_sysctl_unpack succeeds", rs);
+	assert_str_eq("res_sysctl->key is \"param\"", "param", rs->key);
+	assert_str_eq("res_sysctl->param is \"net.ipv4.echo\"", "net.ipv4.echo", rs->param);
+
+	assert_str_eq("res_sysctl->value is \"2\"", "2", rs->value);
+	assert_true("VALUE is enforced", ENFORCED(rs, RES_SYSCTL_VALUE));
+
+	assert_int_eq("res_sysctl->persist is 1", 1, rs->persist);
+	assert_true("PERSIST is enforced", ENFORCED(rs, RES_SYSCTL_PERSIST));
+
+	res_sysctl_free(rs);
+}
+
+void test_res_sysctl_attrs()
+{
+	struct res_sysctl *rs;
+	struct hash *h;
+
+	h = hash_new();
+	test("RES_SYSCTL: attribute retrieval");
+	rs = res_sysctl_new("net.ipv4.tun");
+	assert_int_eq("retrieved res_sysctl attrs", 0, res_sysctl_attrs(rs, h));
+	assert_attr_hash("rs", h, "param", "net.ipv4.tun");
+	assert_null("h[value] is NULL (unset)", hash_get(h, "value"));
+	assert_attr_hash("rs", h, "persist", "yes");
+
+	res_sysctl_set(rs, "value", "42");
+	res_sysctl_set(rs, "persist", "yes");
+	assert_int_eq("retrieved res_sysctl attrs", 0, res_sysctl_attrs(rs, h));
+	assert_attr_hash("rs", h, "param", "net.ipv4.tun");
+	assert_attr_hash("rs", h, "value", "42");
+	assert_attr_hash("rs", h, "persist", "yes");
+
+	res_sysctl_set(rs, "persist", "no");
+	assert_int_eq("retrieved res_sysctl attrs", 0, res_sysctl_attrs(rs, h));
+	assert_attr_hash("rs", h, "persist", "no");
+
+	assert_int_ne("xyzzy is not a valid attribute", 0, res_sysctl_set(rs, "xyzzy", "BAD"));
+	assert_int_eq("retrieved attrs", 0, res_sysctl_attrs(rs, h));
+	assert_null("h[xyzzy] is NULL (bad attr)", hash_get(h, "xyzzy"));
+
+	hash_free(h);
+	res_sysctl_free(rs);
+}
+
+/*****************************************************************************/
+
+void test_res_dir_enforcement()
+{
+	struct res_dir *r;
+	r = res_dir_new("/tmp");
+
+	test("RES_DIR: Default Enforcements");
+	assert_true("ABSENT not enforced", !ENFORCED(r, RES_DIR_ABSENT));
+	assert_true("UID not enforced",    !ENFORCED(r, RES_DIR_UID));
+	assert_true("GID not enforced",    !ENFORCED(r, RES_DIR_GID));
+	assert_true("MODE not enforced",   !ENFORCED(r, RES_DIR_MODE));
+
+	test("RES_DIR: ABSENT enforcement");
+	res_dir_set(r, "present", "no");
+	assert_true("ABSENT enforced", ENFORCED(r, RES_DIR_ABSENT));
+	res_dir_set(r, "present", "yes");
+	assert_true("ABSENT no longer enforced", !ENFORCED(r, RES_DIR_ABSENT));
+
+	test("RES_DIR: UID enforcement");
+	res_dir_set(r, "owner", "user1");
+	assert_true("UID enforced", ENFORCED(r, RES_DIR_UID));
+	assert_str_eq("owner set properly", r->owner, "user1");
+
+	test("RES_DIR: GID enforcement");
+	res_dir_set(r, "group", "staff");
+	assert_true("GID enforced", ENFORCED(r, RES_DIR_GID));
+	assert_str_eq("group set properly", r->group, "staff");
+
+	test("RES_DIR: MODE enforcement");
+	res_dir_set(r, "mode", "0750");
+	assert_true("MODE enforced", ENFORCED(r, RES_DIR_MODE));
+	assert_int_eq("mode set properly", r->mode, 0750);
+
+	res_dir_free(r);
+}
+
+void test_res_dir_diffstat()
+{
+	struct res_dir *r;
+
+	test("RES_DIR: diff / stat");
+	r = res_dir_new("dir1");
+	res_dir_set(r, "path", DATAROOT "/res_dir/dir1");
+	res_dir_set(r, "owner", "someuser");
+	r->uid = 1001;
+	res_dir_set(r, "group", "staff");
+	r->gid = 2002;
+	res_dir_set(r, "mode", "0705");
+
+	/* don't need to pass in an env arg (2nd param) */
+	assert_int_eq("res_dir_stat returns zero", res_dir_stat(r, NULL), 0);
+	assert_int_eq("Directory exists", 1, r->exists);
+
+	assert_true("UID is out of compliance",  DIFFERENT(r, RES_DIR_UID));
+	assert_true("GID is out of compliance",  DIFFERENT(r, RES_DIR_GID));
+	assert_true("MODE is out of compliance", DIFFERENT(r, RES_DIR_MODE));
+
+	res_dir_free(r);
+}
+
+void test_res_dir_fixup_existing()
+{
+	struct stat st;
+	struct res_dir *r;
+	struct resource_env env; // needed but not used
+
+	struct report *report;
+
+	const char *path = DATAROOT "/res_dir/fixme";
+
+	test("RES_DIR: Fixup Existing Directory");
+	if (stat(path, &st) != 0) {
+		assert_fail("RES_FILE: Unable to stat pre-fixup file");
+		return;
+	}
+
+	assert_int_ne("Pre-fixup: dir owner UID is not 65542",   st.st_uid, 65542);
+	assert_int_ne("Pre-fixup: dir group GID is not 65524",   st.st_gid, 65524);
+	assert_int_ne("Pre-fixup: dir permissions are not 0754", st.st_mode &07777, 0754);
+
+	r = res_dir_new("fix");
+	res_dir_set(r, "path", path);
+	res_dir_set(r, "owner", "someuser");
+	r->uid = 65542;
+	res_dir_set(r, "group", "somegroup");
+	r->gid = 65524;
+	res_dir_set(r, "mode", "0754");
+
+	assert_int_eq("res_dir_stat succeeds", res_dir_stat(r, &env), 0);
+	assert_int_eq("Directory exists", 1, r->exists);
+	assert_true("UID is out of compliance", DIFFERENT(r, RES_DIR_UID));
+	assert_true("GID is out of compliance", DIFFERENT(r, RES_DIR_GID));
+
+	report = res_dir_fixup(r, 0, &env);
+	assert_not_null("res_dir_fixup returns a report", report);
+	assert_int_eq("dir was fixed", report->fixed, 1);
+	assert_int_eq("dir is now compliant", report->compliant, 1);
+
+	if (stat(path, &st) != 0) {
+		assert_fail("Unable to stat post-fixup file");
+		return;
+	}
+	assert_int_eq("Post-fixup: dir owner UID 65542", st.st_uid, 65542);
+	assert_int_eq("Post-fixup: dir group GID 65524", st.st_gid, 65524);
+	assert_int_eq("Post-fixup: dir permissions are 0754", st.st_mode & 07777, 0754);
+
+	res_dir_free(r);
+	report_free(report);
+}
+
+void test_res_dir_match()
+{
+	struct res_dir *rd;
+
+	rd = res_dir_new("tmpdir");
+	res_dir_set(rd, "path",  "/tmp");
+	res_dir_set(rd, "owner", "root");
+	res_dir_set(rd, "group", "sys");
+	res_dir_set(rd, "mode",  "1777");
+
+	test("RES_DIR: attribute matching");
+	assert_int_eq("tmpdir matches path=/tmp", 0, res_dir_match(rd, "path", "/tmp"));
+
+	assert_int_ne("tmpdir does not match path=/usr", 0, res_dir_match(rd, "path", "/usr"));
+	assert_int_ne("owner is not a matchable attr",   0, res_dir_match(rd, "owner", "root"));
+	assert_int_ne("group is not a matchable attr",   0, res_dir_match(rd, "group", "sys"));
+	assert_int_ne("mode is not a matchable attr",    0, res_dir_match(rd, "mode", "1777"));
+
+	res_dir_free(rd);
+}
+
+void test_res_dir_pack()
+{
+	struct res_dir *rd;
+	char *packed;
+	const char *expected;
+
+	test("RES_DIR: pack res_dir");
+	rd = res_dir_new("home");
+	res_dir_set(rd, "path",    "/home");
+	res_dir_set(rd, "owner",   "root");
+	res_dir_set(rd, "group",   "users");
+	res_dir_set(rd, "mode",    "0750");
+	res_dir_set(rd, "present", "no");
+
+	packed = res_dir_pack(rd);
+	/* mode 0750 (octal) = 000001e8 (hex) */
+	expected = "res_dir::\"home\"80000007\"/home\"\"root\"\"users\"000001e8";
+	assert_str_eq("packs properly (normal case)", expected, packed);
+
+	res_dir_free(rd);
+	free(packed);
+}
+
+void test_res_dir_unpack()
+{
+	struct res_dir *rd;
+	const char *packed;
+
+	test("RES_DIR: unpack res_dir");
+	packed = "res_dir::\"dirkey\""
+		"80000007"
+		"\"/tmp\""
+		"\"root\""
+		"\"sys\""
+		"000003ff";
+	assert_null("res_dir_unpack returns NULL on failure", res_dir_unpack("<invalid packed data>"));
+
+	rd = res_dir_unpack(packed);
+	assert_not_null("res_dir_unpack succeeds", rd);
+	assert_str_eq("res_dir->key is \"dirkey\"", "dirkey", rd->key);
+	assert_str_eq("res_dir->path is \"/tmp\"", "/tmp", rd->path);
+
+	assert_str_eq("res_dir->owner is \"root\"", "root", rd->owner);
+	assert_true("UID is enforced", ENFORCED(rd, RES_DIR_UID));
+
+	assert_str_eq("res_dir->group is \"sys\"", "sys", rd->group);
+	assert_true("GID is enforced", ENFORCED(rd, RES_DIR_GID));
+
+	assert_int_eq("res_dir->mode is (oct)1777", 01777, rd->mode);
+	assert_true("MODE is enforced", ENFORCED(rd, RES_DIR_MODE));
+
+	assert_true("ABSENT is enforced", ENFORCED(rd, RES_DIR_ABSENT));
+
+	res_dir_free(rd);
+}
+
+void test_res_dir_attrs()
+{
+	struct res_dir *rd;
+	struct hash *h;
+
+	h = hash_new();
+	test("RES_DIR: attribute retrieval");
+	rd = res_dir_new("/tmp");
+	assert_int_eq("retrieved res_dir attrs", 0, res_dir_attrs(rd, h));
+	assert_attr_hash("rd", h, "path", "/tmp");
+	assert_null("h[owner] is NULL (unset)", hash_get(h, "owner"));
+	assert_null("h[group] is NULL (unset)", hash_get(h, "group"));
+	assert_null("h[mode] is NULL (unset)", hash_get(h, "mode"));
+	assert_attr_hash("rd", h, "present", "yes"); // default
+
+	res_dir_set(rd, "owner",   "root");
+	res_dir_set(rd, "group",   "sys");
+	res_dir_set(rd, "mode",    "01777");
+	res_dir_set(rd, "present", "yes");
+
+	assert_int_eq("retrieved res_dir attrs", 0, res_dir_attrs(rd, h));
+	assert_attr_hash("rd", h, "path",    "/tmp");
+	assert_attr_hash("rd", h, "owner",   "root");
+	assert_attr_hash("rd", h, "group",   "sys");
+	assert_attr_hash("rd", h, "mode",    "1777");
+	assert_attr_hash("rd", h, "present", "yes");
+
+	res_dir_set(rd, "present", "no");
+	assert_int_eq("retrieved res_dir attrs", 0, res_dir_attrs(rd, h));
+	assert_attr_hash("rd", h, "present", "no");
+
+	assert_int_ne("xyzzy is not a valid attribute", 0, res_dir_set(rd, "xyzzy", "BAD"));
+	assert_int_eq("retrieved attrs", 0, res_dir_attrs(rd, h));
+	assert_null("h[xyzzy] is NULL (bad attr)", hash_get(h, "xyzzy"));
+
+	hash_free(h);
+	res_dir_free(rd);
+}
+
 /*****************************************************************************/
 
 void test_suite_resources()
 {
 	test_resource_keys();
 	test_resource_noops();
+	test_resource_free_null();
 
 	test_res_user_enforcement();
 	test_res_user_diffstat_fixup();
@@ -1407,6 +2170,7 @@ void test_suite_resources()
 	test_res_user_match();
 	test_res_user_pack();
 	test_res_user_unpack();
+	test_res_user_attrs();
 
 	test_res_group_enforcement();
 	test_res_group_diffstat_fixup();
@@ -1417,6 +2181,8 @@ void test_suite_resources()
 	test_res_group_pack();
 	test_res_group_unpack();
 	test_res_group_add_remove_members_via_set();
+	test_res_group_attrs();
+	test_res_group_attrs_multivalue();
 
 	test_res_file_enforcement();
 	test_res_file_diffstat();
@@ -1427,12 +2193,34 @@ void test_suite_resources()
 	test_res_file_match();
 	test_res_file_pack();
 	test_res_file_unpack();
+	test_res_file_attrs();
 
 	test_res_package_match();
 	test_res_package_pack();
 	test_res_package_unpack();
+	test_res_package_attrs();
 
 	test_res_service_match();
 	test_res_service_pack();
 	test_res_service_unpack();
+	test_res_service_attrs();
+	test_res_service_notify();
+
+	test_res_host_match();
+	test_res_host_pack();
+	test_res_host_unpack();
+	test_res_host_attrs();
+
+	test_res_sysctl_match();
+	test_res_sysctl_pack();
+	test_res_sysctl_unpack();
+	test_res_sysctl_attrs();
+
+	test_res_dir_enforcement();
+	test_res_dir_diffstat();
+	test_res_dir_fixup_existing();
+	test_res_dir_match();
+	test_res_dir_pack();
+	test_res_dir_unpack();
+	test_res_dir_attrs();
 }

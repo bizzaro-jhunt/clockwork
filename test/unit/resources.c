@@ -1501,6 +1501,65 @@ void test_res_file_attrs()
 
 /*****************************************************************************/
 
+#define PACKAGE "xbill"
+void test_res_package_diffstat_fixup()
+{
+	struct res_package *r;
+	struct resource_env env;
+	struct report *report;
+	char *version;
+
+	env.package_manager = DEFAULT_PM; /* from test/local.h */
+
+	test("RES_PACKAGE: stat (package needs removed)");
+	/* first, ensure that the package is not installed */
+	assert_int_eq("(test sanity) removal of package succeeds",
+		package_remove(DEFAULT_PM, PACKAGE), 0);
+
+	/* then, make sure we can install it. */
+	assert_int_eq("(test sanity) installation of package succeeds",
+		package_install(DEFAULT_PM, PACKAGE, NULL), 0);
+
+	/* now the real parts of the test */
+	r = res_package_new(PACKAGE);
+	res_package_set(r, "installed", "no");
+
+	assert_int_eq("res_package_stat succeeds", res_package_stat(r, &env), 0);
+	assert_not_null("package '" PACKAGE "' is installed", r->installed);
+	version = strdup(r->installed); // save version for later
+
+	test("RES_PACKAGE: fixup (package needs removed)");
+	report = res_package_fixup(r, 0, &env);
+	assert_not_null("res_package_fixup returns a report", report);
+	assert_true("resource was fixed", report->fixed);
+	assert_true("resource is compliant", report->compliant);
+	report_free(report);
+
+	/* check it */
+	assert_null("Package is uninstalled now", package_version(DEFAULT_PM, PACKAGE));
+
+	test("RES_PACKAGE: stat (package needs installed)");
+	res_package_set(r, "installed", "yes");
+	res_package_set(r, "version",   version);
+	assert_int_eq("res_package_stat succeeds", res_package_stat(r, &env), 0);
+	assert_null("package '" PACKAGE "' is NOT installed", r->installed);
+
+	test("RES_PACKAGE: fixup (package needs installed)");
+	report = res_package_fixup(r, 0, &env);
+	assert_not_null("res_package_fixup returns a report (2)", report);
+	assert_true("resource was fixed", report->fixed);
+	assert_true("resource is compliant", report->compliant);
+	report_free(report);
+
+	/* check it */
+	free(version);
+	version = package_version(DEFAULT_PM, PACKAGE);
+	assert_not_null("Package is installed now", version);
+	assert_str_eq("Correct version is installed", version, r->version);
+
+	free(version);
+}
+
 void test_res_package_match()
 {
 	struct res_package *rp;
@@ -1602,6 +1661,111 @@ void test_res_package_attrs()
 }
 
 /*****************************************************************************/
+
+#define SERVICE "snmpd"
+void test_res_service_diffstat_fixup()
+{
+	struct res_service *r;
+	struct resource_env env;
+	struct report *report;
+
+	/* so we can clean up after ourselves */
+	int was_enabled = 0;
+	int was_running = 0;
+
+	env.service_manager = DEFAULT_SM; /* from test/local.h */
+
+	test("RES_SERVICE: stat (service needs enabled / started)");
+	/* first make sure the service is stopped and disabled */
+	if (service_enabled(DEFAULT_SM, SERVICE) == 0) {
+		service_disable(DEFAULT_SM, SERVICE);
+		was_enabled = 1;
+	}
+	assert_int_ne("Service '" SERVICE "' disabled",
+		service_enabled(DEFAULT_SM, SERVICE), 0);
+	if (service_running(DEFAULT_SM, SERVICE) == 0) {
+		service_stop(DEFAULT_SM, SERVICE);
+		was_running = 1;
+	}
+	assert_int_ne("Service '" SERVICE "' not running",
+		service_running(DEFAULT_SM, SERVICE), 0);
+
+	/* now the real test */
+	r = res_service_new("snmpd");
+	res_service_set(r, "enabled", "yes");
+	res_service_set(r, "running", "yes");
+
+	assert_int_eq("res_service_stat succeeds", res_service_stat(r, &env), 0);
+	assert_false("service not running (non-compliant)", r->running);
+	assert_true("Service should be running",      ENFORCED(r, RES_SERVICE_RUNNING));
+	assert_true("Service should be running (2)", !ENFORCED(r, RES_SERVICE_STOPPED));
+	assert_false("service not enabled (non-compliant)", r->enabled);
+	assert_true("Service should be enabled",      ENFORCED(r, RES_SERVICE_ENABLED));
+	assert_true("Service should be enabled (2)", !ENFORCED(r, RES_SERVICE_DISABLED));
+
+	test("RES_SERVICE: fixup (service needs enabled / started)");
+	report = res_service_fixup(r, 0, &env);
+	assert_not_null("res_service_fixup returns a report", report);
+	assert_true("resource was fixed", report->fixed);
+	assert_true("resource is compliant", report->compliant);
+	report_free(report);
+	sleep(1);
+
+	assert_int_eq("Service '" SERVICE "' is now running",
+		service_running(DEFAULT_SM, SERVICE), 0);
+	assert_int_eq("Service '" SERVICE "' is now enabled",
+		service_enabled(DEFAULT_SM, SERVICE), 0);
+
+	test("RES_SERVICE: stat (service needs disabled / stopped)");
+	res_service_set(r, "enabled", "no");
+	res_service_set(r, "running", "no");
+
+	assert_int_eq("res_service_stat succeeds (2)", res_service_stat(r, &env), 0);
+	assert_true("service running (non-compliant)", r->running);
+	assert_true("Service should be stopped",      ENFORCED(r, RES_SERVICE_STOPPED));
+	assert_true("Service should be stopped (2)", !ENFORCED(r, RES_SERVICE_RUNNING));
+	assert_true("service enabled (non-compliant)", r->enabled);
+	assert_true("Service should be disabled",      ENFORCED(r, RES_SERVICE_DISABLED));
+	assert_true("Service should be disabled (2)", !ENFORCED(r, RES_SERVICE_ENABLED));
+
+	test("RES_SERVICE: fixup (service needs disabled / stopped)");
+	report = res_service_fixup(r, 0, &env);
+	assert_not_null("res_service_fixup returns a report (2)", report);
+	assert_true("resource was fixed", report->fixed);
+	assert_true("resource is compliant", report->compliant);
+	report_free(report);
+	sleep(1);
+
+	assert_int_ne("Service '" SERVICE "' is now stopped",
+		service_running(DEFAULT_SM, SERVICE), 0);
+	assert_int_ne("Service '" SERVICE "' is now disabled",
+		service_enabled(DEFAULT_SM, SERVICE), 0);
+
+	/* clean up after ourselves */
+	if (was_enabled) {
+		service_enable(DEFAULT_SM, SERVICE);
+		sleep(1);
+		assert_int_eq("Cleanup: service re-enabled",
+			service_enabled(DEFAULT_SM, SERVICE), 0);
+	} else {
+		service_disable(DEFAULT_SM, SERVICE);
+		sleep(1);
+		assert_int_ne("Cleanup: service re-disabled",
+			service_enabled(DEFAULT_SM, SERVICE), 0);
+	}
+
+	if (was_running) {
+		service_start(DEFAULT_SM, SERVICE);
+		sleep(1);
+		assert_int_eq("Cleanup: service re-started",
+			service_running(DEFAULT_SM, SERVICE), 0);
+	} else {
+		service_stop(DEFAULT_SM, SERVICE);
+		sleep(1);
+		assert_int_ne("Cleanup: service stopped",
+			service_running(DEFAULT_SM, SERVICE), 0);
+	}
+}
 
 void test_res_service_match()
 {

@@ -101,9 +101,13 @@ parser_tpl_o  := tpl/lexer.o tpl/grammar.o tpl/parser.o
 core_o        := mem.o sha1.o pack.o hash.o stringlist.o userdb.o log.o
 core_o        += cert.o prompt.o exec.o string.o path.o augcw.o
 
+# External Implementation Manager object giles
+manager_o     := managers/service.o
+manager_o     += managers/package.o
+
 # Policy object files
 policy_o      := policy.o resource.o resources.o job.o template.o
-policy_o      += managers/service.o managers/package.o template.o
+policy_o      += $(manager_o)
 policy_o      += $(parser_tpl_o)
 
 # Manpages
@@ -117,6 +121,7 @@ unit_test_o   += $(subst .c,.o,$(shell cd test/unit; ls -1 *.c | \
 unit_test_o   += stringlist.o log.o prompt.o augcw.o
 unit_test_o   += $(parser_tpl_o)
 unit_test_o   += $(parser_spec_o)
+unit_test_o   += $(manager_o)
 unit_test_o   += $(core_o)
 
 # Functional Test runners

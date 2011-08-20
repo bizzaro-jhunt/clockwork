@@ -21,6 +21,6 @@ const struct package_manager *PM_rpm_yum;
 #define package_installed(pm,package,version)  ((*((pm)->query))((package),(version)))
 #define package_version(pm,package)            ((*((pm)->version))(package))
 #define package_install(pm,package,version)    ((*((pm)->install))((package),(version)))
-#define package_remove(pm,package)             ((*((pm)->remove))(package))
+#define package_remove(pm,package)             ((*((pm)->remove))((package)))
 
 #endif

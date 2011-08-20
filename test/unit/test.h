@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include "../local.h"
 
 #define DATAROOT "test/unit/data"
 #define TMPROOT  "test/unit/tmp"

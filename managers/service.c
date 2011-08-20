@@ -23,12 +23,14 @@ DEFINE_SM_STATUS(debian) {
 	if (run) {
 		command = string("/etc/init.d/%s status", service);
 		rc = exec_command(command, NULL, NULL);
+		DEBUG("%s: `%s' returned %u", __func__, command, rc);
 		free(command);
 
-		return rc == 7 || rc == 1 ? 1 : (rc == 0 ? 0 : -1);
+		return ((rc == 7 || rc == 1) ? 1 : (rc == 0 ? 0 : -1));
 	} else {
 		command = string("/usr/sbin/invoke-rc.d --quiet --query %s start", service);
 		rc = exec_command(command, NULL, NULL);
+		DEBUG("%s: `%s' returned %u", __func__, command, rc);
 		free(command);
 
 		return rc == 104 ? 0 : 1;
@@ -43,39 +45,46 @@ DEFINE_SM_ACTION(debian) {
 	case SERVICE_MANAGER_START:
 		command = string("/etc/init.d/%s start", service);
 		rc = exec_command(command, NULL, NULL);
+		DEBUG("%s: `%s' returned %u", __func__, command, rc);
 		free(command);
 		return rc;
 
 	case SERVICE_MANAGER_STOP:
 		command = string("/etc/init.d/%s stop", service);
 		rc = exec_command(command, NULL, NULL);
+		DEBUG("%s: `%s' returned %u", __func__, command, rc);
 		free(command);
 		return rc;
 
 	case SERVICE_MANAGER_RESTART:
 		command = string("/etc/init.d/%s restart", service);
 		rc = exec_command(command, NULL, NULL);
+		DEBUG("%s: `%s' returned %u", __func__, command, rc);
 		free(command);
 		return rc;
 
 	case SERVICE_MANAGER_RELOAD:
 		command = string("/etc/init.d/%s reload", service);
 		rc = exec_command(command, NULL, NULL);
+		DEBUG("%s: `%s' returned %u", __func__, command, rc);
 		free(command);
 		return rc;
 
 	case SERVICE_MANAGER_ENABLE:
 		command = string("/usr/sbin/update-rc.d -f %s remove", service);
-		exec_command(command, NULL, NULL);
+		rc = exec_command(command, NULL, NULL);
+		DEBUG("%s: `%s' returned %u", __func__, command, rc);
 		free(command);
 		command = string("/usr/sbin/update-rc.d %s defaults", service);
 		rc = exec_command(command, NULL, NULL);
+		DEBUG("%s: `%s' returned %u", __func__, command, rc);
 		free(command);
 		return rc;
 
 	case SERVICE_MANAGER_DISABLE:
 		command = string("/usr/sbin/update-rc.d -f %s remove", service);
 		rc = exec_command(command, NULL, NULL);
+		DEBUG("%s: `%s' returned %u", __func__, command, rc);
 		free(command);
 		return rc;
 

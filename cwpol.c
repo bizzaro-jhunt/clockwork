@@ -21,6 +21,7 @@ typedef int (*command_fn)(struct command*, int);
 #define TOKEN_DELIM " \t"
 
 static struct command* parse_command(const char *s);
+static void free_command(struct command*);
 static void set_context(int type, const char *name, struct stree *obj);
 static void clear_policy(void);
 static void make_policy(void);
@@ -159,6 +160,15 @@ static struct command* parse_command(const char *s)
 	}
 
 	return c;
+}
+
+static void free_command(struct command* c)
+{
+	if (c) {
+		free(c->orig);
+		stringlist_free(c->args);
+	}
+	free(c);
 }
 
 COMMAND(about)
@@ -704,11 +714,13 @@ static int dispatch(const char *c, int interactive)
 	for_each_string(commands, i) {
 		t = dispatch1(slv(commands, i), interactive);
 		if (t && !interactive) {
-			return rc;
+			rc = t;
+			break;
 		}
 
 		if (!rc && t > 0) { rc = t; }
 	}
+	stringlist_free(commands);
 	return rc;
 }
 
@@ -733,7 +745,7 @@ static int dispatch1(const char *c, int interactive)
 		ERROR("Unknown command: %s", command->cmd);
 		rc = -1;
 	}
-	free(command); /* FIXME: good enough? */
+	free_command(command);
 	return rc;
 }
 

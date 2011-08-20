@@ -88,6 +88,11 @@ setup_res_dir() {
 	chmod 0700 $DATAROOT/res_dir/fixme
 }
 
+setup_res_sysctl()
+{
+	echo 0 > /proc/sys/net/ipv4/conf/all/log_martians
+}
+
 setup_userdb() {
 	rm -f $TMPROOT/passwd.new
 	rm -f $TMPROOT/shadow.new
@@ -193,6 +198,7 @@ setup_policy
 setup_res_file
 setup_res_user
 setup_res_dir
+setup_res_sysctl
 setup_userdb
 setup_cert
 

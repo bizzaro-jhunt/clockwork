@@ -2745,6 +2745,7 @@ int res_sysctl_stat(void *res, const struct resource_env *env)
 {
 	struct res_sysctl *rs = (struct res_sysctl*)(res);
 	assert(rs); // LCOV_EXCL_LINE
+	assert(env); // LCOV_EXCL_LINE
 
 	char *tmp;
 	const char *aug_value;
@@ -2756,7 +2757,7 @@ int res_sysctl_stat(void *res, const struct resource_env *env)
 			return -1;
 		}
 
-		if (strcmp(rs->value, tmp) != 0) {
+		if (!streq(rs->value, tmp)) {
 			DEBUG("'%s' != '%s'", rs->value, tmp);
 			DIFF(rs, RES_SYSCTL_VALUE);
 		}
@@ -2780,6 +2781,7 @@ struct report* res_sysctl_fixup(void *res, int dryrun, const struct resource_env
 {
 	struct res_sysctl *rs = (struct res_sysctl*)(res);
 	assert(rs); // LCOV_EXCL_LINE
+	assert(env); // LCOV_EXCL_LINE
 
 	char *aug_path;
 

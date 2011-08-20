@@ -3,6 +3,7 @@
 #include "sha1_files.h"
 #include "../../clockwork.h"
 #include "../../resources.h"
+#include "../../augcw.h"
 
 #include <unistd.h>
 #include <sys/types.h>
@@ -1829,6 +1830,41 @@ void test_res_host_attrs()
 
 /*****************************************************************************/
 
+void test_res_sysctl_diffstat_fixup()
+{
+	struct res_sysctl *r;
+	struct report *report;
+	struct resource_env env;
+
+	test("RES_SYSCTL: diffstat");
+	r = res_sysctl_new("martians");
+	res_sysctl_set(r, "param", "net.ipv4.conf.all.log_martians");
+	res_sysctl_set(r, "value", "1");
+	res_sysctl_set(r, "persist", "yes");
+
+	/* set up resource env with augeas stuff */
+	env.aug_context = augcw_init();
+	assert_not_null("Augeas initialized properly", env.aug_context);
+
+	/* test setup ensures that log_martians is 0 in /proc/sys */
+	assert_int_eq("res_sysctl_stat succeeds", res_sysctl_stat(r, &env), 0);
+	assert_true("VALUE is out of compliance", DIFFERENT(r, RES_SYSCTL_VALUE));
+
+	test("RES_SYSCTL: fixup");
+	report = res_sysctl_fixup(r, 0, &env);
+	assert_not_null("res_sysctl_fixup returns a report", report);
+	assert_int_eq("resource was fixed", report->fixed, 1);
+	assert_int_eq("resource is compliant", report->compliant, 1);
+
+	log_set(LOG_LEVEL_DEBUG);
+	assert_int_eq("res_systl_stat (after) succeeds", res_sysctl_stat(r, &env), 0);
+	assert_true("VALUE is now in compliance", !DIFFERENT(r, RES_SYSCTL_VALUE));
+	log_set(LOG_LEVEL_NONE);
+
+	report_free(report);
+	res_sysctl_free(r);
+}
+
 void test_res_sysctl_match()
 {
 	struct res_sysctl *rs;
@@ -2211,6 +2247,7 @@ void test_suite_resources()
 	test_res_host_unpack();
 	test_res_host_attrs();
 
+	test_res_sysctl_diffstat_fixup();
 	test_res_sysctl_match();
 	test_res_sysctl_pack();
 	test_res_sysctl_unpack();

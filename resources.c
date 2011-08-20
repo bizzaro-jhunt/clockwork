@@ -493,6 +493,7 @@ int res_user_stat(void *res, const struct resource_env *env)
 	assert(env->user_pwdb); // LCOV_EXCL_LINE
 	assert(env->user_spdb); // LCOV_EXCL_LINE
 
+	ru->different = 0;
 	ru->ru_pw = pwdb_get_by_name(env->user_pwdb, ru->ru_name);
 	ru->ru_sp = spdb_get_by_name(env->user_spdb, ru->ru_name);
 	if (!ru->ru_pw || !ru->ru_sp) { /* new account */
@@ -1099,6 +1100,7 @@ int res_file_stat(void *res, const struct resource_env *env)
 	assert(rf); // LCOV_EXCL_LINE
 	assert(rf->rf_lpath); // LCOV_EXCL_LINE
 
+	rf->different = 0;
 	if (!rf->rf_uid && rf->rf_owner) {
 		assert(env); // LCOV_EXCL_LINE
 		assert(env->user_pwdb); // LCOV_EXCL_LINE
@@ -1592,6 +1594,7 @@ int res_group_stat(void *res, const struct resource_env *env)
 	assert(env->group_grdb); // LCOV_EXCL_LINE
 	assert(env->group_sgdb); // LCOV_EXCL_LINE
 
+	rg->different = 0;
 	rg->rg_grp = grdb_get_by_name(env->group_grdb, rg->rg_name);
 	rg->rg_sg = sgdb_get_by_name(env->group_sgdb, rg->rg_name);
 	if (!rg->rg_grp || !rg->rg_sg) { /* new group */
@@ -2447,6 +2450,7 @@ int res_host_stat(void *res, const struct resource_env *env)
 	int rc, i;
 	stringlist *real_aliases = NULL;
 
+	rh->different = 0;
 	DEBUG("res_host: stat %p // %s", rh, rh->hostname);
 	rc = aug_match(env->aug_context, "/files/etc/hosts/*", &results);
 	DEBUG("res_host: found %u entries under /files/etc/hosts", rc);
@@ -2745,6 +2749,7 @@ int res_sysctl_stat(void *res, const struct resource_env *env)
 	char *tmp;
 	const char *aug_value;
 
+	rs->different = 0;
 	if (ENFORCED(rs, RES_SYSCTL_VALUE)) {
 		if (_sysctl_read(rs->param, &tmp) != 0) {
 			WARNING("res_sysctl: failed to get live value of %s", rs->param);
@@ -3009,6 +3014,7 @@ int res_dir_stat(void *res, const struct resource_env *env)
 	assert(rd); // LCOV_EXCL_LINE
 	assert(rd->path); // LCOV_EXCL_LINE
 
+	rd->different = 0;
 	if (!rd->uid && rd->owner) {
 		assert(env);            // LCOV_EXCL_LINE
 		assert(env->user_pwdb); // LCOV_EXCL_LINE

@@ -12,8 +12,16 @@ int main(int argc, char **argv)
 	TEST_SUITE(userdb);
 	TEST_SUITE(sha1);
 	TEST_SUITE(pack);
-	TEST_SUITE(resources);
 	TEST_SUITE(resource);
+	TEST_SUITE(resources);
+	TEST_SUITE(res_user);
+	TEST_SUITE(res_group);
+	TEST_SUITE(res_file);
+	TEST_SUITE(res_package);
+	TEST_SUITE(res_service);
+	TEST_SUITE(res_host);
+	TEST_SUITE(res_sysctl);
+	TEST_SUITE(res_dir);
 	TEST_SUITE(policy);
 	TEST_SUITE(fact);
 	TEST_SUITE(stree);

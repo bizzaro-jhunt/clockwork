@@ -2403,7 +2403,10 @@ void test_suite_resources()
 	test_resource_keys();
 	test_resource_noops();
 	test_resource_free_null();
+}
 
+void test_suite_res_user()
+{
 	test_res_user_enforcement();
 	test_res_user_diffstat_fixup();
 	test_res_user_fixup_new();
@@ -2413,7 +2416,10 @@ void test_suite_resources()
 	test_res_user_pack();
 	test_res_user_unpack();
 	test_res_user_attrs();
+}
 
+void test_suite_res_group()
+{
 	test_res_group_enforcement();
 	test_res_group_diffstat_fixup();
 	test_res_group_fixup_new();
@@ -2425,7 +2431,10 @@ void test_suite_resources()
 	test_res_group_add_remove_members_via_set();
 	test_res_group_attrs();
 	test_res_group_attrs_multivalue();
+}
 
+void test_suite_res_file()
+{
 	test_res_file_enforcement();
 	test_res_file_diffstat();
 	test_res_file_remedy();
@@ -2436,29 +2445,47 @@ void test_suite_resources()
 	test_res_file_pack();
 	test_res_file_unpack();
 	test_res_file_attrs();
+}
 
+void test_suite_res_package()
+{
+	test_res_package_diffstat_fixup();
 	test_res_package_match();
 	test_res_package_pack();
 	test_res_package_unpack();
 	test_res_package_attrs();
+}
 
+void test_suite_res_service()
+{
+	test_res_service_diffstat_fixup();
 	test_res_service_match();
 	test_res_service_pack();
 	test_res_service_unpack();
 	test_res_service_attrs();
 	test_res_service_notify();
+}
 
+void test_suite_res_host()
+{
+	test_res_host_diffstat_fixup();
 	test_res_host_match();
 	test_res_host_pack();
 	test_res_host_unpack();
 	test_res_host_attrs();
+}
 
+void test_suite_res_sysctl()
+{
 	test_res_sysctl_diffstat_fixup();
 	test_res_sysctl_match();
 	test_res_sysctl_pack();
 	test_res_sysctl_unpack();
 	test_res_sysctl_attrs();
+}
 
+void test_suite_res_dir()
+{
 	test_res_dir_enforcement();
 	test_res_dir_diffstat();
 	test_res_dir_fixup_existing();

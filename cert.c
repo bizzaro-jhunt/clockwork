@@ -48,8 +48,7 @@ error:
 
 static int cert_X509_CRL_get0_by_serial(X509_CRL *crl, X509_REVOKED **revoked_cert, ASN1_INTEGER *serial)
 {
-	assert(crl); // LCOV_EXCL_LINE
-	assert(revoked_cert); // LCOV_EXCL_LINE
+	assert(crl);    // LCOV_EXCL_LINE
 	assert(serial); // LCOV_EXCL_LINE
 
 	X509_REVOKED *needle = NULL;
@@ -58,12 +57,16 @@ static int cert_X509_CRL_get0_by_serial(X509_CRL *crl, X509_REVOKED **revoked_ce
 	for (i = 0; i < len; i++) {
 		needle = sk_X509_REVOKED_value(crl->crl->revoked, i);
 		if (needle && ASN1_INTEGER_cmp(needle->serialNumber, serial) == 0) {
-			*revoked_cert = needle;
+			if (revoked_cert) {
+				*revoked_cert = needle;
+			}
 			return 0;
 		}
 	}
 
-	*revoked_cert = NULL;
+	if (revoked_cert) {
+		*revoked_cert = NULL;
+	}
 	return -1;
 }
 
@@ -313,6 +316,7 @@ static char* cert_get_name(X509_NAME *name)
 	int idx;
 	X509_NAME_ENTRY *o, *cn;
 	ASN1_STRING *raw_o, *raw_cn;
+	const char *str_o, *str_cn;
 
 	if (!name) { return NULL; }
 
@@ -324,7 +328,11 @@ static char* cert_get_name(X509_NAME *name)
 	cn = X509_NAME_get_entry(name, idx);
 	raw_cn = X509_NAME_ENTRY_get_data(cn);
 
-	return string("%s - %s", raw_o->data, raw_cn->data);
+	str_o = str_cn = "(unknown)";
+	if (raw_o)  { str_o  = raw_o->data;  }
+	if (raw_cn) { str_cn = raw_cn->data; }
+
+	return string("%s - %s", str_o, str_cn);
 }
 
 char *cert_request_subject_name(X509_REQ *request)
@@ -585,3 +593,7 @@ error:
 	return -1;
 }
 
+int cert_is_revoked(X509_CRL *crl, X509 *cert)
+{
+	return cert_X509_CRL_get0_by_serial(crl, NULL, X509_get_serialNumber(cert));
+}

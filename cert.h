@@ -380,4 +380,6 @@ int cert_store_crl(X509_CRL *crl, const char *crlfile);
  */
 int cert_revoke_certificate(X509_CRL *crl, X509 *cert, EVP_PKEY *key);
 
+int cert_is_revoked(X509_CRL *crl, X509 *cert);
+
 #endif

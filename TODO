@@ -18,8 +18,9 @@ Re-org Make targets for tests:
   The unit, functional and auxmem targets will also have a build_*
   variant for building the executables needed to run their respecitve tests
 
+!!! FIGURE OUT test/unit/setup -> test/unit/cert.h dependency !!!
+
 Variable Strings for Attribute Values
-Tests for cert.o module
 
 Client / Server
   - Test remediation in chroot

@@ -11,18 +11,21 @@ SAFE_GID=100
 ######################################################
 
 setup_tmp() {
+	echo "Setting up $TMPROOT"
 	rm -rf $TMPROOT
 	mkdir -p $TMPROOT
 	mkdir -p $TMPROOT/x509 # for test/unit/cert.o
 }
 
 setup_resource() {
+	echo "Setting up for RESOURCE test suite"
 	mkdir -p $DATAROOT/resource/dir
 	chown $SAFE_UID:$SAFE_GID $DATAROOT/resource/dir
 	chmod 0700 $DATAROOT/resource/dir
 }
 
 setup_policy() {
+	echo "Setting up for POLICY test suite"
 	rm -rf $DATAROOT/policy/norm
 	mkdir -p $DATAROOT/policy/norm
 	cat > $DATAROOT/policy/norm/policy.pol <<EOF
@@ -61,6 +64,7 @@ EOF
 }
 
 setup_res_file() {
+	echo "Setting up for RES_FILE test suite"
 	cp -a $DATAROOT/res_file/ORIG/* $DATAROOT/res_file/
 
 	# remove file created by previous run of test_res_file_remediate_new
@@ -72,11 +76,13 @@ setup_res_file() {
 }
 
 setup_res_user() {
+	echo "Setting up for RES_USER test suite"
 	rm -rf /tmp/nonexistent
 	rm -rf $TMPROOT/new_user.home
 }
 
 setup_res_dir() {
+	echo "Setting up for RES_DIR test suite"
 	# for test_res_dir_diffstat
 	mkdir -p $DATAROOT/res_dir/dir1
 	chown $SAFE_UID:$SAFE_GID $DATAROOT/res_dir/dir1
@@ -90,17 +96,51 @@ setup_res_dir() {
 
 setup_res_sysctl()
 {
+	echo "Setting up for RES_SYSCTL test suite"
 	echo 0 > /proc/sys/net/ipv4/conf/all/log_martians
 }
 
 setup_userdb() {
+	echo "Setting up testing UserDB files"
 	rm -f $TMPROOT/passwd.new
 	rm -f $TMPROOT/shadow.new
 	rm -f $TMPROOT/group.new
 	rm -f $TMPROOT/gshadow.new
 }
 
+openssl_key()
+{
+	local KEY=$X509/keys/$1.pem
+	local BIT=$2
+	echo "  - creating $BIT-bit key in $KEY"
+	openssl genrsa -passout pass: -out $KEY $BIT >/dev/null 2>&1
+}
+
+openssl_csr()
+{
+	local STEM=$1
+	local SUBJ=$2
+
+	KEY=$X509/keys/$STEM.pem
+	CSR=$X509/csrs/$STEM.pem
+	echo "  - creating CSR in $CSR using key $KEY"
+	openssl req -new -nodes -key $KEY -out $CSR -subj "$SUBJ" >/dev/null 2>&1
+}
+
+openssl_cert()
+{
+	local STEM=$1
+	local DAYS=$2
+
+	CSR=$X509/csrs/$STEM.pem
+	CERT=$X509/certs/$STEM.pem
+	echo "   - signing $CSR in $CERT"
+	openssl x509 -CA $X509/ca/cert.pem -CAkey $X509/ca/key.pem -CAserial $X509/ca/serial \
+		-req -days $DAYS -outform PEM -out $CERT -inform PEM -in $CSR >/dev/null 2>&1
+}
+
 setup_cert() {
+	echo "Setting up X509 CA, Keys, CSRs and Certificates"
 	X509=$DATAROOT/x509
 
 	rm -rf $X509; mkdir -p $X509
@@ -108,86 +148,74 @@ setup_cert() {
 	mkdir -p $X509/csrs
 	mkdir -p $X509/certs
 
-	mkdir -p $X509/ca
+	rm -rf $X509/ca; mkdir -p $X509/ca
 	cat > $X509/ca.conf <<EOF
-[ ca ]
-default_ca             = prime
-
-[ prime ]
-dir                    = $X509/ca
-certificate            = \$dir/cacert.pem
-database               = \$dir/index.txt
-new_certs_dir          = \$dir/certs
-private_key            = \$dir/key.pem
-serial                 = \$dir/serial
-
-default_crl_days       = 7
-default_days           = 365
-default_md             = sha1
-
-policy                 = prime_policy
-x509_extensions        = certificate_extensions
-
-[ prime_policy ]
-commonName             = supplied
-stateOrProvinceName    = supplied
-countryName            = supplied
-emailAddress           = supplied
-organizationName       = supplied
-organizationalUnitName = optional
-
-[ certificate_extensions ]
-basicConstraints       = CA:false
-
-# Self-Signed Root CA
 [ req ]
 default_bits           = 2048
 default_keyfile        = $X509/ca/key.pem
 default_md             = sha1
 
 prompt                 = no
-distinguished_name     = root_ca_distinguished_name
+distinguished_name     = root_ca_dn
+x509_extensions        = root_ca_ext
 
-x509_extensions        = root_ca_extensions
-
-[ root_ca_distinguished_name ]
-commonName             = cfm.niftylogic.net
-stateOrProvinceName    = Illinois
+[ root_ca_dn ]
 countryName            = US
-emailAddress           = ca@cfm.niftylogic.net
-organizationName       = Test CFM Root Certification Authority
+stateOrProvinceName    = Illinois
+organizationName       = Clockwork Root CA
+commonName             = cfm.niftylogic.net
 
-[ root_ca_extensions ]
+[ root_ca_ext ]
 basicConstraints       = CA:true
 EOF
 	export OPENSSL_CONF=$DATAROOT/x509/ca.conf
-	rm -f  $X509/ca/key.pem
-	rm -f  $X509/ca/cert.pem
-	rm -f  $X509/ca/index.txt
-	rm -f  $X509/ca/serial
-	rm -fr $X509/ca/certs
-
 	touch $X509/ca/index.txt
-	echo '01' > $X509/ca/serial
+	echo '123455' > $X509/ca/serial # will be incremented upon signing
 
-	# Create a new self-signed cert
+	echo "> setting up Certificate Authority"
+	echo "  - creating self-signed CA cert in $X509/ca/cert.pem"
 	openssl req -x509 -nodes -newkey rsa:2048 -out $X509/ca/cert.pem -outform PEM -days 365 >/dev/null 2>&1
 
 	unset OPENSSL_CONF
 
-	# Generate 128-, 1024- and 2048-bit RSA keys
-	openssl genrsa -passout pass: -out $X509/keys/rsa128.pem  128 >/dev/null 2>&1
-	openssl genrsa -passout pass: -out $X509/keys/rsa1024.pem 1024 >/dev/null 2>&1
-	openssl genrsa -passout pass: -out $X509/keys/rsa2048.pem 2048 >/dev/null 2>&1
+	SUBJECT="/C=US/ST=Illinois/L=Peoria"
 
-	# Generate a test key
-	openssl genrsa -passout pass: -out $X509/keys/test-key.pem 2048 >/dev/null 2>&1
+	echo "> generating keys for strength tests"
+	openssl_key rsa128   128
+	openssl_key rsa1024  1024
+	openssl_key rsa2048  2048
 
-	# Generate a test CSR
-	openssl req -new -nodes -key $X509/keys/test-key.pem -out $X509/csrs/request.pem \
-		-subj "/C=US/ST=Illinois/L=Peoria/O=NiftyLogic/CN=test.rd.niftylogic.net" >/dev/null 2>&1
+	echo "> generating a test 2048-bit key for signing"
+	openssl_key test 2048
 
-	# Generate a test cert
+	echo "> generating a test Certificate Signing Request"
+	openssl_key  csr 2048
+	openssl_csr  csr "$SUBJECT/O=NiftyLogic/CN=csr.niftylogic.net"
+
+	echo "> generating another test Certificate Signing Request"
+	openssl_key  sign-me 2048
+	openssl_csr  sign-me "$SUBJECT/O=Signing Test/CN=sign.niftylogic.net"
+
+	echo "> generating a test Certificate (signed)"
+	openssl_key  test 2048
+	openssl_csr  test "$SUBJECT/O=NiftyLogic/CN=signed.niftylogic.net"
+	openssl_cert test 365
+
+	echo "> generating a test Certificate (signed) for revocation tests"
+	openssl_key  revoke-me 2048
+	openssl_csr  revoke-me "$SUBJECT/O=NiftyLogic/CN=REVOKE.rd.niftylogic.net"
+	openssl_cert revoke-me 365
+
+	echo "> generating test/unit/cert.h containing key x509 data"
+	(
+		echo -n "#define FPRINT_TEST_CERT \""
+		echo -n "$(openssl x509 -noout -fingerprint -in $X509/certs/test.pem | \
+			sed -e 's/.*=//' | dd conv=lcase)"
+		echo "\""
+
+	) > test/unit/cert.h
+
+	echo "  X509 setup complete"
 }
 
 ######################################################
@@ -200,5 +228,5 @@ setup_res_user
 setup_res_dir
 setup_res_sysctl
 setup_userdb
-setup_cert
+#setup_cert
 

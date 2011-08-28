@@ -2,12 +2,10 @@
 #include "assertions.h"
 #include "../../cert.h"
 
-#include "cert.h"
-
-#define X509_ROOT  DATAROOT "/x509"
+#define X509_ROOT  TEST_UNIT_DATA "/x509"
 #define CA_KEY     X509_ROOT "/ca/key.pem"
 #define CA_CERT    X509_ROOT "/ca/cert.pem"
-#define CA_CRL     X509_ROOT "/ca/crl.pem"
+#define CA_CRL     TEST_UNIT_TEMP "/crl.pem"
 
 #define CA_ID "Clockwork Root CA - cfm.niftylogic.net"
 
@@ -71,7 +69,7 @@ void test_cert_key_generation()
 void test_cert_key_storage()
 {
 	EVP_PKEY *key, *reread;
-	const char *path = TMPROOT "/x509/key1.pem";
+	const char *path = TEST_UNIT_TEMP "/x509/key1.pem";
 	const char *badpath = "/path/to/nonexistent/file.pem";
 
 	test("Cert: Private Key storage");
@@ -149,7 +147,7 @@ void test_cert_csr_generation()
 void test_cert_csr_storage()
 {
 	X509_REQ *request, *reread;
-	const char *path = TMPROOT "/x509/csr1.pem";
+	const char *path = TEST_UNIT_TEMP "/x509/csr1.pem";
 	const char *badpath = "/path/to/nonexistent/file.pem";
 
 	test("Cert: CSR storage");
@@ -209,7 +207,7 @@ void test_cert_signing()
 	X509 *cert;
 	X509 *ca_cert;
 	EVP_PKEY *ca_key;
-	const char *cert_file = X509_ROOT "/certs/sign-me.pem";
+	const char *cert_file = TEST_UNIT_TEMP "/x509/sign-me.pem";
 
 	test("cert: Certificate Signing");
 	ca_cert = cert_retrieve_certificate(CA_CERT);

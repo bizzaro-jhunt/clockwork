@@ -22,7 +22,7 @@ void test_fact_read_io()
 	FILE *io;
 
 	test("fact: reading facts from a FILE*");
-	io = fopen(DATAROOT "/facts/good.facts", "r");
+	io = fopen(TEST_UNIT_DATA "/facts/good.facts", "r");
 	assert_not_null("(test sanity) good.facts file opened successfully", io);
 
 	facts = fact_read(io, NULL);
@@ -50,7 +50,7 @@ void test_fact_read_overrides()
 	test("fact: reading facts from a FILE* (overrides)");
 	facts = hash_new();
 	assert_not_null("Pre-read fact hash is valid pointer", facts);
-	io = fopen(DATAROOT "/facts/good.facts", "r");
+	io = fopen(TEST_UNIT_DATA "/facts/good.facts", "r");
 	assert_not_null("(test sanity) good.facts file opened successfully", io);
 
 	hash_set(facts, "test.fact1", "OVERRIDE ME");
@@ -69,6 +69,7 @@ void test_fact_write()
 {
 	struct hash *facts;
 	FILE *io;
+	const char *path = TEST_UNIT_TEMP "/facts/write.facts";
 
 	test("fact: write facts to a FILE*");
 	facts = hash_new();
@@ -76,7 +77,7 @@ void test_fact_write()
 	hash_set(facts, "test.kernel", "2.6");
 	hash_set(facts, "sys.test",     "test-mode");
 
-	io = fopen(DATAROOT "/facts/write.facts", "w");
+	io = fopen(path, "w");
 	assert_not_null("(test sanity) write.facts opened for writing", io);
 
 	assert_int_eq("fact_write succeeds", fact_write(io, facts), 0);
@@ -84,7 +85,7 @@ void test_fact_write()
 	hash_free(facts); /* don't use hash_free_all; we called hash_set
 			     with constant strings. */
 
-	io = fopen(DATAROOT "/facts/write.facts", "r");
+	io = fopen(path, "r");
 	assert_not_null("(test sanity) write.facts opened for re-reading", io);
 	facts = hash_new();
 	assert_not_null("fact_read() succeeds", fact_read(io, facts));

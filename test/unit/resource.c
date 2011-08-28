@@ -51,7 +51,7 @@ void test_resource_stat_fixup_callback()
 
 	struct report *report;
 
-	const char *path = DATAROOT "/resource/dir";
+	const char *path = TEST_UNIT_DATA "/resource/dir";
 	struct stat st;
 
 	test("RESOURCE: Stat via Callback");

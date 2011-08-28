@@ -7,7 +7,7 @@
 #include <sys/types.h>
 #include <fcntl.h>
 
-#define TPL_FILE TMPROOT "/working_template.tpl"
+#define TPL_FILE TEST_UNIT_TEMP "/template/scratch.tpl"
 
 static int template_file(const char *path, const char *contents)
 {

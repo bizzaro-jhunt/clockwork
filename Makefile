@@ -67,7 +67,6 @@ YACC    := bison $(YACC_FLAGS)
 VG      := tools/valgrind
 LCOV    := lcov --directory . --base-directory .
 GENHTML := genhtml --prefix $(shell dirname `pwd`)
-MOG     := ./mog
 DOXYGEN := doxygen
 
 
@@ -84,10 +83,15 @@ COMPILED      := $(util_bin) $(agent_bin) $(master_bin) $(debug_bin)
 
 # C header files that are automatically generated
 auto_h        := spec/grammar.h conf/grammar.h tpl/grammar.h
+auto_h        := test/defs.h
 
 # C source files that are automatically generated
 auto_c        := spec/lexer.c   conf/lexer.c   tpl/lexer.c
 auto_c        += spec/grammar.c conf/grammar.c tpl/grammar.c
+
+# Other automatically generated files and directories
+auto_other    := test/unit/tmp
+auto_other    := test/unit/data
 
 # C source files that should not participate in code coverage analysis
 no_lcov_c     := log.c $(auto_c) test/unit/**/* test/unit/* test/functional/*
@@ -291,8 +295,12 @@ test-functional: coverage-clean run-functional-tests
 coverage-clean:
 	find . -name '*.gcda' 2>/dev/null | xargs rm -f
 
+test/defs.h: test/prep
+	./test/prep data
+
 run-unit-tests: unit-tests
-	test/unit/setup
+	test/prep setup
+	#test/unit/setup
 	@echo; echo;
 	test/unit/run $(TESTS)
 	@echo; echo;
@@ -342,10 +350,7 @@ endif
 # Unit Tests
 
 # Build all unit tests
-unit-tests: test/unit/run test/unit/helpers/proto_helper
-
-test/sha1_files.h:
-	$(MOG) sha1_tests
+unit-tests: test/defs.h test/unit/run test/unit/helpers/proto_helper
 
 test/unit/run: $(unit_test_o)
 test/unit/helpers/proto_helper: $(core_o) $(policy_o) proto.o
@@ -377,7 +382,7 @@ tidy:
 clean: tidy cleandep
 	rm -f $(COMPILED) test/unit/run $(fun_tests) $(auto_c) $(auto_h) man/*.*.gz
 	rm -f spec/*.output conf/*.output tpl/*.output
-	rm -rf $(apidocs_root)/* doc/coverage/*
+	rm -rf $(apidocs_root)/* doc/coverage/* $(auto_other)
 
 dist: clean
 	rm -rf doc/coverage ext/openssl ext/build/*

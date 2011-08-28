@@ -7,9 +7,6 @@ Re-org test/:
   test/memory/reports  -> valgrind/memcheck transcripts from aux mem tests
   test/memory/run      -> auxiliary memory test runner
 
-  test/setup           -> unit / functional test setup tool
-  test/run             -> test runner entry point (calls setup as needed)
-
 Re-org Make targets for tests:
   auxmem      -> build / run auxiliary memory tests only
 + test        -> build / run unit, functional and auxiliary memory tests
@@ -17,8 +14,6 @@ Re-org Make targets for tests:
 
   The unit, functional and auxmem targets will also have a build_*
   variant for building the executables needed to run their respecitve tests
-
-!!! FIGURE OUT test/unit/setup -> test/unit/cert.h dependency !!!
 
 Variable Strings for Attribute Values
 

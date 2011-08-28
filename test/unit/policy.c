@@ -135,7 +135,7 @@ void test_policy_deps()
 
 	test("policy: dependencies");
 	facts = hash_new();
-	m = parse_file(DATAROOT "/policy/norm/policy.pol");
+	m = parse_file(TEST_UNIT_DATA "/policy/norm/policy.pol");
 
 	assert_not_null("Manifest parsed properly", m);
 	pol = policy_generate(hash_get(m->policies, "base"), facts);

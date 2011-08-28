@@ -13,21 +13,21 @@
 #define NOT_DIR  "/etc/passwd/is/not/a/directory"
 
 /* test /etc/passwd file */
-#define PWFILE     DATAROOT "/passwd"
-#define PWFILE_UID DATAROOT "/passwd-uid"
-#define PWFILE_NEW TMPROOT  "/passwd.new"
+#define PWFILE     TEST_UNIT_DATA "/userdb/passwd"
+#define PWFILE_UID TEST_UNIT_DATA "/userdb/passwd-uid"
+#define PWFILE_NEW TEST_UNIT_TEMP "/userdb/passwd"
 
 /* test /etc/shadow file */
-#define SPFILE     DATAROOT "/shadow"
-#define SPFILE_NEW TMPROOT  "/shadow.new"
+#define SPFILE     TEST_UNIT_DATA "/userdb/shadow"
+#define SPFILE_NEW TEST_UNIT_TEMP "/userdb/shadow"
 
 /* test /etc/group file */
-#define GRFILE     DATAROOT "/group"
-#define GRFILE_NEW TMPROOT  "/group.new"
+#define GRFILE     TEST_UNIT_DATA "/userdb/group"
+#define GRFILE_NEW TEST_UNIT_TEMP "/userdb/group"
 
 /* test /etc/gshadow file */
-#define SGFILE     DATAROOT "/gshadow"
-#define SGFILE_NEW TMPROOT  "/gshadow.new"
+#define SGFILE     TEST_UNIT_DATA "/userdb/gshadow"
+#define SGFILE_NEW TEST_UNIT_TEMP "/userdb/gshadow"
 
 /*********************************************************/
 

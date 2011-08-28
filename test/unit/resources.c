@@ -1,6 +1,5 @@
 #include "test.h"
 #include "assertions.h"
-#include "sha1_files.h"
 #include "../../clockwork.h"
 #include "../../resources.h"
 #include "../../augcw.h"
@@ -9,6 +8,16 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+
+#define PASSWD_DB  TEST_UNIT_DATA "/userdb/passwd"
+#define SHADOW_DB  TEST_UNIT_DATA "/userdb/shadow"
+#define GROUP_DB   TEST_UNIT_DATA "/userdb/group"
+#define GSHADOW_DB TEST_UNIT_DATA "/userdb/gshadow"
+
+#define NEW_PASSWD_DB  TEST_UNIT_TEMP "/userdb/passwd"
+#define NEW_SHADOW_DB  TEST_UNIT_TEMP "/userdb/shadow"
+#define NEW_GROUP_DB   TEST_UNIT_TEMP "/userdb/group"
+#define NEW_GSHADOW_DB TEST_UNIT_TEMP "/userdb/gshadow"
 
 static void assert_attr_hash(const char *obj, struct hash *h, const char *attr, const char *val)
 {
@@ -243,13 +252,13 @@ void test_res_user_diffstat_fixup()
 	res_user_set(ru, "pwmax",    "45");
 	res_user_set(ru, "pwwarn",   "3");
 
-	env.user_pwdb = pwdb_init(DATAROOT "/passwd");
+	env.user_pwdb = pwdb_init(PASSWD_DB);
 	if (!env.user_pwdb) {
 		assert_fail("Unable to init pwdb");
 		return;
 	}
 
-	env.user_spdb = spdb_init(DATAROOT "/shadow");
+	env.user_spdb = spdb_init(SHADOW_DB);
 	if (!env.user_spdb) {
 		assert_fail("Unable to init spdb");
 		return;
@@ -298,21 +307,23 @@ void test_res_user_fixup_new()
 	struct resource_env env;
 	struct report *report;
 
+	const char *home = TEST_UNIT_TEMP "/new_user.home";
+
 	ru = res_user_new("new_user");
 	res_user_set(ru, "uid",      "7010");
 	res_user_set(ru, "gid",      "20");
 	res_user_set(ru, "shell",    "/sbin/nologin");
 	res_user_set(ru, "comment",  "New Account");
-	res_user_set(ru, "home",     TMPROOT "/new_user.home");
+	res_user_set(ru, "home",     home);
 	res_user_set(ru, "skeleton", "/etc/skel.svc");
 
-	env.user_pwdb = pwdb_init(DATAROOT "/passwd");
+	env.user_pwdb = pwdb_init(PASSWD_DB);
 	if (!env.user_pwdb) {
 		assert_fail("Unable to init pwdb");
 		return;
 	}
 
-	env.user_spdb = spdb_init(DATAROOT "/shadow");
+	env.user_spdb = spdb_init(SHADOW_DB);
 	if (!env.user_spdb) {
 		assert_fail("Unable to init spdb");
 		return;
@@ -331,7 +342,7 @@ void test_res_user_fixup_new()
 	assert_int_eq("pw_gid is set properly", ru->ru_pw->pw_gid, 20);
 	assert_str_eq("pw_gecos is set properly", ru->ru_pw->pw_gecos, "New Account");
 	assert_str_eq("pw_shell is set properly", ru->ru_pw->pw_shell, "/sbin/nologin");
-	assert_str_eq("pw_dir is set properly", ru->ru_pw->pw_dir, TMPROOT "/new_user.home");
+	assert_str_eq("pw_dir is set properly", ru->ru_pw->pw_dir, home);
 
 	assert_str_eq("sp_namp is set properly", ru->ru_sp->sp_namp, "new_user");
 
@@ -350,13 +361,13 @@ void test_res_user_fixup_remove_existing()
 	ru = res_user_new("sys");
 	res_user_set(ru, "present", "no"); /* Remove the user */
 
-	env.user_pwdb = pwdb_init(DATAROOT "/passwd");
+	env.user_pwdb = pwdb_init(PASSWD_DB);
 	if (!env.user_pwdb) {
 		assert_fail("Unable to init pwdb");
 		return;
 	}
 
-	env.user_spdb = spdb_init(DATAROOT "/shadow");
+	env.user_spdb = spdb_init(SHADOW_DB);
 	if (!env.user_spdb) {
 		assert_fail("Unable to init spdb");
 		return;
@@ -372,16 +383,16 @@ void test_res_user_fixup_remove_existing()
 	assert_int_eq("user is fixed", report->fixed, 1);
 	assert_int_eq("user is now compliant", report->compliant, 1);
 
-	assert_int_eq("pwdb_write succeeds", 0, pwdb_write(env.user_pwdb, TMPROOT "/passwd.new"));
-	assert_int_eq("spdb_write succeeds", 0, spdb_write(env.user_spdb, TMPROOT "/shadow.new"));
+	assert_int_eq("pwdb_write succeeds", 0, pwdb_write(env.user_pwdb, NEW_PASSWD_DB));
+	assert_int_eq("spdb_write succeeds", 0, spdb_write(env.user_spdb, NEW_SHADOW_DB));
 
-	env_after.user_pwdb = pwdb_init(TMPROOT "/passwd.new");
+	env_after.user_pwdb = pwdb_init(NEW_PASSWD_DB);
 	if (!env_after.user_pwdb) {
 		assert_fail("Unable to init env_after.user_pwdb");
 		return;
 	}
 
-	env_after.user_spdb = spdb_init(TMPROOT "/shadow.new");
+	env_after.user_spdb = spdb_init(NEW_SHADOW_DB);
 	if (!env_after.user_spdb) {
 		assert_fail("Unable to init env_after.user_spdb");
 		return;
@@ -410,13 +421,13 @@ void test_res_user_fixup_remove_nonexistent()
 	ru = res_user_new("non_existent_user");
 	res_user_set(ru, "present", "no"); /* Remove the user */
 
-	env.user_pwdb = pwdb_init(DATAROOT "/passwd");
+	env.user_pwdb = pwdb_init(PASSWD_DB);
 	if (!env.user_pwdb) {
 		assert_fail("Unable to init pwdb");
 		return;
 	}
 
-	env.user_spdb = spdb_init(DATAROOT "/shadow");
+	env.user_spdb = spdb_init(SHADOW_DB);
 	if (!env.user_spdb) {
 		assert_fail("Unable to init spdb");
 		return;
@@ -432,16 +443,16 @@ void test_res_user_fixup_remove_nonexistent()
 	assert_int_eq("user was already compliant", report->fixed, 0);
 	assert_int_eq("user is now compliant", report->compliant, 1);
 
-	assert_int_eq("pwdb_write succeeds", 0, pwdb_write(env.user_pwdb, TMPROOT "/passwd.new"));
-	assert_int_eq("spdb_write succeeds", 0, spdb_write(env.user_spdb, TMPROOT "/shadow.new"));
+	assert_int_eq("pwdb_write succeeds", 0, pwdb_write(env.user_pwdb, NEW_PASSWD_DB));
+	assert_int_eq("spdb_write succeeds", 0, spdb_write(env.user_spdb, NEW_SHADOW_DB));
 
-	env_after.user_pwdb = pwdb_init(TMPROOT "/passwd.new");
+	env_after.user_pwdb = pwdb_init(NEW_PASSWD_DB);
 	if (!env_after.user_pwdb) {
 		assert_fail("Unable to init env_after.user_pwdb");
 		return;
 	}
 
-	env_after.user_spdb = spdb_init(TMPROOT "/shadow.new");
+	env_after.user_spdb = spdb_init(NEW_SHADOW_DB);
 	if (!env_after.user_spdb) {
 		assert_fail("Unable to init env_after.user_spdb");
 		return;
@@ -732,13 +743,13 @@ void test_res_group_diffstat_fixup()
 	res_group_add_admin(rg, "admin1");
 	res_group_remove_admin(rg, "admin2");
 
-	env.group_grdb = grdb_init(DATAROOT "/group");
+	env.group_grdb = grdb_init(GROUP_DB);
 	if (!env.group_grdb) {
 		assert_fail("Unable to init grdb");
 		return;
 	}
 
-	env.group_sgdb = sgdb_init(DATAROOT "/gshadow");
+	env.group_sgdb = sgdb_init(GSHADOW_DB);
 	if (!env.group_sgdb) {
 		assert_fail("Unable to init gshadow");
 		return;
@@ -790,13 +801,13 @@ void test_res_group_fixup_new()
 	rg = res_group_new("new_group");
 	res_group_set(rg, "gid", "6010");
 
-	env.group_grdb = grdb_init(DATAROOT "/group");
+	env.group_grdb = grdb_init(GROUP_DB);
 	if (!env.group_grdb) {
 		assert_fail("Unable to init grdb");
 		return;
 	}
 
-	env.group_sgdb = sgdb_init(DATAROOT "/gshadow");
+	env.group_sgdb = sgdb_init(GSHADOW_DB);
 	if (!env.group_sgdb) {
 		assert_fail("Unable to init gshadow");
 		grdb_free(env.group_grdb);
@@ -831,13 +842,13 @@ void test_res_group_fixup_remove_existing()
 	rg = res_group_new("daemon");
 	res_group_set(rg, "present", "no"); /* Remove the group */
 
-	env.group_grdb = grdb_init(DATAROOT "/group");
+	env.group_grdb = grdb_init(GROUP_DB);
 	if (!env.group_grdb) {
 		assert_fail("Unable to init grdb");
 		return;
 	}
 
-	env.group_sgdb = sgdb_init(DATAROOT "/gshadow");
+	env.group_sgdb = sgdb_init(GSHADOW_DB);
 	if (!env.group_sgdb) {
 		assert_fail("Unable to init gshadow");
 		grdb_free(env.group_grdb);
@@ -854,16 +865,16 @@ void test_res_group_fixup_remove_existing()
 	assert_int_eq("group is fixed", report->fixed, 1);
 	assert_int_eq("group is now compliant", report->compliant, 1);
 
-	assert_int_eq("grdb_write succeeds", 0, grdb_write(env.group_grdb, TMPROOT "/group.new"));
-	assert_int_eq("sgdb_write succeeds", 0, sgdb_write(env.group_sgdb, TMPROOT "/gshadow.new"));
+	assert_int_eq("grdb_write succeeds", 0, grdb_write(env.group_grdb, NEW_GROUP_DB));
+	assert_int_eq("sgdb_write succeeds", 0, sgdb_write(env.group_sgdb, NEW_GSHADOW_DB));
 
-	env_after.group_grdb = grdb_init(TMPROOT "/group.new");
+	env_after.group_grdb = grdb_init(NEW_GROUP_DB);
 	if (!env_after.group_grdb) {
 		assert_fail("Unable to init grdb_after");
 		return;
 	}
 
-	env_after.group_sgdb = sgdb_init(TMPROOT "/gshadow.new");
+	env_after.group_sgdb = sgdb_init(NEW_GSHADOW_DB);
 	if (!env_after.group_sgdb) {
 		assert_fail("Unable to init sgdb_after");
 		grdb_free(env_after.group_grdb);
@@ -895,13 +906,13 @@ void test_res_group_fixup_remove_nonexistent()
 	rg = res_group_new("non_existent_group");
 	res_group_set(rg, "present", "no"); /* Remove the group */
 
-	env.group_grdb = grdb_init(DATAROOT "/group");
+	env.group_grdb = grdb_init(GROUP_DB);
 	if (!env.group_grdb) {
 		assert_fail("Unable to init grdb");
 		return;
 	}
 
-	env.group_sgdb = sgdb_init(DATAROOT "/gshadow");
+	env.group_sgdb = sgdb_init(GSHADOW_DB);
 	if (!env.group_sgdb) {
 		assert_fail("Unable to init gshadow");
 		grdb_free(env.group_grdb);
@@ -918,16 +929,16 @@ void test_res_group_fixup_remove_nonexistent()
 	assert_int_eq("group was already compliant", report->fixed, 0);
 	assert_int_eq("group is now compliant", report->compliant, 1);
 
-	assert_int_eq("grdb_write succeeds", 0, grdb_write(env.group_grdb, TMPROOT "/group.new"));
-	assert_int_eq("sgdb_write succeeds", 0, sgdb_write(env.group_sgdb, TMPROOT "/gshadow.new"));
+	assert_int_eq("grdb_write succeeds", 0, grdb_write(env.group_grdb, NEW_GROUP_DB));
+	assert_int_eq("sgdb_write succeeds", 0, sgdb_write(env.group_sgdb, NEW_GSHADOW_DB));
 
-	env_after.group_grdb = grdb_init(TMPROOT "/group.new");
+	env_after.group_grdb = grdb_init(NEW_GROUP_DB);
 	if (!env_after.group_grdb) {
 		assert_fail("Unable to init grdb_after");
 		return;
 	}
 
-	env_after.group_sgdb = sgdb_init(TMPROOT "/gshadow.new");
+	env_after.group_sgdb = sgdb_init(NEW_GSHADOW_DB);
 	if (!env_after.group_sgdb) {
 		assert_fail("Unable to init sgdb_after");
 		grdb_free(env_after.group_grdb);
@@ -1149,7 +1160,7 @@ void test_res_file_enforcement()
 {
 	struct res_file *rf;
 	rf = res_file_new("sudoers");
-	const char *src = DATAROOT "/sha1/file1";
+	const char *src = TEST_UNIT_DATA "/sha1/file1";
 
 	test("RES_FILE: Default Enforcements");
 	assert_true("UID not enforced",  !ENFORCED(rf, RES_FILE_UID));
@@ -1189,7 +1200,7 @@ void test_res_file_diffstat()
 	struct res_file *rf;
 
 	rf = res_file_new("sudoers");
-	res_file_set(rf, "path", DATAROOT "/res_file/sudoers");
+	res_file_set(rf, "path", TEST_UNIT_TEMP "/res_file/sudoers");
 	res_file_set(rf, "owner", "someuser");
 	rf->rf_uid = 1001;
 	res_file_set(rf, "group", "somegroup");
@@ -1215,8 +1226,8 @@ void test_res_file_remedy()
 
 	struct report *report;
 
-	const char *path = DATAROOT "/res_file/fstab";
-	const char *src  = DATAROOT "/res_file/SRC/fstab";
+	const char *path = TEST_UNIT_TEMP "/res_file/fstab";
+	const char *src  = TEST_UNIT_DATA "/res_file/fstab";
 
 	test("RES_FILE: File Remediation");
 
@@ -1230,7 +1241,7 @@ void test_res_file_remedy()
 	assert_int_ne("Pre-remediation: file permissions are not 0754", st.st_mode & 07777, 0754);
 
 	rf = res_file_new("fstab");
-	res_file_set(rf, "path",  DATAROOT "/res_file/fstab");
+	res_file_set(rf, "path",  path);
 	res_file_set(rf, "owner", "someuser");
 	rf->rf_uid = 65542;
 	res_file_set(rf, "group", "somegroup");
@@ -1272,7 +1283,7 @@ void test_res_file_fixup_new()
 	struct report *report;
 	struct resource_env env;
 
-	const char *path = DATAROOT "/res_file/new_file";
+	const char *path = TEST_UNIT_TEMP "/res_file/new_file";
 
 	env.file_fd = -1;
 	env.file_len = 0;
@@ -1315,7 +1326,7 @@ void test_res_file_fixup_remove_existing()
 	struct report *report;
 	struct resource_env env;
 
-	const char *path = DATAROOT "/res_file/delete";
+	const char *path = TEST_UNIT_TEMP "/res_file/delete";
 
 	env.file_fd = -1;
 	env.file_len = 0;
@@ -1345,7 +1356,7 @@ void test_res_file_fixup_remove_nonexistent()
 	struct report *report;
 	struct resource_env env;
 
-	const char *path = DATAROOT "/res_file/non-existent";
+	const char *path = TEST_UNIT_TEMP "/res_file/non-existent";
 
 	env.file_fd = -1;
 	env.file_len = 0;
@@ -2212,7 +2223,7 @@ void test_res_dir_diffstat()
 
 	test("RES_DIR: diff / stat");
 	r = res_dir_new("dir1");
-	res_dir_set(r, "path", DATAROOT "/res_dir/dir1");
+	res_dir_set(r, "path", TEST_UNIT_TEMP "/res_dir/dir1");
 	res_dir_set(r, "owner", "someuser");
 	r->uid = 1001;
 	res_dir_set(r, "group", "staff");
@@ -2238,7 +2249,7 @@ void test_res_dir_fixup_existing()
 
 	struct report *report;
 
-	const char *path = DATAROOT "/res_dir/fixme";
+	const char *path = TEST_UNIT_TEMP "/res_dir/fixme";
 
 	test("RES_DIR: Fixup Existing Directory");
 	if (stat(path, &st) != 0) {

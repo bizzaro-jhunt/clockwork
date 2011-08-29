@@ -83,15 +83,10 @@ COMPILED      := $(util_bin) $(agent_bin) $(master_bin) $(debug_bin)
 
 # C header files that are automatically generated
 auto_h        := spec/grammar.h conf/grammar.h tpl/grammar.h
-auto_h        := test/defs.h
 
 # C source files that are automatically generated
 auto_c        := spec/lexer.c   conf/lexer.c   tpl/lexer.c
 auto_c        += spec/grammar.c conf/grammar.c tpl/grammar.c
-
-# Other automatically generated files and directories
-auto_other    := test/unit/tmp
-auto_other    := test/unit/data
 
 # C source files that should not participate in code coverage analysis
 no_lcov_c     := log.c $(auto_c) test/unit/**/* test/unit/* test/functional/*
@@ -382,11 +377,12 @@ tidy:
 clean: tidy cleandep
 	rm -f $(COMPILED) test/unit/run $(fun_tests) $(auto_c) $(auto_h) man/*.*.gz
 	rm -f spec/*.output conf/*.output tpl/*.output
-	rm -rf $(apidocs_root)/* doc/coverage/* $(auto_other)
+	rm -rf $(apidocs_root)/* doc/coverage/*
 
 dist: clean
 	rm -rf doc/coverage ext/openssl ext/build/*
-	rm -f config
+	rm -rf test/unit/data test/unit/tmp
+	rm -f config test/defs.h
 
 fixme:
 	find . -name '*.[ch15]' -not -path './ext/**' -not -path './man/tpl/*' -not -path './local/**' 2>/dev/null | \

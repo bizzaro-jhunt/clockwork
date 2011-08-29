@@ -335,9 +335,75 @@ static char* cert_get_name(X509_NAME *name)
 	return string("%s - %s", str_o, str_cn);
 }
 
+static struct cert_subject* cert_get_subject(X509_NAME *name)
+{
+	int idx = -1;
+	X509_NAME_ENTRY *entry;
+	ASN1_STRING *raw;
+	struct cert_subject *subject;
+
+	if (!name) { return NULL; }
+
+	subject = xmalloc(sizeof(struct cert_subject));
+
+	idx = X509_NAME_get_index_by_NID(name, NID_countryName, idx);
+	entry = X509_NAME_get_entry(name, idx);
+	if ((raw = X509_NAME_ENTRY_get_data(entry))) {
+		subject->country = strdup(raw->data);
+	}
+
+	idx = X509_NAME_get_index_by_NID(name, NID_stateOrProvinceName, idx);
+	entry = X509_NAME_get_entry(name, idx);
+	if ((raw = X509_NAME_ENTRY_get_data(entry))) {
+		subject->state = strdup(raw->data);
+	}
+
+	idx = X509_NAME_get_index_by_NID(name, NID_localityName, idx);
+	entry = X509_NAME_get_entry(name, idx);
+	if ((raw = X509_NAME_ENTRY_get_data(entry))) {
+		subject->loc = strdup(raw->data);
+	}
+
+	idx = X509_NAME_get_index_by_NID(name, NID_organizationName, idx);
+	entry = X509_NAME_get_entry(name, idx);
+	if ((raw = X509_NAME_ENTRY_get_data(entry))) {
+		subject->org = strdup(raw->data);
+	}
+
+	idx = X509_NAME_get_index_by_NID(name, NID_organizationalUnitName, idx);
+	entry = X509_NAME_get_entry(name, idx);
+	if ((raw = X509_NAME_ENTRY_get_data(entry))) {
+		subject->org_unit = strdup(raw->data);
+	}
+
+	idx = X509_NAME_get_index_by_NID(name, NID_organizationalUnitName, idx);
+	entry = X509_NAME_get_entry(name, idx);
+	if ((raw = X509_NAME_ENTRY_get_data(entry))) {
+		subject->type = strdup(raw->data);
+	}
+
+	idx = X509_NAME_get_index_by_NID(name, NID_commonName, idx);
+	entry = X509_NAME_get_entry(name, idx);
+	if ((raw = X509_NAME_ENTRY_get_data(entry))) {
+		subject->fqdn = strdup(raw->data);
+	}
+
+	if (!subject->type && subject->org_unit) {
+		subject->type = subject->org_unit;
+		subject->org_unit = NULL;
+	}
+
+	return subject;
+}
+
 char *cert_request_subject_name(X509_REQ *request)
 {
 	return cert_get_name(X509_REQ_get_subject_name(request));
+}
+
+struct cert_subject *cert_request_subject(X509_REQ *request)
+{
+	return cert_get_subject(X509_REQ_get_subject_name(request));
 }
 
 char* cert_certificate_subject_name(X509 *cert)
@@ -345,9 +411,19 @@ char* cert_certificate_subject_name(X509 *cert)
 	return cert_get_name(X509_get_subject_name(cert));
 }
 
+struct cert_subject *cert_certificate_subject(X509 *cert)
+{
+	return cert_get_subject(X509_get_subject_name(cert));
+}
+
 char* cert_certificate_issuer_name(X509 *cert)
 {
 	return cert_get_name(X509_get_issuer_name(cert));
+}
+
+struct cert_subject *cert_certificate_issuer(X509 *cert)
+{
+	return cert_get_subject(X509_get_issuer_name(cert));
 }
 
 char* cert_certificate_serial_number(X509 *cert)

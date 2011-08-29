@@ -96,6 +96,7 @@ void test_cert_csr_retrieve()
 	const char *badpath = "/path/to/nonexistent/csr.pem";
 	char *subject_name;
 	const char *expected = "NiftyLogic - csr.niftylogic.net";
+	struct cert_subject *subject;
 
 	test("Cert: CSR retrieve");
 
@@ -110,6 +111,19 @@ void test_cert_csr_retrieve()
 	assert_not_null("CSR has a subject name", subject_name);
 	assert_str_eq("CSR subject name succeeds", expected, subject_name);
 	free(subject_name);
+
+	subject = cert_request_subject(request);
+	assert_not_null("CSR has a subject", subject);
+	assert_str_eq("CSR Subject // C",  subject->country, "US");
+	assert_str_eq("CSR Subject // ST", subject->state,   "Illinois");
+	assert_str_eq("CSR Subject // L",  subject->loc,     "Peoria");
+	assert_str_eq("CSR Subject // O",  subject->org,     "NiftyLogic");
+	assert_str_eq("CSR Subject // OU", subject->org_unit, "R&D");
+	assert_str_eq("CSR Subject // type (OU)", subject->type, "CWA");
+
+	// FIXME: better free() calls
+	free(subject);
+
 	X509_REQ_free(request);
 }
 
@@ -173,6 +187,8 @@ void test_cert_info()
 	char *subject;
 	char *serial;
 	char *fingerprint;
+	struct cert_subject *s_obj;
+	struct cert_subject *i_obj;
 
 	test("cert: Certificate Information");
 	cert = cert_retrieve_certificate(X509_ROOT "/certs/test.pem");
@@ -182,10 +198,31 @@ void test_cert_info()
 	assert_not_null("Certificate Issuer retrieved", issuer);
 	assert_str_eq("Cert Issuer is correct", issuer, CA_ID);
 
+	i_obj = cert_certificate_issuer(cert);
+	assert_not_null("Certificate Issuer object retrieved", i_obj);
+	assert_str_eq("Cert Issuer // C", i_obj->country, "US");
+	assert_str_eq("Cert Issuer // ST", i_obj->state, "Illinois");
+	assert_str_eq("Cert Issuer // L", i_obj->loc, "Peoria");
+	assert_str_eq("Cert Issuer // O", i_obj->org,
+		"Clockwork Root CA");
+	assert_null("Cert Issuer // OU is NULL", i_obj->org_unit);
+	assert_str_eq("Cert Issuer // type", i_obj->type, "Policy Master");
+	assert_str_eq("Cert Issuer // CN", i_obj->fqdn, "cfm.niftylogic.net");
+
 	subject = cert_certificate_subject_name(cert);
 	assert_not_null("Certificate Subject retrieved", subject);
 	assert_str_eq("Cert Subject is correct", subject,
 		"NiftyLogic - signed.niftylogic.net");
+
+	s_obj = cert_certificate_subject(cert);
+	assert_not_null("Certificate Subject object retrieved", s_obj);
+	assert_str_eq("Cert Subject // C", s_obj->country, "US");
+	assert_str_eq("Cert Subject // ST", s_obj->state, "Illinois");
+	assert_str_eq("Cert Subject // L", s_obj->loc, "Peoria");
+	assert_str_eq("Cert Subject // O", s_obj->org, "NiftyLogic");
+	assert_null("Cert Subject // OU is NULL", s_obj->org_unit);
+	assert_str_eq("Cert Subject // type is NULL", s_obj->type, "CWA");
+	assert_str_eq("Cert Subject // CN", s_obj->fqdn, "signed.niftylogic.net");
 
 	serial = cert_certificate_serial_number(cert);
 	assert_not_null("Certificate Serial # retrieved", serial);
@@ -199,6 +236,10 @@ void test_cert_info()
 	free(subject);
 	free(serial);
 	free(fingerprint);
+
+	/* FIXME: better free() calls */
+	free(i_obj);
+	free(s_obj);
 }
 
 void test_cert_signing()

@@ -64,7 +64,9 @@ x509_extensions        = root_ca_ext
 [ root_ca_dn ]
 countryName            = US
 stateOrProvinceName    = Illinois
+localityName           = Peoria
 organizationName       = Clockwork Root CA
+organizationalUnitName = Policy Master
 commonName             = cfm.niftylogic.net
 
 [ root_ca_ext ]
@@ -88,20 +90,20 @@ openssl_key test 2048
 
 task "Generating a test Certificate Signing Request"
 openssl_key  csr 2048
-openssl_csr  csr "$SUBJECT/O=NiftyLogic/CN=csr.niftylogic.net"
+openssl_csr  csr "$SUBJECT/O=NiftyLogic/OU=R&D/OU=CWA/CN=csr.niftylogic.net"
 
 task "Generating another test Certificate Signing Request"
 openssl_key  sign-me 2048
-openssl_csr  sign-me "$SUBJECT/O=Signing Test/CN=sign.niftylogic.net"
+openssl_csr  sign-me "$SUBJECT/O=Signing Test/OU=CWA/CN=sign.niftylogic.net"
 
 task "Generating a test Certificate (signed)"
 openssl_key  test 2048
-openssl_csr  test "$SUBJECT/O=NiftyLogic/CN=signed.niftylogic.net"
+openssl_csr  test "$SUBJECT/O=NiftyLogic/OU=CWA/CN=signed.niftylogic.net"
 openssl_cert test 365
 openssl_fp   test >> $TEST_DEFS_H
 
 task "Generating a test Certificate (signed) for revocation tests"
 openssl_key  revoke-me 2048
-openssl_csr  revoke-me "$SUBJECT/O=NiftyLogic/CN=REVOKE.rd.niftylogic.net"
+openssl_csr  revoke-me "$SUBJECT/O=NiftyLogic/OU=R&D/OU=CWA/CN=REVOKE.rd.niftylogic.net"
 openssl_cert revoke-me 365
 openssl_fp   revoke-me >> $TEST_DEFS_H

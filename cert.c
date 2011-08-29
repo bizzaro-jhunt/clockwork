@@ -512,7 +512,7 @@ char* cert_fingerprint_certificate(X509 *cert)
 		return NULL;
 	}
 
-	data = xmalloc((len*3) * sizeof(char));
+	data = xmalloc((len*3+1) * sizeof(char));
 	for (i = 0, f = data; i < len; i++, f += 3) {
 		snprintf(f, 4, "%02x%c", buf[i], ((i+1) == len ? '\0' : ':'));
 	}

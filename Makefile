@@ -75,7 +75,7 @@ DOXYGEN := doxygen
 
 util_bin      := sha1sum polspec tplspec
 agent_bin     := cwa cwcert
-master_bin    := policyd cwca
+master_bin    := policyd cwca cwpol
 debug_bin     := debug/service-manager debug/package-manager
 
 # Compiled binaries (candidates for `make clean')
@@ -130,6 +130,10 @@ fun_tests     += test/functional/daemoncfg
 fun_tests     += test/functional/presence
 fun_tests     += test/functional/prompter
 fun_tests     += test/functional/executive
+
+# Unit Test runners
+unit_tests    := test/unit/run
+unit_tests    += test/unit/helpers/proto_helper
 
 # Doxygen configuration for API docs
 apidocs_conf  := doc/doxy.api.conf
@@ -375,7 +379,7 @@ tidy:
 	rm -f lcov.info
 
 clean: tidy cleandep
-	rm -f $(COMPILED) test/unit/run $(fun_tests) $(auto_c) $(auto_h) man/*.*.gz
+	rm -f $(COMPILED) $(unit_tests) $(fun_tests) $(auto_c) $(auto_h) man/*.*.gz
 	rm -f spec/*.output conf/*.output tpl/*.output
 	rm -rf $(apidocs_root)/* doc/coverage/*
 

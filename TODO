@@ -21,12 +21,9 @@ Client / Server
   - Test remediation in chroot
   - Automatic certificate enrolment
 
-     cwcert - CSR tool for agents
-       Implement 'renew'
-
      Communication between cwcert and cwca
        More intrusive signing / verification procedure
-       How to handle renewals / revocation?
+       How to handle revocation?
 
 chroot testing
   Need to be able to run full-sim tests in chroot environments,

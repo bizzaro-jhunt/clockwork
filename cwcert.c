@@ -44,6 +44,8 @@ static int cwcert_new_main(const struct cwcert_opts *args);
 static int cwcert_renew_main(const struct cwcert_opts *args);
 static int cwcert_test_main(const struct cwcert_opts *args);
 
+static int submit_request(const struct cwcert_opts *args, X509_REQ *req);
+
 int main(int argc, char **argv)
 {
 	int err;
@@ -312,39 +314,48 @@ static int cwcert_new_main(const struct cwcert_opts *args)
 	INFO("Removing old certificate %s", args->config->cert_file);
 	unlink(args->config->cert_file);
 
-	if (args->config->mode == CLIENT_MODE_OFFLINE) {
-		INFO("Skipping verification with policy master (offline mode)");
-		return CWCERT_SUCCESS;
-
-	} else {
-		INFO("Sending certificate signing request to server");
-		while (negotiate_certificate(args->config, request) != 0) {
-			printf("awaiting `cwca sign' on policy master...\n");
-			sleep(5);
-		}
-
-		client_bye(args->config);
-		if (client_connect(args->config) != 0) {
-			CRITICAL("Unable to reconnect to verify");
-			return CWCERT_OTHER_ERR;
-		}
-
-		if (client_hello(args->config) != 0) {
-			CRITICAL("Issued certificate is not valid");
-			client_bye(args->config);
-			return CWCERT_OTHER_ERR;
-		}
-
-		INFO("Completed");
-		client_bye(args->config);
-		return CWCERT_SUCCESS;
-	}
+	return submit_request(args, request);
 }
 
 static int cwcert_renew_main(const struct cwcert_opts *args)
 {
-	fprintf(stderr, "'renew' not yet implemented...\n");
-	return 1;
+	/* pseudo: make a new CSR from the old cert, and submit it for signing */
+	EVP_PKEY *key;
+	X509 *old_cert;
+	X509_REQ *request;
+	struct cert_subject *subject;
+
+	key = cert_retrieve_key(args->config->key_file);
+	if (!key) {
+		CRITICAL("Unable to retrieve private key");
+		return CWCERT_OTHER_ERR;
+	}
+
+	old_cert = cert_retrieve_certificate(args->config->cert_file);
+	if (!old_cert) {
+		CRITICAL("Unable to retrieve previous signed certificate");
+		return CWCERT_OTHER_ERR;
+	}
+
+	subject = cert_certificate_subject(old_cert);
+	if (!subject) {
+		CRITICAL("Unable to parse Certificate Subject");
+		return CWCERT_SSL_ERROR;
+	}
+
+	request = cert_generate_request(key, subject);
+	if (!request) {
+		CRITICAL("Unable to generate certificate signing request.");
+		return CWCERT_SSL_ERROR;
+	}
+
+	INFO("Saving certificate signing request to %s", args->config->request_file);
+	if (cert_store_request(request, args->config->request_file) != 0) {
+		CRITICAL("Unable to save certificate signing request" );
+		return CWCERT_OTHER_ERR;
+	}
+
+	return submit_request(args, request);
 }
 
 static int cwcert_test_main(const struct cwcert_opts *args)
@@ -376,3 +387,33 @@ static int cwcert_test_main(const struct cwcert_opts *args)
 	return CWCERT_OTHER_ERR;
 }
 
+static int submit_request(const struct cwcert_opts *args, X509_REQ *request)
+{
+	if (args->config->mode == CLIENT_MODE_OFFLINE) {
+		INFO("Skipping verification with policy master (offline mode)");
+		return CWCERT_SUCCESS;
+
+	} else {
+		INFO("Sending certificate signing request to server");
+		while (negotiate_certificate(args->config, request) != 0) {
+			printf("awaiting `cwca sign' on policy master...\n");
+			sleep(5);
+		}
+
+		client_bye(args->config);
+		if (client_connect(args->config) != 0) {
+			CRITICAL("Unable to reconnect to verify");
+			return CWCERT_OTHER_ERR;
+		}
+
+		if (client_hello(args->config) != 0) {
+			CRITICAL("Issued certificate is not valid");
+			client_bye(args->config);
+			return CWCERT_OTHER_ERR;
+		}
+
+		INFO("Completed");
+		client_bye(args->config);
+		return CWCERT_SUCCESS;
+	}
+}

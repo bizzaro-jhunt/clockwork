@@ -302,6 +302,7 @@ static int cwca_issued_main(const struct cwca_opts *args)
 	X509 **certs;
 	size_t i, ncerts = 0;
 	char *path;
+	struct cert_subject *s;
 
 	path = string("%s/*.pem", args->server->certs_dir);
 	certs = cert_retrieve_certificates(path, &ncerts);
@@ -316,8 +317,8 @@ static int cwca_issued_main(const struct cwca_opts *args)
 	}
 
 	for (i = 0; i < ncerts; i++) {
-		printf("%s\t%s\n",
-		       cert_certificate_subject_name(certs[i]),
+		s = cert_certificate_subject(certs[i]);
+		printf("%s - %s\t%s\n", s->org, s->fqdn,
 		       cert_fingerprint_certificate(certs[i]));
 	}
 	return CWCA_SUCCESS;
@@ -329,6 +330,7 @@ static int cwca_pending_main(const struct cwca_opts *args)
 	EVP_PKEY *pubkey;
 	size_t i, nreqs = 0;
 	char *path;
+	struct cert_subject *s;
 
 	path = string("%s/*.csr", args->server->requests_dir);
 	reqs = cert_retrieve_requests(path, &nreqs);
@@ -345,8 +347,8 @@ static int cwca_pending_main(const struct cwca_opts *args)
 
 	for (i = 0; i < nreqs; i++) {
 		pubkey = X509_REQ_get_pubkey(reqs[i]);
-		printf("%s (%s)\n", 
-		       cert_request_subject_name(reqs[i]),
+		s = cert_request_subject(reqs[i]);
+		printf("%s - %s (%s)\n", s->org, s->fqdn,
 		       (pubkey ? "verified" : "NOT VERIFIED"));
 	}
 	return CWCA_SUCCESS;
@@ -360,6 +362,7 @@ static int cwca_revoked_main(const struct cwca_opts *args)
 	size_t ncerts = 0;
 	size_t i, j;
 	char *files;
+	struct cert_subject *s;
 
 	files = string("%s/*.pem", args->server->certs_dir);
 	certs = cert_retrieve_certificates(files, &ncerts);
@@ -383,9 +386,10 @@ static int cwca_revoked_main(const struct cwca_opts *args)
 		}
 
 		if (cert) {
-			printf("%s   %s\t%s\n",
+			s = cert_certificate_subject(cert);
+			printf("%s   %s - %s\t%s\n",
 			       cert_certificate_serial_number(cert),
-			       cert_certificate_subject_name(cert),
+			       s->org, s->fqdn,
 			       cert_fingerprint_certificate(cert));
 		} else {
 			printf("%s   (no matching cert)\n",

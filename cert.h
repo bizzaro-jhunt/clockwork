@@ -179,20 +179,6 @@ int cert_store_request(X509_REQ *request, const char *csrfile);
 X509* cert_sign_request(X509_REQ *request, X509 *ca_cert, EVP_PKEY *key, unsigned int days);
 
 /**
-  Retrieve the subjectName from a signing request.
-
-  The returned string is dynamically allocated; it is the caller's
-  responsibility to free it.
-
-  @param  request    Certificate signing request.
-
-  @returns a dynamically allocated string containing the organization
-           name (O=) and the hostname (CN=), separated by " - ", or
-           NULL on failure.
- */
-char* cert_request_subject_name(X509_REQ *request);
-
-/**
   Retrieve the subject from a signing request.
 
   The returned structure is dynamically allocated; it is the caller's
@@ -207,20 +193,6 @@ char* cert_request_subject_name(X509_REQ *request);
 struct cert_subject* cert_request_subject(X509_REQ *request);
 
 /**
-  Retrieve the subjectName from a certificate.
-
-  The returned string is dynamically allocated; it is the caller's
-  responsibility to free it.
-
-  @param  cert       Certificate
-
-  @returns a dynamically allocated string containing the organization
-           name (O=) and the hostname (CN=), separated by " - ", or
-           NULL on failure.
- */
-char* cert_certificate_subject_name(X509 *cert);
-
-/**
   Retrieve the subject from a certificate.
 
   The returned structure is dynamically allocated; it is the caller's
@@ -233,20 +205,6 @@ char* cert_certificate_subject_name(X509 *cert);
            NULL on failure.
  */
 struct cert_subject* cert_certificate_subject(X509 *cert);
-
-/**
-  Retrieve the issuerName from a certificate.
-
-  The returned string is dynamically allocated; it is the caller's
-  responsibility to free it.
-
-  @param  cert       Certificate
-
-  @returns a dynamically allocated string containing the organization
-           name (O=) and the hostname (CN=), separated by " - ", or
-           NULL on failure.
- */
-char* cert_certificate_issuer_name(X509 *cert);
 
 /**
   Retrieve the issuer from a certificate.

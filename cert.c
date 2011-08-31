@@ -216,10 +216,10 @@ X509_REQ* cert_generate_request(EVP_PKEY* key, const struct cert_subject *subj)
 	X509_NAME_add_entry_by_txt(name, "L",  MBSTRING_ASC, (const unsigned char*)subj->loc,     -1, -1, 0);
 	X509_NAME_add_entry_by_txt(name, "ST", MBSTRING_ASC, (const unsigned char*)subj->state,   -1, -1, 0);
 	X509_NAME_add_entry_by_txt(name, "O",  MBSTRING_ASC, (const unsigned char*)subj->org,     -1, -1, 0);
-	X509_NAME_add_entry_by_txt(name, "OU", MBSTRING_ASC, (const unsigned char*)subj->type,    -1, -1, 0);
 	if (strcmp(subj->org_unit, "") != 0) {
 		X509_NAME_add_entry_by_txt(name, "OU", MBSTRING_ASC, (const unsigned char*)subj->org_unit,-1, -1, 0);
 	}
+	X509_NAME_add_entry_by_txt(name, "OU", MBSTRING_ASC, (const unsigned char*)subj->type,    -1, -1, 0);
 	X509_NAME_add_entry_by_txt(name, "CN", MBSTRING_ASC, (const unsigned char*)subj->fqdn, -1, -1, 0);
 
 	exts = sk_X509_EXTENSION_new_null();
@@ -311,30 +311,6 @@ X509* cert_sign_request(X509_REQ *request, X509 *ca_cert, EVP_PKEY *cakey, unsig
 	return cert;
 }
 
-static char* cert_get_name(X509_NAME *name)
-{
-	int idx;
-	X509_NAME_ENTRY *o, *cn;
-	ASN1_STRING *raw_o, *raw_cn;
-	const char *str_o, *str_cn;
-
-	if (!name) { return NULL; }
-
-	idx = X509_NAME_get_index_by_NID(name, NID_organizationName, -1);
-	o = X509_NAME_get_entry(name, idx);
-	raw_o = X509_NAME_ENTRY_get_data(o);
-
-	idx = X509_NAME_get_index_by_NID(name, NID_commonName, idx);
-	cn = X509_NAME_get_entry(name, idx);
-	raw_cn = X509_NAME_ENTRY_get_data(cn);
-
-	str_o = str_cn = "(unknown)";
-	if (raw_o)  { str_o  = raw_o->data;  }
-	if (raw_cn) { str_cn = raw_cn->data; }
-
-	return string("%s - %s", str_o, str_cn);
-}
-
 static struct cert_subject* cert_get_subject(X509_NAME *name)
 {
 	int idx = -1;
@@ -346,31 +322,31 @@ static struct cert_subject* cert_get_subject(X509_NAME *name)
 
 	subject = xmalloc(sizeof(struct cert_subject));
 
-	idx = X509_NAME_get_index_by_NID(name, NID_countryName, idx);
+	idx = X509_NAME_get_index_by_NID(name, NID_countryName, -1);
 	entry = X509_NAME_get_entry(name, idx);
 	if ((raw = X509_NAME_ENTRY_get_data(entry))) {
 		subject->country = strdup(raw->data);
 	}
 
-	idx = X509_NAME_get_index_by_NID(name, NID_stateOrProvinceName, idx);
+	idx = X509_NAME_get_index_by_NID(name, NID_stateOrProvinceName, -1);
 	entry = X509_NAME_get_entry(name, idx);
 	if ((raw = X509_NAME_ENTRY_get_data(entry))) {
 		subject->state = strdup(raw->data);
 	}
 
-	idx = X509_NAME_get_index_by_NID(name, NID_localityName, idx);
+	idx = X509_NAME_get_index_by_NID(name, NID_localityName, -1);
 	entry = X509_NAME_get_entry(name, idx);
 	if ((raw = X509_NAME_ENTRY_get_data(entry))) {
 		subject->loc = strdup(raw->data);
 	}
 
-	idx = X509_NAME_get_index_by_NID(name, NID_organizationName, idx);
+	idx = X509_NAME_get_index_by_NID(name, NID_organizationName, -1);
 	entry = X509_NAME_get_entry(name, idx);
 	if ((raw = X509_NAME_ENTRY_get_data(entry))) {
 		subject->org = strdup(raw->data);
 	}
 
-	idx = X509_NAME_get_index_by_NID(name, NID_organizationalUnitName, idx);
+	idx = X509_NAME_get_index_by_NID(name, NID_organizationalUnitName, -1);
 	entry = X509_NAME_get_entry(name, idx);
 	if ((raw = X509_NAME_ENTRY_get_data(entry))) {
 		subject->org_unit = strdup(raw->data);
@@ -382,7 +358,7 @@ static struct cert_subject* cert_get_subject(X509_NAME *name)
 		subject->type = strdup(raw->data);
 	}
 
-	idx = X509_NAME_get_index_by_NID(name, NID_commonName, idx);
+	idx = X509_NAME_get_index_by_NID(name, NID_commonName, -1);
 	entry = X509_NAME_get_entry(name, idx);
 	if ((raw = X509_NAME_ENTRY_get_data(entry))) {
 		subject->fqdn = strdup(raw->data);
@@ -396,29 +372,14 @@ static struct cert_subject* cert_get_subject(X509_NAME *name)
 	return subject;
 }
 
-char *cert_request_subject_name(X509_REQ *request)
-{
-	return cert_get_name(X509_REQ_get_subject_name(request));
-}
-
 struct cert_subject *cert_request_subject(X509_REQ *request)
 {
 	return cert_get_subject(X509_REQ_get_subject_name(request));
 }
 
-char* cert_certificate_subject_name(X509 *cert)
-{
-	return cert_get_name(X509_get_subject_name(cert));
-}
-
 struct cert_subject *cert_certificate_subject(X509 *cert)
 {
 	return cert_get_subject(X509_get_subject_name(cert));
-}
-
-char* cert_certificate_issuer_name(X509 *cert)
-{
-	return cert_get_name(X509_get_issuer_name(cert));
 }
 
 struct cert_subject *cert_certificate_issuer(X509 *cert)

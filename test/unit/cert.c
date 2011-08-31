@@ -11,22 +11,26 @@
 
 static void assert_cert_id(X509 *cert, const char *issuer, const char *subject)
 {
-	char *issuer_actual, *subject_actual;
+	struct cert_subject *subj;
+	char *str;
 
 	assert_not_null("cert to validate ID for is not NULL", cert);
 	assert_not_null("issuer specified in call to assert_cert_id", issuer);
 	assert_not_null("subject specified in call to assert_cert_id", subject);
 
-	issuer_actual = cert_certificate_issuer_name(cert);
-	assert_not_null("cert issuer is present", issuer_actual);
-	assert_str_eq("verify certificate issuer", issuer_actual, issuer);
+	subj = cert_certificate_issuer(cert);
+	assert_not_null("cert issuer is present", subj);
+	str = string("%s - %s", subj->org, subj->fqdn);
+	assert_str_eq("verify certificate issuer", str, issuer);
+	free(str);
+	free(subj); /* FIXME: implement subject_free */
 
-	subject_actual = cert_certificate_subject_name(cert);
-	assert_not_null("cert subject is present", subject_actual);
-	assert_str_eq("verify certificate subject", subject_actual, subject);
-
-	free(issuer_actual);
-	free(subject_actual);
+	subj = cert_certificate_subject(cert);
+	assert_not_null("cert subject is present", subj);
+	str = string("%s - %s", subj->org, subj->fqdn);
+	assert_str_eq("verify certificate subject", str, subject);
+	free(str);
+	free(subj); /* FIXME: implement subject_free */
 }
 
 void test_cert_key_retrieve()
@@ -92,11 +96,10 @@ void test_cert_key_storage()
 void test_cert_csr_retrieve()
 {
 	X509_REQ *request;
+	struct cert_subject *subject;
+
 	const char *path = X509_ROOT "/csrs/csr.pem";
 	const char *badpath = "/path/to/nonexistent/csr.pem";
-	char *subject_name;
-	const char *expected = "NiftyLogic - csr.niftylogic.net";
-	struct cert_subject *subject;
 
 	test("Cert: CSR retrieve");
 
@@ -107,22 +110,15 @@ void test_cert_csr_retrieve()
 	request = cert_retrieve_request(path);
 	assert_not_null("Retrieve succeeds for valid path", request);
 
-	subject_name = cert_request_subject_name(request);
-	assert_not_null("CSR has a subject name", subject_name);
-	assert_str_eq("CSR subject name succeeds", expected, subject_name);
-	free(subject_name);
-
 	subject = cert_request_subject(request);
 	assert_not_null("CSR has a subject", subject);
-	assert_str_eq("CSR Subject // C",  subject->country, "US");
-	assert_str_eq("CSR Subject // ST", subject->state,   "Illinois");
-	assert_str_eq("CSR Subject // L",  subject->loc,     "Peoria");
-	assert_str_eq("CSR Subject // O",  subject->org,     "NiftyLogic");
-	assert_str_eq("CSR Subject // OU", subject->org_unit, "R&D");
-	assert_str_eq("CSR Subject // type (OU)", subject->type, "CWA");
-
-	// FIXME: better free() calls
-	free(subject);
+	assert_str_eq("CSR Subject // C",    subject->country,  "US");
+	assert_str_eq("CSR Subject // ST",   subject->state,    "Illinois");
+	assert_str_eq("CSR Subject // L",    subject->loc,      "Peoria");
+	assert_str_eq("CSR Subject // O",    subject->org,      "NiftyLogic");
+	assert_str_eq("CSR Subject // OU",   subject->org_unit, "R&D");
+	assert_str_eq("CSR Subject // type", subject->type,     "CWA");
+	free(subject); /* FIXME: implement subject_free */
 
 	X509_REQ_free(request);
 }
@@ -131,9 +127,9 @@ void test_cert_csr_generation()
 {
 	EVP_PKEY *key;
 	X509_REQ *request;
-	char *subject_name;
-	const char *expected = "Testing, LLC - c.example.net";
-	struct cert_subject subj = {
+	struct cert_subject *subject;
+
+	struct cert_subject build_subject = {
 		.country  = "US",
 		.state    = "Illinois",
 		.loc      = "Peoria",
@@ -146,13 +142,19 @@ void test_cert_csr_generation()
 	key = cert_retrieve_key(X509_ROOT "/keys/rsa2048.pem");
 	assert_not_null("Key for CSR generation is not null", key);
 
-	request = cert_generate_request(key, &subj);
+	request = cert_generate_request(key, &build_subject);
 	assert_not_null("Request generation succeeds", request);
 
-	subject_name = cert_request_subject_name(request);
-	assert_not_null("Generated request has a subject name", subject_name);
-	assert_str_eq("CSR subject name succeeds", expected, subject_name);
-	free(subject_name);
+	subject = cert_request_subject(request);
+	assert_not_null("CSR has a subject", subject);
+	assert_str_eq("CSR Subject // C",    subject->country,  "US");
+	assert_str_eq("CSR Subject // ST",   subject->state,    "Illinois");
+	assert_str_eq("CSR Subject // L",    subject->loc,      "Peoria");
+	assert_str_eq("CSR Subject // O",    subject->org,      "Testing, LLC");
+	assert_str_eq("CSR Subject // OU",   subject->org_unit, "SysDev");
+	assert_str_eq("CSR Subject // type", subject->type,     "Clockwork Agent");
+	assert_str_eq("CSR Subject // CN",   subject->fqdn,     "c.example.net");
+	free(subject); /* FIXME: implement subject_free */
 
 	EVP_PKEY_free(key);
 	X509_REQ_free(request);
@@ -194,10 +196,6 @@ void test_cert_info()
 	cert = cert_retrieve_certificate(X509_ROOT "/certs/test.pem");
 	assert_not_null("Certificate retrieval succeeded", cert);
 
-	issuer = cert_certificate_issuer_name(cert);
-	assert_not_null("Certificate Issuer retrieved", issuer);
-	assert_str_eq("Cert Issuer is correct", issuer, CA_ID);
-
 	i_obj = cert_certificate_issuer(cert);
 	assert_not_null("Certificate Issuer object retrieved", i_obj);
 	assert_str_eq("Cert Issuer // C", i_obj->country, "US");
@@ -208,11 +206,6 @@ void test_cert_info()
 	assert_null("Cert Issuer // OU is NULL", i_obj->org_unit);
 	assert_str_eq("Cert Issuer // type", i_obj->type, "Policy Master");
 	assert_str_eq("Cert Issuer // CN", i_obj->fqdn, "cfm.niftylogic.net");
-
-	subject = cert_certificate_subject_name(cert);
-	assert_not_null("Certificate Subject retrieved", subject);
-	assert_str_eq("Cert Subject is correct", subject,
-		"NiftyLogic - signed.niftylogic.net");
 
 	s_obj = cert_certificate_subject(cert);
 	assert_not_null("Certificate Subject object retrieved", s_obj);
@@ -232,8 +225,6 @@ void test_cert_info()
 	assert_not_null("Certificate Fingerprint retrieved", fingerprint);
 	assert_str_eq("Cert Fingerprint is correct", fingerprint, FPRINT_TEST_CERT);
 
-	free(issuer);
-	free(subject);
 	free(serial);
 	free(fingerprint);
 

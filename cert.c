@@ -634,3 +634,18 @@ int cert_is_revoked(X509_CRL *crl, X509 *cert)
 {
 	return cert_X509_CRL_get0_by_serial(crl, NULL, X509_get_serialNumber(cert));
 }
+
+void cert_subject_free(struct cert_subject *s)
+{
+	if (s) {
+		free(s->country);
+		free(s->state);
+		free(s->loc);
+		free(s->org);
+		free(s->org_unit);
+		free(s->type);
+		free(s->fqdn);
+	}
+	free(s);
+}
+

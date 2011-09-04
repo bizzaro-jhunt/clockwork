@@ -1,0 +1,815 @@
+\"
+\"  Copyright 2011 James Hunt <james@jameshunt.us>
+\"
+\"  This file is part of Clockwork.
+\"
+\"  Clockwork is free software: you can redistribute it and/or modify
+\"  it under the terms of the GNU General Public License as published by
+\"  the Free Software Foundation, either version 3 of the License, or
+\"  (at your option) any later version.
+\"
+\"  Clockwork is distributed in the hope that it will be useful,
+\"  but WITHOUT ANY WARRANTY; without even the implied warranty of
+\"  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+\"  GNU General Public License for more details.
+\"
+\"  You should have received a copy of the GNU General Public License
+\"  along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
+\"
+
+.TH clockwork "5" "June 2011" "Clockwork" "Clockwork"
+\"----------------------------------------------------------------
+.SH NAME
+clockwork \- Configuration Management System
+.br
+
+\" FIXME: the intro sections need some work since this file
+\" FIXME: morphed into a general introduction.
+\"----------------------------------------------------------------
+.SH DESCRIPTION
+The manifest defines the resources that Clockwork
+manages.  These definitions are grouped together into policies
+that are then applied to hosts.
+.PP
+This document is both a gentle introduction to the manifest
+language and a full reference for its constructs.
+.PP
+
+\"----------------------------------------------------------------
+.SH INTRODUCTION
+
+Let's start out by writing a simple, yet complete manifest for a
+small web hosting firm named Widgets, Inc.
+
+.IP lab1.widgets.net 0.4i
+Test lab virtual machine running CentOS 5.5, for staging
+updates to the production environment.
+.IP buildhost.widgets.net
+RPM build host and YUM repository; CentOS 5.2.
+.IP dev.widgets.net
+General-purpose development server, shared by three staff developers
+and one freelance designer.  Runs Ubuntu 9.10.
+.IP prodweb1.widgets.net
+Production Apache web cluster node; CentOS 5.5
+.IP prodweb2.widgets.net
+Production Apache web cluster node; CentOS 5.5
+.IP proddb1.widgets.net
+Production MySQL database server on Oracle Enterprise Linux 5.4
+.IP proddb2.widgets.net
+Production MySQL database server on Oracle Enterprise Linux 5.4
+.IP clockwork.widgets.net
+Clockwork Policy Master for above servers.
+
+.PP
+This mix of hosts will let us explore some of the more powerful
+concepts behind the Clockwork manifest language.
+
+\"-------------------------
+.SS Preparation
+
+This tutorial assumes that the Clockwork software is installed on all
+servers, and that the policy master and agent are able to communicate.
+Default configuration is assumed.
+
+\"-------------------------
+.SS Getting Started
+Let's start out by looking at the classical example given by most
+configuration management tutorials: the \fBsudoers\fR(5) file.
+.PP
+The /etc/sudoers file governs who can issue the \fBsudo\fR(8) command
+to assume the identity of another user (usually root).  For security
+reasons, \fBsudo\fR will refuse to run if the permissions on
+/etc/sudoers are not 0440, or the file is not owned by root:root.
+.PP
+We can use Clockwork to make sure that this is the case.  Create a new
+manifest file in /etc/clockwork/manifest.pol:
+.PP
+.RS 4
+.nf
+############################################################
+# /etc/clockwork/manifest.pol
+#
+# Widgets, Inc. Policy Manifest
+#
+
+policy "security" {
+
+    # Ensure that /etc/sudoers is usable
+    file "/etc/sudoers" {
+        owner: "root"
+        group: "root"
+        mode:  0440
+    }
+}
+
+############################################################
+.fi
+.RE
+.PP
+First, a few syntax notes.
+.PP
+Comments start with '#' and continue to the end of the line.
+.PP
+We defined a new policy, named "security", with the \fBpolicy\fR
+directive.  The definition of the policy starts at the first curly
+brace ({) and continues until the matching '}'.
+.PP
+Inside this policy, we defined a file resource to represent the
+/etc/sudoers file.  We'll get into resources later.  For now,
+let's move on.
+.PP
+Before client hosts can use your policy, however, you will have
+to tell the policy master which hosts the policy applies to.
+This is done through
+.B host enforcements.
+Add the following host definition to the manifest file:
+.PP
+.RS 4
+.nf
+host "lab1.widgets.net" {
+    enforce "security"
+}
+.fi
+.RE
+.PP
+This will cause the policy master to send the "security" policy
+to
+.I lab1.widgets.net
+when it connects.  We only specified the lab1 host so that we
+could test the policy on the staging server before pushing it
+out to the whole network.  Let's add the rest of the servers:
+.PP
+.RS 4
+.nf
+############################################################
+# /etc/clockwork/manifest.pol
+#
+# Widgets, Inc. Policy Manifest
+#
+
+policy "security" {
+
+    # Ensure that /etc/sudoers is usable
+    file "/etc/sudoers" {
+        owner: "root"
+        group: "root"
+        mode:  0440
+    }
+}
+
+host "lab1.widgets.net"      { enforce "security" }
+host "buildhost.widgets.net" { enforce "security" }
+host "dev.widgets.net"       { enforce "security" }
+host "prodweb1.widgets.net"  { enforce "security" }
+host "prodweb2.widgets.net"  { enforce "security" }
+host "proddb1.widgets.net"   { enforce "security" }
+host "proddb2.widgets.net"   { enforce "security" }
+
+############################################################
+.fi
+.RE
+.PP
+Congratulations.  You just created your first policy.
+.PP
+We used extra whitespace to align the \fBenforce\fR keywords
+vertically to improve the legibility of the manifest.
+Feel free to use extra spaces (or tabs); Clockwork will ignore
+them.
+.PP
+
+\"-------------------------
+.SS Adding Another Policy
+Let's add to our manifest by defining an \fBissue\fR(5) file in
+/etc/issue.  This file contains a banner that will be displayed
+to anyone attempting to log into the server.  It looks like this:
+.PP
+.RS 4
+.nf
+------------------------------------------------------------------
+Unauthorized access to this machine is prohibited.
+Use of this system is limited to authorized individuals only.
+All activity is monitored.
+------------------------------------------------------------------
+.fi
+.RE
+.PP
+The master issue file will live on the policy master, in
+/var/clockwork/files/banner.  To propagate it to our client hosts,
+let's add another policy:
+.PP
+.RS 4
+.nf
+policy "banner" {
+    file "/etc/issue" {
+        owner:  "root"
+        group:  "root"
+        mode:   0444
+        source: "/var/clockwork/files/banner"
+    }
+}
+.fi
+.RE
+.PP
+The \fBsource\fR attribute of the \fBfile\fR resource instructs the
+Clockwork agent to refresh the contents of /etc/issue file from the
+version on the server (in /var/clockwork/files/banner).
+.PP
+Test this new policy by adding it to the host definition for
+\fIlab1.widgets.net\fB:
+.PP
+.RS 4
+.nf
+host "lab1.widgets.net" {
+    enforce "security" # from before
+    enforce "banner"
+}
+.fi
+.RE
+.PP
+As you can see, a host can enforce multiple policies simultaneously.
+.PP
+Policies can also \fBextend\fR other policies.  Rather than keep the
+"security" and "banner" policies separate, and enforce each of them on
+every host, we can create another policy to glue the other two
+together:
+.PP
+.RS 4
+.nf
+policy "base" {
+    extend "security"
+    extend "banner"
+}
+
+host "lab1.widgets.net" {
+    enforce "base"
+}
+.fi
+.RE
+.PP
+By combining the two policies in "base", we can keep our \fBhost\fR
+definitions clean.  Here is the manifest so far, in its entirety:
+.PP
+.RS 4
+.nf
+############################################################
+# /etc/clockwork/manifest.pol
+
+policy "base" {
+    extend "banner"
+    extend "security"
+}
+
+policy "banner" {
+
+    file "/etc/issue" {
+        owner:  "root"
+        group:  "root"
+        mode:   0444
+        source: "/var/clockwork/files/banner"
+    }
+}
+
+policy "security" {
+
+    file "/etc/sudoers" {
+        owner: "root"
+        group: "root"
+        mode:  0440
+    }
+}
+
+host "lab1.widgets.net"      { enforce "base" }
+host "buildhost.widgets.net" { enforce "base" }
+host "dev.widgets.net"       { enforce "base" }
+host "prodweb1.widgets.net"  { enforce "base" }
+host "prodweb2.widgets.net"  { enforce "base" }
+host "proddb1.widgets.net"   { enforce "base" }
+host "proddb2.widgets.net"   { enforce "base" }
+
+############################################################
+.fi
+.RE
+.PP
+.B Note:
+For the sake of brevity, example manifests will not have a lot of
+comments.  You are strongly encouraged to use comments in your
+real manifests.
+.PP
+
+\"-------------------------
+.SS Adding More Resources
+Up until now, each policy we have defined ("security" and "banner")
+has contained only one resource.  This was done deliberately, to
+keep things simple, but Clockwork allows you to define as many
+resources in any given policy.
+.PP
+To illustrate this, let's extend our "security" policy a bit.
+The policy already ensures that the /etc/sudoers file has the
+appropriate ownership and permissions, but does not ensure that
+the \fBsudo\fR package is installed.  To fix that, we can add
+a \fBpackage\fR resource, like this:
+.PP
+.RS 4
+.nf
+policy "security" {
+
+    # The /etc/sudoers definition from before
+    file "/etc/sudoers" {
+        owner: "root"
+        group: "root"
+        mode:  0440
+    }
+
+    # Make sure that sudo is actually installed
+    package "sudo" { installed: "yes" }
+}
+.if
+.RE
+.PP
+Now, the sudo package will be installed if it isn't already.
+
+\"-------------------------
+.SS Including Other Files
+In a real-world implementation, your manifest will contain dozens
+of policies and hundreds of resources (or more).  Keeping all of
+these in one file can become unmanageable, especially
+if you keep your manifest in version control (see
+\fBBEST PRACTICES\fR).
+Through the \fBinclude\fR pre-processor irective, you can
+split your manifest definition up into multiple files.
+.PP
+Continuing with our running example, let's split the manifest into
+three separate files: one for policy definitions, one for host
+definitions, and a third to pull it all together.
+.PP
+The policies themselves will be stored in
+/etc/clockwork/policies.pol:
+.PP
+.RS 4
+.nf
+$ cat /etc/clockwork/policies.pol
+############################################################
+# /etc/clockwork/policies.pol
+#
+# Widgets, Inc. Clockwork Policies
+#
+
+policy "base" {
+    extend "banner"
+    extend "security"
+}
+
+policy "banner" {
+
+    file "/etc/issue" {
+        owner:  "root"
+        group:  "root"
+        mode:   0444
+        source: "/var/clockwork/files/banner"
+    }
+}
+
+policy "security" {
+
+    file "/etc/sudoers" {
+        owner: "root"
+        group: "root"
+        mode:  0440
+    }
+
+    package "sudo" { installed: "yes" }
+}
+
+############################################################
+.fi
+.RE
+.PP
+Host definitions will be kept in /etc/clockwork/hosts.pol:
+.PP
+.RS 4
+.nf
+$ cat /etc/clockwork/hosts.pol
+############################################################
+# /etc/clockwork/hosts.pol
+#
+# Widgets, Inc. Clockwork Host Definitions
+#
+
+host "lab1.widgets.net"      { enforce "base" }
+host "buildhost.widgets.net" { enforce "base" }
+host "dev.widgets.net"       { enforce "base" }
+host "prodweb1.widgets.net"  { enforce "base" }
+host "prodweb2.widgets.net"  { enforce "base" }
+host "proddb1.widgets.net"   { enforce "base" }
+host "proddb2.widgets.net"   { enforce "base" }
+
+############################################################
+.fi
+.RE
+.PP
+And finally, the manifest.pol file will include the other two:
+.PP
+.RS 4
+.nf
+$ cat /etc/clockwork/manifest.pol
+############################################################
+# /etc/clockwork/manifest.pol
+#
+# Widgets, Inc. Clockwork Manifest
+#
+
+include "policies.pol"
+include "hosts.pol"
+
+############################################################
+.fi
+.RE
+.PP
+See the \fBBEST PRACTICES\fR
+section for some useful approaches to splitting up a large manifest.
+.PP
+\"-------------------------
+.SS Conditionals
+Not every resource definition applies to every host.  What works
+on your development servers may not be appropriate for your production
+boxes.
+.PP
+Let's consider the situation with the /etc/sudoers file, from our example.
+So far, our policy ensures that the permissions and ownership is properly
+set on the file, and that the sudo package is installed, but it says
+nothing about the contents of /etc/sudoers.
+.PP
+Let's get started with a sudo configuration for the lab1 server.
+Here is our working /etc/sudoers file:
+.PP
+.RS 4
+.nf
+# /etc/sudoers - sudo configuration
+#
+# for lab1.widgets.net ONLY
+#
+
+# Allow admins to do anything as anybody
+%admins ALL = (ALL) ALL
+
+# Allow the developers to restart apache
+%coders ALL = (root) /etc/init.d/apache
+
+.fi
+.RE
+.PP
+If we store this in /var/clockwork/files/sudoers.lab, we can amend the
+file resource in the "security" policy to read:
+.PP
+.RS 4
+.nf
+policy "security" {
+    # other resources omitted for clarity
+
+    file "/etc/sudoers" {
+        owner:  "root"
+        group:  "root"
+        mode:   0440
+        source: "/var/clockwork/files/sudoers.lab
+    }
+}
+.fi
+.RE
+.PP
+.B BUT WAIT!
+The "security" policy applies to all of our hosts, not just lab1.  This
+change would inadvertantly open up security leaks on the production servers!
+.PP
+.RS 8
+.B NOTE: Self-induced Pedagogical Ignorance
+.PP
+\fBsudo\fR enables you to define a single /etc/sudoers with host-specific
+access baked in.  For this lesson, however, we will ignore all that.
+.RE
+.PP
+To do this securely, we still need to define \fBsource\fR, but only for
+lab1.widgets.net.  Through the \fBif\fR conditional, we can do just that:
+.PP
+.RS 4
+.nf
+policy "security" {
+    # other resources omitted for clarity
+
+    file "/etc/sudoers" {
+        owner:  "root"
+        group:  "root"
+        mode:   0440
+
+        # only set the source for lab1
+        if (sys.hostname is "lab1") {
+            source: "/var/clockwork/files/sudoers.lab
+        }
+    }
+}
+.fi
+.RE
+.PP
+Now, the \fBsource\fR attribute of /etc/sudoers will only be present if
+when the policy is enforced on a system with the hostname of \fIlab1\fR.
+.PP
+Where did \fIsys.hostname\fR come from?
+.PP
+It's called a \fBfact\fR, and it represents some piece of information about
+the client host.  Host policies are always evaluated against the facts
+before enforcement.
+.PP
+To see a list of facts, just run \fBcwa\fR(1) with the \fB--facts\fR
+argument:
+.RS 4
+.nf
+$ cwa --facts | sort
+lsb.distro.codename = lucid
+lsb.distro.description = Ubuntu 10.04.2 LTS
+lsb.distro.id = Ubuntu
+lsb.distro.release = 10.04
+sys.arch = i686
+sys.fqdn = box.niftylogic.net
+sys.hostid = 007f0100
+sys.hostname = box
+sys.kernel.major = 2.6
+sys.kernel.minor = 2.6.32
+sys.kernel.version = 2.6.32-32-generic
+sys.platform = Linux
+time.hour = 16
+time.mday = 21
+time.minute = 39
+time.month = 06
+time.second = 55
+time.weekday = tue
+time.year = 2011
+time.yearday = 172
+.fi
+.RE
+.PP
+We can take this further with \fBelsif\fR and \fBelse\fR clauses:
+.PP
+.RS 4
+.nf
+policy "security" {
+    # other resources omitted for clarity
+
+    file "/etc/sudoers" {
+        owner:  "root"
+        group:  "root"
+        mode:   0440
+
+        if (sys.hostname is "lab1") {
+            source: "/var/clockwork/files/sudoers.lab
+        } elsif (sys.hostname is "buildhost") {
+            source: "/var/clockwork/files/sudoers.prod
+        } elsif (sys.hostname is "prodweb1") {
+            source: "/var/clockwork/files/sudoers.prod
+        } elsif (sys.hostname is "prodweb2") {
+            source: "/var/clockwork/files/sudoers.prod
+        } elsif (sys.hostname is "proddb1") {
+            source: "/var/clockwork/files/sudoers.db
+        } elsif (sys.hostname is "proddb2") {
+            source: "/var/clockwork/files/sudoers.db
+        } elsif (sys.hostname is "dev") {
+            source: "/var/clockwork/files/sudoers.dev
+        }
+    }
+}
+.fi
+.RE
+.PP
+This large \fBif\fR construct sets the \fBsource\fR for /etc/sudoers
+to one of four version (lab, prod, db or dev) based on the hostname.
+.PP
+While it works, it is unwieldy and difficult to read.  Instead, we can
+use the \fBmap\fR conditional construct:
+.PP
+.RS 4
+.nf
+policy "security" {
+    # other resources omitted for clarity
+
+    file "/etc/sudoers" {
+        owner:  "root"
+        group:  "root"
+        mode:   0440
+
+        source: map(sys.hostname) {
+          "lab1":      "/var/clockwork/files/sudoers.lab"
+          "buildhost": "/var/clockwork/files/sudoers.prod"
+          "prodweb1":  "/var/clockwork/files/sudoers.prod"
+          "prodweb2":  "/var/clockwork/files/sudoers.prod"
+          "proddb1":   "/var/clockwork/files/sudoers.db"
+          "proddb2":   "/var/clockwork/files/sudoers.db"
+          "dev":       "/var/clockwork/files/sudoers.dev"
+        }
+    }
+}
+.fi
+.RE
+.PP
+Each line inside of the \fBmap\fR block defines an \fIalternate\fR. \fBmap\fR
+chooses one of the alternates based on the value of the fact being mapped,
+in this case, \fIsys.hostname\fR.
+.PP
+There is a special alternate, called \fBelse\fR that acts like the \fBelse\fR
+clause of an \fBif\fR construct: if none of the alternates match, then the
+value specified for \fBelse\fR is used.
+.PP
+This allows us to simplify the policy definition even more:
+.PP
+.RS 4
+.nf
+policy "security" {
+    # other resources omitted for clarity
+
+    file "/etc/sudoers" {
+        owner:  "root"
+        group:  "root"
+        mode:   0440
+
+        source: map(sys.hostname) {
+          "lab1":      "/var/clockwork/files/sudoers.lab"
+          "proddb1":   "/var/clockwork/files/sudoers.db"
+          "proddb2":   "/var/clockwork/files/sudoers.db"
+          "dev":       "/var/clockwork/files/sudoers.dev"
+          else:        "/var/clockwork/files/sudoers.prod"
+        }
+    }
+}
+.fi
+.RE
+.PP
+\fBif\fR conditionals aren't limited just to resource values.  You can
+conditionally define entire resources:
+.PP
+.RS 4
+.nf
+policy "package-tools" {
+
+    if (lsb.distro.id is "Ubuntu") {
+        package "apt-file"  { installed: "yes" }
+        package "apt-utils" { installed: "yes" }
+
+    } elsif (lsb.distro.id is "RedHat") {
+        package "yum-tools" { installed: "yes" }
+    }
+}
+.fi
+.RE
+.PP
+Here, we define different package resource based on the distribution
+of Linux.  Ubuntu clients will install some APT packages, while
+RedHat clients will install yum-tools.  Other distributions,
+like CentOS or Gentoo, will have neither resource defined.
+.PP
+.B Note:
+the \fBmap\fR conditional can only be used inside of resource attribute
+definitions.  It is a bit of convenience syntax to help keep manifests
+clean and understandable.
+.PP
+Conditionals are very powerful parts of the Clockwork manifest
+language that can help to produce specific and sophisticated
+policy and resource definitions.
+
+\"-------------------------
+.SS Dependencies
+Clockwork tries to reconcile the actual configuration with the
+enforced policy in a single run, and in as few steps as possible.
+To do this, it has to take into account inter-dependencies between
+resources.
+.PP
+The simplest dependency is between a file and its parent directories.
+
+\" FIXME: Needs more content
+
+\"-------------------------
+.SS Templates
+
+\"-------------------------
+.SS Overriding Values
+Clockwork allows resource attributes to be overrided by later
+definitions with the same key.
+.PP
+Consider the following:
+.PP
+.RS 4
+.nf
+policy "www" {
+
+    package "apache" { installed: "yes" }
+    package "apache" { installed: "no"  }
+    package "apache" { installed: "yes" }
+}
+.fi
+.RE
+.PP
+Although the example is entirely contrived, the concept is not.
+The "www" policy ultimately comes to the conclusion that the
+Apache web server package should be installed.
+.PP
+Here's a more realistic (and more complicated) example:
+.PP
+.RS 4
+.nf
+policy "standard" {
+
+    file "/etc/ssh/sshd_config" {
+        # other attributes omitted for clarity
+        source: "/var/clockwork/files/sshd.standard"
+    }
+
+    # other resources for the 'standard' configuration
+}
+
+policy "secured" {
+
+    file "/etc/ssh/sshd_config" {
+        # other attributes omitted for clarity
+        source: "/var/clockwork/files/sshd.secured"
+    }
+
+    # other resources for the 'secured' configuration
+}
+
+host "dev1.example.com" {
+    enforce "standard"
+}
+host "ftp1.example.com" {
+    enforce "standard"
+    enforce "secured"
+}
+.fi
+.RE
+.PP
+The ftp1 host has a more secure SSHD configuration
+than dev1, because the "secured" policy (enforced by ftp1)
+overrides the \fBsource\fR attribute of the /etc/ssh/sshd_config file.
+.PP
+
+\"----------------------------------------------------------------
+.SH BEST PRACTICES
+
+This section contains tips and guidelines for getting the most
+out of Clockwork.  You don't have to follow them, but it's highly
+recommended.
+
+\"-------------------------
+.SS Version Control
+Version Control isn't just for developers.  Anything that changes over
+time (including 
+
+\" FIXME: Need more content
+
+\"-------------------------
+.SS Testing Process
+
+\" FIXME: Need more content
+
+\"----------------------------------------------------------------
+.SH RESOURCES
+
+\"-------------------------
+.SS directory
+\"-------------------------
+.SS file
+.SS group
+\"-------------------------
+.SS host
+\"-------------------------
+.SS package
+\"-------------------------
+.SS service
+\"-------------------------
+.SS sysctl
+\"-------------------------
+.SS user
+
+\"----------------------------------------------------------------
+.SH REFERENCE
+
+\"-------------------------
+.SS include
+
+\"-------------------------
+.SS extend
+
+\"-------------------------
+.SS host
+
+\"-------------------------
+.SS policy
+
+\"-------------------------
+.SS 
+
+\"----------------------------------------------------------------
+.SH AUTHOR
+Clockwork was conceived and written by James Hunt.
+.PP
+Original ideas were stolen from
+.B CFEngine
+(Mark Burgess) and
+.B Puppet
+(Luke Kanies).
+

@@ -24,7 +24,7 @@
 
 /**************************************************************/
 
-static server default_options = {
+static struct server default_options = {
 	.daemonize = SERVER_OPT_TRUE,
 	.debug     = SERVER_OPT_FALSE,
 	.log_level = LOG_LEVEL_ERROR,
@@ -57,18 +57,18 @@ static server default_options = {
 
 /**************************************************************/
 
-static server* configured_options(const char *path);
-static int merge_servers(server *a, server *b);
+static struct server* configured_options(const char *path);
+static int merge_servers(struct server *a, struct server *b);
 
 /**********************************************************/
 
-static server* configured_options(const char *path)
+static struct server* configured_options(const char *path)
 {
-	server *s;
+	struct server *s;
 	struct hash *config;
 	char *v;
 
-	s = xmalloc(sizeof(server));
+	s = xmalloc(sizeof(struct server));
 
 	config = parse_config(path);
 	if (config) {
@@ -143,7 +143,7 @@ static server* configured_options(const char *path)
 		a->opt = b->opt;\
 	}\
 } while(0)
-static int merge_servers(server *a, server *b)
+static int merge_servers(struct server *a, struct server *b)
 {
 	MERGE_BOOLEAN_OPTION(a,b,debug);
 	MERGE_BOOLEAN_OPTION(a,b,daemonize);
@@ -172,9 +172,9 @@ static int merge_servers(server *a, server *b)
 
 /**********************************************************/
 
-int server_options(server *args)
+int server_options(struct server *args)
 {
-	server *cfg;
+	struct server *cfg;
 	cfg = configured_options(args->config_file ? args->config_file : default_options.config_file);
 
 	if (merge_servers(args, cfg) != 0

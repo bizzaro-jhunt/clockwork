@@ -54,7 +54,7 @@
 struct cwca_opts {
 	char *command;
 	char *fqdn;
-	server *server;
+	struct server *server;
 };
 
 /**************************************************************/
@@ -165,7 +165,7 @@ struct cwca_opts* cwca_options(int argc, char **argv)
 	cwca = xmalloc(sizeof(struct cwca_opts));
 	cwca->command = strdup("pending");
 	cwca->fqdn    = NULL;
-	cwca->server  = xmalloc(sizeof(server));
+	cwca->server  = xmalloc(sizeof(struct server));
 
 	while ( (opt = getopt_long(argc, argv, short_opts, long_opts, &idx)) != -1 ) {
 		switch (opt) {

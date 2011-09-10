@@ -33,7 +33,7 @@
 
 /**************************************************************/
 
-typedef struct {
+struct worker {
 	BIO *socket;
 	SSL *ssl;
 	THREAD_TYPE tid;
@@ -52,7 +52,7 @@ typedef struct {
 	struct session session;
 
 	unsigned short peer_verified;
-} worker;
+};
 
 /**************************************************************/
 
@@ -62,32 +62,32 @@ static pthread_mutex_t  manifest_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /**************************************************************/
 
-static server* policyd_options(int argc, char **argv);
+static struct server* policyd_options(int argc, char **argv);
 static void show_help(void);
 
-static worker* spawn(server *s);
-static int worker_prep(worker *w);
-static int verify_peer(worker *w);
-static int send_file(worker *w, const char *path);
-static int send_template(worker *w, const char *path);
+static struct worker* spawn(struct server *s);
+static int worker_prep(struct worker *w);
+static int verify_peer(struct worker *w);
+static int send_file(struct worker *w, const char *path);
+static int send_template(struct worker *w, const char *path);
 
-static int handle_HELLO(worker *w);
-static int handle_GET_CERT(worker *w);
-static int handle_FACTS(worker *w);
-static int handle_FILE(worker *w);
-static int handle_REPORT(worker *w);
-static int handle_unknown(worker *w);
+static int handle_HELLO(struct worker *w);
+static int handle_GET_CERT(struct worker *w);
+static int handle_FACTS(struct worker *w);
+static int handle_FILE(struct worker *w);
+static int handle_REPORT(struct worker *w);
+static int handle_unknown(struct worker *w);
 
 static void sighup_handler(int, siginfo_t*, void*);
 
 static void daemonize(const char *lock_file, const char *pid_file);
 
-static void show_config(server *s);
+static void show_config(struct server *s);
 
-static int server_init_ssl(server *s);
-static int server_init(server *s);
+static int server_init_ssl(struct server *s);
+static int server_init(struct server *s);
 
-static int save_facts(worker *w);
+static int save_facts(struct worker *w);
 
 /* Thread execution functions */
 static void* worker_thread(void *arg);
@@ -97,8 +97,8 @@ static void* manager_thread(void *arg);
 
 int main(int argc, char **argv)
 {
-	server *s;
-	worker *w;
+	struct server *s;
+	struct worker *w;
 
 	s = policyd_options(argc, argv);
 	if (server_options(s) != 0) {
@@ -133,9 +133,9 @@ int main(int argc, char **argv)
 
 /**************************************************************/
 
-static server* policyd_options(int argc, char **argv)
+static struct server* policyd_options(int argc, char **argv)
 {
-	server *s;
+	struct server *s;
 
 	const char *short_opts = "h?FDvqQc:p:";
 	struct option long_opts[] = {
@@ -152,7 +152,7 @@ static server* policyd_options(int argc, char **argv)
 
 	int opt, idx = 0;
 
-	s = xmalloc(sizeof(server));
+	s = xmalloc(sizeof(struct server));
 
 	while ( (opt = getopt_long(argc, argv, short_opts, long_opts, &idx)) != -1 ) {
 		switch (opt) {
@@ -226,9 +226,9 @@ static void show_help(void)
 	       "\n");
 }
 
-static worker* spawn(server *s)
+static struct worker* spawn(struct server *s)
 {
-	worker *w;
+	struct worker *w;
 	DEBUG("Spawning new worker");
 
 unintr:
@@ -243,7 +243,7 @@ unintr:
 		return NULL;
 	}
 
-	w = xmalloc(sizeof(worker));
+	w = xmalloc(sizeof(struct worker));
 	w->facts = hash_new();
 	w->peer_verified = 0;
 
@@ -266,7 +266,7 @@ unintr:
 	return w;
 }
 
-static int worker_prep(worker *w)
+static int worker_prep(struct worker *w)
 {
 	assert(w); // LCOV_EXCL_LINE
 
@@ -302,7 +302,7 @@ static int worker_prep(worker *w)
 	return 0;
 }
 
-static int handle_HELLO(worker *w)
+static int handle_HELLO(struct worker *w)
 {
 	if (w->peer_verified) {
 		pdu_send_HELLO(&w->session);
@@ -312,7 +312,7 @@ static int handle_HELLO(worker *w)
 	return 1;
 }
 
-static int handle_GET_CERT(worker *w)
+static int handle_GET_CERT(struct worker *w)
 {
 	char *csr_file, *cert_file;
 	X509_REQ *csr = X509_REQ_new();
@@ -338,7 +338,7 @@ static int handle_GET_CERT(worker *w)
 	return 1;
 }
 
-static int handle_FACTS(worker *w)
+static int handle_FACTS(struct worker *w)
 {
 	if (!w->peer_verified) {
 		WARNING("Unverified peer tried to FACTS");
@@ -369,7 +369,7 @@ static int handle_FACTS(worker *w)
 	return 1;
 }
 
-static int handle_FILE(worker *w)
+static int handle_FILE(struct worker *w)
 {
 	char hex[SHA1_HEXLEN] = {0};
 	sha1 checksum;
@@ -432,7 +432,7 @@ static int handle_FILE(worker *w)
 	return 1;
 }
 
-static int handle_REPORT(worker *w)
+static int handle_REPORT(struct worker *w)
 {
 	struct job *job;
 	rowid host_id;
@@ -476,7 +476,7 @@ failed:
 	return 0;
 }
 
-static int handle_unknown(worker *w)
+static int handle_unknown(struct worker *w)
 {
 	char *message;
 	enum proto_op op = RECV_PDU(&w->session)->op;
@@ -489,7 +489,7 @@ static int handle_unknown(worker *w)
 	return 1;
 }
 
-static int verify_peer(worker *w)
+static int verify_peer(struct worker *w)
 {
 	assert(w); // LCOV_EXCL_LINE
 
@@ -519,7 +519,7 @@ static int verify_peer(worker *w)
 	return 0;
 }
 
-static int send_file(worker *w, const char *path)
+static int send_file(struct worker *w, const char *path)
 {
 	int fd = open(path, O_RDONLY);
 	int n;
@@ -529,7 +529,7 @@ static int send_file(worker *w, const char *path)
 	return n;
 }
 
-static int send_template(worker *w, const char *path)
+static int send_template(struct worker *w, const char *path)
 {
 	struct template *t;
 	char *data, *p;
@@ -653,7 +653,7 @@ static void daemonize(const char *lock_file, const char *pid_file)
 	freopen("/dev/null", "w", stderr);
 }
 
-static void show_config(server *s)
+static void show_config(struct server *s)
 {
 	printf("# Clockwork Policy Master Configuration\n");
 	printf("\n");
@@ -678,7 +678,7 @@ static void show_config(server *s)
 	printf("\n");
 }
 
-static int server_init(server *s)
+static int server_init(struct server *s)
 {
 	assert(s); // LCOV_EXCL_LINE
 
@@ -728,7 +728,7 @@ static int server_init(server *s)
 	return 0;
 }
 
-static int save_facts(worker *w)
+static int save_facts(struct worker *w)
 {
 	char filename[100];
 	char *path;
@@ -783,7 +783,7 @@ static int save_facts(worker *w)
 
 static void* worker_thread(void *arg)
 {
-	worker *w = (worker*)arg;
+	struct worker *w = (struct worker*)arg;
 	int done = 0;
 
 	pthread_detach(pthread_self());
@@ -855,7 +855,7 @@ static void* manager_thread(void *arg)
 	return NULL;
 }
 
-static int server_init_ssl(server *s)
+static int server_init_ssl(struct server *s)
 {
 	assert(s->ca_cert_file); // LCOV_EXCL_LINE
 	assert(s->cert_file); // LCOV_EXCL_LINE

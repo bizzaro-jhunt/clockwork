@@ -31,7 +31,7 @@
 /**
   A listening Server process' state
  */
-typedef struct {
+struct server {
 	/** OpenSSL I/O object for the bound socket. */
 	BIO *listener;
 	/** OpenSSL context for setting up new SSL connections. */
@@ -79,8 +79,8 @@ typedef struct {
 
 	/** Whether or not to invoke the --show-config behavior. */
 	int show_config;
-} server;
+};
 
-int server_options(server *args);
+int server_options(struct server *args);
 
 #endif

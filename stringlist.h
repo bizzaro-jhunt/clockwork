@@ -22,7 +22,8 @@
 
 #include <sys/types.h>
 
-/** @file stringlist.h
+/**
+  A String List
 
   A stringlist is a specialized data structure designed for
   efficient storage and management of a list of strings.  It
@@ -31,14 +32,14 @@
   management methods and "standard" string list manipulation
   routines.
 
-  <h3>Basic Usage Scenarios</h3>
+  ### Basic Usage ############################################
 
   Stringlist allocation and de-allocation is performed through
-  the stringlist_new and stringlist_free functions.  These two
+  the @stringlist_new and @stringlist_free functions.  These two
   functions allocate memory from the heap, and then free that
   memory.
 
-  @verbatim
+  <code>
   // allocate a new, empty stringlist
   stringlist *lst = stringlist_new(NULL);
 
@@ -49,38 +50,28 @@
 
   // free memory allocated by stringlist_new and stringlist_add
   stringlist_free(lst);
-  @endverbatim
+  </code>
 
-  The first argument to stringlist_new is a C-style char **
+  The first argument to @stringlist_new is a C-style `char**`
   string array, and can be used to "seed" the stringlist with
   starting values.  For example, to deal with command-line
   arguments in main() as a stringlist:
 
-  @verbatim
+  <code>
   int main(int argc, char **argv)
   {
     stringlist *args = stringlist_new(argv)
 
     // ....
   }
-  @endverbatim
+  </code>
 
   It is not possible to set up a stringlist allocated on the stack.
-
- */
-
-/**
-  A list of strings.
  */
 typedef struct {
-	/** Number of strings in list */
-	size_t   num;
-
-	/** Number of available slots */
-	size_t   len;
-
-	/** Array of null-terminated strings */
-	char   **strings;
+	size_t   num;      /* number of actual strings */
+	size_t   len;      /* number of memory slots for strings */
+	char   **strings;  /* array of NULL-terminated strings */
 } stringlist;
 
 /**
@@ -94,313 +85,25 @@ typedef int (*sl_comparator)(const void*, const void*);
 
 #define for_each_string(l,i) for ((i)=0; (i)<(l)->num; (i)++)
 
-/** @cond false */
 int STRINGLIST_SORT_ASC(const void *a, const void *b);
 int STRINGLIST_SORT_DESC(const void *a, const void *b);
-/** @endcond */
 
-/** Perform normal split operation in stringlist_split */
 #define SPLIT_NORMAL  0x00
-/** Perform greedy split operation in stringlist_split */
 #define SPLIT_GREEDY  0x01
 
-/**
-  Allocate and initialize a new stringlist.
-
-  This function allocates memory for a new stringlist, and then
-  initializes the structure.  If the \a src parameter is a NULL pointer,
-  the new list will be empty.  Otherwise, the contents of \a src will
-  be copied into the stringlist structure.
-
-  If problems are encountered (i.e. while allocating memory),
-  stringlist_new will free any memory that was successfully
-  allocated and then return NULL.
-
-  @note  Callers are responsible for freeing the memory allocated by this
-  call, and should use stringlist_free for that.
-
-  @param  src    A traditional C-style array of NULL-terminated character
-                 strings, to be used as an initial list.
-
-  @returns a pointer to a stringlist allocated on the heap, or NULL on failure.
- */
 stringlist* stringlist_new(char** src);
-
-/**
-  Duplicate a stringlist
-
-  This function allocates memory for a new stringlist, and copies
-  the strings in the \a orig parameter into the new stringlist before
-  returning it.
-
-  In the following example, new1 and new2 will contain the same
-  sequence of strings.
-
-  @verbatim
-  stringlist *orig = generate_a_list_of_strings()
-
-  // this statement...
-  stringlist *new1 = stringlist_dup(orig);
-
-  // ...is equivalent to this one
-  stringlist *new2 = stringlist_new(orig->strings);
-  @endverbatim
-
-  @param  orig    The stringlist to duplicate.
-
-  @returns a pointer to a stringlist containing the same strings
-           as \a orig, in the same order, or NULL on failure.
- */
 stringlist* stringlist_dup(stringlist *orig);
-
-/**
-  Free memory allocated by a stringlist.
-
-  This function should be called whenever a stringlist is no longer
-  necessary.
-
-  @param  list    A pointer to a stringlist, returned by stringlist_new.
- */
 void stringlist_free(stringlist *list);
-
-/**
-  Sort the list of strings, according to a comparison function.
-
-  Comparison functions operate according to existing convention;  For each
-  pair of adjacent strings, the function will be called and passed both
-  strings.  It should return an integer less than, or greater than zero if
-  the first string should appear before or after the second.  If both
-  strings are equal, the comparator should return 0, and the sort order
-  will be undefined.
-
-  Two basic comparators are defined already: STRINGLIST_SORT_ASC and
-  STRINGLIST_SORT_DESC for sorting alphabetically and reverse alphabetically,
-  respectively.
-
-  @note  The sort is done in-place; that is, the stringlist passed to
-         stringlist_sort \b will \b be modified.
-
-  @param  list    A pointer to a stringlist to sort.
-  @param  cmp     Comparator function.
- */
 void stringlist_sort(stringlist *list, sl_comparator cmp);
-
-/**
-  Remove duplicate strings from a list.
-
-  This function will reduce a stringlist such that it only contains
-  unique values.  In order to do that, the stringlist will first be
-  sorted (using stringlist_sort and STRINGLIST_SORT_ASC), so that
-  duplicate values are adjacent.
-
-  @note  De-duplication is done in-place; the stringlist passed \b will
-         \b be modified.
-
-  Example:
-
-  @verbatim
-  stringlist *fruit = stringlist_new(NULL);
-
-  stringlist_add(fruit, "pear");
-  stringlist_add(fruit, "banana");
-  stringlist_add(fruit, "pear");
-  stringlist_add(fruit, "apple");
-  stringlist_add(fruit, "pear");
-
-  // at this point, the list is 'pear', 'banana', 'pear', 'apple', 'pear'
-
-  stringlist_uniq(fruit);
-
-  // now, the list is 'apple', 'banana', 'pear'
-
-  @endverbatim
-
-  @param  list    A pointer to a stringlist to remove duplicates from.
- */
 void stringlist_uniq(stringlist *list);
-
-/**
-  Search a stringlist for a specific value.
-
-  @param  list      A pointer to the stringlist to search.
-  @param  needle    String to search for.
-
-  @returns 0 if \a needle exists in \a list, or a value less than zero
-           if it doesn't.
- */
 int stringlist_search(const stringlist *list, const char *needle);
-
-/**
-  Add a string to a stringlist.
-
-  @note This function makes a copy of \a value (via strdup) and
-        adds this to the list.  Memory management of the pointer
-        passed for \a value is the responsibility of the caller.
-
-  @param  list     A pointer to the stringlist to add to.
-  @param  value    String to add.
-
-  @returns 0 if \a value was added to \a list; non-zero if not.
- */
 int stringlist_add(stringlist *list, const char *value);
-
-/**
-  Combine two stringlists.
-
-  This function is used to append one stringlist onto the end of
-  another.  The act of concatenation itself is guaranteed to be
-  atomic; if stringlist_add_all fails, \a dst is untouched.
-
-  The order of the arguments can be remembered by envisioning the
-  call as a replacement for a simpler one: \a dst += \a src
-
-  @param  dst    Stringlist to append to.
-  @param  src    Stringlist to add to \a dst.
-
-  @returns 0 if all strings from \a src were added to \a dst
-           successfully, or non-zero if not.
- */
 int stringlist_add_all(stringlist *dst, const stringlist *src);
-
-/**
-  Remove the first occurrence of \a value from \a list.
-
-  If \a value appears multiple times in the stringlist, then
-  multiple calls need to be made to remove all of them, best
-  done in a while loop:
-
-  @verbatim
-  while (stringlist_remove(sl, "a string") != 0)
-      ;
-  @endverbatim
-
-  @param  list     List to remove \a value from.
-  @param  value    String value to remove.
-
-  @returns 0 if \a value was found in, and removed from, \a list,
-           or non-zero if not.
- */
 int stringlist_remove(stringlist *list, const char *value);
-
-/**
-  Remove one stringlist's values from another.
-
-  The order of the arguments can be remembered by thinking of this
-  call as in terms of a simpler one: \a dst -= \a src
-
-  @note stringlist_remove_all deals with duplicate values naively,
-        only removing the first such occurrence in \a dst for each
-        occurrence in \a src.
-
-  @verbatim
-  stringlist *list = stringlist_new(NULL);
-  stringlist *rm = stringlist_new(NULL);
-
-  stringlist_add(list, "a");
-  stringlist_add(list, "b");
-  stringlist_add(list, "a");
-  stringlist_add(list, "a");
-
-  stringlist_add(rm, "a");
-  stringlist_add(rm, "c");
-  stringlist_add(rm, "a");
-
-  // list = [ a, b, a, a ]
-  // rm   = [ a, c, a ]
-
-  stringlist_remove_all(list, rm);
-  // list - rm = [ a, b ]
-  @endverbatim
-
-  @param  dst    List to remove values from.
-  @param  src    List of strings to remove from \a dst.
-
-  @returns 0 if values present in both \a src and \a dst were
-           removed from \a dst, or non-zero if not.
- */
 int stringlist_remove_all(stringlist *dst, stringlist *src);
-
-/**
-  Generate a stringlist as the intersection of two other stringlists.
-
-  As in set theory, the intersection of two stringlists is another
-  stringlist containing the strings common to both \a a and \a b.
-
-  More rigorously, if X is the set [ l, m, n ] and Y is the set
-  [ m, n, o, p ], then the intersection of X and Y is the set [ m, n ].
-
-  @param  a    A stringlist.
-  @param  b    A stringlist.
-
-  @returns a pointer to a new stringlist containing the set of strings
-           found in both \a a and \a b, or NULL on failure.
- */
 stringlist *stringlist_intersect(const stringlist *a, const stringlist *b);
-
-/**
-  Compare two stringlists, looking for equivalency.
-
-  @param  a    A pointer to a stringlist.
-  @param  b    A pointer to a stringlist.
-
-  @returns 0 if \a a and \a b are diferent, and non-zero if not.
- */
 int stringlist_diff(stringlist *a, stringlist *b);
-
-/**
-  Join the strings in a stringlist, forming a single string.
-
-  This function works similarly to Perl's join function and Ruby's
-  String#join method.
-
-  Examples:
-
-  @verbatim
-  stringlist *l = stringlist_new(NULL);
-  stringlist_add(l, "red");
-  stringlist_add(l, "green");
-  stringlist_add(l, "blue");
-
-  // A few different ways to join stringlists:
-  stringlist_join(l, ", ");    // "red, green, blue"
-  stringlist_join(l, " and "); // "red and green and blue"
-  stringlist_join(l, ":");     // "red:green:blue"
-  @endverbatim
-
-  For the special case of an empty list, stringlist_join will return
-  an empty string ("") no matter what \a delim is.
-
-  @param  list     List of strings to join.
-  @param  delim    String delimiter for separating string components.
-
-  @returns a heap-allocated string containing each string in \a list,
-           separated by \a delim, or NULL if such a string could not
-           be created.
- */
 char* stringlist_join(stringlist *list, const char *delim);
-
-/**
-  Split a string into tokens, stored in a stringlist.
-
-  This function works similarly to Perl's split function and Ruby's
-  String#split method.
-
-  Examples:
-
-  @verbatim
-  stringlist *l = stringlist_split("one::two::three", 15, "::", 0);
-  // List l now contains three strings: 'one', 'two', and 'three'
-  @endverbatim
-
-  @param  str      The string to split into tokens.
-  @param  len      Length of \a str.
-  @param  delim    Delimiter to split string on (can be more than
-                   one character).
-  @param  opt      Option flag; see SPLIT_* constants.
-
-  @returns a heap-allocated stringlist containing the split tokens,
-           or NULL on failure.
- */
 stringlist* stringlist_split(const char *str, size_t len, const char *delim, int opt);
 
 #endif /* STRINGLIST_H */

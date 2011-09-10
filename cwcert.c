@@ -46,12 +46,10 @@
 #define CWCERT_SSL_ERROR 1
 #define CWCERT_OTHER_ERR 2
 
-/** @cond false */
 struct cwcert_opts {
 	char *command;
 	client *config;
 };
-/** @endcond */
 
 struct cwcert_opts* cwcert_options(int argc, char **argv);
 

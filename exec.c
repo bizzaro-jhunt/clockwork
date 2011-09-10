@@ -28,6 +28,38 @@
 /* Maximum size of the output buffers for exec_command */
 #define EXEC_OUTPUT_MAX 256
 
+/**
+  Execute $cmd and (maybe) capture `stdout` and `stderr`
+
+  Commands are executed via `/bin/sh -c`
+
+  $std_out and $std_err are value-result parameters.  Unless
+  NULL, they will be changed to point to dynamic memory
+  containing the data sent to standard output and
+  standard error, respectively.
+
+  Callers can opt to capture standard output, standard error,
+  neither or both.  For example:
+
+  <code>
+  char *out, *err;
+
+  // capture only standard output
+  exec_command("ls /tmp", &out, NULL);
+
+  // get both
+  exec_command("cat file", &out, &err);
+
+  // be quiet!
+  exec_command("touch file", NULL, NULL);
+  </code>
+
+  Currently, because of the specialized needs of Clockwork,
+  only the first 255 characters of either output stream will
+  be captured.
+
+  On success, returns 0.  On failure, returns non-zero.
+ */
 int exec_command(const char *cmd, char **std_out, char **std_err)
 {
 	int proc_stat;

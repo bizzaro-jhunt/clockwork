@@ -21,6 +21,17 @@
 #include "stringlist.h"
 #include "pack.h"
 
+/**
+  Create a new Job
+
+  A new job has no reports, and a zero start and end time.
+
+  The pointer returned must be passed to @job_free to
+  properly release its allocated memory.
+
+  On success, returns a pointer to a new job.
+  On failure, returns NULL.
+ */
 struct job* job_new(void)
 {
 	struct job *job;
@@ -30,6 +41,9 @@ struct job* job_new(void)
 	return job;
 }
 
+/**
+  Free $job
+ */
 void job_free(struct job *job)
 {
 	struct report *report, *rtmp;
@@ -42,12 +56,22 @@ void job_free(struct job *job)
 	}
 }
 
+/**
+  Start execution timer for $job.
+
+  On success, returns 0.  On failure, returns non-zero.
+ */
 int job_start(struct job *job)
 {
 	assert(job); // LCOV_EXCL_LINE
 	return gettimeofday(&job->start, NULL);
 }
 
+/**
+  Stop execution timer for $job.
+
+  On success, returns 0.  On failure, returns non-zero.
+ */
 int job_end(struct job *job)
 {
 	assert(job); // LCOV_EXCL_LINE
@@ -63,6 +87,11 @@ int job_end(struct job *job)
 	return 0;
 }
 
+/**
+  Add $report to $job.
+
+  On success, returns 0.  On failure, returns non-zero.
+ */
 int job_add_report(struct job *job, struct report *report)
 {
 	assert(job); // LCOV_EXCL_LINE
@@ -75,6 +104,19 @@ int job_add_report(struct job *job, struct report *report)
 #define JOB_PACK_FORMAT    "LLL"
 #define REPORT_PACK_FORMAT "aaLL"
 #define ACTION_PACK_FORMAT "aL"
+
+/**
+  Get string representation of $job.
+
+  The string returned by this function should be free by the caller,
+  using the standard free(3) standard library function.
+
+  The final serialized form can be passed to @job_unpack to get
+  the original job structure back.
+
+  On success, returns a dynamically allocated string that represents $job.
+  On failure, returns NULL.
+ */
 char* job_pack(const struct job *job)
 {
 	assert(job); // LCOV_EXCL_LINE
@@ -125,6 +167,15 @@ pack_failed:
 	return NULL;
 }
 
+/**
+  Create a job from its string representation, $packed_job.
+
+  **Note:** the pointer returned by this function should be passed to
+  @job_free to reclaim its memory.
+
+  On success, returns a new job, per the details in $packed_job.
+  On failure, returns NULL.
+ */
 struct job* job_unpack(const char *packed_job)
 {
 	assert(packed_job); // LCOV_EXCL_LINE
@@ -195,6 +246,18 @@ unpack_failed:
 	return NULL;
 }
 
+/**
+  Create a new report.
+
+  $type and $key specify the type and key (unique ID) for
+  the resource that this report is tied to.
+
+  On success, returns a pointer to a new report object.  This
+  pointer must be passed to @report_free to free allocated
+  memory.
+
+  On failure, returns NULL.
+ */
 struct report* report_new(const char *type, const char *key)
 {
 	struct report *r;
@@ -212,6 +275,9 @@ struct report* report_new(const char *type, const char *key)
 	return r;
 }
 
+/**
+  Free report $r
+ */
 void report_free(struct report *r)
 {
 	struct action *a, *tmp;
@@ -228,6 +294,11 @@ void report_free(struct report *r)
 	free(r);
 }
 
+/**
+  Add $action to $report.
+
+  On success, returns 0.  On failure, returns non-zero.
+ */
 int report_add_action(struct report *report, struct action *action)
 {
 	assert(report); // LCOV_EXCL_LINE
@@ -242,6 +313,21 @@ int report_add_action(struct report *report, struct action *action)
 	return 0;
 }
 
+/**
+ Create an action and add it to $report.
+
+ This function dynamically creates a new action, setting
+ $summary and $result, and then adds it to $report.
+
+  The following two lines are equivalent:
+
+  <code>
+  report_action(r, "summary", ACTION_SUCCEEDED);
+  report_add_action(r, action_new("summary", ACTION_SUCCEEDED));
+  </code>
+
+  On success, returns 0.  On failure, returns non-zero.
+ */
 int report_action(struct report *report, char *summary, enum action_result result)
 {
 	assert(report); // LCOV_EXCL_LINE
@@ -251,6 +337,15 @@ int report_action(struct report *report, char *summary, enum action_result resul
 	return report_add_action(report, action);
 }
 
+/**
+  Create a new action.
+
+  This function allocates a new action, setting
+  $summary and $result.
+
+  On success, returns a pointer to the action.
+  On failure, returns NULL.
+ */
 struct action* action_new(char *summary, enum action_result result)
 {
 	struct action *action;
@@ -263,6 +358,9 @@ struct action* action_new(char *summary, enum action_result result)
 	return action;
 }
 
+/**
+  Free $action.
+ */
 void action_free(struct action* action)
 {
 	if (action) {

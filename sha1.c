@@ -1,7 +1,15 @@
 /*
-  Public Domain
+  SHA-1 in C
+  Adapted from the Public Domain;
 
-  This file is part of Clockwork.
+  Originally implemented by:
+    Steven Reid     <sreid@sea-to-sky.net>
+    James H. Brown  <jbrown@burgoyne.com>
+    Saul Kravitz    <saul.kravitz@celera.com>
+    Ralph Giles     <giles@ghostscript.com>
+
+  Adapted for use in Clockwork by:
+    James Hunt <james@jameshunt.us>
 
   Clockwork is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,20 +24,6 @@
   You should have received a copy of the GNU General Public License
   along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
  */
-
-/**
-  SHA-1 in C
-  Adapted from the public domain;
-
-  Originally implemented by:
-    Steven Reid     <sreid@sea-to-sky.net>
-    James H. Brown  <jbrown@burgoyne.com>
-    Saul Kravitz    <saul.kravitz@celera.com>
-    Ralph Giles     <giles@ghostscript.com>
-
-  Updated by James Hunt <james@jameshunt.us>
-
- **/
 
 #include <unistd.h>
 #include <stdio.h>
@@ -155,7 +149,7 @@ void sha1_ctx_update(sha1_ctx* context, const uint8_t* data, const size_t len)
 
 
 /* Add padding and return the message digest. */
-void sha1_ctx_final(sha1_ctx* context, uint8_t digest[SHA1_DIGEST_SIZE])
+void sha1_ctx_final(sha1_ctx* context, uint8_t digest[SHA1_DIGLEN])
 {
     uint32_t i;
     uint8_t  finalcount[8];
@@ -169,7 +163,7 @@ void sha1_ctx_final(sha1_ctx* context, uint8_t digest[SHA1_DIGEST_SIZE])
         sha1_ctx_update(context, (uint8_t *)"\0", 1);
     }
     sha1_ctx_update(context, finalcount, 8);  /* Should cause a sha1_transform() */
-    for (i = 0; i < SHA1_DIGEST_SIZE; i++) {
+    for (i = 0; i < SHA1_DIGLEN; i++) {
         digest[i] = (uint8_t)
          ((context->state[i>>2] >> ((3-(i & 3)) * 8) ) & 255);
     }
@@ -186,23 +180,34 @@ void sha1_hexdigest(sha1 *sha1)
 {
 	unsigned int i;
 	char *hex = sha1->hex;
-	for (i = 0; i < SHA1_DIGEST_SIZE; i++) {
+	for (i = 0; i < SHA1_DIGLEN; i++) {
 		sprintf(hex,"%02x", sha1->raw[i]);
 		hex += 2;
 	}
 	*hex = '\0';
 }
 
+/**
+  Initialize a SHA1 $checksum.
+
+  This function ensures that the $sha1->$raw and $sha1->$hex
+  are initialized to appropriate starting values.  Callers using
+  helper methods like @sha1_file and @sha1_data do not need to
+  call this function explicitly.
+
+  If $hex is specified, then $checksum will be initialized with
+  a starting checksum.
+ */
 void sha1_init(sha1 *cksum, const char *hex)
 {
-	if (hex && strlen(hex) == SHA1_HEX_DIGEST_SIZE) {
-		memcpy(cksum->hex, hex, SHA1_HEX_DIGEST_SIZE);
-		cksum->hex[SHA1_HEX_DIGEST_SIZE] = '\0';
+	if (hex && strlen(hex) == SHA1_HEXLEN - 1) {
+		memcpy(cksum->hex, hex, SHA1_HEXLEN - 1);
+		cksum->hex[SHA1_HEXLEN - 1] = '\0';
 
 		unsigned int i;
 		char digit[3] = {0};
 		char *endptr = NULL; /* for strtol */
-		for (i = 0; i < SHA1_DIGEST_SIZE; i++) {
+		for (i = 0; i < SHA1_DIGLEN; i++) {
 			digit[0] = *hex++; digit[1] = *hex++;
 			cksum->raw[i] = strtol(digit, &endptr, 16);
 			if (endptr && *endptr != '\0') {
@@ -213,15 +218,36 @@ void sha1_init(sha1 *cksum, const char *hex)
 	}
 
 blank_init:
-	memset(cksum->raw, 0, SHA1_DIGEST_SIZE);
-	memset(cksum->hex, 0, SHA1_HEX_DIGEST_SIZE + 1);
+	memset(cksum->raw, 0, SHA1_DIGLEN);
+	memset(cksum->hex, 0, SHA1_HEXLEN);
 }
 
+/**
+  Compare $a and $b for equivalence.
+
+  This function uses `memcmp(3)`, so it can be used for
+  sorting comparisons.  It does *not* handle NULL parameters.
+
+  If $a and $b are the same checksum, returns 0.  Otherwise,
+  returns non-zero.
+ */
 int sha1_cmp(const sha1 *a, const sha1 *b)
 {
-	return memcmp(a->raw, b->raw, SHA1_DIGEST_SIZE);
+	return memcmp(a->raw, b->raw, SHA1_DIGLEN);
 }
 
+/**
+  Calulate checksum of data read from $fd.
+
+  Data will be read until $fd reaches EOF.
+
+  The $cksum parameter must be a user-supplied `sha1`
+  structure.  This function will call @sha1_init on $cksum.
+
+  On success, returns 0 and updates $cksum accordingly.
+  On failure, returns non-zero, and the contents of $cksum
+  are undefined.
+ */
 int sha1_fd(int fd, sha1 *cksum)
 {
 	sha1_ctx ctx;
@@ -239,6 +265,21 @@ int sha1_fd(int fd, sha1 *cksum)
 	return 0;
 }
 
+/**
+  Calculate the SHA1 checksum of $path.
+
+  $path will be opened in read-only mode and read in chunks
+  to calculate the checksum.  If $path cannot be opened
+  (permission denied, ENOENT, etc.) non-zero will be returned
+  to indicate failure.
+
+  The $cksum parameter must be a user-supplied `sha1`
+  structure.  This function will call @sha1_init on $cksum.
+
+  On success, returns 0 and updates $cksum accordingly.
+  On failure, returns non-zero, and the contents of $cksum
+  are undefined.
+ */
 int sha1_file(const char *path, sha1 *cksum) {
 	int fd;
 	struct stat st;
@@ -261,6 +302,20 @@ int sha1_file(const char *path, sha1 *cksum) {
 	return 0;
 }
 
+/**
+  Calculate the SHA1 checksum of $data.
+
+  $data will be treated as an array of $len 8-bit unsigned
+  integers.  Character strings will be converted according to
+  standard C locale rules.
+
+  The $cksum parameter must be a user-supplied `sha1`
+  structure.  This function will call @sha1_init on $cksum.
+
+  On success, returns 0 and updates $cksum accordingly.
+  On failure, returns non-zero, and the contents of $cksum
+  are undefined.
+ */
 int sha1_data(const void *data, size_t len, sha1 *cksum)
 {
 	sha1_ctx ctx;

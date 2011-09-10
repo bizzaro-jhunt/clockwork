@@ -24,65 +24,38 @@
 #include "proto.h"
 #include "policy.h"
 
-/** Online Mode: Connect to the policy master and do stuff. */
-#define CLIENT_MODE_ONLINE  1
-
-/** Offline Mode: Do not connect to the policy master. */
-#define CLIENT_MODE_OFFLINE 2
-
-/** Facts Mode: (cwa) Generate facts to standard out. */
-#define CLIENT_MODE_FACTS   3
-
-/** Test / Dry-Run Mode: Connect to the policy mode, but don't
-    actually change the local system to enforce policy. */
-#define CLIENT_MODE_TEST    4
+#define CLIENT_MODE_ONLINE  1   /* connect to policy master and enforce policy */
+#define CLIENT_MODE_OFFLINE 2   /* don't connect to policy master */
+#define CLIENT_MODE_FACTS   3   /* generate facts to stdout */
+#define CLIENT_MODE_TEST    4   /* connect to policy master but don't change anything */
 
 /**
   A Client-side Interaction
  */
 typedef struct {
-	/** OpenSSL I/O object connected to the policy master. */
-	BIO *socket;
-	/** OpenSSL SSL object controlling the SSL connection. */
-	SSL *ssl;
-	/** OpenSSL context for setting up the SSL connection. */
+	BIO *socket;               /* IO stream for policy master */
+	SSL *ssl;                  /* SSL connection parameters */
 	SSL_CTX *ssl_ctx;
 
-	/** The protocol session state machine. */
-	protocol_session session;
-	/** Facts gathered for the local client. */
-	struct hash *facts;
-	/** Policy retrieved from the policy master for the local client. */
-	struct policy *policy;
+	protocol_session session;  /* protocol session state machine */
+	struct hash *facts;        /* local facts */
+	struct policy *policy;     /* policy recieved from policy master */
 
-	/** Requested log verbosity level (option) */
-	int log_level;
+	int mode;                  /* mode of operation; what client app does */
+	int log_level;             /* how much output do you want? */
+	char *config_file;         /* path to configuration file */
 
-	/** Operational mode; determines what the client app does. */
-	int mode;
+	char *ca_cert_file;        /* path to CA certificate */
+	char *cert_file;           /* path to local certificate */
+	char *request_file;        /* path to local certificate request */
+	char *key_file;            /* path to local private key */
 
-	/** Path to the agent configuration file. */
-	char *config_file;
+	char *db_file;             /* path to the local agent database */
 
-	/** Path to the Certificate Authority certificate */
-	char *ca_cert_file;
-	/** Path to this node's certificate */
-	char *cert_file;
-	/** Path to this node's certificate signing request */
-	char *request_file;
-	/** Path to this node's private key */
-	char *key_file;
+	char *gatherers;           /* shell glob of fact gatherer scripts */
 
-	/** Path to the agent database file */
-	char *db_file;
-
-	/** Shell glob matching the fact gathering scripts to run. */
-	char *gatherers;
-
-	/** The IP/DNS address of the policy master (option). */
-	char *s_address;
-	/** TCP port to connect to on the policy master host (option). */
-	char *s_port;
+	char *s_address;           /* address of policy master */
+	char *s_port;              /* TCP port of policy master */
 } client;
 
 int client_options(client *args);

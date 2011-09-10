@@ -35,16 +35,49 @@ static unsigned char H256(const char *s)
 	return h;
 }
 
+/**
+  Calculate the 8-bit hash value for $s.
+
+  This function takes a string of arbitrary length and calculates an 8-bit
+  unsigned value predictably.  This value will range from 0-63, and can be
+  used for fast storage and lookup of values.
+
+  This specific hashing algorithm is based on Dan Bernstein's efficient
+  djb2 hash algorithm:
+  [http://www.cse.yorku.ca/~oz/hash.html](http://www.cse.yorku.ca/~oz/hash.html)
+
+  Per the definition of a hash, the same value is returned for two strings
+  if those strings are themselves identical.  Collisions are of course
+  possible, since the set of possible strings is far larger than the set of
+  possible values.
+ */
 unsigned char H64(const char *s)
 {
 	return H256(s) &~0xc0;
 }
 
+/**
+  Create a new, empty hash.
+
+  Memory allocated by this function should only be freed through a call to
+  @hash_free or @hash_free_all.
+
+  On success, returns a pointer to the hash.
+  On failure, returns NULL.
+ */
 struct hash *hash_new(void)
 {
 	return xmalloc(sizeof(struct hash));
 }
 
+/**
+  Free hash $h.
+
+  This function does not free the memory housing the values of
+  the hash, since that is considered to be the responsibility
+  of the calling code.  To free the values as well, look at
+  @hash_free_all.
+ */
 void hash_free(struct hash *h)
 {
 	ssize_t i, j;
@@ -58,6 +91,13 @@ void hash_free(struct hash *h)
 	free(h);
 }
 
+/**
+  Free hash $h, and all of its values.
+
+  This function also frees the memory housing the hash values.
+  If the calling code wishes to manage that memory, @hash_free is
+  a better alternative.
+ */
 void hash_free_all(struct hash *h)
 {
 	ssize_t i, j;
@@ -102,6 +142,16 @@ static int insert(struct hash_list *hl, const char *k, void *v)
 	return 0;
 }
 
+/**
+  Get the value from $h for $k.
+
+  **Note:** It is possible to store NULL values in a hash, however
+  the current implementation does not deal with this situation
+  intelligently, since NULL is also the return value for 'key not
+  found' errors.  Venture forth at your own peril.
+
+  If found, returns the value.  Otherwise, returns NULL.
+ */
 void* hash_get(const struct hash *h, const char *k)
 {
 	ssize_t i;
@@ -114,6 +164,16 @@ void* hash_get(const struct hash *h, const char *k)
 	return (i < 0 ? NULL : hl->values[i]);
 }
 
+/**
+  Store $v in $h, under key $k.
+
+  **Note:** It is possible to store NULL values in a hash, however
+  the current implementation does not deal with this situation
+  intelligently, since NULL is also the return value for 'key not
+  found' errors.  Venture forth at your own peril.
+
+  On success, returns $v.  On failure, returns NULL.
+ */
 void* hash_set(struct hash *h, const char *k, void *v)
 {
 	ssize_t i;

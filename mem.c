@@ -49,11 +49,24 @@ void* __xmalloc(size_t size, const char *func, const char *file, unsigned int li
 	return buf;
 }
 
+/**
+  Duplicate $s, and gracefully handle NULL strings.
+
+  Returns a pointer to a duplicate copy of $s, unless
+  $s is NULL (in which case, returns NULL).
+ */
 char* xstrdup(const char *s)
 {
 	return (s ? strdup(s) : NULL);
 }
 
+/**
+  Compare $a and $b, handling NULL strings.
+
+  If either string is NULL, returns -1.
+  Otherwise, returns the value of strcmp($a,$b).
+  See `strcmp(3)`.
+ */
 int xstrcmp(const char *a, const char *b)
 {
 	return ((!a || !b) ? -1 : strcmp(a,b));
@@ -64,6 +77,14 @@ int streq(const char *a, const char *b)
 	return xstrcmp(a,b) == 0;
 }
 
+/**
+  Copy $src into $dest.
+
+  This function behaves like `strcy(3)`, except that it
+  properly handles NULL strings for both $src and $dest
+  (in which case it returns NULL).  It also properly
+  NULL-terminates $dest.
+ */
 char* xstrncpy(char *dest, const char *src, size_t n)
 {
 	/* Note: size_t is unsigned, so n can never be < 0 */
@@ -76,6 +97,14 @@ char* xstrncpy(char *dest, const char *src, size_t n)
 	return dest;
 }
 
+/**
+  Duplicate $a, a NULL-terminated array of character strings.
+
+  Memory allocated by this function must be freed via @xarrfree.
+
+  On success, returns a pointer to a copy of $a.
+  On failure, returns NULL.
+ */
 char** xarrdup(char **a)
 {
 	char **n, **t;
@@ -103,6 +132,24 @@ void __xarrfree(char ***a)
 	*a = NULL;
 }
 
+/**
+  Create a new string, with printf-like behavior.
+
+  For formatting options, see `printf(3)`.
+
+  Example:
+
+  <code>
+  // this:
+  char *s = string("Forty-two = %u\n", 42);
+  printf("%s", s);
+
+  // is equivalent to:
+  printf("Forty-two = %u\n", 42);
+  </code>
+
+  The returned string must be freed by the caller.
+ */
 char* string(const char *fmt, ...)
 {
 	char buf[256];

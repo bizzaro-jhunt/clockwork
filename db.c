@@ -56,6 +56,12 @@
 	if (rc != SQLITE_OK) { goto failure; } \
 } while (0)
 
+/**
+  Open $path as a $type database.
+
+  On success, returns a database handle.
+  On failure, returns NULL.
+ */
 DB* db_open(enum db_type type, const char *path)
 {
 	assert(path); // LCOV_EXCL_LINE
@@ -74,6 +80,12 @@ DB* db_open(enum db_type type, const char *path)
 	return db;
 }
 
+/**
+  Close database $db
+
+  On success, returns 0.
+  On failure, returns non-zero.
+ */
 int db_close(DB *db)
 {
 	assert(db); // LCOV_EXCL_LINE
@@ -82,6 +94,14 @@ int db_close(DB *db)
 	return 0;
 }
 
+/**
+  Find host in $db by hostname ($host).
+
+  This operation only makes sense if $db is a DB_MASTER.
+
+  If found, returns the unique ID for $host.
+  Otherwise, returns NULL_ROWID.
+ */
 rowid masterdb_host(DB *db, const char *host)
 {
 	rowid host_id = NULL_ROWID;
@@ -123,6 +143,14 @@ failure:
 	return NULL_ROWID;
 }
 
+/**
+  Save job report $job for $host_id to $db.
+
+  This operation only makes sense if $db is a DB_MASTER.
+
+  On success, returns 0.
+  On failure, returns non-zero.
+ */
 int masterdb_store_report(DB *db, rowid host_id, struct job *job)
 {
 	const char *j_sql = "INSERT INTO jobs (host_id, started_at, ended_at, duration) VALUES (?,?,?,?)";
@@ -189,6 +217,14 @@ failure:
 	return -1;
 }
 
+/**
+  Save job report $job to $db
+
+  This operation only makes sense if $db is a DB_AGENT.
+
+  On success, returns 0.
+  On failure, returns non-zero.
+ */
 int agentdb_store_report(DB *db, struct job *job)
 {
 	const char *j_sql = "INSERT INTO jobs (started_at, ended_at, duration) VALUES (?,?,?)";

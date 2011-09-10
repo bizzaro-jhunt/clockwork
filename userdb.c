@@ -240,6 +240,16 @@ static void _sgdb_entry_free(struct sgdb *entry)
 
 /**********************************************************/
 
+/**
+  Open the user database at $path
+
+  The pointer returned by this function must be passed to
+  @pwdb_free in order to properly release all memory allocated
+  dynamically on the heap.
+
+  On success, returns a pointer to a password database.
+  On failure, returns false.
+ */
 struct pwdb* pwdb_init(const char *path)
 {
 	struct pwdb *db, *cur, *entry;
@@ -267,6 +277,12 @@ struct pwdb* pwdb_init(const char *path)
 	return db;
 }
 
+/**
+  Find a user in $db by $name
+
+  If the user is found, returns a pointer to its `passwd` structure;
+  see `getpwent(3)`.  Otherwise, returns NULL.
+ */
 struct passwd* pwdb_get_by_name(struct pwdb *db, const char *name)
 {
 	assert(name); // LCOV_EXCL_LINE
@@ -280,6 +296,12 @@ struct passwd* pwdb_get_by_name(struct pwdb *db, const char *name)
 	return NULL;
 }
 
+/**
+  Find UID in $db by $name
+
+  If found, returns the UID of the user account.
+  Otherwise, returns a negative value.
+ */
 uid_t pwdb_lookup_uid(struct pwdb *db, const char *name)
 {
 	if (!name) { return 0; }
@@ -288,6 +310,16 @@ uid_t pwdb_lookup_uid(struct pwdb *db, const char *name)
 	return (u ? u->pw_uid : -1);
 }
 
+/**
+  Find next unused UID in $db
+
+  Useful for creating "auto-increment" UIDs, pwdb_next_uid
+  starts at UID 1000 and tries to find the next available
+  user ID, based on what IDs have already been handed out.
+
+  It emulates the automatic UID generation of the standard
+  useradd command (i.e. highest in use + 1)
+ */
 uid_t pwdb_next_uid(struct pwdb *db)
 {
 	uid_t next = 1000;
@@ -301,6 +333,12 @@ uid_t pwdb_next_uid(struct pwdb *db)
 	return next;
 }
 
+/**
+  Find a user in $db by $uid
+
+  If the user is found, returns a pointer to its `passwd` structure;
+  see `getpwent(3)`.  Otherwise, returns NULL.
+ */
 struct passwd* pwdb_get_by_uid(struct pwdb *db, uid_t uid)
 {
 	for (; db; db = db->next) {
@@ -312,6 +350,17 @@ struct passwd* pwdb_get_by_uid(struct pwdb *db, uid_t uid)
 	return NULL;
 }
 
+/**
+  Create a new user in $db
+
+  The username ($name), UID, ($uid) and GID ($gid)
+  are specified by the caller.
+
+  See @spdb_new_entry.
+
+  On success, returns a pointer to the new `passwd` structure.
+  On failure, returns NULL.
+ */
 struct passwd* pwdb_new_entry(struct pwdb *db, const char *name, uid_t uid, gid_t gid)
 {
 	assert(name); // LCOV_EXCL_LINE
@@ -339,6 +388,14 @@ struct passwd* pwdb_new_entry(struct pwdb *db, const char *name, uid_t uid, gid_
 	return (db->next ? db->next->passwd : NULL);
 }
 
+/**
+  Add a user account to $db
+
+  If an entry already exists in $db with the same UID as $pw,
+  the operation fails.
+
+  On success, returns 0.  On failure, returns non-zero.
+ */
 int pwdb_add(struct pwdb *db, struct passwd *pw)
 {
 	struct pwdb *ent;
@@ -356,6 +413,17 @@ int pwdb_add(struct pwdb *db, struct passwd *pw)
 	return 0;
 }
 
+/**
+  Remove a user from $db.
+
+  This function evaluates each entry by comparing the passwd
+  pointer to the $pw argument.  For that reason, callers must
+  use a pointer returned by @pwdb_get_by_name or @pwdb_get_by_uid;
+  it is not sufficient to populate a new `passwd` structure and
+  pass it to this function.
+
+  On success, returns 0.  On failure, returns non-zero.
+ */
 int pwdb_rm(struct pwdb *db, struct passwd *pw)
 {
 	struct pwdb *ent = NULL;
@@ -379,6 +447,9 @@ int pwdb_rm(struct pwdb *db, struct passwd *pw)
 	return -1;
 }
 
+/**
+  Free $db.
+ */
 void pwdb_free(struct pwdb *db)
 {
 	struct pwdb *cur;
@@ -393,6 +464,11 @@ void pwdb_free(struct pwdb *db)
 	}
 }
 
+/**
+  Write $db to $file.
+
+  On success, returns 0.  On failure, returns non-zero.
+ */
 int pwdb_write(struct pwdb *db, const char *file)
 {
 	FILE *output;
@@ -412,6 +488,16 @@ int pwdb_write(struct pwdb *db, const char *file)
 
 /**********************************************************/
 
+/**
+  Open the shadow database at $path.
+
+  The pointer returned by this function must be passed to
+  @spdb_free in order to properly release all memory allocated
+  dynamically on the heap.
+
+  On success, returns a pointer to a shadow database.
+  On failure, returns NULL.
+ */
 struct spdb* spdb_init(const char *path)
 {
 	struct spdb *db, *cur, *entry;
@@ -439,6 +525,12 @@ struct spdb* spdb_init(const char *path)
 	return db;
 }
 
+/**
+  Find a user in $db by $name
+
+  If the user is found, returns a pointer to its `shadow`
+  structure; see `getspent(3)`.  Otherwise, returns NULL.
+ */
 struct spwd* spdb_get_by_name(struct spdb *db, const char *name)
 {
 	assert(name); // LCOV_EXCL_LINE
@@ -453,6 +545,14 @@ struct spwd* spdb_get_by_name(struct spdb *db, const char *name)
 	return NULL;
 }
 
+/**
+  Create a new user ($name) in $db.
+
+  See @pwdb_new_entry.
+
+  On success, returns a pointer to the new passwd structure.
+  On failure, returns NULL.
+ */
 struct spwd* spdb_new_entry(struct spdb *db, const char *name)
 {
 	assert(name); // LCOV_EXCL_LINE
@@ -480,6 +580,14 @@ struct spwd* spdb_new_entry(struct spdb *db, const char *name)
 	return (db->next ? db->next->spwd : NULL);
 }
 
+/**
+  Add a user account to $db.
+
+  If an entry already exists in $db with the same name as
+  $sp, the operation fails.
+
+  On success, returns 0.  On failure, returns non-zero.
+ */
 int spdb_add(struct spdb *db, struct spwd *sp)
 {
 	struct spdb *ent;
@@ -497,6 +605,16 @@ int spdb_add(struct spdb *db, struct spwd *sp)
 	return 0;
 }
 
+/**
+  Remove a user from $db.
+
+  This function evaluates each entry by comparing the spwd
+  pointer to $sp.  For that reason, callers must use a pointer
+  returned by @spdb_get_by_name; it is not sufficient to populate
+  a new `spwd` structure and pass it to this function.
+
+  On success, returns 0.  On failure, returns non-zero.
+ */
 int spdb_rm(struct spdb *db, struct spwd *sp)
 {
 	struct spdb *ent = NULL;
@@ -520,6 +638,9 @@ int spdb_rm(struct spdb *db, struct spwd *sp)
 	return -1;
 }
 
+/**
+  Free $db.
+ */
 void spdb_free(struct spdb *db)
 {
 	struct spdb *cur;
@@ -534,6 +655,11 @@ void spdb_free(struct spdb *db)
 	}
 }
 
+/**
+  Write $db to $file.
+
+  On success, returns 0.  On failure, returns non-zero.
+ */
 int spdb_write(struct spdb *db, const char *file)
 {
 	FILE *output;
@@ -553,6 +679,16 @@ int spdb_write(struct spdb *db, const char *file)
 
 /**********************************************************/
 
+/**
+  Open the group database at $path.
+
+  The pointer returned by this function must be passed to
+  @grdb_free in order to properly release all memory allocated
+  dynamically on the heap.
+
+  On success, returns a pointer to a group database.
+  On failure, returns NULL.
+ */
 struct grdb* grdb_init(const char *path)
 {
 	struct grdb *db, *cur, *entry;
@@ -580,6 +716,12 @@ struct grdb* grdb_init(const char *path)
 	return db;
 }
 
+/**
+  Find a group named $nae, in $db.
+
+  If the group is found, returns a pointer to its `group`
+  structure; see `getgrent(3)`.  Otherwise, returns NULL.
+ */
 struct group* grdb_get_by_name(struct grdb *db, const char *name)
 {
 	assert(name); // LCOV_EXCL_LINE
@@ -593,6 +735,12 @@ struct group* grdb_get_by_name(struct grdb *db, const char *name)
 	return NULL;
 }
 
+/**
+  Find GID in $db by $name
+
+  If found, returns the GID of the group account.
+  Otherwise, returns a negative value.
+ */
 gid_t grdb_lookup_gid(struct grdb *db, const char *name)
 {
 	if (!name) { return 0; }
@@ -601,6 +749,13 @@ gid_t grdb_lookup_gid(struct grdb *db, const char *name)
 	return (g ? g->gr_gid : -1);
 }
 
+/**
+  Find a group in $db with GID of $gid.
+
+  If found, a pointer to the `group` structure is returned;
+  see `getgrent(3)`.
+  Otherwise, returns NULL.
+ */
 struct group* grdb_get_by_gid(struct grdb *db, gid_t gid)
 {
 	for (; db; db = db->next) {
@@ -612,6 +767,17 @@ struct group* grdb_get_by_gid(struct grdb *db, gid_t gid)
 	return NULL;
 }
 
+/**
+  Create a new group in $db.
+
+  The group name ($name) and GID ($gid) are specified
+  by the caller.
+
+  See @sgdb_new_entry.
+
+  On success, returns a pointer to the new `group` structure.
+  On failure, returns NULL.
+ */
 struct group* grdb_new_entry(struct grdb *db, const char *name, gid_t gid)
 {
 	assert(name); // LCOV_EXCL_LINE
@@ -636,6 +802,14 @@ struct group* grdb_new_entry(struct grdb *db, const char *name, gid_t gid)
 	return (db->next ? db->next->group : NULL);
 }
 
+/**
+  Add a group account to $db.
+
+  If an entry already exists in $db with the same GID as $g,
+  the operation fails.
+
+  On success, returns 0.  On failure, returns non-zero.
+ */
 int grdb_add(struct grdb *db, struct group *g)
 {
 	struct grdb *ent;
@@ -653,6 +827,17 @@ int grdb_add(struct grdb *db, struct group *g)
 	return 0;
 }
 
+/**
+  Remove a group from $db.
+
+  This function evaluates each entry by comparing the group
+  pointer to $g.  For that reason, callers must use a pointer
+  returned by @grdb_get_by_name or @grdb_get_by_gid;
+  it is not sufficient to populate a new group structure and
+  pass it to this function.
+
+  On success, returns 0.  On failure, returns non-zero.
+ */
 int grdb_rm(struct grdb *db, struct group *g)
 {
 	struct grdb *ent = NULL;
@@ -676,6 +861,11 @@ int grdb_rm(struct grdb *db, struct group *g)
 	return -1;
 }
 
+/**
+  Write $db to $file.
+
+  On success, returns 0.  On failure, returns non-zero.
+ */
 int grdb_write(struct grdb *db, const char *file)
 {
 	FILE *output;
@@ -693,6 +883,9 @@ int grdb_write(struct grdb *db, const char *file)
 	return 0;
 }
 
+/**
+  Free $db.
+ */
 void grdb_free(struct grdb *db)
 {
 	struct grdb *cur;
@@ -709,6 +902,16 @@ void grdb_free(struct grdb *db)
 
 /**********************************************************/
 
+/**
+  Open the group shadow database at $path
+
+  The pointer returned by this function must be passed to
+  @sgdb_free in order to properly release all memory allocated
+  dynamically on the heap.
+
+  On success, returns a pointer to a group shadow database.
+  On failure, returns false.
+ */
 struct sgdb* sgdb_init(const char *path)
 {
 	struct sgdb *db, *cur, *entry;
@@ -736,6 +939,12 @@ struct sgdb* sgdb_init(const char *path)
 	return db;
 }
 
+/**
+  Find a group in $db, by $name.
+
+  If the group is found, returns a pointer to its `sgrp` structure.
+  Otherwise, returns NULL.
+ */
 struct sgrp* sgdb_get_by_name(struct sgdb *db, const char *name)
 {
 	assert(name); // LCOV_EXCL_LINE
@@ -749,6 +958,12 @@ struct sgrp* sgdb_get_by_name(struct sgdb *db, const char *name)
 	return NULL;
 }
 
+/**
+  Create a new shadow group in $db.
+
+  On success, returns a pointer to the new `sgrp` structure.
+  On failure, returns NULL.
+ */
 struct sgrp* sgdb_new_entry(struct sgdb *db, const char *name)
 {
 	assert(name); // LCOV_EXCL_LINE
@@ -772,6 +987,14 @@ struct sgrp* sgdb_new_entry(struct sgdb *db, const char *name)
 	return (db->next ? db->next->sgrp : NULL);
 }
 
+/**
+  Add a group account to $db
+
+  If an entry already exists in $db with the same name as $g,
+  the operation fails.
+
+  On success, returns 0.  On failure, returns non-zero.
+ */
 int sgdb_add(struct sgdb *db, struct sgrp *g)
 {
 	struct sgdb *ent;
@@ -789,6 +1012,17 @@ int sgdb_add(struct sgdb *db, struct sgrp *g)
 	return 0;
 }
 
+/**
+  Remove a group from $db.
+
+  This function evaluates each entry by comparing the passwd
+  pointer to $g.  For that reason, callers must use a pointer
+  returned by @sgdb_get_by_name;
+  it is not sufficient to populate a new `sgrp` structure and
+  pass it to this function.
+
+  On success, returns 0.  On failure, returns non-zero.
+ */
 int sgdb_rm(struct sgdb *db, struct sgrp *g)
 {
 	struct sgdb *ent = NULL;
@@ -812,6 +1046,11 @@ int sgdb_rm(struct sgdb *db, struct sgrp *g)
 	return -1;
 }
 
+/**
+  Write $db to $file.
+
+  On success, returns 0.  On failure, returns non-zero.
+ */
 int sgdb_write(struct sgdb *db, const char *file)
 {
 	FILE *output;
@@ -829,6 +1068,9 @@ int sgdb_write(struct sgdb *db, const char *file)
 	return 0;
 }
 
+/**
+  Free $db.
+ */
 void sgdb_free(struct sgdb *db)
 {
 	struct sgdb *ent;

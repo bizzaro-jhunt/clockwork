@@ -23,12 +23,10 @@
 
 #include <ctype.h>
 
-/** @cond false */
 struct template_context {
 	struct string *out;
 	int echo;
 };
-/** @endcond */
 
 /***********************************************************************/
 
@@ -93,6 +91,15 @@ again:
 
 /***********************************************************************/
 
+/**
+  Create a new (empty) template.
+
+  The pointer returned by this function must be freed via
+  @template_free.
+
+  On success, returns a new template.
+  On failure, returns NULL.
+ */
 struct template* template_new(void)
 {
 	struct template *t = xmalloc(sizeof(struct template));
@@ -106,6 +113,19 @@ struct template* template_new(void)
 	return t;
 }
 
+/**
+  Parse a template from $file.
+
+  The template will be parsed into a `template` structure, and the
+  $facts hash will be assigned to the template for variable
+  interpolation.
+
+  The pointer returned by this function must be freed via
+  @template_free.
+
+  On success, returns a pointer to a new template.
+  On failure, returns NULL.
+ */
 struct template* template_create(const char *path, struct hash *facts)
 {
 	struct template *t = parse_template(path);
@@ -115,6 +135,12 @@ struct template* template_create(const char *path, struct hash *facts)
 	return t;
 }
 
+/**
+  Free template $t.
+
+  The `facts` hash held by the template is *not* freed.
+  Memory management for that component is left to the caller.
+ */
 void template_free(struct template *t)
 {
 	size_t i;
@@ -129,12 +155,29 @@ void template_free(struct template *t)
 	free(t);
 }
 
+/**
+  Set variable $name on $t to $value.
+
+  On success, returns 0. On failure, returns non-zero.
+ */
 int template_add_var(struct template *t, const char *name, const char *value)
 {
 	hash_set(t->vars, name, xstrdup(value));
 	return 0;
 }
 
+/**
+  Dereference variable $name on $t.
+
+  This function first checks the local variables defined by
+  @template_add_var.  If no value is found in that hash, it
+  then checks the associated facts list.
+
+  If the variable exists, its value is returned.  If the variable
+  does not exist, but the fact does, the fact's value is returned.
+
+  If neither exists, NULL is returned.
+ */
 void* template_deref_var(struct template *t, const char *name)
 {
 	void *v;
@@ -143,6 +186,16 @@ void* template_deref_var(struct template *t, const char *name)
 	return v;
 }
 
+/**
+  Render template $t.
+
+  Renders the template by dereferencing all variable and fact
+  values, evaluating conditionals and other template language
+  constructs, to produce the template "value".
+
+  On success, returns a string containing the rendered template.
+  On failure, returns NULL.
+ */
 char* template_render(struct template *t)
 {
 	char *data;
@@ -157,6 +210,20 @@ char* template_render(struct template *t)
 	return data;
 }
 
+/**
+  Create a new template node.
+
+  This routine is used internally by the template parser.
+  It allocates and initializes a struct tnode according to
+  the passed in data.
+
+  **Note:** for reasons of optimization, the d1 and d2 pointers
+  are "taken over" by this function.  Do not free() them
+  after a call to template_new_tnode; you risk a double-free.
+
+  On success, returns a new `tnode`.
+  On failure, returns NULL.
+ */
 struct tnode* template_new_tnode(struct template *t, enum tnode_type type, char *d1, char *d2)
 {
 	struct tnode *node;
@@ -181,6 +248,11 @@ struct tnode* template_new_tnode(struct template *t, enum tnode_type type, char 
 	return node;
 }
 
+/**
+  Add $child to $parent.
+
+  On success, returns 0.  On failure, returns non-zero.
+ */
 int tnode_add(struct tnode *parent, struct tnode *child)
 {
 	struct tnode **list;

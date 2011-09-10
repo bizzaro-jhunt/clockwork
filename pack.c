@@ -128,6 +128,55 @@ static size_t _packlen(const char *prefix, const char *format, va_list args)
 
 /************************************************************************/
 
+/**
+  Pack values into a string.
+
+  This function serialized complex objects and structures into simple
+  ASCII strings, long-term storage, network transmission, and more.  It
+  works on the same principles as Perl's pack operator: the caller supplies
+  a format string and a avariable list of values.
+
+  The $format string consists of one or more single character field
+  specifiers, each indicating what type of data is to be packed, and
+  controlling how it gets packed.
+
+  Possible format field specifiers are:
+
+  - `a` - NULL-terminated character string (`const char*`)
+  - `c` - Signed 8-bit integer (`char`)
+  - `C` - Unsigned 8-bit integer (`unsigned char`)
+  - `s` - Signed 16-bit integer (`short`)
+  - `S` - Unsigned 16-bit integer (`unsigned short`)
+  - `l` - Signed 32-bit integer (`long`)
+  - `L` - Unsigned 32-bit integer (`unsigned long`)
+
+  For the integer fields, c = char, s = short and l = long.
+  The upper case field specifiers are for unsigned data types,
+  while the lower case field sepcifiers are for signed data
+  types.
+
+  All integer fields (cCsSlL) are represented in hexadecimal,
+  without the leading '0x':
+
+  <code>
+  buf = pack("", "c", 255);   // buf == "ff"
+  buf = pack("", "s", 48879); // buf == "beef"
+  </code>
+
+  Signed integers are represented in hexadecimal as two's complements:
+
+  <code>
+  buf = pack("C", -42);   // buf == "d6" (11010110b / 214d)
+  </code>
+
+  The packed string will be dynamically allocated to be just large enough.
+  It is left to the caller to free it when it is no longer needed.
+
+  If given, $prefix will be prepended to the packed string before it
+  is returned.
+
+  On success, returns a packed string.  On failure, returns NULL.
+ */
 char* pack(const char *prefix, const char *format, ...)
 {
 	assert(prefix); // LCOV_EXCL_LINE
@@ -241,6 +290,16 @@ static char* _extract_string(const char *start)
 	return buf;
 }
 
+/**
+  Unpack $packed into a set of variables.
+
+  For the details of $format, see @pack.
+
+  If $prefix is specified, this function will require that $packed
+  begins with $prefix, or fail.
+
+  ON success, returns 0.  On failure, returns non-zero.
+ */
 int unpack(const char *packed, const char *prefix, const char *format, ...)
 {
 	assert(format); // LCOV_EXCL_LINE

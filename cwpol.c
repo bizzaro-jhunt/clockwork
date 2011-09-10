@@ -97,7 +97,7 @@ static int dispatch1(const char *command, int interactive);
 
 static struct cwpol_opts* cwpol_options(int argc, char **argv);
 
-/** Options
+/* Options
 
   -e, --execute 'some command'
   -v, --verbose

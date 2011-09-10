@@ -80,6 +80,23 @@ typedef void* (*resource_unpack_f)(const char *packed);
 
 #undef RESOURCE_TYPE
 
+/**
+  Create a new $type resource.
+
+  Since this function is primarily used by the spec parser,
+  $type is given as a resource type name string, like
+  "user" or "service".  $key is the unqualified identifier
+  for the new resource.
+
+  This function calls the `res_*_new` resource callback
+  appropriate to the type of resource to be created.
+
+  The pointer returned must be freed by a call to @resource_free.
+
+  On success, returns a new resource, initialized with sane
+  default values.
+  On failure, returns NULL.
+ */
 struct resource* resource_new(const char *type, const char *key)
 {
 	assert(type); // LCOV_EXCL_LINE
@@ -108,6 +125,12 @@ struct resource* resource_new(const char *type, const char *key)
 	return r;
 }
 
+/**
+  Free resource $r.
+
+  This function calls the `res_*_free` resource callback
+  appropriate to the type of resource $r.
+ */
 void resource_free(struct resource *r)
 {
 	if (r) {
@@ -117,6 +140,16 @@ void resource_free(struct resource *r)
 	free(r);
 }
 
+/**
+  Fully-Qualified Resource Identifier
+
+  This function generates a fully-qualified resource identifier
+  for $r, based on its type and unqualified identifier.
+
+  The string pointer returned must be freed by the caller.
+
+  On success, returns a string.  On failure, returns NULL.
+ */
 char *resource_key(const struct resource *r)
 {
 	assert(r); // LCOV_EXCL_LINE
@@ -141,6 +174,25 @@ struct hash* resource_attrs(const struct resource *r)
 	return attrs;
 }
 
+/**
+  Normalize a Resource
+
+  Some resources need additional processing beyond setting of
+  attribute values.  This function provides implementors a
+  hook into the policy parsing / reconstitution process so that
+  these normalizations can be performed before the resource
+  goes into "fix up" mode.
+
+  This function calls the `res_*_norm resource` callback
+  appropriate to the type of resource $r.
+
+  The $pol parameter allows the resource implementation to
+  locate other resources for implicit dependency injection.
+  It is assumed that by the time `resource_norm` is called, all
+  resource definitions have been added to the policy.
+
+  On success, returns 0.  On failure, returns non-zero.
+ */
 int resource_norm(struct resource *r, struct policy *pol, struct hash *facts)
 {
 	assert(r); // LCOV_EXCL_LINE
@@ -149,6 +201,17 @@ int resource_norm(struct resource *r, struct policy *pol, struct hash *facts)
 	return (*(resource_types[r->type].norm_callback))(r->resource, pol, facts);
 }
 
+/**
+  Set $attr to $value on $r.
+
+  This function calls the res_*_set resource callback
+  appropriate to the type of resource $r.
+
+  If the attribute was properly set, returns 0 to indicate success.
+
+  On failure, returns non-zero.  Failure scenarios include problems
+  parsing the value, invalid attributes, etc.
+ */
 int resource_set(struct resource *r, const char *attr, const char *value)
 {
 	assert(r); // LCOV_EXCL_LINE
@@ -159,6 +222,21 @@ int resource_set(struct resource *r, const char *attr, const char *value)
 	return (*(resource_types[r->type].set_callback))(r->resource, attr, value);
 }
 
+/**
+  Query actual state of $r
+
+  The name comes from the world of filesystems, where you "stat"
+  a file to get its attributes.  Really, to "stat" a resource
+  means to figure out what its real state is, and also determine
+  what attributes are enforced but non-compliant.
+
+  This function calls the `res_*_stat` resource callback
+  appropriate to the type of resource $r.
+
+  On success, returns 0.  On failure, returns non-zero.  Specifically,
+  if a resource is found not to exist locally, that s not considered
+  a failure.
+ */
 int resource_stat(struct resource *r, const struct resource_env *env)
 {
 	assert(r); // LCOV_EXCL_LINE
@@ -168,6 +246,24 @@ int resource_stat(struct resource *r, const struct resource_env *env)
 	return (*(resource_types[r->type].stat_callback))(r->resource, env);
 }
 
+/**
+  Fixup resource $r.
+
+  Bring the local resource (client-side) into compliance with
+  the enforced attributes of the policy (server-side) definition.
+
+  This function calls the `res_*_fixup` resource callback
+  appropriate to the type of resource $r.
+
+  If $dryrun is non-zero, no actions will be taken against the system,
+  but the returned report will still describe the actions that would
+  have been taken, each with a result of 'skipped.'
+
+  On success, returns a report that describes what actions were taken
+  and what their results were.  On failure, return NULL.
+
+  The inability to enforce the policy is *not* considered a failure.
+ */
 struct report* resource_fixup(struct resource *r, int dryrun, const struct resource_env *env)
 {
 	assert(r); // LCOV_EXCL_LINE
@@ -177,6 +273,21 @@ struct report* resource_fixup(struct resource *r, int dryrun, const struct resou
 	return (*(resource_types[r->type].fixup_callback))(r->resource, dryrun, env);
 }
 
+/**
+  Notify $r of a Dependency Change
+
+  If resource a depends on resource b, and resource b changes
+  (for compliance reasons), `resource_notify` us used to let
+  resource a know that something has changed.
+
+  $dep is the causal resource (the one that $r depends on) that
+  changed.
+
+  This function calls the res_*_notify resource callback
+  appropriate to the type of resource $r.
+
+  On success, returns 0.  On failure, returns non-zero.
+ */
 int resource_notify(struct resource *r, const struct resource *dep)
 {
 	assert(r); // LCOV_EXCL_LINE
@@ -185,6 +296,22 @@ int resource_notify(struct resource *r, const struct resource *dep)
 	return (*(resource_types[r->type].notify_callback))(r->resource, dep);
 }
 
+/**
+  Pack resource $r.
+
+  Using @pack, serialize the data contained in $r into a string
+  that can be stored or transmitted for use some other place or
+  some other time.
+
+  The string returned by this function should be freed by the caller.
+
+  The final serialized form of a resource can be passed to
+  @resource_unpack to get an identical in-memory resource structure
+  back.
+
+  On success, returns the string representation of $r.
+  On failure, returns NULL.
+ */
 char *resource_pack(const struct resource *r)
 {
 	assert(r); // LCOV_EXCL_LINE
@@ -193,6 +320,19 @@ char *resource_pack(const struct resource *r)
 	return (*(resource_types[r->type].pack_callback))(r->resource);
 }
 
+/**
+  Unpack $packed into a resource.
+
+  Using @unpack, unserialize the string representation given
+  and populate a resource definition containing the correct
+  enforcement and attribute values.
+
+  The pointer returned by this function should be passed to
+  @resource_free to de-allocate and release its memory.
+
+  On success, returns the resource that $packed represents.
+  On failure, returns NULL.
+ */
 struct resource *resource_unpack(const char *packed)
 {
 	assert(packed); // LCOV_EXCL_LINE
@@ -216,6 +356,19 @@ struct resource *resource_unpack(const char *packed)
 	return r;
 }
 
+/**
+  Add a Resource Dependency
+
+  Mainly intended for use by the Policy implementation, this
+  function appends a dependent resource ($dep) to another
+  resource's ($r) list of dependencies.
+
+  Policy uses this list later (via @resource_depends_on and
+  @resource_drop_dependency) to re-order its list of resources
+  so that it performs fixups in the appropriate order.
+
+  On success, returns 0.  On failure, returns non-zero.
+ */
 int resource_add_dependency(struct resource *r, struct resource *dep)
 {
 	assert(r); // LCOV_EXCL_LINE
@@ -226,6 +379,17 @@ int resource_add_dependency(struct resource *r, struct resource *dep)
 	return 0;
 }
 
+/**
+  Drop a Resource Dependency.
+
+  This function erases a dependency, by removing $dep from the
+  list of $r's dependencies.
+
+  This function is used by Policy to indicate that further
+  dependency tracking is not necessary.
+
+  On success, returns 0.  On failure, returns non-zero.
+ */
 int resource_drop_dependency(struct resource *r, struct resource *dep)
 {
 	assert(r); // LCOV_EXCL_LINE
@@ -248,6 +412,15 @@ int resource_drop_dependency(struct resource *r, struct resource *dep)
 	return 1; /* not found */
 }
 
+/**
+  Determine if $r depends on $dep.
+
+  Policy uses this function when it re-orders its list of
+  resources into the appropriate sequence to satisfy all
+  dependencies.
+
+  If $r depends on $dep, returns 0.  If not, returns non-zero.
+ */
 int resource_depends_on(const struct resource *r, const struct resource *dep)
 {
 	int i;
@@ -258,6 +431,14 @@ int resource_depends_on(const struct resource *r, const struct resource *dep)
 	return 1; /* no dependency */
 }
 
+/**
+  Check $r to see if $attr equals $value.
+
+  This function calls the res_*_match resource callback
+  appropriate to the type of resource $r.
+
+  If $attr equals $value on $r, returns 0.  If not, returns non-zero.
+ */
 int resource_match(const struct resource *r, const char *attr, const char *value)
 {
 	assert(r); // LCOV_EXCL_LINE
@@ -266,6 +447,18 @@ int resource_match(const struct resource *r, const char *attr, const char *value
 	return (*(resource_types[r->type].match_callback))(r->resource, attr, value);
 }
 
+/**
+  Create a new Dependency of $a on $b.
+
+  This function is used primarily by the spec parser.  It does not
+  populate the $resource_a or $resource_b structure members,
+  since there is not enough context to resolve resource identifiers.
+
+  The pointer returned by this function should be passed to
+  @dependency_free to de-allocate and release its memory.
+
+  On success, returns a new dependency.  On failure, returns NULL.
+ */
 struct dependency* dependency_new(const char *a, const char *b)
 {
 	struct dependency *dep;
@@ -279,6 +472,9 @@ struct dependency* dependency_new(const char *a, const char *b)
 	return dep;
 }
 
+/**
+  Free dependency $dep.
+ */
 void dependency_free(struct dependency *dep)
 {
 	if (dep) {
@@ -290,6 +486,21 @@ void dependency_free(struct dependency *dep)
 }
 
 #define PACK_FORMAT "aa"
+/**
+  Pack Dependency $dep
+
+  Using @pack, serialize $dep into a string that can be stored
+  or transmitted for use some other place or some other time.
+
+  The string returned by this function should be freed by the caller.
+
+  The final serialized form of a dependency can be passed to
+  @dependency_unpack to get an identical in-memory dependency
+  structure back.
+
+  On success, returns a string representing $dep.
+  On failure, returns NULL.
+ */
 char *dependency_pack(const struct dependency *dep)
 {
 	assert(dep); // LCOV_EXCL_LINE
@@ -297,6 +508,22 @@ char *dependency_pack(const struct dependency *dep)
 	return pack("dependency::", PACK_FORMAT, dep->a, dep->b);
 }
 
+/**
+  Unserialize $packed into a Dependency
+
+  Using @unpack, unserialize $packed and populate a dependency
+  definition containing the resource identifiers of the dependent
+  and causal resources.
+
+  This function does not resolve resource identifiers to their
+  corresponding resources, since it lacks the context to do so.
+
+  The pointer returned by this function should be passed to
+  @dependency_free to de-allocate and release its memory.
+
+  On success, returns the dependency represented by $packed.
+  On failure, returns NULL.
+ */
 struct dependency *dependency_unpack(const char *packed)
 {
 	struct dependency *dep = dependency_new(NULL, NULL);

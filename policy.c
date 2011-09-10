@@ -27,7 +27,6 @@
 #include "resource.h"
 #include "stringlist.h"
 
-/** @cond false */
 struct policy_generator {
 	struct policy *policy;
 	struct hash   *facts;
@@ -36,7 +35,6 @@ struct policy_generator {
 	struct resource *res;
 	struct dependency *dep;
 };
-/** @endcond */
 
 static void stree_free(struct stree *n)
 {
@@ -102,7 +100,13 @@ static int _policy_normalize(struct policy *pol, struct hash *facts)
 	return 0;
 }
 
-/* Allocate and initialize a new manifest structure */
+/**
+  Create a new manifest.
+
+  **Note:** The pointer returned must be freed via @manifest_free.
+
+  On success, returns a new manifest structure.  On failure, returns NULL.
+ */
 struct manifest* manifest_new(void)
 {
 	struct manifest *m;
@@ -119,7 +123,9 @@ struct manifest* manifest_new(void)
 	return m;
 }
 
-/* Free a manifest structure, and its allocated storage */
+/**
+  Free manifest $m.
+ */
 void manifest_free(struct manifest *m)
 {
 	size_t i;
@@ -134,6 +140,29 @@ void manifest_free(struct manifest *m)
 	free(m);
 }
 
+/**
+  Create a new syntax tree node for $m.
+
+  $op represents the type of node.
+
+  This function not only allocates and initializes an stree node,
+  it also stores a reference to the allocate stree node, so that
+  manifest_free can properly de-allocate the node.  For this reason,
+  it is not advised to allocate stree nodes for use in a manifest
+  through any other mechanism.
+
+  $data1 and $data2 are operation-specific.
+
+  **Note:** for reasons of optimization, $data1 and $data2 are
+  "taken over" by this function.  *Do not free them yourself*;
+  you risk a double-free memory corruption.
+
+  On success, returns a new syntax tree node that has been added
+  to $m already.  Operation-specific data will be set to $data1
+  and $data2 for you.
+
+  On failure, returns NULL.
+ */
 struct stree* manifest_new_stree(struct manifest *m, enum oper op, char *data1, char *data2)
 {
 	struct stree *stree;
@@ -160,6 +189,18 @@ struct stree* manifest_new_stree(struct manifest *m, enum oper op, char *data1, 
 	return stree;
 }
 
+/**
+  Add one $child to $parent.
+
+  This function only adds references, it does not duplicate $child
+  or $parent.
+
+  **Note:** Both $parent and $child should already be referenced by
+  a manifest; they should have been created by a call to
+  @manifest_new_stree.
+
+  On success, returns 0.  On failure, returns non-zero.
+ */
 int stree_add(struct stree *parent, struct stree *child)
 {
 	assert(parent); // LCOV_EXCL_LINE
@@ -178,6 +219,24 @@ int stree_add(struct stree *parent, struct stree *child)
 	return 0;
 }
 
+/*
+  Recursively compare $a and $b for equivalence.
+
+  If either $a or $b is NULL, this function will always return non-zero.
+
+  If $a does not contain the same node layout (i.e. parentage, number of
+  children, etc.) as $b, then the two trees are considered non-equivalent,
+  and this function will return non-zero.
+
+  When compareing trees, the following fields are considered:
+
+  - $op - Integer Comparison
+  - $data1 - String comparison (or NULL equivalence)
+  - $data2 - String comparison (or NULL equivalence)
+  - $nodes - Recursive call to `stree_compare` for each.
+
+  If $a == $b, returns 0.  Otherwise, returns non-zero.
+ */
 int stree_compare(const struct stree *a, const struct stree *b)
 {
 	unsigned int i;
@@ -227,6 +286,20 @@ int fact_parse(const char *line, struct hash *h)
 	return 0;
 }
 
+/**
+  Read $facts from $io.
+
+  Facts are read in from $io in key=value\n form.  As each fact
+  is read, it will be stored in $facts.  Parsing stops when $io
+  reaches EOF.
+
+  **Note:** the $facts value-result parameter is not cleared by
+  `fact_read.`  In this way, callers can read a body of facts from
+  multiple files or IO sources.
+
+  On success, returns $facts.  On failure, returns NULL, and the
+  contents of $facts is undefined.
+ */
 struct hash* fact_read(FILE *io, struct hash *facts)
 {
 	assert(io); // LCOV_EXCL_LINE
@@ -260,6 +333,14 @@ struct hash* fact_read(FILE *io, struct hash *facts)
 	return facts;
 }
 
+/**
+  Write $facts to $io.
+
+  Facts are written to $io in key=value\\n format.  They
+  are read in order, sorted lexically by key.
+
+  On success, returns 0.  On failure, returns non-zero.
+ */
 int fact_write(FILE *io, struct hash *facts)
 {
 	assert(io); // LCOV_EXCL_LINE
@@ -380,6 +461,18 @@ again:
 	return 0;
 }
 
+/**
+  Apply $facts to a syntax tree to create a policy.
+
+  This function is crucial to Clockwork's policy master daemon
+  (policyd).  It turns the abstract syntax tree $root into a
+  full policy object by evaluating all conditional constructs
+  against $facts.
+
+  **Note:** the policy returned must be freed with @policy_free.
+
+  On success, returns a new policy object.  On failure, returns NULL.
+ */
 struct policy* policy_generate(struct stree *root, struct hash *facts)
 {
 	assert(root); // LCOV_EXCL_LINE
@@ -399,6 +492,16 @@ struct policy* policy_generate(struct stree *root, struct hash *facts)
 	return pgen.policy;
 }
 
+/**
+  Create a new, empty policy.
+
+  The policy's name will be set to $name.
+
+  **Note:** the policy returned must be freed with @policy_free.
+
+  On success, returns a new policy object.
+  On failure, returns NULL.
+ */
 struct policy* policy_new(const char *name)
 {
 	struct policy *pol;
@@ -413,6 +516,12 @@ struct policy* policy_new(const char *name)
 	return pol;
 }
 
+/**
+  Free policy $pol.
+
+  This function does not free the resources that $pol
+  references.  For that behavior, see @policy_free_all.
+ */
 void policy_free(struct policy *pol)
 {
 	if (pol) {
@@ -422,6 +531,9 @@ void policy_free(struct policy *pol)
 	free(pol);
 }
 
+/**
+  Free $pol, and all of its resources.
+ */
 void policy_free_all(struct policy *pol)
 {
 	struct resource *r, *r_tmp;
@@ -430,6 +542,11 @@ void policy_free_all(struct policy *pol)
 	policy_free(pol);
 }
 
+/**
+  Add resource $res to $pol.
+
+  On success, returns 0.  On failure, returns non-zero.
+ */
 int policy_add_resource(struct policy *pol, struct resource *res)
 {
 	assert(pol); // LCOV_EXCL_LINE
@@ -441,6 +558,26 @@ int policy_add_resource(struct policy *pol, struct resource *res)
 	return 0;
 }
 
+/**
+  Find a resource in $pol, through attribute searching.
+
+  This function is used to find resources defined inside of a policy
+  based on a single attribute filter.  For example, to find the res_user
+  resource of the user account 'bob':
+
+  <code>
+  struct resource *bob;
+  bob = policy_find_resource(pol, RES_USER, "username", "bob");
+  </code>
+
+  Resource normalization, which often involves creating implicit
+  dependencies on other resources, makes heavy use of this function.
+
+  **Note:** If multiple resources match, only the first is returned.
+
+  Returns a pointer to the first resource match,
+  or NULL if none matched.
+ */
 struct resource* policy_find_resource(struct policy *pol, enum restype type, const char *attr, const char *value)
 {
 	struct resource *r;
@@ -456,6 +593,11 @@ struct resource* policy_find_resource(struct policy *pol, enum restype type, con
 	return NULL;
 }
 
+/**
+  Add resource dependency $dep to $pol.
+
+  On success, returns 0.  On failure, returns non-zero.
+ */
 int policy_add_dependency(struct policy *pol, struct dependency *dep)
 {
 	assert(pol); // LCOV_EXCL_LINE
@@ -475,6 +617,23 @@ int policy_add_dependency(struct policy *pol, struct dependency *dep)
 	return 0;
 }
 
+/**
+  Notify dependent resources of a change.
+
+  Each dependency is evaluated to determine if $cause is
+  the "b" resource (remembering that "a depends on b").
+  For each matching dependency, resource_notify is called on the
+  dependent resource, so that it knows it may still need to do something
+  even if it is compliant.
+
+  The simplest example is a service (i.e. OpenLDAP) and its configuration
+  file.  If the config file changes, the service needs to be reloaded,
+  even if it is already running.  In this example, $cause would be
+  the configuration file.
+
+  On success, returns 0.  On failure, returns non-zero.
+  Not finding any resources affected by $cause is *not* a failure.
+ */
 int policy_notify(const struct policy *pol, const struct resource *cause)
 {
 	assert(pol); // LCOV_EXCL_LINE
@@ -495,6 +654,18 @@ int policy_notify(const struct policy *pol, const struct resource *cause)
 	return 0;
 }
 
+/**
+  Pack $pol into a string.
+
+  The string returned by this function should be free by the caller,
+  using the standard `free(3)` standard library function.
+
+  The final serialized form can be passed to @policy_unpack to get
+  the original policy structure back.
+
+  On success, returns the packed representation of $pol.
+  On failure, returns NULL.
+ */
 char* policy_pack(const struct policy *pol)
 {
 	assert(pol); // LCOV_EXCL_LINE
@@ -542,6 +713,14 @@ policy_pack_failed:
 	return NULL;
 }
 
+/**
+  Unpack $packed_policy into a policy object.
+
+  The pointer returned must be freed via @policy_free.
+
+  On success, returns the policy that $packed_policy represents.
+  On failure, returns NULL.
+ */
 struct policy* policy_unpack(const char *packed_policy)
 {
 	assert(packed_policy); // LCOV_EXCL_LINE

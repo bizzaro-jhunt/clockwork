@@ -20,26 +20,19 @@
 #ifndef _LIST_H
 #define _LIST_H
 
-/** @file list.h
+#include <stddef.h> /* for offsetof(3) macro */
 
-  Fast, structure-agnostic list implementation.
+/**
+  Fast, structure-agnostic doubly-linked circular list.
 
   This implementation was adapted from the Linux kernel list_head
   code, in include/linux/list.h.  Mostly, I removed the register
   optimizations, and implemented most operations in terms of
   __list_splice.
  */
-
-#include <stddef.h> /* for offsetof(3) macro */
-
-/**
-  A list node for a double-linked list.
- */
 struct list {
-	/** Next node in the list. */
-	struct list *next;
-	/** Previous node in the list. */
-	struct list *prev;
+	struct list *next;   /* the next node in the list */
+	struct list *prev;   /* the previous node in the list */
 };
 
 /** Declare / initialize an empty list */

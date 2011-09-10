@@ -131,6 +131,14 @@ int pdu_send_simple(protocol_session *session, protocol_op op)
 	return pdu_write(session->io, SEND_PDU(session));
 }
 
+/**
+  Send an ERROR PDU to the remote end.
+
+  $err_code contains the error code, and $str is the
+  descriptive error message.
+
+  On success, returns 0.  On failure, returns non-zero.
+ */
 int pdu_send_ERROR(protocol_session *session, uint16_t err_code, const char *str)
 {
 	assert(session); // LCOV_EXCL_LINE
@@ -152,6 +160,13 @@ int pdu_send_ERROR(protocol_session *session, uint16_t err_code, const char *str
 	return pdu_write(session->io, SEND_PDU(session));
 }
 
+/**
+  Decode an ERROR PDU into $err_code and $str.
+
+  The length of $str will be placed in $len.
+
+  On success, returns zero.  On failure, returns non-zero.
+ */
 int pdu_decode_ERROR(protocol_data_unit *pdu, uint16_t *err_code, uint8_t **str, size_t *len)
 {
 	assert(pdu); // LCOV_EXCL_LINE
@@ -176,6 +191,14 @@ int pdu_decode_ERROR(protocol_data_unit *pdu, uint16_t *err_code, uint8_t **str,
 	return 0;
 }
 
+/**
+  Send a FACTS PDU containing $facts to the remote end.
+
+  This type of PDU is sent from the client to the server, sending along
+  a hash of the local facts in order to receive a generated policy.
+
+  On success, returns zero.  On failure, returns non-zero.
+ */
 int pdu_send_FACTS(protocol_session *session, const struct hash *facts)
 {
 	assert(session); // LCOV_EXCL_LINE
@@ -211,6 +234,11 @@ int pdu_send_FACTS(protocol_session *session, const struct hash *facts)
 	return pdu_write(session->io, SEND_PDU(session));
 }
 
+/**
+  Decode a FACTS PDU into $facts.
+
+  On success, returns zero.  On failure, returns non-zero.
+ */
 int pdu_decode_FACTS(protocol_data_unit *pdu, struct hash *facts)
 {
 	assert(pdu); // LCOV_EXCL_LINE
@@ -232,6 +260,14 @@ int pdu_decode_FACTS(protocol_data_unit *pdu, struct hash *facts)
 	return 0;
 }
 
+/**
+  Send a POLICY PDU, containing $policy, to the remote end.
+
+  This type of PDU is sent from the server to a client, and includes the
+  policy generated from the client facts given in the FACTS PDU.
+
+  On success, returns zero.  On failure, returns non-zero.
+ */
 int pdu_send_POLICY(protocol_session *session, const struct policy *policy)
 {
 	assert(session); // LCOV_EXCL_LINE
@@ -274,6 +310,15 @@ int pdu_decode_POLICY(protocol_data_unit *pdu, struct policy **policy)
 	}
 }
 
+/**
+  Send a FILE PDU to the remote end.
+
+  FILE PDUs are sent by clients to server in order to request the contents
+  of a res_file that need to be refreshed on the client machine.  For security
+  reasons, only the $checksum is sent, to prevent "leeching" of files.
+
+  On success, returns 0.  On failure, returns non-zero.
+ */
 int pdu_send_FILE(protocol_session *session, sha1 *checksum)
 {
 	assert(session); // LCOV_EXCL_LINE
@@ -290,6 +335,21 @@ int pdu_send_FILE(protocol_session *session, sha1 *checksum)
 	return pdu_write(session->io, pdu);
 }
 
+/**
+  Send a DATA PDU to the remote end.
+
+  DATA PDUs are sent by servers to clients, in response to a FILE PDU.
+  Each DATA PDU represents a chunk of the file, sent in order.  The final
+  (EOF) DATA PDU is sent with a zero length.
+
+  If $srcfd is a valid file descriptor (non-negative), each call to
+  pdu_send_DATA will read data out of $srcfd until EOF is reached.
+
+  Otherwise, data is read from the $data argument.
+
+  On success, returns the number of bytes sent.
+  On failure, returns a negative value.
+ */
 int pdu_send_DATA(protocol_session *session, int srcfd, const char *data)
 {
 	assert(session); // LCOV_EXCL_LINE
@@ -328,6 +388,17 @@ int pdu_send_DATA(protocol_session *session, int srcfd, const char *data)
 	return len;
 }
 
+/**
+  Send a GET_CERT PDU to the remote end.
+
+  The X.509 certificate request $csr will be sent in the PDU,
+  and GET_CERT asks the server to return a signed X.509 certificate,
+  if it has one.
+
+  This is a crucial part of the certificate auto-enrollment proces.
+
+  On success, returns 0.  On failure, returns non-zero.
+ */
 int pdu_send_GET_CERT(protocol_session *session, X509_REQ *csr)
 {
 	assert(session); // LCOV_EXCL_LINE
@@ -366,6 +437,11 @@ int pdu_send_GET_CERT(protocol_session *session, X509_REQ *csr)
 	return len;
 }
 
+/**
+  Decode a GET_CERT PDU into $csr.
+
+  On success, returns.  On failure, returns non-zero.
+ */
 int pdu_decode_GET_CERT(protocol_data_unit *pdu, X509_REQ **csr)
 {
 	assert(pdu); // LCOV_EXCL_LINE
@@ -389,6 +465,15 @@ int pdu_decode_GET_CERT(protocol_data_unit *pdu, X509_REQ **csr)
 	return 0;
 }
 
+/**
+  Send a SEND_CERT PDU to the remote end.
+
+  SEND_CERT PDUs are sent in response to a GET_CERT, if the policy
+  master has a signed certificate on file for the client.  The X.509
+  certificate should be passed in as $cert.
+
+  On success, returns 0.  On failure, returns non-zero.
+ */
 int pdu_send_SEND_CERT(protocol_session *session, X509 *cert)
 {
 	assert(session); // LCOV_EXCL_LINE
@@ -435,6 +520,11 @@ int pdu_send_SEND_CERT(protocol_session *session, X509 *cert)
 	return len;
 }
 
+/**
+  Decode a SEND_CERT PDU into $cert.
+
+  On succes, returns 0.  On failure, returns non-zero.
+ */
 int pdu_decode_SEND_CERT(protocol_data_unit *pdu, X509 **cert)
 {
 	assert(pdu); // LCOV_EXCL_LINE
@@ -462,6 +552,16 @@ int pdu_decode_SEND_CERT(protocol_data_unit *pdu, X509 **cert)
 	return 0;
 }
 
+/**
+  Send a REPORT PDU to the remote end, for $job.
+
+  REPORT PDUs are sent to the policy master by clients after they
+  have evaluated and enforced their policy locally.  The PDU contains
+  a packed job structure that represents the run and everything that
+  was attempted to bring the local system into compliance.
+
+  On success, returns 0.  On failure, returns non-zero.
+ */
 int pdu_send_REPORT(protocol_session *session, struct job *job)
 {
 	assert(session); // LCOV_EXCL_LINE
@@ -490,6 +590,11 @@ int pdu_send_REPORT(protocol_session *session, struct job *job)
 	return pdu_write(session->io, pdu);
 }
 
+/**
+  Decode a REPORT PDU into $job.
+
+  On success, returns 0.  On failure, returns non-zero.
+ */
 int pdu_decode_REPORT(protocol_data_unit *pdu, struct job **job)
 {
 	assert(pdu); // LCOV_EXCL_LINE
@@ -504,6 +609,12 @@ int pdu_decode_REPORT(protocol_data_unit *pdu, struct job **job)
 	}
 }
 
+/**
+  Read $pdu from $io.
+
+  On success, returns 0.  On failure, returns non-zero,
+  and the contents of $pdu is undefined.
+ */
 int pdu_read(SSL *io, protocol_data_unit *pdu)
 {
 	assert(io); // LCOV_EXCL_LINE
@@ -540,6 +651,11 @@ int pdu_read(SSL *io, protocol_data_unit *pdu)
 	return 0;
 }
 
+/**
+  Write $pdu to $io.
+
+  On success, returns 0.  On failure, returns non-zero.
+ */
 int pdu_write(SSL *io, protocol_data_unit *pdu)
 {
 	assert(io); // LCOV_EXCL_LINE
@@ -577,8 +693,13 @@ int pdu_write(SSL *io, protocol_data_unit *pdu)
 }
 
 /**
-  Returns 0 on success, or < 0 on failure. Failure includes
-    application-level issues (the ERROR PDU).
+  Wait for the next PDU from the remote end.
+
+  $session is the current protocol session.  This call
+  will block until a PDU is available to be read.
+
+  On success, returns 0.  On failure, returns non-zero.
+  Failure indicates application-level issues (the ERROR PDU).
  */
 int pdu_receive(protocol_session *session)
 {
@@ -611,6 +732,7 @@ int pdu_receive(protocol_session *session)
 /**********************************************************/
 
 static int ssl_loaded = 0;
+/** Initialize the OpenSSL library */
 void protocol_ssl_init(void)
 {
 	if (ssl_loaded == 1) { return; }
@@ -624,12 +746,22 @@ void protocol_ssl_init(void)
 	RAND_load_file("/dev/urandom", 1024);
 }
 
+/** Get the name of $op.  */
 const char* protocol_op_name(protocol_op op)
 {
 	if (op > protocol_op_max) { return NULL; }
 	return protocol_op_names[op];
 }
 
+/**
+  Initialize a $session, using $io for the IO stream.
+
+  **Note:** this function does *not* allocate a new protocol_session
+  structure.  Nevertheless, teh caller must match this call with one
+  to @protocol_session_deinit, to free memory allocated by this function.
+
+  On success, returns 0.  On failure, returns non-zero.
+ */
 int protocol_session_init(protocol_session *session, SSL *io)
 {
 	session->io = io;
@@ -643,6 +775,16 @@ int protocol_session_init(protocol_session *session, SSL *io)
 	return 0;
 }
 
+/**
+  De-initialize a $session
+
+  **Note:** since @protocol_session_init does not allocate the protocol_session
+  structure itself, this function does not free the pointer passed to it.
+  If the caller allocates the structure on the heap, the caller is responsible
+  for freeing that memory.
+
+  On success, returns 0.  On failure, returns non-zero.
+ */
 int protocol_session_deinit(protocol_session *session)
 {
 	session->io = NULL;
@@ -659,6 +801,22 @@ int protocol_session_deinit(protocol_session *session)
 	return 0;
 }
 
+/**
+  Verify peer certificate by checking $hostname.
+
+  This is a callback, used in the OpenSSL calls, to verify
+  the validity of the peer certificate by comparing the
+  subjectAltName/DNS certificate extension against $hostname.
+
+  How $hostname is determined is left to the discretion of the
+  caller.  For security's sake, some sort of reverse DNS lookup
+  against the peer address is recommended.
+
+  See @protocol_reverse_lookup_verify
+
+  If verification succeeds, returns 0.
+  On failure, returns an OpenSSL error code.
+ */
 long protocol_ssl_verify_peer(SSL *ssl, const char *host)
 {
 	X509 *cert;
@@ -728,6 +886,7 @@ err_occurred:
 	return X509_V_ERR_APPLICATION_VERIFICATION;
 }
 
+/** Log SSL errors via @DEBUG.  */
 void protocol_ssl_backtrace(void)
 {
 	unsigned long e;
@@ -737,6 +896,22 @@ void protocol_ssl_backtrace(void)
 	}
 }
 
+/**
+  Reverse DNS lookup.
+
+  This function is used during the peer certificate verification
+  process;  the FQDN of the remote host is looked up so that it
+  can be compared to that stored in the certificate extensions
+  (subjectAltName / DNS).
+
+  The peer address is determined from $sockfd.  The resulting
+  hostname will be stored in $buf.  At most, $len - 1 characters
+  will be stored, and $buf will be NULL-terminated.
+
+  See @protocol_ssl_verify_peer
+
+  On success, returns 0.  On failure, returns non-zero.
+ */
 int protocol_reverse_lookup_verify(int sockfd, char *buf, size_t len)
 {
 	struct sockaddr_in ipv4;

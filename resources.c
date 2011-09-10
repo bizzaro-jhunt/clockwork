@@ -1548,7 +1548,11 @@ int res_group_enforce_members(struct res_group *rg, int enforce)
 	return 0;
 }
 
-/* updates rg_mem_add */
+/**
+  Add $user to the list of members.
+
+  On success, returns 0.  On failure, returns non-zero.
+ */
 int res_group_add_member(struct res_group *rg, const char *user)
 {
 	assert(rg); // LCOV_EXCL_LINE
@@ -1558,7 +1562,12 @@ int res_group_add_member(struct res_group *rg, const char *user)
 	/* add to rg_mem_add, remove from rg_mem_rm */
 	return _group_update(rg->rg_mem_add, rg->rg_mem_rm, user);
 }
-/* updates rg_mem_rm */
+
+/**
+  Remove $user from the list of members.
+
+  On success, returns 0.  On failure, returns non-zero.
+ */
 int res_group_remove_member(struct res_group *rg, const char *user)
 {
 	assert(rg); // LCOV_EXCL_LINE
@@ -1581,7 +1590,11 @@ int res_group_enforce_admins(struct res_group *rg, int enforce)
 	return 0;
 }
 
-/* updates rg_adm_add */
+/**
+  Add $user to the list of admins.
+
+  On success, returns 0.  On failure, returns non-zero.
+ */
 int res_group_add_admin(struct res_group *rg, const char *user)
 {
 	assert(rg); // LCOV_EXCL_LINE
@@ -1592,7 +1605,11 @@ int res_group_add_admin(struct res_group *rg, const char *user)
 	return _group_update(rg->rg_adm_add, rg->rg_adm_rm, user);
 }
 
-/* updates rg_adm_rm */
+/**
+  Remove $user from the list of admins.
+
+  On success, returns 0.  On failure, returns non-zero.
+ */
 int res_group_remove_admin(struct res_group *rg, const char *user)
 {
 	assert(rg); // LCOV_EXCL_LINE

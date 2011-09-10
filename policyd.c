@@ -33,7 +33,6 @@
 
 /**************************************************************/
 
-/** @cond false */
 typedef struct {
 	BIO *socket;
 	SSL *ssl;
@@ -54,7 +53,6 @@ typedef struct {
 
 	unsigned short peer_verified;
 } worker;
-/** @endcond */
 
 /**************************************************************/
 
@@ -560,21 +558,24 @@ static void sighup_handler(int signum, siginfo_t *info, void *udata)
 }
 
 /**
-  Daemonize the current process, by forking into the background,
+  Daemonize.
+
+  Daemonizes the current process, by forking into the background,
   closing stdin, stdout and stderr, and detaching from the
   controlling terminal.
 
-  The \a name, \a lock_file, and \a pid_file parameters allow
-  the caller to control how the process is daemonized.
+  $lock_file contains the path to use as a lock, preventing multiple
+  daemon instances from running concurrently.
 
-  @param  lock_file  Path to use as a file lock, to prevent multiple
-                     daemon instances from runnin concurrently.
-  @param  pid_file   Path to store the daemon's ultimate process ID.
+  $pid_file contains the path to store the daemon's process ID in,
+  for out-of-band process management (i.e. init scripts).
 
-  @returns to the caller if daemonization succeeded.  The parent
-           process exits with a status code of 0.  If daemonization
-           fails, this call will not return, and a the current
-           process will exit non-zero.
+
+  On success, control is returned to the caller.  The parent process
+  exits with a status code of 0.
+
+  On failure, this call will not return, and the current process exits
+  with a non-zero status code.
  */
 static void daemonize(const char *lock_file, const char *pid_file)
 {

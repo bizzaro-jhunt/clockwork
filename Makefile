@@ -67,7 +67,7 @@ YACC    := bison $(YACC_FLAGS)
 VG      := tools/valgrind
 LCOV    := lcov --directory . --base-directory .
 GENHTML := genhtml --prefix $(shell dirname `pwd`)
-DOXYGEN := doxygen
+CDOC    := cdoc
 
 
 ############################################################
@@ -135,9 +135,9 @@ fun_tests     += test/functional/executive
 unit_tests    := test/unit/run
 unit_tests    += test/unit/helpers/proto_helper
 
-# Doxygen configuration for API docs
-apidocs_conf  := doc/doxy.api.conf
+# Configuration for API docs
 apidocs_root  := doc/api
+apidocs_theme := doc/theme
 
 
 ############################################################
@@ -198,9 +198,9 @@ summary:
 	@echo "Externals"
 	@echo " OpenSSL:  $(openssl_mode)"
 	@echo
-	@echo "Doyxgen (API Docs)"
+	@echo "CDOC (API Docs)"
 	@echo " root:     $(apidocs_root)"
-	@echo " config:   $(apidocs_conf)"
+	@echo " theme:    $(apidocs_theme)"
 	@echo
 	@echo "Commands"
 	@echo " cc:       $(CC)"
@@ -209,7 +209,7 @@ summary:
 	@echo " valgrind: $(VG)"
 	@echo " lcov:     $(LCOV)"
 	@echo " genhtml:  $(GENHTML)"
-	@echo " doxygen:  $(DOXYGEN)"
+	@echo " cdoc:     $(CDOC)"
 	@echo
 
 ############################################################
@@ -267,16 +267,10 @@ conf/grammar.c conf/grammar.h: conf/grammar.y conf/parser.c conf/parser.h conf/p
 docs: apidocs diagrams
 
 apidocs:
+	mkdir -p $(apidocs_root)
 	rm -rf $(apidocs_root)/*
-	$(DOXYGEN) $(apidocs_conf) 2>&1 | tee $(apidocs_root)/doxygen.log
-	@echo
-	@echo === DOXYGEN ERROR SUMMARY ===================================================
-	@echo
-	@grep Warning $(apidocs_root)/doxygen.log | sed -e "s;.*$(PWD)/\([^:]*\).*;\1;" | sort | uniq -c
-	@echo
-	@echo === DOXYGEN ERROR DETAILS ===================================================
-	@echo
-	@grep Warning $(apidocs_root)/doxygen.log | sed -e 's/Parsing file //'
+	cp -a $(apidocs_theme)/images $(apidocs_root)
+	$(CDOC) --root $(apidocs_root) --theme $(apidocs_theme) *.c *.h
 
 diagrams: doc/proto-agent.png doc/proto-cert.png
 

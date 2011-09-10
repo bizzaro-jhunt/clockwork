@@ -19,7 +19,7 @@ debug/package-manager
 debug/service-manager
 
 doc/*.png
-doc/api/doxygen.log
+doc/api
 
 certs
 

@@ -62,11 +62,11 @@
   On success, returns a database handle.
   On failure, returns NULL.
  */
-DB* db_open(enum db_type type, const char *path)
+struct db* db_open(enum db_type type, const char *path)
 {
 	assert(path); // LCOV_EXCL_LINE
 
-	DB *db = xmalloc(sizeof(DB));
+	struct db *db = xmalloc(sizeof(struct db));
 	db->db_type = type;
 
 	if (sqlite3_open(path, &db->db) != 0) {
@@ -86,7 +86,7 @@ DB* db_open(enum db_type type, const char *path)
   On success, returns 0.
   On failure, returns non-zero.
  */
-int db_close(DB *db)
+int db_close(struct db *db)
 {
 	assert(db); // LCOV_EXCL_LINE
 	sqlite3_close(db->db);
@@ -97,12 +97,12 @@ int db_close(DB *db)
 /**
   Find host in $db by hostname ($host).
 
-  This operation only makes sense if $db is a DB_MASTER.
+  This operation only makes sense if $db is a MASTERDB.
 
   If found, returns the unique ID for $host.
   Otherwise, returns NULL_ROWID.
  */
-rowid masterdb_host(DB *db, const char *host)
+rowid masterdb_host(struct db *db, const char *host)
 {
 	rowid host_id = NULL_ROWID;
 	const char *select = "SELECT id FROM hosts WHERE name = ?;";
@@ -146,12 +146,12 @@ failure:
 /**
   Save job report $job for $host_id to $db.
 
-  This operation only makes sense if $db is a DB_MASTER.
+  This operation only makes sense if $db is a MASTERDB.
 
   On success, returns 0.
   On failure, returns non-zero.
  */
-int masterdb_store_report(DB *db, rowid host_id, struct job *job)
+int masterdb_store_report(struct db *db, rowid host_id, struct job *job)
 {
 	const char *j_sql = "INSERT INTO jobs (host_id, started_at, ended_at, duration) VALUES (?,?,?,?)";
 	sqlite3_stmt *j_stmt = NULL;
@@ -220,12 +220,12 @@ failure:
 /**
   Save job report $job to $db
 
-  This operation only makes sense if $db is a DB_AGENT.
+  This operation only makes sense if $db is a AGENTDB.
 
   On success, returns 0.
   On failure, returns non-zero.
  */
-int agentdb_store_report(DB *db, struct job *job)
+int agentdb_store_report(struct db *db, struct job *job)
 {
 	const char *j_sql = "INSERT INTO jobs (started_at, ended_at, duration) VALUES (?,?,?)";
 	sqlite3_stmt *j_stmt = NULL;

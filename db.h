@@ -28,25 +28,25 @@
 
 /** Type of database (agent or master) */
 enum db_type {
-	DB_MASTER = 1,
-	DB_AGENT  = 2
+	MASTERDB = 1,
+	AGENTDB  = 2
 };
 
 /**
   Database Handle
  */
-typedef struct {
-	enum db_type db_type; /* what type of db is this? */
-	const char  *path;    /* path to the SQLite3 db file */
-	sqlite3      *db;     /* SQLite3 handle (opaque pointer) */
-} DB;
+struct db {
+	enum db_type   db_type; /* what type of db is this? */
+	const char    *path;    /* path to the SQLite3 db file */
+	sqlite3       *db;      /* SQLite3 handle (opaque pointer) */
+};
 
 /* C integral type used for record primary keys. */
 typedef sqlite3_int64 rowid;
 #define NULL_ROWID (rowid)(-1)
 
-DB* db_open(enum db_type type, const char *path);
-int db_close(DB *db);
+struct db* db_open(enum db_type type, const char *path);
+int db_close(struct db *db);
 
 /* Policy Master tasks:
    create host
@@ -59,8 +59,8 @@ int db_close(DB *db);
    everything else will be done in perl?
    */
 
-rowid masterdb_host(DB *db, const char *host);
-int masterdb_store_report(DB *db, rowid host_id, struct job *job);
-int agentdb_store_report(DB *db, struct job *job);
+rowid masterdb_host(struct db *db, const char *host);
+int masterdb_store_report(struct db *db, rowid host_id, struct job *job);
+int agentdb_store_report(struct db *db, struct job *job);
 
 #endif

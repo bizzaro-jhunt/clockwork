@@ -436,7 +436,7 @@ static int handle_REPORT(worker *w)
 {
 	struct job *job;
 	rowid host_id;
-	DB *db = NULL;
+	struct db *db = NULL;
 
 	if (!w->peer_verified) {
 		WARNING("Unverified peer tried to REPORT");
@@ -449,7 +449,7 @@ static int handle_REPORT(worker *w)
 		return 0;
 	}
 
-	db = db_open(DB_MASTER, w->db_file);
+	db = db_open(MASTERDB, w->db_file);
 	if (!db) {
 		CRITICAL("Unable to open reporting DB");
 		goto failed;

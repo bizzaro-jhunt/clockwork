@@ -38,7 +38,7 @@
   These values represent the different types of protocol data units
   that can be sent between client and server.
  */
-typedef enum {
+enum proto_op {
 	PROTOCOL_OP_ERROR = 1,
 	PROTOCOL_OP_HELLO,
 	PROTOCOL_OP_FACTS,
@@ -50,7 +50,7 @@ typedef enum {
 
 	PROTOCOL_OP_GET_CERT,
 	PROTOCOL_OP_SEND_CERT
-} protocol_op;
+};
 
 /**
   Protocol Data Unit
@@ -59,7 +59,7 @@ typedef enum {
   a request or response sent in either direction.
  */
 typedef struct {
-	protocol_op    op;    /* type of PDU */
+	enum proto_op  op;    /* type of PDU */
 	uint16_t       len;   /* length of PDU paylod */
 	uint8_t       *data;  /* PDU payload */
 } protocol_data_unit;
@@ -86,7 +86,7 @@ typedef struct {
 
 /**********************************************************/
 
-const char* protocol_op_name(protocol_op op);
+const char* protocol_op_name(enum proto_op op);
 
 int protocol_session_init(protocol_session *session, SSL *io);
 int protocol_session_deinit(protocol_session *session);
@@ -105,7 +105,7 @@ int pdu_read(SSL *io, protocol_data_unit *pdu);
 int pdu_write(SSL *io, protocol_data_unit *pdu);
 
 int pdu_receive(protocol_session *session);
-int pdu_send_simple(protocol_session *session, protocol_op op);
+int pdu_send_simple(protocol_session *session, enum proto_op op);
 
 /**
   Send a HELLO PDU to the remote end.

@@ -479,7 +479,7 @@ failed:
 static int handle_unknown(worker *w)
 {
 	char *message;
-	protocol_op op = RECV_PDU(&w->session)->op;
+	enum proto_op op = RECV_PDU(&w->session)->op;
 
 	message = string("Protocol Error: Unrecognized PDU op %s(%u)", protocol_op_name(op), op);
 	WARNING("%s", message);

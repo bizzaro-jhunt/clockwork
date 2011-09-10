@@ -119,7 +119,7 @@ Data: xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx
 	DEBUG("");
 }
 
-int pdu_send_simple(protocol_session *session, protocol_op op)
+int pdu_send_simple(protocol_session *session, enum proto_op op)
 {
 	assert(session); // LCOV_EXCL_LINE
 
@@ -747,7 +747,7 @@ void protocol_ssl_init(void)
 }
 
 /** Get the name of $op.  */
-const char* protocol_op_name(protocol_op op)
+const char* protocol_op_name(enum proto_op op)
 {
 	if (op > protocol_op_max) { return NULL; }
 	return protocol_op_names[op];

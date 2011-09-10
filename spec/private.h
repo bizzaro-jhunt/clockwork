@@ -152,7 +152,7 @@ typedef union {
 typedef void* yyscan_t;
 #endif
 
-/**
+/*
   Set up parser and lexer parameters.
 
   YYPARSE_PARAM contains the name of the user data parameter

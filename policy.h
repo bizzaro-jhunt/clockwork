@@ -93,7 +93,7 @@ struct policy {
 	struct list dependencies; /* resource dependencies (implicit and explicit) */
 
 	struct hash *index;       /* resources, keyed by "TYPE:pkey" */
-}
+};
 
 /* Iterate over a policy's resources */
 #define for_each_resource(r,pol) for_each_node((r),&((pol)->resources), l)

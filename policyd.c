@@ -371,7 +371,7 @@ static int handle_FACTS(worker *w)
 
 static int handle_FILE(worker *w)
 {
-	char hex[SHA1_HEX_DIGEST_SIZE + 1] = {0};
+	char hex[SHA1_HEXLEN] = {0};
 	sha1 checksum;
 	struct resource *res;
 	struct res_file *file, *match;
@@ -382,12 +382,12 @@ static int handle_FILE(worker *w)
 		return 1;
 	}
 
-	if (RECV_PDU(&w->session)->len != SHA1_HEX_DIGEST_SIZE) {
+	if (RECV_PDU(&w->session)->len != SHA1_HEXLEN - 1) {
 		pdu_send_ERROR(&w->session, 400, "Malformed FILE request");
 		return 1;
 	}
 
-	memcpy(hex, RECV_PDU(&w->session)->data, SHA1_HEX_DIGEST_SIZE);
+	memcpy(hex, RECV_PDU(&w->session)->data, SHA1_HEXLEN);
 	sha1_init(&checksum, hex);
 
 	/* Search for the res_file in the policy */

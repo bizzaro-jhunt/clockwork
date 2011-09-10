@@ -28,7 +28,7 @@
 struct command {
 	char       *cmd;
 	size_t      argc;
-	stringlist *args;
+	struct stringlist *args;
 	char       *orig;
 };
 typedef int (*command_fn)(struct command*, int);
@@ -45,7 +45,7 @@ static void set_context(int type, const char *name, struct stree *obj);
 static void clear_policy(void);
 static void make_policy(void);
 static void load_facts_from_path(const char *path);
-static stringlist* hash_keys(struct hash*);
+static struct stringlist* hash_keys(struct hash*);
 static int show_help_file(const char *path);
 static void show_hash_keys(struct hash *h);
 static void show_facts(const char *pattern);
@@ -470,11 +470,11 @@ static void load_facts_from_path(const char *path)
 	fclose(io);
 }
 
-static stringlist *hash_keys(struct hash *h)
+static struct stringlist *hash_keys(struct hash *h)
 {
 	struct hash_cursor cur;
 	char *k, *v;
-	stringlist *l;
+	struct stringlist *l;
 
 	l = stringlist_new(NULL);
 	for_each_key_value(h, &cur, k, v) {
@@ -503,7 +503,7 @@ static int show_help_file(const char *path)
 static void show_hash_keys(struct hash *h)
 {
 	size_t i;
-	stringlist *keys = hash_keys(h);
+	struct stringlist *keys = hash_keys(h);
 
 	stringlist_sort(keys, STRINGLIST_SORT_ASC);
 	if (keys->num == 0) {
@@ -521,7 +521,7 @@ static void show_facts(const char *pattern)
 	size_t i;
 	size_t cmpn = (pattern ? strlen(pattern) : 0);
 
-	stringlist *keys = hash_keys(FACTS);
+	struct stringlist *keys = hash_keys(FACTS);
 	if (keys->num == 0) {
 		INFO("(none defined)");
 		return;
@@ -558,7 +558,7 @@ static void show_policies(void)
 
 static void show_resources(void)
 {
-	stringlist *list;
+	struct stringlist *list;
 	struct resource *r;
 	size_t i;
 	char type[256], *key;
@@ -595,7 +595,7 @@ static void show_resource(const char *type, const char *name)
 	struct resource *r;
 	char *target = string("%s:%s", type, name);
 	struct hash *attrs;
-	stringlist *keys;
+	struct stringlist *keys;
 	size_t i;
 	char *value;
 	size_t maxlen = 0, n;
@@ -725,7 +725,7 @@ static void setup(void)
 
 static int dispatch(const char *c, int interactive)
 {
-	stringlist *commands;
+	struct stringlist *commands;
 	size_t i;
 	int rc = 0, t;
 

@@ -54,7 +54,7 @@
  */
 typedef struct {
 	const char     *fact;         /* Name of fact to test */
-	stringlist     *values;       /* List of values to check */
+	struct stringlist *values;    /* List of values to check */
 	unsigned char   affirmative;  /* see above */
 	struct stree   *then;         /* The 'then' node, used in syntax tree conversion */
 	struct stree   *otherwise;    /* The 'else' node, used in syntax tree conversion */

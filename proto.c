@@ -205,7 +205,7 @@ int pdu_send_FACTS(struct session *session, const struct hash *facts)
 	assert(facts); // LCOV_EXCL_LINE
 
 	struct pdu *pdu = SEND_PDU(session);
-	stringlist *list = stringlist_new(NULL);
+	struct stringlist *list = stringlist_new(NULL);
 	struct hash_cursor cur;
 
 	char *key, *value, kvp[256];
@@ -247,7 +247,7 @@ int pdu_decode_FACTS(struct pdu *pdu, struct hash *facts)
 
 	size_t i;
 
-	stringlist *lines = stringlist_split((char*)pdu->data, pdu->len, "\n", SPLIT_GREEDY);
+	struct stringlist *lines = stringlist_split((char*)pdu->data, pdu->len, "\n", SPLIT_GREEDY);
 	if (!lines) {
 		return -1;
 	}

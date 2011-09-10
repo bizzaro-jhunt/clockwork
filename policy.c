@@ -346,7 +346,7 @@ int fact_write(FILE *io, struct hash *facts)
 	assert(io); // LCOV_EXCL_LINE
 	assert(facts); // LCOV_EXCL_LINE
 
-	stringlist *lines;
+	struct stringlist *lines;
 	char buf[8192] = {0};
 	char *k; void *v;
 	struct hash_cursor cursor;
@@ -671,7 +671,7 @@ char* policy_pack(const struct policy *pol)
 	assert(pol); // LCOV_EXCL_LINE
 
 	char *packed = NULL;
-	stringlist *pack_list;
+	struct stringlist *pack_list;
 	struct resource *r;
 	struct dependency *d;
 
@@ -726,7 +726,7 @@ struct policy* policy_unpack(const char *packed_policy)
 	assert(packed_policy); // LCOV_EXCL_LINE
 
 	struct policy *pol;
-	stringlist *pack_list;
+	struct stringlist *pack_list;
 	char *packed;
 	size_t i;
 

@@ -29,11 +29,11 @@
 #define EXPAND_FACTOR 8
 #define EXPAND_LEN(x) (x / EXPAND_FACTOR + 1) * EXPAND_FACTOR
 
-static int _stringlist_expand(stringlist*, size_t);
-static int _stringlist_reduce(stringlist*);
-static size_t _stringlist_capacity(stringlist*);
+static int _stringlist_expand(struct stringlist*, size_t);
+static int _stringlist_reduce(struct stringlist*);
+static size_t _stringlist_capacity(struct stringlist*);
 
-static int _stringlist_expand(stringlist *sl, size_t expand)
+static int _stringlist_expand(struct stringlist *sl, size_t expand)
 {
 	assert(sl);         // LCOV_EXCL_LINE
 	assert(expand > 0); // LCOV_EXCL_LINE
@@ -54,7 +54,7 @@ static int _stringlist_expand(stringlist *sl, size_t expand)
 }
 
 /* Remove NULL strings from $sl. */
-static int _stringlist_reduce(stringlist *sl)
+static int _stringlist_reduce(struct stringlist *sl)
 {
 	char **ins; char **ptr, **end;
 
@@ -77,7 +77,7 @@ static int _stringlist_reduce(stringlist *sl)
 	return 0;
 }
 
-static size_t _stringlist_capacity(stringlist* sl)
+static size_t _stringlist_capacity(struct stringlist *sl)
 {
 	return sl->len - 1 - sl->num;
 }
@@ -111,12 +111,12 @@ int STRINGLIST_SORT_DESC(const void *a, const void *b)
   On failure, any memory allocated by `stringlist_new` will be
   freed and the NULL will be returned.
  */
-stringlist* stringlist_new(char **src)
+struct stringlist* stringlist_new(char **src)
 {
-	stringlist *sl;
+	struct stringlist *sl;
 	char **t;
 
-	sl = xmalloc(sizeof(stringlist));
+	sl = xmalloc(sizeof(struct stringlist));
 	if (src) {
 		t = src;
 		while (*t++)
@@ -146,19 +146,19 @@ stringlist* stringlist_new(char **src)
   equivalent strings, in different parts of memory.
 
   <code>
-  stringlist *orig = generate_a_list_of_strings()
+  struct stringlist *orig = generate_a_list_of_strings()
 
   // this statement...
-  stringlist *new1 = stringlist_dup(orig);
+  struct stringlist *new1 = stringlist_dup(orig);
 
   // ...is equivalent to this one
-  stringlist *new2 = stringlist_new(orig->strings);
+  struct stringlist *new2 = stringlist_new(orig->strings);
   </code>
 
   On success, a new stringlist that is equivalent to $orig
   is returned.  On failure, NULL is returned.
  */
-stringlist* stringlist_dup(stringlist *orig)
+struct stringlist* stringlist_dup(struct stringlist *orig)
 {
 	return stringlist_new(orig->strings);
 }
@@ -166,7 +166,7 @@ stringlist* stringlist_dup(stringlist *orig)
 /**
   Free the $sl string list.
  */
-void stringlist_free(stringlist *sl)
+void stringlist_free(struct stringlist *sl)
 {
 	size_t i;
 	if (sl) {
@@ -194,7 +194,7 @@ void stringlist_free(stringlist *sl)
 
   **Note:** Sorting is done in-place; $sl *will* be modified.
  */
-void stringlist_sort(stringlist* sl, sl_comparator cmp)
+void stringlist_sort(struct stringlist *sl, sl_comparator cmp)
 {
 	assert(sl);  // LCOV_EXCL_LINE
 	assert(cmp); // LCOV_EXCL_LINE
@@ -213,7 +213,7 @@ void stringlist_sort(stringlist* sl, sl_comparator cmp)
   Example:
 
   <code>
-  stringlist *fruit = stringlist_new(NULL);
+  struct stringlist *fruit = stringlist_new(NULL);
 
   stringlist_add(fruit, "pear");
   stringlist_add(fruit, "banana");
@@ -230,7 +230,7 @@ void stringlist_sort(stringlist* sl, sl_comparator cmp)
 
   **Note:** De-duplication is done in-place; $sl *will* be modified.
  */
-void stringlist_uniq(stringlist *sl)
+void stringlist_uniq(struct stringlist *sl)
 {
 	assert(sl); // LCOV_EXCL_LINE
 
@@ -254,7 +254,7 @@ void stringlist_uniq(stringlist *sl)
   If $needle is found in $list, returns 0.
   Otherwise, returns non-zero.
  */
-int stringlist_search(const stringlist *sl, const char* needle)
+int stringlist_search(const struct stringlist *sl, const char* needle)
 {
 	assert(sl);     // LCOV_EXCL_LINE
 	assert(needle); // LCOV_EXCL_LINE
@@ -273,7 +273,7 @@ int stringlist_search(const stringlist *sl, const char* needle)
 
   On success, returns 0.  On failure, returns non-zero.
  */
-int stringlist_add(stringlist *sl, const char* str)
+int stringlist_add(struct stringlist *sl, const char* str)
 {
 	assert(sl);  // LCOV_EXCL_LINE
 	assert(str); // LCOV_EXCL_LINE
@@ -298,7 +298,7 @@ int stringlist_add(stringlist *sl, const char* str)
   On success, returns 0.  On failure, returns non-zero and $dest is
   unmodified.
  */
-int stringlist_add_all(stringlist *dst, const stringlist *src)
+int stringlist_add_all(struct stringlist *dst, const struct stringlist *src)
 {
 	assert(src); // LCOV_EXCL_LINE
 	assert(dst); // LCOV_EXCL_LINE
@@ -331,7 +331,7 @@ int stringlist_add_all(stringlist *dst, const stringlist *src)
   If $str was found in, and removed from $sl, returns 0.
   Otherwise, returns non-zero.
  */
-int stringlist_remove(stringlist *sl, const char *str)
+int stringlist_remove(struct stringlist *sl, const char *str)
 {
 	assert(sl);  // LCOV_EXCL_LINE
 	assert(str); // LCOV_EXCL_LINE
@@ -369,8 +369,8 @@ int stringlist_remove(stringlist *sl, const char *str)
   occurrence in $src.
 
   <code>
-  stringlist *list = stringlist_new(NULL);
-  stringlist *rm = stringlist_new(NULL);
+  struct stringlist *list = stringlist_new(NULL);
+  struct stringlist *rm = stringlist_new(NULL);
 
   stringlist_add(list, "a");
   stringlist_add(list, "b");
@@ -390,7 +390,7 @@ int stringlist_remove(stringlist *sl, const char *str)
 
   On success, returns 0.  On failure, returns non-zero.
  */
-int stringlist_remove_all(stringlist *dst, stringlist *src)
+int stringlist_remove_all(struct stringlist *dst, struct stringlist *src)
 {
 	assert(src); // LCOV_EXCL_LINE
 	assert(dst); // LCOV_EXCL_LINE
@@ -421,9 +421,9 @@ int stringlist_remove_all(stringlist *dst, stringlist *src)
   On success, returns a new string list containing strings common to
   $a and $b.  On falure, returns NULL.
  */
-stringlist *stringlist_intersect(const stringlist *a, const stringlist *b)
+struct stringlist *stringlist_intersect(const struct stringlist *a, const struct stringlist *b)
 {
-	stringlist *intersect = stringlist_new(NULL);
+	struct stringlist *intersect = stringlist_new(NULL);
 	size_t i, j;
 
 	for_each_string(a,i) {
@@ -444,7 +444,7 @@ stringlist *stringlist_intersect(const stringlist *a, const stringlist *b)
   returns 0.  Otherwise, the two lists are not equivalent, and
   non-zero if returned.
  */
-int stringlist_diff(stringlist* a, stringlist* b)
+int stringlist_diff(struct stringlist *a, struct stringlist *b)
 {
 	assert(a); // LCOV_EXCL_LINE
 	assert(b); // LCOV_EXCL_LINE
@@ -470,7 +470,7 @@ int stringlist_diff(stringlist* a, stringlist* b)
 
   Examples:
   <code>
-  stringlist *l = stringlist_new(NULL);
+  struct stringlist *l = stringlist_new(NULL);
   stringlist_add(l, "red");
   stringlist_add(l, "green");
   stringlist_add(l, "blue");
@@ -488,7 +488,7 @@ int stringlist_diff(stringlist* a, stringlist* b)
   $list, separated by $delim, or NULL on failure.  The returned pointer
   must be freed by the caller, using `free(3)`.
  */
-char* stringlist_join(stringlist *list, const char *delim)
+char* stringlist_join(struct stringlist *list, const char *delim)
 {
 	assert(list);  // LCOV_EXCL_LINE
 	assert(delim); // LCOV_EXCL_LINE
@@ -538,15 +538,15 @@ char* stringlist_join(stringlist *list, const char *delim)
   Examples:
 
   <code>
-  stringlist *l = stringlist_split("one::two::three", 15, "::", 0);
+  struct stringlist *l = stringlist_split("one::two::three", 15, "::", 0);
   // List l now contains three strings: 'one', 'two', and 'three'
   </code>
 
   On success, returns a new stringlist.  On failure, returns NULL.
  */
-stringlist* stringlist_split(const char *str, size_t len, const char *delim, int opt)
+struct stringlist* stringlist_split(const char *str, size_t len, const char *delim, int opt)
 {
-	stringlist *list = stringlist_new(NULL);
+	struct stringlist *list = stringlist_new(NULL);
 	const char *a, *b, *end = str + len;
 	size_t delim_len = strlen(delim);
 	char *item;

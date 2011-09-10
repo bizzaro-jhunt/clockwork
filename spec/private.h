@@ -52,11 +52,11 @@
   string list, 'otherwise' is followed.  If not, 'then' is followed.
  */
 typedef struct {
-	char           *fact;         /* Name of fact to test */
-	stringlist     *values;       /* List of values to check */
-	unsigned char   affirmative;  /* see above */
-	struct stree   *then;         /* The 'then' node, used in syntax tree conversion */
-	struct stree   *otherwise;    /* The 'else' node, used in syntax tree conversion */
+	char              *fact;        /* Name of fact to test */
+	struct stringlist *values;      /* List of values to check */
+	unsigned char      affirmative; /* see above */
+	struct stree      *then;        /* The 'then' node, used in syntax tree conversion */
+	struct stree      *otherwise;   /* The 'else' node, used in syntax tree conversion */
 } parser_branch;
 
 /**
@@ -77,8 +77,8 @@ typedef struct {
 	char           *fact;          /* Name of fact to test */
 	char           *attribute;     /* Name of attribute to set */
 
-	stringlist     *fact_values;   /* List of values to check */
-	stringlist     *attr_values;   /* List of values to set attribute to */
+	struct stringlist     *fact_values;   /* List of values to check */
+	struct stringlist     *attr_values;   /* List of values to set attribute to */
 
 	char           *default_value; /* Default value (else clause) for attribute */
 } parser_map;
@@ -120,30 +120,30 @@ typedef struct {
   policy generators and host definitions found while parsing.
  */
 typedef struct {
-	void *scanner;         /* lexer variable store; used instead of globals */
+	void              *scanner;  /* lexer variable store; used instead of globals */
 
-	unsigned int warnings; /* Number of times spec_parser_warning called */
-	unsigned int errors;   /* Number of times spec_parser_error called */
+	unsigned int       warnings; /* Number of times spec_parser_warning called */
+	unsigned int       errors;   /* Number of times spec_parser_error called */
 
-	const char *file;      /* Name of the current file being parsed */
-	stringlist *files;     /* "Stack" of file names processed so far */
-	struct list fseen;     /* List of device ID / inode pairs already include'd */
+	const char        *file;     /* Name of the current file being parsed */
+	struct stringlist *files;    /* "Stack" of file names processed so far */
+	struct list        fseen;    /* List of device ID / inode pairs already include'd */
 
 	struct manifest *root;
 } spec_parser_context;
 
 #define YY_EXTRA_TYPE spec_parser_context*
 typedef union {
-	char           *string;
-	stringlist     *strings;
-	stringlist     *string_hash[2];
-	char           *string_pair[2];
+	char              *string;
+	struct stringlist *strings;
+	struct stringlist *string_hash[2];
+	char              *string_pair[2];
 
-	struct stree    *stree;
-	struct manifest *manifest;
+	struct stree      *stree;
+	struct manifest   *manifest;
 
-	parser_branch  *branch;
-	parser_map     *map;
+	parser_branch     *branch;
+	parser_map        *map;
 } YYSTYPE;
 #define YYSTYPE_IS_DECLARED 1
 

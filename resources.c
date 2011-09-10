@@ -37,7 +37,7 @@
 static int _res_user_populate_home(const char *home, const char *skel, uid_t uid, gid_t gid);
 static int _res_file_gen_rsha1(struct res_file *rf, struct hash *facts);
 static int _res_file_fd2fd(int dest, int src, ssize_t bytes);
-static int _group_update(stringlist*, stringlist*, const char*);
+static int _group_update(struct stringlist*, struct stringlist*, const char*);
 static char* _sysctl_path(const char *param);
 static int _sysctl_read(const char *param, char **value);
 static int _sysctl_write(const char *param, const char *value);
@@ -142,7 +142,7 @@ static int _res_file_gen_rsha1(struct res_file *rf, struct hash *facts)
 	return 0;
 }
 
-static int _group_update(stringlist *add, stringlist *rm, const char *user)
+static int _group_update(struct stringlist *add, struct stringlist *rm, const char *user)
 {
 	/* put user in add */
 	if (stringlist_search(add, user) != 0) {
@@ -1393,7 +1393,7 @@ char* res_group_key(const void *res)
 	return string("group:%s", rg->key);
 }
 
-static char* _res_group_roster_mv(stringlist *add, stringlist *rm)
+static char* _res_group_roster_mv(struct stringlist *add, struct stringlist *rm)
 {
 	char *added   = NULL;
 	char *removed = NULL;
@@ -1454,7 +1454,7 @@ int res_group_set(void *res, const char *name, const char *value)
 	struct res_group *rg = (struct res_group*)(res);
 
 	/* for multi-value attributes */
-	stringlist *multi;
+	struct stringlist *multi;
 	size_t i;
 
 	assert(rg); // LCOV_EXCL_LINE
@@ -1623,7 +1623,7 @@ int res_group_remove_admin(struct res_group *rg, const char *user)
 int res_group_stat(void *res, const struct resource_env *env)
 {
 	struct res_group *rg = (struct res_group*)(res);
-	stringlist *list;
+	struct stringlist *list;
 
 	assert(rg); // LCOV_EXCL_LINE
 	assert(env); // LCOV_EXCL_LINE
@@ -1704,9 +1704,9 @@ struct report* res_group_fixup(void *res, int dryrun, const struct resource_env 
 	char *action;
 
 	int new_group = 0;
-	stringlist *orig;
-	stringlist *to_add;
-	stringlist *to_remove;
+	struct stringlist *orig;
+	struct stringlist *to_add;
+	struct stringlist *to_remove;
 
 	report = report_new("Group", rg->rg_name);
 
@@ -2419,7 +2419,7 @@ int res_host_set(void *res, const char *name, const char *value)
 {
 	struct res_host *rh = (struct res_host*)(res);
 	assert(rh); // LCOV_EXCL_LINE
-	stringlist *alias_tmp;
+	struct stringlist *alias_tmp;
 
 	if (streq(name, "hostname")) {
 		free(rh->hostname);
@@ -2484,7 +2484,7 @@ int res_host_stat(void *res, const struct resource_env *env)
 	char *tmp, **results;
 	const char *value;
 	int rc, i;
-	stringlist *real_aliases = NULL;
+	struct stringlist *real_aliases = NULL;
 
 	rh->different = 0;
 	xfree(rh->aug_root);

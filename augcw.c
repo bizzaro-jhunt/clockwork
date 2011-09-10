@@ -75,9 +75,9 @@ void augcw_errors(augeas* au)
 	free(results);
 }
 
-stringlist* augcw_getm(augeas *au, const char *pathexpr)
+struct stringlist* augcw_getm(augeas *au, const char *pathexpr)
 {
-	stringlist *values;
+	struct stringlist *values;
 	int rc, i;
 	char **results;
 	const char *value;

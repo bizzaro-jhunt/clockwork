@@ -20,7 +20,7 @@
 #include "test.h"
 #include "assertions.h"
 
-void assert_stringlist(stringlist *sl, const char *name, size_t n, ...)
+void assert_stringlist(struct stringlist *sl, const char *name, size_t n, ...)
 {
 	va_list args;
 	size_t i;

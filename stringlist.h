@@ -41,7 +41,7 @@
 
   <code>
   // allocate a new, empty stringlist
-  stringlist *lst = stringlist_new(NULL);
+  struct stringlist *lst = stringlist_new(NULL);
 
   // do something interesting with the list...
   stringlist_add(fruit, "pear");
@@ -60,7 +60,7 @@
   <code>
   int main(int argc, char **argv)
   {
-    stringlist *args = stringlist_new(argv)
+    struct stringlist *args = stringlist_new(argv)
 
     // ....
   }
@@ -68,11 +68,11 @@
 
   It is not possible to set up a stringlist allocated on the stack.
  */
-typedef struct {
+struct stringlist {
 	size_t   num;      /* number of actual strings */
 	size_t   len;      /* number of memory slots for strings */
 	char   **strings;  /* array of NULL-terminated strings */
-} stringlist;
+};
 
 /**
   Callback function signature for sort comparisons.
@@ -91,19 +91,19 @@ int STRINGLIST_SORT_DESC(const void *a, const void *b);
 #define SPLIT_NORMAL  0x00
 #define SPLIT_GREEDY  0x01
 
-stringlist* stringlist_new(char** src);
-stringlist* stringlist_dup(stringlist *orig);
-void stringlist_free(stringlist *list);
-void stringlist_sort(stringlist *list, sl_comparator cmp);
-void stringlist_uniq(stringlist *list);
-int stringlist_search(const stringlist *list, const char *needle);
-int stringlist_add(stringlist *list, const char *value);
-int stringlist_add_all(stringlist *dst, const stringlist *src);
-int stringlist_remove(stringlist *list, const char *value);
-int stringlist_remove_all(stringlist *dst, stringlist *src);
-stringlist *stringlist_intersect(const stringlist *a, const stringlist *b);
-int stringlist_diff(stringlist *a, stringlist *b);
-char* stringlist_join(stringlist *list, const char *delim);
-stringlist* stringlist_split(const char *str, size_t len, const char *delim, int opt);
+struct stringlist* stringlist_new(char** src);
+struct stringlist* stringlist_dup(struct stringlist *orig);
+void stringlist_free(struct stringlist *list);
+void stringlist_sort(struct stringlist *list, sl_comparator cmp);
+void stringlist_uniq(struct stringlist *list);
+int stringlist_search(const struct stringlist *list, const char *needle);
+int stringlist_add(struct stringlist *list, const char *value);
+int stringlist_add_all(struct stringlist *dst, const struct stringlist *src);
+int stringlist_remove(struct stringlist *list, const char *value);
+int stringlist_remove_all(struct stringlist *dst, struct stringlist *src);
+struct stringlist* stringlist_intersect(const struct stringlist *a, const struct stringlist *b);
+int stringlist_diff(struct stringlist *a, struct stringlist *b);
+char* stringlist_join(struct stringlist *list, const char *delim);
+struct stringlist* stringlist_split(const char *str, size_t len, const char *delim, int opt);
 
 #endif /* STRINGLIST_H */

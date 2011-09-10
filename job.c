@@ -124,7 +124,7 @@ char* job_pack(const struct job *job)
 	struct report *report = NULL;
 	struct action *action = NULL;
 	char *packed;
-	stringlist *pack_list;
+	struct stringlist *pack_list;
 
 	pack_list = stringlist_new(NULL);
 	if (!pack_list) {
@@ -184,7 +184,7 @@ struct job* job_unpack(const char *packed_job)
 	struct report *report = NULL;
 	struct action *action = NULL;
 
-	stringlist *pack_list;
+	struct stringlist *pack_list;
 	char *packed;
 	size_t i;
 

@@ -744,7 +744,7 @@ void test_res_group_enforcement()
 void test_res_group_diffstat_fixup()
 {
 	struct res_group *rg;
-	stringlist *list; /* for gr_mem / sg_mem / sg_adm tests */
+	struct stringlist *list; /* for gr_mem / sg_mem / sg_adm tests */
 	struct report *report;
 	struct resource_env env;
 

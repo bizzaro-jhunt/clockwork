@@ -21,7 +21,7 @@
 #include <stdio.h>
 #include <string.h>
 
-static parser_branch* branch_new(char *fact, stringlist *values, unsigned char affirmative)
+static parser_branch* branch_new(char *fact, struct stringlist *values, unsigned char affirmative)
 {
 	parser_branch *branch;
 
@@ -78,7 +78,7 @@ static struct stree* branch_expand(struct manifest *m, parser_branch *branch)
 	return top;
 }
 
-static parser_map* map_new(char *fact, char *attr, stringlist *fact_values, stringlist *attr_values, char *default_value)
+static parser_map* map_new(char *fact, char *attr, struct stringlist *fact_values, struct stringlist *attr_values, char *default_value)
 {
 	parser_map *map;
 

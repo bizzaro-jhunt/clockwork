@@ -32,7 +32,7 @@
 /**
   A Client-side Interaction
  */
-typedef struct {
+struct client {
 	BIO *socket;               /* IO stream for policy master */
 	SSL *ssl;                  /* SSL connection parameters */
 	SSL_CTX *ssl_ctx;
@@ -56,13 +56,13 @@ typedef struct {
 
 	char *s_address;           /* address of policy master */
 	char *s_port;              /* TCP port of policy master */
-} client;
+};
 
-int client_options(client *args);
+int client_options(struct client *args);
 
-int client_connect(client *c);
-int client_hello(client *c);
-int client_bye(client *c);
-int client_disconnect(client *c);
+int client_connect(struct client *c);
+int client_hello(struct client *c);
+int client_bye(struct client *c);
+int client_disconnect(struct client *c);
 
 #endif

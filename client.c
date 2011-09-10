@@ -23,7 +23,7 @@
 
 /**************************************************************/
 
-static client default_options = {
+static struct client default_options = {
 	.log_level   = LOG_LEVEL_ERROR,
 	.mode        = 0,
 
@@ -44,18 +44,18 @@ static client default_options = {
 
 /**************************************************************/
 
-static client* configured_options(const char *path);
-static int merge_clients(client *a, client *b);
+static struct client* configured_options(const char *path);
+static int merge_clients(struct client *a, struct client *b);
 
 /**************************************************************/
 
-static client* configured_options(const char *path)
+static struct client* configured_options(const char *path)
 {
-	client *c;
+	struct client *c;
 	struct hash *config;
 	char *v;
 
-	c = xmalloc(sizeof(client));
+	c = xmalloc(sizeof(struct client));
 
 	config = parse_config(path);
 	if (config) {
@@ -113,7 +113,7 @@ static client* configured_options(const char *path)
 		a->opt = strdup(b->opt);\
 	}\
 } while(0)
-static int merge_clients(client *a, client *b)
+static int merge_clients(struct client *a, struct client *b)
 {
 	MERGE_STRING_OPTION(a,b,config_file);
 	MERGE_STRING_OPTION(a,b,ca_cert_file);
@@ -132,9 +132,9 @@ static int merge_clients(client *a, client *b)
 
 /**************************************************************/
 
-int client_options(client *args)
+int client_options(struct client *args)
 {
-	client *cfg;
+	struct client *cfg;
 	cfg = configured_options(args->config_file ? args->config_file : default_options.config_file);
 
 	if (merge_clients(args, cfg) != 0
@@ -146,7 +146,7 @@ int client_options(client *args)
 	return 0;
 }
 
-int client_connect(client *c)
+int client_connect(struct client *c)
 {
 	char *addr;
 	long err;
@@ -221,7 +221,7 @@ failed:
 	return -1;
 }
 
-int client_hello(client *c)
+int client_hello(struct client *c)
 {
 	if (pdu_send_HELLO(&c->session) < 0) { exit(1); }
 
@@ -244,14 +244,14 @@ int client_hello(client *c)
 	return 0;
 }
 
-int client_bye(client *c)
+int client_bye(struct client *c)
 {
 	pdu_send_BYE(&c->session);
 	client_disconnect(c);
 	return 0;
 }
 
-int client_disconnect(client *c)
+int client_disconnect(struct client *c)
 {
 	protocol_session_deinit(&c->session);
 

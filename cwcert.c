@@ -48,12 +48,12 @@
 
 struct cwcert_opts {
 	char *command;
-	client *config;
+	struct client *config;
 };
 
 struct cwcert_opts* cwcert_options(int argc, char **argv);
 
-static int negotiate_certificate(client *c, X509_REQ *csr);
+static int negotiate_certificate(struct client *c, X509_REQ *csr);
 
 static int cwcert_help_main(const struct cwcert_opts *args);
 static int cwcert_details_main(const struct cwcert_opts *args);
@@ -115,7 +115,7 @@ struct cwcert_opts* cwcert_options(int argc, char **argv)
 
 	args = xmalloc(sizeof(struct cwcert_opts));
 	args->command = strdup("help");
-	args->config  = xmalloc(sizeof(client));
+	args->config  = xmalloc(sizeof(struct client));
 	args->config->mode = CLIENT_MODE_ONLINE;
 
 	while ( (opt = getopt_long(argc, argv, short_opts, long_opts, &idx)) != -1) {
@@ -154,7 +154,7 @@ struct cwcert_opts* cwcert_options(int argc, char **argv)
 	return args;
 }
 
-static int negotiate_certificate(client *c, X509_REQ *csr)
+static int negotiate_certificate(struct client *c, X509_REQ *csr)
 {
 	X509 *cert = NULL;
 

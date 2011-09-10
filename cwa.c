@@ -35,25 +35,25 @@
 #include "augcw.h"
 #include "db.h"
 
-static client* cwa_options(int argc, char **argv);
+static struct client* cwa_options(int argc, char **argv);
 static void show_help(void);
 
 static int gather_facts_from_script(const char *script, struct hash *facts);
-static int gather_facts(client *c);
-static int get_policy(client *c);
+static int gather_facts(struct client *c);
+static int get_policy(struct client *c);
 static int get_file(struct session *session, struct SHA1 *checksum, int fd);
-static int enforce_policy(client *c, struct job *job);
+static int enforce_policy(struct client *c, struct job *job);
 static int autodetect_managers(struct resource_env *env, const struct hash *facts);
 static void print_report(FILE *io, struct report *r);
 static int print_summary(FILE *io, struct job *job);
-static int send_report(client *c, struct job *job);
-static int save_report(client *c, struct job *job);
+static int send_report(struct client *c, struct job *job);
+static int save_report(struct client *c, struct job *job);
 
 /**************************************************************/
 
 int main(int argc, char **argv)
 {
-	client *c;
+	struct client *c;
 	struct job *job;
 
 	c = cwa_options(argc, argv);
@@ -107,9 +107,9 @@ int main(int argc, char **argv)
 
 /**************************************************************/
 
-static client* cwa_options(int argc, char **argv)
+static struct client* cwa_options(int argc, char **argv)
 {
-	client *c;
+	struct client *c;
 
 	const char *short_opts = "h?c:s:p:nvqF";
 	struct option long_opts[] = {
@@ -126,7 +126,7 @@ static client* cwa_options(int argc, char **argv)
 
 	int opt, idx = 0;
 
-	c = xmalloc(sizeof(client));
+	c = xmalloc(sizeof(struct client));
 
 	while ( (opt = getopt_long(argc, argv, short_opts, long_opts, &idx)) != -1) {
 		switch(opt) {
@@ -228,7 +228,7 @@ static int gather_facts_from_script(const char *script, struct hash *facts)
 	}
 }
 
-static int gather_facts(client *c)
+static int gather_facts(struct client *c)
 {
 	glob_t scripts;
 	size_t i;
@@ -263,7 +263,7 @@ static int gather_facts(client *c)
 	return 0;
 }
 
-static int get_policy(client *c)
+static int get_policy(struct client *c)
 {
 	if (pdu_send_FACTS(&c->session, c->facts) < 0) { goto disconnect; }
 
@@ -314,7 +314,7 @@ static int get_file(struct session *session, struct SHA1 *checksum, int fd)
 	return bytes;
 }
 
-static int enforce_policy(client *c, struct job *job)
+static int enforce_policy(struct client *c, struct job *job)
 {
 	struct resource_env env;
 	struct resource *res;
@@ -500,7 +500,7 @@ static int print_summary(FILE *io, struct job *job)
 	return 0;
 }
 
-static int send_report(client *c, struct job *job)
+static int send_report(struct client *c, struct job *job)
 {
 	if (pdu_send_REPORT(&c->session, job) < 0) { goto disconnect; }
 	if (pdu_receive(&c->session) < 0) {
@@ -521,7 +521,7 @@ disconnect:
 	exit(1);
 }
 
-static int save_report(client *c, struct job *job)
+static int save_report(struct client *c, struct job *job)
 {
 	struct db *db;
 	db = db_open(AGENTDB, c->db_file);

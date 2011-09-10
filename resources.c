@@ -226,7 +226,7 @@ static int _sysctl_write(const char *param, const char *value)
 
 static int _mkdir_p(const char *s)
 {
-	PATH *p;
+	struct path *p;
 	struct stat st;
 	memset(&st, 0, sizeof(struct stat));
 
@@ -269,7 +269,7 @@ static int _mkdir_c(const char *s)
 
 static int _setup_path_deps(const char *key, const char *spath, struct policy *pol)
 {
-	PATH *p;
+	struct path *p;
 	struct dependency *dep;
 	struct resource *dir;
 

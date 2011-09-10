@@ -20,25 +20,19 @@
 #include "clockwork.h"
 #include "path.h"
 
-struct cw_path {
-	char *buf;
-	ssize_t n;
-	size_t len;
-};
-
-PATH* path_new(const char *s)
+struct path* path_new(const char *s)
 {
-	PATH *p;
+	struct path *p;
 	if (!s) { return NULL; }
 
-	p = xmalloc(sizeof(PATH));
+	p = xmalloc(sizeof(struct path));
 	p->n = p->len = strlen(s);
 	p->buf = xmalloc((p->len+2) * sizeof(char));
 	memcpy(p->buf, s, p->len);
 	return p;
 }
 
-void path_free(PATH *p)
+void path_free(struct path *p)
 {
 	if (p) {
 		free(p->buf);
@@ -46,12 +40,12 @@ void path_free(PATH *p)
 	free(p);
 }
 
-const char *path(PATH *p)
+const char *path(struct path *p)
 {
 	return p->buf;
 }
 
-int path_canon(PATH *p)
+int path_canon(struct path *p)
 {
 	char *s, *a, *b, *end;
 	if (p->len == 0) { return 0; }
@@ -91,7 +85,7 @@ int path_canon(PATH *p)
 	return 0;
 }
 
-int path_push(PATH *p)
+int path_push(struct path *p)
 {
 	char *s = p->buf;
 	while (*(++s))
@@ -101,7 +95,7 @@ int path_push(PATH *p)
 	return *s;
 }
 
-int path_pop(PATH *p)
+int path_pop(struct path *p)
 {
 	char *s;
 	for (s = p->buf + p->n; s > p->buf; s--, p->n--) {

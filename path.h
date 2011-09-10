@@ -20,13 +20,17 @@
 #ifndef _PATH_H
 #define _PATH_H
 
-typedef struct cw_path PATH;
+struct path {
+	char     *buf;
+	ssize_t   n;
+	size_t    len;
+};
 
-PATH* path_new(const char *path);
-void path_free(PATH *path);
-const char *path(PATH *path);
-int path_canon(PATH *path);
-int path_push(PATH *path);
-int path_pop(PATH *path);
+struct path* path_new(const char *path);
+void path_free(struct path *path);
+const char *path(struct path *path);
+int path_canon(struct path *path);
+int path_push(struct path *path);
+int path_pop(struct path *path);
 
 #endif

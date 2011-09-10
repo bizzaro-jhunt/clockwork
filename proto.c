@@ -46,7 +46,7 @@ static const char *protocol_op_names[] = {
 };
 #define protocol_op_max 10
 
-static int pdu_allocate(protocol_data_unit *pdu, uint16_t op, uint16_t len)
+static int pdu_allocate(struct pdu *pdu, uint16_t op, uint16_t len)
 {
 	assert(pdu); // LCOV_EXCL_LINE
 
@@ -59,7 +59,7 @@ static int pdu_allocate(protocol_data_unit *pdu, uint16_t op, uint16_t len)
 	return 0;
 }
 
-static void pdu_deallocate(protocol_data_unit *pdu)
+static void pdu_deallocate(struct pdu *pdu)
 {
 	assert(pdu); // LCOV_EXCL_LINE
 
@@ -67,7 +67,7 @@ static void pdu_deallocate(protocol_data_unit *pdu)
 	pdu->data = NULL;
 }
 
-static void pdu_dump(protocol_data_unit *pdu)
+static void pdu_dump(struct pdu *pdu)
 {
 	assert(pdu); // LCOV_EXCL_LINE
 
@@ -144,7 +144,7 @@ int pdu_send_ERROR(protocol_session *session, uint16_t err_code, const char *str
 	assert(session); // LCOV_EXCL_LINE
 
 	size_t len = strlen(str);
-	protocol_data_unit *pdu = SEND_PDU(session);
+	struct pdu *pdu = SEND_PDU(session);
 
 
 	DEBUG("SEND ERROR (op:%u) - %u %s", PROTOCOL_OP_ERROR, err_code, str);
@@ -167,7 +167,7 @@ int pdu_send_ERROR(protocol_session *session, uint16_t err_code, const char *str
 
   On success, returns zero.  On failure, returns non-zero.
  */
-int pdu_decode_ERROR(protocol_data_unit *pdu, uint16_t *err_code, uint8_t **str, size_t *len)
+int pdu_decode_ERROR(struct pdu *pdu, uint16_t *err_code, uint8_t **str, size_t *len)
 {
 	assert(pdu); // LCOV_EXCL_LINE
 	assert(pdu->op == PROTOCOL_OP_ERROR); // LCOV_EXCL_LINE
@@ -204,7 +204,7 @@ int pdu_send_FACTS(protocol_session *session, const struct hash *facts)
 	assert(session); // LCOV_EXCL_LINE
 	assert(facts); // LCOV_EXCL_LINE
 
-	protocol_data_unit *pdu = SEND_PDU(session);
+	struct pdu *pdu = SEND_PDU(session);
 	stringlist *list = stringlist_new(NULL);
 	struct hash_cursor cur;
 
@@ -239,7 +239,7 @@ int pdu_send_FACTS(protocol_session *session, const struct hash *facts)
 
   On success, returns zero.  On failure, returns non-zero.
  */
-int pdu_decode_FACTS(protocol_data_unit *pdu, struct hash *facts)
+int pdu_decode_FACTS(struct pdu *pdu, struct hash *facts)
 {
 	assert(pdu); // LCOV_EXCL_LINE
 	assert(pdu->op == PROTOCOL_OP_FACTS); // LCOV_EXCL_LINE
@@ -273,7 +273,7 @@ int pdu_send_POLICY(protocol_session *session, const struct policy *policy)
 	assert(session); // LCOV_EXCL_LINE
 	assert(policy); // LCOV_EXCL_LINE
 
-	protocol_data_unit *pdu = SEND_PDU(session);
+	struct pdu *pdu = SEND_PDU(session);
 	char *packed;
 	size_t len;
 
@@ -296,7 +296,7 @@ int pdu_send_POLICY(protocol_session *session, const struct policy *policy)
 	return pdu_write(session->io, pdu);
 }
 
-int pdu_decode_POLICY(protocol_data_unit *pdu, struct policy **policy)
+int pdu_decode_POLICY(struct pdu *pdu, struct policy **policy)
 {
 	assert(pdu); // LCOV_EXCL_LINE
 	assert(pdu->op == PROTOCOL_OP_POLICY); // LCOV_EXCL_LINE
@@ -324,7 +324,7 @@ int pdu_send_FILE(protocol_session *session, sha1 *checksum)
 	assert(session); // LCOV_EXCL_LINE
 	assert(checksum); // LCOV_EXCL_LINE
 
-	protocol_data_unit *pdu = SEND_PDU(session);
+	struct pdu *pdu = SEND_PDU(session);
 
 	if (pdu_allocate(pdu, PROTOCOL_OP_FILE, SHA1_HEXLEN-1) < 0) {
 		return -1;
@@ -355,7 +355,7 @@ int pdu_send_DATA(protocol_session *session, int srcfd, const char *data)
 	assert(session); // LCOV_EXCL_LINE
 	assert(srcfd >= 0 || data); // LCOV_EXCL_LINE
 
-	protocol_data_unit *pdu = SEND_PDU(session);
+	struct pdu *pdu = SEND_PDU(session);
 
 	char chunk[FILE_DATA_BLOCK_SIZE] = {0};
 	size_t len = 0, nread = 0;
@@ -404,7 +404,7 @@ int pdu_send_GET_CERT(protocol_session *session, X509_REQ *csr)
 	assert(session); // LCOV_EXCL_LINE
 	assert(csr); // LCOV_EXCL_LINE
 
-	protocol_data_unit *pdu = SEND_PDU(session);
+	struct pdu *pdu = SEND_PDU(session);
 	BIO *bio;
 	char *raw_csr = NULL;
 	size_t len;
@@ -442,7 +442,7 @@ int pdu_send_GET_CERT(protocol_session *session, X509_REQ *csr)
 
   On success, returns.  On failure, returns non-zero.
  */
-int pdu_decode_GET_CERT(protocol_data_unit *pdu, X509_REQ **csr)
+int pdu_decode_GET_CERT(struct pdu *pdu, X509_REQ **csr)
 {
 	assert(pdu); // LCOV_EXCL_LINE
 	assert(pdu->op == PROTOCOL_OP_GET_CERT); // LCOV_EXCL_LINE
@@ -478,7 +478,7 @@ int pdu_send_SEND_CERT(protocol_session *session, X509 *cert)
 {
 	assert(session); // LCOV_EXCL_LINE
 
-	protocol_data_unit *pdu = SEND_PDU(session);
+	struct pdu *pdu = SEND_PDU(session);
 	BIO *bio;
 	char *raw_cert = NULL;
 	size_t len;
@@ -525,7 +525,7 @@ int pdu_send_SEND_CERT(protocol_session *session, X509 *cert)
 
   On succes, returns 0.  On failure, returns non-zero.
  */
-int pdu_decode_SEND_CERT(protocol_data_unit *pdu, X509 **cert)
+int pdu_decode_SEND_CERT(struct pdu *pdu, X509 **cert)
 {
 	assert(pdu); // LCOV_EXCL_LINE
 	assert(pdu->op == PROTOCOL_OP_SEND_CERT); // LCOV_EXCL_LINE
@@ -567,7 +567,7 @@ int pdu_send_REPORT(protocol_session *session, struct job *job)
 	assert(session); // LCOV_EXCL_LINE
 	assert(job); // LCOV_EXCL_LINE
 
-	protocol_data_unit *pdu = SEND_PDU(session);
+	struct pdu *pdu = SEND_PDU(session);
 	char *packed;
 	size_t len;
 
@@ -595,7 +595,7 @@ int pdu_send_REPORT(protocol_session *session, struct job *job)
 
   On success, returns 0.  On failure, returns non-zero.
  */
-int pdu_decode_REPORT(protocol_data_unit *pdu, struct job **job)
+int pdu_decode_REPORT(struct pdu *pdu, struct job **job)
 {
 	assert(pdu); // LCOV_EXCL_LINE
 	assert(pdu->op == PROTOCOL_OP_REPORT); // LCOV_EXCL_LINE
@@ -615,7 +615,7 @@ int pdu_decode_REPORT(protocol_data_unit *pdu, struct job **job)
   On success, returns 0.  On failure, returns non-zero,
   and the contents of $pdu is undefined.
  */
-int pdu_read(SSL *io, protocol_data_unit *pdu)
+int pdu_read(SSL *io, struct pdu *pdu)
 {
 	assert(io); // LCOV_EXCL_LINE
 	assert(pdu); // LCOV_EXCL_LINE
@@ -656,7 +656,7 @@ int pdu_read(SSL *io, protocol_data_unit *pdu)
 
   On success, returns 0.  On failure, returns non-zero.
  */
-int pdu_write(SSL *io, protocol_data_unit *pdu)
+int pdu_write(SSL *io, struct pdu *pdu)
 {
 	assert(io); // LCOV_EXCL_LINE
 	assert(pdu); // LCOV_EXCL_LINE
@@ -705,7 +705,7 @@ int pdu_receive(protocol_session *session)
 {
 	assert(session); // LCOV_EXCL_LINE
 
-	protocol_data_unit *pdu = RECV_PDU(session);
+	struct pdu *pdu = RECV_PDU(session);
 	int rc;
 
 	rc = pdu_read(session->io, pdu);
@@ -766,8 +766,8 @@ int protocol_session_init(protocol_session *session, SSL *io)
 {
 	session->io = io;
 
-	memset(SEND_PDU(session), 0, sizeof(protocol_data_unit));
-	memset(RECV_PDU(session), 0, sizeof(protocol_data_unit));
+	memset(SEND_PDU(session), 0, sizeof(struct pdu));
+	memset(RECV_PDU(session), 0, sizeof(struct pdu));
 
 	session->errnum = 0;
 	session->errstr = NULL;
@@ -790,10 +790,10 @@ int protocol_session_deinit(protocol_session *session)
 	session->io = NULL;
 
 	pdu_deallocate(SEND_PDU(session));
-	memset(SEND_PDU(session), 0, sizeof(protocol_data_unit));
+	memset(SEND_PDU(session), 0, sizeof(struct pdu));
 
 	pdu_deallocate(RECV_PDU(session));
-	memset(RECV_PDU(session), 0, sizeof(protocol_data_unit));
+	memset(RECV_PDU(session), 0, sizeof(struct pdu));
 
 	session->errnum = 0;
 	free(session->errstr);

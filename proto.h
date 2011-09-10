@@ -58,11 +58,11 @@ enum proto_op {
   Represents an individual data unit, which corresponds to
   a request or response sent in either direction.
  */
-typedef struct {
+struct pdu {
 	enum proto_op  op;    /* type of PDU */
 	uint16_t       len;   /* length of PDU paylod */
 	uint8_t       *data;  /* PDU payload */
-} protocol_data_unit;
+};
 
 /**
   Protocol Session
@@ -74,11 +74,11 @@ typedef struct {
 typedef struct {
 	SSL *io;  /* OpenSSL IO stream to read from / write to */
 
-	protocol_data_unit send_pdu; /* PDU to send to remote end */
-	protocol_data_unit recv_pdu; /* PDU recived from remote end */
+	struct pdu     send_pdu; /* PDU to send to remote end */
+	struct pdu     recv_pdu; /* PDU recived from remote end */
 
-	uint16_t errnum;        /* last error code recieved */
-	unsigned char *errstr;  /* last error message received */
+	uint16_t       errnum;   /* last error code recieved */
+	unsigned char *errstr;   /* last error message received */
 } protocol_session;
 
 #define SEND_PDU(session_ptr) (&(session_ptr)->send_pdu)
@@ -101,8 +101,8 @@ void protocol_ssl_backtrace(void);
 
 /**********************************************************/
 
-int pdu_read(SSL *io, protocol_data_unit *pdu);
-int pdu_write(SSL *io, protocol_data_unit *pdu);
+int pdu_read(SSL *io, struct pdu *pdu);
+int pdu_write(SSL *io, struct pdu *pdu);
 
 int pdu_receive(protocol_session *session);
 int pdu_send_simple(protocol_session *session, enum proto_op op);
@@ -130,11 +130,11 @@ int pdu_send_GET_CERT(protocol_session *session, X509_REQ  *csr);
 int pdu_send_SEND_CERT(protocol_session *session, X509  *cert);
 int pdu_send_REPORT(protocol_session *session, struct job *job);
 
-int pdu_decode_ERROR(protocol_data_unit *pdu, uint16_t *err_code, uint8_t **str, size_t *len);
-int pdu_decode_FACTS(protocol_data_unit *pdu, struct hash *facts);
-int pdu_decode_POLICY(protocol_data_unit *pdu, struct policy **policy);
-int pdu_decode_GET_CERT(protocol_data_unit *pdu, X509_REQ **csr);
-int pdu_decode_SEND_CERT(protocol_data_unit *pdu, X509 **cert);
-int pdu_decode_REPORT(protocol_data_unit *pdu, struct job **job);
+int pdu_decode_ERROR(struct pdu *pdu, uint16_t *err_code, uint8_t **str, size_t *len);
+int pdu_decode_FACTS(struct pdu *pdu, struct hash *facts);
+int pdu_decode_POLICY(struct pdu *pdu, struct policy **policy);
+int pdu_decode_GET_CERT(struct pdu *pdu, X509_REQ **csr);
+int pdu_decode_SEND_CERT(struct pdu *pdu, X509 **cert);
+int pdu_decode_REPORT(struct pdu *pdu, struct job **job);
 
 #endif

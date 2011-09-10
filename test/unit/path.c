@@ -24,7 +24,7 @@
 
 static void assert_canon(const char *orig_path, const char *expected)
 {
-	PATH *p;
+	struct path *p;
 	p = path_new(orig_path);
 	assert_not_null("path_new succeeds", p);
 	assert_int_eq("path_canon returns 0", path_canon(p), 0);
@@ -34,12 +34,12 @@ static void assert_canon(const char *orig_path, const char *expected)
 
 void test_path_creation()
 {
-	PATH *p;
+	struct path *p;
 
 	test("path: Creation of new paths");
 
 	p = path_new(NULL);
-	assert_null("NULL path string should yield NULL PATH", p);
+	assert_null("NULL path string should yield NULL path", p);
 
 	p = path_new("/etc/test");
 	assert_not_null("Creation of new path succeeds", p);
@@ -107,7 +107,7 @@ void test_path_canon()
 
 void test_path_push_pop()
 {
-	PATH *p;
+	struct path *p;
 
 	test("path: path_pop");
 
@@ -143,7 +143,7 @@ void test_path_push_pop()
 
 void test_path_free_null()
 {
-	PATH *p;
+	struct path *p;
 
 	test("path: path_free(NULL)");
 	p = NULL;

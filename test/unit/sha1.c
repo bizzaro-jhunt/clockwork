@@ -30,8 +30,8 @@
 
 void test_sha1_FIPS()
 {
-	sha1 cksum;
-	sha1_ctx ctx;
+	struct SHA1 cksum;
+	struct sha1_ctx ctx;
 	int i;
 
 	test("SHA1: FIPS Pub 180-1 test vectors");
@@ -56,8 +56,8 @@ void test_sha1_FIPS()
 
 void test_sha1_init()
 {
-	sha1 calc;
-	sha1 init;
+	struct SHA1 calc;
+	struct SHA1 init;
 
 	test("SHA1: Initialization");
 	sha1_init(&calc, NULL);
@@ -91,7 +91,7 @@ void test_sha1_init()
 
 void test_sha1_comparison()
 {
-	sha1 a, b;
+	struct SHA1 a, b;
 	const char *s1 = "This is the FIRST string";
 	const char *s2 = "This is the SECOND string";
 
@@ -107,7 +107,7 @@ void test_sha1_comparison()
 
 void test_sha1_file()
 {
-	sha1 cksum;
+	struct SHA1 cksum;
 
 	test("SHA1: sha1_file");
 	assert_int_eq("sha1_file on directory fails", sha1_file("/tmp", &cksum), -1);

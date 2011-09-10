@@ -34,30 +34,30 @@
 #define SHA1_DIGLEN 20
 #define SHA1_HEXLEN 40+1
 
-typedef struct {
+struct sha1_ctx {
     uint32_t state[5];
     uint32_t count[2];
     uint8_t  buffer[64];
-} sha1_ctx;
+};
 
 /**
   SHA1 checksum.
  */
-typedef struct {
+struct SHA1 {
 	uint8_t raw[SHA1_DIGLEN]; /* raw checksum, for bit comparison */
 	char    hex[SHA1_HEXLEN]; /* hex-formatted checksum, for display */
-} sha1;
+};
 
-void sha1_ctx_init(sha1_ctx* context);
-void sha1_ctx_update(sha1_ctx* context, const uint8_t* data, const size_t len);
-void sha1_ctx_final(sha1_ctx* context, uint8_t digest[SHA1_DIGLEN]);
+void sha1_ctx_init(struct sha1_ctx* context);
+void sha1_ctx_update(struct sha1_ctx* context, const uint8_t* data, const size_t len);
+void sha1_ctx_final(struct sha1_ctx* context, uint8_t digest[SHA1_DIGLEN]);
 
-void sha1_hexdigest(sha1 *sha1);
+void sha1_hexdigest(struct SHA1 *sha1);
 
-void sha1_init(sha1* checksum, const char *hex);
-int sha1_cmp(const sha1* a, const sha1 *b);
-int sha1_fd(int fd, sha1* checksum);
-int sha1_file(const char *path, sha1* checksum);
-int sha1_data(const void *data, size_t len, sha1* checksum);
+void sha1_init(struct SHA1 *checksum, const char *hex);
+int sha1_cmp(const struct SHA1* a, const struct SHA1 *b);
+int sha1_fd(int fd, struct SHA1* checksum);
+int sha1_file(const char *path, struct SHA1* checksum);
+int sha1_data(const void *data, size_t len, struct SHA1* checksum);
 
 #endif /* SHA1_H */

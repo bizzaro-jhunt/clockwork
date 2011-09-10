@@ -372,7 +372,7 @@ static int handle_FACTS(struct worker *w)
 static int handle_FILE(struct worker *w)
 {
 	char hex[SHA1_HEXLEN] = {0};
-	sha1 checksum;
+	struct SHA1 checksum;
 	struct resource *res;
 	struct res_file *file, *match;
 

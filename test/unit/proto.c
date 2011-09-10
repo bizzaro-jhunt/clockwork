@@ -229,7 +229,7 @@ void test_proto_pdu_POLICY()
 static void child_expects_FILE(void) { execl(SUB, ARG0, "FILE", PDU_SHA1, NULL); }
 void test_proto_pdu_FILE()
 {
-	sha1 checksum;
+	struct SHA1 checksum;
 	pid_t pid;
 	struct test_proto_conn server;
 

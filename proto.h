@@ -124,7 +124,7 @@ int pdu_send_simple(struct session *s, enum proto_op op);
 int pdu_send_ERROR(struct session *s, uint16_t err_code, const char *str);
 int pdu_send_FACTS(struct session *s, const struct hash *facts);
 int pdu_send_POLICY(struct session *s, const struct policy *policy);
-int pdu_send_FILE(struct session *s, sha1 *checksum);
+int pdu_send_FILE(struct session *s, struct SHA1 *checksum);
 int pdu_send_DATA(struct session *s, int srcfd, const char *data);
 int pdu_send_GET_CERT(struct session *s, X509_REQ  *csr);
 int pdu_send_SEND_CERT(struct session *s, X509  *cert);

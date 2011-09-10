@@ -115,7 +115,7 @@ static void sha1_transform(uint32_t state[5], const uint8_t buffer[64])
 
 
 /* Initialize new context */
-void sha1_ctx_init(sha1_ctx* context)
+void sha1_ctx_init(struct sha1_ctx* context)
 {
     /* SHA1 initialization constants */
     context->state[0] = 0x67452301;
@@ -128,7 +128,7 @@ void sha1_ctx_init(sha1_ctx* context)
 
 
 /* Run your data through this. */
-void sha1_ctx_update(sha1_ctx* context, const uint8_t* data, const size_t len)
+void sha1_ctx_update(struct sha1_ctx* context, const uint8_t* data, const size_t len)
 {
     size_t i, j;
 
@@ -149,7 +149,7 @@ void sha1_ctx_update(sha1_ctx* context, const uint8_t* data, const size_t len)
 
 
 /* Add padding and return the message digest. */
-void sha1_ctx_final(sha1_ctx* context, uint8_t digest[SHA1_DIGLEN])
+void sha1_ctx_final(struct sha1_ctx* context, uint8_t digest[SHA1_DIGLEN])
 {
     uint32_t i;
     uint8_t  finalcount[8];
@@ -176,7 +176,7 @@ void sha1_ctx_final(sha1_ctx* context, uint8_t digest[SHA1_DIGLEN])
     memset(finalcount, 0, 8);
 }
 
-void sha1_hexdigest(sha1 *sha1)
+void sha1_hexdigest(struct SHA1 *sha1)
 {
 	unsigned int i;
 	char *hex = sha1->hex;
@@ -198,7 +198,7 @@ void sha1_hexdigest(sha1 *sha1)
   If $hex is specified, then $checksum will be initialized with
   a starting checksum.
  */
-void sha1_init(sha1 *cksum, const char *hex)
+void sha1_init(struct SHA1 *cksum, const char *hex)
 {
 	if (hex && strlen(hex) == SHA1_HEXLEN - 1) {
 		memcpy(cksum->hex, hex, SHA1_HEXLEN - 1);
@@ -231,7 +231,7 @@ blank_init:
   If $a and $b are the same checksum, returns 0.  Otherwise,
   returns non-zero.
  */
-int sha1_cmp(const sha1 *a, const sha1 *b)
+int sha1_cmp(const struct SHA1 *a, const struct SHA1 *b)
 {
 	return memcmp(a->raw, b->raw, SHA1_DIGLEN);
 }
@@ -248,9 +248,9 @@ int sha1_cmp(const sha1 *a, const sha1 *b)
   On failure, returns non-zero, and the contents of $cksum
   are undefined.
  */
-int sha1_fd(int fd, sha1 *cksum)
+int sha1_fd(int fd, struct SHA1 *cksum)
 {
-	sha1_ctx ctx;
+	struct sha1_ctx ctx;
 	char buf[SHA1_FD_BUFSIZE];
 	ssize_t nread;
 
@@ -280,7 +280,7 @@ int sha1_fd(int fd, sha1 *cksum)
   On failure, returns non-zero, and the contents of $cksum
   are undefined.
  */
-int sha1_file(const char *path, sha1 *cksum) {
+int sha1_file(const char *path, struct SHA1 *cksum) {
 	int fd;
 	struct stat st;
 
@@ -316,9 +316,9 @@ int sha1_file(const char *path, sha1 *cksum) {
   On failure, returns non-zero, and the contents of $cksum
   are undefined.
  */
-int sha1_data(const void *data, size_t len, sha1 *cksum)
+int sha1_data(const void *data, size_t len, struct SHA1 *cksum)
 {
-	sha1_ctx ctx;
+	struct sha1_ctx ctx;
 
 	sha1_init(cksum, NULL);
 	sha1_ctx_init(&ctx);

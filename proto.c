@@ -319,7 +319,7 @@ int pdu_decode_POLICY(struct pdu *pdu, struct policy **policy)
 
   On success, returns 0.  On failure, returns non-zero.
  */
-int pdu_send_FILE(struct session *session, sha1 *checksum)
+int pdu_send_FILE(struct session *session, struct SHA1 *checksum)
 {
 	assert(session); // LCOV_EXCL_LINE
 	assert(checksum); // LCOV_EXCL_LINE

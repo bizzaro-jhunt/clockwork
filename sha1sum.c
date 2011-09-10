@@ -23,7 +23,7 @@
 
 int main(int argc, char **argv)
 {
-	sha1 cksum;
+	struct SHA1 cksum;
 	char *err;
 
 	while (*++argv) {

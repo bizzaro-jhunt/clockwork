@@ -162,12 +162,12 @@ int res_group_remove_admin(struct res_group *rg, const char *user);
 struct res_file {
 	char *key;         /* unique identifier, starts with "res_file:" */
 
-	char *rf_lpath;    /* path to the file */
-	sha1  rf_lsha1;     /* checksum of actual file (client-side) */
+	char       *rf_lpath;    /* path to the file */
+	struct SHA1 rf_lsha1;    /* checksum of actual file (client-side) */
 
-	char *rf_rpath;    /* source of file contents, as a static file */
-	char *rf_template; /* source of file contents, as a template */
-	sha1  rf_rsha1;    /* checksum of source file (server-side) */
+	char       *rf_rpath;    /* source of file contents, as a static file */
+	char       *rf_template; /* source of file contents, as a template */
+	struct SHA1 rf_rsha1;    /* checksum of source file (server-side) */
 
 	char  *rf_owner;   /* name of the file's user owner */
 	uid_t  rf_uid;     /* UID of the file's user owner */

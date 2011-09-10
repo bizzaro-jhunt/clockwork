@@ -71,7 +71,7 @@ void test_sha1_init()
 
 	unsigned int i;
 	char buf[256];
-	for (i = 0; i < SHA1_DIGEST_SIZE; i++) {
+	for (i = 0; i < SHA1_DIGLEN; i++) {
 		snprintf(buf, 256, "octet[%i] equality", i);
 		assert_int_eq(buf, calc.raw[i], init.raw[i]);
 	}

@@ -1157,7 +1157,7 @@ int res_file_stat(void *res, const struct resource_env *env)
 	if (ENFORCED(rf, RES_FILE_MODE) && (rf->rf_stat.st_mode & 07777) != rf->rf_mode) {
 		DIFF(rf, RES_FILE_MODE);
 	}
-	if (ENFORCED(rf, RES_FILE_SHA1) && memcmp(rf->rf_rsha1.raw, rf->rf_lsha1.raw, SHA1_DIGEST_SIZE) != 0) {
+	if (ENFORCED(rf, RES_FILE_SHA1) && memcmp(rf->rf_rsha1.raw, rf->rf_lsha1.raw, SHA1_DIGLEN) != 0) {
 		DIFF(rf, RES_FILE_SHA1);
 	}
 

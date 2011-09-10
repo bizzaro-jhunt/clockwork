@@ -176,13 +176,13 @@ HANDLE(POLICY)
 
 HANDLE(FILE)
 {
-	char sha1[SHA1_HEX_DIGEST_SIZE + 1] = {0};
+	char sha1[SHA1_HEXLEN] = {0};
 
 	if (argc != 3) { return CW_EBADCALL; }
 	pdu_receive(s);
 	if (RECV_PDU(s)->op != PROTOCOL_OP_FILE) { return CW_EFAIL+1; }
 
-	memcpy(sha1, RECV_PDU(s)->data, SHA1_HEX_DIGEST_SIZE);
+	memcpy(sha1, RECV_PDU(s)->data, SHA1_HEXLEN-1);
 	if (strcmp(argv[2], sha1) != 0) { return CW_EFAIL+2; }
 
 	return 0;

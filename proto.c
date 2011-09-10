@@ -326,7 +326,7 @@ int pdu_send_FILE(protocol_session *session, sha1 *checksum)
 
 	protocol_data_unit *pdu = SEND_PDU(session);
 
-	if (pdu_allocate(pdu, PROTOCOL_OP_FILE, SHA1_HEX_DIGEST_SIZE) < 0) {
+	if (pdu_allocate(pdu, PROTOCOL_OP_FILE, SHA1_HEXLEN-1) < 0) {
 		return -1;
 	}
 

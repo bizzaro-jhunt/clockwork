@@ -119,7 +119,7 @@ Data: xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx
 	DEBUG("");
 }
 
-int pdu_send_simple(protocol_session *session, enum proto_op op)
+int pdu_send_simple(struct session *session, enum proto_op op)
 {
 	assert(session); // LCOV_EXCL_LINE
 
@@ -139,7 +139,7 @@ int pdu_send_simple(protocol_session *session, enum proto_op op)
 
   On success, returns 0.  On failure, returns non-zero.
  */
-int pdu_send_ERROR(protocol_session *session, uint16_t err_code, const char *str)
+int pdu_send_ERROR(struct session *session, uint16_t err_code, const char *str)
 {
 	assert(session); // LCOV_EXCL_LINE
 
@@ -199,7 +199,7 @@ int pdu_decode_ERROR(struct pdu *pdu, uint16_t *err_code, uint8_t **str, size_t 
 
   On success, returns zero.  On failure, returns non-zero.
  */
-int pdu_send_FACTS(protocol_session *session, const struct hash *facts)
+int pdu_send_FACTS(struct session *session, const struct hash *facts)
 {
 	assert(session); // LCOV_EXCL_LINE
 	assert(facts); // LCOV_EXCL_LINE
@@ -268,7 +268,7 @@ int pdu_decode_FACTS(struct pdu *pdu, struct hash *facts)
 
   On success, returns zero.  On failure, returns non-zero.
  */
-int pdu_send_POLICY(protocol_session *session, const struct policy *policy)
+int pdu_send_POLICY(struct session *session, const struct policy *policy)
 {
 	assert(session); // LCOV_EXCL_LINE
 	assert(policy); // LCOV_EXCL_LINE
@@ -319,7 +319,7 @@ int pdu_decode_POLICY(struct pdu *pdu, struct policy **policy)
 
   On success, returns 0.  On failure, returns non-zero.
  */
-int pdu_send_FILE(protocol_session *session, sha1 *checksum)
+int pdu_send_FILE(struct session *session, sha1 *checksum)
 {
 	assert(session); // LCOV_EXCL_LINE
 	assert(checksum); // LCOV_EXCL_LINE
@@ -350,7 +350,7 @@ int pdu_send_FILE(protocol_session *session, sha1 *checksum)
   On success, returns the number of bytes sent.
   On failure, returns a negative value.
  */
-int pdu_send_DATA(protocol_session *session, int srcfd, const char *data)
+int pdu_send_DATA(struct session *session, int srcfd, const char *data)
 {
 	assert(session); // LCOV_EXCL_LINE
 	assert(srcfd >= 0 || data); // LCOV_EXCL_LINE
@@ -399,7 +399,7 @@ int pdu_send_DATA(protocol_session *session, int srcfd, const char *data)
 
   On success, returns 0.  On failure, returns non-zero.
  */
-int pdu_send_GET_CERT(protocol_session *session, X509_REQ *csr)
+int pdu_send_GET_CERT(struct session *session, X509_REQ *csr)
 {
 	assert(session); // LCOV_EXCL_LINE
 	assert(csr); // LCOV_EXCL_LINE
@@ -474,7 +474,7 @@ int pdu_decode_GET_CERT(struct pdu *pdu, X509_REQ **csr)
 
   On success, returns 0.  On failure, returns non-zero.
  */
-int pdu_send_SEND_CERT(protocol_session *session, X509 *cert)
+int pdu_send_SEND_CERT(struct session *session, X509 *cert)
 {
 	assert(session); // LCOV_EXCL_LINE
 
@@ -562,7 +562,7 @@ int pdu_decode_SEND_CERT(struct pdu *pdu, X509 **cert)
 
   On success, returns 0.  On failure, returns non-zero.
  */
-int pdu_send_REPORT(protocol_session *session, struct job *job)
+int pdu_send_REPORT(struct session *session, struct job *job)
 {
 	assert(session); // LCOV_EXCL_LINE
 	assert(job); // LCOV_EXCL_LINE
@@ -701,7 +701,7 @@ int pdu_write(SSL *io, struct pdu *pdu)
   On success, returns 0.  On failure, returns non-zero.
   Failure indicates application-level issues (the ERROR PDU).
  */
-int pdu_receive(protocol_session *session)
+int pdu_receive(struct session *session)
 {
 	assert(session); // LCOV_EXCL_LINE
 
@@ -756,13 +756,13 @@ const char* protocol_op_name(enum proto_op op)
 /**
   Initialize a $session, using $io for the IO stream.
 
-  **Note:** this function does *not* allocate a new protocol_session
+  **Note:** this function does *not* allocate a new session
   structure.  Nevertheless, teh caller must match this call with one
   to @protocol_session_deinit, to free memory allocated by this function.
 
   On success, returns 0.  On failure, returns non-zero.
  */
-int protocol_session_init(protocol_session *session, SSL *io)
+int protocol_session_init(struct session *session, SSL *io)
 {
 	session->io = io;
 
@@ -778,14 +778,14 @@ int protocol_session_init(protocol_session *session, SSL *io)
 /**
   De-initialize a $session
 
-  **Note:** since @protocol_session_init does not allocate the protocol_session
+  **Note:** since @protocol_session_init does not allocate the session
   structure itself, this function does not free the pointer passed to it.
   If the caller allocates the structure on the heap, the caller is responsible
   for freeing that memory.
 
   On success, returns 0.  On failure, returns non-zero.
  */
-int protocol_session_deinit(protocol_session *session)
+int protocol_session_deinit(struct session *session)
 {
 	session->io = NULL;
 

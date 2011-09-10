@@ -39,7 +39,7 @@ struct conn {
 	pid_t             pid;
 	SSL_CTX          *ctx;
 	SSL              *ssl;
-	protocol_session  session;
+	struct session  session;
 };
 
 #define CW_EBADCALL 99
@@ -85,7 +85,7 @@ static void teardown(struct conn *c)
 }
 
 #define DISPATCH(x,c) if (strcmp(argv[1], #x) == 0) rc = main_ ## x (argc, argv, (c))
-#define HANDLE(x) int main_ ## x (int argc, char **argv, protocol_session *s)
+#define HANDLE(x) int main_ ## x (int argc, char **argv, struct session *s)
 
 int main(int argc, char **argv)
 {

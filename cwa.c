@@ -41,7 +41,7 @@ static void show_help(void);
 static int gather_facts_from_script(const char *script, struct hash *facts);
 static int gather_facts(client *c);
 static int get_policy(client *c);
-static int get_file(protocol_session *session, sha1 *checksum, int fd);
+static int get_file(struct session *session, sha1 *checksum, int fd);
 static int enforce_policy(client *c, struct job *job);
 static int autodetect_managers(struct resource_env *env, const struct hash *facts);
 static void print_report(FILE *io, struct report *r);
@@ -291,7 +291,7 @@ disconnect:
 	exit(1);
 }
 
-static int get_file(protocol_session *session, sha1 *checksum, int fd)
+static int get_file(struct session *session, sha1 *checksum, int fd)
 {
 	size_t bytes = 0, n = 0;
 

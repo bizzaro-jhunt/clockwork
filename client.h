@@ -37,7 +37,7 @@ typedef struct {
 	SSL *ssl;                  /* SSL connection parameters */
 	SSL_CTX *ssl_ctx;
 
-	protocol_session session;  /* protocol session state machine */
+	struct session session;  /* protocol session state machine */
 	struct hash *facts;        /* local facts */
 	struct policy *policy;     /* policy recieved from policy master */
 

@@ -71,7 +71,7 @@ struct pdu {
   between client and server.  This data type is used for both
   sides of a connection.
  */
-typedef struct {
+struct session {
 	SSL *io;  /* OpenSSL IO stream to read from / write to */
 
 	struct pdu     send_pdu; /* PDU to send to remote end */
@@ -79,7 +79,7 @@ typedef struct {
 
 	uint16_t       errnum;   /* last error code recieved */
 	unsigned char *errstr;   /* last error message received */
-} protocol_session;
+};
 
 #define SEND_PDU(session_ptr) (&(session_ptr)->send_pdu)
 #define RECV_PDU(session_ptr) (&(session_ptr)->recv_pdu)
@@ -88,8 +88,8 @@ typedef struct {
 
 const char* protocol_op_name(enum proto_op op);
 
-int protocol_session_init(protocol_session *session, SSL *io);
-int protocol_session_deinit(protocol_session *session);
+int protocol_session_init(struct session *s, SSL *io);
+int protocol_session_deinit(struct session *s);
 
 void protocol_ssl_init(void);
 
@@ -104,8 +104,8 @@ void protocol_ssl_backtrace(void);
 int pdu_read(SSL *io, struct pdu *pdu);
 int pdu_write(SSL *io, struct pdu *pdu);
 
-int pdu_receive(protocol_session *session);
-int pdu_send_simple(protocol_session *session, enum proto_op op);
+int pdu_receive(struct session *s);
+int pdu_send_simple(struct session *s, enum proto_op op);
 
 /**
   Send a HELLO PDU to the remote end.
@@ -121,14 +121,14 @@ int pdu_send_simple(protocol_session *session, enum proto_op op);
  */
 #define pdu_send_BYE(s) pdu_send_simple((s), PROTOCOL_OP_BYE)
 
-int pdu_send_ERROR(protocol_session *session, uint16_t err_code, const char *str);
-int pdu_send_FACTS(protocol_session *session, const struct hash *facts);
-int pdu_send_POLICY(protocol_session *session, const struct policy *policy);
-int pdu_send_FILE(protocol_session *session, sha1 *checksum);
-int pdu_send_DATA(protocol_session *session, int srcfd, const char *data);
-int pdu_send_GET_CERT(protocol_session *session, X509_REQ  *csr);
-int pdu_send_SEND_CERT(protocol_session *session, X509  *cert);
-int pdu_send_REPORT(protocol_session *session, struct job *job);
+int pdu_send_ERROR(struct session *s, uint16_t err_code, const char *str);
+int pdu_send_FACTS(struct session *s, const struct hash *facts);
+int pdu_send_POLICY(struct session *s, const struct policy *policy);
+int pdu_send_FILE(struct session *s, sha1 *checksum);
+int pdu_send_DATA(struct session *s, int srcfd, const char *data);
+int pdu_send_GET_CERT(struct session *s, X509_REQ  *csr);
+int pdu_send_SEND_CERT(struct session *s, X509  *cert);
+int pdu_send_REPORT(struct session *s, struct job *job);
 
 int pdu_decode_ERROR(struct pdu *pdu, uint16_t *err_code, uint8_t **str, size_t *len);
 int pdu_decode_FACTS(struct pdu *pdu, struct hash *facts);

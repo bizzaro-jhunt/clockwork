@@ -49,7 +49,7 @@ typedef struct {
 	struct policy *policy;
 	struct stree  *pnode;
 
-	protocol_session session;
+	struct session session;
 
 	unsigned short peer_verified;
 } worker;

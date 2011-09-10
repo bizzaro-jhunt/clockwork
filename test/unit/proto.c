@@ -35,7 +35,7 @@ struct test_proto_conn {
 	pid_t             pid;
 	SSL_CTX          *ctx;
 	SSL              *ssl;
-	protocol_session  session;
+	struct session  session;
 };
 
 /* In order to still operate under the SSL model that the proto

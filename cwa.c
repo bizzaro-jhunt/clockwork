@@ -524,7 +524,7 @@ disconnect:
 static int save_report(client *c, struct job *job)
 {
 	DB *db;
-	db = db_open(DB_AGENT, c->db_file);
+	db = db_open(AGENTDB, c->db_file);
 	if (!db) {
 		return -1;
 	}

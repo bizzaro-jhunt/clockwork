@@ -125,7 +125,7 @@ static inline void list_del(struct list *n)
 	list_init(n);
 }
 
-/** INTERNAL: replace o with n */
+/* INTERNAL: replace o with n */
 static inline void __list_replace(struct list *o, struct list *n)
 {
 	n->next = o->next;

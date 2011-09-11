@@ -35,13 +35,13 @@
   Certificate subjectName
  */
 struct cert_subject {
-	char *country;  /** Country;              C=<country> */
-	char *state;    /** State or Province;   ST=<state> */
-	char *loc;      /** Locality or City;     L=<loc> */
-	char *org;      /** Organization;         O=<org> */
-	char *org_unit; /** Organizational Unit; OU=<org_unit> */
-	char *type;     /** Type of certificate; OU=<type> */
-	char *fqdn;     /** Full domain name;    CN=<fqdn> */
+	char *country;  /* Country;              C=<country> */
+	char *state;    /* State or Province;   ST=<state> */
+	char *loc;      /* Locality or City;     L=<loc> */
+	char *org;      /* Organization;         O=<org> */
+	char *org_unit; /* Organizational Unit; OU=<org_unit> */
+	char *type;     /* Type of certificate; OU=<type> */
+	char *fqdn;     /* Full domain name;    CN=<fqdn> */
 };
 
 void cert_init(void);

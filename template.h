@@ -57,22 +57,13 @@ struct tnode {
   A File Template
  */
 struct template {
-	/** Pointer to the root template node representing
-	    the complete template definition as parsed. */
-	struct tnode *root;
+	struct tnode *root;   /* root of template syntax tree */
 
-	/** Hash containing the variables defined by this template. */
-	struct hash  *vars;
+	struct hash  *vars;   /* variables defined by the template */
+	struct hash  *facts;  /* host facts hash; unmanaged */
 
-	/** Hash containing the facts (external variables)
-	    to interpolate this template against. */
-	struct hash  *facts; /* pointer to host facts; unmanaged */
-
-	/** Collapsed list of all template nodes, for memory management. */
-	struct tnode **nodes;
-
-	/** Number of nodes in the manifest::nodes member. */
-	size_t nodes_len;
+	struct tnode **nodes; /* all syntax nodes, for mem. management */
+	size_t nodes_len;     /* how many syntax nodes do we have? */
 };
 
 struct template* template_new(void);

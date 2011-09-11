@@ -36,53 +36,33 @@
   A listening Server process' state
  */
 struct server {
-	/** OpenSSL I/O object for the bound socket. */
-	BIO *listener;
-	/** OpenSSL context for setting up new SSL connections. */
-	SSL_CTX *ssl_ctx;
+	BIO *listener;         /* bound SSL socket */
+	SSL_CTX *ssl_ctx;      /* OpenSSL context for new connections */
 
-	/** Whether or not to emit debugging information (option) */
-	int debug;
-	/** Requested log verbosity level (option) */
-	int log_level;
+	int debug;             /* emit debugging? (option) */
+	int show_config;       /* invoke the --show-config behavior? */
+	int log_level;         /* log level (option) */
 
-	/** Path to the policy master configuration file. */
-	char *config_file;
-	/** Path to the root policy manifest file. */
-	char *manifest_file;
+	char *config_file;     /* path to policy master config file */
+	char *manifest_file;   /* path to policy manifest file */
 
-	/** Whether or not to fork off as a daemon (option) */
-	int daemonize;
-	/** Path to the daemon's lock file (option) */
-	char *lock_file;
-	/** Path to the daemon's PID file (option) */
-	char *pid_file;
+	int   daemonize;       /* to fork, or not to fork */
+	char *lock_file;       /* path to daemon's lock file (option) */
+	char *pid_file;        /* path to daemon's PID file (option) */
 
-	/** Path to the Certificate Authority certificate */
-	char *ca_cert_file;
-	/** Path to the Certificate Revocation List */
-	char *crl_file;
-	/** Path to this node's certificate */
-	char *cert_file;
-	/** Path to this node's private key */
-	char *key_file;
+	char *ca_cert_file;    /* path to CA certificate */
+	char *crl_file;        /* path to certificate revocation list */
+	char *cert_file;       /* path to policy master's certificate */
+	char *key_file;        /* path to policy master's private key */
 
-	/** Path to the policy master reporting database file */
-	char *db_file;
+	char *db_file;         /* path to the master database */
 
-	/** Directory in which to store/find client certificate signing requests. */
-	char *requests_dir;
-	/** Directory in which to store/find client certificates. */
-	char *certs_dir;
+	char *requests_dir;    /* where to store signing requests */
+	char *certs_dir;       /* where to store signed certificates */
 
-	/** Directory to cache data from the clients (facts, etc.) */
-	char *cache_dir;
+	char *cache_dir;       /* where to cache client data (i.e. facts) */
 
-	/** TCP port to listen on for incoming client connections. */
-	char *port;
-
-	/** Whether or not to invoke the --show-config behavior. */
-	int show_config;
+	char *port;            /* TCP port to listen on */
 };
 
 int server_options(struct server *args);

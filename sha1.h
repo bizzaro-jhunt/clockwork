@@ -60,4 +60,4 @@ int sha1_fd(int fd, struct SHA1* checksum);
 int sha1_file(const char *path, struct SHA1* checksum);
 int sha1_data(const void *data, size_t len, struct SHA1* checksum);
 
-#endif /* SHA1_H */
+#endif

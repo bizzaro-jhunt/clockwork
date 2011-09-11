@@ -17,8 +17,8 @@
   along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _PROTO_H
-#define _PROTO_H
+#ifndef PROTO_H
+#define PROTO_H
 
 #include <stdint.h>
 #include <sys/types.h>

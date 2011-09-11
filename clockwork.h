@@ -17,8 +17,8 @@
   along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _CLOCKWORK_H
-#define _CLOCKWORK_H
+#ifndef CLOCKWORK_H
+#define CLOCKWORK_H
 
 #define _GNU_SOURCE
 

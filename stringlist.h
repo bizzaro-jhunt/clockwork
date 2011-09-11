@@ -106,4 +106,4 @@ int stringlist_diff(struct stringlist *a, struct stringlist *b);
 char* stringlist_join(struct stringlist *list, const char *delim);
 struct stringlist* stringlist_split(const char *str, size_t len, const char *delim, int opt);
 
-#endif /* STRINGLIST_H */
+#endif

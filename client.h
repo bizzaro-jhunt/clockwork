@@ -17,8 +17,8 @@
   along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _CLIENT_H
-#define _CLIENT_H
+#ifndef CLIENT_H
+#define CLIENT_H
 
 #include "clockwork.h"
 #include "proto.h"

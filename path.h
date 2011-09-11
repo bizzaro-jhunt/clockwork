@@ -17,8 +17,8 @@
   along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _PATH_H
-#define _PATH_H
+#ifndef PATH_H
+#define PATH_H
 
 struct path {
 	char     *buf;

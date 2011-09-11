@@ -17,12 +17,16 @@
   along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _SERVER_H
-#define _SERVER_H
+#ifndef SERVER_H
+#define SERVER_H
+
+#include <pthread.h>
+
+#define THREAD_TYPE                pthread_t
+#define THREAD_CREATE(id,ent,arg)  pthread_create(&(id), NULL, (ent), (arg))
 
 #include "clockwork.h"
 #include "proto.h"
-#include "threads.h"
 
 #define SERVER_OPT_UNSPEC  0
 #define SERVER_OPT_TRUE    1

@@ -17,8 +17,8 @@
   along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _PROMPT_H
-#define _PROMPT_H
+#ifndef PROMPT_H
+#define PROMPT_H
 
 #include "clockwork.h"
 

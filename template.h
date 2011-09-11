@@ -17,8 +17,8 @@
   along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _TEMPLATE_H
-#define _TEMPLATE_H
+#ifndef TEMPLATE_H
+#define TEMPLATE_H
 
 #include "clockwork.h"
 #include "hash.h"
@@ -84,4 +84,4 @@ char* template_render(struct template *t);
 struct tnode* template_new_tnode(struct template *t, enum tnode_type type, char *d1, char *d2);
 int tnode_add(struct tnode *parent, struct tnode *child);
 
-#endif /* _TEMPLATE_H */
+#endif

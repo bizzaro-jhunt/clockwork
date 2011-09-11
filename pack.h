@@ -17,12 +17,12 @@
   along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _PACK_H
-#define _PACK_H
+#ifndef PACK_H
+#define PACK_H
 
 #include <stdlib.h>
 
 char* pack(const char *prefix, const char *format, ...);
 int unpack(const char *packed, const char *prefix, const char *format, ...);
 
-#endif /* _PACK_H */
+#endif

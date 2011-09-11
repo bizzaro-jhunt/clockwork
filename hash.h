@@ -17,8 +17,8 @@
   along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _HASH_H
-#define _HASH_H
+#ifndef HASH_H
+#define HASH_H
 
 #include <sys/types.h>
 

@@ -17,8 +17,8 @@
   along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _LIST_H
-#define _LIST_H
+#ifndef LIST_H
+#define LIST_H
 
 #include <stddef.h> /* for offsetof(3) macro */
 

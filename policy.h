@@ -17,8 +17,8 @@
   along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _POLICY_H
-#define _POLICY_H
+#ifndef POLICY_H
+#define POLICY_H
 
 #include "list.h"
 #include "hash.h"
@@ -130,4 +130,4 @@ int policy_notify(const struct policy *pol, const struct resource *cause);
 char* policy_pack(const struct policy *pol);
 struct policy* policy_unpack(const char *packed);
 
-#endif /* _POLICY_H */
+#endif

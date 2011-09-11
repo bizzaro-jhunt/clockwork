@@ -17,8 +17,8 @@
   along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _AUGCW_H
-#define _AUGCW_H
+#ifndef AUGCW_H
+#define AUGCW_H
 
 #include "clockwork.h"
 #include "stringlist.h"

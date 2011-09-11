@@ -1,6 +1,3 @@
-#ifndef _LOG_H
-#define _LOG_H
-
 /*
   Copyright 2011 James Hunt <james@jameshunt.us>
 
@@ -19,6 +16,9 @@
   You should have received a copy of the GNU General Public License
   along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
  */
+
+#ifndef LOG_H
+#define LOG_H
 
 #define LOG_LEVEL_ALL         8
 #define LOG_LEVEL_DEBUG       7

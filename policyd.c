@@ -648,9 +648,11 @@ static void daemonize(const char *lock_file, const char *pid_file)
 	}
 
 	/* redirect standard fds */
-	freopen("/dev/null", "r", stdin);
-	freopen("/dev/null", "w", stdout);
-	freopen("/dev/null", "w", stderr);
+	if (!freopen("/dev/null", "r", stdin)
+	 || !freopen("/dev/null", "w", stdout)
+	 || !freopen("/dev/null", "w", stderr)) {
+		NOTICE("Failed to redirect IO streams to /dev/null");
+	}
 }
 
 static void show_config(struct server *s)

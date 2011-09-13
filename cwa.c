@@ -293,7 +293,8 @@ disconnect:
 
 static int get_file(struct session *session, struct SHA1 *checksum, int fd)
 {
-	size_t bytes = 0, n = 0;
+	size_t bytes = 0, n;
+	int error = 0;
 
 	if (pdu_send_FILE(session, checksum) != 0) { return -1; }
 
@@ -306,12 +307,14 @@ static int get_file(struct session *session, struct SHA1 *checksum, int fd)
 			return -1;
 		}
 
-		n = RECV_PDU(session)->len;
-		write(fd, RECV_PDU(session)->data, n);
+		n = write(fd, RECV_PDU(session)->data, RECV_PDU(session)->len);
+		if (n != RECV_PDU(session)->len) {
+			error = 1;
+		}
 		bytes += n;
 	} while(n > 0);
 
-	return bytes;
+	return (error == 0 ? bytes : -1 * error);
 }
 
 static int enforce_policy(struct client *c, struct job *job)

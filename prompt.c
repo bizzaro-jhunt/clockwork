@@ -33,7 +33,8 @@ char* prompt(const char *text)
 	printf("%s", text);
 
 	for (;;) {
-		fgets(buf, PROMPT_BUFFER_SIZE, stdin);
+		while (!fgets(buf, PROMPT_BUFFER_SIZE, stdin))
+			;
 
 		bytes = strlen(buf);
 

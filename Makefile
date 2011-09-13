@@ -44,8 +44,11 @@ else
   # In release mode, turn off all debugging support
   CC_FLAGS += -DNDEBUG
 
+  # In release mode, optimize like crazy
+  CC_FLAGS += -O3
+
   # In release mode, create REALLY small binaries
-  CC_FLAGS += -fdata-sections -ffunction-sections 
+  CC_FLAGS += -fdata-sections -ffunction-sections
   CC_FLAGS += -Wl,--gc-sections -Wl,-s
 endif
 

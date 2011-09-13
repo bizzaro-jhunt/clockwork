@@ -74,15 +74,20 @@ static int _res_user_populate_home(const char *home, const char *skel, uid_t uid
 				skel_fd = open(skel_path, O_RDONLY);
 				home_fd = creat(home_path, mode);
 
-				if (skel_fd >= 0 && home_fd >= 0) {
-					chown(home_path, uid, gid);
+				if (chown(home_path, uid, gid) != 0) {
+					_res_file_fd2fd(home_fd, skel_fd, -1);
+				}
+				/*
+				if (skel_fd >= 0 && home_fd >= 0
+				 && chown(home_path, uid, gid) == 0) {
 					while ((nread = read(skel_fd, buf, 8192)) > 0)
 						write(home_fd, buf, nread);
 				}
+				*/
 
 			} else if (S_ISDIR(ent->fts_statp->st_mode)) {
-				if (mkdir(home_path, mode) == 0) {
-					chown(home_path, uid, gid);
+				if (mkdir(home_path, mode) == 0
+				 && chown(home_path, uid, gid)) {
 					chmod(home_path, 0755);
 				}
 			}
@@ -725,10 +730,8 @@ struct report* res_user_fixup(void *res, int dryrun, const struct resource_env *
 		if (dryrun) {
 			report_action(report, action, ACTION_SKIPPED);
 		} else {
-			/* mkdir $home; populate from $skel */
-			if (mkdir(ru->ru_dir, 0700) == 0) {
-				chown(ru->ru_dir, ru->ru_pw->pw_uid, ru->ru_pw->pw_gid);
-
+			if (mkdir(ru->ru_dir, 0700) == 0
+			 && chown(ru->ru_dir, ru->ru_pw->pw_uid, ru->ru_pw->pw_gid)) {
 				report_action(report, action, ACTION_SUCCEEDED);
 			} else {
 				report_action(report, action, ACTION_FAILED);
@@ -739,7 +742,7 @@ struct report* res_user_fixup(void *res, int dryrun, const struct resource_env *
 			action = string("populate home directory from %s", ru->ru_skel);
 
 			if (dryrun) {
-				report_action(report, string("populate home directory from %s", ru->ru_skel), ACTION_SKIPPED);
+				report_action(report, action, ACTION_SKIPPED);
 			} else {
 				/* copy *all* files from ru_skel into ru_dir */
 				if (_res_user_populate_home(ru->ru_dir, ru->ru_skel, ru->ru_pw->pw_uid, ru->ru_pw->pw_gid) == 0) {

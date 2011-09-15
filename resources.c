@@ -87,7 +87,7 @@ static int _res_user_populate_home(const char *home, const char *skel, uid_t uid
 
 			} else if (S_ISDIR(ent->fts_statp->st_mode)) {
 				if (mkdir(home_path, mode) == 0
-				 && chown(home_path, uid, gid)) {
+				 && chown(home_path, uid, gid) == 0) {
 					chmod(home_path, 0755);
 				}
 			}
@@ -731,7 +731,7 @@ struct report* res_user_fixup(void *res, int dryrun, const struct resource_env *
 			report_action(report, action, ACTION_SKIPPED);
 		} else {
 			if (mkdir(ru->ru_dir, 0700) == 0
-			 && chown(ru->ru_dir, ru->ru_pw->pw_uid, ru->ru_pw->pw_gid)) {
+			 && chown(ru->ru_dir, ru->ru_pw->pw_uid, ru->ru_pw->pw_gid) == 0) {
 				report_action(report, action, ACTION_SUCCEEDED);
 			} else {
 				report_action(report, action, ACTION_FAILED);

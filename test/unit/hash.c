@@ -18,17 +18,16 @@
  */
 
 #include "test.h"
-#include "assertions.h"
 #include "../../hash.h"
 
-void test_hash_functions()
+NEW_TEST(hash_functions)
 {
 	test("hash: H64");
 
 	assert_int_eq("H64 equivalency", H64("test"), H64("test"));
 }
 
-void test_hash_basics()
+NEW_TEST(hash_basics)
 {
 	struct hash *h;
 
@@ -55,7 +54,7 @@ void test_hash_basics()
 	free(name);
 }
 
-void test_hash_collisions()
+NEW_TEST(hash_collisions)
 {
 	struct hash *h;
 	char *path  = strdup("/some/path/some/where");
@@ -81,7 +80,7 @@ void test_hash_collisions()
 	free(group);
 }
 
-void test_hash_overrides()
+NEW_TEST(hash_overrides)
 {
 	struct hash *h;
 
@@ -104,7 +103,7 @@ void test_hash_overrides()
 	free(value2);
 }
 
-void test_hash_get_null()
+NEW_TEST(hash_get_null)
 {
 	struct hash *h = NULL;
 
@@ -118,7 +117,7 @@ void test_hash_get_null()
 	hash_free(h);
 }
 
-void test_hash_for_each()
+NEW_TEST(hash_for_each)
 {
 	struct hash *h = hash_new();
 	struct hash_cursor c;
@@ -154,13 +153,13 @@ void test_hash_for_each()
 	hash_free(h);
 }
 
-void test_suite_hash()
+NEW_SUITE(hash)
 {
-	test_hash_functions();
-	test_hash_basics();
-	test_hash_collisions();
-	test_hash_overrides();
-	test_hash_get_null();
+	RUN_TEST(hash_functions);
+	RUN_TEST(hash_basics);
+	RUN_TEST(hash_collisions);
+	RUN_TEST(hash_overrides);
+	RUN_TEST(hash_get_null);
 
-	test_hash_for_each();
+	RUN_TEST(hash_for_each);
 }

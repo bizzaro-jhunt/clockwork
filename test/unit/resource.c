@@ -18,11 +18,10 @@
  */
 
 #include "test.h"
-#include "assertions.h"
 #include "../../clockwork.h"
 #include "../../resource.h"
 
-void test_resource_callbacks()
+NEW_TEST(resource_callbacks)
 {
 	struct resource *res;
 	char *key;
@@ -43,7 +42,7 @@ void test_resource_callbacks()
 	resource_free(res);
 }
 
-void test_resource_attrs_callback()
+NEW_TEST(resource_attrs_callback)
 {
 	struct resource *res;
 	struct hash *h;
@@ -62,7 +61,7 @@ void test_resource_attrs_callback()
 	resource_free(res);
 }
 
-void test_resource_stat_fixup_callback()
+NEW_TEST(resource_stat_fixup_callback)
 {
 	struct resource *res;
 	struct res_dir *rd;
@@ -107,7 +106,7 @@ void test_resource_stat_fixup_callback()
 	report_free(report);
 }
 
-void test_resource_deps()
+NEW_TEST(resource_deps)
 {
 	struct resource *a, *b, *c;
 
@@ -182,7 +181,7 @@ void test_resource_deps()
 	resource_free(c);
 }
 
-void test_resource_unknown()
+NEW_TEST(resource_unknown)
 {
 	struct resource *r;
 
@@ -194,7 +193,7 @@ void test_resource_unknown()
 	assert_null("resource_unpack returns NULL on UNKNOWN type", r);
 }
 
-void test_resource_dependency_pack()
+NEW_TEST(resource_dependency_pack)
 {
 	struct dependency *d;
 	const char *expected;
@@ -214,7 +213,7 @@ void test_resource_dependency_pack()
 	free(packed);
 }
 
-void test_resource_dependency_unpack()
+NEW_TEST(resource_dependency_unpack)
 {
 	struct dependency *d;
 	const char *packed;
@@ -233,31 +232,31 @@ void test_resource_dependency_unpack()
 	dependency_free(d);
 }
 
-void test_resource_free_NULL()
+NEW_TEST(resource_free_NULL)
 {
 	test("RESOURCE: resource_free(NULL)");
 	resource_free(NULL);
 	assert_true("resource_free(NULL) doesn't segfault", 1);
 }
 
-void test_dependency_free_NULL()
+NEW_TEST(dependency_free_NULL)
 {
 	test("RESOURCE: dependency_free(NULL)");
 	dependency_free(NULL);
 	assert_true("dependency_free(NULL) doesn't segfault", 1);
 }
 
-void test_suite_resource()
+NEW_SUITE(resource)
 {
-	test_resource_callbacks();
-	test_resource_attrs_callback();
-	test_resource_stat_fixup_callback();
-	test_resource_deps();
-	test_resource_unknown();
+	RUN_TEST(resource_callbacks);
+	RUN_TEST(resource_attrs_callback);
+	RUN_TEST(resource_stat_fixup_callback);
+	RUN_TEST(resource_deps);
+	RUN_TEST(resource_unknown);
 
-	test_resource_dependency_pack();
-	test_resource_dependency_unpack();
+	RUN_TEST(resource_dependency_pack);
+	RUN_TEST(resource_dependency_unpack);
 
-	test_resource_free_NULL();
-	test_dependency_free_NULL();
+	RUN_TEST(resource_free_NULL);
+	RUN_TEST(dependency_free_NULL);
 }

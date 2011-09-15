@@ -18,7 +18,6 @@
  */
 
 #include "test.h"
-#include "assertions.h"
 #include "../../list.h"
 
 struct test_struct {
@@ -82,7 +81,7 @@ static void assert_list_sum(const char *msg, struct list *head, int expected)
 
 /*************************************************************************/
 
-void test_list_insertion()
+NEW_TEST(list_insertion)
 {
 	struct test_struct *ts1, *ts2, *ts3;
 	LIST(l);
@@ -109,7 +108,7 @@ void test_list_insertion()
 	free(ts3);
 }
 
-void test_list_removal()
+NEW_TEST(list_removal)
 {
 	struct test_struct *ts1, *ts2, *ts3;
 	LIST(l);
@@ -140,7 +139,7 @@ void test_list_removal()
 	free(ts3);
 }
 
-void test_list_iteration()
+NEW_TEST(list_iteration)
 {
 	LIST(l);
 	struct test_struct *ts;
@@ -167,7 +166,7 @@ void test_list_iteration()
 	TEARDOWN_THE_NUMBERS;
 }
 
-void test_list_join()
+NEW_TEST(list_join)
 {
 	LIST(first);
 	LIST(last);
@@ -195,7 +194,7 @@ void test_list_join()
 	TEARDOWN_THE_NUMBERS;
 }
 
-void test_list_moves()
+NEW_TEST(list_moves)
 {
 	LIST(first);
 	LIST(last);
@@ -233,7 +232,7 @@ void test_list_moves()
 	TEARDOWN_THE_NUMBERS;
 }
 
-void test_list_replacements()
+NEW_TEST(list_replacements)
 {
 	LIST(l);
 	SETUP_THE_NUMBERS;
@@ -261,12 +260,12 @@ void test_list_replacements()
 	TEARDOWN_THE_NUMBERS;
 }
 
-void test_suite_list()
+NEW_SUITE(list)
 {
-	test_list_insertion();
-	test_list_removal();
-	test_list_iteration();
-	test_list_join();
-	test_list_moves();
-	test_list_replacements();
+	RUN_TEST(list_insertion);
+	RUN_TEST(list_removal);
+	RUN_TEST(list_iteration);
+	RUN_TEST(list_join);
+	RUN_TEST(list_moves);
+	RUN_TEST(list_replacements);
 }

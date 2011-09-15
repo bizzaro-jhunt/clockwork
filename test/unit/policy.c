@@ -20,13 +20,12 @@
 #include <sys/time.h>
 
 #include "test.h"
-#include "assertions.h"
 #include "../../policy.h"
 #include "../../resources.h"
 #include "../../mem.h"
 #include "../../spec/parser.h"
 
-void test_policy_creation()
+NEW_TEST(policy_creation)
 {
 	struct policy *pol;
 
@@ -38,7 +37,7 @@ void test_policy_creation()
 	policy_free(pol);
 }
 
-void test_policy_resource_addition()
+NEW_TEST(policy_resource_addition)
 {
 	struct policy *pol;
 	struct resource *res1, *res2;
@@ -68,7 +67,7 @@ void test_policy_resource_addition()
 	policy_free(pol);
 }
 
-void test_policy_pack()
+NEW_TEST(policy_pack)
 {
 	struct policy *pol;
 	struct resource *r;
@@ -118,7 +117,7 @@ void test_policy_pack()
 	policy_free_all(pol);
 }
 
-void test_policy_unpack()
+NEW_TEST(policy_unpack)
 {
 	struct policy *pol;
 	char *packed = \
@@ -146,7 +145,7 @@ void test_policy_unpack()
 	policy_free_all(pol);
 }
 
-void test_policy_deps()
+NEW_TEST(policy_deps)
 {
 	struct manifest *m;
 	struct policy *pol;
@@ -177,14 +176,14 @@ void test_policy_deps()
 	manifest_free(m);
 }
 
-void test_suite_policy()
+NEW_SUITE(policy)
 {
-	test_policy_creation();
+	RUN_TEST(policy_creation);
 
-	test_policy_resource_addition();
+	RUN_TEST(policy_resource_addition);
 
-	test_policy_pack();
-	test_policy_unpack();
+	RUN_TEST(policy_pack);
+	RUN_TEST(policy_unpack);
 
-	test_policy_deps();
+	RUN_TEST(policy_deps);
 }

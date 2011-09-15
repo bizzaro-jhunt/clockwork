@@ -18,7 +18,6 @@
  */
 
 #include "test.h"
-#include "assertions.h"
 #include "../../sha1.h"
 
 #define FIPS1_IN "abc"
@@ -28,7 +27,7 @@
 #define FIPS2_OUT "84983e44" "1c3bd26e" "baae4aa1" "f95129e5" "e54670f1"
 #define FIPS3_OUT "34aa973c" "d4c4daa4" "f61eeb2b" "dbad2731" "6534016f"
 
-void test_sha1_FIPS()
+NEW_TEST(sha1_FIPS)
 {
 	struct SHA1 cksum;
 	struct sha1_ctx ctx;
@@ -54,7 +53,7 @@ void test_sha1_FIPS()
 	assert_str_eq("sha1(<1,000,000 x s>)", cksum.hex, FIPS3_OUT);
 }
 
-void test_sha1_init()
+NEW_TEST(sha1_init)
 {
 	struct SHA1 calc;
 	struct SHA1 init;
@@ -89,7 +88,7 @@ void test_sha1_init()
 	assert_str_eq("short checksum == ''", calc.hex, "");
 }
 
-void test_sha1_comparison()
+NEW_TEST(sha1_comparison)
 {
 	struct SHA1 a, b;
 	const char *s1 = "This is the FIRST string";
@@ -105,7 +104,7 @@ void test_sha1_comparison()
 	assert_int_ne("different checksums are not equal", sha1_cmp(&a, &b), 0);
 }
 
-void test_sha1_file()
+NEW_TEST(sha1_file)
 {
 	struct SHA1 cksum;
 
@@ -114,10 +113,10 @@ void test_sha1_file()
 	assert_int_eq("sha1_file on non-existent", sha1_file("/tmp/nonexistent", &cksum), -1);
 }
 
-void test_suite_sha1()
+NEW_SUITE(sha1)
 {
-	test_sha1_FIPS();
-	test_sha1_init();
-	test_sha1_comparison();
-	test_sha1_file();
+	RUN_TEST(sha1_FIPS);
+	RUN_TEST(sha1_init);
+	RUN_TEST(sha1_comparison);
+	RUN_TEST(sha1_file);
 }

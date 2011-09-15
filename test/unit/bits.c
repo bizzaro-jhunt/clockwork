@@ -18,9 +18,8 @@
  */
 
 #include "test.h"
-#include "assertions.h"
 
-void test_basic_twiddles()
+NEW_TEST(basic_twiddles)
 {
 	unsigned int flags = 0;
 
@@ -40,7 +39,7 @@ void test_basic_twiddles()
 	assert_int_eq("unsetting 020 again still yields 051", 051, flags);
 }
 
-void test_suite_bits()
+NEW_SUITE(bits)
 {
-	test_basic_twiddles();
+	RUN_TEST(basic_twiddles);
 }

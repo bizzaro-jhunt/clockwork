@@ -18,10 +18,9 @@
  */
 
 #include "test.h"
-#include "assertions.h"
 #include "../../pack.h"
 
-void test_pack_encoding_integers()
+NEW_TEST(pack_encoding_integers)
 {
 	char *p;
 
@@ -63,7 +62,7 @@ void test_pack_encoding_integers()
 /* "There's no point in seeking a remedy for a thunderbolt" - Syrus, _Maxims_ */
 #define TEST_PACK_SYRUS "Remedium frustra est contra fulmen quaerere"
 
-void test_pack_encoding_strings()
+NEW_TEST(pack_encoding_strings)
 {
 	const char *original, *expected;
 	char *p;
@@ -104,7 +103,7 @@ void test_pack_encoding_strings()
 	free(p);
 }
 
-void test_pack_multiple_strings()
+NEW_TEST(pack_multiple_strings)
 {
 	char *p;
 	char *str1, *str2, *str3;
@@ -125,7 +124,7 @@ void test_pack_multiple_strings()
 	free(str3);
 }
 
-void test_pack_decoding_integers()
+NEW_TEST(pack_decoding_integers)
 {
 	uint8_t  u8; uint16_t u16; uint32_t u32;
 	 int8_t  i8;  int16_t i16;  int32_t i32;
@@ -156,7 +155,7 @@ void test_pack_decoding_integers()
 	assert_unsigned_eq("deadbeef should unpack to unsigned 32-bit integer 3735928559", 0xdeadbeef, u32);
 }
 
-void test_pack_decoding_strings()
+NEW_TEST(pack_decoding_strings)
 {
 	char *buf = NULL;
 	const char *packed, *expected;
@@ -190,7 +189,7 @@ void test_pack_decoding_strings()
 	free(buf); buf = NULL;
 }
 
-void test_pack_DECAFBAD()
+NEW_TEST(pack_DECAFBAD)
 {
 	char *p;
 
@@ -288,7 +287,7 @@ void test_pack_DECAFBAD()
 	free(p);
 }
 
-void test_pack_interpretation()
+NEW_TEST(pack_interpretation)
 {
 	uint8_t u8a, u8b, u8c, u8d;
 	 int8_t i8a, i8b, i8c, i8d;
@@ -394,7 +393,7 @@ void test_pack_interpretation()
 	 */
 }
 
-void test_pack_bad_format()
+NEW_TEST(pack_bad_format)
 {
 	char *s1, *s2, *s3;
 	char *packed;
@@ -423,7 +422,7 @@ void test_pack_bad_format()
 	free(s3);
 }
 
-void test_pack_failure()
+NEW_TEST(pack_failure)
 {
 	char *s1, *s2, *s3;
 
@@ -437,18 +436,18 @@ void test_pack_failure()
 	               &s1, &s2, &s3));
 }
 
-void test_suite_pack() {
-	test_pack_encoding_integers();
-	test_pack_encoding_strings();
-	test_pack_multiple_strings();
+NEW_SUITE(pack) {
+	RUN_TEST(pack_encoding_integers);
+	RUN_TEST(pack_encoding_strings);
+	RUN_TEST(pack_multiple_strings);
 
-	test_pack_decoding_integers();
-	test_pack_decoding_strings();
+	RUN_TEST(pack_decoding_integers);
+	RUN_TEST(pack_decoding_strings);
 
-	test_pack_DECAFBAD();
-	test_pack_interpretation();
+	RUN_TEST(pack_DECAFBAD);
+	RUN_TEST(pack_interpretation);
 
-	test_pack_bad_format();
+	RUN_TEST(pack_bad_format);
 
-	test_pack_failure();
+	RUN_TEST(pack_failure);
 }

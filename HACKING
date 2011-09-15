@@ -53,6 +53,8 @@ Supporting Software Development Tools
   - GNU Flex/Bison   For config / manifest / template parsers
   - GCOV / LCOV      Code coverage profiler with HTML reports
   - Perl             Functional test suite is written entirely in Perl
+  - cdoc             Documentation (see https://github.com/filefrog/cdoc)
+  - ctest            Unit Tests (see https://github.com/filefrog/ctest)
 
 
 

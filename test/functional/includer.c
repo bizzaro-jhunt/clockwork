@@ -26,7 +26,7 @@
 void print_policies(struct manifest *m)
 {
 	unsigned int i;
-	stringlist *names;
+	struct stringlist *names;
 	struct stree *root = m->root;
 
 	names = stringlist_new(NULL);

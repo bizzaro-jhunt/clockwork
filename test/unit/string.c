@@ -18,7 +18,6 @@
  */
 
 #include "test.h"
-#include "assertions.h"
 #include "../../string.h"
 
 void assert_auto_string(struct string *s, const char *value)
@@ -32,7 +31,7 @@ void assert_auto_string(struct string *s, const char *value)
 	assert_int_eq(buf, s->len, strlen(value));
 }
 
-void test_string_interpolation()
+NEW_TEST(string_interpolation)
 {
 	char buf[8192];
 	struct hash *context;
@@ -88,7 +87,7 @@ void test_string_interpolation()
 	hash_free(context);
 }
 
-void test_string_interpolate_short_stroke()
+NEW_TEST(string_interpolate_short_stroke)
 {
 	char buf[512]; // extra-large
 	struct hash *context;
@@ -103,7 +102,7 @@ void test_string_interpolate_short_stroke()
 	hash_free(context);
 }
 
-void test_string_automatic()
+NEW_TEST(string_automatic)
 {
 	struct string *s = string_new(NULL, 0);
 
@@ -125,7 +124,7 @@ void test_string_automatic()
 	string_free(s);
 }
 
-void test_string_extension()
+NEW_TEST(string_extension)
 {
 	/* Insanely low block size */
 	struct string *s = string_new(NULL, 2);
@@ -144,7 +143,7 @@ void test_string_extension()
 	string_free(s);
 }
 
-void test_string_initial_value() {
+NEW_TEST(string_initial_value) {
 	struct string *s;
 
 	test("STRING: Initial Value");
@@ -154,7 +153,7 @@ void test_string_initial_value() {
 	string_free(s);
 }
 
-void test_string_free_null()
+NEW_TEST(string_free_null)
 {
 	struct string *s;
 
@@ -163,12 +162,12 @@ void test_string_free_null()
 	assert_null("string_free(NULL) doesn't segfault", s);
 }
 
-void test_suite_string()
+NEW_SUITE(string)
 {
-	test_string_interpolation();
-	test_string_interpolate_short_stroke();
-	test_string_automatic();
-	test_string_extension();
-	test_string_initial_value();
-	test_string_free_null();
+	RUN_TEST(string_interpolation);
+	RUN_TEST(string_interpolate_short_stroke);
+	RUN_TEST(string_automatic);
+	RUN_TEST(string_extension);
+	RUN_TEST(string_initial_value);
+	RUN_TEST(string_free_null);
 }

@@ -17,7 +17,7 @@ YACC_FLAGS := -Wall --token-table --defines
 CC_FLAGS   := -Wall
 
 # Required libraries
-CC_FLAGS   := -lssl -lpthread -lsqlite3 -laugeas
+CC_FLAGS   := -lssl -lpthread -lsqlite3 -laugeas -lctest
 
 openssl_mode := $(shell if [ -f ext/openssl/lib/libssl.so ]; then echo local; else echo system; fi)
 ifeq ($(openssl_mode), local)

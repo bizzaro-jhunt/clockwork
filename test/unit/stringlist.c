@@ -18,7 +18,6 @@
  */
 
 #include "test.h"
-#include "assertions.h"
 #include "../../stringlist.h"
 
 static int setup_list_item(struct stringlist *list, const char *item)
@@ -52,7 +51,7 @@ static struct stringlist* setup_list(const char *first, ...)
 
 /**********************************************************************/
 
-void test_stringlist_init()
+NEW_TEST(stringlist_init)
 {
 	struct stringlist *sl;
 
@@ -66,7 +65,7 @@ void test_stringlist_init()
 	stringlist_free(sl);
 }
 
-void test_stringlist_init_with_data()
+NEW_TEST(stringlist_init_with_data)
 {
 	struct stringlist *sl;
 	char *data[33];
@@ -95,7 +94,7 @@ void test_stringlist_init_with_data()
 	}
 }
 
-void test_stringlist_dup()
+NEW_TEST(stringlist_dup)
 {
 	struct stringlist *orig, *dup;
 	char *data[5];
@@ -134,7 +133,7 @@ void test_stringlist_dup()
 	}
 }
 
-void test_stringlist_basic_add_remove_search()
+NEW_TEST(stringlist_basic_add_remove_search)
 {
 	struct stringlist *sl;
 
@@ -160,7 +159,7 @@ void test_stringlist_basic_add_remove_search()
 	stringlist_free(sl);
 }
 
-void test_stringlist_add_all()
+NEW_TEST(stringlist_add_all)
 {
 	struct stringlist *sl1, *sl2;
 
@@ -179,7 +178,7 @@ void test_stringlist_add_all()
 	stringlist_free(sl2);
 }
 
-void test_stringlist_add_all_with_expansion()
+NEW_TEST(stringlist_add_all_with_expansion)
 {
 	struct stringlist *sl1, *sl2;
 	int total = 0;
@@ -209,7 +208,7 @@ void test_stringlist_add_all_with_expansion()
 	stringlist_free(sl2);
 }
 
-void test_stringlist_remove_all()
+NEW_TEST(stringlist_remove_all)
 {
 	struct stringlist *sl1, *sl2;
 
@@ -228,7 +227,7 @@ void test_stringlist_remove_all()
 	stringlist_free(sl2);
 }
 
-void test_stringlist_expansion()
+NEW_TEST(stringlist_expansion)
 {
 	struct stringlist *sl;
 	size_t max, i;
@@ -254,7 +253,7 @@ void test_stringlist_expansion()
 	stringlist_free(sl);
 }
 
-void test_stringlist_remove_nonexistent()
+NEW_TEST(stringlist_remove_nonexistent)
 {
 	const char *tomato = "tomato";
 
@@ -269,7 +268,7 @@ void test_stringlist_remove_nonexistent()
 	stringlist_free(sl);
 }
 
-void test_stringlist_qsort()
+NEW_TEST(stringlist_qsort)
 {
 	const char *a = "alice";
 	const char *b = "bob";
@@ -300,7 +299,7 @@ void test_stringlist_qsort()
 	stringlist_free(sl);
 }
 
-void test_stringlist_uniq()
+NEW_TEST(stringlist_uniq)
 {
 	const char *a = "alice";
 	const char *b = "bob";
@@ -318,7 +317,7 @@ void test_stringlist_uniq()
 	stringlist_free(sl);
 }
 
-void test_stringlist_uniq_already()
+NEW_TEST(stringlist_uniq_already)
 {
 	const char *a = "alice";
 	const char *b = "bob";
@@ -336,7 +335,7 @@ void test_stringlist_uniq_already()
 	stringlist_free(sl);
 }
 
-void test_stringlist_diff()
+NEW_TEST(stringlist_diff)
 {
 	const char *a = "alice";
 	const char *b = "bob";
@@ -362,7 +361,7 @@ void test_stringlist_diff()
 	stringlist_free(sl2);
 }
 
-void test_stringlist_diff_non_uniq()
+NEW_TEST(stringlist_diff_non_uniq)
 {
 	const char *s1 = "string1";
 	const char *s2 = "string2";
@@ -381,7 +380,7 @@ void test_stringlist_diff_non_uniq()
 	stringlist_free(sl2);
 }
 
-void test_stringlist_diff_single_string()
+NEW_TEST(stringlist_diff_single_string)
 {
 	struct stringlist *sl1, *sl2;
 	const char *a = "string a";
@@ -398,7 +397,7 @@ void test_stringlist_diff_single_string()
 	stringlist_free(sl2);
 }
 
-void test_stringlist_join()
+NEW_TEST(stringlist_join)
 {
 	char *joined = NULL;
 	struct stringlist *list = setup_list("item1","item2","item3", NULL);
@@ -426,7 +425,7 @@ void test_stringlist_join()
 	stringlist_free(empty);
 }
 
-void test_stringlist_split()
+NEW_TEST(stringlist_split)
 {
 	struct stringlist *list;
 	char *joined = "apple--mango--pear";
@@ -456,7 +455,7 @@ void test_stringlist_split()
 	stringlist_free(list);
 }
 
-void test_stringlist_free_null()
+NEW_TEST(stringlist_free_null)
 {
 	struct stringlist *sl;
 
@@ -465,27 +464,27 @@ void test_stringlist_free_null()
 	assert_null("stringist_free(NULL) doesn't segfault", sl);
 }
 
-void test_suite_stringlist()
+NEW_SUITE(stringlist)
 {
-	test_stringlist_init();
-	test_stringlist_init_with_data();
-	test_stringlist_dup();
-	test_stringlist_basic_add_remove_search();
-	test_stringlist_add_all();
-	test_stringlist_add_all_with_expansion();
-	test_stringlist_remove_all();
-	test_stringlist_expansion();
-	test_stringlist_remove_nonexistent();
-	test_stringlist_qsort();
-	test_stringlist_uniq();
-	test_stringlist_uniq_already();
+	RUN_TEST(stringlist_init);
+	RUN_TEST(stringlist_init_with_data);
+	RUN_TEST(stringlist_dup);
+	RUN_TEST(stringlist_basic_add_remove_search);
+	RUN_TEST(stringlist_add_all);
+	RUN_TEST(stringlist_add_all_with_expansion);
+	RUN_TEST(stringlist_remove_all);
+	RUN_TEST(stringlist_expansion);
+	RUN_TEST(stringlist_remove_nonexistent);
+	RUN_TEST(stringlist_qsort);
+	RUN_TEST(stringlist_uniq);
+	RUN_TEST(stringlist_uniq_already);
 
-	test_stringlist_diff();
-	test_stringlist_diff_non_uniq();
-	test_stringlist_diff_single_string();
+	RUN_TEST(stringlist_diff);
+	RUN_TEST(stringlist_diff_non_uniq);
+	RUN_TEST(stringlist_diff_single_string);
 
-	test_stringlist_join();
-	test_stringlist_split();
+	RUN_TEST(stringlist_join);
+	RUN_TEST(stringlist_split);
 
-	test_stringlist_free_null();
+	RUN_TEST(stringlist_free_null);
 }

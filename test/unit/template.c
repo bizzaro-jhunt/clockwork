@@ -18,8 +18,6 @@
  */
 
 #include "test.h"
-#include "assertions.h"
-
 #include "../../template.h"
 
 #include <sys/stat.h>
@@ -88,7 +86,7 @@ static void assert_template_run(const char *template, const char *expect)
 	template_free(t);
 }
 
-void test_template_static()
+NEW_TEST(template_static)
 {
 	struct template *t;
 	const char *tpl = "static\n";
@@ -111,7 +109,7 @@ void test_template_static()
 	template_free(t);
 }
 
-void test_template_var_expansion()
+NEW_TEST(template_var_expansion)
 {
 	struct hash *v;
 	struct template *t;
@@ -142,7 +140,7 @@ void test_template_var_expansion()
 	template_free(t);
 }
 
-void test_template_if()
+NEW_TEST(template_if)
 {
 	struct hash *v;
 	struct template *t;
@@ -174,7 +172,7 @@ void test_template_if()
 	template_free(t);
 }
 
-void test_template_else()
+NEW_TEST(template_else)
 {
 	struct hash *v;
 	struct template *t;
@@ -206,7 +204,7 @@ void test_template_else()
 	template_free(t);
 }
 
-void test_template_local_vars()
+NEW_TEST(template_local_vars)
 {
 	test("template: local variable expansion");
 	assert_template_run(
@@ -214,7 +212,7 @@ void test_template_local_vars()
 		"Hello, World!\n");
 }
 
-void test_template_echo()
+NEW_TEST(template_echo)
 {
 	test("template: echo variable assignment");
 	assert_template_run(
@@ -232,7 +230,7 @@ void test_template_echo()
 		"Echo vals rock!\n");
 }
 
-void test_template_non_echo()
+NEW_TEST(template_non_echo)
 {
 	test("template: non-echo variable assignment");
 	assert_template_run(
@@ -250,7 +248,7 @@ void test_template_non_echo()
 		"Non-echo vals\n");
 }
 
-void test_template_free()
+NEW_TEST(template_free)
 {
 	struct template *t;
 
@@ -261,16 +259,16 @@ void test_template_free()
 
 }
 
-void test_suite_template()
+NEW_SUITE(template)
 {
-	test_template_static();
-	test_template_var_expansion();
-	test_template_if();
-	test_template_else();
-	test_template_local_vars();
+	RUN_TEST(template_static);
+	RUN_TEST(template_var_expansion);
+	RUN_TEST(template_if);
+	RUN_TEST(template_else);
+	RUN_TEST(template_local_vars);
 
-	test_template_echo();
-	test_template_non_echo();
+	RUN_TEST(template_echo);
+	RUN_TEST(template_non_echo);
 
-	test_template_free();
+	RUN_TEST(template_free);
 }

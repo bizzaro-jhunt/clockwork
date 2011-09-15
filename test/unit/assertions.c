@@ -17,7 +17,7 @@
   along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "test.h"
+#include <ctest.h>
 #include "assertions.h"
 
 void assert_stringlist(struct stringlist *sl, const char *name, size_t n, ...)

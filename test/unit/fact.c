@@ -18,11 +18,10 @@
  */
 
 #include "test.h"
-#include "assertions.h"
 #include "../../policy.h"
 #include "../../mem.h"
 
-void test_fact_parsing()
+NEW_TEST(fact_parsing)
 {
 	struct hash *h;
 
@@ -35,7 +34,7 @@ void test_fact_parsing()
 	hash_free(h);
 }
 
-void test_fact_read_io()
+NEW_TEST(fact_read_io)
 {
 	struct hash *facts;
 	FILE *io;
@@ -61,7 +60,7 @@ void test_fact_read_io()
 	hash_free(facts);
 }
 
-void test_fact_read_overrides()
+NEW_TEST(fact_read_overrides)
 {
 	struct hash *facts;
 	FILE *io;
@@ -84,7 +83,7 @@ void test_fact_read_overrides()
 	hash_free_all(facts);
 }
 
-void test_fact_write()
+NEW_TEST(fact_write)
 {
 	struct hash *facts;
 	FILE *io;
@@ -116,10 +115,10 @@ void test_fact_write()
 	hash_free_all(facts);
 }
 
-void test_suite_fact()
+NEW_SUITE(fact)
 {
-	test_fact_parsing();
-	test_fact_read_io();
-	test_fact_read_overrides();
-	test_fact_write();
+	RUN_TEST(fact_parsing);
+	RUN_TEST(fact_read_io);
+	RUN_TEST(fact_read_overrides);
+	RUN_TEST(fact_write);
 }

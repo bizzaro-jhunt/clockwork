@@ -18,7 +18,6 @@
  */
 
 #include "test.h"
-#include "assertions.h"
 #include "../../cert.h"
 
 #define X509_ROOT  TEST_UNIT_DATA "/x509"
@@ -52,7 +51,7 @@ static void assert_cert_id(X509 *cert, const char *issuer, const char *subject)
 	cert_subject_free(subj);
 }
 
-void test_cert_key_retrieve()
+NEW_TEST(cert_key_retrieve)
 {
 	EVP_PKEY *key;
 
@@ -77,7 +76,7 @@ void test_cert_key_retrieve()
 	EVP_PKEY_free(key);
 }
 
-void test_cert_key_generation()
+NEW_TEST(cert_key_generation)
 {
 	EVP_PKEY *key;
 
@@ -89,7 +88,7 @@ void test_cert_key_generation()
 	EVP_PKEY_free(key);
 }
 
-void test_cert_key_storage()
+NEW_TEST(cert_key_storage)
 {
 	EVP_PKEY *key, *reread;
 	const char *path = TEST_UNIT_TEMP "/x509/key1.pem";
@@ -112,7 +111,7 @@ void test_cert_key_storage()
 	EVP_PKEY_free(reread);
 }
 
-void test_cert_csr_retrieve()
+NEW_TEST(cert_csr_retrieve)
 {
 	X509_REQ *request;
 	struct cert_subject *subj;
@@ -142,7 +141,7 @@ void test_cert_csr_retrieve()
 	X509_REQ_free(request);
 }
 
-void test_cert_csr_generation()
+NEW_TEST(cert_csr_generation)
 {
 	EVP_PKEY *key;
 	X509_REQ *request;
@@ -179,7 +178,7 @@ void test_cert_csr_generation()
 	X509_REQ_free(request);
 }
 
-void test_cert_csr_storage()
+NEW_TEST(cert_csr_storage)
 {
 	X509_REQ *request, *reread;
 	const char *path = TEST_UNIT_TEMP "/x509/csr1.pem";
@@ -201,14 +200,14 @@ void test_cert_csr_storage()
 	X509_REQ_free(reread);
 }
 
-void test_cert_free_null()
+NEW_TEST(cert_free_null)
 {
 	test("cert: cert_subject_free(NULL)");
 	cert_subject_free(NULL);
 	assert_pass("cert_subject_free(NULL) doesn't segfault");
 }
 
-void test_cert_info()
+NEW_TEST(cert_info)
 {
 	X509 *cert;
 	char *serial;
@@ -252,7 +251,7 @@ void test_cert_info()
 	free(fingerprint);
 }
 
-void test_cert_signing()
+NEW_TEST(cert_signing)
 {
 	X509_REQ *csr;
 	X509 *cert;
@@ -285,7 +284,7 @@ void test_cert_signing()
 	assert_cert_id(cert, CA_ID, "Signing Test - sign.niftylogic.net");
 }
 
-void test_cert_revocation()
+NEW_TEST(cert_revocation)
 {
 	X509_CRL *crl;
 	EVP_PKEY *ca_key;
@@ -322,7 +321,7 @@ void test_cert_revocation()
 	assert_int_eq("Cert is still revoked after re-read", cert_is_revoked(crl, cert), 0);
 }
 
-void test_cert_retrieve_multi()
+NEW_TEST(cert_retrieve_multi)
 {
 	X509_REQ **reqs;
 	X509 **certs;
@@ -347,25 +346,25 @@ void test_cert_retrieve_multi()
 	assert_int_eq("No certs found matching bad path", n, 0);
 }
 
-void test_suite_cert()
+NEW_SUITE(cert)
 {
 	cert_init();
 
-	test_cert_free_null();
-	test_cert_info();
+	RUN_TEST(cert_free_null);
+	RUN_TEST(cert_info);
 
-	test_cert_key_retrieve();
-	test_cert_key_generation();
-	test_cert_key_storage();
+	RUN_TEST(cert_key_retrieve);
+	RUN_TEST(cert_key_generation);
+	RUN_TEST(cert_key_storage);
 
-	test_cert_csr_retrieve();
-	test_cert_csr_generation();
-	test_cert_csr_storage();
+	RUN_TEST(cert_csr_retrieve);
+	RUN_TEST(cert_csr_generation);
+	RUN_TEST(cert_csr_storage);
 
-	test_cert_signing();
-	test_cert_revocation();
+	RUN_TEST(cert_signing);
+	RUN_TEST(cert_revocation);
 
-	test_cert_retrieve_multi();
+	RUN_TEST(cert_retrieve_multi);
 
 	cert_deinit();
 }

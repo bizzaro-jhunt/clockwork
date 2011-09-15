@@ -21,8 +21,6 @@
 
 int main(int argc, char **argv)
 {
-	int run_active;
-
 	TEST_SUITE(bits);
 	TEST_SUITE(mem);
 	TEST_SUITE(list);
@@ -51,13 +49,5 @@ int main(int argc, char **argv)
 	TEST_SUITE(template);
 	TEST_SUITE(path);
 
-	test_setup(argc, argv);
-	run_active = 0;
-	while (*(++argv)) {
-		run_active += activate_test(*argv);
-	}
-
-	(run_active ? run_active_tests() : run_all_tests());
-	teardown_test_suites();
-	return test_status();
+	return run_tests(argc, argv);
 }

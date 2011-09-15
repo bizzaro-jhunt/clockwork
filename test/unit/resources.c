@@ -18,10 +18,11 @@
  */
 
 #include "test.h"
-#include "assertions.h"
 #include "../../clockwork.h"
 #include "../../resources.h"
 #include "../../augcw.h"
+#include "../../managers/package.h"
+#include "../../managers/service.h"
 
 #include <unistd.h>
 #include <sys/types.h>
@@ -47,7 +48,7 @@ static void assert_attr_hash(const char *obj, struct hash *h, const char *attr, 
 
 /***********************************************************************/
 
-void test_resource_keys()
+NEW_TEST(resource_keys)
 {
 	struct res_user     *user;
 	struct res_group    *group;
@@ -110,7 +111,7 @@ void test_resource_keys()
 	res_sysctl_free(sysctl);
 }
 
-void test_resource_noops()
+NEW_TEST(resource_noops)
 {
 	test("RES_*: NOOPs");
 	assert_int_eq("res_user_notify does nothing", 0, res_user_notify(NULL, NULL));
@@ -135,7 +136,7 @@ void test_resource_noops()
 	assert_int_eq("res_host_norm does nothing", 0, res_host_norm(NULL, NULL, NULL));
 }
 
-void test_resource_free_null()
+NEW_TEST(resource_free_null)
 {
 	test("RES_*: free(NULL)");
 
@@ -164,7 +165,7 @@ void test_resource_free_null()
 	assert_true("res_host_free(NULL) doesn't segfault", 1);
 }
 
-void test_res_user_enforcement()
+NEW_TEST(res_user_enforcement)
 {
 	struct res_user *ru;
 	ru = res_user_new("user1");
@@ -254,7 +255,7 @@ void test_res_user_enforcement()
 	res_user_free(ru);
 }
 
-void test_res_user_diffstat_fixup()
+NEW_TEST(res_user_diffstat_fixup)
 {
 	struct res_user *ru;
 	struct resource_env env;
@@ -320,7 +321,7 @@ void test_res_user_diffstat_fixup()
 	report_free(report);
 }
 
-void test_res_user_fixup_new()
+NEW_TEST(res_user_fixup_new)
 {
 	struct res_user *ru;
 	struct resource_env env;
@@ -371,7 +372,7 @@ void test_res_user_fixup_new()
 	report_free(report);
 }
 
-void test_res_user_fixup_remove_existing()
+NEW_TEST(res_user_fixup_remove_existing)
 {
 	struct res_user *ru;
 	struct resource_env env, env_after;
@@ -431,7 +432,7 @@ void test_res_user_fixup_remove_existing()
 	report_free(report);
 }
 
-void test_res_user_fixup_remove_nonexistent()
+NEW_TEST(res_user_fixup_remove_nonexistent)
 {
 	struct res_user *ru;
 	struct resource_env env, env_after;
@@ -491,7 +492,7 @@ void test_res_user_fixup_remove_nonexistent()
 	report_free(report);
 }
 
-void test_res_user_match()
+NEW_TEST(res_user_match)
 {
 	struct res_user *ru;
 
@@ -518,7 +519,7 @@ void test_res_user_match()
 	res_user_free(ru);
 }
 
-void test_res_user_pack()
+NEW_TEST(res_user_pack)
 {
 	struct res_user *ru;
 	char *packed;
@@ -562,7 +563,7 @@ void test_res_user_pack()
 	free(packed);
 }
 
-void test_res_user_unpack()
+NEW_TEST(res_user_unpack)
 {
 	struct res_user *ru;
 	char *packed;
@@ -636,7 +637,7 @@ void test_res_user_unpack()
 	res_user_free(ru);
 }
 
-void test_res_user_attrs()
+NEW_TEST(res_user_attrs)
 {
 	struct res_user *ru;
 	struct hash *h;
@@ -701,7 +702,7 @@ void test_res_user_attrs()
 
 /*****************************************************************************/
 
-void test_res_group_enforcement()
+NEW_TEST(res_group_enforcement)
 {
 	struct res_group *rg;
 	rg = res_group_new("group1");
@@ -741,7 +742,7 @@ void test_res_group_enforcement()
 	res_group_free(rg);
 }
 
-void test_res_group_diffstat_fixup()
+NEW_TEST(res_group_diffstat_fixup)
 {
 	struct res_group *rg;
 	struct stringlist *list; /* for gr_mem / sg_mem / sg_adm tests */
@@ -811,7 +812,7 @@ void test_res_group_diffstat_fixup()
 	report_free(report);
 }
 
-void test_res_group_fixup_new()
+NEW_TEST(res_group_fixup_new)
 {
 	struct res_group *rg;
 	struct report *report;
@@ -851,7 +852,7 @@ void test_res_group_fixup_new()
 	report_free(report);
 }
 
-void test_res_group_fixup_remove_existing()
+NEW_TEST(res_group_fixup_remove_existing)
 {
 	struct res_group *rg;
 	struct report *report;
@@ -916,7 +917,7 @@ void test_res_group_fixup_remove_existing()
 	report_free(report);
 }
 
-void test_res_group_fixup_remove_nonexistent()
+NEW_TEST(res_group_fixup_remove_nonexistent)
 {
 	struct res_group *rg;
 	struct report *report;
@@ -980,7 +981,7 @@ void test_res_group_fixup_remove_nonexistent()
 	report_free(report);
 }
 
-void test_res_group_match()
+NEW_TEST(res_group_match)
 {
 	struct res_group *rg;
 
@@ -1001,7 +1002,7 @@ void test_res_group_match()
 	res_group_free(rg);
 }
 
-void test_res_group_pack()
+NEW_TEST(res_group_pack)
 {
 	struct res_group *rg;
 	char *packed;
@@ -1026,7 +1027,7 @@ void test_res_group_pack()
 	free(packed);
 }
 
-void test_res_group_unpack()
+NEW_TEST(res_group_unpack)
 {
 	struct res_group *rg;
 	char *packed;
@@ -1059,7 +1060,7 @@ void test_res_group_unpack()
 	res_group_free(rg);
 }
 
-void test_res_group_add_remove_members_via_set()
+NEW_TEST(res_group_add_remove_members_via_set)
 {
 	struct res_group *rg;
 
@@ -1089,7 +1090,7 @@ void test_res_group_add_remove_members_via_set()
 	res_group_free(rg);
 }
 
-void test_res_group_attrs()
+NEW_TEST(res_group_attrs)
 {
 	struct res_group *rg;
 	struct hash *h;
@@ -1130,7 +1131,7 @@ void test_res_group_attrs()
 	hash_free(h);
 }
 
-void test_res_group_attrs_multivalue()
+NEW_TEST(res_group_attrs_multivalue)
 {
 	struct res_group *add_only;
 	struct res_group *rm_only;
@@ -1175,7 +1176,7 @@ void test_res_group_attrs_multivalue()
 
 /*****************************************************************************/
 
-void test_res_file_enforcement()
+NEW_TEST(res_file_enforcement)
 {
 	struct res_file *rf;
 	rf = res_file_new("sudoers");
@@ -1214,7 +1215,7 @@ void test_res_file_enforcement()
 	res_file_free(rf);
 }
 
-void test_res_file_diffstat()
+NEW_TEST(res_file_diffstat)
 {
 	struct res_file *rf;
 
@@ -1237,7 +1238,7 @@ void test_res_file_diffstat()
 	res_file_free(rf);
 }
 
-void test_res_file_remedy()
+NEW_TEST(res_file_remedy)
 {
 	struct stat st;
 	struct res_file *rf;
@@ -1295,7 +1296,7 @@ void test_res_file_remedy()
 	report_free(report);
 }
 
-void test_res_file_fixup_new()
+NEW_TEST(res_file_fixup_new)
 {
 	struct stat st;
 	struct res_file *rf;
@@ -1338,7 +1339,7 @@ void test_res_file_fixup_new()
 	report_free(report);
 }
 
-void test_res_file_fixup_remove_existing()
+NEW_TEST(res_file_fixup_remove_existing)
 {
 	struct stat st;
 	struct res_file *rf;
@@ -1368,7 +1369,7 @@ void test_res_file_fixup_remove_existing()
 	report_free(report);
 }
 
-void test_res_file_fixup_remove_nonexistent()
+NEW_TEST(res_file_fixup_remove_nonexistent)
 {
 	struct stat st;
 	struct res_file *rf;
@@ -1398,7 +1399,7 @@ void test_res_file_fixup_remove_nonexistent()
 	report_free(report);
 }
 
-void test_res_file_match()
+NEW_TEST(res_file_match)
 {
 	struct res_file *rf;
 
@@ -1418,7 +1419,7 @@ void test_res_file_match()
 	res_file_free(rf);
 }
 
-void test_res_file_pack()
+NEW_TEST(res_file_pack)
 {
 	struct res_file *rf;
 	char *packed;
@@ -1449,7 +1450,7 @@ void test_res_file_pack()
 	free(packed);
 }
 
-void test_res_file_unpack()
+NEW_TEST(res_file_unpack)
 {
 	struct res_file *rf;
 	char *packed;
@@ -1486,7 +1487,7 @@ void test_res_file_unpack()
 	res_file_free(rf);
 }
 
-void test_res_file_attrs()
+NEW_TEST(res_file_attrs)
 {
 	struct res_file *rf;
 	struct hash *h;
@@ -1532,7 +1533,7 @@ void test_res_file_attrs()
 /*****************************************************************************/
 
 #define PACKAGE "xbill"
-void test_res_package_diffstat_fixup()
+NEW_TEST(res_package_diffstat_fixup)
 {
 	struct res_package *r;
 	struct resource_env env;
@@ -1590,7 +1591,7 @@ void test_res_package_diffstat_fixup()
 	free(version);
 }
 
-void test_res_package_match()
+NEW_TEST(res_package_match)
 {
 	struct res_package *rp;
 
@@ -1608,7 +1609,7 @@ void test_res_package_match()
 	res_package_free(rp);
 }
 
-void test_res_package_pack()
+NEW_TEST(res_package_pack)
 {
 	struct res_package *r;
 	char *expected = "res_package::\"pkg-name\""
@@ -1630,7 +1631,7 @@ void test_res_package_pack()
 	free(actual);
 }
 
-void test_res_package_unpack()
+NEW_TEST(res_package_unpack)
 {
 	struct res_package *r;
 	char *packed;
@@ -1661,7 +1662,7 @@ void test_res_package_unpack()
 	res_package_free(r);
 }
 
-void test_res_package_attrs()
+NEW_TEST(res_package_attrs)
 {
 	struct res_package *r;
 	struct hash *h;
@@ -1693,7 +1694,7 @@ void test_res_package_attrs()
 /*****************************************************************************/
 
 #define SERVICE "snmpd"
-void test_res_service_diffstat_fixup()
+NEW_TEST(res_service_diffstat_fixup)
 {
 	struct res_service *r;
 	struct resource_env env;
@@ -1797,7 +1798,7 @@ void test_res_service_diffstat_fixup()
 	}
 }
 
-void test_res_service_match()
+NEW_TEST(res_service_match)
 {
 	struct res_service *rs;
 
@@ -1815,7 +1816,7 @@ void test_res_service_match()
 	res_service_free(rs);
 }
 
-void test_res_service_pack()
+NEW_TEST(res_service_pack)
 {
 	struct res_service *r;
 	char *packed;
@@ -1837,7 +1838,7 @@ void test_res_service_pack()
 	free(packed);
 }
 
-void test_res_service_unpack()
+NEW_TEST(res_service_unpack)
 {
 	struct res_service *r;
 	char *packed;
@@ -1861,7 +1862,7 @@ void test_res_service_unpack()
 	res_service_free(r);
 }
 
-void test_res_service_attrs()
+NEW_TEST(res_service_attrs)
 {
 	struct res_service *r;
 	struct hash *h;
@@ -1908,7 +1909,7 @@ void test_res_service_attrs()
 	res_service_free(r);
 }
 
-void test_res_service_notify()
+NEW_TEST(res_service_notify)
 {
 	struct res_service *r;
 
@@ -1923,7 +1924,7 @@ void test_res_service_notify()
 
 /*****************************************************************************/
 
-void test_res_host_diffstat_fixup()
+NEW_TEST(res_host_diffstat_fixup)
 {
 	struct res_host *r;
 	struct resource_env env;
@@ -1965,7 +1966,7 @@ void test_res_host_diffstat_fixup()
 	res_host_free(r);
 }
 
-void test_res_host_match()
+NEW_TEST(res_host_match)
 {
 	struct res_host *rh;
 
@@ -1987,7 +1988,7 @@ void test_res_host_match()
 	res_host_free(rh);
 }
 
-void test_res_host_pack()
+NEW_TEST(res_host_pack)
 {
 	struct res_host *rh;
 	char *packed;
@@ -2011,7 +2012,7 @@ void test_res_host_pack()
 	res_host_free(rh);
 }
 
-void test_res_host_unpack()
+NEW_TEST(res_host_unpack)
 {
 	const char *packed;
 	struct res_host *rh;
@@ -2035,7 +2036,7 @@ void test_res_host_unpack()
 	res_host_free(rh);
 }
 
-void test_res_host_attrs()
+NEW_TEST(res_host_attrs)
 {
 	struct res_host *rh;
 	struct hash *h;
@@ -2066,7 +2067,7 @@ void test_res_host_attrs()
 
 /*****************************************************************************/
 
-void test_res_sysctl_diffstat_fixup()
+NEW_TEST(res_sysctl_diffstat_fixup)
 {
 	struct res_sysctl *r;
 	struct report *report;
@@ -2101,7 +2102,7 @@ void test_res_sysctl_diffstat_fixup()
 	res_sysctl_free(r);
 }
 
-void test_res_sysctl_match()
+NEW_TEST(res_sysctl_match)
 {
 	struct res_sysctl *rs;
 
@@ -2120,7 +2121,7 @@ void test_res_sysctl_match()
 	res_sysctl_free(rs);
 }
 
-void test_res_sysctl_pack()
+NEW_TEST(res_sysctl_pack)
 {
 	struct res_sysctl *rs;
 	char *packed;
@@ -2140,7 +2141,7 @@ void test_res_sysctl_pack()
 	free(packed);
 }
 
-void test_res_sysctl_unpack()
+NEW_TEST(res_sysctl_unpack)
 {
 	struct res_sysctl *rs;
 	const char *packed;
@@ -2167,7 +2168,7 @@ void test_res_sysctl_unpack()
 	res_sysctl_free(rs);
 }
 
-void test_res_sysctl_attrs()
+NEW_TEST(res_sysctl_attrs)
 {
 	struct res_sysctl *rs;
 	struct hash *h;
@@ -2201,7 +2202,7 @@ void test_res_sysctl_attrs()
 
 /*****************************************************************************/
 
-void test_res_dir_enforcement()
+NEW_TEST(res_dir_enforcement)
 {
 	struct res_dir *r;
 	r = res_dir_new("/tmp");
@@ -2236,7 +2237,7 @@ void test_res_dir_enforcement()
 	res_dir_free(r);
 }
 
-void test_res_dir_diffstat()
+NEW_TEST(res_dir_diffstat)
 {
 	struct res_dir *r;
 
@@ -2260,7 +2261,7 @@ void test_res_dir_diffstat()
 	res_dir_free(r);
 }
 
-void test_res_dir_fixup_existing()
+NEW_TEST(res_dir_fixup_existing)
 {
 	struct stat st;
 	struct res_dir *r;
@@ -2310,7 +2311,7 @@ void test_res_dir_fixup_existing()
 	report_free(report);
 }
 
-void test_res_dir_match()
+NEW_TEST(res_dir_match)
 {
 	struct res_dir *rd;
 
@@ -2331,7 +2332,7 @@ void test_res_dir_match()
 	res_dir_free(rd);
 }
 
-void test_res_dir_pack()
+NEW_TEST(res_dir_pack)
 {
 	struct res_dir *rd;
 	char *packed;
@@ -2354,7 +2355,7 @@ void test_res_dir_pack()
 	free(packed);
 }
 
-void test_res_dir_unpack()
+NEW_TEST(res_dir_unpack)
 {
 	struct res_dir *rd;
 	const char *packed;
@@ -2387,7 +2388,7 @@ void test_res_dir_unpack()
 	res_dir_free(rd);
 }
 
-void test_res_dir_attrs()
+NEW_TEST(res_dir_attrs)
 {
 	struct res_dir *rd;
 	struct hash *h;
@@ -2428,99 +2429,99 @@ void test_res_dir_attrs()
 
 /*****************************************************************************/
 
-void test_suite_resources()
+NEW_SUITE(resources)
 {
-	test_resource_keys();
-	test_resource_noops();
-	test_resource_free_null();
+	RUN_TEST(resource_keys);
+	RUN_TEST(resource_noops);
+	RUN_TEST(resource_free_null);
 }
 
-void test_suite_res_user()
+NEW_SUITE(res_user)
 {
-	test_res_user_enforcement();
-	test_res_user_diffstat_fixup();
-	test_res_user_fixup_new();
-	test_res_user_fixup_remove_existing();
-	test_res_user_fixup_remove_nonexistent();
-	test_res_user_match();
-	test_res_user_pack();
-	test_res_user_unpack();
-	test_res_user_attrs();
+	RUN_TEST(res_user_enforcement);
+	RUN_TEST(res_user_diffstat_fixup);
+	RUN_TEST(res_user_fixup_new);
+	RUN_TEST(res_user_fixup_remove_existing);
+	RUN_TEST(res_user_fixup_remove_nonexistent);
+	RUN_TEST(res_user_match);
+	RUN_TEST(res_user_pack);
+	RUN_TEST(res_user_unpack);
+	RUN_TEST(res_user_attrs);
 }
 
-void test_suite_res_group()
+NEW_SUITE(res_group)
 {
-	test_res_group_enforcement();
-	test_res_group_diffstat_fixup();
-	test_res_group_fixup_new();
-	test_res_group_fixup_remove_existing();
-	test_res_group_fixup_remove_nonexistent();
-	test_res_group_match();
-	test_res_group_pack();
-	test_res_group_unpack();
-	test_res_group_add_remove_members_via_set();
-	test_res_group_attrs();
-	test_res_group_attrs_multivalue();
+	RUN_TEST(res_group_enforcement);
+	RUN_TEST(res_group_diffstat_fixup);
+	RUN_TEST(res_group_fixup_new);
+	RUN_TEST(res_group_fixup_remove_existing);
+	RUN_TEST(res_group_fixup_remove_nonexistent);
+	RUN_TEST(res_group_match);
+	RUN_TEST(res_group_pack);
+	RUN_TEST(res_group_unpack);
+	RUN_TEST(res_group_add_remove_members_via_set);
+	RUN_TEST(res_group_attrs);
+	RUN_TEST(res_group_attrs_multivalue);
 }
 
-void test_suite_res_file()
+NEW_SUITE(res_file)
 {
-	test_res_file_enforcement();
-	test_res_file_diffstat();
-	test_res_file_remedy();
-	test_res_file_fixup_new();
-	test_res_file_fixup_remove_existing();
-	test_res_file_fixup_remove_nonexistent();
-	test_res_file_match();
-	test_res_file_pack();
-	test_res_file_unpack();
-	test_res_file_attrs();
+	RUN_TEST(res_file_enforcement);
+	RUN_TEST(res_file_diffstat);
+	RUN_TEST(res_file_remedy);
+	RUN_TEST(res_file_fixup_new);
+	RUN_TEST(res_file_fixup_remove_existing);
+	RUN_TEST(res_file_fixup_remove_nonexistent);
+	RUN_TEST(res_file_match);
+	RUN_TEST(res_file_pack);
+	RUN_TEST(res_file_unpack);
+	RUN_TEST(res_file_attrs);
 }
 
-void test_suite_res_package()
+NEW_SUITE(res_package)
 {
-	test_res_package_diffstat_fixup();
-	test_res_package_match();
-	test_res_package_pack();
-	test_res_package_unpack();
-	test_res_package_attrs();
+	RUN_TEST(res_package_diffstat_fixup);
+	RUN_TEST(res_package_match);
+	RUN_TEST(res_package_pack);
+	RUN_TEST(res_package_unpack);
+	RUN_TEST(res_package_attrs);
 }
 
-void test_suite_res_service()
+NEW_SUITE(res_service)
 {
-	test_res_service_diffstat_fixup();
-	test_res_service_match();
-	test_res_service_pack();
-	test_res_service_unpack();
-	test_res_service_attrs();
-	test_res_service_notify();
+	RUN_TEST(res_service_diffstat_fixup);
+	RUN_TEST(res_service_match);
+	RUN_TEST(res_service_pack);
+	RUN_TEST(res_service_unpack);
+	RUN_TEST(res_service_attrs);
+	RUN_TEST(res_service_notify);
 }
 
-void test_suite_res_host()
+NEW_SUITE(res_host)
 {
-	test_res_host_diffstat_fixup();
-	test_res_host_match();
-	test_res_host_pack();
-	test_res_host_unpack();
-	test_res_host_attrs();
+	RUN_TEST(res_host_diffstat_fixup);
+	RUN_TEST(res_host_match);
+	RUN_TEST(res_host_pack);
+	RUN_TEST(res_host_unpack);
+	RUN_TEST(res_host_attrs);
 }
 
-void test_suite_res_sysctl()
+NEW_SUITE(res_sysctl)
 {
-	test_res_sysctl_diffstat_fixup();
-	test_res_sysctl_match();
-	test_res_sysctl_pack();
-	test_res_sysctl_unpack();
-	test_res_sysctl_attrs();
+	RUN_TEST(res_sysctl_diffstat_fixup);
+	RUN_TEST(res_sysctl_match);
+	RUN_TEST(res_sysctl_pack);
+	RUN_TEST(res_sysctl_unpack);
+	RUN_TEST(res_sysctl_attrs);
 }
 
-void test_suite_res_dir()
+NEW_SUITE(res_dir)
 {
-	test_res_dir_enforcement();
-	test_res_dir_diffstat();
-	test_res_dir_fixup_existing();
-	test_res_dir_match();
-	test_res_dir_pack();
-	test_res_dir_unpack();
-	test_res_dir_attrs();
+	RUN_TEST(res_dir_enforcement);
+	RUN_TEST(res_dir_diffstat);
+	RUN_TEST(res_dir_fixup_existing);
+	RUN_TEST(res_dir_match);
+	RUN_TEST(res_dir_pack);
+	RUN_TEST(res_dir_unpack);
+	RUN_TEST(res_dir_attrs);
 }

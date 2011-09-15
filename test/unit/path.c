@@ -18,7 +18,6 @@
  */
 
 #include "test.h"
-#include "assertions.h"
 
 #include "../../path.h"
 
@@ -32,7 +31,7 @@ static void assert_canon(const char *orig_path, const char *expected)
 	path_free(p);
 }
 
-void test_path_creation()
+NEW_TEST(path_creation)
 {
 	struct path *p;
 
@@ -48,7 +47,7 @@ void test_path_creation()
 	path_free(p);
 }
 
-void test_path_canon()
+NEW_TEST(path_canon)
 {
 	test("path: Canonicalization (normal case)");
 	assert_canon("/usr/local/sbin", "/usr/local/sbin");
@@ -105,7 +104,7 @@ void test_path_canon()
 	assert_canon("/a/b/c/d/e/f/../", "/a/b/c/d/e");
 }
 
-void test_path_push_pop()
+NEW_TEST(path_push_pop)
 {
 	struct path *p;
 
@@ -141,7 +140,7 @@ void test_path_push_pop()
 	path_free(p);
 }
 
-void test_path_free_null()
+NEW_TEST(path_free_null)
 {
 	struct path *p;
 
@@ -151,10 +150,10 @@ void test_path_free_null()
 	assert_null("path_free(NULL) doesn't segfault", p);
 }
 
-void test_suite_path()
+NEW_SUITE(path)
 {
-	test_path_creation();
-	test_path_canon();
-	test_path_push_pop();
-	test_path_free_null();
+	RUN_TEST(path_creation);
+	RUN_TEST(path_canon);
+	RUN_TEST(path_push_pop);
+	RUN_TEST(path_free_null);
 }

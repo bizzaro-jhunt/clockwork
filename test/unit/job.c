@@ -18,7 +18,6 @@
  */
 
 #include "test.h"
-#include "assertions.h"
 
 static void fake_job_run(struct job *job)
 {
@@ -64,7 +63,7 @@ static void assert_jobs_eq(struct job *actual, struct job *expected)
 	assert_int_eq("job durations match", actual->duration, expected->duration);
 }
 
-void test_job_creation()
+NEW_TEST(job_creation)
 {
 	struct job *job = NULL;
 
@@ -80,7 +79,7 @@ void test_job_creation()
 	job_free(job);
 }
 
-void test_job_timer()
+NEW_TEST(job_timer)
 {
 	struct job *job = NULL;
 
@@ -103,7 +102,7 @@ void test_job_timer()
 	job_free(job);
 }
 
-void test_job_pack_unpack()
+NEW_TEST(job_pack_unpack)
 {
 	struct job *job = NULL;
 	struct job *unpacked = NULL;
@@ -130,7 +129,7 @@ void test_job_pack_unpack()
 	job_free(unpacked);
 }
 
-void test_job_free_NULL()
+NEW_TEST(job_free_NULL)
 {
 	test("job: data structure frees with NULL args");
 	job_free(NULL);    assert_true("job_free(NULL) does not segfault", 1);
@@ -138,11 +137,11 @@ void test_job_free_NULL()
 	action_free(NULL); assert_true("action_free(NULL) does not segfault", 1);
 }
 
-void test_suite_job()
+NEW_SUITE(job)
 {
-	test_job_creation();
-	test_job_timer();
-	test_job_pack_unpack();
+	RUN_TEST(job_creation);
+	RUN_TEST(job_timer);
+	RUN_TEST(job_pack_unpack);
 
-	test_job_free_NULL();
+	RUN_TEST(job_free_NULL);
 }

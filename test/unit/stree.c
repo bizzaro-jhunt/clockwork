@@ -18,7 +18,6 @@
  */
 
 #include "test.h"
-#include "assertions.h"
 #include "../../policy.h"
 
 static struct manifest *MANIFEST;
@@ -40,7 +39,7 @@ struct stree* child_of(struct stree *parent, struct stree *new)
 	return new;
 }
 
-void test_stree_child_nodes()
+NEW_TEST(stree_child_nodes)
 {
 	struct stree *root, *child1, *child2;
 
@@ -144,7 +143,7 @@ static struct hash* facts_for_tikanga24(void)
 }
 
 
-void test_stree_static_policy_generation()
+NEW_TEST(stree_static_policy_generation)
 {
 	struct policy *pol;
 	struct stree *root;
@@ -206,7 +205,7 @@ void test_stree_static_policy_generation()
 	policy_free_all(pol);
 }
 
-void test_stree_conditional_policy_generation()
+NEW_TEST(stree_conditional_policy_generation)
 {
 	struct policy *pol;
 	struct stree *root;
@@ -317,7 +316,7 @@ struct hash* facts_for_prog2(void)
 	return h;
 }
 
-void test_stree_prog_policy_generation()
+NEW_TEST(stree_prog_policy_generation)
 {
 	struct policy *pol;
 	struct stree *root;
@@ -375,7 +374,7 @@ void test_stree_prog_policy_generation()
 	policy_free_all(pol);
 }
 
-void test_stree_comparison()
+NEW_TEST(stree_comparison)
 {
 	struct stree *a, *b, *c;
 
@@ -397,17 +396,17 @@ void test_stree_comparison()
 	assert_int_eq("NULL == NULL", 1, stree_compare(NULL,NULL));
 }
 
-void test_suite_stree()
+NEW_SUITE(stree)
 {
 	MANIFEST = manifest_new();
 
-	test_stree_child_nodes();
+	RUN_TEST(stree_child_nodes);
 
-	test_stree_static_policy_generation();
-	test_stree_conditional_policy_generation();
-	test_stree_prog_policy_generation();
+	RUN_TEST(stree_static_policy_generation);
+	RUN_TEST(stree_conditional_policy_generation);
+	RUN_TEST(stree_prog_policy_generation);
 
-	test_stree_comparison();
+	RUN_TEST(stree_comparison);
 
 	manifest_free(MANIFEST);
 }

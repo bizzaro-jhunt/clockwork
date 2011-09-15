@@ -18,10 +18,9 @@
  */
 
 #include "test.h"
-#include "assertions.h"
 #include "../../mem.h"
 
-void test_mem_xfree()
+NEW_TEST(mem_xfree)
 {
 	char *s;
 
@@ -43,7 +42,7 @@ void test_mem_xfree()
 	assert_null("s is NULL after xfree(s)", s);
 }
 
-void test_mem_xmalloc()
+NEW_TEST(mem_xmalloc)
 {
 	char *s = NULL;
 
@@ -62,7 +61,7 @@ void test_mem_xmalloc()
 	 **/
 }
 
-void test_mem_xstrdup()
+NEW_TEST(mem_xstrdup)
 {
 	char *s;
 
@@ -83,7 +82,7 @@ void test_mem_xstrdup()
 	xfree(s);
 }
 
-void test_mem_xstrcmp()
+NEW_TEST(mem_xstrcmp)
 {
 	const char *s1, *s2, *s3, *s4, *s5;
 
@@ -107,7 +106,7 @@ void test_mem_xstrcmp()
 	assert_int_ne("s1 != s3", 0, xstrcmp(s1, s3));
 }
 
-void test_mem_xstrncpy()
+NEW_TEST(mem_xstrncpy)
 {
 	const char *buffer = "AAABBBCCCDDDEEEFFF";
 	char *ret;
@@ -136,7 +135,7 @@ void test_mem_xstrncpy()
 	assert_str_eq("dest. buffer contains full string (hi!)", "hi!", s);
 }
 
-void test_mem_xarrdup()
+NEW_TEST(mem_xarrdup)
 {
 	char *original[4] = {
 		"string1",
@@ -164,7 +163,7 @@ void test_mem_xarrdup()
 	xarrfree(copy);
 }
 
-void test_mem_xarrfree()
+NEW_TEST(mem_xarrfree)
 {
 	char *original[4] = {
 		"string1",
@@ -193,7 +192,7 @@ void test_mem_xarrfree()
 	assert_null("copy is NULL after xarfree", copy);
 }
 
-void test_mem_string()
+NEW_TEST(mem_string)
 {
 	char *s;
 	char buf[129];
@@ -213,16 +212,16 @@ void test_mem_string()
 
 }
 
-void test_suite_mem() {
-	test_mem_xfree();
-	test_mem_xmalloc();
+NEW_SUITE(mem) {
+	RUN_TEST(mem_xfree);
+	RUN_TEST(mem_xmalloc);
 
-	test_mem_xstrdup();
-	test_mem_xstrcmp();
-	test_mem_xstrncpy();
+	RUN_TEST(mem_xstrdup);
+	RUN_TEST(mem_xstrcmp);
+	RUN_TEST(mem_xstrncpy);
 
-	test_mem_xarrdup();
-	test_mem_xarrfree();
+	RUN_TEST(mem_xarrdup);
+	RUN_TEST(mem_xarrfree);
 
-	test_mem_string();
+	RUN_TEST(mem_string);
 }

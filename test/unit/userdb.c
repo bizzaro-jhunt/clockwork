@@ -20,7 +20,6 @@
 #include <unistd.h>
 
 #include "test.h"
-#include "assertions.h"
 #include "../../userdb.h"
 
 /*********************************************************/
@@ -213,7 +212,7 @@ static void assert_sgdb_get(struct sgdb *db, const char *name)
 
 /*********************************************************/
 
-void test_pwdb_init()
+NEW_TEST(pwdb_init)
 {
 	struct pwdb *db;
 
@@ -226,7 +225,7 @@ void test_pwdb_init()
 	pwdb_free(db);
 }
 
-void test_pwdb_get()
+NEW_TEST(pwdb_get)
 {
 	struct pwdb *db;
 
@@ -244,7 +243,7 @@ void test_pwdb_get()
 	pwdb_free(db);
 }
 
-void test_pwdb_add()
+NEW_TEST(pwdb_add)
 {
 	struct pwdb *db;
 	struct passwd pw, *ent;
@@ -286,7 +285,7 @@ void test_pwdb_add()
 	pwdb_free(db);
 }
 
-void test_pwdb_rm()
+NEW_TEST(pwdb_rm)
 {
 	struct pwdb *db;
 	struct passwd *pw;
@@ -308,7 +307,7 @@ void test_pwdb_rm()
 	pwdb_free(db);
 }
 
-void test_pwdb_rm_head()
+NEW_TEST(pwdb_rm_head)
 {
 	struct pwdb *db;
 	struct passwd *pw;
@@ -334,7 +333,7 @@ void test_pwdb_rm_head()
 	pwdb_free(db);
 }
 
-void test_pwdb_new_entry()
+NEW_TEST(pwdb_new_entry)
 {
 	struct pwdb *db;
 	struct passwd *pw;
@@ -357,7 +356,7 @@ void test_pwdb_new_entry()
 	pwdb_free(db);
 }
 
-void test_pwdb_next_uid_out_of_order()
+NEW_TEST(pwdb_next_uid_out_of_order)
 {
 	struct pwdb *db;
 	uid_t next;
@@ -372,7 +371,7 @@ void test_pwdb_next_uid_out_of_order()
 	pwdb_free(db);
 }
 
-void test_pwdb_lookup_uid()
+NEW_TEST(pwdb_lookup_uid)
 {
 	struct pwdb *db;
 	uid_t uid;
@@ -393,7 +392,7 @@ void test_pwdb_lookup_uid()
 	pwdb_free(db);
 }
 
-void test_spdb_init()
+NEW_TEST(spdb_init)
 {
 	struct spdb *db;
 
@@ -405,7 +404,7 @@ void test_spdb_init()
 	spdb_free(db);
 }
 
-void test_spdb_get()
+NEW_TEST(spdb_get)
 {
 	struct spdb *db;
 
@@ -423,7 +422,7 @@ void test_spdb_get()
 	spdb_free(db);
 }
 
-void test_spdb_add()
+NEW_TEST(spdb_add)
 {
 	struct spdb *db;
 	struct spwd sp, *ent;
@@ -467,7 +466,7 @@ void test_spdb_add()
 	spdb_free(db);
 }
 
-void test_spdb_rm()
+NEW_TEST(spdb_rm)
 {
 	struct spdb *db;
 	struct spwd *sp;
@@ -489,7 +488,7 @@ void test_spdb_rm()
 	spdb_free(db);
 }
 
-void test_spdb_rm_head()
+NEW_TEST(spdb_rm_head)
 {
 	struct spdb *db;
 	struct spwd *sp;
@@ -515,7 +514,7 @@ void test_spdb_rm_head()
 	spdb_free(db);
 }
 
-void test_spdb_new_entry()
+NEW_TEST(spdb_new_entry)
 {
 	struct spdb *db;
 	struct spwd *sp;
@@ -538,7 +537,7 @@ void test_spdb_new_entry()
 	spdb_free(db);
 }
 
-void test_grdb_init()
+NEW_TEST(grdb_init)
 {
 	struct grdb *db;
 
@@ -551,7 +550,7 @@ void test_grdb_init()
 	grdb_free(db);
 }
 
-void test_grdb_get()
+NEW_TEST(grdb_get)
 {
 	struct grdb *db;
 
@@ -569,7 +568,7 @@ void test_grdb_get()
 	grdb_free(db);
 }
 
-void test_grdb_add()
+NEW_TEST(grdb_add)
 {
 	struct grdb *db;
 	struct group gr, *ent;
@@ -601,7 +600,7 @@ void test_grdb_add()
 	grdb_free(db);
 }
 
-void test_grdb_rm()
+NEW_TEST(grdb_rm)
 {
 	struct grdb *db;
 	struct group *gr;
@@ -628,7 +627,7 @@ void test_grdb_rm()
 	grdb_free(db);
 }
 
-void test_grdb_rm_head()
+NEW_TEST(grdb_rm_head)
 {
 	struct grdb *db;
 	struct group *gr;
@@ -659,7 +658,7 @@ void test_grdb_rm_head()
 	grdb_free(db);
 }
 
-void test_grdb_new_entry()
+NEW_TEST(grdb_new_entry)
 {
 	struct grdb *db;
 	struct group *gr;
@@ -678,7 +677,7 @@ void test_grdb_new_entry()
 	grdb_free(db);
 }
 
-void test_grdb_gr_mem_support()
+NEW_TEST(grdb_gr_mem_support)
 {
 	struct grdb *db;
 	struct group *gr;
@@ -712,7 +711,7 @@ void test_grdb_gr_mem_support()
 	grdb_free(db);
 }
 
-void test_grdb_lookup_gid()
+NEW_TEST(grdb_lookup_gid)
 {
 	struct grdb *db;
 	gid_t gid;
@@ -733,7 +732,7 @@ void test_grdb_lookup_gid()
 	grdb_free(db);
 }
 
-void test_sgdb_init()
+NEW_TEST(sgdb_init)
 {
 	struct sgdb *db;
 
@@ -745,7 +744,7 @@ void test_sgdb_init()
 	sgdb_free(db);
 }
 
-void test_sgdb_get()
+NEW_TEST(sgdb_get)
 {
 	struct sgdb *db;
 
@@ -763,7 +762,7 @@ void test_sgdb_get()
 	sgdb_free(db);
 }
 
-void test_sgdb_add()
+NEW_TEST(sgdb_add)
 {
 	struct sgdb *db;
 	struct sgrp sp, *ent;
@@ -795,7 +794,7 @@ void test_sgdb_add()
 	sgdb_free(db);
 }
 
-void test_sgdb_rm()
+NEW_TEST(sgdb_rm)
 {
 	struct sgdb *db;
 	struct sgrp *sp;
@@ -817,7 +816,7 @@ void test_sgdb_rm()
 	sgdb_free(db);
 }
 
-void test_sgdb_rm_head()
+NEW_TEST(sgdb_rm_head)
 {
 	struct sgdb *db;
 	struct sgrp *sp;
@@ -843,7 +842,7 @@ void test_sgdb_rm_head()
 	sgdb_free(db);
 }
 
-void test_sgdb_new_entry()
+NEW_TEST(sgdb_new_entry)
 {
 	struct sgdb *db;
 	struct sgrp *sg;
@@ -860,7 +859,7 @@ void test_sgdb_new_entry()
 	sgdb_free(db);
 }
 
-void test_sgdb_sg_mem_support()
+NEW_TEST(sgdb_sg_mem_support)
 {
 	struct sgdb *db;
 	struct sgrp *sg;
@@ -895,7 +894,7 @@ void test_sgdb_sg_mem_support()
 	sgdb_free(db);
 }
 
-void test_sgdb_sg_adm_support()
+NEW_TEST(sgdb_sg_adm_support)
 {
 	struct sgdb *db;
 	struct sgrp *sg;
@@ -926,43 +925,43 @@ void test_sgdb_sg_adm_support()
 	sgdb_free(db);
 }
 
-void test_suite_userdb() {
-
+NEW_SUITE(userdb)
+{
 	/* passwd db tests */
-	test_pwdb_init();
-	test_pwdb_get();
-	test_pwdb_add();
-	test_pwdb_rm();
-	test_pwdb_rm_head();
-	test_pwdb_new_entry();
-	test_pwdb_next_uid_out_of_order();
-	test_pwdb_lookup_uid();
+	RUN_TEST(pwdb_init);
+	RUN_TEST(pwdb_get);
+	RUN_TEST(pwdb_add);
+	RUN_TEST(pwdb_rm);
+	RUN_TEST(pwdb_rm_head);
+	RUN_TEST(pwdb_new_entry);
+	RUN_TEST(pwdb_next_uid_out_of_order);
+	RUN_TEST(pwdb_lookup_uid);
 
 	/* shadow db tests */
-	test_spdb_init();
-	test_spdb_get();
-	test_spdb_add();
-	test_spdb_rm();
-	test_spdb_rm_head();
-	test_spdb_new_entry();
+	RUN_TEST(spdb_init);
+	RUN_TEST(spdb_get);
+	RUN_TEST(spdb_add);
+	RUN_TEST(spdb_rm);
+	RUN_TEST(spdb_rm_head);
+	RUN_TEST(spdb_new_entry);
 
 	/* group db tests */
-	test_grdb_init();
-	test_grdb_get();
-	test_grdb_add();
-	test_grdb_rm();
-	test_grdb_rm_head();
-	test_grdb_new_entry();
-	test_grdb_gr_mem_support();
-	test_grdb_lookup_gid();
+	RUN_TEST(grdb_init);
+	RUN_TEST(grdb_get);
+	RUN_TEST(grdb_add);
+	RUN_TEST(grdb_rm);
+	RUN_TEST(grdb_rm_head);
+	RUN_TEST(grdb_new_entry);
+	RUN_TEST(grdb_gr_mem_support);
+	RUN_TEST(grdb_lookup_gid);
 
 	/* gshadow db tests */
-	test_sgdb_init();
-	test_sgdb_get();
-	test_sgdb_add();
-	test_sgdb_rm();
-	test_sgdb_rm_head();
-	test_sgdb_new_entry();
-	test_sgdb_sg_mem_support();
-	test_sgdb_sg_adm_support();
+	RUN_TEST(sgdb_init);
+	RUN_TEST(sgdb_get);
+	RUN_TEST(sgdb_add);
+	RUN_TEST(sgdb_rm);
+	RUN_TEST(sgdb_rm_head);
+	RUN_TEST(sgdb_new_entry);
+	RUN_TEST(sgdb_sg_mem_support);
+	RUN_TEST(sgdb_sg_adm_support);
 }

@@ -18,7 +18,6 @@
  */
 
 #include "test.h"
-#include "assertions.h"
 
 #include "../../proto.h"
 #include "../../cert.h"
@@ -138,7 +137,7 @@ static void waitfork(pid_t pid, struct test_proto_conn *conn)
 	test_proto_conn_free(conn);
 }
 
-void test_proto_op_names()
+NEW_TEST(proto_op_names)
 {
 	test("proto: PDU op names");
 	assert_op_name(ERROR);
@@ -156,7 +155,7 @@ void test_proto_op_names()
 }
 
 static void child_expects_BYE(void) { execl(SUB, ARG0, "BYE", NULL); }
-void test_proto_pdu_BYE()
+NEW_TEST(proto_pdu_BYE)
 {
 	pid_t pid;
 	struct test_proto_conn server;
@@ -170,7 +169,7 @@ void test_proto_pdu_BYE()
 }
 
 static void child_expects_ERROR(void) { execl(SUB, ARG0, "ERROR", NULL); }
-void test_proto_pdu_ERROR()
+NEW_TEST(proto_pdu_ERROR)
 {
 	pid_t pid;
 	struct test_proto_conn server;
@@ -185,7 +184,7 @@ void test_proto_pdu_ERROR()
 }
 
 static void child_expects_FACTS(void) { execl(SUB, ARG0, "FACTS", NULL); }
-void test_proto_pdu_FACTS()
+NEW_TEST(proto_pdu_FACTS)
 {
 	struct hash *facts;
 	pid_t pid;
@@ -207,7 +206,7 @@ void test_proto_pdu_FACTS()
 }
 
 static void child_expects_POLICY(void) { execl(SUB, ARG0, "POLICY", NULL); }
-void test_proto_pdu_POLICY()
+NEW_TEST(proto_pdu_POLICY)
 {
 	struct policy *pol;
 	pid_t pid;
@@ -227,7 +226,7 @@ void test_proto_pdu_POLICY()
 
 #define PDU_SHA1 "78745d280fea5e30dbaf54e1824a0ecc89e4b505"
 static void child_expects_FILE(void) { execl(SUB, ARG0, "FILE", PDU_SHA1, NULL); }
-void test_proto_pdu_FILE()
+NEW_TEST(proto_pdu_FILE)
 {
 	struct SHA1 checksum;
 	pid_t pid;
@@ -246,7 +245,7 @@ void test_proto_pdu_FILE()
 #undef PDU_SHA1
 
 static void child_expects_DATA(void) { execl(SUB, ARG0, "DATA", NULL); }
-void test_proto_pdu_DATA()
+NEW_TEST(proto_pdu_DATA)
 {
 	int fd[2];
 	pid_t pid;
@@ -270,7 +269,7 @@ void test_proto_pdu_DATA()
 }
 
 static void child_expects_GET_CERT(void) { execl(SUB, ARG0, "GET_CERT", NULL); }
-void test_proto_pdu_GET_CERT()
+NEW_TEST(proto_pdu_GET_CERT)
 {
 	pid_t pid;
 	struct test_proto_conn server;
@@ -304,7 +303,7 @@ void test_proto_pdu_GET_CERT()
 }
 
 static void child_expects_SEND_CERT(void) { execl(SUB, ARG0, "SEND_CERT", NULL); }
-void test_proto_pdu_SEND_CERT()
+NEW_TEST(proto_pdu_SEND_CERT)
 {
 	pid_t pid;
 	struct test_proto_conn server;
@@ -345,7 +344,7 @@ void test_proto_pdu_SEND_CERT()
 }
 
 static void child_expects_REPORT(void) { execl(SUB, ARG0, "REPORT", NULL); }
-void test_proto_pdu_REPORT()
+NEW_TEST(proto_pdu_REPORT)
 {
 	pid_t pid;
 	struct test_proto_conn server;
@@ -372,21 +371,21 @@ void test_proto_pdu_REPORT()
 	job_free(job);
 }
 
-void test_suite_proto()
+NEW_SUITE(proto)
 {
 	cert_init();
 	protocol_ssl_init();
 
-	test_proto_op_names();
-	test_proto_pdu_BYE();
-	test_proto_pdu_ERROR();
-	test_proto_pdu_FACTS();
-	test_proto_pdu_POLICY();
-	test_proto_pdu_FILE();
-	test_proto_pdu_DATA();
-	test_proto_pdu_GET_CERT();
-	test_proto_pdu_SEND_CERT();
-	test_proto_pdu_REPORT();
+	RUN_TEST(proto_op_names);
+	RUN_TEST(proto_pdu_BYE);
+	RUN_TEST(proto_pdu_ERROR);
+	RUN_TEST(proto_pdu_FACTS);
+	RUN_TEST(proto_pdu_POLICY);
+	RUN_TEST(proto_pdu_FILE);
+	RUN_TEST(proto_pdu_DATA);
+	RUN_TEST(proto_pdu_GET_CERT);
+	RUN_TEST(proto_pdu_SEND_CERT);
+	RUN_TEST(proto_pdu_REPORT);
 
 	cert_deinit();
 }

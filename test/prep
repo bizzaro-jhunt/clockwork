@@ -31,6 +31,9 @@ create_defs_dot_h() {
 #define TEST_SAFE_UID  $TEST_SAFE_UID
 #define TEST_SAFE_GID  $TEST_SAFE_GID
 
+#define DEFAULT_SM     SM_debian
+#define DEFAULT_PM     PM_dpkg_apt
+
 EOF
 }
 

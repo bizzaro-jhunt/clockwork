@@ -21,6 +21,8 @@ A Linux Development Environment
   than Linux.  If you are interested in *porting* Clockwork to
   another platform, I'll gladly accept patches.
 
+  (Work *is* underway to get Clockwork ported to the *BSD family)
+
   Otherwise, get a Linux box to develop on.  I strongly urge
   you to get a dedicated machine (it can be a virtual machine)
   to do your testing on.  As a configuration management system,
@@ -33,7 +35,7 @@ An ANSI C99-compliant C compiler
   ANSI C99 C (at least its *supposed* to be ANSI C99).  The build
   environment uses several GCC-specific flags to catch code errors.
 
-  I personally use GCC 4.4.3 out of the Ubunut repositories
+  I personally use GCC 4.4.3 out of the Ubuntu repositories
 
 Supporting Library Development Headers
 
@@ -180,5 +182,5 @@ email it to me.  The only thing I ask is that you:
  4. Explicitly license your code under a BSD or MIT license.
     (I will add you to the CONTRIBUTORS file and retain your copyright notice)
 
-My email address is (currently) filefrog@gmail.com
+My email address is (currently) james@jameshunt.us
 

@@ -18,9 +18,7 @@
  */
 
 #include "resources.h"
-#include "pack.h"
 #include "template.h"
-#include "path.h"
 #include "augcw.h"
 
 #include <fts.h>

@@ -28,9 +28,8 @@
    and spec/grammar.o.
  */
 
-#include "../list.h"
+#include "../clockwork.h"
 #include "../policy.h"
-#include "../stringlist.h"
 
 /**
   parser_branch - interim representation of an if block

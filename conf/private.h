@@ -27,7 +27,7 @@
  */
 
 #include <stdio.h>
-#include "../hash.h"
+#include "../clockwork.h"
 
 /**
   conf_parser_context - User data for reentrant lexer / parser

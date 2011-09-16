@@ -23,7 +23,6 @@
 #include "private.h"
 #include "parser.h"
 #include "../template.h"
-#include "../log.h"
 
 struct template* parse_template(const char *path)
 {

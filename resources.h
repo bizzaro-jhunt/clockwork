@@ -31,9 +31,6 @@
 
 #include "resource.h"
 #include "job.h"
-#include "list.h"
-#include "stringlist.h"
-#include "hash.h"
 #include "policy.h"
 #include "template.h"
 

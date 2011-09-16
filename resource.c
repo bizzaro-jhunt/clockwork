@@ -19,7 +19,6 @@
 
 #include "resource.h"
 #include "resources.h"
-#include "pack.h"
 
 typedef void* (*resource_new_f)(const char *key);
 typedef void (*resource_free_f)(void *res);

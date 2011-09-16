@@ -20,8 +20,6 @@
 #ifndef POLICY_H
 #define POLICY_H
 
-#include "list.h"
-#include "hash.h"
 #include "resources.h"
 
 /** Abstract Syntax Tree node types */

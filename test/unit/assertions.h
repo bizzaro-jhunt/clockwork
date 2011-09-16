@@ -23,7 +23,7 @@
 #include <sys/types.h>
 #include <stdarg.h>
 
-#include "../../stringlist.h"
+#include "../../clockwork.h"
 #include "../../policy.h"
 
 void assert_stringlist(struct stringlist *sl, const char *name, size_t n, ...);

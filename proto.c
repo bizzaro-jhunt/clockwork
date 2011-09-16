@@ -25,7 +25,6 @@
 
 #include "proto.h"
 #include "policy.h"
-#include "stringlist.h"
 
 #define FILE_DATA_BLOCK_SIZE 8192
 

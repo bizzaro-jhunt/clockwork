@@ -24,9 +24,7 @@
 
 #include <augeas.h>
 
-#include "list.h"
 #include "userdb.h"
-#include "hash.h"
 
 #include "managers/package.h"
 #include "managers/service.h"

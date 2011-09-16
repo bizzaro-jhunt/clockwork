@@ -23,12 +23,8 @@ int main(int argc, char **argv)
 {
 	TEST_SUITE(bits);
 	TEST_SUITE(mem);
-	TEST_SUITE(list);
-	TEST_SUITE(stringlist);
-	TEST_SUITE(hash);
 	TEST_SUITE(userdb);
 	TEST_SUITE(sha1);
-	TEST_SUITE(pack);
 	TEST_SUITE(resource);
 	TEST_SUITE(resources);
 	TEST_SUITE(res_user);
@@ -43,11 +39,9 @@ int main(int argc, char **argv)
 	TEST_SUITE(fact);
 	TEST_SUITE(stree);
 	TEST_SUITE(cert);
-	TEST_SUITE(string);
 	TEST_SUITE(job);
 	TEST_SUITE(proto);
 	TEST_SUITE(template);
-	TEST_SUITE(path);
 
 	return run_tests(argc, argv);
 }

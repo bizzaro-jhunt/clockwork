@@ -28,10 +28,8 @@
    and tpl/grammar.o.
  */
 
-#include "../list.h"
+#include "../clockwork.h"
 #include "../template.h"
-#include "../stringlist.h"
-#include "../string.h"
 
 /**
   parser_branch - interim representation of an if block

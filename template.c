@@ -19,7 +19,6 @@
 
 #include "template.h"
 #include "tpl/parser.h"
-#include "string.h"
 
 #include <ctype.h>
 

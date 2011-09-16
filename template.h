@@ -21,7 +21,6 @@
 #define TEMPLATE_H
 
 #include "clockwork.h"
-#include "hash.h"
 
 /** Template Syntax Tree node types */
 enum tnode_type {

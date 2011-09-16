@@ -22,9 +22,8 @@
 
 #include "private.h"
 #include "parser.h"
+#include "../clockwork.h"
 #include "../policy.h"
-#include "../log.h"
-#include "../list.h"
 
 static int _manifest_expand(struct manifest *manifest)
 {

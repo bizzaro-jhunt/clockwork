@@ -19,8 +19,8 @@
 
 #include <stdio.h>
 
+#include "../../clockwork.h"
 #include "../../conf/parser.h"
-#include "../../hash.h"
 
 /** daemoncfg - a test utility
 

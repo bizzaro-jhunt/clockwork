@@ -23,9 +23,7 @@
 #include <string.h>
 
 #include "policy.h"
-#include "pack.h"
 #include "resource.h"
-#include "stringlist.h"
 
 struct policy_generator {
 	struct policy *policy;

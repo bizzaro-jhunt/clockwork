@@ -24,7 +24,6 @@
 
 #include "private.h"
 #include "parser.h"
-#include "../log.h"
 
 struct hash* parse_config(const char *path)
 {

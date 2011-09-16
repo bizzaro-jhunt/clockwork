@@ -23,7 +23,6 @@
 #include <errno.h>
 
 #include "mem.h"
-#include "log.h"
 
 void __xfree(void **ptr2ptr)
 {
@@ -130,46 +129,5 @@ void __xarrfree(char ***a)
 	}
 	free(*a);
 	*a = NULL;
-}
-
-/**
-  Create a new string, with printf-like behavior.
-
-  For formatting options, see `printf(3)`.
-
-  Example:
-
-  <code>
-  // this:
-  char *s = string("Forty-two = %u\n", 42);
-  printf("%s", s);
-
-  // is equivalent to:
-  printf("Forty-two = %u\n", 42);
-  </code>
-
-  The returned string must be freed by the caller.
- */
-char* string(const char *fmt, ...)
-{
-	char buf[256];
-	char *buf2;
-	size_t n;
-	va_list args;
-
-	va_start(args, fmt);
-	n = vsnprintf(buf, 256, fmt, args) + 1;
-	va_end(args);
-	if (n > 256) {
-		buf2 = xmalloc(n * sizeof(char));
-
-		va_start(args, fmt);
-		vsnprintf(buf2, n, fmt, args);
-		va_end(args);
-	} else {
-		buf2 = strdup(buf);
-	}
-
-	return buf2;
 }
 

@@ -17,7 +17,7 @@ YACC_FLAGS := -Wall --token-table --defines
 CC_FLAGS   := -Wall
 
 # Required libraries
-CC_FLAGS   := -lssl -lpthread -lsqlite3 -laugeas -lctest
+CC_FLAGS   := -lssl -lpthread -lsqlite3 -laugeas -lctest -lgear
 
 openssl_mode := $(shell if [ -f ext/openssl/lib/libssl.so ]; then echo local; else echo system; fi)
 ifeq ($(openssl_mode), local)
@@ -92,7 +92,7 @@ auto_c        := spec/lexer.c   conf/lexer.c   tpl/lexer.c
 auto_c        += spec/grammar.c conf/grammar.c tpl/grammar.c
 
 # C source files that should not participate in code coverage analysis
-no_lcov_c     := log.c $(auto_c) test/unit/**/* test/unit/* test/functional/*
+no_lcov_c     := $(auto_c) test/unit/**/* test/unit/* test/functional/*
 
 # Parser object files
 parser_spec_o := spec/lexer.o spec/grammar.o spec/parser.o
@@ -100,8 +100,7 @@ parser_conf_o := conf/lexer.o conf/grammar.o conf/parser.o
 parser_tpl_o  := tpl/lexer.o tpl/grammar.o tpl/parser.o
 
 # Core Supporting object files
-core_o        := mem.o sha1.o pack.o hash.o stringlist.o userdb.o log.o
-core_o        += cert.o prompt.o exec.o string.o path.o augcw.o
+core_o        := mem.o sha1.o userdb.o cert.o prompt.o exec.o augcw.o
 
 # External Implementation Manager object giles
 manager_o     := managers/service.o
@@ -120,7 +119,7 @@ man_gz        := $(shell ls -1 man/*.1 man/*.5 | \
 unit_test_o   := $(subst .c,.o,$(shell ls -1 test/unit/*.c))
 unit_test_o   += $(subst .c,.o,$(shell cd test/unit; ls -1 *.c | \
                    egrep -v '(assertions|bits|fact|list|run|stree|test).c'))
-unit_test_o   += stringlist.o log.o prompt.o augcw.o
+unit_test_o   += prompt.o augcw.o
 unit_test_o   += $(parser_tpl_o)
 unit_test_o   += $(parser_spec_o)
 unit_test_o   += $(manager_o)
@@ -225,14 +224,14 @@ cwca:    $(core_o) $(policy_o) cwca.o    $(parser_conf_o) server.o
 cwpol:   $(core_o) $(policy_o) cwpol.o   $(parser_spec_o)
 polspec: $(core_o) $(policy_o) polspec.o $(parser_spec_o)
 tplspec: $(core_o) $(policy_o) tplspec.o
-sha1sum: sha1.o sha1sum.o mem.o log.o $(core_o) $(policy_o) $(parser_spec_o) $(parser_conf_o)
+sha1sum: sha1.o sha1sum.o mem.o $(core_o) $(policy_o) $(parser_spec_o) $(parser_conf_o)
 
 
 ############################################################
 # Debugging Tools (mainly for CW developers)
 
-debug/service-manager: debug/service-manager.o managers/service.o log.o exec.o mem.o
-debug/package-manager: debug/package-manager.o managers/package.o log.o exec.o mem.o
+debug/service-manager: debug/service-manager.o managers/service.o exec.o mem.o
+debug/package-manager: debug/package-manager.o managers/package.o exec.o mem.o
 
 
 ############################################################

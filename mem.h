@@ -57,6 +57,4 @@ char** xarrdup(char **ptr2arr);
 
 void __xarrfree(char ***a);
 
-char* string(const char *fmt, ...);
-
 #endif

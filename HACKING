@@ -55,6 +55,7 @@ Supporting Software Development Tools
   - Perl             Functional test suite is written entirely in Perl
   - cdoc             Documentation (see https://github.com/filefrog/cdoc)
   - ctest            Unit Tests (see https://github.com/filefrog/ctest)
+  - libgear          C Framework (see https://github.com/filefrog/libgear)
 
 
 

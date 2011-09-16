@@ -22,7 +22,6 @@
 
 #include "clockwork.h"
 #include <sys/time.h>
-#include "list.h"
 
 /* Iterate over job's reports */
 #define for_each_report(r,job) for_each_node((r), &((job)->reports), l)

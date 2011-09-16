@@ -18,8 +18,6 @@
  */
 
 #include "job.h"
-#include "stringlist.h"
-#include "pack.h"
 
 /**
   Create a new Job

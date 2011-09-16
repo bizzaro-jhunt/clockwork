@@ -19,8 +19,6 @@
 
 
 #include "clockwork.h"
-#include "stringlist.h"
-#include "hash.h"
 #include "policy.h"
 #include "spec/parser.h"
 #include <getopt.h>

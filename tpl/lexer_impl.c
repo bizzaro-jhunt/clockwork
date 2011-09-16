@@ -23,8 +23,7 @@
 #include <sys/stat.h>
 #include <stdarg.h>
 
-#include "../log.h"
-#include "../mem.h"
+#include "../clockwork.h"
 
 void template_parser_error(void *user, const char *fmt, ...)
 {

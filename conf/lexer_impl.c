@@ -24,7 +24,7 @@
 #include <sys/stat.h>
 #include <stdarg.h>
 
-#include "../log.h"
+#include "../clockwork.h"
 
 /** STATIC functions used only by other, non-static functions in this file **/
 

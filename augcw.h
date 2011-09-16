@@ -21,7 +21,6 @@
 #define AUGCW_H
 
 #include "clockwork.h"
-#include "stringlist.h"
 
 #include <augeas.h>
 

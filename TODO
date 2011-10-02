@@ -1,49 +1,10 @@
 List of Things To Do
 ====================
 
-Re-org test/:
-  test/memory/         -> source / object files for auxiliary memory tests
-  test/memory/data     -> data for auxiliary memory tests
-  test/memory/reports  -> valgrind/memcheck transcripts from aux mem tests
-  test/memory/run      -> auxiliary memory test runner
-
-Re-org Make targets for tests:
-  auxmem      -> build / run auxiliary memory tests only
-+ test        -> build / run unit, functional and auxiliary memory tests
-+ memtest     -> same as test, but run unit and functional tests under valgrind
-
-  The unit, functional and auxmem targets will also have a build_*
-  variant for building the executables needed to run their respecitve tests
-
-Variable Strings for Attribute Values
-
 Client / Server
-  - Test remediation in chroot
-  - Automatic certificate enrolment
-
      Communication between cwcert and cwca
        More intrusive signing / verification procedure
        How to handle revocation?
-
-chroot testing
-  Need to be able to run full-sim tests in chroot environments,
-  so that functional tests can be reproduced, without requiring
-  specific build machine system changes, or root access.
-
-  mkjail is done.  To do this right, we need passphrase-less
-  certificates, and very long expirations (i.e. 100 years).
-
-Logo / Branding
-  Get the logo drawn and vectorized.  Determine what legal stuff
-  needs to happen for Trademarks, Copyright etc.
-
-Website
-  Need an overall design workup, in addition to ideas for content.
-
-Infrastructure
-  Identify needs for bug tracking, community support (forums, mailing
-  lists, etc.) and collaborative development (i.e. ReviewBoard).
-
 
 Perpetual List of Things To Do
 ==============================

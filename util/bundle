@@ -54,6 +54,8 @@ echo
 echo "Pulling in libgear"
 mkdir -p $ROOT/lib
 cp /usr/lib/libgear.so* $ROOT/lib/
+sudo mkdir -p $ROOT/usr/include
+sudo cp /usr/include/gear.h $ROOT/usr/include
 
 echo
 echo "Final Bundle Directory"

@@ -454,43 +454,43 @@ static struct cert_subject* cert_get_subject(X509_NAME *name)
 	idx = X509_NAME_get_index_by_NID(name, NID_countryName, -1);
 	entry = X509_NAME_get_entry(name, idx);
 	if ((raw = X509_NAME_ENTRY_get_data(entry))) {
-		subject->country = strdup(raw->data);
+		subject->country = strdup((const char*)raw->data);
 	}
 
 	idx = X509_NAME_get_index_by_NID(name, NID_stateOrProvinceName, -1);
 	entry = X509_NAME_get_entry(name, idx);
 	if ((raw = X509_NAME_ENTRY_get_data(entry))) {
-		subject->state = strdup(raw->data);
+		subject->state = strdup((const char*)raw->data);
 	}
 
 	idx = X509_NAME_get_index_by_NID(name, NID_localityName, -1);
 	entry = X509_NAME_get_entry(name, idx);
 	if ((raw = X509_NAME_ENTRY_get_data(entry))) {
-		subject->loc = strdup(raw->data);
+		subject->loc = strdup((const char*)raw->data);
 	}
 
 	idx = X509_NAME_get_index_by_NID(name, NID_organizationName, -1);
 	entry = X509_NAME_get_entry(name, idx);
 	if ((raw = X509_NAME_ENTRY_get_data(entry))) {
-		subject->org = strdup(raw->data);
+		subject->org = strdup((const char*)raw->data);
 	}
 
 	idx = X509_NAME_get_index_by_NID(name, NID_organizationalUnitName, -1);
 	entry = X509_NAME_get_entry(name, idx);
 	if ((raw = X509_NAME_ENTRY_get_data(entry))) {
-		subject->org_unit = strdup(raw->data);
+		subject->org_unit = strdup((const char*)raw->data);
 	}
 
 	idx = X509_NAME_get_index_by_NID(name, NID_organizationalUnitName, idx);
 	entry = X509_NAME_get_entry(name, idx);
 	if ((raw = X509_NAME_ENTRY_get_data(entry))) {
-		subject->type = strdup(raw->data);
+		subject->type = strdup((const char*)raw->data);
 	}
 
 	idx = X509_NAME_get_index_by_NID(name, NID_commonName, -1);
 	entry = X509_NAME_get_entry(name, idx);
 	if ((raw = X509_NAME_ENTRY_get_data(entry))) {
-		subject->fqdn = strdup(raw->data);
+		subject->fqdn = strdup((const char*)raw->data);
 	}
 
 	if (!subject->type && subject->org_unit) {

@@ -90,10 +90,6 @@ COMPILED      := $(util_bin) $(agent_bin) $(master_bin) $(debug_bin)
 # C header files that are automatically generated
 auto_h        := spec/grammar.h conf/grammar.h tpl/grammar.h
 
-# C source files that are automatically generated
-auto_c        := spec/lexer.c   conf/lexer.c   tpl/lexer.c
-auto_c        += spec/grammar.c conf/grammar.c tpl/grammar.c
-
 # C source files that should not participate in code coverage analysis
 no_lcov_c     := $(auto_c) test/unit/**/* test/unit/* test/functional/*
 
@@ -246,6 +242,8 @@ externals:
 
 ############################################################
 # Lex/YACC Parsers
+
+parserdefs: spec/lexer.c spec/grammar.c tpl/lexer.c tpl/grammar.c conf/lexer.c conf/grammar.c
 
 spec/lexer.c: spec/lexer.l spec/grammar.h spec/lexer_impl.c spec/parser.h spec/private.h
 	$(LEX) --outfile=$@ $<

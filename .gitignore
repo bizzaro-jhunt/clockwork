@@ -32,19 +32,8 @@ test/unit/helpers/proto_helper
 test/chroot/*.chroot
 test/augeas
 
-conf/lexer.c
-conf/grammar.c
-conf/grammar.h
 conf/*.output
-
-spec/lexer.c
-spec/grammar.c
-spec/grammar.h
 spec/*.output
-
-tpl/lexer.c
-tpl/grammar.c
-tpl/grammar.h
 tpl/*.output
 
 ext/build

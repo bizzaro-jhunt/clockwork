@@ -168,7 +168,7 @@ static struct command* parse_command(const char *s)
 
 	c->argc = 0;
 	c->args = stringlist_new(NULL);
-	while (tok = strtok_r(NULL, TOKEN_DELIM, &ctx)) {
+	while ((tok = strtok_r(NULL, TOKEN_DELIM, &ctx)) != NULL) {
 		stringlist_add(c->args, tok);
 		c->argc++;
 	}

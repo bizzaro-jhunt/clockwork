@@ -27,18 +27,18 @@ void assert_stringlist(struct stringlist *sl, const char *name, size_t n, ...)
 	char *str;
 	char buf[128];
 
-	snprintf(buf, 128, "%s has %d strings", name, n);
+	snprintf(buf, 128, "%s has %u strings", name, (unsigned int)n);
 	assert_int_eq(buf, sl->num, n);
 
 	va_start(args, n);
 	for (i = 0; i < n; i++) {
 		str = va_arg(args, char *);
-		snprintf(buf, 128, "%s->strings[%d] == '%s'", name, i, str);
+		snprintf(buf, 128, "%s->strings[%u] == '%s'", name, (unsigned int)i, str);
 		assert_str_eq(buf, sl->strings[i], str);
 	}
 	va_end(args);
 
-	snprintf(buf, 128, "%s->strings[%d] is NULL", name, sl->num);
+	snprintf(buf, 128, "%s->strings[%u] is NULL", name, (unsigned int)sl->num);
 	assert_null(buf, sl->strings[sl->num]);
 }
 

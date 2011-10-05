@@ -22,6 +22,7 @@
 #include "policy.h"
 #include "spec/parser.h"
 #include <getopt.h>
+#include <ctype.h>
 
 struct command {
 	char       *cmd;

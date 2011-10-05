@@ -90,9 +90,6 @@ static struct manifest *MANIFEST = NULL;
 static void setup(void);
 static int dispatch(const char *command, int interactive);
 static int dispatch1(const char *command, int interactive);
-
-#define PS_TOP "top"
-
 static struct cwpol_opts* cwpol_options(int argc, char **argv);
 
 /* Options
@@ -107,7 +104,6 @@ static struct cwpol_opts* cwpol_options(int argc, char **argv);
 
 int main(int argc, char **argv)
 {
-	const char *prompt = PS_TOP;
 	char line[LINE_BUFSIZ];
 	struct cwpol_opts *opts;
 	int interactive;

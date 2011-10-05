@@ -53,8 +53,10 @@ static int _res_user_populate_home(const char *home, const char *skel, uid_t uid
 	char *skel_path, *home_path;
 	int skel_fd, home_fd;
 	mode_t mode;
+	/*
 	char buf[8192];
 	size_t nread;
+	*/
 
 	fts = fts_open(path_argv, FTS_PHYSICAL, NULL);
 	if (!fts) {

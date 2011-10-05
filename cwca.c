@@ -246,7 +246,6 @@ static int cwca_new_main(const struct cwca_opts *args)
 	X509_REQ *request;
 	X509 *cert;
 	EVP_PKEY *key;
-	char *pass1, *pass2;
 
 	struct cert_subject subject;
 	char fqdn[1024];

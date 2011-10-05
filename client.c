@@ -193,7 +193,6 @@ static SSL_CTX* client_ssl_ctx(struct client *c, int use_cert)
 static int client_do_connect(struct client *c)
 {
 	char *addr;
-	long err;
 
 	addr = string("%s:%s", c->s_address, c->s_port);
 	DEBUG("Connecting to %s", addr);
@@ -223,7 +222,6 @@ static int client_do_connect(struct client *c)
 
 int client_connect(struct client *c, int unverified)
 {
-	char *addr;
 	long err;
 	int connected = 0;
 

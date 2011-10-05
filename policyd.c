@@ -737,7 +737,6 @@ static int save_facts(struct worker *w)
 	time_t ts;
 	struct tm *now;
 	FILE *out;
-	struct stat dir;
 
 	/* generate the filename
 	   create the path in cache dir

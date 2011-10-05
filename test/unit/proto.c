@@ -94,7 +94,6 @@ typedef void (*child_fn)(void);
 static pid_t fork_test(struct test_proto_conn *server, child_fn test)
 {
 	pid_t pid;
-	int rc;
 	int s2c[2], c2s[2];
 
 	assert_int_eq("s2c pipe created successfully", pipe(s2c), 0);

@@ -85,7 +85,18 @@ static void teardown(struct conn *c)
 }
 
 #define DISPATCH(x,c) if (strcmp(argv[1], #x) == 0) rc = main_ ## x (argc, argv, (c))
+#define HANDLER(x) int main_ ## x (int, char**, struct session*)
 #define HANDLE(x) int main_ ## x (int argc, char **argv, struct session *s)
+
+HANDLER(BYE);
+HANDLER(ERROR);
+HANDLER(FACTS);
+HANDLER(POLICY);
+HANDLER(FILE);
+HANDLER(DATA);
+HANDLER(GET_CERT);
+HANDLER(SEND_CERT);
+HANDLER(REPORT);
 
 int main(int argc, char **argv)
 {

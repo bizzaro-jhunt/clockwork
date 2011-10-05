@@ -32,6 +32,11 @@ enum db_type {
 	AGENTDB  = 2
 };
 
+/* use old-school sqlite functions before 3.3.9 */
+#if SQLITE_VERSION_NUMBER <= 3003009
+#  define DB_SQLITE3_OLD_SCHOOL 1
+#endif
+
 /**
   Database Handle
  */
@@ -42,7 +47,11 @@ struct db {
 };
 
 /* C integral type used for record primary keys. */
+#ifdef DB_SQLITE3_OLD_SCHOOL
+typedef sqlite_int64 rowid;
+#else
 typedef sqlite3_int64 rowid;
+#endif
 #define NULL_ROWID (rowid)(-1)
 
 struct db* db_open(enum db_type type, const char *path);

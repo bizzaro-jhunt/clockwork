@@ -19,10 +19,17 @@
 
 #include "db.h"
 
+#ifdef DB_SQLITE3_OLD_SCHOOL
+#define PREP(db, stmt, sql) do { \
+	rc = sqlite3_prepare((db),(sql), -1, &(stmt), NULL); \
+	if (rc != SQLITE_OK) { goto failure; } \
+} while (0)
+#else // new-school SQLite3
 #define PREP(db, stmt, sql) do { \
 	rc = sqlite3_prepare_v2((db),(sql), -1, &(stmt), NULL); \
 	if (rc != SQLITE_OK) { goto failure; } \
 } while (0)
+#endif
 
 #define FINALIZE(stmt) do { \
 	if (stmt) { \

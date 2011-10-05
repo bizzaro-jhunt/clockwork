@@ -13,11 +13,9 @@
 ROOT := $(shell pwd)
 
 LEX_FLAGS  := --header-file --yylineno
-YACC_FLAGS := -Wall --token-table --defines
-CC_FLAGS   := -Wall
-
-# Required libraries
-CC_FLAGS   := -lssl -lpthread -lsqlite3 -laugeas -lgear
+YFLAGS     := -Wall --token-table --defines
+CFLAGS     := -Wall
+LDFLAGS    := -lssl -lpthread -lsqlite3 -laugeas -lgear
 
 openssl_mode := $(shell if [ -f ext/openssl/lib/libssl.so ]; then echo local; else echo system; fi)
 ifeq ($(openssl_mode), local)
@@ -28,31 +26,31 @@ ifeq ($(openssl_mode), local)
   # about undefined symbols that are in the local version,
   # but not the system version (i.e. EVP_idea_cbc)
   #
-  CC_FLAGS := -L./ext/openssl/lib -lcrypto $(CC_FLAGS)
+  LDFLAGS := -L./ext/openssl/lib -lcrypto $(LDFLAGS)
 endif
 
 ifeq ($(BUILD_MODE),development)
   # Link with the ctest testing framework
-  CC_FLAGS += -lctest
+  LDFLAGS += -lctest
 
   # Turn on gcov/lcov support
-  CC_FLAGS += -fprofile-arcs -ftest-coverage
+  CFLAGS += -fprofile-arcs -ftest-coverage
 
   # In development mode, turn on all debugging support
   LEX_FLAGS  += --debug --verbose
-  YACC_FLAGS += --debug --report=all
-  CC_FLAGS   += -gdwarf-2 -g -DDEVEL
+  YFLAGS     += --debug --report=all
+  CFLAGS     += -gdwarf-2 -g -DDEVEL
 
 else
   # In release mode, turn off all debugging support
-  CC_FLAGS += -DNDEBUG
+  CFLAGS += -DNDEBUG
 
   # In release mode, optimize like crazy
-  CC_FLAGS += -O3
+  CFLAGS += -O3
 
   # In release mode, create REALLY small binaries
-  CC_FLAGS += -fdata-sections -ffunction-sections
-  CC_FLAGS += -Wl,--gc-sections -Wl,-s
+  CFLAGS += -fdata-sections -ffunction-sections
+  LDFLAGS += --gc-sections -s
 endif
 
 inst_targets    :=
@@ -67,9 +65,10 @@ ifeq ($(BUILD_MASTER), Y)
   build_targets += build-master
 endif
 
-CC      := gcc $(CC_FLAGS)
+CC      := gcc $(CFLAGS)
+LD      := ld $(LDFLAGS)
 LEX     := flex $(LEX_FLAGS)
-YACC    := bison $(YACC_FLAGS)
+YACC    := bison $(YFLAGS)
 VG      := tools/valgrind
 LCOV    := lcov --directory . --base-directory .
 GENHTML := genhtml --prefix $(shell dirname `pwd`)
@@ -87,11 +86,8 @@ debug_bin     := debug/service-manager debug/package-manager
 # Compiled binaries (candidates for `make clean')
 COMPILED      := $(util_bin) $(agent_bin) $(master_bin) $(debug_bin)
 
-# C header files that are automatically generated
-auto_h        := spec/grammar.h conf/grammar.h tpl/grammar.h
-
 # C source files that should not participate in code coverage analysis
-no_lcov_c     := $(auto_c) test/unit/**/* test/unit/* test/functional/*
+no_lcov_c     := test/unit/**/* test/unit/* test/functional/*
 
 # Parser object files
 parser_spec_o := spec/lexer.o spec/grammar.o spec/parser.o
@@ -376,7 +372,7 @@ tidy:
 	rm -f lcov.info
 
 clean: tidy cleandep
-	rm -f $(COMPILED) $(unit_tests) $(fun_tests) $(auto_c) $(auto_h) man/*.*.gz
+	rm -f $(COMPILED) $(unit_tests) $(fun_tests) man/*.*.gz
 	rm -f spec/*.output conf/*.output tpl/*.output
 	rm -rf $(apidocs_root)/* doc/coverage/*
 

@@ -195,19 +195,19 @@ COMMAND(about)
 
 COMMAND(help)
 {
-	int main;
+	int use_main;
 	char *path;
 
 	if (c->argc >= 1) {
-		main = 0;
+		use_main = 0;
 		path = string(HELP_ROOT "/%s.help", slv(c->args, 0));
 	} else {
-		main = 1;
+		use_main = 1;
 		path = strdup(HELP_ROOT "/main");
 	}
 
 	if (show_help_file(path) != 0 && interactive) {
-		if (main) {
+		if (use_main) {
 			ERROR("Can't find main help file.");
 			INFO("You may want to check your installation.");
 		} else {

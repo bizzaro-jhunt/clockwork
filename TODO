@@ -8,6 +8,11 @@ Client / Server
        Better SSL error messages (bad ca, revoked, expired, etc.)
        How to handle unknown CA on first connect?
 
+Portability Items
+=================
+
+gshadow support - Rewrite internally (still not POSIX)
+
 Perpetual List of Things To Do
 ==============================
 

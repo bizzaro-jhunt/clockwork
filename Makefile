@@ -17,7 +17,7 @@ YACC_FLAGS := -Wall --token-table --defines
 CC_FLAGS   := -Wall
 
 # Required libraries
-CC_FLAGS   := -lssl -lpthread -lsqlite3 -laugeas -lctest -lgear
+CC_FLAGS   := -lssl -lpthread -lsqlite3 -laugeas -lgear
 
 openssl_mode := $(shell if [ -f ext/openssl/lib/libssl.so ]; then echo local; else echo system; fi)
 ifeq ($(openssl_mode), local)
@@ -32,7 +32,10 @@ ifeq ($(openssl_mode), local)
 endif
 
 ifeq ($(BUILD_MODE),development)
-  # In development mode, turn on gcov/lcov support
+  # Link with the ctest testing framework
+  CC_FLAGS += -lctest
+
+  # Turn on gcov/lcov support
   CC_FLAGS += -fprofile-arcs -ftest-coverage
 
   # In development mode, turn on all debugging support

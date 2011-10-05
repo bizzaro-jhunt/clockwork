@@ -30,6 +30,72 @@
 
 /**********************************************************/
 
+/* for older versions of glibc */
+static struct sgrp* fgetsgent(FILE *io)
+{
+	char buf[8192];
+	char *a, *b;
+	struct sgrp *g;
+	struct stringlist *l;
+
+	if (feof(io) || !fgets(buf, 8191, io)) { return NULL; }
+
+	g = xmalloc(sizeof(struct sgrp));
+	if (!g) { return NULL; }
+
+	/* name */
+	for (a = buf, b = a; *b && *b != ':'; b++)
+		;
+	*b = '\0';
+	g->sg_namp = strdup(a);
+
+	/* password */
+	for (a = ++b; *b && *b != ':'; b++)
+		;
+	*b = '\0';
+	g->sg_passwd = strdup(a);
+
+	/* admins */
+	for (a = ++b; *b && *b != ':'; b++)
+		;
+	*b = '\0';
+	l = stringlist_split(a, b-a, ",", SPLIT_NORMAL);
+	g->sg_mem = l->strings;
+	free(l);
+
+	/* members */
+	for (a = ++b; *b && *b != '\n'; b++)
+		;
+	*b = '\0';
+	l = stringlist_split(a, b-a, ",", SPLIT_NORMAL);
+	g->sg_adm = l->strings;
+	free(l);
+
+	return g;
+}
+
+static int putsgent(const struct sgrp *g, FILE *io)
+{
+	char *members, *admins;
+	struct stringlist *mem, *adm;
+	int ret;
+
+	mem = stringlist_new(g->sg_mem);
+	members = stringlist_join(mem, ",");
+	stringlist_free(mem);
+
+	adm  = stringlist_new(g->sg_adm);
+	admins = stringlist_join(adm, ",");
+	stringlist_free(adm);
+
+	ret = fprintf(io, "%s:%s:%s:%s\n", g->sg_namp, g->sg_passwd, admins, members);
+	free(admins); free(members);
+
+	return ret;
+}
+
+/**********************************************************/
+
 static struct pwdb* _pwdb_entry(struct passwd *passwd);
 static struct pwdb* _pwdb_fgetpwent(FILE *input);
 static void _passwd_free(struct passwd *passwd);

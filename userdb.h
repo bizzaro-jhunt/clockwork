@@ -26,7 +26,14 @@
 #include <pwd.h>
 #include <shadow.h>
 #include <grp.h>
-#include <gshadow.h>
+
+/* ripped from some version of glibc, >2.5 */
+struct sgrp {
+	char  *sg_namp;
+	char  *sg_passwd;
+	char **sg_adm;
+	char **sg_mem;
+};
 
 /**
   /etc/passwd Database

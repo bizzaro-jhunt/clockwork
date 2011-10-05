@@ -180,7 +180,7 @@ static int negotiate_certificate(struct client *c, X509_REQ *csr)
 		return 1;
 	}
 
-	INFO("Received certificate from policy master");
+	INFO("Received certificate from %s:%s", c->s_address, c->s_port);
 	cert_store_certificate(cert, c->cert_file);
 
 	X509_free(cert);
@@ -272,11 +272,14 @@ static int cwcert_new_main(const struct cwcert_opts *args)
 		}
 	}
 
+	INFO("Removing old certificate %s", args->config->cert_file);
+	unlink(args->config->cert_file);
+
 	if (args->config->mode == CLIENT_MODE_OFFLINE) {
 		INFO("Skipping check with policy master (offline mode)");
 
 	} else {
-		if (client_connect(args->config) != 0) { exit(1); }
+		if (client_connect(args->config, 1) != 0) { exit(1); }
 		if (client_hello(args->config) == 0) {
 			printf("Valid certificate already acquired.\n"
 			       "Use `cwca revoke' on policy master to revoke.\n");
@@ -327,9 +330,6 @@ static int cwcert_new_main(const struct cwcert_opts *args)
 		CRITICAL("Unable to save certificate signing request" );
 		return CWCERT_OTHER_ERR;
 	}
-
-	INFO("Removing old certificate %s", args->config->cert_file);
-	unlink(args->config->cert_file);
 
 	return submit_request(args, request);
 }
@@ -390,17 +390,18 @@ static int cwcert_test_main(const struct cwcert_opts *args)
 		return CWCERT_SUCCESS;
 	}
 
-	if (client_connect(args->config) != 0) {
+	if (client_connect(args->config, 1) != 0) {
 		ERROR("Connection to %s:%s refused", args->config->s_address, args->config->s_port);
 		return CWCERT_OTHER_ERR;
 	}
 	if (client_hello(args->config) == 0) {
-		printf("Certificate accepted by policy master\n");
+		printf("Certificate accepted by %s:%s\n", args->config->s_address, args->config->s_port);
 		client_bye(args->config);
 		return CWCERT_SUCCESS;
 	}
 
-	printf("Certificate DENIED by policy master\n");
+	printf("Certificate DENIED by %s:%s\n", args->config->s_address, args->config->s_port);
+	client_bye(args->config);
 	return CWCERT_OTHER_ERR;
 }
 
@@ -414,11 +415,12 @@ static int submit_request(const struct cwcert_opts *args, X509_REQ *request)
 		INFO("Sending certificate signing request to server");
 		while (negotiate_certificate(args->config, request) != 0) {
 			printf("awaiting `cwca sign' on policy master...\n");
+			request = NULL;
 			sleep(5);
 		}
 
 		client_bye(args->config);
-		if (client_connect(args->config) != 0) {
+		if (client_connect(args->config, 1) != 0) {
 			CRITICAL("Unable to reconnect to verify");
 			return CWCERT_OTHER_ERR;
 		}

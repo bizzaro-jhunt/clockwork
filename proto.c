@@ -401,7 +401,6 @@ int pdu_send_DATA(struct session *session, int srcfd, const char *data)
 int pdu_send_GET_CERT(struct session *session, X509_REQ *csr)
 {
 	assert(session); // LCOV_EXCL_LINE
-	assert(csr); // LCOV_EXCL_LINE
 
 	struct pdu *pdu = SEND_PDU(session);
 	BIO *bio;
@@ -409,31 +408,37 @@ int pdu_send_GET_CERT(struct session *session, X509_REQ *csr)
 	size_t len;
 	int write_status;
 
-	bio = BIO_new(BIO_s_mem());
-	if (!bio) {
-		return -1;
-	}
+	if (csr) {
+		bio = BIO_new(BIO_s_mem());
+		if (!bio) {
+			return -1;
+		}
 
-	if (!PEM_write_bio_X509_REQ(bio, csr)) {
+		if (!PEM_write_bio_X509_REQ(bio, csr)) {
+			BIO_free(bio);
+			return -1;
+		}
+
+		len = (size_t)BIO_get_mem_data(bio, &raw_csr);
+		if (pdu_allocate(pdu, PROTOCOL_OP_GET_CERT, len) < 0) {
+			BIO_free(bio);
+			return -1;
+		}
+
+		memcpy(pdu->data, raw_csr, len);
 		BIO_free(bio);
-		return -1;
+	} else {
+		if (pdu_allocate(pdu, PROTOCOL_OP_GET_CERT, 0) < 0) {
+			return -1;
+		}
 	}
-
-	len = (size_t)BIO_get_mem_data(bio, &raw_csr);
-	if (pdu_allocate(pdu, PROTOCOL_OP_GET_CERT, len) < 0) {
-		BIO_free(bio);
-		return -1;
-	}
-
-	memcpy(pdu->data, raw_csr, len);
-	BIO_free(bio);
 
 	write_status = pdu_write(session->io, pdu);
 	if (write_status != 0) {
 		return write_status;
 	}
 
-	return len;
+	return 0;
 }
 
 /**
@@ -448,6 +453,11 @@ int pdu_decode_GET_CERT(struct pdu *pdu, X509_REQ **csr)
 	assert(csr); // LCOV_EXCL_LINE
 
 	BIO *bio;
+
+	if (pdu->len == 0) {
+		*csr = NULL;
+		return 0;
+	}
 
 	bio = BIO_new(BIO_s_mem());
 	if (!bio) {
@@ -825,8 +835,6 @@ long protocol_ssl_verify_peer(SSL *ssl, const char *host)
 	int ok = 0;
 
 	if (!(cert = SSL_get_peer_certificate(ssl)) || !host) {
-//		ERROR("Unable to get certificate in SSL_get_peer_certificate (for host '%s')", host);
-//		protocol_ssl_backtrace();
 		goto err_occurred;
 	}
 

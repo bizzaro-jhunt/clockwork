@@ -76,7 +76,7 @@ int main(int argc, char **argv)
 		exit(0);
 	}
 
-	if (client_connect(c) != 0) {
+	if (client_connect(c,0) != 0) {
 		exit(1);
 	}
 

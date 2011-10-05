@@ -306,6 +306,8 @@ static int cwca_new_main(const struct cwca_opts *args)
 		return CWCA_OTHER_ERR;
 	}
 
+	unlink(args->server->crl_file);
+
 	if (cwca_new_setup_ca_dirs(args) != CWCA_SUCCESS) {
 		return CWCA_OTHER_ERR;
 	}
@@ -497,13 +499,20 @@ static int cwca_sign_main(const struct cwca_opts *args)
 	printf("Storing signed certifcate in %s\n", cert_file);
 	if (cert_store_certificate(cert, cert_file) != 0) {
 		perror("Unable to store certificate");
-		return CWCA_OTHER_ERR;
+		goto undo;
 	}
 
 	printf("Removing certificate signing request.\n");
-	unlink(req_file);
+	if (unlink(req_file) != 0) {
+		perror("Unable to remove signing request");
+		goto undo;
+	}
 
 	return CWCA_SUCCESS;
+
+undo:
+	unlink(cert_file);
+	return CWCA_OTHER_ERR;
 }
 
 static int cwca_ignore_main(const struct cwca_opts *args)
@@ -572,6 +581,9 @@ static int cwca_revoke_main(const struct cwca_opts *args)
 		cert_store_crl(crl, args->server->crl_file);
 	}
 	X509_CRL_print_fp(stdout, crl);
+
+	/* for the re-issue */
+	unlink(cert_file);
 
 	printf("\nRestart policyd for the new revocation list to take effect.\n");
 	return CWCA_SUCCESS;

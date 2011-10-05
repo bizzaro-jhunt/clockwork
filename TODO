@@ -5,6 +5,8 @@ Client / Server
      Communication between cwcert and cwca
        More intrusive signing / verification procedure
        How to handle revocation?
+       Better SSL error messages (bad ca, revoked, expired, etc.)
+       How to handle unknown CA on first connect?
 
 Perpetual List of Things To Do
 ==============================

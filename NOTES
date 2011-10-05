@@ -355,3 +355,7 @@ So...
 The final decision (at least at this point) is to run the following sequence:
   Groups -> Users -> Files
 
+
+SSL Signing / Verification Procedure
+------------------------------------
+If any step in cwca_sign_main fails, all other steps must be undone

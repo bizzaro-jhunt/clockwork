@@ -36,6 +36,7 @@ struct client {
 	BIO *socket;               /* IO stream for policy master */
 	SSL *ssl;                  /* SSL connection parameters */
 	SSL_CTX *ssl_ctx;
+	int verified;
 
 	struct session session;  /* protocol session state machine */
 	struct hash *facts;        /* local facts */
@@ -60,7 +61,7 @@ struct client {
 
 int client_options(struct client *args);
 
-int client_connect(struct client *c);
+int client_connect(struct client *c, int unverified);
 int client_hello(struct client *c);
 int client_bye(struct client *c);
 int client_disconnect(struct client *c);

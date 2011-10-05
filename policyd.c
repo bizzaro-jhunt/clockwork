@@ -323,18 +323,18 @@ static int handle_GET_CERT(struct worker *w)
 		return 0;
 	}
 
-	/* FIXME: how do we verify CSR integrity? */
-
 	csr_file  = string("%s/%s.csr", w->requests_dir, w->peer);
-	cert_store_request(csr, csr_file);
-	free(csr_file);
-
 	cert_file = string("%s/%s.pem", w->certs_dir, w->peer);
-	cert = cert_retrieve_certificate(cert_file);
+	if (csr) {
+		unlink(cert_file);
+		cert_store_request(csr, csr_file);
+	} else {
+		cert = cert_retrieve_certificate(cert_file);
+	}
+	free(csr_file);
 	free(cert_file);
 
 	if (pdu_send_SEND_CERT(&w->session, cert) < 0) { return 0; }
-
 	return 1;
 }
 
@@ -793,7 +793,11 @@ static void* worker_thread(void *arg)
 
 	/* dispatch */
 	while (!done) {
-		pdu_receive(&w->session);
+		if (pdu_receive(&w->session) < 0) {
+			WARNING("Remote end hugn up unexpectedly");
+			break;
+		}
+
 		switch (RECV_PDU(&w->session)->op) {
 
 		case PROTOCOL_OP_HELLO:

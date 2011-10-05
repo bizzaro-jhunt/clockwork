@@ -146,44 +146,54 @@ int client_options(struct client *args)
 	return 0;
 }
 
-int client_connect(struct client *c)
+static SSL_CTX* client_ssl_ctx(struct client *c, int use_cert)
 {
-	char *addr;
-	long err;
-
-	protocol_ssl_init();
+	SSL_CTX *ctx;
 
 	INFO("Setting up client SSL context");
-	if (!(c->ssl_ctx = SSL_CTX_new(TLSv1_method()))) {
+	if (!(ctx = SSL_CTX_new(TLSv1_method()))) {
 		ERROR("Failed to set up new TLSv1 SSL context");
 		protocol_ssl_backtrace();
-		return -1;
+		return NULL;
 	}
 
 	DEBUG(" - Loading CA certificate chain from %s", c->ca_cert_file);
-	if (!SSL_CTX_load_verify_locations(c->ssl_ctx, c->ca_cert_file, NULL)) {
+	if (!SSL_CTX_load_verify_locations(ctx, c->ca_cert_file, NULL)) {
 		ERROR("Failed to load CA certificate chain (%s)", c->ca_cert_file);
-		SSL_CTX_free(c->ssl_ctx); c->ssl_ctx = NULL;
+		SSL_CTX_free(ctx);
 		protocol_ssl_backtrace();
-		return -1;
+		return NULL;
 	}
 
-	DEBUG(" - Loading certificate from %s", c->cert_file);
-	if (!SSL_CTX_use_certificate_file(c->ssl_ctx, c->cert_file, SSL_FILETYPE_PEM)) {
-		WARNING("No certificate to load (%s); running in 'unverified client' mode");
+	c->verified = 0;
+	if (use_cert) {
+		DEBUG(" - Loading certificate from %s", c->cert_file);
+		if (!SSL_CTX_use_certificate_file(ctx, c->cert_file, SSL_FILETYPE_PEM)) {
+			WARNING("No certificate to load (%s); running in 'unverified client' mode");
+		} else {
+			c->verified = 1;
+		}
 	}
 
 	DEBUG(" - Loading private key from %s", c->key_file);
-	if (!SSL_CTX_use_PrivateKey_file(c->ssl_ctx, c->key_file, SSL_FILETYPE_PEM)) {
+	if (!SSL_CTX_use_PrivateKey_file(ctx, c->key_file, SSL_FILETYPE_PEM)) {
 		ERROR("Failed to load private key (%s)", c->key_file);
-		SSL_CTX_free(c->ssl_ctx); c->ssl_ctx = NULL;
+		SSL_CTX_free(ctx);
 		protocol_ssl_backtrace();
-		return -1;
+		return NULL;
 	}
 
 	DEBUG(" - Setting peer verification flags");
-	SSL_CTX_set_verify(c->ssl_ctx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, NULL);
-	SSL_CTX_set_verify_depth(c->ssl_ctx, 4);
+	SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, NULL);
+	SSL_CTX_set_verify_depth(ctx, 4);
+
+	return ctx;
+}
+
+static int client_do_connect(struct client *c)
+{
+	char *addr;
+	long err;
 
 	addr = string("%s:%s", c->s_address, c->s_port);
 	DEBUG("Connecting to %s", addr);
@@ -191,18 +201,46 @@ int client_connect(struct client *c)
 	c->socket = BIO_new_connect(addr);
 	if (!c->socket || BIO_do_connect(c->socket) <= 0) {
 		DEBUG("Failed to create a new BIO connection object");
-		goto failed;
+		return -1;
 	}
 
 	if (!(c->ssl = SSL_new(c->ssl_ctx))) {
 		DEBUG("Failed to create an SSL connection");
-		goto failed;
+		return -1;
 	}
 
 	SSL_set_bio(c->ssl, c->socket, c->socket);
 	if (SSL_connect(c->ssl) <= 0) {
 		DEBUG("Failed to initiate SSL connection");
-		goto failed;
+		protocol_ssl_backtrace();
+		SSL_free(c->ssl);
+		c->ssl = NULL;
+		return -1;
+	}
+
+	return 0;
+}
+
+int client_connect(struct client *c, int unverified)
+{
+	char *addr;
+	long err;
+	int connected = 0;
+
+	protocol_ssl_init();
+
+	c->ssl_ctx = client_ssl_ctx(c, 1);
+	connected = client_do_connect(c);
+	if (connected != 0 && c->verified && unverified) {
+		DEBUG("Verified mode failed; switching to unverified mode");
+		SSL_CTX_free(c->ssl_ctx);
+		c->ssl_ctx = client_ssl_ctx(c, 0);
+		connected = client_do_connect(c);
+	}
+
+	if (connected != 0) {
+		DEBUG("SSL connection (%sverified mode) failed", unverified ? "un" : "");
+		return -1;
 	}
 
 	if ((err = protocol_ssl_verify_peer(c->ssl, c->s_address)) != X509_V_OK) {
@@ -212,13 +250,7 @@ int client_connect(struct client *c)
 	}
 
 	protocol_session_init(&c->session, c->ssl);
-
 	return 0;
-
-failed:
-	CRITICAL("Connection failed");
-	protocol_ssl_backtrace();
-	return -1;
 }
 
 int client_hello(struct client *c)

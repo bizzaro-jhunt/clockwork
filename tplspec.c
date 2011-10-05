@@ -97,7 +97,7 @@ int main(int argc, char **argv)
 
 	if (argc < 2) {
 		fprintf(stderr, "USAGE: %s /path/to/template\n", argv[0]);
-		return ;
+		return 1;
 	}
 
 	fact_read(stdin, facts);

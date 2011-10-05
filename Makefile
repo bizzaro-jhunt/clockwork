@@ -179,7 +179,7 @@ install-master: install-base build-master manpages
 
 install-base:
 	getent group $(CWGROUP) >/dev/null || groupadd -r $(CWGROUP)
-	getent passwd $(CWUSER) >/dev/null || useradd -MNr -c "Clockwork" -g $(CWGROUP) -d $(HOMEDIR) $(CWUSER)
+	getent passwd $(CWUSER) >/dev/null || useradd -Mr -c "Clockwork" -g $(CWGROUP) -d $(HOMEDIR) $(CWUSER)
 	install -d -o root      -g root       -m 0755 $(SBINDIR)
 	install -d -o root      -g root       -m 0755 $(MANDIR)
 	install -d -o root      -g root       -m 0755 $(MANDIR)/man1

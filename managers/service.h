@@ -40,6 +40,7 @@ struct service_manager {
 };
 
 const struct service_manager *SM_debian;
+const struct service_manager *SM_chkconfig;
 
 #define service_enabled(sm,service) ((*((sm)->status))((service), 0))
 #define service_running(sm,service) ((*((sm)->status))((service), 1))

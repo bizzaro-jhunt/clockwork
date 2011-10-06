@@ -127,7 +127,7 @@ DEFINE_PM_VERSION(rpm_yum) {
 	char *version;
 	int rc;
 
-	command = string("rpm --quiet --qf='%%{VERSION}' -q %s", package);
+	command = string("rpm --qf='%%{VERSION}' -q %s | grep -v 'is not installed$'", package);
 	rc = exec_command(command, &version, NULL);
 	free(command);
 
@@ -143,8 +143,8 @@ DEFINE_PM_INSTALL(rpm_yum) {
 	char *command;
 	int rc;
 
-	command = (version ? string("yum install -qy %s", package, version)
-	                   : string("yum install -qy %s-%s", package));
+	command = (version ? string("yum install -qy %s-%s", package, version)
+	                   : string("yum install -qy %s", package));
 	rc = exec_command(command, NULL, NULL);
 	free(command);
 

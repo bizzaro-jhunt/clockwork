@@ -113,6 +113,83 @@ DEFINE_SM_ACTION(debian) {
 	}
 }
 
+NEW_SERVICE_MANAGER(chkconfig);
+
+DEFINE_SM_STATUS(chkconfig) {
+	char *command;
+	int rc;
+
+	if (run) {
+		command = string("/etc/init.d/%s status", service);
+		rc = exec_command(command, NULL, NULL);
+		DEBUG("%s: `%s' returned %u", __func__, command, rc);
+		free(command);
+
+		return (rc == 1 ? 1 : (rc == 0 ? 0 : -1));
+	} else {
+		command = string("/sbin/chkconfig --list %s | grep ':on'", service);
+		rc = exec_command(command, NULL, NULL);
+		DEBUG("%s: `%s' returned %u", __func__, command, rc);
+		free(command);
+
+		return (rc == 0 ? 0 : 1);
+	}
+}
+
+DEFINE_SM_ACTION(chkconfig)
+{
+	char *command;
+	int rc;
+
+	switch (action) {
+	case SERVICE_MANAGER_START:
+		command = string("/etc/init.d/%s start", service);
+		rc = exec_command(command, NULL, NULL);
+		DEBUG("%s: `%s' returned %u", __func__, command, rc);
+		free(command);
+		return rc;
+
+	case SERVICE_MANAGER_STOP:
+		command = string("/etc/init.d/%s stop", service);
+		rc = exec_command(command, NULL, NULL);
+		DEBUG("%s: `%s' returned %u", __func__, command, rc);
+		free(command);
+		return rc;
+
+	case SERVICE_MANAGER_RESTART:
+		command = string("/etc/init.d/%s restart", service);
+		rc = exec_command(command, NULL, NULL);
+		DEBUG("%s: `%s' returned %u", __func__, command, rc);
+		free(command);
+		return rc;
+
+	case SERVICE_MANAGER_RELOAD:
+		command = string("/etc/init.d/%s reload", service);
+		rc = exec_command(command, NULL, NULL);
+		DEBUG("%s: `%s' returned %u", __func__, command, rc);
+		free(command);
+		return rc;
+
+	case SERVICE_MANAGER_ENABLE:
+		command = string("/sbin/chkconfig %s on", service);
+		rc = exec_command(command, NULL, NULL);
+		DEBUG("%s: `%s' returned %u", __func__, command, rc);
+		free(command);
+		return rc;
+
+	case SERVICE_MANAGER_DISABLE:
+		command = string("/sbin/chkconfig %s off", service);
+		rc = exec_command(command, NULL, NULL);
+		DEBUG("%s: `%s' returned %u", __func__, command, rc);
+		free(command);
+		return rc;
+
+	default:
+		/* invalid command */
+		return -1;
+	}
+}
+
 #undef DEFINE_SM_ACTION
 #undef DEFINE_SM_STATUS
 #undef NEW_SERVICE_MANAGER

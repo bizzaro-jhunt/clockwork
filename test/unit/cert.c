@@ -325,7 +325,7 @@ NEW_TEST(cert_retrieve_multi)
 {
 	X509_REQ **reqs;
 	X509 **certs;
-	int n = 0;
+	size_t n = 0;
 
 	test("cert: Retrieve All Certificate Requests");
 	reqs = cert_retrieve_requests(X509_ROOT "/csrs/*.pem", &n);

@@ -8,6 +8,9 @@ TEST_UNIT_DATA=test/unit/data
 TEST_SAFE_UID=100
 TEST_SAFE_GID=100
 
+TEST_SAFE_PKG="fortune-mod"
+TEST_SAFE_SVC="snmpd"
+
 TEST_DEFS_H=test/defs.h
 
 ########################################################
@@ -27,6 +30,9 @@ create_defs_dot_h() {
 
 #define TEST_UNIT_TEMP "$TEST_UNIT_TEMP"
 #define TEST_UNIT_DATA "$TEST_UNIT_DATA"
+
+#define TEST_SAFE_PKG  "$TEST_SAFE_PKG"
+#define TEST_SAFE_SVC  "$TEST_SAFE_SVC"
 
 #define TEST_SAFE_UID  $TEST_SAFE_UID
 #define TEST_SAFE_GID  $TEST_SAFE_GID

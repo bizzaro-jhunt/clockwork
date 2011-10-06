@@ -1532,7 +1532,6 @@ NEW_TEST(res_file_attrs)
 
 /*****************************************************************************/
 
-#define PACKAGE "xbill"
 NEW_TEST(res_package_diffstat_fixup)
 {
 	struct res_package *r;
@@ -1545,18 +1544,18 @@ NEW_TEST(res_package_diffstat_fixup)
 	test("RES_PACKAGE: stat (package needs removed)");
 	/* first, ensure that the package is not installed */
 	assert_int_eq("(test sanity) removal of package succeeds",
-		package_remove(DEFAULT_PM, PACKAGE), 0);
+		package_remove(DEFAULT_PM, TEST_SAFE_PKG), 0);
 
 	/* then, make sure we can install it. */
 	assert_int_eq("(test sanity) installation of package succeeds",
-		package_install(DEFAULT_PM, PACKAGE, NULL), 0);
+		package_install(DEFAULT_PM, TEST_SAFE_PKG, NULL), 0);
 
 	/* now the real parts of the test */
-	r = res_package_new(PACKAGE);
+	r = res_package_new(TEST_SAFE_PKG);
 	res_package_set(r, "installed", "no");
 
 	assert_int_eq("res_package_stat succeeds", res_package_stat(r, &env), 0);
-	assert_not_null("package '" PACKAGE "' is installed", r->installed);
+	assert_not_null("package '" TEST_SAFE_PKG "' is installed", r->installed);
 	version = strdup(r->installed); // save version for later
 
 	test("RES_PACKAGE: fixup (package needs removed)");
@@ -1567,13 +1566,14 @@ NEW_TEST(res_package_diffstat_fixup)
 	report_free(report);
 
 	/* check it */
-	assert_null("Package is uninstalled now", package_version(DEFAULT_PM, PACKAGE));
+	printf("package version is: %s\n", package_version(DEFAULT_PM, TEST_SAFE_PKG));
+	assert_null("Package is uninstalled now", package_version(DEFAULT_PM, TEST_SAFE_PKG));
 
 	test("RES_PACKAGE: stat (package needs installed)");
 	res_package_set(r, "installed", "yes");
 	res_package_set(r, "version",   version);
 	assert_int_eq("res_package_stat succeeds", res_package_stat(r, &env), 0);
-	assert_null("package '" PACKAGE "' is NOT installed", r->installed);
+	assert_null("package '" TEST_SAFE_PKG "' is NOT installed", r->installed);
 
 	test("RES_PACKAGE: fixup (package needs installed)");
 	report = res_package_fixup(r, 0, &env);
@@ -1584,7 +1584,7 @@ NEW_TEST(res_package_diffstat_fixup)
 
 	/* check it */
 	free(version);
-	version = package_version(DEFAULT_PM, PACKAGE);
+	version = package_version(DEFAULT_PM, TEST_SAFE_PKG);
 	assert_not_null("Package is installed now", version);
 	assert_str_eq("Correct version is installed", version, r->version);
 
@@ -1693,7 +1693,6 @@ NEW_TEST(res_package_attrs)
 
 /*****************************************************************************/
 
-#define SERVICE "snmpd"
 NEW_TEST(res_service_diffstat_fixup)
 {
 	struct res_service *r;
@@ -1708,18 +1707,18 @@ NEW_TEST(res_service_diffstat_fixup)
 
 	test("RES_SERVICE: stat (service needs enabled / started)");
 	/* first make sure the service is stopped and disabled */
-	if (service_enabled(DEFAULT_SM, SERVICE) == 0) {
-		service_disable(DEFAULT_SM, SERVICE);
+	if (service_enabled(DEFAULT_SM, TEST_SAFE_SVC) == 0) {
+		service_disable(DEFAULT_SM, TEST_SAFE_SVC);
 		was_enabled = 1;
 	}
-	assert_int_ne("Service '" SERVICE "' disabled",
-		service_enabled(DEFAULT_SM, SERVICE), 0);
-	if (service_running(DEFAULT_SM, SERVICE) == 0) {
-		service_stop(DEFAULT_SM, SERVICE);
+	assert_int_ne("Service '" TEST_SAFE_SVC "' disabled",
+		service_enabled(DEFAULT_SM, TEST_SAFE_SVC), 0);
+	if (service_running(DEFAULT_SM, TEST_SAFE_SVC) == 0) {
+		service_stop(DEFAULT_SM, TEST_SAFE_SVC);
 		was_running = 1;
 	}
-	assert_int_ne("Service '" SERVICE "' not running",
-		service_running(DEFAULT_SM, SERVICE), 0);
+	assert_int_ne("Service '" TEST_SAFE_SVC "' not running",
+		service_running(DEFAULT_SM, TEST_SAFE_SVC), 0);
 
 	/* now the real test */
 	r = res_service_new("snmpd");
@@ -1742,10 +1741,10 @@ NEW_TEST(res_service_diffstat_fixup)
 	report_free(report);
 	sleep(1);
 
-	assert_int_eq("Service '" SERVICE "' is now running",
-		service_running(DEFAULT_SM, SERVICE), 0);
-	assert_int_eq("Service '" SERVICE "' is now enabled",
-		service_enabled(DEFAULT_SM, SERVICE), 0);
+	assert_int_eq("Service '" TEST_SAFE_SVC "' is now running",
+		service_running(DEFAULT_SM, TEST_SAFE_SVC), 0);
+	assert_int_eq("Service '" TEST_SAFE_SVC "' is now enabled",
+		service_enabled(DEFAULT_SM, TEST_SAFE_SVC), 0);
 
 	test("RES_SERVICE: stat (service needs disabled / stopped)");
 	res_service_set(r, "enabled", "no");
@@ -1767,34 +1766,34 @@ NEW_TEST(res_service_diffstat_fixup)
 	report_free(report);
 	sleep(1);
 
-	assert_int_ne("Service '" SERVICE "' is now stopped",
-		service_running(DEFAULT_SM, SERVICE), 0);
-	assert_int_ne("Service '" SERVICE "' is now disabled",
-		service_enabled(DEFAULT_SM, SERVICE), 0);
+	assert_int_ne("Service '" TEST_SAFE_SVC "' is now stopped",
+		service_running(DEFAULT_SM, TEST_SAFE_SVC), 0);
+	assert_int_ne("Service '" TEST_SAFE_SVC "' is now disabled",
+		service_enabled(DEFAULT_SM, TEST_SAFE_SVC), 0);
 
 	/* clean up after ourselves */
 	if (was_enabled) {
-		service_enable(DEFAULT_SM, SERVICE);
+		service_enable(DEFAULT_SM, TEST_SAFE_SVC);
 		sleep(1);
 		assert_int_eq("Cleanup: service re-enabled",
-			service_enabled(DEFAULT_SM, SERVICE), 0);
+			service_enabled(DEFAULT_SM, TEST_SAFE_SVC), 0);
 	} else {
-		service_disable(DEFAULT_SM, SERVICE);
+		service_disable(DEFAULT_SM, TEST_SAFE_SVC);
 		sleep(1);
 		assert_int_ne("Cleanup: service re-disabled",
-			service_enabled(DEFAULT_SM, SERVICE), 0);
+			service_enabled(DEFAULT_SM, TEST_SAFE_SVC), 0);
 	}
 
 	if (was_running) {
-		service_start(DEFAULT_SM, SERVICE);
+		service_start(DEFAULT_SM, TEST_SAFE_SVC);
 		sleep(1);
 		assert_int_eq("Cleanup: service re-started",
-			service_running(DEFAULT_SM, SERVICE), 0);
+			service_running(DEFAULT_SM, TEST_SAFE_SVC), 0);
 	} else {
-		service_stop(DEFAULT_SM, SERVICE);
+		service_stop(DEFAULT_SM, TEST_SAFE_SVC);
 		sleep(1);
 		assert_int_ne("Cleanup: service stopped",
-			service_running(DEFAULT_SM, SERVICE), 0);
+			service_running(DEFAULT_SM, TEST_SAFE_SVC), 0);
 	}
 }
 

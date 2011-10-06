@@ -21,7 +21,7 @@ LABEL=/         /               ext3    defaults        0       1
 LABEL=swap      none            swap    sw              0       0
 /dev/hda        /media/cdrom0   udf     user,noauto     0       0
 EOF
-chown 42:shadow $F
+chown 42:42 $F
 chmod 0640 $F
 
 cp $F $TEST_UNIT_DATA/res_file

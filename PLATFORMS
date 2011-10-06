@@ -1,0 +1,9 @@
+OS/Distro	Version		Arch		Status
+=========	=======		====		======
+Ubuntu		11.04		i386		WORKING
+CentOS		5.7		x86_64		WORKING
+FreeBSD		8.2		?		planning
+OpenBSD		4.9		?		planning
+NetBSD		5.1		?		planning
+Fedora		Core 15		?		HOLD
+Gentoo		2011.09?	?		HOLD

@@ -5,42 +5,42 @@ gmon.out
 callgrind.out.*
 *.swp
 
-policyd
-cwa
-cwcert
-cwca
-sha1sum
-polspec
-tplspec
-confdump
-cwpol
+/policyd
+/cwa
+/cwcert
+/cwca
+/sha1sum
+/polspec
+/tplspec
+/confdump
+/cwpol
 
-debug/package-manager
-debug/service-manager
+/debug/package-manager
+/debug/service-manager
 
-doc/*.png
-doc/api
+/doc/*.png
+/doc/api
 
-certs
+/certs
 
-test/defs.h
-test/unit/run
-test/unit/data
-test/unit/tmp
-test/unit/sha1_files.h
-test/unit/helpers/proto_helper
-test/chroot/*.chroot
-test/augeas
+/test/defs.h
+/test/unit/run
+/test/unit/data
+/test/unit/tmp
+/test/unit/sha1_files.h
+/test/unit/helpers/proto_helper
+/test/chroot/*.chroot
+/test/augeas
 
-conf/*.output
-spec/*.output
-tpl/*.output
+/conf/*.output
+/spec/*.output
+/tpl/*.output
 
-ext/build
-ext/openssl
+/ext/build
+/ext/openssl
 
-config
-Makefile.deps
+/config
+/Makefile.deps
 
 local
 .commit

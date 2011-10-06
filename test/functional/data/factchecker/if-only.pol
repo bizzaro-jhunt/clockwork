@@ -1,9 +1,9 @@
 
 policy "if-only" {
 
-	if (sys.hostname is "jade") {
+	if (sys.hostname is "buildbox") {
 
-		user "jade-user" {
+		user "buildbox-user" {
 			uid: 2125
 			gid: 3125
 		}

@@ -1,7 +1,7 @@
 
 policy "if-not" {
 
-	if (sys.hostname is not "jade") {
+	if (sys.hostname is not "buildbox") {
 
 		user "user" {
 			uid: 2125
@@ -10,7 +10,7 @@ policy "if-not" {
 
 	} else {
 
-		user "jade-user" {
+		user "buildbox-user" {
 			uid: 1500
 			gid: 1400
 		}

@@ -43,6 +43,7 @@ static struct job* fake_job(void)
 	report = report_new("File", "/etc/sudoers");
 	assert_not_null("fake_job created /etc/sudoers report", report);
 	job_add_report(job, report);
+	report_action(report, string("creating file"), ACTION_SUCCEEDED);
 
 	report = report_new("Group", "testg1");
 	assert_not_null("fake_job created testg1 report", report);

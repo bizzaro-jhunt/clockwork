@@ -370,8 +370,7 @@ sub test_cwcert()
 	$TESTS++;
 	print "cwcert: certificate and key generation\n";
 
-	my $config = "$DATAROOT/cwcert/main.conf";
-	my $cwcert = "./cwcert --offline --config $config";
+	my $hostname = `hostname -f`;
 
 	my $key_f  = "test/functional/tmp/key.pem";
 	my $cert_f = "test/functional/tmp/cert.pem";
@@ -382,7 +381,7 @@ sub test_cwcert()
 	assert_file_not_exists("Request does not exist initially", $req_f);
 	assert_file_not_exists("Certificate does not exist initially", $cert_f);
 
-	run(qq(expect -f $DATAROOT/cwcert/cwcert-new.expect));
+	run(qq(expect -f $DATAROOT/cwcert/cwcert-new.expect "$hostname"));
 
 	assert_file_exists("Key exists after `cwcert new`", $key_f);
 	assert_file_exists("Request exists after `cwcert new`", $req_f);

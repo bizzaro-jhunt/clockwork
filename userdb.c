@@ -60,7 +60,7 @@ static struct sgrp* fgetsgent(FILE *io)
 		;
 	*b = '\0';
 	l = stringlist_split(a, b-a, ",", SPLIT_NORMAL);
-	g->sg_mem = l->strings;
+	g->sg_adm = l->strings;
 	free(l);
 
 	/* members */
@@ -68,7 +68,7 @@ static struct sgrp* fgetsgent(FILE *io)
 		;
 	*b = '\0';
 	l = stringlist_split(a, b-a, ",", SPLIT_NORMAL);
-	g->sg_adm = l->strings;
+	g->sg_mem = l->strings;
 	free(l);
 
 	return g;

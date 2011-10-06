@@ -11,6 +11,22 @@ TEST_SAFE_GID=100
 TEST_SAFE_PKG="fortune-mod"
 TEST_SAFE_SVC="snmpd"
 
+PLATFORM=$(lsb_release -is | dd conv=lcase)
+case $PLATFORM in
+centos)
+	DEFAULT_SM="SM_chkconfig"
+	DEFAULT_PM="PM_rpm_yum"
+	;;
+ubuntu)
+	DEFAULT_SM="SM_debian"
+	DEFAULT_PM="PM_dpkg_apt"
+	;;
+*)
+	echo "Unknown platform: $PLATFORM"
+	exit 1
+	;;
+esac
+
 TEST_DEFS_H=test/defs.h
 
 ########################################################
@@ -37,8 +53,8 @@ create_defs_dot_h() {
 #define TEST_SAFE_UID  $TEST_SAFE_UID
 #define TEST_SAFE_GID  $TEST_SAFE_GID
 
-#define DEFAULT_SM     SM_debian
-#define DEFAULT_PM     PM_dpkg_apt
+#define DEFAULT_SM     $DEFAULT_SM
+#define DEFAULT_PM     $DEFAULT_PM
 
 EOF
 }
@@ -73,6 +89,10 @@ case $1 in
 		;;
 
 	*)
+		if [[ "$1" == "" ]]; then
+			echo "USAGE: $0 (data|setup|clean)"
+			exit 0
+		fi
 		echo "$1 - Not Implemented Yet";
 		exit 1;
 		;;

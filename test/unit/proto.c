@@ -294,7 +294,7 @@ NEW_TEST(proto_pdu_GET_CERT)
 	assert_not_null("Have a valid CSR", req);
 
 	pid = fork_test(&server, child_expects_GET_CERT);
-	assert_int_ne("pdu_send_GET_CERT returns successfully",
+	assert_int_eq("pdu_send_GET_CERT returns successfully",
 		pdu_send_GET_CERT(&server.session, req), 0);
 	waitfork(pid, &server);
 

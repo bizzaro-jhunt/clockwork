@@ -20,8 +20,6 @@
 #ifndef _TPL_PRIVATE_H
 #define _TPL_PRIVATE_H
 
-#include <sys/stat.h>
-
 /* This headers is "private" and includes structure definitions
    and function prototypes that are ONLY of interest to the
    internals of the lexer and grammar modules, tpl/lexer.o
@@ -29,6 +27,7 @@
  */
 
 #include "../clockwork.h"
+#include <sys/stat.h>
 #include "../template.h"
 
 /**

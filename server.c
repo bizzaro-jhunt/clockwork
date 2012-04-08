@@ -33,7 +33,7 @@ static struct server default_options = {
 	.manifest_file = "/etc/clockwork/manifest.pol",
 
 	.lock_file = "/var/lock/policyd",
-	.pid_file  = "/var/run/policyd",
+	.pid_file  = "/var/run/policyd.pid",
 
 	.ca_cert_file = "/etc/clockwork/ssl/CA.pem",
 	.crl_file     = "/etc/clockwork/ssl/revoked.pem",

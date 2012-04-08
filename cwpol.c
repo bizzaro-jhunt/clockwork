@@ -33,7 +33,11 @@ struct command {
 typedef int (*command_fn)(struct command*, int);
 
 #define slv(sl,i) (sl)->strings[(i)]
-#define HELP_ROOT "help"
+#ifdef CWRELEASE
+#  define HELP_ROOT "/usr/share/clockwork/cwpol/help"
+#else
+#  define HELP_ROOT "help"
+#endif
 
 #define LINE_BUFSIZ 1024
 #define TOKEN_DELIM " \t"

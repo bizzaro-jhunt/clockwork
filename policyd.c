@@ -137,7 +137,7 @@ static struct server* policyd_options(int argc, char **argv)
 {
 	struct server *s;
 
-	const char *short_opts = "h?FDvqQc:p:";
+	const char *short_opts = "h?FDvqQc:sp:";
 	struct option long_opts[] = {
 		{ "help",         no_argument,       NULL, 'h' },
 		{ "no-daemonize", no_argument,       NULL, 'F' },

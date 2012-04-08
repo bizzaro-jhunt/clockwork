@@ -157,7 +157,6 @@ install-agent: install-base build-agent manpages
 	install    -o $(CWUSER) -g $(CWGROUP) -m 0640 samples/cwa.conf      $(DESTDIR)$(ETCDIR)
 	install    -o root      -g root       -m 0644 man/cwa.1.gz          $(DESTDIR)$(MANDIR)/man1
 	install    -o root      -g root       -m 0644 man/cwa.conf.5.gz     $(DESTDIR)$(MANDIR)/man5
-	install    -o root      -g root       -m 0644 extra/cwa.vim         $(DESTDIR)$(USRDIR)/share/clockwork-$(CWVERSION)/vim
 
 install-master: install-base build-master manpages
 	install -d -o $(CWUSER) -g $(CWGROUP) -m 0750 $(DESTDIR)$(VARDIR)/run
@@ -170,22 +169,16 @@ install-master: install-base build-master manpages
 	install    -o root      -g root       -m 0644 man/policyd.conf.5.gz $(DESTDIR)$(MANDIR)/man5
 	install    -o root      -g root       -m 0644 man/res_*.5.gz        $(DESTDIR)$(MANDIR)/man5
 	install    -o root      -g root       -m 0644 man/clockwork.7.gz    $(DESTDIR)$(MANDIR)/man7
-	install    -o root      -g root       -m 0644 extra/policyd.vim     $(DESTDIR)$(USRDIR)/share/clockwork-$(CWVERSION)/vim
-	install    -o root      -g root       -m 0644 extra/pol.vim         $(DESTDIR)$(USRDIR)/share/clockwork-$(CWVERSION)/vim
 
 install-base:
 	getent group $(CWGROUP) >/dev/null || groupadd -r $(CWGROUP)
 	getent passwd $(CWUSER) >/dev/null || useradd -Mr -c "Clockwork" -g $(CWGROUP) -d $(HOMEDIR) $(CWUSER)
 	install -d -o root      -g root       -m 0755 $(DESTDIR)$(SBINDIR)
-	install -d -o root      -g root       -m 0755 $(DESTDIR)$(MANDIR)
 	install -d -o root      -g root       -m 0755 $(DESTDIR)$(MANDIR)/man1
 	install -d -o root      -g root       -m 0755 $(DESTDIR)$(MANDIR)/man5
 	install -d -o root      -g root       -m 0755 $(DESTDIR)$(MANDIR)/man7
-	install -d -o root      -g root       -m 0755 $(DESTDIR)$(USRDIR)/share/clockwork-$(CWVERSION)
-	install -d -o root      -g root       -m 0755 $(DESTDIR)$(USRDIR)/share/clockwork-$(CWVERSION)/vim
-	install -d -o $(CWUSER) -g $(CWGROUP) -m 0750 $(DESTDIR)$(VARDIR)
+	install -d -o root      -g root       -m 0755 $(DESTDIR)$(USRDIR)/share/doc/clockwork-$(CWVERSION)
 	install -d -o $(CWUSER) -g $(CWGROUP) -m 0750 $(DESTDIR)$(VARDIR)/db
-	install -d -o $(CWUSER) -g $(CWGROUP) -m 0750 $(DESTDIR)$(ETCDIR)
 	install -d -o $(CWUSER) -g $(CWGROUP) -m 0750 $(DESTDIR)$(ETCDIR)/ssl
 
 config: config.dist

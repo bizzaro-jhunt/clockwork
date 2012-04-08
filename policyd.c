@@ -722,6 +722,7 @@ static int server_init(struct server *s)
 
 	/* bind socket */
 	INFO("binding SSL socket on port %s", s->port);
+	// FIXME: use BIO_new_socket(fd, close_flag) instead...
 	s->listener = BIO_new_accept(strdup(s->port));
 	if (!s->listener || BIO_do_accept(s->listener) <= 0) {
 		return -1;

@@ -30,7 +30,7 @@
 
 RETVAL=0
 prog="policyd"
-lockfile=/var/lock/$prog
+lockfile=/var/lock/subsys/$prog
 
 # Some functions to make the below more readable
 POLICYD=/sbin/policyd

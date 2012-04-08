@@ -32,7 +32,7 @@ static struct server default_options = {
 	.config_file   = "/etc/clockwork/policyd.conf",
 	.manifest_file = "/etc/clockwork/manifest.pol",
 
-	.lock_file = "/var/lock/policyd",
+	.lock_file = "/var/lock/subsys/policyd",
 	.pid_file  = "/var/run/policyd.pid",
 
 	.ca_cert_file = "/etc/clockwork/ssl/CA.pem",

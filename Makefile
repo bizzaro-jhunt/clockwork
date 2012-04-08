@@ -169,6 +169,7 @@ install-master: install-base build-master manpages
 	install    -o root      -g root       -m 0644 man/policyd.1.gz      $(DESTDIR)$(MANDIR)/man1
 	install    -o root      -g root       -m 0644 man/policyd.conf.5.gz $(DESTDIR)$(MANDIR)/man5
 	install    -o root      -g root       -m 0644 man/res_*.5.gz        $(DESTDIR)$(MANDIR)/man5
+	install    -o root      -g root       -m 0644 man/clockwork.7.gz    $(DESTDIR)$(MANDIR)/man7
 	install    -o root      -g root       -m 0644 extra/policyd.vim     $(DESTDIR)$(USRDIR)/share/clockwork-$(CWVERSION)/vim
 	install    -o root      -g root       -m 0644 extra/pol.vim         $(DESTDIR)$(USRDIR)/share/clockwork-$(CWVERSION)/vim
 
@@ -179,6 +180,7 @@ install-base:
 	install -d -o root      -g root       -m 0755 $(DESTDIR)$(MANDIR)
 	install -d -o root      -g root       -m 0755 $(DESTDIR)$(MANDIR)/man1
 	install -d -o root      -g root       -m 0755 $(DESTDIR)$(MANDIR)/man5
+	install -d -o root      -g root       -m 0755 $(DESTDIR)$(MANDIR)/man7
 	install -d -o root      -g root       -m 0755 $(DESTDIR)$(USRDIR)/share/clockwork-$(CWVERSION)
 	install -d -o root      -g root       -m 0755 $(DESTDIR)$(USRDIR)/share/clockwork-$(CWVERSION)/vim
 	install -d -o $(CWUSER) -g $(CWGROUP) -m 0750 $(DESTDIR)$(VARDIR)

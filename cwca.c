@@ -55,6 +55,9 @@ struct cwca_opts {
 	char *command;
 	char *fqdn;
 	struct server *server;
+
+	int log_level;
+	int debug;
 };
 
 /**************************************************************/
@@ -79,7 +82,7 @@ static int cwca_new_setup_ca_dirs(const struct cwca_opts *args);
 
 int main(int argc, char **argv)
 {
-	int err;
+	int err = 0;
 	struct cwca_opts *args;
 
 	cert_init();
@@ -153,10 +156,12 @@ struct cwca_opts* cwca_options(int argc, char **argv)
 {
 	struct cwca_opts *cwca;
 
-	const char *short_opts = "h?c:";
+	const char *short_opts = "h?c:DvqQ";
 	struct option long_opts[] = {
 		{ "help",   no_argument,       NULL, 'h' },
 		{ "config", required_argument, NULL, 'c' },
+		{ "silent", no_argument,       NULL, 'Q' },
+		{ "debug",  no_argument,       NULL, 'D' },
 		{ 0, 0, 0, 0 },
 	};
 
@@ -167,11 +172,26 @@ struct cwca_opts* cwca_options(int argc, char **argv)
 	cwca->fqdn    = NULL;
 	cwca->server  = xmalloc(sizeof(struct server));
 
+	cwca->log_level = LOG_LEVEL_ERROR;
+	cwca->debug     = 0;
+
 	while ( (opt = getopt_long(argc, argv, short_opts, long_opts, &idx)) != -1 ) {
 		switch (opt) {
 		case 'c':
 			free(cwca->server->config_file);
 			cwca->server->config_file = strdup(optarg);
+			break;
+		case 'D':
+			cwca->debug = 1;
+			break;
+		case 'v':
+			cwca->log_level++;
+			break;
+		case 'q':
+			cwca->log_level--;
+			break;
+		case 'Q':
+			cwca->log_level = 0;
 			break;
 		case 'h':
 		case '?':
@@ -195,6 +215,12 @@ struct cwca_opts* cwca_options(int argc, char **argv)
 		fprintf(stderr, "Unable to process server options");
 		exit(2);
 	}
+
+	if (cwca->debug == 1) {
+		cwca->log_level = LOG_LEVEL_DEBUG;
+	}
+
+	cwca->log_level = log_set(cwca->log_level);
 
 	return cwca;
 }
@@ -229,8 +255,15 @@ static int cwca_help_main(const struct cwca_opts *args)
 	       "\n"
 	       "  -c, --config          Specify the path to an alternate configuration file.\n"
 	       "\n"
-	       "  -v, --verbose         Increase verbosity / log level by one.\n"
-	       "                        (can be used more than once, i.e. -vvv)\n"
+	       "  -v[vvv...]            Increase verbosity by one level.  Can be used\n"
+	       "                        more than once.  See -Q and -q.\n"
+	       "\n"
+	       "  -q[qqq...]            Decrease verbosity by one level.  Can be used\n"
+	       "                        more than once.  See -v and -Q.\n"
+	       "\n"
+	       "  -Q, --silent          Reset verbosity to the default setting, such that\n"
+	       "                        only CRITICAL and ERROR messages are logged, and all\n"
+	       "                        others are discarded.  See -q and -v.\n"
 	       "\n"
 	       "  -D, --debug           Set verbosity to DEBUG level.  Mainly intended for\n"
 	       "                        developers, but helpful in troubleshooting.\n"
@@ -301,7 +334,11 @@ static int cwca_new_main(const struct cwca_opts *args)
 	if (!cert) { return CWCA_SSL_ERROR; }
 
 	if (cert_store_certificate(cert, args->server->cert_file) != 0) {
-		CRITICAL("Unable to store CA certificate in %s", args->server->key_file);
+		CRITICAL("Unable to store CA certificate in %s", args->server->cert_file);
+		return CWCA_OTHER_ERR;
+	}
+	if (cert_store_certificate(cert, args->server->ca_cert_file) != 0) {
+		CRITICAL("Unable to store CA certificate in %s", args->server->ca_cert_file);
 		return CWCA_OTHER_ERR;
 	}
 

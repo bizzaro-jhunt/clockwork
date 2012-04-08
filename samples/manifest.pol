@@ -1,4 +1,20 @@
 #
-# This is a placeholder Clockwork Manifest file.
-# see clockwork(7) and manifest(7) for more details.
+# manifest.pol - Clockwork Manifest
+# See clockwork(7) for more details.
 #
+
+# This is a sample policy that ensures that /etc/sudoers
+# has the correct ownership and permissions
+policy "security" {
+	file "/etc/sudoers" {
+		owner: "root"
+		group: "root"
+		mode : "0440"
+	}
+}
+
+# Apply the 'security' policy to test.example.com.
+# You will probably want to change this...
+host "test.example.com" {
+	enforce "security"
+}

@@ -684,7 +684,8 @@ The simplest dependency is between a file and its parent directories.
 \" FIXME: Needs more content
 
 \"-------------------------
-.SS Templates
+\".SS Templates
+\"\" FIXME: Define template language +examples
 
 \"-------------------------
 .SS Overriding Values
@@ -748,60 +749,63 @@ overrides the \fBsource\fR attribute of the /etc/ssh/sshd_config file.
 .PP
 
 \"----------------------------------------------------------------
-.SH BEST PRACTICES
-
-This section contains tips and guidelines for getting the most
-out of Clockwork.  You don't have to follow them, but it's highly
-recommended.
-
-\"-------------------------
-.SS Version Control
-Version Control isn't just for developers.  Anything that changes over
-time (including 
-
-\" FIXME: Need more content
-
-\"-------------------------
-.SS Testing Process
-
-\" FIXME: Need more content
-
-\"----------------------------------------------------------------
-.SH RESOURCES
-
-\"-------------------------
-.SS directory
-\"-------------------------
-.SS file
-.SS group
-\"-------------------------
-.SS host
-\"-------------------------
-.SS package
-\"-------------------------
-.SS service
-\"-------------------------
-.SS sysctl
-\"-------------------------
-.SS user
+\".SH BEST PRACTICES
+\"
+\"This section contains tips and guidelines for getting the most
+\"out of Clockwork.  You don't have to follow them, but it's highly
+\"recommended.
+\"
+\"\"-------------------------
+\".SS Version Control
+\"Version Control isn't just for developers.  Anything that changes over
+\"time (including your Clockwork policies).  You are strongly encouraged
+\"to keep your policy configurations in a VCS (we use \fBgit\fR), because
+\"then you get:
+\"
+\"\" FIXME: Need more content
+\"
+\"\"-------------------------
+\".SS Testing Process
+\"
+\"\" FIXME: Need more content
 
 \"----------------------------------------------------------------
-.SH REFERENCE
+\".SH RESOURCES
+\"
+\"\"-------------------------
+\".SS directory
+\"\"-------------------------
+\".SS file
+\"\"-------------------------
+\".SS group
+\"\"-------------------------
+\".SS host
+\"\"-------------------------
+\".SS package
+\"\"-------------------------
+\".SS service
+\"\"-------------------------
+\".SS sysctl
+\"\"-------------------------
+\".SS user
 
-\"-------------------------
-.SS include
-
-\"-------------------------
-.SS extend
-
-\"-------------------------
-.SS host
-
-\"-------------------------
-.SS policy
-
-\"-------------------------
-.SS 
+\"----------------------------------------------------------------
+\".SH REFERENCE
+\"
+\"\"-------------------------
+\".SS include
+\"
+\"\"-------------------------
+\".SS extend
+\"
+\"\"-------------------------
+\".SS host
+\"
+\"\"-------------------------
+\".SS policy
+\"
+\"\"-------------------------
+\".SS 
 
 \"----------------------------------------------------------------
 .SH AUTHOR
@@ -813,3 +817,4 @@ Original ideas were stolen from
 .B Puppet
 (Luke Kanies).
 
+\" vim:ft=groff

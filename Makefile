@@ -107,7 +107,7 @@ policy_o      += $(manager_o)
 policy_o      += $(parser_tpl_o)
 
 # Manpages
-man_gz        := $(shell ls -1 man/*.1 man/*.5 | \
+man_gz        := $(shell ls -1 man/*.1 man/*.5 man/*.7 | \
                    sed -e 's/\.\([0-9]\)/.\1.gz/')
 
 # Unit Tests (test suites + test targets)

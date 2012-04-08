@@ -20,6 +20,8 @@
 #ifndef CLOCKWORK_H
 #define CLOCKWORK_H
 
+#define CLOCKWORK_VERSION "0.2.3"
+
 #define _GNU_SOURCE
 
 /* cleartext system password database **/

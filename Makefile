@@ -157,6 +157,7 @@ install-agent: install-base build-agent manpages
 	install    -o $(CWUSER) -g $(CWGROUP) -m 0640 samples/cwa.conf      $(ETCDIR)
 	install    -o root      -g root       -m 0644 man/cwa.1.gz          $(MANDIR)/man1
 	install    -o root      -g root       -m 0644 man/cwa.conf.5.gz     $(MANDIR)/man5
+	install    -o root      -g root       -m 0644 extra/cwa.vim         $(USRDIR)/share/clockwork-$(CWVERSION)/vim
 
 install-master: install-base build-master manpages
 	install -d -o $(CWUSER) -g $(CWGROUP) -m 0750 $(VARDIR)/run
@@ -168,6 +169,8 @@ install-master: install-base build-master manpages
 	install    -o root      -g root       -m 0644 man/policyd.1.gz      $(MANDIR)/man1
 	install    -o root      -g root       -m 0644 man/policyd.conf.5.gz $(MANDIR)/man5
 	install    -o root      -g root       -m 0644 man/res_*.5.gz        $(MANDIR)/man5
+	install    -o root      -g root       -m 0644 extra/policyd.vim     $(USRDIR)/share/clockwork-$(CWVERSION)/vim
+	install    -o root      -g root       -m 0644 extra/pol.vim         $(USRDIR)/share/clockwork-$(CWVERSION)/vim
 
 install-base:
 	getent group $(CWGROUP) >/dev/null || groupadd -r $(CWGROUP)
@@ -176,6 +179,8 @@ install-base:
 	install -d -o root      -g root       -m 0755 $(MANDIR)
 	install -d -o root      -g root       -m 0755 $(MANDIR)/man1
 	install -d -o root      -g root       -m 0755 $(MANDIR)/man5
+	install -d -o root      -g root       -m 0755 $(USRDIR)/share/clockwork-$(CWVERSION)
+	install -d -o root      -g root       -m 0755 $(USRDIR)/share/clockwork-$(CWVERSION)/vim
 	install -d -o $(CWUSER) -g $(CWGROUP) -m 0750 $(VARDIR)
 	install -d -o $(CWUSER) -g $(CWGROUP) -m 0750 $(VARDIR)/db
 	install -d -o $(CWUSER) -g $(CWGROUP) -m 0750 $(ETCDIR)

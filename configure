@@ -69,6 +69,12 @@ OPTIONS
 
      Default: \$DESTDIR/var/clockwork
 
+ --usrdir </path/to/usr>
+
+     Override the path for storing usr data (shared resources, docs, etc.)
+
+     Default: \$DESTDIR/usr
+
  --etcdir </path/to/etc>
 
      Override the path for storing Clockwork configuration files.
@@ -81,7 +87,7 @@ OPTIONS
      directories (man1 and man5) will be created under this path during
      the installation phase.
 
-     Default: \$DESTDIR/usr/share/man
+     Default: \$USRDIR/share/man
 
  --agent-only
 
@@ -153,6 +159,10 @@ process()
 			shift; SBINDIR=$1
 			;;
 
+		--usrdir)
+			shift; USRDIR=$1
+			;;
+
 		--vardir)
 			shift; VARDIR=$1
 			;;
@@ -194,8 +204,9 @@ normalize()
 {
 	[[ -z "$SBINDIR" ]] && SBINDIR="$DESTDIR/sbin"
 	[[ -z "$VARDIR"  ]] && VARDIR="$DESTDIR/var/clockwork"
+	[[ -z "$USRDIR"  ]] && USRDIR="$DESTDIR/usr"
 	[[ -z "$ETCDIR"  ]] && ETCDIR="$DESTDIR/etc/clockwork"
-	[[ -z "$MANDIR"  ]] && MANDIR="$DESTDIR/usr/share/man"
+	[[ -z "$MANDIR"  ]] && MANDIR="$USRDIR/share/man"
 	[[ -z "$HOMEDIR" ]] && HOMEDIR=$VARDIR
 }
 
@@ -204,6 +215,7 @@ summary()
 	echo "==================================="
 	echo "Clockwork will be built as follows:"
 	echo
+	echo "CWVERSION:   $CWVERSION"
 	echo "Environment: $BUILD_MODE"
 	echo
 	echo "User:  $CWUSER"
@@ -213,6 +225,7 @@ summary()
 	echo
 	echo "SBINDIR: $SBINDIR"
 	echo "VARDIR:  $VARDIR"
+	echo "USRDIR:  $USRDIR"
 	echo "ETCDIR:  $ETCDIR"
 	echo "MANDIR:  $MANDIR"
 	echo "HOMEDIR: $HOMEDIR"
@@ -227,8 +240,8 @@ save()
 {
 	(echo "# Clockwork build / install configuration generated $(date)"
 	 echo
-	 for VAR in CWUSER CWGROUP \
-		DESTDIR SBINDIR VARDIR ETCDIR MANDIR HOMEDIR \
+	 for VAR in CWVERSION CWUSER CWGROUP \
+		DESTDIR SBINDIR VARDIR USRDIR ETCDIR MANDIR HOMEDIR \
 		BUILD_MODE BUILD_AGENT BUILD_MASTER; do
 		echo "$VAR=$(eval echo \$$VAR)"
 	 done) > config
@@ -236,6 +249,11 @@ save()
 	echo "configuration saved to ./config"
 }
 
+CWVERSION=$(grep CLOCKWORK_VERSION clockwork.h | sed -e 's/.*"\(.*\)".*/\1/')
+if [[ -z "$CWVERSION" ]]; then
+	echo "Failed to determine Clockwork version!"
+	exit 1;
+fi
 process $@
 normalize
 summary

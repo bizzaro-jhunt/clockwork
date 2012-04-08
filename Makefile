@@ -49,8 +49,8 @@ else
   CFLAGS += -O3
 
   # In release mode, create REALLY small binaries
-  #CFLAGS += -fdata-sections -ffunction-sections
-  #LDFLAGS += --gc-sections -s
+  CFLAGS += -fdata-sections -ffunction-sections
+  LDFLAGS += --gc-sections -s
 endif
 
 inst_targets    :=

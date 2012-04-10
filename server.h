@@ -62,7 +62,7 @@ struct server {
 
 	char *cache_dir;       /* where to cache client data (i.e. facts) */
 
-	char *port;            /* TCP port to listen on */
+	char *listen;          /* interface/port to listen on */
 };
 
 int server_options(struct server *args);

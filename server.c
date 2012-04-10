@@ -47,7 +47,7 @@ static struct server default_options = {
 
 	.cache_dir    = "/var/cache/clockwork",
 
-	.port = "7890",
+	.listen       = "0.0.0.0:7890",
 
 	/* Options below here are not available in the
 	   configuration file, only as defaults / CLI opts. */
@@ -93,8 +93,8 @@ static struct server* configured_options(const char *path)
 		v = hash_get(config, "cache_dir");
 		if (v) { s->cache_dir = strdup(v); }
 
-		v = hash_get(config, "port");
-		if (v) { s->port = strdup(v); }
+		v = hash_get(config, "listen");
+		if (v) { s->listen = strdup(v); }
 
 		v = hash_get(config, "lock_file");
 		if (v) { s->lock_file = strdup(v); }
@@ -163,7 +163,7 @@ static int merge_servers(struct server *a, struct server *b)
 	MERGE_STRING_OPTION(a,b,requests_dir);
 	MERGE_STRING_OPTION(a,b,certs_dir);
 	MERGE_STRING_OPTION(a,b,cache_dir);
-	MERGE_STRING_OPTION(a,b,port);
+	MERGE_STRING_OPTION(a,b,listen);
 
 	return 0;
 }

@@ -137,7 +137,7 @@ static struct server* policyd_options(int argc, char **argv)
 {
 	struct server *s;
 
-	const char *short_opts = "h?FDvqQc:sp:";
+	const char *short_opts = "h?FDvqQc:sl:";
 	struct option long_opts[] = {
 		{ "help",         no_argument,       NULL, 'h' },
 		{ "no-daemonize", no_argument,       NULL, 'F' },
@@ -146,7 +146,7 @@ static struct server* policyd_options(int argc, char **argv)
 		{ "silent",       no_argument,       NULL, 'Q' },
 		{ "config",       required_argument, NULL, 'c' },
 		{ "show-config",  no_argument,       NULL, 's' },
-		{ "port",         required_argument, NULL, 'p' },
+		{ "listen",       required_argument, NULL, 'l' },
 		{ 0, 0, 0, 0 },
 	};
 
@@ -183,9 +183,9 @@ static struct server* policyd_options(int argc, char **argv)
 		case 's':
 			s->show_config = SERVER_OPT_TRUE;
 			break;
-		case 'p':
-			free(s->port);
-			s->port = strdup(optarg);
+		case 'l':
+			free(s->listen);
+			s->listen = strdup(optarg);
 			break;
 		}
 	}
@@ -221,8 +221,8 @@ static void show_help(void)
 	       "  -s, --show-config     Dump the policyd configuration values to standard\n"
 	       "                        output, and then exit.\n"
 	       "\n"
-	       "  -p, --port            Override the TCP port number that policyd should\n"
-	       "                        bind to and listen on.\n"
+	       "  -l, --listen          Override the network interface and port number that\n"
+	       "                        policyd should bind to and listen on.\n"
 	       "\n");
 }
 
@@ -674,7 +674,7 @@ static void show_config(struct server *s)
 	printf("manifest_file = \"%s\"\n", s->manifest_file);
 	printf("db_file       = \"%s\"\n", s->db_file);
 	printf("\n");
-	printf("port          = %s\n", s->port);
+	printf("listen        = %s\n", s->listen);
 	printf("\n");
 	printf("log_level     = %s\n", log_level_name(s->log_level));
 	printf("\n");
@@ -721,9 +721,8 @@ static int server_init(struct server *s)
 	}
 
 	/* bind socket */
-	INFO("binding SSL socket on port %s", s->port);
-	// FIXME: use BIO_new_socket(fd, close_flag) instead...
-	s->listener = BIO_new_accept(strdup(s->port));
+	INFO("binding SSL socket on %s", s->listen);
+	s->listener = BIO_new_accept(s->listen);
 	if (!s->listener || BIO_do_accept(s->listener) <= 0) {
 		return -1;
 	}

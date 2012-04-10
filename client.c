@@ -169,7 +169,7 @@ static SSL_CTX* client_ssl_ctx(struct client *c, int use_cert)
 	if (use_cert) {
 		DEBUG(" - Loading certificate from %s", c->cert_file);
 		if (!SSL_CTX_use_certificate_file(ctx, c->cert_file, SSL_FILETYPE_PEM)) {
-			WARNING("No certificate to load (%s); running in 'unverified client' mode");
+			WARNING("No certificate to load (%s); running in 'unverified client' mode", c->cert_file);
 		} else {
 			c->verified = 1;
 		}

@@ -927,9 +927,23 @@ int protocol_reverse_lookup_verify(int sockfd, char *buf, size_t len)
 	ipv4_len = sizeof(ipv4);
 	memset(&ipv4, 0, ipv4_len);
 
-	if (getpeername(sockfd, (struct sockaddr*)(&ipv4), &ipv4_len) != 0
-	 || getnameinfo((struct sockaddr*)(&ipv4), ipv4_len, buf, len, NULL, 0, NI_NAMEREQD) != 0) {
+	int rc;
+	rc = getpeername(sockfd, (struct sockaddr*)(&ipv4), &ipv4_len);
+	if (rc != 0) {
+		DEBUG("getpeername failed for socket %d", sockfd);
 		return -1;
+	}
+
+	char str[128];
+	if (inet_ntop(AF_INET, &ipv4.sin_addr, str, sizeof(str)) != NULL) {
+		DEBUG("getpeername returned %s", str);
+	}
+
+	rc = getnameinfo((struct sockaddr*)(&ipv4), ipv4_len, buf, len, NULL, 0, NI_NAMEREQD);
+	if (rc != 0) {
+		DEBUG("getnameinfo failed for socket %d", sockfd);
+		DEBUG("gai_error: %s", gai_strerror(rc));
+		return -2;
 	}
 
 	return 0;

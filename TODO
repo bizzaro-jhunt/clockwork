@@ -8,6 +8,9 @@ Client / Server
        Better SSL error messages (bad ca, revoked, expired, etc.)
        How to handle unknown CA on first connect?
 
+Better diagnostics, server-side
+IPv6 support (Protocol-agnostic, preferably)
+
 Portability Items
 =================
 

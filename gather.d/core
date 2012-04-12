@@ -3,9 +3,34 @@
 # Print out a single fact in the required line format
 sub fact($$)
 {
-	(my $name, my $value) = (@_);
+	my ($name, $value) = @_;
 	print "$name=$value\n";
 }
+
+
+##
+## clockwork.* - Internal Clockwork Stuff
+##
+
+## clockwork.manager.service - Service Manager Implementation
+## (paths taken from managers/service.c)
+my $SM = "unspecified";
+if (-x "/usr/sbin/invoke-rc.d" && -x "/usr/sbin/update-rc.d") {
+	$SM = "debian";
+} elsif (-x "/sbin/chkconfig") {
+	$SM = "chkconfig";
+}
+fact("clockwork.manager.service", $SM);
+
+## clockwork.manager.package - Package Manager Implementation
+## (paths taken from managers/package.c)
+my $PM = "unspecified";
+if (-x "/usr/bin/dpkg-query" && -x "/usr/bin/apt-get") {
+	$PM = "dpkg_apt";
+} elsif (-x "/bin/rpm" && -x "/usr/bin/yum") {
+	$PM = "rpm_yum";
+}
+fact("clockwork.manager.package", $PM);
 
 ##
 ## sys.* - System Properties

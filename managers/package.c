@@ -62,7 +62,7 @@ DEFINE_PM_VERSION(dpkg_apt) {
 	char *version, *v;
 	int rc;
 
-	command = string("dpkg-query -W -f='${Version}' %s", package);
+	command = string("/usr/bin/dpkg-query -W -f='${Version}' %s", package);
 	rc = exec_command(command, &version, NULL);
 	free(command);
 
@@ -82,8 +82,8 @@ DEFINE_PM_INSTALL(dpkg_apt) {
 	char *command;
 	int rc;
 
-	command = (version ? string("apt-get install -qqy %s=%s-*", package, version)
-	                   : string("apt-get install -qqy %s", package));
+	command = (version ? string("/usr/bin/apt-get install -qqy %s=%s-*", package, version)
+	                   : string("/usr/bin/apt-get install -qqy %s", package));
 	rc = exec_command(command, NULL, NULL);
 	free(command);
 
@@ -94,7 +94,7 @@ DEFINE_PM_REMOVE(dpkg_apt) {
 	char *command;
 	int rc;
 
-	command = string("apt-get purge -qqy %s", package);
+	command = string("/usr/bin/apt-get purge -qqy %s", package);
 	rc = exec_command(command, NULL, NULL);
 	free(command);
 
@@ -127,7 +127,7 @@ DEFINE_PM_VERSION(rpm_yum) {
 	char *version;
 	int rc;
 
-	command = string("rpm --qf='%%{VERSION}' -q %s | grep -v 'is not installed$'", package);
+	command = string("/bin/rpm --qf='%%{VERSION}' -q %s | /bin/grep -v 'is not installed$'", package);
 	rc = exec_command(command, &version, NULL);
 	free(command);
 
@@ -143,8 +143,8 @@ DEFINE_PM_INSTALL(rpm_yum) {
 	char *command;
 	int rc;
 
-	command = (version ? string("yum install -qy %s-%s", package, version)
-	                   : string("yum install -qy %s", package));
+	command = (version ? string("/usr/bin/yum install -qy %s-%s", package, version)
+	                   : string("/usr/bin/yum install -qy %s", package));
 	rc = exec_command(command, NULL, NULL);
 	free(command);
 
@@ -155,7 +155,7 @@ DEFINE_PM_REMOVE(rpm_yum) {
 	char *command;
 	int rc;
 
-	command = string("yum erase -qy %s", package);
+	command = string("/usr/bin/yum erase -qy %s", package);
 	rc = exec_command(command, NULL, NULL);
 	free(command);
 

@@ -41,6 +41,7 @@ struct server {
 
 	int debug;             /* emit debugging? (option) */
 	int show_config;       /* invoke the --show-config behavior? */
+	int test_config;       /* invoke the --test behavior? */
 	int log_level;         /* log level (option) */
 
 	char *config_file;     /* path to policy master config file */

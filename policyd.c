@@ -24,6 +24,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <libgen.h>
 
 #include "cert.h"
 #include "spec/parser.h"
@@ -84,6 +85,7 @@ static void daemonize(const char *lock_file, const char *pid_file);
 
 static void show_config(struct server *s);
 
+static int check_config(struct server *s);
 static int server_init_ssl(struct server *s);
 static int server_init(struct server *s);
 
@@ -112,6 +114,25 @@ int main(int argc, char **argv)
 		exit(0);
 	}
 
+	if (check_config(s) != 0) {
+		exit(1);
+	}
+
+	pthread_mutex_lock(&manifest_mutex);
+		manifest_file = s->manifest_file;
+		manifest = parse_file(manifest_file);
+	pthread_mutex_unlock(&manifest_mutex);
+
+	if (!manifest) {
+		exit(1);
+	}
+
+	/* bail if we are just testing the config */
+	if (s->test_config == SERVER_OPT_TRUE) {
+		printf("policyd config OK\n");
+		exit(0);
+	}
+
 	INFO("policyd starting up");
 	if (server_init(s) != 0) {
 		CRITICAL("Failed to initialize policyd server thread");
@@ -137,7 +158,7 @@ static struct server* policyd_options(int argc, char **argv)
 {
 	struct server *s;
 
-	const char *short_opts = "h?FDvqQc:sl:";
+	const char *short_opts = "h?FDvqQc:sl:t";
 	struct option long_opts[] = {
 		{ "help",         no_argument,       NULL, 'h' },
 		{ "no-daemonize", no_argument,       NULL, 'F' },
@@ -147,6 +168,7 @@ static struct server* policyd_options(int argc, char **argv)
 		{ "config",       required_argument, NULL, 'c' },
 		{ "show-config",  no_argument,       NULL, 's' },
 		{ "listen",       required_argument, NULL, 'l' },
+		{ "test",         no_argument,       NULL, 't' },
 		{ 0, 0, 0, 0 },
 	};
 
@@ -187,6 +209,9 @@ static struct server* policyd_options(int argc, char **argv)
 			free(s->listen);
 			s->listen = strdup(optarg);
 			break;
+		case 't':
+			s->test_config = SERVER_OPT_TRUE;
+			break;
 		}
 	}
 
@@ -217,6 +242,10 @@ static void show_help(void)
 	       "                        others are discarded.  See -q and -v.\n"
 	       "\n"
 	       "  -c, --config          Specify the path to an alternate configuration file.\n"
+	       "\n"
+	       "  -t, --test            Run server-side diagnostics against the configuration.\n"
+	       "                        This is designed to catch errors like a missing cache\n"
+	       "                        directory, bad certs_dir perms, etc.  Use it.  Love it.\n"
 	       "\n"
 	       "  -s, --show-config     Dump the policyd configuration values to standard\n"
 	       "                        output, and then exit.\n"
@@ -680,6 +709,156 @@ static void show_config(struct server *s)
 	printf("\n");
 }
 
+static int check_dir_writable(const char *dir)
+{
+	struct stat st;
+	DEBUG("%s: stat %s", __func__, dir);
+	if (stat(dir, &st) != 0) {
+		DEBUG("%s:   failed; errno = %d", __func__, errno);
+		return errno;
+	}
+
+	DEBUG("%s: generate tmp filename in %s", __func__, dir);
+	char tmp[PATH_MAX];
+	if (snprintf(tmp, sizeof(tmp), "%s/.policyd.check", dir) <= 0) {
+		DEBUG("%s:   failed; errno = %d", __func__, errno);
+		return errno;
+	}
+
+	DEBUG("%s: creat %s", __func__, tmp);
+	int fd = creat(tmp, O_WRONLY);
+	if (fd < 0) {
+		DEBUG("%s:   failed; errno = %d", __func__, errno);
+		return errno;
+	}
+	close(fd);
+
+	DEBUG("%s: unlink %s", __func__, tmp);
+	unlink(tmp);
+	return 0;
+}
+
+static int check_file_writable(const char *path)
+{
+	struct stat st;
+	DEBUG("%s: stat %s", __func__, path);
+	if (stat(path, &st) != 0) {
+		DEBUG("%s:   failed; errno = %d", __func__, errno);
+		return errno;
+	}
+
+	DEBUG("%s: open %s, O_APPEND", __func__, path);
+	int fd = open(path, O_APPEND);
+	if (fd < 0) {
+		DEBUG("%s:   failed; errno = %d", __func__, errno);
+		return errno;
+	}
+	close(fd);
+
+	return 0;
+}
+
+static int check_file_readable(const char *path)
+{
+	struct stat st;
+	DEBUG("%s: stat %s", __func__, path);
+	if (stat(path, &st) != 0) {
+		DEBUG("%s:   failed; errno = %d", __func__, errno);
+		return errno;
+	}
+
+	DEBUG("%s: open %s, O_RDONLY", __func__, path);
+	int fd = open(path, O_RDONLY);
+	if (fd < 0) {
+		DEBUG("%s:   failed; errno = %d", __func__, errno);
+		return errno;
+	}
+	close(fd);
+
+	return 0;
+}
+
+static int check_config(struct server *s)
+{
+	char *dir;
+	int rc = 0;
+	int err = 0;
+
+	if ((err = check_file_readable(s->manifest_file)) != 0) {
+		fprintf(stderr, "manifest_file (%s) : %s\n", s->manifest_file, strerror(err));
+		rc = 1;
+	}
+
+	/* pid_file directory exists && writable */
+	dir = dirname(s->pid_file);
+	if ((err = check_dir_writable(dir)) != 0) {
+		fprintf(stderr, "pid_file directory (%s) : %s\n", dir, strerror(err));
+		rc = 1;
+	}
+	free(dir);
+
+	/* lock_file directory exists && writable */
+	dir = dirname(s->lock_file);
+	if ((err = check_dir_writable(dir)) != 0) {
+		fprintf(stderr, "lock_file directory (%s) : %s\n", dir, strerror(err));
+		rc = 1;
+	}
+	free(dir);
+
+	/* db_file (exists && writable) || dir_writable) */
+	if ((err = check_file_writable(s->db_file)) != 0) {
+		if (err == ENOENT) {
+			dir = dirname(s->db_file);
+			if ((err = check_dir_writable(dir)) != 0) {
+				fprintf(stderr, "db_file directory (%s) : %s\n", dir, strerror(err));
+				rc = 1;
+			}
+			free(dir);
+		} else {
+			fprintf(stderr, "db_file (%s) : %s\n", s->db_file, strerror(err));
+			rc = 1;
+		}
+	}
+
+	/* cache_dir exists && writable */
+	if ((err = check_dir_writable(s->cache_dir)) != 0) {
+		fprintf(stderr, "cache_dir (%s) : %s\n", s->cache_dir, strerror(err));
+		rc = 1;
+	}
+
+	/* ca_cert_file exists && readable */
+	if ((err = check_file_readable(s->ca_cert_file)) != 0) {
+		fprintf(stderr, "ca_cert_file (%s) : %s\n", s->ca_cert_file, strerror(err));
+		rc = 1;
+	}
+
+	/* cert_file exists && readable */
+	if ((err = check_file_readable(s->cert_file)) != 0) {
+		fprintf(stderr, "cert_file (%s) : %s\n", s->cert_file, strerror(err));
+		rc = 1;
+	}
+
+	/* key_file exists && readable */
+	if ((err = check_file_readable(s->key_file)) != 0) {
+		fprintf(stderr, "key_file (%s) : %s\n", s->key_file, strerror(err));
+		rc = 1;
+	}
+
+	/* requests_dir exists && writable */
+	if ((err = check_dir_writable(s->requests_dir)) != 0) {
+		fprintf(stderr, "requests_dir (%s) : %s\n", s->requests_dir, strerror(err));
+		rc = 1;
+	}
+
+	/* certs_dir exists && writable */
+	if ((err = check_dir_writable(s->certs_dir)) != 0) {
+		fprintf(stderr, "certs_dir (%s) : %s\n", s->certs_dir, strerror(err));
+		rc = 1;
+	}
+
+	return rc;
+}
+
 static int server_init(struct server *s)
 {
 	assert(s); // LCOV_EXCL_LINE
@@ -693,11 +872,6 @@ static int server_init(struct server *s)
 
 	s->log_level = log_set(s->log_level);
 	INFO("Log level is %s (%u)", log_level_name(s->log_level), s->log_level);
-
-	pthread_mutex_lock(&manifest_mutex);
-		manifest_file = s->manifest_file;
-		manifest = parse_file(manifest_file);
-	pthread_mutex_unlock(&manifest_mutex);
 
 	if (server_init_ssl(s) != 0) { return -1; }
 

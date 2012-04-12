@@ -90,6 +90,18 @@ See \fB\-Q\fR and \fB\-q\fR.
 .RE
 
 .PP
+.B \-t, \-\-test
+.RS 8
+Test policyd configuration and environment.  Not only does this
+check config file and manifest syntax, it also checks the system
+filesystem to ensure that configured files and directories exist,
+and are readable or writable.
+.PP
+Administrators are strongly encouraged to run \fBpolicyd -t\fR
+whenever changing configuration.
+.RE
+
+.PP
 .B \-D, \-\-debug
 .RS 8
 Run in debug mode, logging to stderr instead of syslog.

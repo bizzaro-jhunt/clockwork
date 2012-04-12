@@ -34,7 +34,7 @@ OPTIONS
 
      This directory is not explicitly created during installation.
 
-     Default: \$VARDIR (see --destdir and --vardir)
+     Default: \$VARDIR/lib/clockwork (see --destdir and --vardir)
 
  --group <name>
 
@@ -67,7 +67,7 @@ OPTIONS
 
      Override the path for storing variable data (PID files, DBs, etc.)
 
-     Default: \$DESTDIR/var/clockwork
+     Default: \$DESTDIR/var
 
  --usrdir </path/to/usr>
 
@@ -203,11 +203,11 @@ process()
 normalize()
 {
 	[[ -z "$SBINDIR" ]] && SBINDIR="$DESTDIR/sbin"
-	[[ -z "$VARDIR"  ]] && VARDIR="$DESTDIR/var/clockwork"
+	[[ -z "$VARDIR"  ]] && VARDIR="$DESTDIR/var"
 	[[ -z "$USRDIR"  ]] && USRDIR="$DESTDIR/usr"
 	[[ -z "$ETCDIR"  ]] && ETCDIR="$DESTDIR/etc/clockwork"
 	[[ -z "$MANDIR"  ]] && MANDIR="$USRDIR/share/man"
-	[[ -z "$HOMEDIR" ]] && HOMEDIR=$VARDIR
+	[[ -z "$HOMEDIR" ]] && HOMEDIR="$VARDIR/lib/clockwork"
 }
 
 summary()

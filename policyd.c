@@ -108,6 +108,9 @@ int main(int argc, char **argv)
 		exit(2);
 	}
 
+	s->log_level = log_set(s->log_level);
+	INFO("Log level is %s (%u)", log_level_name(s->log_level), s->log_level);
+
 	if (s->show_config == SERVER_OPT_TRUE) {
 		INFO("Dumping policyd configuration");
 		show_config(s);
@@ -864,14 +867,6 @@ static int server_init(struct server *s)
 	assert(s); // LCOV_EXCL_LINE
 
 	struct sigaction sig;
-
-	if (manifest) {
-		ERROR("server module already initialized");
-		return -1;
-	}
-
-	s->log_level = log_set(s->log_level);
-	INFO("Log level is %s (%u)", log_level_name(s->log_level), s->log_level);
 
 	if (server_init_ssl(s) != 0) { return -1; }
 

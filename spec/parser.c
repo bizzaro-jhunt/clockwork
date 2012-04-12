@@ -77,7 +77,6 @@ struct manifest* parse_file(const char *path)
 	}
 
 	if (ctx.errors > 0) {
-		ERROR("Manifest parse errors encountered; aborting...");
 		return NULL;
 	}
 

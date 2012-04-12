@@ -38,14 +38,17 @@ PID_FILE=/var/run/policyd.pid
 
 runlevel=$(set -- $(runlevel); eval "echo \$$#" )
 
-do_restart_sanity_check()
+do_sanity_check()
 {
-#	$POLICYD -t
+	echo -n $"Checking policyd configuration:"
+	$POLICYD -t >/dev/null 2>&1
 	RETVAL=$?
-#	if [ $RETVAL -ne  0 ]; then
-#		failure $"Configuration file or keys are invalid"
-#		echo
-#	fi
+	if [ $RETVAL -ne  0 ]; then
+		failure $"Configuration sanity check failed"
+		echo
+	else
+		success
+	fi
 }
 
 start()
@@ -67,9 +70,9 @@ stop()
 {
 	echo -n $"Stopping $prog: "
 	if [ -n "`pidfileofproc $POLICYD`" ] ; then
-	    killproc $POLICYD
+		killproc $POLICYD
 	else
-	    failure $"Stopping $prog"
+		failure $"Stopping $prog"
 	fi
 	RETVAL=$?
 	[ $RETVAL -eq 0 ] && rm -f $lockfile
@@ -80,9 +83,9 @@ reload()
 {
 	echo -n $"Reloading $prog: "
 	if [ -n "`pidfileofproc $POLICYD`" ] ; then
-	    killproc $POLICYD -HUP
+		killproc $POLICYD -HUP
 	else
-	    failure $"Reloading $prog"
+		failure $"Reloading $prog"
 	fi
 	RETVAL=$?
 	echo
@@ -97,6 +100,16 @@ force_reload() {
 	restart
 }
 
+check_config() {
+	do_sanity_check
+	if [ $RETVAL -eq 0 ]; then
+		echo
+	else
+		$POLICYD -t
+		RETVAL=6
+	fi
+}
+
 rh_status() {
 	status -p $PID_FILE policyd
 }
@@ -108,7 +121,12 @@ rh_status_q() {
 case "$1" in
 	start)
 		rh_status_q && exit 0
-		start
+		do_sanity_check
+		if [ $RETVAL -eq 0 ]; then
+			start
+		else
+			RETVAL=6
+		fi
 		;;
 	stop)
 		if ! rh_status_q; then
@@ -130,7 +148,7 @@ case "$1" in
 	condrestart|try-restart)
 		rh_status_q || exit 0
 		if [ -f $lockfile ] ; then
-			do_restart_sanity_check
+			do_sanity_check
 			if [ $RETVAL -eq 0 ] ; then
 				stop
 				# avoid race
@@ -148,8 +166,11 @@ case "$1" in
 			RETVAL=2
 		fi
 		;;
+	check|check-config)
+		check_config
+		;;
 	*)
-		echo $"Usage: $0 {start|stop|restart|reload|force-reload|condrestart|try-restart|status}"
+		echo $"Usage: $0 {start|stop|restart|reload|force-reload|condrestart|status|check}"
 		RETVAL=2
 esac
 exit $RETVAL

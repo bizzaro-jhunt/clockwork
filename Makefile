@@ -163,7 +163,7 @@ install-agent: install-base build-agent manpages
 	install    -o root      -g root       -m 0644 man/cwa.conf.5.gz     $(DESTDIR)$(MANDIR)/man5
 
 install-master: install-base build-master manpages
-	install -d -o $(CWUSER) -g $(CWGROUP) -m 0750 $(DESTDIR)$(VARDIR)/cache/clockwork
+	install -d -o $(CWUSER) -g $(CWGROUP) -m 0750 $(DESTDIR)$(VARDIR)/cache/clockwork/facts
 	install -d -o $(CWUSER) -g $(CWGROUP) -m 0750 $(DESTDIR)$(ETCDIR)/ssl/pending
 	install -d -o $(CWUSER) -g $(CWGROUP) -m 0750 $(DESTDIR)$(ETCDIR)/ssl/certs
 	install    -o $(CWUSER) -g $(CWGROUP) -m 0700 policyd cwca cwpol    $(DESTDIR)$(SBINDIR)

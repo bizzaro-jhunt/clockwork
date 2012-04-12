@@ -783,7 +783,7 @@ static int check_file_readable(const char *path)
 
 static int check_config(struct server *s)
 {
-	char *dir;
+	char *copy, *dir;
 	int rc = 0;
 	int err = 0;
 
@@ -793,30 +793,30 @@ static int check_config(struct server *s)
 	}
 
 	/* pid_file directory exists && writable */
-	dir = dirname(s->pid_file);
+	dir = dirname(copy = strdup(s->pid_file));
 	if ((err = check_dir_writable(dir)) != 0) {
 		fprintf(stderr, "pid_file directory (%s) : %s\n", dir, strerror(err));
 		rc = 1;
 	}
-	free(dir);
+	free(copy);
 
 	/* lock_file directory exists && writable */
-	dir = dirname(s->lock_file);
+	dir = dirname(copy = strdup(s->lock_file));
 	if ((err = check_dir_writable(dir)) != 0) {
 		fprintf(stderr, "lock_file directory (%s) : %s\n", dir, strerror(err));
 		rc = 1;
 	}
-	free(dir);
+	free(copy);
 
 	/* db_file (exists && writable) || dir_writable) */
 	if ((err = check_file_writable(s->db_file)) != 0) {
 		if (err == ENOENT) {
-			dir = dirname(s->db_file);
+			dir = dirname(copy = strdup(s->db_file));
 			if ((err = check_dir_writable(dir)) != 0) {
 				fprintf(stderr, "db_file directory (%s) : %s\n", dir, strerror(err));
 				rc = 1;
 			}
-			free(dir);
+			free(copy);
 		} else {
 			fprintf(stderr, "db_file (%s) : %s\n", s->db_file, strerror(err));
 			rc = 1;

@@ -161,6 +161,7 @@ install-agent: install-base build-agent manpages
 	install    -o $(CWUSER) -g $(CWGROUP) -m 0640 samples/cwa.conf      $(DESTDIR)$(ETCDIR)
 	install    -o root      -g root       -m 0644 man/cwa.1.gz          $(DESTDIR)$(MANDIR)/man1
 	install    -o root      -g root       -m 0644 man/cwa.conf.5.gz     $(DESTDIR)$(MANDIR)/man5
+	install    -o root      -g root       -m 0644 schema/agent.sql      $(DESTDIR)$(USRDIR)/share/clockwork/db
 
 install-master: install-base build-master manpages
 	install -d -o $(CWUSER) -g $(CWGROUP) -m 0750 $(DESTDIR)$(VARDIR)/cache/clockwork/facts
@@ -175,6 +176,7 @@ install-master: install-base build-master manpages
 	install    -o root      -g root       -m 0644 man/res_*.5.gz        $(DESTDIR)$(MANDIR)/man5
 	install    -o root      -g root       -m 0644 man/clockwork.7.gz    $(DESTDIR)$(MANDIR)/man7
 	install    -o root      -g root       -m 0644 help/*                $(DESTDIR)$(USRDIR)/share/clockwork/cwpol/help
+	install    -o root      -g root       -m 0644 schema/master.sql     $(DESTDIR)$(USRDIR)/share/clockwork/db
 
 install-base:
 	getent group $(CWGROUP) >/dev/null || groupadd -r $(CWGROUP)
@@ -187,6 +189,7 @@ install-base:
 	install -d -o $(CWUSER) -g $(CWGROUP) -m 0750 $(DESTDIR)$(VARDIR)/lib/clockwork
 	install -d -o $(CWUSER) -g $(CWGROUP) -m 0750 $(DESTDIR)$(ETCDIR)/ssl
 	install -d -o $(CWUSER) -g $(CWGROUP) -m 0755 $(DESTDIR)$(USRDIR)/share/clockwork/cwpol/help
+	install -d -o $(CWUSER) -g $(CWGROUP) -m 0755 $(DESTDIR)$(USRDIR)/share/clockwork/db
 
 config: config.dist
 	./configure

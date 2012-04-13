@@ -441,6 +441,11 @@ static int handle_FILE(struct worker *w)
 	}
 
 	if (file) {
+		DEBUG("Found file (%s):\n", file->key);
+		DEBUG("  checksum:    %s\n", checksum.hex);
+		DEBUG("  rf_rpath:    %s\n", file->rf_rpath);
+		DEBUG("  rf_template: %s\n", file->rf_template);
+
 		if (file->rf_rpath) {
 			INFO("Matched %s to %s", checksum.hex, file->rf_rpath);
 			if (send_file(w, file->rf_rpath) != 0) {

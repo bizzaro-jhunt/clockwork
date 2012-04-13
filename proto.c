@@ -94,7 +94,7 @@ Data: xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx
 	n = 0;
 	for (i = 0; i < lines; i++) {
 		for (j = 0; j < 16; j++, n++) {
-			if (n > pdu->len) {
+			if (n >= pdu->len) {
 				memcpy(data[j], "", 2);
 			} else {
 				if (pdu->data[n] == '\n') {

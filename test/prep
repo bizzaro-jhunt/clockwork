@@ -11,7 +11,13 @@ TEST_SAFE_GID=100
 TEST_SAFE_PKG="fortune-mod"
 TEST_SAFE_SVC="snmpd"
 
-PLATFORM=$(lsb_release -is | dd conv=lcase)
+PLATFORM="undetected"
+if [[ -x /usr/bin/lsb_release ]]; then
+	PLATFORM=$(/usr/bin/lsb_release -is | /bin/dd conv=lcase)
+elif [[ -f /etc/redhat-release ]]; then
+	PLATFORM="centos"
+fi
+
 case $PLATFORM in
 centos)
 	DEFAULT_SM="SM_chkconfig"

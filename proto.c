@@ -52,7 +52,7 @@ static int pdu_allocate(struct pdu *pdu, uint16_t op, uint16_t len)
 	pdu->op = op;
 
 	free(pdu->data);
-	pdu->data = xmalloc(len);
+	pdu->data = xmalloc(len+1);
 	pdu->len = len;
 
 	return 0;

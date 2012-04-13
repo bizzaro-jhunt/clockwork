@@ -296,6 +296,7 @@ static int get_file(struct session *session, struct SHA1 *checksum, int fd)
 	size_t bytes = 0, n;
 	int error = 0;
 
+	INFO("Requesting file %s from policy master", checksum->hex);
 	if (pdu_send_FILE(session, checksum) != 0) { return -1; }
 
 	do {

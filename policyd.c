@@ -419,8 +419,15 @@ static int handle_FILE(struct worker *w)
 		return 1;
 	}
 
+	DEBUG("Received FILE request for %s", RECV_PDU(&w->session)->data);
+
 	memcpy(hex, RECV_PDU(&w->session)->data, SHA1_HEXLEN);
 	sha1_init(&checksum, hex);
+
+	if (checksum.hex[0] == '\0') {
+		pdu_send_ERROR(&w->session, 400, "Malformed FILE request");
+		return 1;
+	}
 
 	/* Search for the res_file in the policy */
 	if (!w->policy) {
@@ -433,6 +440,7 @@ static int handle_FILE(struct worker *w)
 	for_each_resource(res, w->policy) {
 		if (res->type == RES_FILE) {
 			match = (struct res_file*)(res->resource);
+			DEBUG("compare %s == %s", match->rf_rsha1.hex, checksum.hex);
 			if (sha1_cmp(&match->rf_rsha1, &checksum) == 0) {
 				file = match;
 				break;

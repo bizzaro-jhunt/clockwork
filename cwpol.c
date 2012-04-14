@@ -33,10 +33,10 @@ struct command {
 typedef int (*command_fn)(struct command*, int);
 
 #define slv(sl,i) (sl)->strings[(i)]
-#ifdef CWRELEASE
-#  define HELP_ROOT "/usr/share/clockwork/cwpol/help"
-#else
+#ifdef DEVEL
 #  define HELP_ROOT "help"
+#else
+#  define HELP_ROOT CW_USRDIR "/share/clockwork/cwpol/help"
 #endif
 
 #define LINE_BUFSIZ 1024

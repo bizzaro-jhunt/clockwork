@@ -23,6 +23,8 @@ callgrind.out.*
 
 /certs
 
+config.h
+
 /test/defs.h
 /test/unit/run
 /test/unit/data

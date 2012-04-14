@@ -27,16 +27,16 @@ static struct client default_options = {
 	.log_level   = LOG_LEVEL_ERROR,
 	.mode        = 0,
 
-	.config_file  = "/etc/clockwork/cwa.conf",
+	.config_file  = CW_ETCDIR "/clockwork/cwa.conf",
 
-	.ca_cert_file = "/etc/clockwork/ssl/CA.pem",
-	.cert_file    = "/etc/clockwork/ssl/cert.pem",
-	.request_file = "/etc/clockwork/ssl/request.pem",
-	.key_file     = "/etc/clockwork/ssl/key.pem",
+	.ca_cert_file = CW_ETCDIR "/clockwork/ssl/CA.pem",
+	.cert_file    = CW_ETCDIR "/clockwork/ssl/cert.pem",
+	.request_file = CW_ETCDIR "/clockwork/ssl/request.pem",
+	.key_file     = CW_ETCDIR "/clockwork/ssl/key.pem",
 
-	.db_file      = "/var/lib/clockwork/agent.db",
+	.db_file      = CW_VARDIR "/lib/clockwork/agent.db",
 
-	.gatherers = "/etc/clockwork/gather.d/*",
+	.gatherers = CW_ETCDIR "/clockwork/gather.d/*",
 
 	.s_address = "clockwork",
 	.s_port    = "7890"

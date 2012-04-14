@@ -21,6 +21,7 @@
 #define CLOCKWORK_H
 
 #define CLOCKWORK_VERSION "0.2.3"
+#include "config.h"
 
 #define _GNU_SOURCE
 
@@ -45,13 +46,11 @@
 #endif
 
 #ifdef DEVEL
-#  define clockwork_aug_init() aug_init( \
-	"test/augeas/", "augeas/lenses", \
-	AUG_NO_STDINC|AUG_NO_LOAD|AUG_NO_MODL_AUTOLOAD)
+#  define AUGCW_ROOT "test/augeas"
+#  define AUGCW_INC  "var/augeas/lenses"
 #else
-#  define clockwork_aug_init() aug_init( \
-	"/", "/var/clockwork/augeas/lenses", \
-	AUG_NO_STDINC|AUG_NO_LOAD|AUG_NO_MODL_AUTOLOAD)
+#  define AUGCW_ROOT "/"
+#  define AUGCW_INC  CW_VARDIR "/lib/clockwork/augeas/lenses"
 #endif
 
 #include <assert.h>

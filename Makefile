@@ -73,7 +73,7 @@ CC      := gcc $(CFLAGS)
 LD      := ld $(LDFLAGS)
 LEX     := flex $(LEX_FLAGS)
 YACC    := bison $(YFLAGS)
-VG      := tools/valgrind
+VG      := build/valgrind
 LCOV    := lcov --directory . --base-directory .
 GENHTML := genhtml --prefix $(shell dirname `pwd`)
 CDOC    := cdoc
@@ -111,7 +111,7 @@ policy_o      += $(manager_o)
 policy_o      += $(parser_tpl_o)
 
 # Manpages
-man_gz        := $(shell ls -1 man/*.1 man/*.5 man/*.7 | \
+man_gz        := $(shell ls -1 share/man/*.[157] | \
                    sed -e 's/\.\([0-9]\)/.\1.gz/')
 
 # Unit Tests (test suites + test targets)
@@ -157,26 +157,27 @@ manpages: $(man_gz)
 install: $(inst_targets)
 
 install-agent: install-base build-agent manpages
-	install    -o $(CWUSER) -g $(CWGROUP) -m 0700 cwa cwcert            $(DESTDIR)$(SBINDIR)
-	install    -o $(CWUSER) -g $(CWGROUP) -m 0640 samples/cwa.conf      $(DESTDIR)$(ETCDIR)
-	install    -o root      -g root       -m 0644 man/cwa.1.gz          $(DESTDIR)$(MANDIR)/man1
-	install    -o root      -g root       -m 0644 man/cwa.conf.5.gz     $(DESTDIR)$(MANDIR)/man5
-	install    -o root      -g root       -m 0644 schema/agent.sql      $(DESTDIR)$(USRDIR)/share/clockwork/db
+	install    -o $(CWUSER) -g $(CWGROUP) -m 0700 cwa cwcert              $(DESTDIR)$(SBINDIR)
+	install    -o $(CWUSER) -g $(CWGROUP) -m 0640 share/samples/cwa.conf  $(DESTDIR)$(ETCDIR)
+	install    -o root      -g root       -m 0644 share/man/cwa.1.gz      $(DESTDIR)$(MANDIR)/man1
+	install    -o root      -g root       -m 0644 share/man/cwa.conf.5.gz $(DESTDIR)$(MANDIR)/man5
+	install    -o root      -g root       -m 0644 share/db/agent.sql      $(DESTDIR)$(USRDIR)/share/clockwork
+	install    -o root      -g root       -m 0644 var/augeas/lenses/*     $(DESTDIR)$(VARDIR)/lib/clockwork/augeas/lenses
 
 install-master: install-base build-master manpages
 	install -d -o $(CWUSER) -g $(CWGROUP) -m 0750 $(DESTDIR)$(VARDIR)/cache/clockwork/facts
 	install -d -o $(CWUSER) -g $(CWGROUP) -m 0750 $(DESTDIR)$(ETCDIR)/ssl/pending
 	install -d -o $(CWUSER) -g $(CWGROUP) -m 0750 $(DESTDIR)$(ETCDIR)/ssl/certs
-	install    -o $(CWUSER) -g $(CWGROUP) -m 0700 policyd cwca cwpol    $(DESTDIR)$(SBINDIR)
-	install    -o $(CWUSER) -g $(CWGROUP) -m 0640 samples/policyd.conf  $(DESTDIR)$(ETCDIR)
-	install    -o $(CWUSER) -g $(CWGROUP) -m 0640 samples/manifest.pol  $(DESTDIR)$(ETCDIR)
-	install    -o root      -g root       -m 0644 man/policyd.1.gz      $(DESTDIR)$(MANDIR)/man1
-	install    -o root      -g root       -m 0644 man/cwpol.1.gz        $(DESTDIR)$(MANDIR)/man1
-	install    -o root      -g root       -m 0644 man/policyd.conf.5.gz $(DESTDIR)$(MANDIR)/man5
-	install    -o root      -g root       -m 0644 man/res_*.5.gz        $(DESTDIR)$(MANDIR)/man5
-	install    -o root      -g root       -m 0644 man/clockwork.7.gz    $(DESTDIR)$(MANDIR)/man7
-	install    -o root      -g root       -m 0644 help/*                $(DESTDIR)$(USRDIR)/share/clockwork/cwpol/help
-	install    -o root      -g root       -m 0644 schema/master.sql     $(DESTDIR)$(USRDIR)/share/clockwork/db
+	install    -o $(CWUSER) -g $(CWGROUP) -m 0700 policyd cwca cwpol          $(DESTDIR)$(SBINDIR)
+	install    -o $(CWUSER) -g $(CWGROUP) -m 0640 share/samples/policyd.conf  $(DESTDIR)$(ETCDIR)
+	install    -o $(CWUSER) -g $(CWGROUP) -m 0640 share/samples/manifest.pol  $(DESTDIR)$(ETCDIR)
+	install    -o root      -g root       -m 0644 share/man/policyd.1.gz      $(DESTDIR)$(MANDIR)/man1
+	install    -o root      -g root       -m 0644 share/man/cwpol.1.gz        $(DESTDIR)$(MANDIR)/man1
+	install    -o root      -g root       -m 0644 share/man/policyd.conf.5.gz $(DESTDIR)$(MANDIR)/man5
+	install    -o root      -g root       -m 0644 share/man/res_*.5.gz        $(DESTDIR)$(MANDIR)/man5
+	install    -o root      -g root       -m 0644 share/man/clockwork.7.gz    $(DESTDIR)$(MANDIR)/man7
+	install    -o root      -g root       -m 0644 share/help/*                $(DESTDIR)$(USRDIR)/share/clockwork/help
+	install    -o root      -g root       -m 0644 share/db/master.sql         $(DESTDIR)$(USRDIR)/share/clockwork
 
 install-base:
 	getent group $(CWGROUP) >/dev/null || groupadd -r $(CWGROUP)
@@ -186,10 +187,12 @@ install-base:
 	install -d -o root      -g root       -m 0755 $(DESTDIR)$(MANDIR)/man5
 	install -d -o root      -g root       -m 0755 $(DESTDIR)$(MANDIR)/man7
 	install -d -o root      -g root       -m 0755 $(DESTDIR)$(USRDIR)/share/doc/clockwork-$(CWVERSION)
-	install -d -o $(CWUSER) -g $(CWGROUP) -m 0750 $(DESTDIR)$(VARDIR)/lib/clockwork
+	install -d -o $(CWUSER) -g $(CWGROUP) -m 0750 $(DESTDIR)$(VARDIR)/lib/clockwork/augeas/lenses
 	install -d -o $(CWUSER) -g $(CWGROUP) -m 0750 $(DESTDIR)$(ETCDIR)/ssl
-	install -d -o $(CWUSER) -g $(CWGROUP) -m 0755 $(DESTDIR)$(USRDIR)/share/clockwork/cwpol/help
-	install -d -o $(CWUSER) -g $(CWGROUP) -m 0755 $(DESTDIR)$(USRDIR)/share/clockwork/db
+	install -d -o $(CWUSER) -g $(CWGROUP) -m 0755 $(DESTDIR)$(USRDIR)/share/clockwork/help
+
+echo:
+	echo $(ECHOVAR)
 
 config: config.dist
 	./configure
@@ -305,7 +308,6 @@ test/defs.h: test/prep
 
 run-unit-tests: unit-tests
 	test/prep setup
-	#test/unit/setup
 	@echo; echo;
 	test/unit/run $(TESTS)
 	@echo; echo;
@@ -326,8 +328,12 @@ run-functional-tests: functional-tests
 ##             down, because the release-mode binaries are stripped.
 ##
 ifeq ($(BUILD_MODE),development)
-memtest: coverage-clean unit-tests functional-tests
-	test/setup.sh
+
+memtest-check:
+	test/prep checkmem
+
+memtest: memtest-check coverage-clean unit-tests functional-tests
+	test/prep setup
 	@echo; echo;
 	$(VG) test/unit/run $(TEST) $(TESTS)
 	@echo; echo;
@@ -385,7 +391,7 @@ tidy:
 	rm -f lcov.info
 
 clean: tidy cleandep
-	rm -f $(COMPILED) $(unit_tests) $(fun_tests) man/*.*.gz
+	rm -f $(COMPILED) $(unit_tests) $(fun_tests) share/man/*.*.gz
 	rm -f spec/*.output conf/*.output tpl/*.output
 	rm -rf $(apidocs_root)/* doc/coverage/*
 
@@ -395,7 +401,7 @@ dist: clean
 	rm -f config test/defs.h
 
 fixme:
-	find . -name '*.[ch15]' -not -path './ext/**' -not -path './man/tpl/*' -not -path './local/**' 2>/dev/null | \
+	find . -name '*.[ch157]' -not -path './ext/**' -not -path './share/man/tpl/*' -not -path './local/**' 2>/dev/null | \
 	  xargs grep -n FIXME: | sed -e 's/:[^:]*FIXME: /:/' -e 's/ *\*\///' | column -t -s :
 
 

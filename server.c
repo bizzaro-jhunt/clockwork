@@ -29,23 +29,23 @@ static struct server default_options = {
 	.debug     = SERVER_OPT_FALSE,
 	.log_level = LOG_LEVEL_ERROR,
 
-	.config_file   = "/etc/clockwork/policyd.conf",
-	.manifest_file = "/etc/clockwork/manifest.pol",
+	.config_file   = CW_ETCDIR "/clockwork/policyd.conf",
+	.manifest_file = CW_ETCDIR "/clockwork/manifest.pol",
 
-	.lock_file = "/var/lock/subsys/policyd",
-	.pid_file  = "/var/run/policyd.pid",
+	.lock_file = CW_VARDIR "/lock/subsys/policyd",
+	.pid_file  = CW_VARDIR "/run/policyd.pid",
 
-	.ca_cert_file = "/etc/clockwork/ssl/CA.pem",
-	.crl_file     = "/etc/clockwork/ssl/revoked.pem",
-	.cert_file    = "/etc/clockwork/ssl/cert.pem",
-	.key_file     = "/etc/clockwork/ssl/key.pem",
+	.ca_cert_file = CW_ETCDIR "/clockwork/ssl/CA.pem",
+	.crl_file     = CW_ETCDIR "/clockwork/ssl/revoked.pem",
+	.cert_file    = CW_ETCDIR "/clockwork/ssl/cert.pem",
+	.key_file     = CW_ETCDIR "/clockwork/ssl/key.pem",
 
-	.db_file      = "/var/lib/clockwork/master.db",
+	.db_file      = CW_VARDIR "/lib/clockwork/master.db",
 
-	.requests_dir = "/etc/clockwork/ssl/pending",
-	.certs_dir    = "/etc/clockwork/ssl/signed",
+	.requests_dir = CW_ETCDIR "/clockwork/ssl/pending",
+	.certs_dir    = CW_ETCDIR "/clockwork/ssl/signed",
 
-	.cache_dir    = "/var/cache/clockwork",
+	.cache_dir    = CW_VARDIR "/cache/clockwork",
 
 	.listen       = "0.0.0.0:7890",
 

@@ -247,6 +247,17 @@ save()
 	 done) > config
 
 	echo "configuration saved to ./config"
+
+	(echo "/* Clockwork build / install configuration generated $(date) */"
+	 echo "#ifndef CONFIG_H"
+	 echo "#define CONFIG_H"
+	 echo
+	 for VAR in VARDIR USRDIR ETCDIR; do
+		echo "#define CW_$VAR \"$(eval echo \$$VAR)\""
+	 done
+	 echo
+	 echo "#endif") > config.h
+	echo "macro definitions saved to ./config.h"
 }
 
 CWVERSION=$(grep CLOCKWORK_VERSION clockwork.h | sed -e 's/.*"\(.*\)".*/\1/')

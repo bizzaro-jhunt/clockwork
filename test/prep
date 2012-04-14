@@ -68,18 +68,36 @@ create_defs_dot_h() {
 EOF
 }
 
+check_bin() {
+	local bin=$1
+	path=$(which $bin 2>/dev/null; /bin/true)
+	if [[ -n "$path" ]]; then
+		echo "$bin: $path"
+	else
+		echo "MISSING '$bin'; please install it to continue."
+		exit 1
+	fi
+}
+
+check_test_env() {
+	check_bin "expect"
+}
+
+check_test_env_memtest() {
+	check_test_env
+	check_bin "valgrind"
+}
+
 case $1 in
 	check)
 		echo "Checking test environment"
+		check_test_env
+		echo "Test environment look OK"
+		;;
 
-		bin_expect=$(which expect 2>/dev/null; /bin/true)
-		if [[ -n "$bin_expect" ]]; then
-			echo "expect: $bin_expect"
-		else
-			echo "MISSING 'expect'; please install it to continue."
-			exit 1
-		fi
-
+	checkmem)
+		echo "Checking test environment (memtest)"
+		check_test_env_memtest
 		echo "Test environment look OK"
 		;;
 

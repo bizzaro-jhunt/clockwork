@@ -975,7 +975,7 @@ static void* worker_thread(void *arg)
 	/* dispatch */
 	while (!done) {
 		if (pdu_receive(&w->session) < 0) {
-			WARNING("Remote end hugn up unexpectedly");
+			WARNING("Remote end hung up unexpectedly");
 			break;
 		}
 

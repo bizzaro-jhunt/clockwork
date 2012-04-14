@@ -45,7 +45,7 @@ typedef int (*command_fn)(struct cwpol_opts *o, struct command*, int);
 
 #define slv(sl,i) (sl)->strings[(i)]
 #ifdef DEVEL
-#  define HELP_ROOT "help"
+#  define HELP_ROOT "share/help"
 #else
 #  define HELP_ROOT CW_SHAREDIR "/help"
 #endif
@@ -713,7 +713,7 @@ static struct cwpol_opts* cwpol_options(int argc, char **argv, int interactive)
 		case 'h':
 		case '?':
 			free(o->command);
-			o->command = strdup("help");
+			o->command = strdup("help cli");
 			break;
 
 		case 'e':

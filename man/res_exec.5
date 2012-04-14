@@ -1,0 +1,170 @@
+\"
+\"  Copyright 2011 James Hunt <james@jameshunt.us>
+\"
+\"  This file is part of Clockwork.
+\"
+\"  Clockwork is free software: you can redistribute it and/or modify
+\"  it under the terms of the GNU General Public License as published by
+\"  the Free Software Foundation, either version 3 of the License, or
+\"  (at your option) any later version.
+\"
+\"  Clockwork is distributed in the hope that it will be useful,
+\"  but WITHOUT ANY WARRANTY; without even the implied warranty of
+\"  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+\"  GNU General Public License for more details.
+\"
+\"  You should have received a copy of the GNU General Public License
+\"  along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
+\"
+
+.TH res_exec "5" "Apr 2012" "Clockwork" " Clockwork Resource Types"'"
+\"----------------------------------------------------------------
+.SH NAME
+res_exec \- Clockwork Resource Type for arbitrary commands
+.br
+
+\"----------------------------------------------------------------
+.SH DESCRIPTION
+The exec resource allows administrators to kick off scripts and
+system commands, either on every run or under specific circumstances.
+This can be useful for one-off tasks that fall outside the standard
+model of other Clockwork resources.
+
+\"----------------------------------------------------------------
+.SH ATTRIBUTES
+
+.B command
+.RS 8
+The command to run.  Administrators are strongly encouraged to use
+absolutely-qualified binary paths (i.e. \fI/bin/grep\fR instead of
+just \fIgrep\fR) for security and reliability reasons.
+.RE
+.PP
+
+.B test
+.RS 8
+Another command, to determine if the \fBcommand\fR should actually
+be run.  An exit code of \fB0\fR means the test passed.  Any other
+exit coe is interpreted as a failure, indicating that \fBcommand\fR
+should \fInot\fR be run.
+.RE
+.PP
+
+.B user
+.RS 8
+The username of a system user account to run this command as.
+Defaults to the user running \fBcwa\fR.
+.RE
+.PP
+
+.B group
+.RS 8
+Name of a system group account to run this command as.
+Defaults to the group running \fBcwa\fR.
+.RE
+.PP
+
+\" FIXME: on-demand stuff not documented for now
+\".B ondemand
+\".RS 8
+\"Specify whether or not this command should be run on-demand only.
+\"If "yes", Clockwork will only execute \fBcommand\fR if another resource
+\"depends on it.
+\".PP
+\"This is an advanced use case for exec resources that can lead to some
+\"elaborate (and somewhat obtuse) behavior.  Use at your own peril.
+\".RE
+\".PP
+
+\"----------------------------------------------------------------
+.SH EXAMPLES
+
+.PP
+Running a command unconditionally is very easy:
+.PP
+.RS 4
+.nf
+exec "/usr/local/bin/bug-admins" { }
+.fi
+.RE
+.PP
+Sometimes, however, you will want to run a command only in certain
+situations.  While the following is not recommended from a security
+standpoint, it does illustrate the concept of condtional execution:
+.PP
+.RS 4
+.nf
+exec "turn-off-selinux" {
+    command: "/usr/sbin/setenforce 0"
+    test:    "/usr/sbin/getenforce | /bin/grep -e 'Enforcing'"
+}
+.fi
+.RE
+.PP
+That is, turn off SELinux using the setenforce tool, but only do so
+if SELinux is actually in Enforcing mode (via the getenforce+grep test).
+.PP
+
+\"----------------------------------------------------------------
+.SH CAVEATS
+
+.SS 1. Default Behavior
+.PP
+If you do not specify a \fBuser\fR and \fBgroup\fR, Clockwork will
+execute your commands as the user and group that owns the cwa process,
+which is most likely root:root.  Any files created by the command
+executed will then be owned by root:root, which may not be what you
+intended.
+.PP
+As a general rule, it is best to alsways specify the user and group,
+even if you just set them explicitly to the defaults.
+.PP
+
+\"----------------------------------------------------------------
+\" FIXME: write about on-demand?
+.SH DEPENDENCIES
+The exec resource does not create implicit dependencies.  This is
+important to keep in mind if Clockwork is providing the binary or
+script you are wanting to execute via a file resource.
+.PP
+.RS 4
+.nf
+file "/usr/local/bin/bug-admins" {
+    source: "/srv/cfm/files/tools/bug-admins",
+    owner:  "root"
+    group:  "root"
+    mode:   0755
+}
+exec "bug-admins" {
+    command: "/usr/local/bin/bug-admins --whine"
+}
+
+# Best Practice: explicitly state the dependency
+exec("bug-admins") depends on file("/usr/local/bin/bug-admins")
+.fi
+.RE
+.PP
+Without the last line, there is a chance that Clockwork would try
+to run the exec resource first, before the bug-admins tool was
+created on the filesystem.
+.PP
+
+\"----------------------------------------------------------------
+.SH AUTHOR
+Clockwork was conceived and written by James Hunt.
+.PP
+Original ideas were stolen from
+.B CFEngine
+(Mark Burgess) and
+.B Puppet
+(Luke Kanies).
+
+\"----------------------------------------------------------------
+.SH BUGS
+.PP
+\" FIXME
+Due to a bug in the policy file parser, commands cannot contain
+backslashes.  This is a severe issue for running anything more
+than simple binaries or shell scripts, and will hopefully be fixed
+in a future version.
+.PP

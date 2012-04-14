@@ -18,6 +18,13 @@ res_dir
 + group
 + mode
 
+res_exec (done)
+--------
++ command
++ test
++ user
++ group
+
 res_package
 -----------
 + name

@@ -13,7 +13,7 @@ endif
 syn keyword   polTodo           contained TODO FIXME XXX
 syn match     polComment        "#.*" contains=polTodo
 
-syn match     polType           /host\|policy\|user\|file\|group\|package\|service\|sysctl\|dir/
+syn match     polType           /host\|policy\|user\|file\|group\|package\|service\|sysctl\|dir\|exec/
 syn keyword   polKeyword        if unless else map is not
 syn match     polDepKeyword     /depends  *on\|affects/
 syn keyword   polPreProc        enforce extend include

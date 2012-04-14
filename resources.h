@@ -295,6 +295,34 @@ struct res_dir {
 
 NEW_RESOURCE(dir);
 
+#define RES_EXEC_NONE      0x00
+#define RES_EXEC_NEEDSRUN  0x80000000
+#define RES_EXEC_UID       0x02
+#define RES_EXEC_GID       0x04
+#define RES_EXEC_ONDEMAND  0x08
+#define RES_EXEC_TEST      0x10
+
+struct res_exec {
+	char *key;
+	char *command;
+	char *test;
+
+	/* run `command' as this user/UID */
+	char *user;
+	uid_t uid;
+
+	/* run `command' as this group/GID */
+	char *group;
+	gid_t gid;
+
+	int notified;
+
+	unsigned int enforced;
+	unsigned int different;
+};
+
+NEW_RESOURCE(exec);
+
 #undef NEW_RESOURCE
 
 #endif

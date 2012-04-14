@@ -24,6 +24,7 @@
 #include <fts.h>
 #include <fcntl.h>
 #include <libgen.h>
+#include <sys/wait.h>
 
 #define ENFORCE(r,f)   (r)->enforced  |=  (f)
 #define UNENFORCE(r,f) (r)->enforced  &= ~(f)
@@ -3210,5 +3211,303 @@ void* res_dir_unpack(const char *packed)
 #undef PACK_FORMAT
 
 int res_dir_notify(void *res, const struct resource *dep) { return 0; }
+
+/********************************************************************/
+
+void* res_exec_new(const char *key)
+{
+	struct res_exec *re;
+
+	re = xmalloc(sizeof(struct res_exec));
+
+	re->enforced = 0;
+	re->different = 0;
+
+	re->uid = 0;
+	re->gid = 0;
+
+	re->key = NULL;
+	if (key) {
+		re->key = strdup(key);
+		res_exec_set(re, "command", key);
+	}
+
+	return re;
+}
+
+void res_exec_free(void *res)
+{
+	struct res_exec *re = (struct res_exec*)(res);
+	if (re) {
+		xfree(re->command);
+		xfree(re->test);
+		xfree(re->user);
+		xfree(re->group);
+		xfree(re->key);
+	}
+	xfree(re);
+}
+
+char *res_exec_key(const void *res)
+{
+	const struct res_exec *re = (const struct res_exec*)(res);
+	assert(re); // LCOV_EXCL_LINE
+
+	return string("exec:%s", re->key);
+}
+
+int res_exec_attrs(const void *res, struct hash *attrs)
+{
+	const struct res_exec *re = (const struct res_exec*)(res);
+	assert(re); // LCOV_EXCL_LINE
+
+	hash_set(attrs, "command", xstrdup(re->command));
+	hash_set(attrs, "test",    xstrdup(re->test));
+	hash_set(attrs, "user", ENFORCED(re, RES_EXEC_UID) ? strdup(re->user) : NULL);
+	hash_set(attrs, "group", ENFORCED(re, RES_EXEC_GID) ? strdup(re->group) : NULL);
+	hash_set(attrs, "ondemand", strdup(ENFORCED(re, RES_EXEC_ONDEMAND) ? "yes" : "no"));
+	return 0;
+}
+
+int res_exec_norm(void *res, struct policy *pol, struct hash *facts)
+{
+	struct res_exec *re = (struct res_exec*)(res);
+	assert(re); // LCOV_EXCL_LINE
+
+	struct dependency *dep;
+	struct resource *other;
+	char *key = res_exec_key(re);
+
+	/* exec commands depend on their owner and group */
+	if (ENFORCED(re, RES_EXEC_UID)) {
+		other = policy_find_resource(pol, RES_USER, "username", re->user);
+		if (other) {
+			dep = dependency_new(key, other->key);
+			if (policy_add_dependency(pol, dep) != 0) {
+				dependency_free(dep);
+				free(key);
+				return -1;
+			}
+		}
+	}
+
+	if (ENFORCED(re, RES_EXEC_GID)) {
+		other = policy_find_resource(pol, RES_GROUP, "name", re->group);
+		if (other) {
+			dep = dependency_new(key, other->key);
+			if (policy_add_dependency(pol, dep) != 0) {
+				dependency_free(dep);
+				free(key);
+				return -1;
+			}
+		}
+	}
+
+	free(key);
+	return 0;
+}
+
+int res_exec_set(void *res, const char *name, const char *value)
+{
+	struct res_exec *re = (struct res_exec*)(res);
+	assert(re); // LCOV_EXCL_LINE
+
+	if (strcmp(name, "user") == 0) {
+		xfree(re->user);
+		re->user = strdup(value);
+		ENFORCE(re, RES_EXEC_UID);
+
+	} else if (strcmp(name, "group") == 0) {
+		xfree(re->group);
+		re->group = strdup(value);
+		ENFORCE(re, RES_EXEC_GID);
+
+	} else if (strcmp(name, "command") == 0) {
+		xfree(re->command);
+		re->command = strdup(value);
+
+	} else if (strcmp(name, "test") == 0) {
+		xfree(re->test);
+		re->test = strdup(value);
+		ENFORCE(re, RES_EXEC_TEST);
+
+	} else if (strcmp(name, "ondemand") == 0) {
+		if (strcmp(value, "no") != 0) {
+			UNENFORCE(re, RES_EXEC_ONDEMAND);
+		} else {
+			ENFORCE(re, RES_EXEC_ONDEMAND);
+		}
+
+	} else {
+		return -1;
+
+	}
+
+	return 0;
+}
+
+int res_exec_match(const void *res, const char *name, const char *value)
+{
+	const struct res_exec *re = (struct res_exec*)(res);
+	assert(re); // LCOV_EXCL_LINE
+
+	char *test_value;
+	int rc;
+
+	/* FIXME: match on key? */
+	if (strcmp(name, "command") == 0) {
+		test_value = string("%s", re->command);
+	} else {
+		return 1;
+	}
+
+	rc = strcmp(test_value, value);
+	free(test_value);
+	return rc;
+}
+
+static int _res_exec_run(const char *command, uid_t uid, gid_t gid)
+{
+	int proc_stat;
+	int null_in, null_out;
+	pid_t pid;
+
+
+	switch (pid = fork()) {
+	case -1:
+		/* fork failed */
+		return -1;
+
+	case 0: /* child */
+		null_in  = open("/dev/null", O_RDONLY);
+		null_out = open("/dev/null", O_WRONLY);
+
+		dup2(null_in,  0);
+		dup2(null_out, 1);
+		dup2(null_out, 2);
+
+		/* set user and group is */
+		if (uid > 0) {
+			if (setuid(uid) != 0) {
+				WARNING("res_exec child could not switch to user ID %u to run `%s'", uid, command);
+			} else {
+				DEBUG("res_exec child set UID to %u", uid);
+			}
+		}
+
+		if (gid > 0) {
+			if (setgid(gid) != 0) {
+				WARNING("res_exec child could not switch to group ID %u to run `%s'", uid, command);
+			} else {
+				DEBUG("res_exec child set GID to %u", gid);
+			}
+		}
+
+		execl("/bin/sh", "sh", "-c", command, (char*)NULL);
+		exit(42); /* Oops... exec failed */
+
+	default: /* parent */
+		DEBUG("res_exec: Running `%s' in sub-process %u", command, pid);
+	}
+
+	waitpid(pid, &proc_stat, 0);
+	if (!WIFEXITED(proc_stat)) {
+		DEBUG("res_exec[%u]: terminated abnormally", pid);
+		return -1;
+	}
+
+	DEBUG("res_exec[%u]: sub-process exited %u", pid, WEXITSTATUS(proc_stat));
+	return WEXITSTATUS(proc_stat);
+}
+
+int res_exec_stat(void *res, const struct resource_env *env)
+{
+	struct res_exec *re = (struct res_exec*)(res);
+	assert(re); // LCOV_EXCL_LINE
+	assert(re->command); // LCOV_EXCL_LINE
+
+	if (!re->uid && re->user) {
+		assert(env);            // LCOV_EXCL_LINE
+		assert(env->user_pwdb); // LCOV_EXCL_LINE
+		re->uid = pwdb_lookup_uid(env->user_pwdb,  re->user);
+	}
+	if (!re->gid && re->group) {
+		assert(env);             // LCOV_EXCL_LINE
+		assert(env->group_grdb); // LCOV_EXCL_LINE
+		re->gid = grdb_lookup_gid(env->group_grdb, re->group);
+	}
+
+	if (ENFORCED(re, RES_EXEC_TEST) && !ENFORCED(re, RES_EXEC_ONDEMAND)) {
+		if (_res_exec_run(re->test, re->uid, re->gid) == 0) {
+			ENFORCE(re, RES_EXEC_NEEDSRUN);
+		} else {
+			UNENFORCE(re, RES_EXEC_NEEDSRUN);
+		}
+	} else {
+		ENFORCE(re, RES_EXEC_NEEDSRUN);
+	}
+
+	return 0;
+}
+
+struct report* res_exec_fixup(void *res, int dryrun, const struct resource_env *env)
+{
+	struct res_exec *re = (struct res_exec*)(res);
+	assert(re); // LCOV_EXCL_LINE
+	assert(env); // LCOV_EXCL_LINE
+
+	struct report *report = report_new("Run", re->command);
+	char *action;
+
+	if (ENFORCED(re, RES_EXEC_NEEDSRUN) || re->notified) {
+		action = string("execute command");
+		if (dryrun) {
+			report_action(report, action, ACTION_SKIPPED);
+		} else if (_res_exec_run(re->command, re->uid, re->gid) == 0) {
+			report_action(report, action, ACTION_SUCCEEDED);
+		} else {
+			report_action(report, action, ACTION_FAILED);
+		}
+	}
+
+	return report;
+}
+
+#define PACK_FORMAT "aLaaaa"
+char *res_exec_pack(const void *res)
+{
+	const struct res_exec *re = (const struct res_exec*)(res);
+	assert(re); // LCOV_EXCL_LINE
+
+	return pack("res_exec::", PACK_FORMAT,
+		re->key, re->enforced,
+		re->command, re->test, re->user, re->group);
+}
+
+void* res_exec_unpack(const char *packed)
+{
+	struct res_exec *re = res_exec_new(NULL);
+
+	if (unpack(packed, "res_exec::", PACK_FORMAT,
+		&re->key, &re->enforced,
+		&re->command, &re->test, &re->user, &re->group) != 0) {
+
+		res_exec_free(re);
+		return NULL;
+	}
+
+	return re;
+}
+#undef PACK_FORMAT
+
+int res_exec_notify(void *res, const struct resource *dep)
+{
+	struct res_exec *re = (struct res_exec*)(res);
+	assert(re); // LCOV_EXCL)LINE
+
+	re->notified = 1;
+
+	return 0;
+}
 
 

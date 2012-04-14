@@ -161,8 +161,8 @@ install-agent: install-base build-agent manpages
 	install    -o $(CWUSER) -g $(CWGROUP) -m 0640 share/samples/cwa.conf  $(DESTDIR)$(ETCDIR)
 	install    -o root      -g root       -m 0644 share/man/cwa.1.gz      $(DESTDIR)$(MANDIR)/man1
 	install    -o root      -g root       -m 0644 share/man/cwa.conf.5.gz $(DESTDIR)$(MANDIR)/man5
-	install    -o root      -g root       -m 0644 share/db/agent.sql      $(DESTDIR)$(USRDIR)/share/clockwork
-	install    -o root      -g root       -m 0644 var/augeas/lenses/*     $(DESTDIR)$(VARDIR)/lib/clockwork/augeas/lenses
+	install    -o root      -g root       -m 0644 share/db/agent.sql      $(DESTDIR)$(SHAREDIR)
+	install    -o root      -g root       -m 0644 var/augeas/lenses/*     $(DESTDIR)$(VARLIBDIR)/augeas/lenses
 
 install-master: install-base build-master manpages
 	install -d -o $(CWUSER) -g $(CWGROUP) -m 0750 $(DESTDIR)$(VARDIR)/cache/clockwork/facts
@@ -176,8 +176,8 @@ install-master: install-base build-master manpages
 	install    -o root      -g root       -m 0644 share/man/policyd.conf.5.gz $(DESTDIR)$(MANDIR)/man5
 	install    -o root      -g root       -m 0644 share/man/res_*.5.gz        $(DESTDIR)$(MANDIR)/man5
 	install    -o root      -g root       -m 0644 share/man/clockwork.7.gz    $(DESTDIR)$(MANDIR)/man7
-	install    -o root      -g root       -m 0644 share/help/*                $(DESTDIR)$(USRDIR)/share/clockwork/help
-	install    -o root      -g root       -m 0644 share/db/master.sql         $(DESTDIR)$(USRDIR)/share/clockwork
+	install    -o root      -g root       -m 0644 share/help/*                $(DESTDIR)$(SHAREDIR)/help
+	install    -o root      -g root       -m 0644 share/db/master.sql         $(DESTDIR)$(SHAREDIR)
 
 install-base:
 	getent group $(CWGROUP) >/dev/null || groupadd -r $(CWGROUP)
@@ -186,10 +186,9 @@ install-base:
 	install -d -o root      -g root       -m 0755 $(DESTDIR)$(MANDIR)/man1
 	install -d -o root      -g root       -m 0755 $(DESTDIR)$(MANDIR)/man5
 	install -d -o root      -g root       -m 0755 $(DESTDIR)$(MANDIR)/man7
-	install -d -o root      -g root       -m 0755 $(DESTDIR)$(USRDIR)/share/doc/clockwork-$(CWVERSION)
-	install -d -o $(CWUSER) -g $(CWGROUP) -m 0750 $(DESTDIR)$(VARDIR)/lib/clockwork/augeas/lenses
+	install -d -o $(CWUSER) -g $(CWGROUP) -m 0750 $(DESTDIR)$(VARLIBDIR)/augeas/lenses
 	install -d -o $(CWUSER) -g $(CWGROUP) -m 0750 $(DESTDIR)$(ETCDIR)/ssl
-	install -d -o $(CWUSER) -g $(CWGROUP) -m 0755 $(DESTDIR)$(USRDIR)/share/clockwork/help
+	install -d -o $(CWUSER) -g $(CWGROUP) -m 0755 $(DESTDIR)$(SHAREDIR)/help
 
 echo:
 	echo $(ECHOVAR)

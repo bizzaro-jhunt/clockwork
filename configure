@@ -208,6 +208,10 @@ normalize()
 	[[ -z "$ETCDIR"  ]] && ETCDIR="$DESTDIR/etc/clockwork"
 	[[ -z "$MANDIR"  ]] && MANDIR="$USRDIR/share/man"
 	[[ -z "$HOMEDIR" ]] && HOMEDIR="$VARDIR/lib/clockwork"
+
+	SHAREDIR="$USRDIR/share/clockwork"
+	CACHEDIR="$VARDIR/cache/clockwork"
+	VARLIBDIR="$VARDIR/lib/clockwork"
 }
 
 summary()
@@ -223,12 +227,13 @@ summary()
 	echo
 	echo "DESTDIR: $DESTDIR/"
 	echo
-	echo "SBINDIR: $SBINDIR"
-	echo "VARDIR:  $VARDIR"
-	echo "USRDIR:  $USRDIR"
-	echo "ETCDIR:  $ETCDIR"
-	echo "MANDIR:  $MANDIR"
-	echo "HOMEDIR: $HOMEDIR"
+	echo "SBINDIR:   $SBINDIR"
+	echo "ETCDIR:    $ETCDIR"
+	echo "MANDIR:    $MANDIR"
+	echo "HOMEDIR:   $HOMEDIR"
+	echo "SHAREDIR:  $SHAREDIR"
+	echo "CACHEDIR:  $CACHEDIR"
+	echo "VARLIBDIR: $VARLIBDIR"
 	echo
 	echo "Build agent tools?    [ $BUILD_AGENT ]"
 	echo "Build master tools?   [ $BUILD_MASTER ]"
@@ -242,6 +247,7 @@ save()
 	 echo
 	 for VAR in CWVERSION CWUSER CWGROUP \
 		DESTDIR SBINDIR VARDIR USRDIR ETCDIR MANDIR HOMEDIR \
+		SHAREDIR VARLIBDIR CACHEDIR \
 		BUILD_MODE BUILD_AGENT BUILD_MASTER; do
 		echo "$VAR=$(eval echo \$$VAR)"
 	 done) > config
@@ -252,7 +258,7 @@ save()
 	 echo "#ifndef CONFIG_H"
 	 echo "#define CONFIG_H"
 	 echo
-	 for VAR in VARDIR USRDIR ETCDIR; do
+	 for VAR in VARDIR USRDIR ETCDIR SHAREDIR VARLIBDIR CACHEDIR; do
 		echo "#define CW_$VAR \"$(eval echo \$$VAR)\""
 	 done
 	 echo

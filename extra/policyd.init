@@ -123,6 +123,7 @@ case "$1" in
 		rh_status_q && exit 0
 		do_sanity_check
 		if [ $RETVAL -eq 0 ]; then
+			echo
 			start
 		else
 			RETVAL=6
@@ -142,6 +143,7 @@ case "$1" in
 		rh_status_q || exit 7
 		do_sanity_check
 		if [ $RETVAL -eq 0 ]; then
+			echo
 			reload
 		else
 			RETVAL=6

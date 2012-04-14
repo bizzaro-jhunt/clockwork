@@ -23,6 +23,8 @@
 #include "spec/parser.h"
 #include <getopt.h>
 #include <ctype.h>
+#include <readline/readline.h>
+#include <readline/history.h>
 
 struct command {
 	char       *cmd;
@@ -36,10 +38,9 @@ typedef int (*command_fn)(struct command*, int);
 #ifdef DEVEL
 #  define HELP_ROOT "help"
 #else
-#  define HELP_ROOT CW_USRDIR "/share/clockwork/cwpol/help"
+#  define HELP_ROOT CW_SHAREDIR "/help"
 #endif
 
-#define LINE_BUFSIZ 1024
 #define TOKEN_DELIM " \t"
 
 static struct command* parse_command(const char *s);
@@ -95,7 +96,7 @@ static struct manifest *MANIFEST = NULL;
 static void setup(void);
 static int dispatch(const char *command, int interactive);
 static int dispatch1(const char *command, int interactive);
-static struct cwpol_opts* cwpol_options(int argc, char **argv);
+static struct cwpol_opts* cwpol_options(int argc, char **argv, int interactive);
 
 /* Options
 
@@ -109,12 +110,11 @@ static struct cwpol_opts* cwpol_options(int argc, char **argv);
 
 int main(int argc, char **argv)
 {
-	char line[LINE_BUFSIZ];
 	struct cwpol_opts *opts;
 	int interactive;
 
-	opts = cwpol_options(argc, argv);
 	interactive = isatty(0);
+	opts = cwpol_options(argc, argv, interactive);
 
 	setup();
 	if (opts->manifest) {
@@ -133,20 +133,29 @@ int main(int argc, char **argv)
 		printf("%s - Clockwork Policy Shell\n\n", argv[0]);
 		printf("Type `about' for information on this program.\n");
 		printf("Type `help' to get help on shell commands.\n");
+		using_history();
 	}
 
+	char *ps1 = NULL;
+	char *rline = NULL;
 	do {
 		if (interactive) {
+			printf("\n");
+			free(ps1);
 			switch (CONTEXT.type) {
-			case CONTEXT_NONE:   printf("\nglobal> ");                  break;
-			case CONTEXT_HOST:   printf("\nhost:%s> ",   CONTEXT.name); break;
-			case CONTEXT_POLICY: printf("\npolicy:%s> ", CONTEXT.name); break;
-			default: printf("\n> "); break;
+			case CONTEXT_NONE:   ps1 = string("global> ");                  break;
+			case CONTEXT_HOST:   ps1 = string("host:%s> ", CONTEXT.name);   break;
+			case CONTEXT_POLICY: ps1 = string("policy:%s> ", CONTEXT.name); break;
+			default: ps1 = string("> "); break;
 			}
 		}
 
-		if (!fgets(line, LINE_BUFSIZ, stdin)) { break; }
-	} while (!dispatch(line, interactive));
+		xfree(rline);
+		rline = readline(ps1);
+		if (!rline) { break; }
+
+		add_history(rline);
+	} while (!dispatch(rline, interactive));
 
 	return 0;
 }
@@ -276,7 +285,7 @@ COMMAND(show)
 
 COMMAND(use)
 {
-	char *type, *target;
+	char *type = NULL, *target;
 	struct stree *root;
 
 	if (c->argc >= 1) {
@@ -297,7 +306,7 @@ COMMAND(use)
 	}
 
 	if (!MANIFEST) {
-		ERROR("No manifest loaded");
+		ERROR("No manifest loaded (try `load <filename>'");
 		return 0;
 	}
 
@@ -638,7 +647,7 @@ static void show_resource(const char *type, const char *name)
 	free(target);
 }
 
-static struct cwpol_opts* cwpol_options(int argc, char **argv)
+static struct cwpol_opts* cwpol_options(int argc, char **argv, int interactive)
 {
 	struct cwpol_opts *o;
 	const char *short_opts = "h?e:f:vV";
@@ -651,7 +660,7 @@ static struct cwpol_opts* cwpol_options(int argc, char **argv)
 		{ 0, 0, 0, 0 },
 	};
 
-	int v = LOG_LEVEL_ERROR;
+	int v = (interactive ? LOG_LEVEL_INFO : LOG_LEVEL_DEBUG);
 	int opt, idx = 0;
 
 	o = xmalloc(sizeof(struct cwpol_opts));

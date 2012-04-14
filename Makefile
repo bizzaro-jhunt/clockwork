@@ -15,7 +15,7 @@ ROOT := $(shell pwd)
 LEX_FLAGS  := --header-file --yylineno
 YFLAGS     := -Wall --token-table --defines
 CFLAGS     := -Wall
-LDFLAGS    := -lssl -lpthread -lsqlite3 -laugeas -lgear
+LDFLAGS    := -lssl -lpthread -lsqlite3 -laugeas -lgear -lreadline
 
 openssl_mode := $(shell if [ -f ext/openssl/lib/libssl.so ]; then echo local; else echo system; fi)
 ifeq ($(openssl_mode), local)

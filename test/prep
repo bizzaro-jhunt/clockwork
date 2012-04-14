@@ -8,9 +8,6 @@ TEST_UNIT_DATA=test/unit/data
 TEST_SAFE_UID=100
 TEST_SAFE_GID=100
 
-TEST_SAFE_PKG="fortune-mod"
-TEST_SAFE_SVC="snmpd"
-
 PLATFORM="undetected"
 if [[ -x /usr/bin/lsb_release ]]; then
 	PLATFORM=$(/usr/bin/lsb_release -is | /bin/dd conv=lcase)
@@ -22,10 +19,16 @@ case $PLATFORM in
 centos)
 	DEFAULT_SM="SM_chkconfig"
 	DEFAULT_PM="PM_rpm_yum"
+
+	TEST_SAFE_PKG="fortune-osho"
+	TEST_SAFE_SVC="test-dummy"
 	;;
 ubuntu)
 	DEFAULT_SM="SM_debian"
 	DEFAULT_PM="PM_dpkg_apt"
+
+	TEST_SAFE_PKG="fortune-mod"
+	TEST_SAFE_SVC="snmpd"
 	;;
 *)
 	echo "Unknown platform: $PLATFORM"
@@ -66,6 +69,20 @@ EOF
 }
 
 case $1 in
+	check)
+		echo "Checking test environment"
+
+		bin_expect=$(which expect 2>/dev/null; /bin/true)
+		if [[ -n "$bin_expect" ]]; then
+			echo "expect: $bin_expect"
+		else
+			echo "MISSING 'expect'; please install it to continue."
+			exit 1
+		fi
+
+		echo "Test environment look OK"
+		;;
+
 	data)
 		task "Creating $TEST_UNIT_DATA directory"
 		rm -rf $TEST_UNIT_DATA

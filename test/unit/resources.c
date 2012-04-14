@@ -1721,7 +1721,7 @@ NEW_TEST(res_service_diffstat_fixup)
 		service_running(DEFAULT_SM, TEST_SAFE_SVC), 0);
 
 	/* now the real test */
-	r = res_service_new("snmpd");
+	r = res_service_new(TEST_SAFE_SVC);
 	res_service_set(r, "enabled", "yes");
 	res_service_set(r, "running", "yes");
 

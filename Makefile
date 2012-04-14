@@ -290,9 +290,12 @@ diagrams: doc/proto-agent.png doc/proto-cert.png
 ############################################################
 # Regression Test Targets
 
-test: coverage-clean unit-tests run-unit-tests run-functional-tests
+test: test-check coverage-clean unit-tests run-unit-tests run-functional-tests
 test-unit: coverage-clean run-unit-tests
 test-functional: coverage-clean run-functional-tests
+
+test-check:
+	./test/prep check
 
 coverage-clean:
 	find . -name '*.gcda' 2>/dev/null | xargs rm -f

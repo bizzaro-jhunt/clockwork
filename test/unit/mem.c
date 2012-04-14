@@ -101,9 +101,9 @@ NEW_TEST(mem_xstrcmp)
 	assert_int_eq("s1 == s2 (same pointer)", 0, xstrcmp(s1, s2));
 	assert_int_eq("s1 == s5 (diff pointer)", 0, xstrcmp(s1, s5));
 	assert_int_eq("s5 == s1 (transitive)",   0, xstrcmp(s5, s1));
-	assert_int_eq("s3 < s1", 1,  xstrcmp(s3, s1));
-	assert_int_eq("s4 > s3", -1, xstrcmp(s4, s3));
-	assert_int_ne("s1 != s3", 0, xstrcmp(s1, s3));
+	assert_int_gt("s3 < s1",  xstrcmp(s3, s1), 0);
+	assert_int_lt("s4 > s3",  xstrcmp(s4, s3), 0);
+	assert_int_ne("s1 != s3", xstrcmp(s1, s3), 0);
 }
 
 NEW_TEST(mem_xstrncpy)

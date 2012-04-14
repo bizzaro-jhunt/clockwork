@@ -4,9 +4,13 @@ List of Things To Do
 Client / Server
      Communication between cwcert and cwca
        More intrusive signing / verification procedure
-       How to handle revocation?
+       Auto-cert generation
+          use /etc/clockwork/cert.conf if it exists
+       Auto-cert validation (cwca not necessary?)
+
        Better SSL error messages (bad ca, revoked, expired, etc.)
        How to handle unknown CA on first connect?
+          error message + reminder that admin must install CA cert
 
 Better diagnostics, server-side
 IPv6 support (Protocol-agnostic, preferably)

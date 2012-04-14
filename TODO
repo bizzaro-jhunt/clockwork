@@ -21,8 +21,6 @@ Portability Items
 =================
 
 gshadow support - Rewrite internally (still not POSIX)
-test/build env needs sanity checks (is expect installed?)
-find all hard-coded instances of original dev box hostname
 
 Perpetual List of Things To Do
 ==============================

@@ -116,6 +116,7 @@ int main(int argc, char **argv)
 {
 	struct cwpol_opts *opts;
 	int interactive;
+	char *hist = NULL;
 
 	interactive = isatty(0);
 	opts = cwpol_options(argc, argv, interactive);
@@ -137,7 +138,12 @@ int main(int argc, char **argv)
 		printf("%s - Clockwork Policy Shell\n\n", argv[0]);
 		printf("Type `about' for information on this program.\n");
 		printf("Type `help' to get help on shell commands.\n");
-		using_history();
+
+		hist = string("%s/.cwpol_history", getenv("HOME"));
+		if (hist) {
+			using_history();
+			read_history(hist);
+		}
 	}
 
 	char *ps1 = NULL;
@@ -160,6 +166,12 @@ int main(int argc, char **argv)
 
 		add_history(rline);
 	} while (!dispatch(opts, rline, interactive));
+
+	printf("\n"); /* prettier on ^D */
+
+	if (hist) {
+		write_history(hist);
+	}
 
 	return 0;
 }

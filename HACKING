@@ -56,7 +56,7 @@ Supporting Software Development Tools
   - cdoc             Documentation (see https://github.com/filefrog/cdoc)
   - ctest            Unit Tests (see https://github.com/filefrog/ctest)
   - libgear          C Framework (see https://github.com/filefrog/libgear)
-
+  - expect           Functional Tests rely on expect for automation
 
 
 

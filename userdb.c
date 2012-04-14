@@ -631,11 +631,12 @@ struct spwd* spdb_new_entry(struct spdb *db, const char *name)
 	/* shallow pointers are ok; _spdb_entry strdup's them */
 	sp->sp_namp = (char *)name;
 	sp->sp_pwdp = "!";
-	sp->sp_min = 0;
+	sp->sp_min = -1;
 	sp->sp_max = 99999;
 	sp->sp_warn = 7;
-	sp->sp_inact = 0;
-	sp->sp_expire = 0;
+	sp->sp_inact = -1;
+	sp->sp_expire = -1;
+	sp->sp_flag = -1;
 
 	for (; db->next; db = db->next)
 		;

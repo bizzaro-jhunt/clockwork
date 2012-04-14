@@ -54,10 +54,8 @@ static int _res_user_populate_home(const char *home, const char *skel, uid_t uid
 	char *skel_path, *home_path;
 	int skel_fd, home_fd;
 	mode_t mode;
-	/*
 	char buf[8192];
 	size_t nread;
-	*/
 
 	fts = fts_open(path_argv, FTS_PHYSICAL, NULL);
 	if (!fts) {
@@ -78,13 +76,11 @@ static int _res_user_populate_home(const char *home, const char *skel, uid_t uid
 				if (chown(home_path, uid, gid) != 0) {
 					_res_file_fd2fd(home_fd, skel_fd, -1);
 				}
-				/*
 				if (skel_fd >= 0 && home_fd >= 0
 				 && chown(home_path, uid, gid) == 0) {
 					while ((nread = read(skel_fd, buf, 8192)) > 0)
 						write(home_fd, buf, nread);
 				}
-				*/
 
 			} else if (S_ISDIR(ent->fts_statp->st_mode)) {
 				if (mkdir(home_path, mode) == 0

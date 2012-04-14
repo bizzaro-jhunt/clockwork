@@ -68,8 +68,8 @@ struct report {
 	char *res_type;      /* type of resource */
 	char *res_key;       /* unique resource ID */
 
-	int   compliant;     /* is the resource compliant? */
-	int   fixed;         /* did it have to be fixed? */
+	unsigned char compliant; /* is the resource compliant? */
+	unsigned char fixed;     /* did it have to be fixed? */
 
 	struct list actions; /* all actions carried out */
 	struct list l;       /* list member node, for struct job */

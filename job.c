@@ -100,8 +100,8 @@ int job_add_report(struct job *job, struct report *report)
 }
 
 #define JOB_PACK_FORMAT    "LLL"
-#define REPORT_PACK_FORMAT "aaLL"
-#define ACTION_PACK_FORMAT "aL"
+#define REPORT_PACK_FORMAT "aaCC"
+#define ACTION_PACK_FORMAT "aC"
 
 /**
   Get string representation of $job.

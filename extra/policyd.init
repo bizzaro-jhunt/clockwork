@@ -140,7 +140,12 @@ case "$1" in
 		;;
 	reload)
 		rh_status_q || exit 7
-		reload
+		do_sanity_check
+		if [ $RETVAL -eq 0 ]; then
+			reload
+		else
+			RETVAL=6
+		fi
 		;;
 	force-reload)
 		force_reload

@@ -1,0 +1,29 @@
+
+USAGE: cwpol [manifest] [OPTIONS] [<script]
+
+OPTIONS
+  -h, --help   Show this usage screen
+
+  -e <cmd>     Execute a one or more cwpol commands in a
+  --execute    non-interactive session.  Multiple commands
+               must be separated by a semi-colon (;)
+
+  -v           Increase verbosity of output.  For interactive
+  --verbose    sessions, starts at INFO.  For scripts, starts
+               at ERROR.
+
+  -f <file>    Load a set of facts from <file>, and use that
+  --facts      when evaluating policies against hosts.
+               Equivalent to '-e "load facts from <file>"'
+
+  -c <dir>     Path to the directory where policyd caches facts
+  --cache      received from its client machines.  Used for
+               automatically loading facts when appropriate.
+
+  -V           Show the 'about' screen.
+  --version
+
+If you specify a file name on the command line, it will be
+interpreted as the path to a manifest file that cwpol should
+load.  This is equivalent to "-e 'load /path/to/manifest.pol'"
+

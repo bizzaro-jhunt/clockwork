@@ -914,39 +914,10 @@ static int server_init(struct server *s)
 
 static int save_facts(struct worker *w)
 {
-	char filename[100];
 	char *path;
-	time_t ts;
-	struct tm *now;
 	FILE *out;
 
-	/* generate the filename
-	   create the path in cache dir
-	   open the file
-	   save the facts
-	   close the file
-	   return 0 */
-
-	ts = time(NULL);
-	if (!(now = localtime(&ts))) {
-		DEBUG("save_facts: localtime failed in generating file name");
-		return -1;
-	}
-	if (strftime(filename, 100, "%Y-%m-%dT%H-%M-%S.facts", now) == 0) {
-		DEBUG("save_facts: strftime failed in generating file name");
-		return -1;
-	}
-
-	path = string("%s/facts/%s", w->cache_dir, w->peer);
-	errno = 0;
-	if (mkdir(path, 0700) != 0 && errno != EEXIST) {
-		free(path);
-		DEBUG("save_facts: mkdir failed in generating file");
-		return -2;
-	}
-	free(path);
-
-	path = string("%s/facts/%s/%s", w->cache_dir, w->peer, filename);
+	path = string("%s/facts/%s.facts", w->cache_dir, w->peer);
 	out = fopen(path, "w");
 	free(path);
 	if (!out) {

@@ -26,13 +26,22 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 
+struct cwpol_opts {
+	char *command;
+	char *manifest;
+	char *facts;
+	char *cache;
+
+	int no_clobber;
+};
+
 struct command {
 	char       *cmd;
 	size_t      argc;
 	struct stringlist *args;
 	char       *orig;
 };
-typedef int (*command_fn)(struct command*, int);
+typedef int (*command_fn)(struct cwpol_opts *o, struct command*, int);
 
 #define slv(sl,i) (sl)->strings[(i)]
 #ifdef DEVEL
@@ -53,12 +62,13 @@ static struct stringlist* hash_keys(struct hash*);
 static int show_help_file(const char *path);
 static void show_hash_keys(struct hash *h);
 static void show_facts(const char *pattern);
+static void show_fact(const char *name);
 static void show_hosts(void);
 static void show_policies(void);
 static void show_resources(void);
 static void show_resource(const char *type, const char *name);
 
-#define COMMAND(x) static int command_ ## x (struct command *c, int interactive)
+#define COMMAND(x) static int command_ ## x (struct cwpol_opts *o, struct command *c, int interactive)
 COMMAND(about);
 COMMAND(help);
 COMMAND(quit);
@@ -68,12 +78,6 @@ COMMAND(fact);
 COMMAND(load);
 COMMAND(clear);
 COMMAND(log);
-
-struct cwpol_opts {
-	char *command;
-	char *manifest;
-	char *facts;
-};
 
 #define CONTEXT_NONE   0
 #define CONTEXT_HOST   1
@@ -94,8 +98,8 @@ static struct hash     *FACTS    = NULL;
 static struct manifest *MANIFEST = NULL;
 
 static void setup(void);
-static int dispatch(const char *command, int interactive);
-static int dispatch1(const char *command, int interactive);
+static int dispatch(struct cwpol_opts *o, const char *command, int interactive);
+static int dispatch1(struct cwpol_opts *o, const char *command, int interactive);
 static struct cwpol_opts* cwpol_options(int argc, char **argv, int interactive);
 
 /* Options
@@ -119,14 +123,14 @@ int main(int argc, char **argv)
 	setup();
 	if (opts->manifest) {
 		DEBUG("pre-loading manifest: %s", opts->manifest);
-		dispatch1(opts->manifest, 0);
+		dispatch1(opts, opts->manifest, 0);
 	}
 	if (opts->facts) {
 		DEBUG("pre-loading facts: %s", opts->facts);
-		dispatch1(opts->facts, 0);
+		dispatch1(opts, opts->facts, 0);
 	}
 	if (opts->command) {
-		exit(dispatch(opts->command, 0));
+		exit(dispatch(opts, opts->command, 0));
 	}
 
 	if (interactive) {
@@ -155,7 +159,7 @@ int main(int argc, char **argv)
 		if (!rline) { break; }
 
 		add_history(rline);
-	} while (!dispatch(rline, interactive));
+	} while (!dispatch(opts, rline, interactive));
 
 	return 0;
 }
@@ -163,22 +167,19 @@ int main(int argc, char **argv)
 static struct command* parse_command(const char *s)
 {
 	struct command *c;
-	char *tok, *ctx;
-	size_t n;
+	char *tmp, *tok, *ctx;
 
 	c = xmalloc(sizeof(struct command));
-	c->orig = strdup(s);
 
-	/* kill the newline */
-	n = strlen(c->orig);
-	if (c->orig[n-1] == '\n') { c->orig[n-1] = '\0'; }
-
-	c->cmd = strtok_r(c->orig, TOKEN_DELIM, &ctx);
+	tmp = strdup(s);
+	c->cmd = strtok_r(tmp, TOKEN_DELIM, &ctx);
 	if (!c->cmd) {
 		free(c);
+		free(tmp);
 		return NULL;
 	}
 
+	c->orig = strdup(s);
 	c->argc = 0;
 	c->args = stringlist_new(NULL);
 	while ((tok = strtok_r(NULL, TOKEN_DELIM, &ctx)) != NULL) {
@@ -249,6 +250,9 @@ COMMAND(show)
 	           && strcmp(slv(c->args,1), "like") == 0) {
 		show_facts(slv(c->args,2));
 
+	} else if (c->argc == 2 && strcmp(type, "fact") == 0) {
+		show_fact(slv(c->args,1));
+
 	} else if (c->argc == 1 && strcmp(type, "hosts") == 0) {
 		show_hosts();
 
@@ -274,6 +278,7 @@ COMMAND(show)
 		show_resource(slv(c->args,0), slv(c->args,1));
 	} else {
 		ERROR("Missing required arguments");
+		INFO("   show fact <name>");
 		INFO("   show facts [like pattern]");
 		INFO("   show hosts");
 		INFO("   show policies");
@@ -315,6 +320,19 @@ COMMAND(use)
 			ERROR("No such host '%s'", target);
 		} else {
 			set_context(CONTEXT_HOST, target, root);
+
+			/* try to load facts */
+			if (o->no_clobber == 0) {
+				char *path = string("%s/%s.facts", o->cache, target);
+				INFO("auto-loading host facts from %s", o->cache);
+				load_facts_from_path(path);
+				free(path);
+
+			} else if (interactive) {
+				INFO("using previously loaded / defined facts");
+				INFO("you may want to `clear facts' and");
+				INFO("`use host %s' again", target);
+			}
 		}
 	} else if (strcmp(type, "policy") == 0) {
 		if (!(root = hash_get(MANIFEST->policies, target))) {
@@ -350,10 +368,18 @@ COMMAND(fact)
 		for (a = b; *a && (isspace(*a) || *a == '='); a++);
 		v = strdup(a);
 
+		if (!*k || !*v) {
+			ERROR("Malformed fact.  See `help fact'");
+			return 0;
+		}
+
 		hash_set(FACTS, k, v);
 		xfree(k);
 
-		show_facts(NULL);
+		o->no_clobber = 1;
+		if (interactive) {
+			show_facts(NULL);
+		}
 		return 0;
 	}
 
@@ -367,6 +393,7 @@ COMMAND(load)
 	if (c->argc == 3
 	 && strcmp(slv(c->args,0), "facts") == 0
 	 && strcmp(slv(c->args,1), "from")  == 0) {
+		o->no_clobber = 1;
 		load_facts_from_path(slv(c->args,2));
 		if (interactive) { show_facts(NULL); }
 		return 0;
@@ -399,6 +426,7 @@ COMMAND(clear)
 	 && strcmp(slv(c->args,0), "facts") == 0) {
 		hash_free_all(FACTS);
 		FACTS = hash_new();
+		o->no_clobber = 0;
 		return 0;
 	}
 
@@ -546,6 +574,18 @@ static void show_facts(const char *pattern)
 	}
 }
 
+static void show_fact(const char *name)
+{
+	char *v;
+
+	v = hash_get(FACTS, name);
+	if (v) {
+		printf("%s = %s\n", name, v);
+	} else {
+		printf("fact %s not defined\n", name);
+	}
+}
+
 static void show_hosts(void)
 {
 	if (!MANIFEST) {
@@ -655,6 +695,7 @@ static struct cwpol_opts* cwpol_options(int argc, char **argv, int interactive)
 		{ "help",    no_argument,       NULL, 'h' },
 		{ "execute", required_argument, NULL, 'e' },
 		{ "facts",   required_argument, NULL, 'f' },
+		{ "cache",   required_argument, NULL, 'c' },
 		{ "verbose", no_argument,       NULL, 'v' },
 		{ "version", no_argument,       NULL, 'V' },
 		{ 0, 0, 0, 0 },
@@ -664,6 +705,8 @@ static struct cwpol_opts* cwpol_options(int argc, char **argv, int interactive)
 	int opt, idx = 0;
 
 	o = xmalloc(sizeof(struct cwpol_opts));
+	o->cache = strdup(CW_CACHEDIR "/facts");
+	o->no_clobber = 0;
 
 	while ( (opt = getopt_long(argc, argv, short_opts, long_opts, &idx)) != -1) {
 		switch(opt) {
@@ -681,6 +724,11 @@ static struct cwpol_opts* cwpol_options(int argc, char **argv, int interactive)
 		case 'f':
 			free(o->facts);
 			o->facts = string("load facts from %s", optarg);
+			break;
+
+		case 'c':
+			free(o->cache);
+			o->cache = strdup(optarg);
 			break;
 
 		case 'v':
@@ -731,7 +779,7 @@ static void setup(void)
 	MANIFEST = NULL;
 }
 
-static int dispatch(const char *c, int interactive)
+static int dispatch(struct cwpol_opts *o, const char *c, int interactive)
 {
 	struct stringlist *commands;
 	size_t i;
@@ -739,7 +787,7 @@ static int dispatch(const char *c, int interactive)
 
 	commands = stringlist_split(c, strlen(c), ";", SPLIT_GREEDY);
 	for_each_string(commands, i) {
-		t = dispatch1(slv(commands, i), interactive);
+		t = dispatch1(o, slv(commands, i), interactive);
 		if (t && !interactive) {
 			rc = t;
 			break;
@@ -751,7 +799,7 @@ static int dispatch(const char *c, int interactive)
 	return rc;
 }
 
-static int dispatch1(const char *c, int interactive)
+static int dispatch1(struct cwpol_opts *o, const char *c, int interactive)
 {
 	command_fn f;
 	struct command *command;
@@ -767,7 +815,7 @@ static int dispatch1(const char *c, int interactive)
 
 	DEBUG("dispatching '%s'", command->cmd);
 	if ((f = hash_get(DISPATCH, command->cmd))) {
-		rc = (*f)(command, interactive);
+		rc = (*f)(o, command, interactive);
 	} else {
 		ERROR("Unknown command: %s", command->cmd);
 		rc = -1;

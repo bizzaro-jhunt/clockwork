@@ -528,11 +528,12 @@ NEW_TEST(spdb_new_entry)
 	assert_not_null("spdb_new_entry returns an spwd structure", sp);
 	assert_str_eq("sp_namp is set properly", sp->sp_namp, name);
 	assert_str_eq("sp_pwdp default is sane", sp->sp_pwdp, "!");
-	assert_int_eq("sp_min default is sane", sp->sp_min, 0);
+	assert_int_eq("sp_min default is sane", sp->sp_min, -1);
 	assert_int_eq("sp_max default is sane", sp->sp_max, 99999);
 	assert_int_eq("sp_warn default is sane", sp->sp_warn, 7);
-	assert_int_eq("sp_inact default is sane", sp->sp_inact, 0);
-	assert_int_eq("sp_expire default is sane", sp->sp_expire, 0);
+	assert_int_eq("sp_inact default is sane", sp->sp_inact, -1);
+	assert_int_eq("sp_expire default is sane", sp->sp_expire, -1);
+	assert_int_eq("sp_flag default is sane", sp->sp_flag, -1);
 
 	spdb_free(db);
 }

@@ -146,11 +146,12 @@ int main(int argc, char **argv)
 		}
 	}
 
+	int have_output = 1;
 	char *ps1 = NULL;
-	char *rline = NULL;
+	char *rline = NULL, *line = NULL;
 	do {
 		if (interactive) {
-			printf("\n");
+			if (have_output) { printf("\n"); }
 			free(ps1);
 			switch (CONTEXT.type) {
 			case CONTEXT_NONE:   ps1 = string("global> ");                  break;
@@ -160,12 +161,17 @@ int main(int argc, char **argv)
 			}
 		}
 
+		have_output = 0;
 		xfree(rline);
 		rline = readline(ps1);
 		if (!rline) { break; }
 
-		add_history(rline);
-	} while (!dispatch(opts, rline, interactive));
+		for (line = rline; *line && isspace(*line); line++)
+			;
+		if (!*line) { continue; }
+		have_output = 1;
+		add_history(line);
+	} while (!dispatch(opts, line, interactive));
 
 	printf("\n"); /* prettier on ^D */
 

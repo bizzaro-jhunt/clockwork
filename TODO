@@ -16,6 +16,9 @@ Better diagnostics, server-side
 IPv6 support (Protocol-agnostic, preferably)
 
 Add check for database availability / creation in policyd -t / cwa
+Default host support
+Regular Expression support in manifest definition
+Document custom fact creation
 
 Portability Items
 =================

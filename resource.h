@@ -145,7 +145,9 @@ struct dependency {
  */
 #define DIFFERENT(r,a) (((r)->different & a) == a)
 
+enum restype resource_type(const char *type_name);
 struct resource* resource_new(const char *type, const char *key);
+struct resource* resource_clone(const struct resource *orig, const char *key);
 void resource_free(struct resource *r);
 char *resource_key(const struct resource *r);
 struct hash* resource_attrs(const struct resource *r);

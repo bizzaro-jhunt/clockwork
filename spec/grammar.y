@@ -54,6 +54,7 @@
 %token T_KEYWORD_NOT
 %token T_KEYWORD_DEPENDS_ON
 %token T_KEYWORD_AFFECTS
+%token T_KEYWORD_DEFAULTS
 
 /* These token definitions identify the expected type of the lvalue.
    The name 'string' comes from the union members of the YYSTYPE
@@ -71,14 +72,14 @@
 /* Define the lvalue types of non-terminal productions.
    These definitions are necessary so that the $1..$n and $$ "magical"
    variables work in the generated C code. */
-/*%type <node> definitions         /* AST_OP_PROG */
+//%type <node> definitions         /* AST_OP_PROG */
 %type <manifest> manifest
 %type <stree> host policy
 %type <stree> enforcing enforce
 %type <stree> blocks block
 %type <stree> resource extension
 %type <stree> conditional alt_condition
-%type <stree> attributes attribute
+%type <stree> attributes attribute optional_attributes
 %type <stree> dependency resource_id
 
 %type <branch> conditional_test
@@ -146,17 +147,34 @@ blocks:
 block: resource | conditional | extension | dependency
 	;
 
-resource: T_IDENTIFIER value '{' attributes '}'
-		{ $$ = $4;
+resource: T_IDENTIFIER value optional_attributes
+		{ $$ = $3;
 		  $$->op = RESOURCE;
 		  $$->data1 = $1;
 		  $$->data2 = $2; }
-	| T_KEYWORD_HOST value '{' attributes '}'
+	| T_IDENTIFIER T_KEYWORD_DEFAULTS '{' attributes '}'
 		{ $$ = $4;
+		  $$->op = RESOURCE;
+		  $$->data1 = $1;
+		  $$->data2 = NULL; }
+	| T_KEYWORD_HOST value optional_attributes
+		{ $$ = $3;
 		  $$->op = RESOURCE;
 		  $$->data1 = xstrdup("host"); /* dynamic string for stree_free */
 		  $$->data2 = $2; }
+	| T_KEYWORD_HOST T_KEYWORD_DEFAULTS '{' attributes '}'
+		{ $$ = $4;
+		  $$->op = RESOURCE;
+		  $$->data1 = xstrdup("host"); /* dynamic string for stree_free */
+		  $$->data2 = NULL; }
 	;
+
+optional_attributes:
+		{ $$ = NODE(PROG, NULL, NULL); }
+	| '{' attributes '}'
+		{ $$ = $2; }
+	;
+
 
 attributes:
 		{ $$ = NODE(PROG, NULL, NULL); }

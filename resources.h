@@ -36,6 +36,7 @@
 
 #define NEW_RESOURCE(t) \
 void*          res_ ## t ## _new(const char *key); \
+void*          res_ ## t ## _clone(const void *res, const char *key); \
 void           res_ ## t ## _free(void *res); \
 char*          res_ ## t ## _key(const void *res); \
 int            res_ ## t ## _attrs(const void *res, struct hash *attrs); \
@@ -48,8 +49,9 @@ int            res_ ## t ## _notify(void *res, const struct resource *dep); \
 char*          res_ ## t ## _pack(const void *res); \
 void*          res_ ## t ## _unpack(const char *packed)
 
+#define RES_NONE 0x00
+
 #define RES_USER_ABSENT   0x80000000
-#define RES_USER_NONE     0x0000
 #define RES_USER_NAME     0x0001
 #define RES_USER_PASSWD   0x0002
 #define RES_USER_UID      0x0004
@@ -101,7 +103,6 @@ NEW_RESOURCE(user);
 
 
 #define RES_GROUP_ABSENT   0x80000000
-#define RES_GROUP_NONE     0x00
 #define RES_GROUP_NAME     0x01
 #define RES_GROUP_PASSWD   0x02
 #define RES_GROUP_GID      0x04
@@ -147,7 +148,6 @@ int res_group_remove_admin(struct res_group *rg, const char *user);
 
 
 #define RES_FILE_ABSENT   0x80000000
-#define RES_FILE_NONE     0x00
 #define RES_FILE_UID      0x01
 #define RES_FILE_GID      0x02
 #define RES_FILE_MODE     0x04
@@ -185,7 +185,6 @@ NEW_RESOURCE(file);
 
 
 #define RES_PACKAGE_ABSENT   0x80000000
-#define RES_PACKAGE_NONE     0x0
 
 /**
   A software package resource.
@@ -208,7 +207,6 @@ NEW_RESOURCE(package);
 #define RES_SERVICE_STOPPED   0x0002
 #define RES_SERVICE_ENABLED   0x0004
 #define RES_SERVICE_DISABLED  0x0010
-#define RES_SERVICE_NONE      0x0
 
 /**
   A system init service.
@@ -267,7 +265,6 @@ struct res_sysctl {
 
 NEW_RESOURCE(sysctl);
 
-#define RES_DIR_NONE    0
 #define RES_DIR_ABSENT  0x80000000
 #define RES_DIR_MODE    0x01
 #define RES_DIR_UID     0x02
@@ -295,7 +292,6 @@ struct res_dir {
 
 NEW_RESOURCE(dir);
 
-#define RES_EXEC_NONE      0x00
 #define RES_EXEC_NEEDSRUN  0x80000000
 #define RES_EXEC_UID       0x02
 #define RES_EXEC_GID       0x04

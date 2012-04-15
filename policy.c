@@ -25,14 +25,52 @@
 #include "policy.h"
 #include "resource.h"
 
+struct scope {
+	int depth;
+	struct list l;
+	struct list res_defs;
+};
+
 struct policy_generator {
 	struct policy *policy;
 	struct hash   *facts;
 	enum restype   type;
 
+	struct list scopes;
+	struct scope *scope;
+
 	struct resource *res;
 	struct dependency *dep;
 };
+
+static struct scope* push_scope(struct list *list, int depth)
+{
+	struct scope *scope = xmalloc(sizeof(struct scope));
+	list_init(&scope->res_defs);
+	scope->depth = depth;
+
+	list_add_head(&scope->l, list);
+	return scope;
+}
+
+static struct scope* pop_scope(struct list *list)
+{
+	struct scope *scope;
+
+	scope = list_node(list->next, struct scope, l);
+	if (!scope) {
+		return NULL;
+	}
+	list_del(&scope->l);
+
+	struct resource *res_def, *tmp;
+	for_each_node_safe(res_def, tmp, &scope->res_defs, l) {
+		resource_free(res_def);
+	}
+	free(scope);
+
+	return list_node(list->next, struct scope, l);
+}
 
 static void stree_free(struct stree *n)
 {
@@ -379,7 +417,34 @@ static struct resource * _policy_find_resource(struct policy_generator *pgen, co
 	return r;
 }
 
-static int _policy_generate(struct stree *node, struct policy_generator *pgen)
+static struct resource * _policy_make_resource(struct policy_generator *pgen, const char *type, const char *name)
+{
+	struct resource *res;
+	if (name == NULL) { /* default resource */
+		res = resource_new(type, NULL);
+		list_add_head(&res->l, &pgen->scope->res_defs);
+		return res;
+	}
+
+	res = _policy_find_resource(pgen, type, name);
+	if (!res) { /* new resource; check defaults */
+		enum restype rtype = resource_type(type);
+		struct resource *defaults;
+		for_each_node(defaults, &pgen->scope->res_defs, l) {
+			if (defaults->type == rtype) {
+				res = resource_clone(defaults, name);
+				break;
+			}
+		}
+		if (!res) { /* new resource; no defaults defined */
+			res = resource_new(type, name);
+		}
+	}
+
+	return res;
+}
+
+static int _policy_generate(struct stree *node, struct policy_generator *pgen, int depth)
 {
 	assert(node); // LCOV_EXCL_LINE
 	assert(pgen); // LCOV_EXCL_LINE
@@ -398,11 +463,17 @@ again:
 		goto again;
 
 	case RESOURCE:
-		pgen->res = _policy_find_resource(pgen, node->data1, node->data2);
-		if (!pgen->res) {
-			pgen->res = resource_new(node->data1, node->data2);
+		while (pgen->scope && depth <= pgen->scope->depth) {
+			pgen->scope = pop_scope(&pgen->scopes);
 		}
 
+		if (!pgen->scope) {
+			ERROR("Resource %s/%s defined outside of policy!!",
+					node->data1, (node->data2 ? node->data2 : "defaults"));
+			return -1;
+		}
+
+		pgen->res = _policy_make_resource(pgen, node->data1, node->data2);
 		if (!pgen->res) {
 			WARNING("Definition for unknown resource type '%s'", node->data1);
 		} else if (list_empty(&pgen->res->l)) {
@@ -423,7 +494,7 @@ again:
 
 	case DEPENDENCY:
 		if (node->size != 2) {
-			WARNING("Corrupt dependency: %u constituent(s)", node->size);
+			ERROR("Corrupt dependency: %u constituent(s)", node->size);
 			return -1;
 		}
 
@@ -439,9 +510,12 @@ again:
 	case PROG:
 	case NOOP:
 	case HOST:
-	case POLICY:
 	case INCLUDE:
 		/* do nothing */
+		break;
+
+	case POLICY:
+		pgen->scope = push_scope(&pgen->scopes, depth);
 		break;
 
 	default:
@@ -451,7 +525,7 @@ again:
 	}
 
 	for (i = 0; i < node->size; i++) {
-		if (_policy_generate(node->nodes[i], pgen) != 0) {
+		if (_policy_generate(node->nodes[i], pgen, depth+1) != 0) {
 			return -1;
 		}
 	}
@@ -480,7 +554,11 @@ struct policy* policy_generate(struct stree *root, struct hash *facts)
 	pgen.facts = facts;
 	pgen.policy = policy_new(root->data1);
 
-	if (_policy_generate(root, &pgen) != 0) {
+	/* set up scopes for default values */
+	list_init(&pgen.scopes);
+	pgen.scope = NULL;
+
+	if (_policy_generate(root, &pgen, 0) != 0) {
 		policy_free(pgen.policy);
 		return NULL;
 	}

@@ -16,7 +16,7 @@ syn match     polComment        "#.*" contains=polTodo
 syn match     polType           /host\|policy\|user\|file\|group\|package\|service\|sysctl\|dir\|exec/
 syn keyword   polKeyword        if unless else map is not
 syn match     polDepKeyword     /depends  *on\|affects/
-syn keyword   polPreProc        enforce extend include
+syn keyword   polPreProc        enforce extend include defaults
 
 syn match     polFact           /\(\i\+\)\(\.\i\+\)\+/
 syn match     polAttribute      /\I\i*\s*\(:\)\@=/ display

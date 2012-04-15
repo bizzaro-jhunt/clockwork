@@ -87,7 +87,7 @@ struct manifest {
 struct policy {
 	char *name;               /* policy name */
 
-	struct list resources;    /* resources defined fror policy */
+	struct list resources;    /* resources defined for policy */
 	struct list dependencies; /* resource dependencies (implicit and explicit) */
 
 	struct hash *index;       /* resources, keyed by "TYPE:pkey" */

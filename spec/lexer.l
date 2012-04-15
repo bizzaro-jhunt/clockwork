@@ -83,6 +83,8 @@ affects             { return T_KEYWORD_AFFECTS; }
 enforce { return T_KEYWORD_ENFORCE; }
 extend  { return T_KEYWORD_EXTEND; }
 
+defaults { return T_KEYWORD_DEFAULTS; }
+
 include[ \t]+  { BEGIN(INCLUDE); }
 <INCLUDE>\"[^\"\n]*[\"\n] { 
 	yylval->string = strdup(yytext + 1);

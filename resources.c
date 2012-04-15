@@ -44,6 +44,9 @@ static int _mkdir_p(const char *path);
 static int _mkdir_c(const char *path);
 static int _setup_path_deps(const char *key, const char *path, struct policy *pol);
 
+#define RES_DEFAULT(orig,field,dflt) ((orig) ? (orig)->field : (dflt))
+#define RES_DEFAULT_STR(orig,field,dflt) xstrdup(RES_DEFAULT((orig),field,(dflt)))
+
 /*****************************************************************/
 
 static int _res_user_populate_home(const char *home, const char *skel, uid_t uid, gid_t gid)
@@ -311,28 +314,33 @@ failed:
 
 void* res_user_new(const char *key)
 {
-	struct res_user *ru;
+	return res_user_clone(NULL, key);
+}
 
-	ru = xmalloc(sizeof(struct res_user));
+void* res_user_clone(const void *res, const char *key)
+{
+	struct res_user *orig = (struct res_user*)(res);
+	struct res_user *ru = ru = xmalloc(sizeof(struct res_user));
 
-	ru->ru_uid    = -1;
-	ru->ru_uid    = -1;
-	ru->ru_mkhome = 0;
-	ru->ru_lock   = 1;
-	ru->ru_pwmin  = 0;
-	ru->ru_pwmax  = 0;
-	ru->ru_pwwarn = 0;
-	ru->ru_inact  = 0;
+	ru->enforced  = RES_DEFAULT(orig, enforced, RES_NONE);
+	ru->different = RES_NONE;
 
-	ru->enforced = RES_USER_NONE;
-	ru->different = RES_USER_NONE;
+	ru->ru_uid    = RES_DEFAULT(orig, ru_uid,    -1);
+	ru->ru_gid    = RES_DEFAULT(orig, ru_gid,    -1);
+	ru->ru_mkhome = RES_DEFAULT(orig, ru_mkhome,  0);
+	ru->ru_lock   = RES_DEFAULT(orig, ru_lock,    1);
+	ru->ru_pwmin  = RES_DEFAULT(orig, ru_pwmin,   0);
+	ru->ru_pwmax  = RES_DEFAULT(orig, ru_pwmax,   0);
+	ru->ru_pwwarn = RES_DEFAULT(orig, ru_pwwarn,  0);
+	ru->ru_inact  = RES_DEFAULT(orig, ru_inact,   0);
+	ru->ru_expire = RES_DEFAULT(orig, ru_expire, -1);
 
-	ru->ru_name   = NULL;
-	ru->ru_passwd = NULL;
-	ru->ru_gecos  = NULL;
-	ru->ru_dir    = NULL;
-	ru->ru_shell  = NULL;
-	ru->ru_skel   = NULL;
+	ru->ru_name   = RES_DEFAULT_STR(orig, ru_name,   NULL);
+	ru->ru_passwd = RES_DEFAULT_STR(orig, ru_passwd, NULL);
+	ru->ru_gecos  = RES_DEFAULT_STR(orig, ru_gecos,  NULL);
+	ru->ru_shell  = RES_DEFAULT_STR(orig, ru_shell,  NULL);
+	ru->ru_dir    = RES_DEFAULT_STR(orig, ru_dir,    NULL);
+	ru->ru_skel   = RES_DEFAULT_STR(orig, ru_skel,   NULL);
 
 	ru->ru_pw     = NULL;
 	ru->ru_sp     = NULL;
@@ -523,7 +531,7 @@ int res_user_stat(void *res, const struct resource_env *env)
 	}
 
 	locked = (ru->ru_sp->sp_pwdp && *(ru->ru_sp->sp_pwdp) == '!') ? 1 : 0;
-	ru->different = RES_USER_NONE;
+	ru->different = RES_NONE;
 
 	if (ENFORCED(ru, RES_USER_NAME) && strcmp(ru->ru_name, ru->ru_pw->pw_name) != 0) {
 		DIFF(ru, RES_USER_NAME);
@@ -910,32 +918,36 @@ int res_user_notify(void *res, const struct resource *dep) { return 0; }
 
 void* res_file_new(const char *key)
 {
-	struct res_file *rf;
+	return res_file_clone(NULL, key);
+}
 
-	rf = xmalloc(sizeof(struct res_file));
+void* res_file_clone(const void *res, const char *key)
+{
+	const struct res_file *orig = (const struct res_file*)(res);
+	struct res_file *rf = xmalloc(sizeof(struct res_file));
 
-	rf->enforced = 0;
-	rf->different = 0;
-	memset(&rf->rf_stat, 0, sizeof(struct stat));
-	rf->rf_exists = 0;
+	rf->enforced    = RES_DEFAULT(orig, enforced,  RES_NONE);
+	rf->different   = RES_NONE;
 
-	rf->rf_owner = NULL;
-	rf->rf_uid = 0;
+	rf->rf_owner    = RES_DEFAULT_STR(orig, rf_owner, NULL);
+	rf->rf_group    = RES_DEFAULT_STR(orig, rf_group, NULL);
 
-	rf->rf_group = NULL;
-	rf->rf_gid = 0;
+	rf->rf_uid      = RES_DEFAULT(orig, rf_uid, 0);
+	rf->rf_gid      = RES_DEFAULT(orig, rf_gid, 0);
 
-	rf->rf_mode = 0600; /* sane default... */
+	rf->rf_mode     = RES_DEFAULT(orig, rf_mode, 0600);
 
-	rf->rf_lpath = NULL;
-	rf->rf_rpath = NULL;
-	rf->rf_template = NULL;
+	rf->rf_lpath    = RES_DEFAULT_STR(orig, rf_lpath, NULL);
+	rf->rf_rpath    = RES_DEFAULT_STR(orig, rf_rpath, NULL);
+	rf->rf_template = RES_DEFAULT_STR(orig, rf_template, NULL);
 
 	sha1_init(&(rf->rf_lsha1), NULL);
 	sha1_init(&(rf->rf_rsha1), NULL);
+	memset(&rf->rf_stat, 0, sizeof(struct stat));
+	rf->rf_exists   = 0;
+
 
 	rf->key = NULL;
-
 	if (key) {
 		rf->key = strdup(key);
 		res_file_set(rf, "path", key);
@@ -1146,7 +1158,7 @@ int res_file_stat(void *res, const struct resource_env *env)
 		}
 	}
 
-	rf->different = RES_FILE_NONE;
+	rf->different = RES_NONE;
 
 	if (ENFORCED(rf, RES_FILE_UID) && rf->rf_uid != rf->rf_stat.st_uid) {
 		DIFF(rf, RES_FILE_UID);
@@ -1328,33 +1340,40 @@ int res_file_notify(void *res, const struct resource *dep) { return 0; }
 
 void* res_group_new(const char *key)
 {
-	struct res_group *rg;
+	return res_group_clone(NULL, key);
+}
 
-	rg = xmalloc(sizeof(struct res_group));
+void* res_group_clone(const void *res, const char *key)
+{
+	const struct res_group *orig = (const struct res_group*)(res);
+	struct res_group *rg = xmalloc(sizeof(struct res_group));
 
-	rg->rg_name = NULL;
-	rg->rg_passwd = NULL;
-	rg->rg_gid = 0;
+	rg->enforced  = RES_DEFAULT(orig, enforced, RES_NONE);
+	rg->different = RES_NONE;
 
-	rg->rg_grp = NULL;
-	rg->rg_sg  = NULL;
+	rg->rg_name   = RES_DEFAULT_STR(orig, rg_name,   NULL);
+	rg->rg_passwd = RES_DEFAULT_STR(orig, rg_passwd, NULL);
 
-	rg->rg_mem = NULL;
+	rg->rg_gid    = RES_DEFAULT(orig, rg_gid, 0);
+
+	/* FIXME: clone members of res_group */
 	rg->rg_mem_add = stringlist_new(NULL);
 	rg->rg_mem_rm  = stringlist_new(NULL);
 
-	rg->rg_adm = NULL;
+	/* FIXME: clone admins of res_group */
 	rg->rg_adm_add = stringlist_new(NULL);
 	rg->rg_adm_rm  = stringlist_new(NULL);
 
-	rg->enforced  = RES_GROUP_NONE;
-	rg->different = RES_GROUP_NONE;
+	/* state variables are never cloned */
+	rg->rg_grp = NULL;
+	rg->rg_sg  = NULL;
+	rg->rg_mem = NULL;
+	rg->rg_adm = NULL;
 
+	rg->key = NULL;
 	if (key) {
 		rg->key = strdup(key);
 		res_group_set(rg, "name", key);
-	} else {
-		rg->key = NULL;
 	}
 
 	return rg;
@@ -1657,7 +1676,7 @@ int res_group_stat(void *res, const struct resource_env *env)
 	stringlist_remove_all(rg->rg_adm, rg->rg_adm_rm);
 	stringlist_uniq(rg->rg_adm);
 
-	rg->different = RES_GROUP_NONE;
+	rg->different = RES_NONE;
 
 	if (ENFORCED(rg, RES_GROUP_NAME) && strcmp(rg->rg_name, rg->rg_grp->gr_name) != 0) {
 		DIFF(rg, RES_GROUP_NAME);
@@ -1904,22 +1923,30 @@ void* res_group_unpack(const char *packed)
 
 int res_group_notify(void *res, const struct resource *dep) { return 0; }
 
+/*****************************************************************/
 
 void* res_package_new(const char *key)
 {
-	struct res_package *rp;
+	return res_package_clone(NULL, key);
+}
 
-	rp = xmalloc(sizeof(struct res_package));
+void* res_package_clone(const void *res, const char *key)
+{
+	const struct res_package *orig = (const struct res_package*)(res);
+	struct res_package *rp = xmalloc(sizeof(struct res_package));
 
-	rp->enforced = 0;
-	rp->different = 0;
-	rp->version = NULL;
+	rp->enforced  = RES_DEFAULT(orig, enforced, RES_NONE);
+	rp->different = RES_NONE;
 
+	rp->version   = RES_DEFAULT_STR(orig, version, NULL);
+
+	/* state variables are never cloned */
+	rp->installed = NULL;
+
+	rp->key = NULL;
 	if (key) {
 		rp->key = strdup(key);
 		res_package_set(rp, "name", key);
-	} else {
-		rp->key = NULL;
 	}
 
 	return rp;
@@ -2111,15 +2138,25 @@ void* res_package_unpack(const char *packed)
 
 int res_package_notify(void *res, const struct resource *dep) { return 0; }
 
+/*****************************************************************/
 
 void* res_service_new(const char *key)
 {
-	struct res_service *rs;
+	return res_service_clone(NULL, key);
+}
 
-	rs = xmalloc(sizeof(struct res_service));
+void* res_service_clone(const void *res, const char *key)
+{
+	const struct res_service *orig = (const struct res_service*)(res);
+	struct res_service *rs = xmalloc(sizeof(struct res_service));
 
-	rs->enforced = 0;
-	rs->different = 0;
+	rs->enforced  = RES_DEFAULT(orig, enforced, RES_NONE);
+	rs->different = RES_NONE;
+
+	/* state variables are never cloned */
+	rs->notified = 0;
+	rs->running = 0;
+	rs->enabled = 0;
 
 	rs->key = NULL;
 	if (key) {
@@ -2355,17 +2392,28 @@ int res_service_notify(void *res, const struct resource *dep)
 	return 0;
 }
 
+/*****************************************************************/
 
 void* res_host_new(const char *key)
 {
-	struct res_host *rh;
+	return res_host_clone(NULL, key);
+}
 
-	rh = xmalloc(sizeof(struct res_host));
+void* res_host_clone(const void *res, const char *key)
+{
+	const struct res_host *orig = (const struct res_host*)(res);
+	struct res_host *rh = xmalloc(sizeof(struct res_host));
 
-	rh->enforced = 0;
-	rh->different = 0;
+	rh->enforced  = RES_DEFAULT(orig, enforced, RES_NONE);
+	rh->different = RES_NONE;
 
+	/* FIXME: clone host aliases */
 	rh->aliases = stringlist_new(NULL);
+
+	rh->ip = RES_DEFAULT_STR(orig, ip, NULL);
+
+	/* state variables are never cloned */
+	rh->aug_root = NULL;
 
 	rh->key = NULL;
 	if (key) {
@@ -2677,16 +2725,26 @@ void* res_host_unpack(const char *packed)
 
 int res_host_notify(void *res, const struct resource *dep) { return 0; }
 
+/*****************************************************************/
 
 void* res_sysctl_new(const char *key)
 {
-	struct res_sysctl *rs;
+	return res_sysctl_clone(NULL, key);
+}
 
-	rs = xmalloc(sizeof(struct res_sysctl));
+void* res_sysctl_clone(const void *res, const char *key)
+{
+	const struct res_sysctl *orig = (const struct res_sysctl*)(res);
+	struct res_sysctl *rs = xmalloc(sizeof(struct res_sysctl));
 
-	rs->persist = 1; /* persist values by default... */
-	rs->enforced = RES_SYSCTL_PERSIST;
-	rs->different = 0;
+	rs->enforced  = RES_DEFAULT(orig, enforced, RES_NONE);
+	rs->different = RES_NONE;
+
+	/* persist sysctl changes, by default */
+	rs->persist = RES_DEFAULT(orig, persist, 1);
+
+	rs->param = RES_DEFAULT_STR(orig, param, NULL);
+	rs->value = RES_DEFAULT_STR(orig, value, NULL);
 
 	rs->key = NULL;
 	if (key) {
@@ -2888,21 +2946,31 @@ void* res_sysctl_unpack(const char *packed)
 
 int res_sysctl_notify(void* res, const struct resource *dep) { return 0; }
 
+/*****************************************************************/
 
 void* res_dir_new(const char *key)
 {
-	struct res_dir *rd;
+	return res_dir_clone(NULL, key);
+}
 
-	rd = xmalloc(sizeof(struct res_dir));
+void* res_dir_clone(const void *res, const char *key)
+{
+	const struct res_dir *orig = (const struct res_dir*)(res);
+	struct res_dir *rd = xmalloc(sizeof(struct res_dir));
 
-	rd->enforced = 0;
-	rd->different = 0;
+	rd->enforced  = RES_DEFAULT(orig, enforced, RES_NONE);
+	rd->different = RES_NONE;
+
+	rd->owner = RES_DEFAULT_STR(orig, owner, NULL);
+	rd->group = RES_DEFAULT_STR(orig, group, NULL);
+
+	rd->uid   = RES_DEFAULT(orig, uid, 0);
+	rd->gid   = RES_DEFAULT(orig, gid, 0);
+	rd->mode  = RES_DEFAULT(orig, mode, 0700);
+
+	/* state variables are never cloned */
 	memset(&rd->stat, 0, sizeof(struct stat));
 	rd->exists = 0;
-
-	rd->uid = 0;
-	rd->gid = 0;
-	rd->mode = 0700; /* sane default... */
 
 	rd->key = NULL;
 	if (key) {
@@ -3073,7 +3141,7 @@ int res_dir_stat(void *res, const struct resource_env *env)
 	}
 	rd->exists = 1;
 
-	rd->different = RES_DIR_NONE;
+	rd->different = RES_NONE;
 
 	if (ENFORCED(rd, RES_DIR_UID) && rd->uid != rd->stat.st_uid) {
 		DIFF(rd, RES_DIR_UID);
@@ -3212,15 +3280,25 @@ int res_dir_notify(void *res, const struct resource *dep) { return 0; }
 
 void* res_exec_new(const char *key)
 {
-	struct res_exec *re;
+	return res_exec_clone(NULL, key);
+}
 
-	re = xmalloc(sizeof(struct res_exec));
+void* res_exec_clone(const void *res, const char *key)
+{
+	const struct res_exec *orig = (const struct res_exec*)(res);
+	struct res_exec *re = xmalloc(sizeof(struct res_exec));
 
-	re->enforced = 0;
-	re->different = 0;
+	re->enforced  = RES_DEFAULT(orig, enforced, RES_NONE);
+	re->different = RES_NONE;
 
-	re->uid = 0;
-	re->gid = 0;
+	re->user  = RES_DEFAULT_STR(orig, user,  NULL);
+	re->group = RES_DEFAULT_STR(orig, group, NULL);
+
+	re->uid   = RES_DEFAULT(orig, uid, 0);
+	re->gid   = RES_DEFAULT(orig, gid, 0);
+
+	re->command = RES_DEFAULT_STR(orig, command, NULL);
+	re->test    = RES_DEFAULT_STR(orig, test,    NULL);
 
 	re->key = NULL;
 	if (key) {

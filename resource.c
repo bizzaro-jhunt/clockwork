@@ -21,6 +21,7 @@
 #include "resources.h"
 
 typedef void* (*resource_new_f)(const char *key);
+typedef void* (*resource_clone_f)(const void *res, const char *key);
 typedef void (*resource_free_f)(void *res);
 typedef char* (*resource_key_f)(const void *res);
 typedef int (*resource_attrs_f)(const void *res, struct hash *attrs);
@@ -37,6 +38,7 @@ typedef void* (*resource_unpack_f)(const char *packed);
 	             .name = #t,                    \
 	      .pack_prefix = "res_" #t "::",        \
 	     .new_callback = res_ ## t ## _new,     \
+	   .clone_callback = res_ ## t ## _clone,   \
 	    .free_callback = res_ ## t ## _free,    \
 	     .key_callback = res_ ## t ## _key,     \
 	   .attrs_callback = res_ ## t ## _attrs,   \
@@ -54,6 +56,7 @@ typedef void* (*resource_unpack_f)(const char *packed);
 		const char         *pack_prefix;
 
 		resource_new_f      new_callback;
+		resource_clone_f    clone_callback;
 		resource_free_f     free_callback;
 		resource_key_f      key_callback;
 		resource_attrs_f    attrs_callback;
@@ -80,13 +83,27 @@ typedef void* (*resource_unpack_f)(const char *packed);
 
 #undef RESOURCE_TYPE
 
+enum restype resource_type(const char *name)
+{
+	assert(name);
+
+	enum restype type;
+	for (type = 0; type < RES_UNKNOWN; type++) {
+		if (strcmp(resource_types[type].name, name) == 0) {
+			return type;
+		}
+	}
+	return RES_UNKNOWN;
+}
+
 /**
   Create a new $type resource.
 
   Since this function is primarily used by the spec parser,
   $type is given as a resource type name string, like
   "user" or "service".  $key is the unqualified identifier
-  for the new resource.
+  for the new resource.  $key can be NULL, for default
+  resources.
 
   This function calls the `res_*_new` resource callback
   appropriate to the type of resource to be created.
@@ -100,25 +117,34 @@ typedef void* (*resource_unpack_f)(const char *packed);
 struct resource* resource_new(const char *type, const char *key)
 {
 	assert(type); // LCOV_EXCL_LINE
-	assert(key); // LCOV_EXCL_LINE
 
-	enum restype i;
 	struct resource *r = xmalloc(sizeof(struct resource));
 
 	list_init(&r->l);
 	r->key = NULL;
-	r->type = RES_UNKNOWN;
-	for (i = 0; i < RES_UNKNOWN; i++) {
-		if (strcmp(resource_types[i].name, type) == 0) {
-			r->type = i;
-		}
-	}
-
+	r->type = resource_type(type);
 	if (r->type == RES_UNKNOWN) {
 		free(r);
 		return NULL;
 	}
 	r->resource = (*(resource_types[r->type].new_callback))(key);
+	r->key = (*(resource_types[r->type].key_callback))(r->resource);
+	r->ndeps = 0;
+	r->deps = NULL;
+	return r;
+}
+
+struct resource* resource_clone(const struct resource *orig, const char *key)
+{
+	if (!orig || orig->type == RES_UNKNOWN) {
+		return NULL;
+	}
+
+	struct resource *r = xmalloc(sizeof(struct resource));
+	list_init(&r->l);
+	r->type = orig->type;
+
+	r->resource = (*(resource_types[r->type].clone_callback))(orig->resource, key);
 	r->key = (*(resource_types[r->type].key_callback))(r->resource);
 	r->ndeps = 0;
 	r->deps = NULL;

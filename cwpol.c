@@ -719,7 +719,7 @@ static struct cwpol_opts* cwpol_options(int argc, char **argv, int interactive)
 		{ 0, 0, 0, 0 },
 	};
 
-	int v = (interactive ? LOG_LEVEL_INFO : LOG_LEVEL_DEBUG);
+	int v = (interactive ? LOG_LEVEL_INFO : LOG_LEVEL_ERROR);
 	int opt, idx = 0;
 
 	o = xmalloc(sizeof(struct cwpol_opts));

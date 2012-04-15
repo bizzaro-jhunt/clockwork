@@ -52,10 +52,11 @@
      T_KEYWORD_DEPENDS_ON = 268,
      T_KEYWORD_AFFECTS = 269,
      T_KEYWORD_DEFAULTS = 270,
-     T_IDENTIFIER = 271,
-     T_FACT = 272,
-     T_QSTRING = 273,
-     T_NUMERIC = 274
+     T_KEYWORD_FALLBACK = 271,
+     T_IDENTIFIER = 272,
+     T_FACT = 273,
+     T_QSTRING = 274,
+     T_NUMERIC = 275
    };
 #endif
 

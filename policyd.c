@@ -328,6 +328,9 @@ static int worker_prep(struct worker *w)
 
 	pthread_mutex_lock(&manifest_mutex);
 		w->pnode = hash_get(manifest->hosts, w->peer);
+		if (!w->pnode) {
+			w->pnode = manifest->fallback;
+		}
 	pthread_mutex_unlock(&manifest_mutex);
 
 	w->policy = NULL;

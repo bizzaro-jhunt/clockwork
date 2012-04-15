@@ -335,8 +335,13 @@ COMMAND(use)
 
 	if (strcmp(type, "host") == 0) {
 		if (!(root = hash_get(MANIFEST->hosts, target))) {
-			ERROR("No such host '%s'", target);
-		} else {
+			WARNING("Host '%s' not explicitly defined; falling back to default", target);
+			if (!(root = MANIFEST->fallback)) {
+				ERROR("No default host defined", target);
+			}
+		}
+
+		if (root) {
 			set_context(CONTEXT_HOST, target, root);
 
 			/* try to load facts */

@@ -16,7 +16,7 @@ syn match     polComment        "#.*" contains=polTodo
 syn match     polType           /host\|policy\|user\|file\|group\|package\|service\|sysctl\|dir\|exec/
 syn keyword   polKeyword        if unless else map is not
 syn match     polDepKeyword     /depends  *on\|affects/
-syn keyword   polPreProc        enforce extend include defaults
+syn keyword   polPreProc        enforce extend include defaults fallback
 
 syn match     polFact           /\(\i\+\)\(\.\i\+\)\+/
 syn match     polAttribute      /\I\i*\s*\(:\)\@=/ display
@@ -41,5 +41,6 @@ hi def link   polNumber         String
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 let b:current_syntax = "pol"
+set autoindent
 
 "" vim: ts=8

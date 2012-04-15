@@ -84,6 +84,7 @@ enforce { return T_KEYWORD_ENFORCE; }
 extend  { return T_KEYWORD_EXTEND; }
 
 defaults { return T_KEYWORD_DEFAULTS; }
+fallback { return T_KEYWORD_FALLBACK; }
 
 include[ \t]+  { BEGIN(INCLUDE); }
 <INCLUDE>\"[^\"\n]*[\"\n] { 

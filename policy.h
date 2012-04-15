@@ -65,6 +65,8 @@ struct manifest {
 	struct hash *policies;  /* policy defs, hashed by name */
 	struct hash *hosts;     /* host defs, hashed by FQDN */
 
+	struct stree *fallback; /* host def for implicit hosts */
+
 	struct stree **nodes;   /* all nodes, for memory management */
 	size_t nodes_len;       /* number of nodes */
 

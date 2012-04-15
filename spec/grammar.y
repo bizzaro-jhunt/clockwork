@@ -55,6 +55,7 @@
 %token T_KEYWORD_DEPENDS_ON
 %token T_KEYWORD_AFFECTS
 %token T_KEYWORD_DEFAULTS
+%token T_KEYWORD_FALLBACK
 
 /* These token definitions identify the expected type of the lvalue.
    The name 'string' comes from the union members of the YYSTYPE
@@ -110,7 +111,11 @@ manifest:
 		{ MANIFEST(ctx) = manifest_new(); }
 	| manifest host
 		{ stree_add(MANIFEST(ctx)->root, $2);
-		  hash_set(MANIFEST(ctx)->hosts, $2->data1, $2); }
+		  if ($2->data1) {
+			hash_set(MANIFEST(ctx)->hosts, $2->data1, $2);
+		  } else {
+			MANIFEST(ctx)->fallback = $2;
+		  } }
 	| manifest policy
 		{ stree_add(MANIFEST(ctx)->root, $2);
 		  hash_set(MANIFEST(ctx)->policies, $2->data1, $2); }
@@ -120,6 +125,10 @@ host: T_KEYWORD_HOST qstring '{' enforcing '}'
 		{ $$ = $4;
 		  $$->op = HOST;
 		  $$->data1 = $2; }
+	| T_KEYWORD_HOST T_KEYWORD_FALLBACK '{' enforcing '}'
+		{ $$ = $4;
+		  $$->op = HOST;
+		  $$->data1 = NULL; }
 	;
 
 enforcing:

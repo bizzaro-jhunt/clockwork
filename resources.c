@@ -25,6 +25,7 @@
 #include <fcntl.h>
 #include <libgen.h>
 #include <sys/wait.h>
+#include <time.h>
 
 #define ENFORCE(r,f)   (r)->enforced  |=  (f)
 #define UNENFORCE(r,f) (r)->enforced  &= ~(f)
@@ -451,7 +452,13 @@ int res_user_set(void *res, const char *name, const char *value)
 	} else if (strcmp(name, "pwhash") == 0 || strcmp(name, "password") == 0) {
 		free(ru->ru_passwd);
 		ru->ru_passwd = strdup(value);
-		ENFORCE(ru, RES_USER_PASSWD);
+
+	} else if (strcmp(name, "changepw") == 0) {
+		if (strcmp(value, "no") == 0) {
+			UNENFORCE(ru, RES_USER_PASSWD);
+		} else {
+			ENFORCE(ru, RES_USER_PASSWD);
+		}
 
 	} else if (strcmp(name, "pwmin") == 0) {
 		ru->ru_pwmin = strtoll(value, NULL, 10);
@@ -527,6 +534,10 @@ int res_user_stat(void *res, const struct resource_env *env)
 	ru->ru_sp = spdb_get_by_name(env->user_spdb, ru->ru_name);
 	if (!ru->ru_pw || !ru->ru_sp) { /* new account */
 		ru->different = ru->enforced;
+		if (ru->ru_passwd) {
+			/* always provision with password */
+			DIFF(ru, RES_USER_PASSWD);
+		}
 		return 0;
 	}
 
@@ -661,6 +672,10 @@ struct report* res_user_fixup(void *res, int dryrun, const struct resource_env *
 
 			xfree(ru->ru_sp->sp_pwdp);
 			ru->ru_sp->sp_pwdp = strdup(ru->ru_passwd);
+
+			/* set "password last changed" date */
+			time_t now = time(NULL);
+			ru->ru_sp->sp_lstchg = now / 86400;
 
 			report_action(report, action, ACTION_SUCCEEDED);
 		}
@@ -1525,7 +1540,13 @@ int res_group_set(void *res, const char *name, const char *value)
 	} else if (strcmp(name, "pwhash") == 0 || strcmp(name, "password") == 0) {
 		free(rg->rg_passwd);
 		rg->rg_passwd = strdup(value);
-		ENFORCE(rg, RES_GROUP_PASSWD);
+
+	} else if (strcmp(name, "changepw") == 0) {
+		if (strcmp(value, "no") == 0) {
+			UNENFORCE(rg, RES_GROUP_PASSWD);
+		} else {
+			ENFORCE(rg, RES_GROUP_PASSWD);
+		}
 
 	} else {
 		return -1;
@@ -1660,6 +1681,11 @@ int res_group_stat(void *res, const struct resource_env *env)
 
 		rg->rg_adm = stringlist_new(NULL);
 		stringlist_add_all(rg->rg_adm, rg->rg_adm_add);
+
+		if (rg->rg_passwd) {
+			/* always provision with password */
+			DIFF(rg, RES_GROUP_PASSWD);
+		}
 
 		return 0;
 	}

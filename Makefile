@@ -157,38 +157,36 @@ manpages: $(man_gz)
 install: $(inst_targets)
 
 install-agent: install-base build-agent manpages
-	install    -o $(CWUSER) -g $(CWGROUP) -m 0700 cwa cwcert              $(DESTDIR)$(SBINDIR)
-	install    -o $(CWUSER) -g $(CWGROUP) -m 0640 share/samples/cwa.conf  $(DESTDIR)$(ETCDIR)
-	install    -o root      -g root       -m 0644 share/man/cwa.1.gz      $(DESTDIR)$(MANDIR)/man1
-	install    -o root      -g root       -m 0644 share/man/cwa.conf.5.gz $(DESTDIR)$(MANDIR)/man5
-	install    -o root      -g root       -m 0644 share/db/agent.sql      $(DESTDIR)$(SHAREDIR)
-	install    -o root      -g root       -m 0644 var/augeas/lenses/*     $(DESTDIR)$(VARLIBDIR)/augeas/lenses
+	install    -m 0700 cwa cwcert              $(DESTDIR)$(SBINDIR)
+	install    -m 0640 share/samples/cwa.conf  $(DESTDIR)$(ETCDIR)
+	install    -m 0644 share/man/cwa.1.gz      $(DESTDIR)$(MANDIR)/man1
+	install    -m 0644 share/man/cwa.conf.5.gz $(DESTDIR)$(MANDIR)/man5
+	install    -m 0644 share/db/agent.sql      $(DESTDIR)$(SHAREDIR)
+	install    -m 0644 var/augeas/lenses/*     $(DESTDIR)$(VARLIBDIR)/augeas/lenses
 
 install-master: install-base build-master manpages
-	install -d -o $(CWUSER) -g $(CWGROUP) -m 0750 $(DESTDIR)$(VARDIR)/cache/clockwork/facts
-	install -d -o $(CWUSER) -g $(CWGROUP) -m 0750 $(DESTDIR)$(ETCDIR)/ssl/pending
-	install -d -o $(CWUSER) -g $(CWGROUP) -m 0750 $(DESTDIR)$(ETCDIR)/ssl/certs
-	install    -o $(CWUSER) -g $(CWGROUP) -m 0700 policyd cwca cwpol          $(DESTDIR)$(SBINDIR)
-	install    -o $(CWUSER) -g $(CWGROUP) -m 0640 share/samples/policyd.conf  $(DESTDIR)$(ETCDIR)
-	install    -o $(CWUSER) -g $(CWGROUP) -m 0640 share/samples/manifest.pol  $(DESTDIR)$(ETCDIR)
-	install    -o root      -g root       -m 0644 share/man/policyd.1.gz      $(DESTDIR)$(MANDIR)/man1
-	install    -o root      -g root       -m 0644 share/man/cwpol.1.gz        $(DESTDIR)$(MANDIR)/man1
-	install    -o root      -g root       -m 0644 share/man/policyd.conf.5.gz $(DESTDIR)$(MANDIR)/man5
-	install    -o root      -g root       -m 0644 share/man/res_*.5.gz        $(DESTDIR)$(MANDIR)/man5
-	install    -o root      -g root       -m 0644 share/man/clockwork.7.gz    $(DESTDIR)$(MANDIR)/man7
-	install    -o root      -g root       -m 0644 share/help/*                $(DESTDIR)$(SHAREDIR)/help
-	install    -o root      -g root       -m 0644 share/db/master.sql         $(DESTDIR)$(SHAREDIR)
+	install -d -m 0750 $(DESTDIR)$(VARDIR)/cache/clockwork/facts
+	install -d -m 0750 $(DESTDIR)$(ETCDIR)/ssl/pending
+	install -d -m 0750 $(DESTDIR)$(ETCDIR)/ssl/certs
+	install    -m 0700 policyd cwca cwpol          $(DESTDIR)$(SBINDIR)
+	install    -m 0640 share/samples/policyd.conf  $(DESTDIR)$(ETCDIR)
+	install    -m 0640 share/samples/manifest.pol  $(DESTDIR)$(ETCDIR)
+	install    -m 0644 share/man/policyd.1.gz      $(DESTDIR)$(MANDIR)/man1
+	install    -m 0644 share/man/cwpol.1.gz        $(DESTDIR)$(MANDIR)/man1
+	install    -m 0644 share/man/policyd.conf.5.gz $(DESTDIR)$(MANDIR)/man5
+	install    -m 0644 share/man/res_*.5.gz        $(DESTDIR)$(MANDIR)/man5
+	install    -m 0644 share/man/clockwork.7.gz    $(DESTDIR)$(MANDIR)/man7
+	install    -m 0644 share/help/*                $(DESTDIR)$(SHAREDIR)/help
+	install    -m 0644 share/db/master.sql         $(DESTDIR)$(SHAREDIR)
 
 install-base:
-	getent group $(CWGROUP) >/dev/null || groupadd -r $(CWGROUP)
-	getent passwd $(CWUSER) >/dev/null || useradd -Mr -c "Clockwork" -g $(CWGROUP) -d $(HOMEDIR) $(CWUSER)
-	install -d -o root      -g root       -m 0755 $(DESTDIR)$(SBINDIR)
-	install -d -o root      -g root       -m 0755 $(DESTDIR)$(MANDIR)/man1
-	install -d -o root      -g root       -m 0755 $(DESTDIR)$(MANDIR)/man5
-	install -d -o root      -g root       -m 0755 $(DESTDIR)$(MANDIR)/man7
-	install -d -o $(CWUSER) -g $(CWGROUP) -m 0750 $(DESTDIR)$(VARLIBDIR)/augeas/lenses
-	install -d -o $(CWUSER) -g $(CWGROUP) -m 0750 $(DESTDIR)$(ETCDIR)/ssl
-	install -d -o $(CWUSER) -g $(CWGROUP) -m 0755 $(DESTDIR)$(SHAREDIR)/help
+	install -d -m 0755 $(DESTDIR)$(SBINDIR)
+	install -d -m 0755 $(DESTDIR)$(MANDIR)/man1
+	install -d -m 0755 $(DESTDIR)$(MANDIR)/man5
+	install -d -m 0755 $(DESTDIR)$(MANDIR)/man7
+	install -d -m 0750 $(DESTDIR)$(VARLIBDIR)/augeas/lenses
+	install -d -m 0750 $(DESTDIR)$(ETCDIR)/ssl
+	install -d -m 0755 $(DESTDIR)$(SHAREDIR)/help
 
 echo:
 	echo $(ECHOVAR)

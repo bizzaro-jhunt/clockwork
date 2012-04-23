@@ -57,7 +57,7 @@ make install DESTDIR=%{buildroot}
 # Init scripts
 %{__install} -D -p -m 755 share/rpm/policyd.init %{buildroot}/etc/init.d/policyd
 # Gatherer scripts
-%{__install} -d -o root -g root %{buildroot}/var/lib/clockwork/gather.d
+%{__install} -d %{buildroot}/var/lib/clockwork/gather.d
 %{__install} -D -p -m 755 share/gather.d/* %{buildroot}/var/lib/clockwork/gather.d
 
 %clean

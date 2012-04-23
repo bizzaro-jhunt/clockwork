@@ -2069,6 +2069,10 @@ int res_package_stat(void *res, const struct resource_env *env)
 	free(rp->installed);
 	rp->installed = package_version(env->package_manager, rp->name);
 
+	if (xstrcmp(rp->version, "latest") == 0) {
+		rp->version = package_latest(env->package_manager, rp->name);
+	}
+
 	return 0;
 }
 

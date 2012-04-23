@@ -22,17 +22,20 @@
 
 #define DEFINE_PM_QUERY(t)    int  package_manager_ ## t ## _query(const char *package, const char *version)
 #define DEFINE_PM_VERSION(t) char* package_manager_ ## t ## _version(const char *package)
+#define DEFINE_PM_LATEST(t)  char* package_manager_ ## t ## _latest(const char *package)
 #define DEFINE_PM_INSTALL(t)  int  package_manager_ ## t ## _install(const char *package, const char *version)
 #define DEFINE_PM_REMOVE(t)   int  package_manager_ ## t ## _remove(const char *package)
 
 #define NEW_PACKAGE_MANAGER(t) \
 DEFINE_PM_QUERY(t); \
 DEFINE_PM_VERSION(t); \
+DEFINE_PM_LATEST(t); \
 DEFINE_PM_INSTALL(t); \
 DEFINE_PM_REMOVE(t); \
 const struct package_manager PM_ ## t ## _struct = { \
 	.query   = package_manager_ ## t ## _query, \
 	.version = package_manager_ ## t ## _version, \
+	.latest  = package_manager_ ## t ## _latest, \
 	.install = package_manager_ ## t ## _install, \
 	.remove  = package_manager_ ## t ## _remove }; \
 const struct package_manager *PM_ ## t = &PM_ ## t ## _struct
@@ -76,6 +79,11 @@ DEFINE_PM_VERSION(dpkg_apt) {
 	if (*v == '-') { *v = '\0'; }
 
 	return version;
+}
+
+DEFINE_PM_LATEST(dpkg_apt) {
+	/* FIXME: figure out how to get latest available pkg version on debian */
+	return NULL;
 }
 
 DEFINE_PM_INSTALL(dpkg_apt) {
@@ -128,6 +136,23 @@ DEFINE_PM_VERSION(rpm_yum) {
 	int rc;
 
 	command = string("/bin/rpm --qf='%%{VERSION}' -q %s | /bin/grep -v 'is not installed$'", package);
+	rc = exec_command(command, &version, NULL);
+	free(command);
+
+	if (*version == '\0') {
+		free(version);
+		return NULL;
+	}
+
+	return version;
+}
+
+DEFINE_PM_LATEST(rpm_yum) {
+	char *command;
+	char *version;
+	int rc;
+
+	command = string("/usr/bin/repoquery --qf '%%{VERSION}' -q %s", package);
 	rc = exec_command(command, &version, NULL);
 	free(command);
 

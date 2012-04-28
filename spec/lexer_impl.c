@@ -82,6 +82,10 @@ static int lexer_close(spec_parser_context *ctx)
 	if (seen && seen->io) {
 		fclose(seen->io);
 		seen->io = NULL;
+
+		list_del(&seen->ls);
+		free(seen);
+
 		return 0;
 	}
 	return -1;

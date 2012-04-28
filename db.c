@@ -32,10 +32,8 @@
 #endif
 
 #define FINALIZE(stmt) do { \
-	if (stmt) { \
-		rc = sqlite3_finalize(stmt); \
-		(stmt) = NULL; \
-	} \
+	rc = sqlite3_finalize(stmt); \
+	(stmt) = NULL; \
 } while (0);
 
 #define BIND_INT(stmt,n,v) do { \
@@ -77,13 +75,14 @@ struct db* db_open(enum db_type type, const char *path)
 	db->db_type = type;
 
 	if (sqlite3_open(path, &db->db) != 0) {
+		INFO("failed to open database at %s", path);
 		sqlite3_close(db->db);
 		free(db);
-		DEBUG("sqlite3_open failed");
 		return NULL;
 	}
 
 	db->path = xstrdup(path);
+	INFO("opened database at %s", db->path);
 	return db;
 }
 
@@ -95,9 +94,22 @@ struct db* db_open(enum db_type type, const char *path)
  */
 int db_close(struct db *db)
 {
-	assert(db); // LCOV_EXCL_LINE
-	sqlite3_close(db->db);
-	db->db = NULL;
+	if (db) {
+		int rc = sqlite3_close(db->db);
+		if (rc == SQLITE_OK) {
+			INFO("closing database %s", db->path);
+			free(db->path);
+			free(db);
+			return 0;
+		}
+
+		if (rc == SQLITE_BUSY) {
+			ERROR("can't close reporting database; sqlite is BUSY");
+		} else {
+			ERROR("can't close reporting database; sqlite3_close returned %i", rc);
+		}
+		return -1;
+	}
 	return 0;
 }
 
@@ -131,7 +143,7 @@ rowid masterdb_host(struct db *db, const char *host)
 		/* no break; fall-through */
 
 	default:
-		sqlite3_finalize(stmt);
+		FINALIZE(stmt);
 		return host_id;
 	}
 
@@ -213,6 +225,8 @@ int masterdb_store_report(struct db *db, rowid host_id, struct job *job)
 		}
 		RESET_SQL(r_stmt);
 	}
+	FINALIZE(a_stmt);
+	FINALIZE(r_stmt);
 
 	return 0;
 
@@ -288,11 +302,14 @@ int agentdb_store_report(struct db *db, struct job *job)
 		}
 		RESET_SQL(r_stmt);
 	}
+	FINALIZE(a_stmt);
+	FINALIZE(r_stmt);
 
 	return 0;
 
 failure:
 	DEBUG("Sqlite3 Error: %s", sqlite3_errmsg(db->db));
+	FINALIZE(j_stmt);
 	FINALIZE(r_stmt);
 	FINALIZE(a_stmt);
 	return -1;

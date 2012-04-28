@@ -513,6 +513,7 @@ static int handle_REPORT(struct worker *w)
 		CRITICAL("Unable to save report in reporting DB");
 		goto failed;
 	}
+	INFO("saved client report in reporting database");
 	db_close(db); db = NULL;
 
 	if (pdu_send_BYE(&w->session) < 0) { return 0; }
@@ -520,7 +521,7 @@ static int handle_REPORT(struct worker *w)
 	return 1;
 
 failed:
-	if (db) { db_close(db); }
+	db_close(db);
 	return 0;
 }
 

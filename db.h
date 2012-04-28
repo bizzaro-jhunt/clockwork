@@ -42,7 +42,7 @@ enum db_type {
  */
 struct db {
 	enum db_type   db_type; /* what type of db is this? */
-	const char    *path;    /* path to the SQLite3 db file */
+	char          *path;    /* path to the SQLite3 db file */
 	sqlite3       *db;      /* SQLite3 handle (opaque pointer) */
 };
 

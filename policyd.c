@@ -574,6 +574,7 @@ static int send_file(struct worker *w, const char *path)
 	int n;
 	while ((n = pdu_send_DATA(&w->session, fd, NULL)) > 0)
 		;
+	close(fd);
 
 	return n;
 }

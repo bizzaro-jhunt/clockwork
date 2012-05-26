@@ -305,6 +305,7 @@ unintr:
 		WARNING("Couldn't create SSL handle for worker thread");
 		protocol_ssl_backtrace();
 
+		hash_free_all(w->facts);
 		free(w);
 		return NULL;
 	}
@@ -529,7 +530,8 @@ static int handle_REPORT(struct worker *w)
 		goto failed;
 	}
 	INFO("saved client report in reporting database");
-	db_close(db); db = NULL;
+	db_close(db);
+	job_free(job);
 
 	if (pdu_send_BYE(&w->session) < 0) { return 0; }
 
@@ -537,6 +539,7 @@ static int handle_REPORT(struct worker *w)
 
 failed:
 	db_close(db);
+	job_free(job);
 	return 0;
 }
 
@@ -1012,6 +1015,9 @@ die:
 	ERR_remove_state(0);
 
 	free(w->peer);
+	hash_free_all(w->facts);
+	policy_free_all(w->policy);
+	protocol_session_deinit(&w->session);
 	free(w);
 
 	return NULL;

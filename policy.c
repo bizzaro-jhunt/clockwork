@@ -46,6 +46,8 @@ struct policy_generator {
 static struct scope* push_scope(struct list *list, int depth)
 {
 	struct scope *scope = xmalloc(sizeof(struct scope));
+
+	fprintf(stderr, "push_scope: pushed %p\n", scope);
 	list_init(&scope->res_defs);
 	scope->depth = depth;
 
@@ -58,17 +60,23 @@ static struct scope* pop_scope(struct list *list)
 	struct scope *scope;
 
 	scope = list_node(list->next, struct scope, l);
+	fprintf(stderr, "pop_scope: popped %p\n", scope);
 	if (!scope) {
 		return NULL;
 	}
 	list_del(&scope->l);
 
+	fprintf(stderr, "freeing resources\n");
 	struct resource *res_def, *tmp;
 	for_each_node_safe(res_def, tmp, &scope->res_defs, l) {
 		resource_free(res_def);
 	}
 	free(scope);
 
+	if (list_empty(list)) {
+		return NULL;
+	}
+	fprintf(stderr, "pop_scope: next is %p\n", list_node(list->next, struct scope, l));
 	return list_node(list->next, struct scope, l);
 }
 
@@ -399,6 +407,7 @@ int fact_write(FILE *io, struct hash *facts)
 		fputs(lines->strings[i], io);
 	}
 
+	stringlist_free(lines);
 	return 0;
 }
 
@@ -563,6 +572,10 @@ struct policy* policy_generate(struct stree *root, struct hash *facts)
 		return NULL;
 	}
 
+	/* pop (and free) and leftover scopes */
+	while (pop_scope(&pgen.scopes))
+		;
+
 	_policy_normalize(pgen.policy, facts);
 
 	return pgen.policy;
@@ -613,8 +626,10 @@ void policy_free(struct policy *pol)
 void policy_free_all(struct policy *pol)
 {
 	struct resource *r, *r_tmp;
+	struct dependency *d, *d_tmp;
 
 	for_each_resource_safe(r, r_tmp, pol) { resource_free(r); }
+	for_each_dependency_safe(d, d_tmp, pol) { dependency_free(d); }
 	policy_free(pol);
 }
 

@@ -99,6 +99,7 @@ include[ \t]+  { BEGIN(INCLUDE); }
 	}
 
 	lexer_include_file(yylval->string, yyget_extra(yyscanner));
+	free(yylval->string);
 	BEGIN(INITIAL);
 }
 <INCLUDE>. { spec_parser_error(yyget_extra(yyscanner), "unexpected character '%c'", yytext[0]); }

@@ -255,6 +255,8 @@ int pdu_decode_FACTS(struct pdu *pdu, struct hash *facts)
 		fact_parse(lines->strings[i], facts);
 	}
 
+	stringlist_free(lines);
+
 	DEBUG("RECV FACTS (op:%u) - %u facts", pdu->op, lines->num);
 	return 0;
 }

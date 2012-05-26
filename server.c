@@ -57,10 +57,31 @@ static struct server default_options = {
 
 /**************************************************************/
 
+static void server_free(struct server *s);
 static struct server* configured_options(const char *path);
 static int merge_servers(struct server *a, struct server *b);
 
 /**********************************************************/
+
+static void server_free(struct server *s)
+{
+	if (s) {
+		xfree(s->config_file);
+		xfree(s->manifest_file);
+		xfree(s->lock_file);
+		xfree(s->pid_file);
+		xfree(s->ca_cert_file);
+		xfree(s->crl_file);
+		xfree(s->cert_file);
+		xfree(s->key_file);
+		xfree(s->db_file);
+		xfree(s->requests_dir);
+		xfree(s->certs_dir);
+		xfree(s->cache_dir);
+		xfree(s->listen);
+	}
+	xfree(s);
+}
 
 static struct server* configured_options(const char *path)
 {
@@ -128,6 +149,8 @@ static struct server* configured_options(const char *path)
 				s->log_level = LOG_LEVEL_NONE;
 			}
 		}
+
+		hash_free_all(config);
 	}
 
 	return s;
@@ -179,9 +202,11 @@ int server_options(struct server *args)
 
 	if (merge_servers(args, cfg) != 0
 	 || merge_servers(args, &default_options) != 0) {
+		server_free(cfg);
 		return 1;
 	}
 	args->log_level += (cfg->log_level == 0 ? default_options.log_level : cfg->log_level);
+	server_free(cfg);
 
 	return 0;
 }

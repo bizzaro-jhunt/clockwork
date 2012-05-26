@@ -80,6 +80,7 @@ static int handle_REPORT(struct worker *w);
 static int handle_unknown(struct worker *w);
 
 static void sighup_handler(int, siginfo_t*, void*);
+static void sigterm_handler(int, siginfo_t*, void*);
 
 static void daemonize(const char *lock_file, const char *pid_file);
 
@@ -93,7 +94,7 @@ static int save_facts(struct worker *w);
 
 /* Thread execution functions */
 static void* worker_thread(void *arg);
-static void* manager_thread(void *arg);
+static void* signal_thread(void *arg);
 
 /**************************************************************/
 
@@ -141,6 +142,19 @@ int main(int argc, char **argv)
 		CRITICAL("Failed to initialize policyd server thread");
 		exit(2);
 	}
+
+	// Set up the signal processing thread
+	THREAD_TYPE tid;
+	THREAD_CREATE(tid, signal_thread, NULL);
+
+	sigset_t blocked_sigs;
+	sigemptyset(&blocked_sigs);
+	sigaddset(&blocked_sigs, SIGHUP);
+	sigaddset(&blocked_sigs, SIGINT);
+	sigaddset(&blocked_sigs, SIGUSR1);
+	sigaddset(&blocked_sigs, SIGUSR2);
+	sigaddset(&blocked_sigs, SIGALRM);
+
 	DEBUG("entering server_loop");
 	for (;;) {
 		w = spawn(s);
@@ -152,6 +166,7 @@ int main(int argc, char **argv)
 	}
 
 	SSL_CTX_free(s->ssl_ctx);
+	INFO("policyd shutting down");
 	return 0;
 }
 
@@ -598,13 +613,26 @@ static int send_template(struct worker *w, const char *path)
 
 static void sighup_handler(int signum, siginfo_t *info, void *udata)
 {
-	pthread_t tid;
-	void *status;
+	struct manifest *new_manifest;
 
-	DEBUG("SIGHUP handler entered");
+	new_manifest = parse_file(manifest_file);
+	if (new_manifest) {
+		INFO("Updating server manifest");
+		pthread_mutex_lock(&manifest_mutex);
+		manifest_free(manifest);
+		manifest = new_manifest;
+		pthread_mutex_unlock(&manifest_mutex);
+	} else {
+		WARNING("Unable to parse manifest; skipping");
+	}
+}
 
-	pthread_create(&tid, NULL, manager_thread, NULL);
-	pthread_join(tid, &status);
+static void sigterm_handler(int signum, siginfo_t *info, void *udata)
+{
+	INFO("Caught SIGTERM/SIGINT; requesting clean shutdown");
+	pthread_mutex_lock(&manifest_mutex);
+	manifest_free(manifest);
+	exit(1);
 }
 
 /**
@@ -884,19 +912,7 @@ static int server_init(struct server *s)
 {
 	assert(s); // LCOV_EXCL_LINE
 
-	struct sigaction sig;
-
 	if (server_init_ssl(s) != 0) { return -1; }
-
-	/* sig handlers */
-	INFO("setting up signal handlers");
-	sig.sa_sigaction = sighup_handler;
-	sig.sa_flags = SA_SIGINFO;
-	sigemptyset(&sig.sa_mask);
-	if (sigaction(SIGHUP, &sig, NULL) != 0) {
-		ERROR("Unable to set signal handlers: %s", strerror(errno));
-		return -1;
-	}
 
 	/* daemonize, if necessary */
 	if (s->daemonize == SERVER_OPT_TRUE) {
@@ -1001,21 +1017,40 @@ die:
 	return NULL;
 }
 
-static void* manager_thread(void *arg)
+static void* signal_thread(void *arg)
 {
-	struct manifest *new_manifest;
+	struct sigaction sig;
 
-	new_manifest = parse_file(manifest_file);
-	if (new_manifest) {
-		INFO("Updating server manifest");
-		pthread_mutex_lock(&manifest_mutex);
-		manifest = new_manifest;
-		pthread_mutex_unlock(&manifest_mutex);
-	} else {
-		WARNING("Unable to parse manifest; skipping");
+	/* SIGHUP: reload policy configuration */
+	INFO("setting up signal handlers");
+	sig.sa_sigaction = sighup_handler;
+	sig.sa_flags = SA_SIGINFO;
+	sigemptyset(&sig.sa_mask);
+	if (sigaction(SIGHUP, &sig, NULL) != 0) {
+		ERROR("Unable to set SIGHUP handler: %s", strerror(errno));
+		exit(2);
 	}
 
-	return NULL;
+	/* SIGTERM: clean shutdown */
+	sig.sa_sigaction = sigterm_handler;
+	sig.sa_flags = SA_SIGINFO;
+	sigemptyset(&sig.sa_mask);
+	if (sigaction(SIGTERM, &sig, NULL) != 0) {
+		ERROR("Unable to set SIGTERM handler: %s", strerror(errno));
+		exit(2);
+	}
+
+	/* SIGINTO: clean shutdown */
+	sig.sa_sigaction = sigterm_handler;
+	sig.sa_flags = SA_SIGINFO;
+	sigemptyset(&sig.sa_mask);
+	if (sigaction(SIGINT, &sig, NULL) != 0) {
+		ERROR("Unable to set SIGINT handler: %s", strerror(errno));
+		exit(2);
+	}
+
+	for (;;)
+		;
 }
 
 static int server_init_ssl(struct server *s)

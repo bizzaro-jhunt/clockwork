@@ -47,7 +47,6 @@ static struct scope* push_scope(struct list *list, int depth)
 {
 	struct scope *scope = xmalloc(sizeof(struct scope));
 
-	fprintf(stderr, "push_scope: pushed %p\n", scope);
 	list_init(&scope->res_defs);
 	scope->depth = depth;
 
@@ -60,13 +59,11 @@ static struct scope* pop_scope(struct list *list)
 	struct scope *scope;
 
 	scope = list_node(list->next, struct scope, l);
-	fprintf(stderr, "pop_scope: popped %p\n", scope);
 	if (!scope) {
 		return NULL;
 	}
 	list_del(&scope->l);
 
-	fprintf(stderr, "freeing resources\n");
 	struct resource *res_def, *tmp;
 	for_each_node_safe(res_def, tmp, &scope->res_defs, l) {
 		resource_free(res_def);
@@ -76,7 +73,6 @@ static struct scope* pop_scope(struct list *list)
 	if (list_empty(list)) {
 		return NULL;
 	}
-	fprintf(stderr, "pop_scope: next is %p\n", list_node(list->next, struct scope, l));
 	return list_node(list->next, struct scope, l);
 }
 

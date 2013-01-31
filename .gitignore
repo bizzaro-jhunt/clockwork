@@ -39,8 +39,19 @@ config.h
 /test/augeas
 
 /conf/*.output
+/conf/grammar.c
+/conf/grammar.h
+/conf/lexer.c
+
 /spec/*.output
+/spec/grammar.c
+/spec/grammar.h
+/spec/lexer.c
+
 /tpl/*.output
+/tpl/grammar.c
+/tpl/grammar.h
+/tpl/lexer.c
 
 /ext/build
 /ext/openssl

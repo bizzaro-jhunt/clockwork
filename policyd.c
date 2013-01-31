@@ -25,6 +25,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <libgen.h>
+#include <linux/limits.h>
 
 #include "cert.h"
 #include "spec/parser.h"

@@ -59,9 +59,9 @@
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
-#include <gear.h>
 
 #include "sha1.h"
 #include "mem.h"
+#include "gear/gear.h"
 
 #endif

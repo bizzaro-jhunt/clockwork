@@ -13,12 +13,14 @@
 ROOT := $(shell pwd)
 VERSION := 0.2.7
 
-LEX_FLAGS  := --header-file --yylineno
+LFLAGS     := --header-file --yylineno
 YFLAGS     := -Wall --token-table --defines
-CFLAGS     := -Wall
-CFLAGS     += $(shell pkg-config augeas --cflags)
-LDFLAGS    := $(shell pkg-config sqlite openssl augeas --libs)
-LDFLAGS    += -lpthread -lgear -lreadline
+
+CFLAGS     := $(shell pkg-config sqlite3 openssl augeas --cflags)
+CFLAGS     += -Wall
+
+LDFLAGS    := $(shell pkg-config sqlite3 openssl augeas --libs)
+LDFLAGS    += -lpthread -lreadline
 
 openssl_mode := $(shell if [ -f ext/openssl/lib/libssl.so ]; then echo local; else echo system; fi)
 ifeq ($(openssl_mode), local)
@@ -40,7 +42,7 @@ ifeq ($(BUILD_MODE),development)
   CFLAGS += -fprofile-arcs -ftest-coverage
 
   # In development mode, turn on all debugging support
-  LEX_FLAGS  += --debug --verbose
+  LFLAGS     += --debug --verbose
   YFLAGS     += --debug --report=all
   CFLAGS     += -gdwarf-2 -g -DDEVEL
 
@@ -53,7 +55,6 @@ else
 
   # In release mode, create REALLY small binaries
   CFLAGS += -fdata-sections -ffunction-sections
-  LDFLAGS += --strip-all
   CFLAGS += -Wl,--gc-sections
 
   # define the CWRELEASE macro in Release Mode
@@ -73,12 +74,8 @@ ifeq ($(BUILD_MASTER), Y)
   build_targets += build-master
 endif
 
-CC := gcc
-LD := ld $(LDFLAGS)
-#CC      := gcc $(CFLAGS)
-#LD      := ld $(LDFLAGS)
-LEX     := flex $(LEX_FLAGS)
-YACC    := bison $(YFLAGS)
+LEX     := flex
+YACC    := bison
 VG      := build/valgrind
 LCOV    := lcov --directory . --base-directory .
 GENHTML := genhtml --prefix $(shell dirname `pwd`)
@@ -117,6 +114,10 @@ manager_o     += managers/package.o
 policy_o      := policy.o resource.o resources.o job.o template.o
 policy_o      += $(manager_o)
 policy_o      += $(parser_tpl_o)
+
+# gear library (embedded)
+gear_o        := gear/hash.o gear/log.o gear/string.o gear/pack.o gear/path.o
+core_o        += $(gear_o)
 
 # Manpages
 man_gz        := $(shell ls -1 share/man/*.[157] | \
@@ -218,9 +219,9 @@ summary:
 	@echo " theme:    $(apidocs_theme)"
 	@echo
 	@echo "Commands"
-	@echo " cc:       $(CC)"
-	@echo " lex:      $(LEX)"
-	@echo " yacc:     $(YACC)"
+	@echo " cc:       $(CC) $(CFLAGS)"
+	@echo " lex:      $(LEX) $(LFLAGS)"
+	@echo " yacc:     $(YACC) $(YFLAGS)"
 	@echo " valgrind: $(VG)"
 	@echo " lcov:     $(LCOV)"
 	@echo " genhtml:  $(GENHTML)"
@@ -231,20 +232,30 @@ summary:
 # Main Binaries
 
 policyd: $(core_o) $(policy_o) policyd.o $(parser_spec_o) $(parser_conf_o) proto.o server.o db.o
+	$(CC) $(CFLAGS) $+ $(LDFLAGS) -o $@
 cwa:     $(core_o) $(policy_o) cwa.o     $(parser_conf_o) proto.o client.o db.o
+	$(CC) $(CFLAGS) $+ $(LDFLAGS) -o $@
 cwcert:  $(core_o) $(policy_o) cwcert.o  $(parser_conf_o) proto.o client.o
+	$(CC) $(CFLAGS) $+ $(LDFLAGS) -o $@
 cwca:    $(core_o) $(policy_o) cwca.o    $(parser_conf_o) server.o
+	$(CC) $(CFLAGS) $+ $(LDFLAGS) -o $@
 cwpol:   $(core_o) $(policy_o) cwpol.o   $(parser_spec_o)
+	$(CC) $(CFLAGS) $+ $(LDFLAGS) -o $@
 polspec: $(core_o) $(policy_o) polspec.o $(parser_spec_o)
+	$(CC) $(CFLAGS) $+ $(LDFLAGS) -o $@
 tplspec: $(core_o) $(policy_o) tplspec.o
+	$(CC) $(CFLAGS) $+ $(LDFLAGS) -o $@
 #sha1sum: sha1.o sha1sum.o mem.o $(core_o) $(policy_o) $(parser_spec_o) $(parser_conf_o)
+#	$(CC) $(CFLAGS) $+ $(LDFLAGS) -o $@
 
 
 ############################################################
 # Debugging Tools (mainly for CW developers)
 
-debug/service-manager: debug/service-manager.o managers/service.o exec.o mem.o
-debug/package-manager: debug/package-manager.o managers/package.o exec.o mem.o
+debug/service-manager: debug/service-manager.o managers/service.o exec.o mem.o gear/log.o gear/string.o
+	$(CC) $(CFLAGS) $+ $(LDFLAGS) -o $@
+debug/package-manager: debug/package-manager.o managers/package.o exec.o mem.o gear/log.o gear/string.o
+	$(CC) $(CFLAGS) $+ $(LDFLAGS) -o $@
 
 
 ############################################################

@@ -35,9 +35,6 @@ ifeq ($(openssl_mode), local)
 endif
 
 ifeq ($(BUILD_MODE),development)
-  # Link with the ctest testing framework
-  LDFLAGS += -lctest
-
   # Turn on gcov/lcov support
   CFLAGS += -fprofile-arcs -ftest-coverage
 
@@ -127,11 +124,12 @@ man_gz        := $(shell ls -1 share/man/*.[157] | \
 unit_test_o   := $(subst .c,.o,$(shell ls -1 test/unit/*.c))
 unit_test_o   += $(subst .c,.o,$(shell cd test/unit; ls -1 *.c | \
                    egrep -v '(assertions|bits|fact|list|run|stree|test).c'))
-unit_test_o   += prompt.o augcw.o
+unit_test_o   += prompt.o augcw.o exec.o
 unit_test_o   += $(parser_tpl_o)
 unit_test_o   += $(parser_spec_o)
 unit_test_o   += $(manager_o)
-unit_test_o   += $(core_o)
+unit_test_o   += $(gear_o)
+unit_test_o   += ctest.o
 
 # Functional Test runners
 fun_tests     := test/functional/includer
@@ -380,7 +378,9 @@ endif
 unit-tests: test/defs.h test/unit/run test/unit/helpers/proto_helper
 
 test/unit/run: $(unit_test_o)
-test/unit/helpers/proto_helper: $(core_o) $(policy_o) proto.o
+	$(CC) $(CFLAGS) $+ $(LDFLAGS) -o $@
+test/unit/helpers/proto_helper: $(core_o) $(policy_o) proto.o test/unit/helpers/proto_helper.o
+	$(CC) $(CFLAGS) $+ $(LDFLAGS) -o $@
 
 
 ############################################################
@@ -388,12 +388,18 @@ test/unit/helpers/proto_helper: $(core_o) $(policy_o) proto.o
 
 functional-tests: $(fun_tests) cwcert
 
-test/functional/includer:    test/functional/includer.o    $(core_o) $(parser_spec_o) $(policy_o)
-test/functional/factchecker: test/functional/factchecker.o $(core_o) $(parser_spec_o) $(policy_o)
-test/functional/daemoncfg:   test/functional/daemoncfg.o   $(core_o) $(parser_conf_o)
-test/functional/presence:    test/functional/presence.o    $(core_o) $(parser_spec_o) $(policy_o)
-test/functional/prompter:    test/functional/prompter.o    $(core_o)
-test/functional/executive:   test/functional/executive.o   $(core_o)
+test/functional/includer:    test/functional/includer.o    $(core_o) $(parser_spec_o) $(policy_o) ctest.o
+	$(CC) $(CFLAGS) $+ $(LDFLAGS) -o $@
+test/functional/factchecker: test/functional/factchecker.o $(core_o) $(parser_spec_o) $(policy_o) ctest.o
+	$(CC) $(CFLAGS) $+ $(LDFLAGS) -o $@
+test/functional/daemoncfg:   test/functional/daemoncfg.o   $(core_o) $(parser_conf_o) ctest.o
+	$(CC) $(CFLAGS) $+ $(LDFLAGS) -o $@
+test/functional/presence:    test/functional/presence.o    $(core_o) $(parser_spec_o) $(policy_o) ctest.o
+	$(CC) $(CFLAGS) $+ $(LDFLAGS) -o $@
+test/functional/prompter:    test/functional/prompter.o    $(core_o) ctest.o
+	$(CC) $(CFLAGS) $+ $(LDFLAGS) -o $@
+test/functional/executive:   test/functional/executive.o   $(core_o) ctest.o
+	$(CC) $(CFLAGS) $+ $(LDFLAGS) -o $@
 
 
 ############################################################

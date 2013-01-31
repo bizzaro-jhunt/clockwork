@@ -281,7 +281,7 @@ mapped_value: qstring ':' value
 		;
 
 mapped_value_default:
-		{ $$ = NULL }
+		{ $$ = NULL; }
 	| T_KEYWORD_ELSE ':' value
 		{ $$ = $3; }
 	;

@@ -10,8 +10,9 @@ cat > $F <<EOF
 This file will be deleted during a successfull test run.
 EOF
 
-F=$TEST_UNIT_TEMP/res_file/fstab
-cat > $F <<EOF
+if [[ $UID == 0 ]]; then
+	F=$TEST_UNIT_TEMP/res_file/fstab
+	cat > $F <<EOF
 #
 # /etc/fstab: file system information.
 #
@@ -21,10 +22,11 @@ LABEL=/         /               ext3    defaults        0       1
 LABEL=swap      none            swap    sw              0       0
 /dev/hda        /media/cdrom0   udf     user,noauto     0       0
 EOF
-chown 42:42 $F
-chmod 0640 $F
 
-cp $F $TEST_UNIT_DATA/res_file
+	chown 42:42 $F
+	chmod 0640 $F
+	cp $F $TEST_UNIT_DATA/res_file
+fi
 
 cat > $TEST_UNIT_TEMP/res_file/sudoers <<EOF
 # /etc/sudoers

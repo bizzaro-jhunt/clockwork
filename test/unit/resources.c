@@ -183,6 +183,7 @@ NEW_TEST(res_user_enforcement)
 
 	test("RES_USER: PASSWD enforcement");
 	res_user_set(ru, "pwhash", "!@#hash!@#");
+	res_user_set(ru, "changepw", "yes");
 	assert_true("attribute enforced", ENFORCED(ru, RES_USER_PASSWD));
 	assert_str_eq("value set properly", ru->ru_passwd, "!@#hash!@#");
 
@@ -259,7 +260,6 @@ NEW_TEST(res_user_diffstat_fixup)
 {
 	struct res_user *ru;
 	struct resource_env env;
-	struct report *report;
 
 	ru = res_user_new("svc");
 	res_user_set(ru, "uid",      "7001");
@@ -297,6 +297,8 @@ NEW_TEST(res_user_diffstat_fixup)
 	assert_true("PWMAX is out of compliance", DIFFERENT(ru, RES_USER_PWMAX));
 	assert_true("PWWARN is out of compliance", DIFFERENT(ru, RES_USER_PWWARN));
 
+#if TEST_AS_ROOT
+	struct report *report;
 	test("RES_USER: Fixups (existing account)");
 	report = res_user_fixup(ru, 0, &env);
 	assert_not_null("res_user_fixup returns a report", report);
@@ -315,17 +317,17 @@ NEW_TEST(res_user_diffstat_fixup)
 	assert_int_eq("sp_max is still set properly", ru->ru_sp->sp_max, 45);
 	assert_int_eq("sp_warn is still set properly", ru->ru_sp->sp_warn, 3);
 
+	report_free(report);
+#endif
 	res_user_free(ru);
 	pwdb_free(env.user_pwdb);
 	spdb_free(env.user_spdb);
-	report_free(report);
 }
 
 NEW_TEST(res_user_fixup_new)
 {
 	struct res_user *ru;
 	struct resource_env env;
-	struct report *report;
 
 	const char *home = TEST_UNIT_TEMP "/new_user.home";
 
@@ -352,6 +354,8 @@ NEW_TEST(res_user_fixup_new)
 	test("RES_USER: Fixups (new account)");
 	assert_int_eq("res_user_stat returns zero", res_user_stat(ru, &env), 0);
 
+#if TEST_AS_ROOT
+	struct report *report;
 	report = res_user_fixup(ru, 0, &env);
 	assert_not_null("res_user_fixup returns a report", report);
 	assert_int_eq("user is fixed", report->fixed, 1);
@@ -366,10 +370,11 @@ NEW_TEST(res_user_fixup_new)
 
 	assert_str_eq("sp_namp is set properly", ru->ru_sp->sp_namp, "new_user");
 
+	report_free(report);
+#endif
 	res_user_free(ru);
 	pwdb_free(env.user_pwdb);
 	spdb_free(env.user_spdb);
-	report_free(report);
 }
 
 NEW_TEST(res_user_fixup_remove_existing)
@@ -529,6 +534,7 @@ NEW_TEST(res_user_pack)
 	res_user_set(ru, "uid",      "123"); /* hex: 0000007b */
 	res_user_set(ru, "gid",      "999"); /* hex: 000003e7 */
 	res_user_set(ru, "password", "sooper.seecret");
+	res_user_set(ru, "changepw", "yes");
 	res_user_set(ru, "home",     "/home/user");
 	res_user_set(ru, "gecos",    "GECOS for user");
 	res_user_set(ru, "shell",    "/sbin/nologin");
@@ -669,6 +675,7 @@ NEW_TEST(res_user_attrs)
 	res_user_set(ru, "comment",    "User");
 	res_user_set(ru, "shell",      "/bin/bash");
 	res_user_set(ru, "password",   "secret");
+	res_user_set(ru, "changepw",   "yes");
 	res_user_set(ru, "pwmin",      "2");
 	res_user_set(ru, "pwmax",      "30");
 	res_user_set(ru, "pwwarn",     "7");
@@ -719,6 +726,7 @@ NEW_TEST(res_group_enforcement)
 
 	test("RES_GROUP: PASSWD enforcement");
 	res_group_set(rg, "password", "#$hash!@#$");
+	res_group_set(rg, "changepw", "yes");
 	assert_true("password enforced", ENFORCED(rg, RES_GROUP_PASSWD));
 	assert_str_eq("password set poperly", rg->rg_passwd , "#$hash!@#$");
 
@@ -989,6 +997,7 @@ NEW_TEST(res_group_match)
 	res_group_set(rg, "name", "group2");
 	res_group_set(rg, "gid",  "1337");
 	res_group_set(rg, "password", "sesame");
+	res_group_set(rg, "changepw", "yes");
 
 	test("RES_GROUP: attribute matching");
 	assert_int_eq("group2 matches name=group2", 0, res_group_match(rg, "name", "group2"));
@@ -1009,7 +1018,8 @@ NEW_TEST(res_group_pack)
 	const char *expected;
 
 	rg = res_group_new("staff");         /* rg_enf == 0000 0001 */
-	res_group_set(rg, "password", "sesame"); /* rg_enf == 0000 0011 */
+	res_group_set(rg, "password", "sesame"); /* rg_enf == UNCHANGED */
+	res_group_set(rg, "changepw", "yes");    /* rg_enf == 0000 0011 */
 	res_group_set(rg, "gid",      "1415");   /* rg_enf == 0000 0111 */
 	res_group_add_member(rg, "admin1");  /* rg_enf == 0000 1111 */
 	res_group_add_member(rg, "admin2");  /* ... */
@@ -1108,6 +1118,7 @@ NEW_TEST(res_group_attrs)
 
 	res_group_set(rg, "gid", "707");
 	res_group_set(rg, "password", "secret");
+	res_group_set(rg, "changepw", "yes");
 	assert_int_eq("retrieved res_group attrs", 0, res_group_attrs(rg, h));
 	assert_attr_hash("rg", h, "name", "gr1");
 	assert_attr_hash("rg", h, "gid", "707");
@@ -1240,6 +1251,7 @@ NEW_TEST(res_file_diffstat)
 
 NEW_TEST(res_file_remedy)
 {
+#if TEST_AS_ROOT
 	struct stat st;
 	struct res_file *rf;
 	struct resource_env env;
@@ -1294,10 +1306,12 @@ NEW_TEST(res_file_remedy)
 
 	res_file_free(rf);
 	report_free(report);
+#endif
 }
 
 NEW_TEST(res_file_fixup_new)
 {
+#if TEST_AS_ROOT
 	struct stat st;
 	struct res_file *rf;
 	struct report *report;
@@ -1337,10 +1351,12 @@ NEW_TEST(res_file_fixup_new)
 
 	res_file_free(rf);
 	report_free(report);
+#endif
 }
 
 NEW_TEST(res_file_fixup_remove_existing)
 {
+#if TEST_AS_ROOT
 	struct stat st;
 	struct res_file *rf;
 	struct report *report;
@@ -1367,6 +1383,7 @@ NEW_TEST(res_file_fixup_remove_existing)
 
 	res_file_free(rf);
 	report_free(report);
+#endif
 }
 
 NEW_TEST(res_file_fixup_remove_nonexistent)
@@ -1534,6 +1551,7 @@ NEW_TEST(res_file_attrs)
 
 NEW_TEST(res_package_diffstat_fixup)
 {
+#if TEST_AS_ROOT
 	struct res_package *r;
 	struct resource_env env;
 	struct report *report;
@@ -1589,6 +1607,7 @@ NEW_TEST(res_package_diffstat_fixup)
 	assert_str_eq("Correct version is installed", version, r->version);
 
 	free(version);
+#endif
 }
 
 NEW_TEST(res_package_match)
@@ -1695,6 +1714,7 @@ NEW_TEST(res_package_attrs)
 
 NEW_TEST(res_service_diffstat_fixup)
 {
+#if TEST_AS_ROOT
 	struct res_service *r;
 	struct resource_env env;
 	struct report *report;
@@ -1795,6 +1815,7 @@ NEW_TEST(res_service_diffstat_fixup)
 		assert_int_ne("Cleanup: service stopped",
 			service_running(DEFAULT_SM, TEST_SAFE_SVC), 0);
 	}
+#endif
 }
 
 NEW_TEST(res_service_match)
@@ -2069,7 +2090,6 @@ NEW_TEST(res_host_attrs)
 NEW_TEST(res_sysctl_diffstat_fixup)
 {
 	struct res_sysctl *r;
-	struct report *report;
 	struct resource_env env;
 
 	test("RES_SYSCTL: diffstat");
@@ -2084,20 +2104,23 @@ NEW_TEST(res_sysctl_diffstat_fixup)
 
 	/* test setup ensures that log_martians is 0 in /proc/sys */
 	assert_int_eq("res_sysctl_stat succeeds", res_sysctl_stat(r, &env), 0);
+#if TEST_AS_ROOT
 	assert_true("VALUE is out of compliance", DIFFERENT(r, RES_SYSCTL_VALUE));
+#endif
 
+#if TEST_AS_ROOT
+	struct report *report;
 	test("RES_SYSCTL: fixup");
 	report = res_sysctl_fixup(r, 0, &env);
 	assert_not_null("res_sysctl_fixup returns a report", report);
 	assert_int_eq("resource was fixed", report->fixed, 1);
 	assert_int_eq("resource is compliant", report->compliant, 1);
 
-	log_set(LOG_LEVEL_DEBUG);
 	assert_int_eq("res_systl_stat (after) succeeds", res_sysctl_stat(r, &env), 0);
 	assert_true("VALUE is now in compliance", !DIFFERENT(r, RES_SYSCTL_VALUE));
-	log_set(LOG_LEVEL_NONE);
-
 	report_free(report);
+#endif
+
 	res_sysctl_free(r);
 }
 
@@ -2135,9 +2158,15 @@ NEW_TEST(res_sysctl_pack)
 	packed = res_sysctl_pack(rs);
 	expected = "res_sysctl::\"ip\"00000003\"kernel.net.ip\"\"1\"0001";
 	assert_str_eq("packs properly (normal case)", expected, packed);
+	free(packed);
+
+	res_sysctl_set(rs, "persist", "no");
+	packed = res_sysctl_pack(rs);
+	expected = "res_sysctl::\"ip\"00000001\"kernel.net.ip\"\"1\"0000";
+	assert_str_eq("packs properly (transient case)", expected, packed);
+	free(packed);
 
 	res_sysctl_free(rs);
-	free(packed);
 }
 
 NEW_TEST(res_sysctl_unpack)
@@ -2178,7 +2207,7 @@ NEW_TEST(res_sysctl_attrs)
 	assert_int_eq("retrieved res_sysctl attrs", 0, res_sysctl_attrs(rs, h));
 	assert_attr_hash("rs", h, "param", "net.ipv4.tun");
 	assert_null("h[value] is NULL (unset)", hash_get(h, "value"));
-	assert_attr_hash("rs", h, "persist", "yes");
+	assert_attr_hash("rs", h, "persist", "no");
 
 	res_sysctl_set(rs, "value", "42");
 	res_sysctl_set(rs, "persist", "yes");
@@ -2262,6 +2291,7 @@ NEW_TEST(res_dir_diffstat)
 
 NEW_TEST(res_dir_fixup_existing)
 {
+#if TEST_AS_ROOT
 	struct stat st;
 	struct res_dir *r;
 	struct resource_env env; // needed but not used
@@ -2308,6 +2338,7 @@ NEW_TEST(res_dir_fixup_existing)
 
 	res_dir_free(r);
 	report_free(report);
+#endif
 }
 
 NEW_TEST(res_dir_match)

@@ -65,6 +65,8 @@ create_defs_dot_h() {
 #define DEFAULT_SM     $DEFAULT_SM
 #define DEFAULT_PM     $DEFAULT_PM
 
+#define TEST_AS_ROOT   $UID == 0
+
 EOF
 }
 

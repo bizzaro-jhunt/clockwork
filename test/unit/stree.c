@@ -68,25 +68,27 @@ NEW_TEST(stree_child_nodes)
 
 static struct stree* static_policy()
 {
-	struct stree *root, *node;
+	struct stree *root, *node, *pol;
 
 	root = NODE(PROG, NULL, NULL);
 	if (!root) {
 		return NULL;
 	}
 
-	node = child_of(root, NODE(RESOURCE, "file", "/etc/sudoers"));
+	pol = child_of(root, NODE(POLICY, "testing", NULL));
+
+	node = child_of(pol, NODE(RESOURCE, "file", "/etc/sudoers"));
 	child_of(node, NODE(ATTR, "owner", "root"));
 	child_of(node, NODE(ATTR, "group", "root"));
 	child_of(node, NODE(ATTR, "mode", "0600"));
 	child_of(node, NODE(ATTR, "source", "std/etc-sudoers"));
 
-	node = child_of(root, NODE(RESOURCE, "user", "user1"));
+	node = child_of(pol, NODE(RESOURCE, "user", "user1"));
 	child_of(node, NODE(ATTR, "uid", "411"));
 	child_of(node, NODE(ATTR, "gid", "1089"));
 	child_of(node, NODE(ATTR, "home", "/srv/oper/info"));
 
-	node = child_of(root, NODE(RESOURCE, "group", "group54"));
+	node = child_of(pol, NODE(RESOURCE, "group", "group54"));
 	child_of(node, NODE(ATTR, "gid", "5454"));
 
 	return root;
@@ -94,14 +96,16 @@ static struct stree* static_policy()
 
 static struct stree* conditional_policy()
 {
-	struct stree *root, *node, *tmp;
+	struct stree *root, *node, *pol, *tmp;
 
 	root = NODE(PROG, NULL, NULL);
 	if (!root) {
 		return NULL;
 	}
 
-	node = child_of(root, NODE(RESOURCE, "file", "snmpd.conf"));
+	pol = child_of(root, NODE(POLICY, "testing", NULL));
+
+	node = child_of(pol, NODE(RESOURCE, "file", "snmpd.conf"));
 	child_of(node, NODE(ATTR, "owner", "root"));
 	child_of(node, NODE(ATTR, "group", "root"));
 	child_of(node, NODE(ATTR, "mode",  "0644"));
@@ -110,7 +114,7 @@ static struct stree* conditional_policy()
 	child_of(tmp, NODE(ATTR, "source", "std/2.6.conf"));
 	child_of(tmp, NODE(ATTR, "source", "std/2.4.conf"));
 
-	node = child_of(root, NODE(IF, "lsb.distro.codename", "lucid"));
+	node = child_of(pol, NODE(IF, "lsb.distro.codename", "lucid"));
 	/* if lucid... */
 	tmp = child_of(node, NODE(RESOURCE, "user", "ubuntu"));
 	child_of(tmp, NODE(ATTR, "uid", "20050"));
@@ -157,9 +161,11 @@ NEW_TEST(stree_static_policy_generation)
 	test("stree: static stree generates static policy with empty list");
 	root = static_policy();
 	assert_not_null("(test sanity) static_policy() should return an stree pointer", root);
+	if (!root) return;
 
 	pol = policy_generate(root, NULL);
 	assert_not_null("policy defined successfully from stree", pol);
+	if (!pol) return;
 
 	assert_true("policy defined has resources", !list_empty(&pol->resources));
 
@@ -170,26 +176,32 @@ NEW_TEST(stree_static_policy_generation)
 			user_count++;
 			user = (struct res_user*)(r->resource);
 			assert_not_null("got the first res_user defined", user);
-			assert_int_eq("user->ru_uid == 411", 411, user->ru_uid);
-			assert_int_eq("user->ru_gid == 1089", 1089, user->ru_gid);
-			assert_str_eq("user->ru_dir is /srv/oper/info", "/srv/oper/info", user->ru_dir);
+			if (user) {
+				assert_int_eq("user->ru_uid == 411", 411, user->ru_uid);
+				assert_int_eq("user->ru_gid == 1089", 1089, user->ru_gid);
+				assert_str_eq("user->ru_dir is /srv/oper/info", "/srv/oper/info", user->ru_dir);
+			}
 			break;
 
 		case RES_FILE:
 			file_count++;
 			file = (struct res_file*)(r->resource);
 			assert_not_null("got the first res_file defined", file);
-			assert_int_eq("file->rf_mode == 0600", file->rf_mode, 0600);
-			assert_str_eq("file->rf_rpath is std/etc-sudoers", "std/etc-sudoers", file->rf_rpath);
-			assert_str_eq("file->rf_lpath is /etc/sudoers", "/etc/sudoers", file->rf_lpath);
+			if (user) {
+				assert_int_eq("file->rf_mode == 0600", file->rf_mode, 0600);
+				assert_str_eq("file->rf_rpath is std/etc-sudoers", "std/etc-sudoers", file->rf_rpath);
+				assert_str_eq("file->rf_lpath is /etc/sudoers", "/etc/sudoers", file->rf_lpath);
+			}
 			break;
 
 		case RES_GROUP:
 			group_count++;
 			group = (struct res_group*)(r->resource);
 			assert_not_null("got the first res_group defined", group);
-			assert_int_eq("group->rg_gid == 5454", 5454, group->rg_gid);
-			assert_str_eq("group->rg_name is group54", "group54", group->rg_name);
+			if (group) {
+				assert_int_eq("group->rg_gid == 5454", 5454, group->rg_gid);
+				assert_str_eq("group->rg_name is group54", "group54", group->rg_name);
+			}
 			break;
 
 		default:
@@ -218,11 +230,13 @@ NEW_TEST(stree_conditional_policy_generation)
 	test("stree: conditional stree generates policies based on facts");
 	root = conditional_policy();
 	assert_not_null("(test sanity) conditional_policy() should return an stree pointer", root);
+	if (!root) return;
 
 	test("stree: conditional policy generation for Lucid/2.6");
 	facts = facts_for_lucid26();
 	pol = policy_generate(root, facts);
 	assert_not_null("policy defined successfully from stree", pol);
+	if (!pol) return;
 
 	assert_policy_has_users( "policy defined has 1 user resource",    pol, 1);
 	assert_policy_has_groups("policy defined has no group resources", pol, 0);
@@ -231,8 +245,10 @@ NEW_TEST(stree_conditional_policy_generation)
 	res = NULL;
 	for_each_resource(r, pol) { if (r->type == RES_FILE) { res = r; break; } }
 	assert_not_null("first resource is not NULL", res);
+	if (!res) return;
 	file = (struct res_file*)(res->resource);
 	assert_not_null("got the first res_file defined", file);
+	if (!file) return;
 	assert_int_eq("file->rf_mode == 0644", file->rf_mode, 0644);
 	assert_str_eq("file->rf_rpath is std/2.6.conf", "std/2.6.conf", file->rf_rpath);
 	assert_str_eq("file->rf_lpath is snmpd.conf", "snmpd.conf", file->rf_lpath);
@@ -240,8 +256,10 @@ NEW_TEST(stree_conditional_policy_generation)
 	res = NULL;
 	for_each_resource(r, pol) { if (r->type == RES_USER) { res = r; break; } }
 	assert_not_null("first resource is not NULL", res);
+	if (!res) return;
 	user = (struct res_user*)(res->resource);
 	assert_not_null("got the first res_user defined", user);
+	if (!user) return;
 	assert_int_eq("user->ru_uid == 20050", 20050, user->ru_uid);
 	assert_int_eq("user->ru_gid == 20051", 20051, user->ru_gid);
 	assert_str_eq("user->ru_dir is /srv/oper/ubuntu", "/srv/oper/ubuntu", user->ru_dir);
@@ -253,6 +271,7 @@ NEW_TEST(stree_conditional_policy_generation)
 	facts = facts_for_tikanga24();
 	pol = policy_generate(root, facts);
 	assert_not_null("policy defined successfully from stree", pol);
+	if (!pol) return;
 
 	assert_policy_has_users( "policy defined has no user resources",  pol, 0);
 	assert_policy_has_groups("policy defined has no group resources", pol, 0);
@@ -261,8 +280,10 @@ NEW_TEST(stree_conditional_policy_generation)
 	res = NULL;
 	for_each_resource(r, pol) { if (r->type == RES_FILE) { res = r; break; } }
 	assert_not_null("first file resource is not NULL", res);
+	if (!res) return;
 	file = (struct res_file*)(res->resource);
 	assert_not_null("got the first res_file defined", file);
+	if (!file) return;
 	assert_int_eq("file->rf_mode == 0644", file->rf_mode, 0644);
 	assert_str_eq("file->rf_rpath is std/2.4.conf", "std/2.4.conf", file->rf_rpath);
 	assert_str_eq("file->rf_lpath is snmpd.conf", "snmpd.conf", file->rf_lpath);
@@ -273,15 +294,17 @@ NEW_TEST(stree_conditional_policy_generation)
 
 static struct stree* prog_policy()
 {
-	struct stree *root, *node, *res, *prog;
+	struct stree *root, *node, *pol, *res, *prog;
 
 	root = NODE(PROG, NULL, NULL);
 	if (!root) {
 		return NULL;
 	}
 
+	pol = child_of(root, NODE(POLICY, "testing", NULL));
+
 	/* if test.users == "2" */
-	node = child_of(root, NODE(IF, "test.users", "2"));
+	node = child_of(pol, NODE(IF, "test.users", "2"));
 	prog = child_of(node, NODE(PROG, NULL, NULL));
 
 		/* define group103 */
@@ -329,18 +352,22 @@ NEW_TEST(stree_prog_policy_generation)
 	test("stree: prog(resssion) stree generates policies based on facts");
 	root = prog_policy();
 	assert_not_null("(test sanity) prog_policy should return an stree pointer", root);
+	if (!root) return;
 
 	test("stree: prog(ression) policy generation for 1 group");
 	facts = facts_for_prog1();
 	pol = policy_generate(root, facts);
 	assert_not_null("policy defined successfully from stree", pol);
+	if (!pol) return;
 	assert_policy_has_groups("policy defined has 1 group resource", pol, 1);
 
 	res = NULL;
 	for_each_resource(r, pol) { if (r->type == RES_GROUP) { res = r; break; } }
 	assert_not_null("group resource was found", res);
+	if (!res) return;
 	group = (struct res_group*)(res->resource);
 	assert_not_null("got the first res_group defined", group);
+	if (!group) return;
 	assert_int_eq("group->rg_gid == 101", 101, group->rg_gid);
 
 	hash_free(facts);
@@ -350,6 +377,7 @@ NEW_TEST(stree_prog_policy_generation)
 	facts = facts_for_prog2();
 	pol = policy_generate(root, facts);
 	assert_not_null("policy defined successfully from stree", pol);
+	if (!pol) return;
 	assert_policy_has_groups("policy defined has 2 group resources", pol, 2);
 
 	i = 0;
@@ -360,11 +388,15 @@ NEW_TEST(stree_prog_policy_generation)
 		switch (i++) {
 		case 0:
 			assert_not_null("got the first res_group defined", group);
-			assert_int_eq("group->rg_gid == 103", 103, group->rg_gid);
+			if (group) {
+				assert_int_eq("group->rg_gid == 103", 103, group->rg_gid);
+			}
 			break;
 		case 1:
 			assert_not_null("got the second res_group defined", group);
-			assert_int_eq("group->rg_gid == 104", 104, group->rg_gid);
+			if (group) {
+				assert_int_eq("group->rg_gid == 104", 104, group->rg_gid);
+			}
 			break;
 		}
 	}
@@ -386,6 +418,7 @@ NEW_TEST(stree_comparison)
 	assert_not_null("(test sanity) stree a isn't null", a);
 	assert_not_null("(test sanity) stree b isn't null", b);
 	assert_not_null("(test sanity) stree c isn't null", c);
+	if (!a | !b || !c) return;
 
 	assert_int_eq("stree(a) == stree(b)", 0, stree_compare(a,b));
 	assert_int_ne("stree(b) != stree(c)", 0, stree_compare(b,c));

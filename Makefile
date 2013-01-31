@@ -10,8 +10,12 @@
 ############################################################
 # Global Variables
 
-ROOT := $(shell pwd)
-VERSION := 0.2.7
+ROOT    := $(shell pwd)
+
+# Note: the '\#' is here for the benefit of `make`, who thinks
+#       it is otherwise a comment.  The escaped newline is for me.
+VERSION := $(shell grep '^\#define CLOCKWORK_VERSION ' clockwork.h |\
+	sed -e 's/.*VERSION "//;s/".*//')
 
 LFLAGS     := --header-file --yylineno
 YFLAGS     := -Wall --token-table --defines
@@ -433,6 +437,8 @@ fixme:
 	  xargs grep -n FIXME: | sed -e 's/:[^:]*FIXME: /:/' -e 's/ *\*\///' | column -t -s :
 
 dist: distclean
+	# again, the '\#' is for `make` and its picky picky parser
+	sed -i -e 's/^version:.*/version: $(VERSION) \# from clockwork.h (auto)/' meta.deb.yml
 	rm -rf $(DISTDIR)
 	mkdir $(DISTDIR)
 	cp -a *.c *.h \

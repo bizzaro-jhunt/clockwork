@@ -253,7 +253,7 @@ NEW_TEST(proto_pdu_DATA)
 	test("proto: DATA PDU");
 
 	assert_int_eq("pipe created successfully", pipe(fd), 0);
-	write(fd[1], "xyzy", 4);
+	assert_int_eq("pipe written to", write(fd[1], "xyzy", 4), 4);
 	close(fd[1]);
 
 	pid = fork_test(&server, child_expects_DATA);

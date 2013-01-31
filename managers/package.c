@@ -74,6 +74,11 @@ DEFINE_PM_VERSION(dpkg_apt) {
 		return NULL;
 	}
 
+	if (rc != 0) {
+		free(version);
+		return NULL;
+	}
+
 	for (v = version; *v && *v != '-'; v++ )
 		;
 	if (*v == '-') { *v = '\0'; }
@@ -144,6 +149,11 @@ DEFINE_PM_VERSION(rpm_yum) {
 		return NULL;
 	}
 
+	if (rc != 0) {
+		free(version);
+		return NULL;
+	}
+
 	return version;
 }
 
@@ -157,6 +167,11 @@ DEFINE_PM_LATEST(rpm_yum) {
 	free(command);
 
 	if (*version == '\0') {
+		free(version);
+		return NULL;
+	}
+
+	if (rc != 0) {
 		free(version);
 		return NULL;
 	}

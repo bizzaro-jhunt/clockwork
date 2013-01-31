@@ -855,7 +855,7 @@ long protocol_ssl_verify_peer(SSL *ssl, const char *host)
 				const unsigned char *data;
 				STACK_OF(CONF_VALUE) *val;
 				CONF_VALUE *nval;
-				X509V3_EXT_METHOD *meth;
+				const X509V3_EXT_METHOD *meth;
 
 				if (!(meth = X509V3_EXT_get(ext))) {
 					break;

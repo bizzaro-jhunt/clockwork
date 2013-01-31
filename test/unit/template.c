@@ -28,7 +28,7 @@
 
 static int template_file(const char *path, const char *contents)
 {
-	int fd;
+	int fd = -1;
 	size_t len = 0;
 	ssize_t nwritten = 0;
 

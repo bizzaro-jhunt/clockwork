@@ -428,8 +428,8 @@ static int cwca_revoked_main(const struct cwca_opts *args)
 		return CWCA_SSL_ERROR;
 	}
 
-	for (i = 0; i < sk_X509_CRL_num(crl->crl->revoked); i++) {
-		revoked = sk_X509_REVOKED_value(crl->crl->revoked, i);
+	for (i = 0; i < sk_X509_REVOKED_num(X509_CRL_get_REVOKED(crl)); i++) {
+		revoked = sk_X509_REVOKED_value(X509_CRL_get_REVOKED(crl), i);
 		if (!revoked) { continue; }
 
 		cert = NULL;

@@ -36,8 +36,8 @@ struct package_manager {
 	package_manager_remove_f  remove;
 };
 
-const struct package_manager *PM_dpkg_apt;
-const struct package_manager *PM_rpm_yum;
+extern const struct package_manager *PM_dpkg_apt;
+extern const struct package_manager *PM_rpm_yum;
 
 #define package_installed(pm,package,version)  ((*((pm)->query))((package),(version)))
 #define package_version(pm,package)            ((*((pm)->version))(package))

@@ -82,8 +82,11 @@ static int _res_user_populate_home(const char *home, const char *skel, uid_t uid
 				}
 				if (skel_fd >= 0 && home_fd >= 0
 				 && chown(home_path, uid, gid) == 0) {
-					while ((nread = read(skel_fd, buf, 8192)) > 0)
-						write(home_fd, buf, nread);
+					ssize_t n = 0;
+					while (n >= 0 && (nread = read(skel_fd, buf, 8192)) > 0) {
+						n = write(home_fd, buf, nread);
+						// FIXME: handle write errors here
+					}
 				}
 
 			} else if (S_ISDIR(ent->fts_statp->st_mode)) {

@@ -71,10 +71,10 @@ static int cert_X509_CRL_get0_by_serial(X509_CRL *crl, X509_REVOKED **revoked_ce
 	assert(serial); // LCOV_EXCL_LINE
 
 	X509_REVOKED *needle = NULL;
-	int i, len = sk_X509_CRL_num(crl->crl->revoked);
+	int i, len = sk_X509_REVOKED_num(X509_CRL_get_REVOKED(crl));
 
 	for (i = 0; i < len; i++) {
-		needle = sk_X509_REVOKED_value(crl->crl->revoked, i);
+		needle = sk_X509_REVOKED_value(X509_CRL_get_REVOKED(crl), i);
 		if (needle && ASN1_INTEGER_cmp(needle->serialNumber, serial) == 0) {
 			if (revoked_cert) {
 				*revoked_cert = needle;

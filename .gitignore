@@ -5,6 +5,10 @@ gmon.out
 callgrind.out.*
 *.swp
 
+*.tar.gz
+*.deb
+*.rpm
+
 /policyd
 /cwa
 /cwcert

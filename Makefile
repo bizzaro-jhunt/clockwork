@@ -151,7 +151,9 @@ apidocs_theme := doc/theme
 ############################################################
 # Group Target
 
-all: $(COMPILED) manpages
+all: $(agent_bin) $(master_bin) manpages
+
+everything: $(COMPILED) manpages
 
 build: $(build_targets)
 
@@ -424,7 +426,7 @@ clean: tidy cleandep
 distclean: clean
 	rm -rf doc/coverage ext/openssl ext/build/*
 	rm -rf test/unit/data test/unit/tmp
-	rm -f config test/defs.h
+	rm -f config config.h test/defs.h
 
 fixme:
 	find . -name '*.[ch157]' -not -path './ext/**' -not -path './share/man/tpl/*' -not -path './local/**' 2>/dev/null | \
@@ -434,11 +436,13 @@ dist: distclean
 	rm -rf $(DISTDIR)
 	mkdir $(DISTDIR)
 	cp -a *.c *.h \
+		gear \
 		test \
 		share var \
 		spec conf tpl \
 		managers \
 		Makefile \
+		configure config.dist \
 		$(DISTDIR)
 	tar -czvf $(DISTDIR).tar.gz $(DISTDIR)
 	rm -rf $(DISTDIR)

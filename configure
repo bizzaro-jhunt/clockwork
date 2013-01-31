@@ -6,7 +6,7 @@ BUILD_MODE=release
 help()
 {
 	cat <<EOF
-./configure - Cockwork Build Environment Configurator
+./configure - Clockwork Build Environment Configurator
 
 This script controls the Clockwork build environment and allows you
 to tweak various aspects of the build process, including installation
@@ -190,9 +190,9 @@ process()
 			;;
 
 		*)
-			echo "Unknown option: $1"
-			echo "Try $0 --help for configuration options"
-			exit 1;
+			echo >&2 "Unknown option: $1; ignoring"
+			echo >&2 "Try $0 --help for configuration options"
+			#exit 1;
 			;;
 		esac
 

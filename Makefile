@@ -250,9 +250,9 @@ tplspec: $(core_o) $(policy_o) tplspec.o
 ############################################################
 # Debugging Tools (mainly for CW developers)
 
-debug/service-manager: debug/service-manager.o managers/service.o exec.o mem.o gear/log.o gear/string.o
+debug/service-manager: debug/service-manager.o managers/service.o exec.o mem.o $(gear_o)
 	$(CC) $(CFLAGS) $+ $(LDFLAGS) -o $@
-debug/package-manager: debug/package-manager.o managers/package.o exec.o mem.o gear/log.o gear/string.o
+debug/package-manager: debug/package-manager.o managers/package.o exec.o mem.o $(gear_o)
 	$(CC) $(CFLAGS) $+ $(LDFLAGS) -o $@
 
 

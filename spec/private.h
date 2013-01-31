@@ -92,7 +92,7 @@ typedef struct {
   be closed when the file has been completely read (otherwise,
   we leak the memory attached to the file handle).
 
-  Device ID and Inode must be used n conjunction, in case an
+  Device ID and Inode must be used in conjunction, in case an
   include macro reaches across filesystems / devices.
  */
 typedef struct {
@@ -100,7 +100,7 @@ typedef struct {
 	ino_t           st_ino;        /* File Inode number */
 	FILE           *io;            /* Open file handle */
 
-	struct list     ls;            /* For stacking parse_files */
+	struct list     ls;            /* For stacking parser_files */
 } parser_file;
 
 /**

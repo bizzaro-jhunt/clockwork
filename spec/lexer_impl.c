@@ -70,6 +70,7 @@ static FILE* lexer_open(const char *path, spec_parser_context *ctx)
 	seen->st_dev = st.st_dev;
 	seen->st_ino = st.st_ino;
 	seen->io     = io;
+	list_init(&(seen->ls));
 	list_add_tail(&seen->ls, &ctx->fseen);
 	return io;
 }
@@ -77,16 +78,12 @@ static FILE* lexer_open(const char *path, spec_parser_context *ctx)
 static int lexer_close(spec_parser_context *ctx)
 {
 	parser_file *seen;
-
-	seen = list_node(ctx->fseen.prev, parser_file, ls);
-	if (seen && seen->io) {
-		fclose(seen->io);
-		seen->io = NULL;
-
-		list_del(&seen->ls);
-		free(seen);
-
-		return 0;
+	for_each_node_r(seen, &ctx->fseen, ls) {
+		if (seen && seen->io) {
+			fclose(seen->io);
+			seen->io = NULL;
+			return 0;
+		}
 	}
 	return -1;
 }

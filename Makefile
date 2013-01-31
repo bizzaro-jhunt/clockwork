@@ -11,11 +11,14 @@
 # Global Variables
 
 ROOT := $(shell pwd)
+VERSION := 0.2.7
 
 LEX_FLAGS  := --header-file --yylineno
 YFLAGS     := -Wall --token-table --defines
 CFLAGS     := -Wall
-LDFLAGS    := -lssl -lpthread -lsqlite3 -laugeas -lgear -lreadline
+CFLAGS     += $(shell pkg-config augeas --cflags)
+LDFLAGS    := $(shell pkg-config sqlite openssl augeas --libs)
+LDFLAGS    += -lpthread -lgear -lreadline
 
 openssl_mode := $(shell if [ -f ext/openssl/lib/libssl.so ]; then echo local; else echo system; fi)
 ifeq ($(openssl_mode), local)
@@ -50,7 +53,8 @@ else
 
   # In release mode, create REALLY small binaries
   CFLAGS += -fdata-sections -ffunction-sections
-  LDFLAGS += --gc-sections -s
+  LDFLAGS += --strip-all
+  CFLAGS += -Wl,--gc-sections
 
   # define the CWRELEASE macro in Release Mode
   CFLAGS += -DCWRELEASE
@@ -69,8 +73,10 @@ ifeq ($(BUILD_MASTER), Y)
   build_targets += build-master
 endif
 
-CC      := gcc $(CFLAGS)
-LD      := ld $(LDFLAGS)
+CC := gcc
+LD := ld $(LDFLAGS)
+#CC      := gcc $(CFLAGS)
+#LD      := ld $(LDFLAGS)
 LEX     := flex $(LEX_FLAGS)
 YACC    := bison $(YFLAGS)
 VG      := build/valgrind
@@ -78,11 +84,13 @@ LCOV    := lcov --directory . --base-directory .
 GENHTML := genhtml --prefix $(shell dirname `pwd`)
 CDOC    := cdoc
 
+DISTDIR := clockwork-$(VERSION)
+
 
 ############################################################
 # Object Group Variables
 
-util_bin      := sha1sum polspec tplspec
+util_bin      := polspec tplspec
 agent_bin     := cwa cwcert
 master_bin    := policyd cwca cwpol
 debug_bin     := debug/service-manager debug/package-manager
@@ -229,7 +237,7 @@ cwca:    $(core_o) $(policy_o) cwca.o    $(parser_conf_o) server.o
 cwpol:   $(core_o) $(policy_o) cwpol.o   $(parser_spec_o)
 polspec: $(core_o) $(policy_o) polspec.o $(parser_spec_o)
 tplspec: $(core_o) $(policy_o) tplspec.o
-sha1sum: sha1.o sha1sum.o mem.o $(core_o) $(policy_o) $(parser_spec_o) $(parser_conf_o)
+#sha1sum: sha1.o sha1sum.o mem.o $(core_o) $(policy_o) $(parser_spec_o) $(parser_conf_o)
 
 
 ############################################################
@@ -391,8 +399,9 @@ clean: tidy cleandep
 	rm -f $(COMPILED) $(unit_tests) $(fun_tests) share/man/*.*.gz
 	rm -f spec/*.output conf/*.output tpl/*.output
 	rm -rf $(apidocs_root)/* doc/coverage/*
+	rm -f clockwork*.tar.gz *.deb *.rpm
 
-dist: clean
+distclean: clean
 	rm -rf doc/coverage ext/openssl ext/build/*
 	rm -rf test/unit/data test/unit/tmp
 	rm -f config test/defs.h
@@ -401,6 +410,18 @@ fixme:
 	find . -name '*.[ch157]' -not -path './ext/**' -not -path './share/man/tpl/*' -not -path './local/**' 2>/dev/null | \
 	  xargs grep -n FIXME: | sed -e 's/:[^:]*FIXME: /:/' -e 's/ *\*\///' | column -t -s :
 
+dist: distclean
+	rm -rf $(DISTDIR)
+	mkdir $(DISTDIR)
+	cp -a *.c *.h \
+		test \
+		share var \
+		spec conf tpl \
+		managers \
+		Makefile \
+		$(DISTDIR)
+	tar -czvf $(DISTDIR).tar.gz $(DISTDIR)
+	rm -rf $(DISTDIR)
 
 ############################################################
 # Pattern Rules

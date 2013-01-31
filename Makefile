@@ -269,22 +269,22 @@ externals:
 parserdefs: spec/lexer.c spec/grammar.c tpl/lexer.c tpl/grammar.c conf/lexer.c conf/grammar.c
 
 spec/lexer.c: spec/lexer.l spec/grammar.h spec/lexer_impl.c spec/parser.h spec/private.h
-	$(LEX) --outfile=$@ $<
+	$(LEX) $(LFLAGS) --outfile=$@ $<
 
 spec/grammar.c spec/grammar.h: spec/grammar.y spec/grammar_impl.c spec/parser.c spec/parser.h spec/private.h
-	$(YACC) --output-file=spec/grammar.c $<
+	$(YACC) $(YFLAGS) --output-file=spec/grammar.c $<
 
 tpl/lexer.c: tpl/lexer.l tpl/grammar.h tpl/lexer_impl.c tpl/parser.h tpl/private.h
-	$(LEX) --outfile=$@ $<
+	$(LEX) $(LFLAGS) --outfile=$@ $<
 
 tpl/grammar.c tpl/grammar.h: tpl/grammar.y tpl/parser.c tpl/parser.h tpl/private.h
-	$(YACC) -p yytpl --output-file=tpl/grammar.c $<
+	$(YACC) $(YFLAGS) -p yytpl --output-file=tpl/grammar.c $<
 
 conf/lexer.c: conf/lexer.l conf/grammar.h conf/lexer_impl.c conf/private.h
-	$(LEX) --outfile=$@ $<
+	$(LEX) $(LFLAGS) --outfile=$@ $<
 
 conf/grammar.c conf/grammar.h: conf/grammar.y conf/parser.c conf/parser.h conf/private.h
-	$(YACC) -p yyconf --output-file=conf/grammar.c $<
+	$(YACC) $(YFLAGS) -p yyconf --output-file=conf/grammar.c $<
 
 
 ############################################################
@@ -415,6 +415,9 @@ tidy:
 clean: tidy cleandep
 	rm -f $(COMPILED) $(unit_tests) $(fun_tests) share/man/*.*.gz
 	rm -f spec/*.output conf/*.output tpl/*.output
+	rm -f spec/lexer.c conf/lexer.c tpl/lexer.c
+	rm -f spec/grammar.c conf/grammar.c tpl/grammar.c
+	rm -f spec/grammar.h conf/grammar.h tpl/grammar.h
 	rm -rf $(apidocs_root)/* doc/coverage/*
 	rm -f clockwork*.tar.gz *.deb *.rpm
 

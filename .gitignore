@@ -61,3 +61,11 @@ config.h
 
 local
 .commit
+
+.deps
+config.log
+config.status
+Makefile.in
+config.h.in
+Makefile
+configure

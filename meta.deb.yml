@@ -1,5 +1,5 @@
 name: clockwork
-version: 0.2.8 # from clockwork.h (auto)
+version: 0.2.8
 Architecture: amd64
 Depends:
   - ${shlibs:Depends}
@@ -12,6 +12,7 @@ Build-Depends:
   - libaugeas-dev
   - libsqlite3-dev
   - libreadline-dev
+  - pkg-config
   # For functional tests
   - expect
   - flex

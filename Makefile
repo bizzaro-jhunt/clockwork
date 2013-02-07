@@ -437,8 +437,7 @@ fixme:
 	  xargs grep -n FIXME: | sed -e 's/:[^:]*FIXME: /:/' -e 's/ *\*\///' | column -t -s :
 
 dist: distclean
-	# again, the '\#' is for `make` and its picky picky parser
-	sed -i -e 's/^version:.*/version: $(VERSION) \# from clockwork.h (auto)/' meta.deb.yml
+	sed -i -e 's/^version:.*/version: $(VERSION)/' meta.deb.yml
 	rm -rf $(DISTDIR)
 	mkdir $(DISTDIR)
 	cp -a *.c *.h \

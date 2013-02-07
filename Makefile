@@ -80,7 +80,6 @@ YACC    := bison
 VG      := build/valgrind
 LCOV    := lcov --directory . --base-directory .
 GENHTML := genhtml --prefix $(shell dirname `pwd`)
-CDOC    := cdoc
 
 DISTDIR := clockwork-$(VERSION)
 
@@ -146,10 +145,6 @@ fun_tests     += test/functional/executive
 # Unit Test runners
 unit_tests    := test/unit/run
 unit_tests    += test/unit/helpers/proto_helper
-
-# Configuration for API docs
-apidocs_root  := doc/api
-apidocs_theme := doc/theme
 
 
 ############################################################
@@ -218,10 +213,6 @@ summary:
 	@echo "Externals"
 	@echo " OpenSSL:  $(openssl_mode)"
 	@echo
-	@echo "CDOC (API Docs)"
-	@echo " root:     $(apidocs_root)"
-	@echo " theme:    $(apidocs_theme)"
-	@echo
 	@echo "Commands"
 	@echo " cc:       $(CC) $(CFLAGS)"
 	@echo " lex:      $(LEX) $(LFLAGS)"
@@ -229,7 +220,6 @@ summary:
 	@echo " valgrind: $(VG)"
 	@echo " lcov:     $(LCOV)"
 	@echo " genhtml:  $(GENHTML)"
-	@echo " cdoc:     $(CDOC)"
 	@echo
 
 ############################################################
@@ -291,23 +281,6 @@ conf/lexer.c: conf/lexer.l conf/grammar.h conf/lexer_impl.c conf/private.h
 
 conf/grammar.c conf/grammar.h: conf/grammar.y conf/parser.c conf/parser.h conf/private.h
 	$(YACC) $(YFLAGS) -p yyconf --output-file=conf/grammar.c $<
-
-
-############################################################
-# Documentation
-
-docs: apidocs diagrams
-
-apidocs:
-	mkdir -p $(apidocs_root)
-	rm -rf $(apidocs_root)/*
-	cp -a $(apidocs_theme)/images $(apidocs_root)
-	$(CDOC) --root $(apidocs_root) --theme $(apidocs_theme) *.c *.h
-
-diagrams: doc/proto-agent.png doc/proto-cert.png
-
-%.png: %.dot
-	dot -Tpng $< -o $@
 
 
 ############################################################
@@ -424,7 +397,7 @@ clean: tidy cleandep
 	rm -f spec/lexer.c conf/lexer.c tpl/lexer.c
 	rm -f spec/grammar.c conf/grammar.c tpl/grammar.c
 	rm -f spec/grammar.h conf/grammar.h tpl/grammar.h
-	rm -rf $(apidocs_root)/* doc/coverage/*
+	rm -rf doc/coverage/*
 	rm -f clockwork*.tar.gz *.deb *.rpm
 
 distclean: clean

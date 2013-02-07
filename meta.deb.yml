@@ -3,10 +3,6 @@ version: 0.2.8
 Architecture: amd64
 Depends:
   - ${shlibs:Depends}
-  - libssl
-  - libaugeas
-  - libsqlite3
-  - libreadline
 Build-Depends:
   - libssl-dev
   - libaugeas-dev

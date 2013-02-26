@@ -4,7 +4,7 @@ BUILT_SOURCES  = spec/lexer.c spec/grammar.c spec/grammar.h
 BUILT_SOURCES += conf/lexer.c conf/grammar.c conf/grammar.h
 BUILT_SOURCES += tpl/lexer.c  tpl/grammar.c  tpl/grammar.h
 
-###########################################################################
+############################################################
 
 CFLAGS  := -Wall -DVERSION=\"$(VERSION)\" -DPROG="\"$(PACKAGE)\"" $(DEPS_CFLAGS) $(shell pkg-config --cflags augeas)
 LDFLAGS := -lopenssl -laugeas -lsqlite3 -lcrypto -lpthread -lreadline $(DEPS_LFLAGS) $(shell pkg-config --libs augeas)
@@ -17,7 +17,7 @@ GENHTML := genhtml
 
 no_lcov_c := test/unit/**/* test/unit/* test/functional/*
 
-###########################################################################
+############################################################
 
 core_src = mem.c sha1.c userdb.c cert.c prompt.c exec.c augcw.c
 manager_src = managers/service.c managers/package.c
@@ -35,7 +35,10 @@ cwcert_SOURCES = $(core_src) $(gear_src) $(policy_src) cwcert.c $(parser_conf_sr
 cwca_SOURCES = $(core_src) $(policy_src) cwca.c $(parser_conf_src) server.c
 cwpol_SOURCES = $(core_src) $(policy_src) cwpol.c $(parser_spec_src)
 
-###########################################################################
+############################################################
+
+manifest:
+	@echo >&2 "nothin doin"
 
 ############################################################
 # Lex/YACC Parsers

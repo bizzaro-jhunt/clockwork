@@ -1,0 +1,57 @@
+Source: clockwork
+Section: admin
+Priority: optional
+Maintainer: James Hunt <james@niftylogic.com>
+Build-Depends: debhelper (>= 8.0.0)
+Standards-Version: 3.9.2
+Homepage: http://clockwork.niftylogic.com/
+
+Package: clockwork-server
+Architecture: all
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Secure Configuration Management - Server
+ Clockwork is a safe, secure and flexible system for managing system
+ configurations through enforcement of targeted policies, expressed
+ in a system-independent, declarative format.
+ .
+ With Clockwork, managing infrastructures of all scales is easier,
+ more effective and less difficult.
+ .
+ This package provides the server-side components of the Clockwork
+ system, including the Certificate Authority and Policy Master.
+
+Package: clockwork-agent
+Architecture: all
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Secure Configuration Management - Agent
+ Clockwork is a safe, secure and flexible system for managing system
+ configurations through enforcement of targeted policies, expressed
+ in a system-independent, declarative format.
+ .
+ With Clockwork, managing infrastructures of all scales is easier,
+ more effective and less difficult.
+ .
+ This package provides the host-side components of the Clockwork
+ system that are responsible for gathering local facts, retrieving
+ policy from an upstream server and applying that policy locally.
+
+Package: clockwork-doc
+Architecture: all
+Depends: ${misc:Depends}
+Description: Secure Configuration Management - Documentation
+ Clockwork is a safe, secure and flexible system for managing system
+ configurations through enforcement of targeted policies, expressed
+ in a system-independent, declarative format.
+ .
+ With Clockwork, managing infrastructures of all scales is easier,
+ more effective and less difficult.
+ .
+ This package contains the documentation for Clockwork.
+
+Package: vim-clockwork
+Architecture: all
+Depends: ${misc:Depends}
+Recommends: vim-addon-manager
+Description: Syntax highlighting for Clockwork policy files
+ The vim-clockwork package provides filetype detection and syntax
+ highlighting for Clockwork policy files (files ending in "*.pol").

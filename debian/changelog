@@ -1,0 +1,5 @@
+clockwork (0.2.8-1) unstable; urgency=low
+
+  * Initial release (Closes: LAB-15)
+
+ -- James Hunt <james@niftylogic.com>  Wed, 25 Feb 2013 20:43:00 -0500

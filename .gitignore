@@ -69,3 +69,4 @@ Makefile.in
 config.h.in
 Makefile
 configure
+autom4te.cache

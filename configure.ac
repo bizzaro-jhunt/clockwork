@@ -2,9 +2,9 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.68)
-AC_CONFIG_SRCDIR(cert.h)
+AC_CONFIG_SRCDIR(src)
 AC_CONFIG_AUX_DIR(build/aux)
-AC_CONFIG_HEADERS(config.h)
+AC_CONFIG_HEADERS(src/config.h)
 
 AC_INIT(clockwork, 0.2.8, bugs@niftylogic.com)
 AM_INIT_AUTOMAKE(0.2.8)

@@ -6,7 +6,7 @@ BUILT_SOURCES += tpl/lexer.c  tpl/grammar.c  tpl/grammar.h
 
 ############################################################
 
-CFLAGS  := -Wall -DVERSION=\"$(VERSION)\" -DPROG="\"$(PACKAGE)\"" $(DEPS_CFLAGS) $(shell pkg-config --cflags augeas)
+CFLAGS  := -Wall -DPROG="\"$(PACKAGE)\"" $(DEPS_CFLAGS) $(shell pkg-config --cflags augeas)
 LDFLAGS := -lopenssl -laugeas -lsqlite3 -lcrypto -lpthread -lreadline $(DEPS_LFLAGS) $(shell pkg-config --libs augeas)
 
 LFLAGS  := --header-file --yylineno

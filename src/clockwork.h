@@ -20,7 +20,6 @@
 #ifndef CLOCKWORK_H
 #define CLOCKWORK_H
 
-#define CLOCKWORK_VERSION "0.2.8"
 #include "config.h"
 
 #define _GNU_SOURCE

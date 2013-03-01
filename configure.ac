@@ -4,7 +4,7 @@
 AC_PREREQ(2.68)
 AC_CONFIG_SRCDIR(src)
 AC_CONFIG_AUX_DIR(build/aux)
-AC_CONFIG_HEADERS(src/config.h)
+AC_CONFIG_HEADERS(config.h)
 
 AC_INIT(clockwork, 0.2.8, bugs@niftylogic.com)
 AM_INIT_AUTOMAKE(0.2.8)
@@ -17,12 +17,34 @@ AC_PROG_LEX
 AC_PROG_INSTALL
 
 # Checks for libraries.
-AC_CHECK_LIB(crypto, CRYPTO_lock,, AC_MSG_ERROR(Cannot find required librypto library))
-AC_CHECK_LIB(pthread, pthread_create,, AC_MSG_ERROR(Cannot find required libpthread library))
-AC_CHECK_LIB(readline, rl_completion_suppress_appendi, AC_MSG_ERROR(Cannot find required libreadline library))
+AC_CHECK_LIB(ssl,
+	SSL_library_init,,
+	AC_MSG_ERROR(Missing OpenSSL libraries))
+
+AC_CHECK_LIB(crypto,
+	CRYPTO_lock,,
+	AC_MSG_ERROR(Missing OpenSSL libraries))
+
+AC_CHECK_LIB(pthread,
+	pthread_create,,
+	AC_MSG_ERROR(Missing pthread library))
+
+AC_CHECK_LIB(readline,
+	read_history,,
+	AC_MSG_ERROR(Missing GNU readline library))
+
+AC_CHECK_LIB(sqlite3,
+	sqlite3_open,,
+	AC_MSG_ERROR(Missing SQLite3 library))
+
+AC_CHECK_LIB(augeas,
+	aug_init,,
+	AC_MSG_ERROR(Missing Augeas library))
 
 # Checks for header files.
-AC_CHECK_HEADERS([arpa/inet.h fcntl.h netdb.h shadow.h stddef.h stdint.h stdlib.h string.h sys/socket.h sys/time.h syslog.h termios.h unistd.h libxml/tree.h])
+AC_CHECK_HEADERS([arpa/inet.h fcntl.h netdb.h shadow.h stddef.h stdint.h])
+AC_CHECK_HEADERS([stdlib.h string.h sys/socket.h sys/time.h syslog.h])
+AC_CHECK_HEADERS([termios.h unistd.h libxml/tree.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_UID_T

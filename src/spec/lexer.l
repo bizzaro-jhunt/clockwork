@@ -132,7 +132,7 @@ include[ \t]+  { BEGIN(INCLUDE); }
 . { spec_parser_error(yyget_extra(yyscanner), "unexpected character '%c'", yytext[0]); }
 
 %%
-/* lexer_impl.c contains the implementation for routines used
+/* lexer_impl.h contains the implementation for routines used
    by the lexer.  They exist in a separate C file to keep this
    file clean and focused. */
-#include "lexer_impl.c"
+#include "lexer_impl.h"

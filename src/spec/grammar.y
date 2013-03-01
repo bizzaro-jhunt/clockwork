@@ -95,11 +95,11 @@
 %type <string_pair> mapped_value
 %type <string>      mapped_value_default
 %{
-/* grammar_impl.c contains several static routines that only make sense
+/* grammar_impl.h contains several static routines that only make sense
    within the context of a parser.  They deal with interim representations
    of abstract syntax trees, like if branches and map constructs.  They
    exist in a separate C file to keep this file clean and focused. */
-#include "grammar_impl.c"
+#include "grammar_impl.h"
 
 #define MANIFEST(ctx) (((spec_parser_context*)ctx)->root)
 #define NODE(op,d1,d2) (manifest_new_stree(MANIFEST(ctx), (op), (d1), (d2)))

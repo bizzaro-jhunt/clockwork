@@ -1,16 +1,17 @@
 AUTOMAKE_OPTIONS = foreign subdir-objects
 
-BUILT_SOURCES  = spec/lexer.c spec/grammar.c spec/grammar.h
-BUILT_SOURCES += conf/lexer.c conf/grammar.c conf/grammar.h
-BUILT_SOURCES += tpl/lexer.c  tpl/grammar.c  tpl/grammar.h
+BUILT_SOURCES  = src/spec/lexer.c src/spec/grammar.c src/spec/grammar.h
+BUILT_SOURCES += src/conf/lexer.c src/conf/grammar.c src/conf/grammar.h
+BUILT_SOURCES += src/tpl/lexer.c  src/tpl/grammar.c  src/tpl/grammar.h
+
+AM_LFLAGS = --header-file --yylineno
+AM_YFLAGS = -d
+
+CLEANFILES = $(BUILT_SOURCES)
 
 ############################################################
 
-CFLAGS  := -Wall -DPROG="\"$(PACKAGE)\"" $(DEPS_CFLAGS) $(shell pkg-config --cflags augeas)
-LDFLAGS := -lopenssl -laugeas -lsqlite3 -lcrypto -lpthread -lreadline $(DEPS_LFLAGS) $(shell pkg-config --libs augeas)
-
-LFLAGS  := --header-file --yylineno
-YFLAGS  := -Wall --token-table --defines
+CFLAGS = -Wall $(DEPS_CFLAGS) -DCW_VARDIR='"/var"' -DCW_ETCDIR='"/etc"' -DCW_VARLIBDIR='"/var/lib"' -DCW_SHAREDIR='"/usr/share"' -DCW_CACHEDIR='"/var/cache"' $(shell pkg-config --cflags augeas)
 
 LCOV    := lcov
 GENHTML := genhtml
@@ -19,21 +20,43 @@ no_lcov_c := test/unit/**/* test/unit/* test/functional/*
 
 ############################################################
 
-core_src = mem.c sha1.c userdb.c cert.c prompt.c exec.c augcw.c
-manager_src = managers/service.c managers/package.c
-policy_src = policy.c resource.c resources.c job.c template.c
-gear_c = gear/hash.c gear/log.c gear/string.c gear/pack.c gear/path.c
+core_src     = src/mem.c src/sha1.c src/userdb.c src/cert.c src/prompt.c src/exec.c src/augcw.c
+core_src    += src/mem.h src/sha1.h src/userdb.h src/cert.h src/prompt.h src/exec.h src/augcw.h
+core_src    += src/policy.c src/resource.c src/resources.c src/job.c src/template.c
+core_src    += src/policy.h src/resource.h src/resources.h src/job.h src/template.h
+core_src    += src/gear/hash.c src/gear/log.c src/gear/string.c src/gear/pack.c src/gear/path.c
+core_src    += src/gear/gear.h
+core_src    += src/clockwork.h
 
-parser_spec_src = spec/lexer.l spec/grammar.y spec/parser.c
-parser_conf_src = conf/lexer.l conf/grammar.y conf/parser.c
-parser_tpl_src = tpl/lexer.l tpl/grammar.y tpl/parser.c
+client_src   = src/proto.c src/client.c
+client_src  += src/proto.h src/client.h
+
+server_src   = src/proto.c src/server.c
+server_src  += src/proto.h src/server.h
+
+manager_src  = src/managers/service.c src/managers/package.c
+manager_src += src/managers/service.h src/managers/package.h
+
+parser_spec_src  = src/spec/parser.c src/spec/parser.h src/spec/private.h
+parser_spec_src += src/spec/lexer.l src/spec/lexer_impl.h
+parser_spec_src += src/spec/grammar.y src/spec/grammar_impl.h
+
+parser_conf_src  = src/conf/parser.c src/conf/parser.h src/conf/private.h
+parser_conf_src += src/conf/lexer.l src/conf/lexer_impl.h
+parser_conf_src += src/conf/grammar.y
+
+parser_tpl_src   = src/tpl/parser.c src/tpl/parser.h src/tpl/private.h
+parser_tpl_src  += src/tpl/lexer.l src/tpl/lexer_impl.h
+parser_tpl_src  += src/tpl/grammar.y
+
+core_src += $(parser_tpl_src)
 
 bin_PROGRAMS = cwa cwcert policyd cwca cwpol
-policyd_SOURCES = $(core_src) $(policy_src) policyd.c $(parser_spec_src) $(parser_conf_src) proto.c server.c db.c
-cwa_SOURCES = $(core_src) $(gear_src) $(policy_src) cwa.c $(parser_conf_src) proto.c client.c db.c
-cwcert_SOURCES = $(core_src) $(gear_src) $(policy_src) cwcert.c $(parser_conf_src) proto.c client.c
-cwca_SOURCES = $(core_src) $(policy_src) cwca.c $(parser_conf_src) server.c
-cwpol_SOURCES = $(core_src) $(policy_src) cwpol.c $(parser_spec_src)
+policyd_SOURCES = $(core_src) $(server_src) src/policyd.c $(parser_spec_src) $(parser_conf_src) src/db.c src/db.h
+cwca_SOURCES    = $(core_src) $(server_src) src/cwca.c $(parser_conf_src)
+cwa_SOURCES     = $(core_src) $(client_src) src/cwa.c $(manager_src) $(parser_conf_src) src/db.c src/db.h
+cwcert_SOURCES  = $(core_src) $(client_src) src/cwcert.c $(parser_conf_src)
+cwpol_SOURCES   = $(core_src) src/cwpol.c $(parser_spec_src)
 
 ############################################################
 
@@ -43,25 +66,25 @@ manifest:
 ############################################################
 # Lex/YACC Parsers
 
-parserdefs: spec/lexer.c spec/grammar.c tpl/lexer.c tpl/grammar.c conf/lexer.c conf/grammar.c
+parserdefs: src/spec/lexer.c src/spec/grammar.c src/tpl/lexer.c src/tpl/grammar.c src/conf/lexer.c src/conf/grammar.c
 
-spec/lexer.c: spec/lexer.l spec/grammar.h spec/lexer_impl.c spec/parser.h spec/private.h
-	$(LEX) $(LFLAGS) --outfile=$@ $<
+src/spec/lexer.c: src/spec/lexer.l src/spec/grammar.h src/spec/lexer_impl.h src/spec/parser.h src/spec/private.h
+	$(LEXCOMPILE) --outfile=$@ $<
 
-spec/grammar.c spec/grammar.h: spec/grammar.y spec/grammar_impl.c spec/parser.c spec/parser.h spec/private.h
-	$(YACC) $(YFLAGS) --output-file=spec/grammar.c $<
+src/spec/grammar.c: src/spec/grammar.y src/spec/grammar_impl.h src/spec/parser.c src/spec/parser.h src/spec/private.h
+	$(YACCCOMPILE) --output-file=src/spec/grammar.c $<
 
-tpl/lexer.c: tpl/lexer.l tpl/grammar.h tpl/lexer_impl.c tpl/parser.h tpl/private.h
-	$(LEX) $(LFLAGS) --outfile=$@ $<
+src/tpl/lexer.c: src/tpl/lexer.l src/tpl/grammar.h src/tpl/lexer_impl.h src/tpl/parser.h src/tpl/private.h
+	$(LEXCOMPILE) --outfile=$@ $<
 
-tpl/grammar.c tpl/grammar.h: tpl/grammar.y tpl/parser.c tpl/parser.h tpl/private.h
-	$(YACC) $(YFLAGS) -p yytpl --output-file=tpl/grammar.c $<
+src/tpl/grammar.c: src/tpl/grammar.y src/tpl/parser.c src/tpl/parser.h src/tpl/private.h
+	$(YACCCOMPILE) -p yytpl --output-file=src/tpl/grammar.c $<
 
-conf/lexer.c: conf/lexer.l conf/grammar.h conf/lexer_impl.c conf/private.h
-	$(LEX) $(LFLAGS) --outfile=$@ $<
+src/conf/lexer.c: src/conf/lexer.l src/conf/grammar.h src/conf/lexer_impl.h src/conf/private.h
+	$(LEXCOMPILE) --outfile=$@ $<
 
-conf/grammar.c conf/grammar.h: conf/grammar.y conf/parser.c conf/parser.h conf/private.h
-	$(YACC) $(YFLAGS) -p yyconf --output-file=conf/grammar.c $<
+src/conf/grammar.c: src/conf/grammar.y src/conf/parser.c src/conf/parser.h src/conf/private.h
+	$(YACCCOMPILE) -p yyconf --output-file=src/conf/grammar.c $<
 
 cov: clean-cov
 	$(LCOV) --capture -o $@.info.tmp

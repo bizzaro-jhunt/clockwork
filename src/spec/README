@@ -195,14 +195,14 @@ files, each with a distinct purpose:
 
   lexer.l         Flex lexical analysis rules
 
-  lexer_impl.c    Supporting functions for lexer.l.  This file is never
+  lexer_impl.h    Supporting functions for lexer.l.  This file is never
                   compiled outright; it is included in the lexer.l generated
                   code, and contains implementation details like
                   error-handling routines.
 
   grammar.y       Bison LALR grammar rules
 
-  grammar_impl.c  Supporting functions for grammar.y.  This file is never
+  grammar_impl.h  Supporting functions for grammar.y.  This file is never
                   compiled outright; it is included in the grammar.y
                   generated code, and contains static routines of interest
                   only to the Bison parser.
@@ -216,17 +216,17 @@ files, each with a distinct purpose:
 
   parser.c        Implements the public parser API (as defined by parser.h).
                   This file does not contain any function definitions that
-                  are internal to the lexer / parser (see lexer_impl.c and
-                  grammar_impl.c, respectively).
+                  are internal to the lexer / parser (see lexer_impl.h and
+                  grammar_impl.h, respectively).
 
 These files are compiled to create the following object files:
 
   lexer.o         Combination of lexer.c (as generated from lexer.l) and
-                  lexer_impl.c as a single translation unit.  Represents the
+                  lexer_impl.h as a single translation unit.  Represents the
                   lexical analyzer module.
 
   grammar.o       Combination of grammar.c (as generated from grammar.y) and
-                  grammar_impl.c as a single translation unit.  Represents
+                  grammar_impl.h as a single translation unit.  Represents
                   the LALR parser module.
 
   parser.o        Compilation of parser.c; the public API necessary to drive

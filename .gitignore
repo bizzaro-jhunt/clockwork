@@ -1,9 +1,12 @@
 *.o
+*~
 *.gc??
 lcov.info
 gmon.out
 callgrind.out.*
 *.swp
+.dirstamp
+stamp-h2
 
 *.tar.gz
 *.deb
@@ -38,20 +41,20 @@ config.h
 /test/chroot/*.chroot
 /test/augeas
 
-/conf/*.output
-/conf/grammar.c
-/conf/grammar.h
-/conf/lexer.c
+src/conf/*.output
+src/conf/grammar.c
+src/conf/grammar.h
+src/conf/lexer.c
 
-/spec/*.output
-/spec/grammar.c
-/spec/grammar.h
-/spec/lexer.c
+src/spec/*.output
+src/spec/grammar.c
+src/spec/grammar.h
+src/spec/lexer.c
 
-/tpl/*.output
-/tpl/grammar.c
-/tpl/grammar.h
-/tpl/lexer.c
+src/tpl/*.output
+src/tpl/grammar.c
+src/tpl/grammar.h
+src/tpl/lexer.c
 
 /ext/build
 /ext/openssl

@@ -1,14 +1,5 @@
 AUTOMAKE_OPTIONS = foreign subdir-objects
 
-BUILT_SOURCES  = src/spec/lexer.c src/spec/grammar.c src/spec/grammar.h
-BUILT_SOURCES += src/conf/lexer.c src/conf/grammar.c src/conf/grammar.h
-BUILT_SOURCES += src/tpl/lexer.c  src/tpl/grammar.c  src/tpl/grammar.h
-
-AM_LFLAGS = --header-file --yylineno
-AM_YFLAGS = -d
-
-CLEANFILES = $(BUILT_SOURCES)
-
 ############################################################
 
 CFLAGS = -Wall $(DEPS_CFLAGS) -DCW_VARDIR='"/var"' -DCW_ETCDIR='"/etc"' -DCW_VARLIBDIR='"/var/lib"' -DCW_SHAREDIR='"/usr/share"' -DCW_CACHEDIR='"/var/cache"' $(shell pkg-config --cflags augeas)
@@ -17,6 +8,40 @@ LCOV    := lcov
 GENHTML := genhtml
 
 no_lcov_c := test/unit/**/* test/unit/* test/functional/*
+
+AM_LFLAGS = --header-file --yylineno
+AM_YFLAGS = -d
+
+############################################################
+
+BUILT_SOURCES    = src/spec/lexer.c src/spec/grammar.c src/spec/grammar.h
+BUILT_SOURCES   += src/conf/lexer.c src/conf/grammar.c src/conf/grammar.h
+BUILT_SOURCES   += src/tpl/lexer.c  src/tpl/grammar.c  src/tpl/grammar.h
+
+CLEANFILES       = $(BUILT_SOURCES)
+
+EXTRA_DIST       = share/db
+EXTRA_DIST      += share/examples
+EXTRA_DIST      += share/gather.d
+EXTRA_DIST      += share/help
+EXTRA_DIST      += share/vim
+
+dist_man_MANS    = share/man/res_file.5
+dist_man_MANS   += share/man/cwpol.1
+dist_man_MANS   += share/man/res_host.5
+dist_man_MANS   += share/man/res_group.5
+dist_man_MANS   += share/man/policyd.conf.5
+dist_man_MANS   += share/man/cwa.conf.5
+dist_man_MANS   += share/man/res_sysctl.5
+dist_man_MANS   += share/man/cwa.1
+dist_man_MANS   += share/man/policyd.1
+dist_man_MANS   += share/man/res_package.5
+dist_man_MANS   += share/man/tpl/res_.5
+dist_man_MANS   += share/man/res_service.5
+dist_man_MANS   += share/man/res_exec.5
+dist_man_MANS   += share/man/clockwork.7
+dist_man_MANS   += share/man/res_dir.5
+dist_man_MANS   += share/man/res_user.5
 
 ############################################################
 
@@ -51,7 +76,8 @@ parser_tpl_src  += src/tpl/grammar.y
 
 core_src += $(parser_tpl_src)
 
-bin_PROGRAMS = cwa cwcert policyd cwca cwpol
+sbindir = "/sbin"
+sbin_PROGRAMS = cwa cwcert policyd cwca cwpol
 policyd_SOURCES = $(core_src) $(server_src) src/policyd.c $(parser_spec_src) $(parser_conf_src) src/db.c src/db.h
 cwca_SOURCES    = $(core_src) $(server_src) src/cwca.c $(parser_conf_src)
 cwa_SOURCES     = $(core_src) $(client_src) src/cwa.c $(manager_src) $(parser_conf_src) src/db.c src/db.h

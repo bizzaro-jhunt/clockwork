@@ -2,7 +2,23 @@ AUTOMAKE_OPTIONS = foreign subdir-objects
 
 ############################################################
 
-CFLAGS = -Wall $(DEPS_CFLAGS) -DCW_VARDIR='"/var"' -DCW_ETCDIR='"/etc"' -DCW_VARLIBDIR='"/var/lib"' -DCW_SHAREDIR='"/usr/share"' -DCW_CACHEDIR='"/var/cache"' $(shell pkg-config --cflags augeas)
+etcdir = /etc/clockwork
+vimdir = $(datadir)/vim
+augdir = $(pkgdatadir)/augeas/lenses
+
+# FIXME need a way to get these from ./configure
+CW_VARDIR    = /var
+CW_ETCDIR    = /etc/clockwork
+CW_DATADIR   = /var/lib/clockwork
+CW_LIBDIR    = /lib/clockwork
+CW_CACHEDIR  = /var/cache/clockwork
+
+CFLAGS  = -Wall $(DEPS_CFLAGS) $(shell pkg-config --cflags augeas)
+CFLAGS += -DCW_VARDIR='"$(CW_VARDIR)"'
+CFLAGS += -DCW_ETCDIR='"$(CW_ETCDIR)"'
+CFLAGS += -DCW_DATADIR='"$(CW_DATADIR)"'
+CFLAGS += -DCW_LIBDIR='"$(CW_LIBDIR)"'
+CFLAGS += -DCW_CACHEDIR='"$(CW_CACHEDIR)"'
 
 LCOV    := lcov
 GENHTML := genhtml
@@ -11,8 +27,6 @@ no_lcov_c := test/unit/**/* test/unit/* test/functional/*
 
 AM_LFLAGS = --header-file --yylineno
 AM_YFLAGS = -d
-
-vimdir = $(datarootdir)/vim
 
 ############################################################
 
@@ -27,6 +41,7 @@ EXTRA_DIST      += share/examples
 EXTRA_DIST      += share/gather.d
 EXTRA_DIST      += share/help
 EXTRA_DIST      += share/vim
+EXTRA_DIST      += var
 
 dist_man_MANS    = share/man/clockwork.7
 dist_man_MANS   += share/man/cwa.1
@@ -77,8 +92,8 @@ parser_tpl_src  += src/tpl/grammar.y
 
 core_src += $(parser_tpl_src)
 
-sbindir = "/sbin"
-sbin_PROGRAMS = cwa cwcert policyd cwca cwpol
+root_sbindir = "/sbin"
+root_sbin_PROGRAMS = cwa cwcert policyd cwca cwpol
 policyd_SOURCES = $(core_src) $(server_src) src/policyd.c $(parser_spec_src) $(parser_conf_src) src/db.c src/db.h
 cwca_SOURCES    = $(core_src) $(server_src) src/cwca.c $(parser_conf_src)
 cwa_SOURCES     = $(core_src) $(client_src) src/cwa.c $(manager_src) $(parser_conf_src) src/db.c src/db.h
@@ -90,15 +105,34 @@ cwpol_SOURCES   = $(core_src) src/cwpol.c $(parser_spec_src)
 manifest:
 	@echo >&2 "nothin doin"
 
+path-check:
+	@echo "   CW_VARDIR = $(CW_VARDIR)"
+	@echo "   CW_ETCDIR = $(CW_ETCDIR)"
+	@echo "   CW_LIBDIR = $(CW_LIBDIR)"
+	@echo "  CW_DATADIR = $(CW_DATADIR)"
+	@echo " CW_CACHEDIR = $(CW_CACHEDIR)"
+
 install-data-hook:
 	$(INSTALL) -d -m 0755 $(DESTDIR)$(vimdir)/addons/syntax
 	$(INSTALL) -d -m 0755 $(DESTDIR)$(vimdir)/addons/ftdetect
 	$(INSTALL) -d -m 0755 $(DESTDIR)$(vimdir)/registry
-	$(INSTALL) -m 0644 share/vim/syntax/cwa.vim     $(DESTDIR)$(vimdir)/addons/syntax
-	$(INSTALL) -m 0644 share/vim/syntax/pol.vim     $(DESTDIR)$(vimdir)/addons/syntax
-	$(INSTALL) -m 0644 share/vim/syntax/policyd.vim $(DESTDIR)$(vimdir)/addons/syntax
-	$(INSTALL) -m 0644 share/vim/ftdetect/clockwork.vim  $(DESTDIR)$(vimdir)/addons/ftdetect
-	$(INSTALL) -m 0644 share/vim/registry/clockwork.yaml $(DESTDIR)$(vimdir)/registry
+	$(INSTALL)    -m 0644 share/vim/syntax/*.vim   $(DESTDIR)$(vimdir)/addons/syntax
+	$(INSTALL)    -m 0644 share/vim/ftdetect/*.vim $(DESTDIR)$(vimdir)/addons/ftdetect
+	$(INSTALL)    -m 0644 share/vim/registry/vim-clockwork.yaml $(DESTDIR)$(vimdir)/registry
+	$(INSTALL) -d -m 0755 $(DESTDIR)$(augdir)
+	$(INSTALL)    -m 0644 var/augeas/lenses/* $(DESTDIR)$(augdir)
+	$(INSTALL) -d -m 0755 $(DESTDIR)$(CW_SHAREDIR)/db
+	$(INSTALL)    -m 0644 share/db/*.sql $(DESTDIR)$(CW_SHAREDIR)/db
+	$(INSTALL) -d -m 0755 $(DESTDIR)$(CW_SHAREDIR)/help
+	$(INSTALL)    -m 0644 share/help/* $(DESTDIR)$(CW_SHAREDIR)/help
+	$(INSTALL) -d -m 0755 $(DESTDIR)$(CW_ETCDIR)
+	$(INSTALL) -d -m 0755 $(DESTDIR)$(CW_ETCDIR)/ssl/pending
+	$(INSTALL) -d -m 0755 $(DESTDIR)$(CW_ETCDIR)/ssl/signed
+	$(INSTALL)    -m 0644 share/examples/cwa.conf $(DESTDIR)$(CW_ETCDIR)/cwa.conf
+	$(INSTALL)    -m 0644 share/examples/policyd.conf $(DESTDIR)$(CW_ETCDIR)/policyd.conf
+	$(INSTALL)    -m 0644 share/examples/manifest.pol $(DESTDIR)$(CW_ETCDIR)/manifest.pol
+	$(INSTALL) -d -m 0755 $(DESTDIR)$(CW_LIBDIR)/gather.d
+	$(INSTALL)    -m 0755 share/gather.d/* $(DESTDIR)$(CW_LIBDIR)/gather.d
 
 ############################################################
 # Lex/YACC Parsers

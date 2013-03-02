@@ -20,8 +20,8 @@
 #ifndef AUGCW_H
 #define AUGCW_H
 
-#include <augeas.h>
 #include "clockwork.h"
+#include <augeas.h>
 
 augeas* augcw_init(void);
 void augcw_errors(augeas* au);

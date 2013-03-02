@@ -34,12 +34,12 @@ static struct client default_options = {
 	.request_file = CW_ETCDIR "/ssl/request.pem",
 	.key_file     = CW_ETCDIR "/ssl/key.pem",
 
-	.db_file      = CW_VARLIBDIR "/agent.db",
+	.db_file      = CW_DATADIR "/agent.db",
 
-	.gatherers = CW_VARLIBDIR "/gather.d/*",
+	.gatherers    = CW_LIBDIR "/gather.d/*",
 
-	.s_address = "clockwork",
-	.s_port    = "7890"
+	.s_address    = "clockwork",
+	.s_port       = "7890"
 };
 
 /**************************************************************/

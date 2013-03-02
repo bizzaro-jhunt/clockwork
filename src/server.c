@@ -40,7 +40,7 @@ static struct server default_options = {
 	.cert_file    = CW_ETCDIR "/ssl/cert.pem",
 	.key_file     = CW_ETCDIR "/ssl/key.pem",
 
-	.db_file      = CW_VARLIBDIR "/master.db",
+	.db_file      = CW_DATADIR "/master.db",
 
 	.requests_dir = CW_ETCDIR "/ssl/pending",
 	.certs_dir    = CW_ETCDIR "/ssl/signed",

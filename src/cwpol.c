@@ -47,7 +47,7 @@ typedef int (*command_fn)(struct cwpol_opts *o, struct command*, int);
 #ifdef DEVEL
 #  define HELP_ROOT "share/help"
 #else
-#  define HELP_ROOT CW_SHAREDIR "/help"
+#  define HELP_ROOT CW_DATADIR "/help"
 #endif
 
 #define TOKEN_DELIM " \t"

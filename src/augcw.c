@@ -19,14 +19,6 @@
 
 #include "augcw.h"
 
-#ifdef DEVEL
-#  define AUGCW_ROOT "test/augeas"
-#  define AUGCW_INC  "var/augeas/lenses"
-#else
-#  define AUGCW_ROOT "/"
-#  define AUGCW_INC  CW_VARDIR "/lib/clockwork/augeas/lenses"
-#endif
-
 #define AUGCW_OPTS AUG_NO_STDINC|AUG_NO_LOAD|AUG_NO_MODL_AUTOLOAD
 
 augeas* augcw_init(void)

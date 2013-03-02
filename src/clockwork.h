@@ -49,7 +49,7 @@
 #  define AUGCW_INC  "var/augeas/lenses"
 #else
 #  define AUGCW_ROOT "/"
-#  define AUGCW_INC  CW_VARDIR "/lib/clockwork/augeas/lenses"
+#  define AUGCW_INC  CW_LIBDIR "/augeas/lenses"
 #endif
 
 #include <assert.h>

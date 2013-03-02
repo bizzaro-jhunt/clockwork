@@ -8,8 +8,8 @@ URL:		http://clockwork.niftylogic.com
 Source0:	%{name}-%{version}.tar.gz
 BuildRoot:	%(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 
-BuildRequires:	augeas-devel sqlite-devel libgear readline-devel ctest
-Requires:	augeas-libs sqlite libgear readline yum-utils
+BuildRequires:	augeas-devel sqlite-devel readline-devel ctest
+Requires:	augeas-libs sqlite readline yum-utils
 
 %description
 

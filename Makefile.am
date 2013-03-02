@@ -2,10 +2,6 @@ AUTOMAKE_OPTIONS = foreign subdir-objects
 
 ############################################################
 
-etcdir = /etc/clockwork
-vimdir = $(datadir)/vim
-augdir = $(pkgdatadir)/augeas/lenses
-
 # FIXME need a way to get these from ./configure
 CW_VARDIR    = /var
 CW_ETCDIR    = /etc/clockwork
@@ -113,14 +109,14 @@ path-check:
 	@echo " CW_CACHEDIR = $(CW_CACHEDIR)"
 
 install-data-hook:
-	$(INSTALL) -d -m 0755 $(DESTDIR)$(vimdir)/addons/syntax
-	$(INSTALL) -d -m 0755 $(DESTDIR)$(vimdir)/addons/ftdetect
-	$(INSTALL) -d -m 0755 $(DESTDIR)$(vimdir)/registry
-	$(INSTALL)    -m 0644 share/vim/syntax/*.vim   $(DESTDIR)$(vimdir)/addons/syntax
-	$(INSTALL)    -m 0644 share/vim/ftdetect/*.vim $(DESTDIR)$(vimdir)/addons/ftdetect
-	$(INSTALL)    -m 0644 share/vim/registry/vim-clockwork.yaml $(DESTDIR)$(vimdir)/registry
-	$(INSTALL) -d -m 0755 $(DESTDIR)$(augdir)
-	$(INSTALL)    -m 0644 var/augeas/lenses/* $(DESTDIR)$(augdir)
+	$(INSTALL) -d -m 0755 $(DESTDIR)$(datadir)/vim/addons/syntax
+	$(INSTALL) -d -m 0755 $(DESTDIR)$(datadir)/vim/addons/ftdetect
+	$(INSTALL) -d -m 0755 $(DESTDIR)$(datadir)/vim/registry
+	$(INSTALL)    -m 0644 share/vim/syntax/*.vim   $(DESTDIR)$(datadir)/vim/addons/syntax
+	$(INSTALL)    -m 0644 share/vim/ftdetect/*.vim $(DESTDIR)$(datadir)/vim/addons/ftdetect
+	$(INSTALL)    -m 0644 share/vim/registry/vim-clockwork.yaml $(DESTDIR)$(datadir)/vim/registry
+	$(INSTALL) -d -m 0755 $(DESTDIR)$(CW_LIBDIR)/augeas/lenses
+	$(INSTALL)    -m 0644 var/augeas/lenses/* $(DESTDIR)$(CW_LIBDIR)/augeas/lenses
 	$(INSTALL) -d -m 0755 $(DESTDIR)$(CW_SHAREDIR)/db
 	$(INSTALL)    -m 0644 share/db/*.sql $(DESTDIR)$(CW_SHAREDIR)/db
 	$(INSTALL) -d -m 0755 $(DESTDIR)$(CW_SHAREDIR)/help

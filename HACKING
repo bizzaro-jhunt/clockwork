@@ -144,6 +144,7 @@ More technical detail is given by:
 
 3. A NOTE ON `EXTERNALS'
 ------------------------
+(This section is no longer relevant)
 
 In the Clockwork root there is a directory called `ext'.  This directory
 houses external dependencies compiled specifically for Clockwork dev work.
@@ -187,3 +188,540 @@ email it to me.  The only thing I ask is that you:
 
 My email address is (currently) james@jameshunt.us
 
+
+
+5. Notes to Developers
+----------------------
+
+5.1. Locking System Accounts
+----------------------------
+User account locking seems to be accomplished via the standard passwd(1)
+command by placing an exclamation point (!, 0x21) immediately before the
+encrypted password in the /etc/shadow file.  Unlocking is done by removing
+this exclamation point.  This method seems to be preferred because it
+allows sysads to lock an account without losing the original password.
+
+5.2. PWDB / SPDB - Remove List Head
+-----------------------------------
+Removing the list head (first entry in the database) currently presents a
+few problems.  The caller has a pointer to the entry structure, so
+stitching it out of the picture does not work.
+
+Perhaps the best bet is to go back to pointers for payload (either struct
+passwd * or struct spwd *) and set the pointer to NULL for all deleted
+payloads (and free()ing memory accordingly).  Of course, the documentation
+will have to warn callers that the second parameter passed to the pwdb_rm()
+function will be freed, so that future usage results in undefined behavior.
+
+SOLVED: The passwd member of struct pwdb is now a pointer
+        The spwd member of struct spdb is now also a pointer
+
+5.3. Object Lifecycle and Memory Management
+-------------------------------------------
+The internal APIs between modules (stringlist, res_*, policy, etc.) need
+to exhibit consistent behavior with respect to object (struct) creation,
+initialization, and memory management.  To adhere to the Principle of
+Least Surprise, the following conventions must be upheld:
+
+int OBJECT_init(OBJECT*, ...)
+        Initializes the members of the OBJECT with sane defaults
+        Does not perform memmory allocation
+        Returns non-zero if initialization fails
+        Accepts other arguments for initialization, as needed
+
+OBJECT* OBJECT_new(...)
+        Dynamically allocates memory for an OBJECT
+        Calls OBJECT_init to initialize the OBJECT
+        Returns NULL if allocation or initialization fails
+        Accepts the same arguments as OBJECT_init, for initialization
+
+void OBJECT_deinit(OBJECT*)
+        De-initializes members of OBJECT
+        OBJECT is in an undefined state after this call
+
+void OBJECT_free(OBJECT*)
+        Calls OBJECT_deinit to de-initialize the OBJECT
+        Frees dynamically allocated memory
+
+These functions operate in pairs:
+        OBJECT_init ----> (do stuff with object) ---> OBJECT_deinit
+        OBJECT_new  ----> (do stuff with object) ---> OBJECT_free
+
+Additionally, the following guidelines with respect to memory management
+should be followed whenever possible, unless there is good reason not to.
+
+ 1. An object is responsible for all memory it allocates
+
+        If a module (like stringlist) allocates an area of memory, either
+        because it was asked to (stringlist_add) or as part of its integral
+        operation, that module is responsible for freeing that memory.  It
+        should not be left to the caller to fre memory allocated on their
+        behalf.
+
+ 2. An object must not take responsibility for memory areas presented to
+        it by callers.
+
+        Callers should be able to live by guideline 1, above.  Ergo, modules
+        should not take responsibility for memory away from a caller.  For
+        example, stringlist_add takes a pointer to a null-terminated character
+        array as its first argument, and adds it a list.  The module must
+        allocate a copy of that string for storage in the stringlist struct,
+        thereby leaving the caller responsible for the pointer they passed.
+
+(These guidelines were laid down to maintain clearer code, and ensure that
+memory leaks are easier to find, since responsibility for memory management
+is clear and obvious.)
+
+5.4 PACK As An Alternative to serializer/unserializer
+-----------------------------------------------------
+
+The serializer / unserializer interface (serialize.o) is a bit clunky.  In
+essence, it is a stupid string parser with some numeric conversion routines
+built in.  The biggest problem is the workload placed on the user of the
+serialize module; serialize knows nothing about the actual contents of a
+serialized string, and the API forces the caller to build up or pull apart
+a serialized representation by hand.
+
+Let's take a lesson from the Perl playbook, and implement a (slightly) simpler
+version of the pack / unpack pair of functions.  Variadic functions can be
+made so that the API is familiar to C programmers used to printf and scanf.
+
+Example: packing a res_user object ...
+
+  if (pack("aaLLaaaCaCLLLLL",
+           ru->ru_name, ru->ru_passwd, ru->uid, ru->gid,
+           ru->gecos, ru->shell, ru->mkhome, ru->skel,
+           ru->lock, ru->pwmin, ru->pwmax, ru->pwwarn,
+           ru->inact, ru->expire) != 0) {
+
+        return -1; /* some sort of failure code */
+  }
+
+... and then unpacking it ...
+
+  if (unpack("aaLLaaaCaCLLLLL",
+             &ru->ru_name, &ru->ru_passwd, &ru->uid, &ru->gid,
+             &ru->gecos, &ru->shell, &ru->mkhome, &ru->skel,
+             &ru->lock, &ru->pwmin, &ru->pwmax, &ru->pwwarn,
+             &ru->inact, &ru->expire) != 0) {
+
+        return -1; /* some sort of failure code */
+  }
+
+
+5.5. Fact Gathering Through External Scripts
+--------------------------------------------
+The initial design of the fact module was to implement all fact gatherers
+as C routines inside of the client-side agent.  After implementing uname through
+the eponymous system call, and then adding LSB support via file parsing, it seems
+it would be easier and more flexible to use independent scripts.
+
+In this architecture, the fact gatherer would only need to exec multiple binaries
+(which could be Perl, Ruby or Bash scripts) and parse the output.  The parsing
+routines only need to be implemented once for the gatherer.  Since more scripts could
+be added later (perhaps as part of a policy) this approach gains flexibility.
+
+If the speed / optimization of C over external command interpreters is a concern,
+fact gatherers could be implemented as standalone C programs that speak the same
+serialization protocol that the gatherer understands.
+
+
+5.6. Testing System-Level Remediation
+-------------------------------------
+Configuration management software is difficult to write tests for because it strives
+to update system-level configuration items like user accounts and software packages.
+
+Functional tests need to be written to verify that, given a current system state, and
+a policy definition, the software can correctly bring the system to its target state.
+In order to do this many times, with different starting system states, we need to
+use some sort of temporary system state, set up by the test harness, for each test.
+
+The main problem lies in the conflicting desires of the tester / programmer; the
+software must be tested, but the development system should not be modified in the
+process.
+
+Throw-away chroot environments may be the answer: each test scenario can generate a
+new root directory (probably under test/) and set it up with all of the "system-level"
+files and configurations it needs to simulate as the "current state".  The test harness
+can then chroot into the new root directory and execute in a sandbox.
+
+Question: can normal users chroot?
+
+
+5.7. Sending Generated Policy vs. Sending Policy Generators
+-----------------------------------------------------------
+During design / development of policyd, I had to decide whether to generate the policy
+every time a client connects, and send the full policy definition, or just send the
+syntax tree that the client could run against its set of facts and get a policy.
+
+Here is a list of pros and cons for each approach
+
+Option 1: Send the Full Policy
+
+  Pros                                           Cons
+  ============================================   ======================================
+  Need-to-know: Client only gets the policy      More Complex Server: Policy Master
+     that they need, and nothing more.              must be able to generate a policy
+                                                    from a syntax tree, based on the
+  Simpler Client: Agent logic only needs to         facts given by the client
+     know how to receive and enforce
+
+  Less Data Transfer (potentially): Client
+     does not need to send its facts to the
+     policy host.
+
+  Pack Code Done: The pack / unpack code for
+     a policy and its constituent resources
+     is already written and tested.
+
+
+Options 2: Send the Policy Generator
+
+  Pros                                           Cons
+  ============================================   ======================================
+  Simpler Server: Policy Master only needs to    More Complex Client: Agent logic needs
+     be able to map a host to a syntax tree         to be able to traverse a syntax tree
+     root node.                                     and create a policy / resources.
+
+  Less Data Transfer (potentially): If policy    Packing Nodes: Need to write code to
+     definition has not changed, but facts          pack and unpack a syntax tree for
+     have (locally) there is no need to send        wire transfer.  This will require
+     a new policy to the client.                    pointer swizzling.
+
+                                                 Information Leaks: Client will get entire
+                                                    syntax tree, complete with alternate
+                                                    conditionals.
+
+
+Given the above list, it seems that sending the full policy, generated server-side,
+has the most positive benefits and the fewest downsides.
+
+
+5.8. File Remediation and the Remote File Server
+------------------------------------------------
+File Resources are "fixed" during policy enforcement (client-side) differently than
+most other resources; primarily, the contents of the file are really only known to
+the policy master, for security reasons.  To my knowledge, all other resource types
+are atomic -- everything the client needs to remediate is contained directly in the
+res_* structure, and retrieved from the policy master in the GET_POLICY PDU.
+
+My original thought was to stat all res_file objects immediately after GET_POLICY,
+and send out GET_FILE PDUs to the policy master for files that were non-compliant.
+Unfortunately, this necessitates storing the contents of the files in temporary
+areas, considering that some files could be very large.  This introduces a subtle
+vulnerability if the temporary storage area is not 100% secure -- an attacker could
+poison the files in the storage area before the client can remediate, essentially
+spoofing file contents from the master.  This is not good.
+
+Another idea was to implement a standalone (or built-in-but-separate) file server /
+content server that could dole out files on demand.  In theory, it works well, and
+provides a neat and clean separation of duties.  In practice, it brings in way too
+many security access problems, efficiency concerns.  Thornier issues crop up when
+you start getting into templated, dynamic files generated from client host facts.
+
+Instead, why not keep the connection to the policy master open until the client
+has (a) figured out which files need content remediation and (b) gets those files
+from the server.  Since I eventually intend to add in post-run reporting, this
+will work.
+
+
+5.9. Declarative vs. Imperative vs. Both
+----------------------------------------
+If you read through any of the literature on popular configuration management sytems
+like CFengine and Puppet, you will see that the authors have a real problem with
+imperative methods of configuration management, and an affinity for the declarative
+approach.  You tell the tool what you want, and it determines the best sequence of
+actions to take to get the system there.
+
+As awesome as that concept is, it doesn't track too well with people.  We are
+imperative, task-based creatures.  "I want Z, so I should do X and then Y"
+
+One of my biggest complaints with these existing systems is the mental workout
+required to unroll a declarative configuration into its imperative format.  Most
+of these systems do their own implicit dependency resolution.  If you say you
+want the file "/some/path/to/file" to be owned by the user joe in group staff,
+the tools puts in the dependency that "/some/path/to" is a directory, that it exists,
+user joe needs to be created first, and so does the group 'staff'.  When those
+dependencies are impossible to deduce, the system falls back to explicit dependency
+specification from the config.  For example, Puppet lets you "notify" a service when
+a file changes.  That's a fancy way of saying 'restart service B after updating
+file A'.
+
+Clockwork will (and does) embrace the declarative approach.  However, I must draw
+the line at coming up with terms that don't sound imperative, when in fact they are.
+If you need a resource to be evaluated after another, then the language will be
+'after', not 'requires'.  It's just easier to grok.
+
+
+5.10. Resource Trees
+--------------------
+Now that the declarative imperative tirade is over, here's some notes on Resouce Trees.
+Resource Trees represent the implicit and explicit dependecies in a configuration.
+We could just ignore these dependencies and hope that successive runs get us closer
+and closer to the configuration, but that's a real disservice to system administrators.
+I personally don't like the "getting closer, try again later" approach, so we're stuck
+with dependency resolution.
+
+If we take the same approach with resource trees as we did with syntax trees, this should
+be pretty easy.  Define a struct rtree that contains:
+
+ * a pointer to a resource (don't know what type, don't care)
+ * a list of dependent resources (as struct rtrees).
+
+(Astute comp sci grads will notice that this is a run-of-the-mill non-binary tree.)
+"Free" resources, that have no further dependencies exist as leaf nodes.  These go through
+remediation first, followed by their parents.  Consider the following graph, with each
+letter representing a resource.
+
+   A -- B -- D
+   |     `-- E
+   |
+    `-- C -- F
+        |--- G
+         `-- H
+
+In this example, resource C cannot go through remediation until D and E are in a good
+state.  (D and E may be the user joe and group staff from the file example (B) above.)
+Remediation could proceed in either of the following sequences (ignoring order variations
+at the leaf node)
+
+H, G, F, C, E, D, B, A (remediating C first)
+D, E, B, F, G, H, C, A (remediating B first)
+
+Order does not matter; only parentage affects the outcome.
+
+As an implementation side note, the resource tree is only useful during remediation, not
+after.  Therefore, the act of traversing the tree can be implemented as a destructive
+operation if it simplifies the traversal logic.  For example, after remediating D, the
+D node can be removed, leaving the tree as such:
+
+   A -- B -- *
+   |     `-- E
+   |
+    `-- C -- F
+        |--- G
+         `-- H
+
+Three operations later, after remediating F:
+
+   A -- * -- *
+   |     `-- *
+   |
+    `-- C -- *
+        |--- G
+         `-- H
+
+This could be done through rtree delete/free, or by flagging the rtree node as 'done'
+
+Another sidenote: the policy master really should be able to identify cycles in the graph
+(i.e. A depends on B, which itself depends on A).  However, without client facts, this
+may not be possible.  In any event, someone needs to catch these situations before
+attempting to traverse the tree for remediation.  A descriptive error message followed by
+exit would be just the ticket.
+
+5.11. An Alternative Aproach to Dependencies
+--------------------------------------------
+
+After further reflection (and an attempted implementation), it doesn't seem like dep trees
+have as large an application as the above notes indicate.  Here's a few examples:
+
+File dependencies::
+
+If the policy enforces a file at "/path/to/file.dat" then res_file_remediate should be able
+to create the directory path '/path/to' if all or part of it does not exist.  For security
+reasons, missing directory components should be created according to the local umask, and
+owned by root:root.
+
+File Owner / Group dependencies::
+
+As long as users and groups get fixed before files, the pwdb and grdb structures will hold
+references to all users and groups known and created.  File remediation will then be able
+to look up the owner UID and GID from pwdb and grdb.
+
+User / Group dependencies::
+
+Users depend on groups, but groups do not depend on users.  A user's primary group must
+be created so that it can be looked up during user remediation.  For group memberships,
+/etc/group and /etc/shadow only contain user names, not UIDs.  Therefore, if we remediate
+groups before users, we can get around dependency graphing.
+
+So...
+
+The final decision (at least at this point) is to run the following sequence:
+  Groups -> Users -> Files
+
+
+5.12. SSL Signing / Verification Procedure
+------------------------------------------
+If any step in cwca_sign_main fails, all other steps must be undone
+
+
+6. Platform Support Matrix
+--------------------------
+
+OS/Distro       Version         Arch            Status
+=========       =======         ====            ======
+Ubuntu          11.04           i386            WORKING
+CentOS          5.7             x86_64          WORKING
+FreeBSD         8.2             ?               planning
+OpenBSD         4.9             ?               planning
+NetBSD          5.1             ?               planning
+Fedora          Core 15         ?               HOLD
+Gentoo          2011.09?        ?               HOLD
+
+
+7. Resource Implementation Status
+---------------------------------
+
+Key:  . = detection
+      _ = (space) outstanding
+      + = detection + remediation
+
+
+
+7.1. res_file (done)
+--------------------
++ owner
++ group
++ mode
++ source / contents
+
+7.2. res_dir (done)
+-------------------
++ owner
++ group
++ mode
+
+7.3. res_exec (done)
+--------------------
++ command
++ test
++ user
++ group
+
+7.4. res_package
+----------------
++ name
++ status
++ version requirements
+
+
+  NOTE: For res_package, it will be best to rely on the
+        package manager of choice for the local platform.  For
+        RedHat, use yum or up2date.  For Deb/Ubu, use apt*.
+        Trying to integrate with these package manager DBs
+        via C APIs seems to be too much work for little gain.
+
+  DEBIAN:
+          check installed:   "dpkg-query -W -f='${Version}' %s"
+          install:           "apt-get install -qqy %s"
+          install version:   "apt-get install -qqy %s=%s"
+          erase:             "apt-get purge   -qqy %s"
+
+  REDHAT:
+          check installed:   "rpm --quiet --qf='%%{VERSION}-%%{RELEASE}' -q %s"
+          install:           "yum install -qy %s"
+          install version:   "yum install -qy %s-%s"
+          erase:             "yum erase   -qy %s"
+
+  GENTOO:
+          check installed:   ???
+          install:           ???
+          install version:   ???
+          erase:             ???
+
+7.5. res_user
+-------------
++ username
++ id
++ primary group
+  groups
++ password
++ shell
++ home
++ make home / skeleton
++ pwmin
++ pwmax
++ pwwarn
++ expire
++ inactive
++ locked
++ comment
+
+7.6. res_group (done)
+---------------------
++ name
++ id
++ members
++ admins
++ password
+
+7.7. res_service (done)
+-----------------------
++ name
++ running / stopped
++ enabled / disabled
+
+7.8. res_mount
+--------------
+  device (fs_spec)
+  mountpoint (fs_file)
+  filesystem (fs_vfstype)
+  options (fs_mntops)
+  dump (fs_freq)
+  pass (fs_passno)
+
+7.9. res_ssh_public_key
+-----------------------
+  file (target)
+  user (target)
+  comment
+  type
+  key
+
+7.10. res_ssh_known_host
+------------------------
+  file (where to store it)
+  host
+  ip
+  type
+  key
+  encrypt (boolean)
+
+7.11. res_cron
+--------------
+  name
+  minute
+  hour
+  mday (month_day)
+  date
+  wday (week_day)
+  frequency (i.e. "@reboot")
+  user
+  system (boolean)
+  command
+
+7.12. res_host (done)
+---------------------
++ hostname
++ aliases
+
+7.13. res_net_interface
+-----------------------
+  device
+  ip
+  netmask
+  gateway
+  (sure there are others...)
+
+7.14. res_net_route
+-------------------
+  network
+  gateway
+  (sure there are others... metric?)
+
+7.15. res_sysctl (done)
+-----------------------
++ name
++ value
++ persist

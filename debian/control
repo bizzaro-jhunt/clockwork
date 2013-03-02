@@ -8,7 +8,8 @@ Build-Depends: debhelper (>= 8.0.0),
                libreadline6-dev,
                libsqlite3-dev (>= 3.5.9),
                libssl-dev (>= 1.0.0),
-               openssl
+               openssl,
+               pkg-config
 Standards-Version: 3.9.3
 Homepage: http://clockwork.niftylogic.com/
 

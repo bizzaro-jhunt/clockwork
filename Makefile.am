@@ -12,6 +12,8 @@ no_lcov_c := test/unit/**/* test/unit/* test/functional/*
 AM_LFLAGS = --header-file --yylineno
 AM_YFLAGS = -d
 
+vimdir = $(datarootdir)/vim
+
 ############################################################
 
 BUILT_SOURCES    = src/spec/lexer.c src/spec/grammar.c src/spec/grammar.h
@@ -26,21 +28,20 @@ EXTRA_DIST      += share/gather.d
 EXTRA_DIST      += share/help
 EXTRA_DIST      += share/vim
 
-dist_man_MANS    = share/man/res_file.5
-dist_man_MANS   += share/man/cwpol.1
-dist_man_MANS   += share/man/res_host.5
-dist_man_MANS   += share/man/res_group.5
-dist_man_MANS   += share/man/policyd.conf.5
-dist_man_MANS   += share/man/cwa.conf.5
-dist_man_MANS   += share/man/res_sysctl.5
+dist_man_MANS    = share/man/clockwork.7
 dist_man_MANS   += share/man/cwa.1
+dist_man_MANS   += share/man/cwa.conf.5
+dist_man_MANS   += share/man/cwpol.1
 dist_man_MANS   += share/man/policyd.1
-dist_man_MANS   += share/man/res_package.5
-dist_man_MANS   += share/man/tpl/res_.5
-dist_man_MANS   += share/man/res_service.5
-dist_man_MANS   += share/man/res_exec.5
-dist_man_MANS   += share/man/clockwork.7
+dist_man_MANS   += share/man/policyd.conf.5
 dist_man_MANS   += share/man/res_dir.5
+dist_man_MANS   += share/man/res_exec.5
+dist_man_MANS   += share/man/res_file.5
+dist_man_MANS   += share/man/res_group.5
+dist_man_MANS   += share/man/res_host.5
+dist_man_MANS   += share/man/res_package.5
+dist_man_MANS   += share/man/res_service.5
+dist_man_MANS   += share/man/res_sysctl.5
 dist_man_MANS   += share/man/res_user.5
 
 ############################################################
@@ -88,6 +89,16 @@ cwpol_SOURCES   = $(core_src) src/cwpol.c $(parser_spec_src)
 
 manifest:
 	@echo >&2 "nothin doin"
+
+install-data-hook:
+	$(INSTALL) -d -m 0755 $(DESTDIR)$(vimdir)/addons/syntax
+	$(INSTALL) -d -m 0755 $(DESTDIR)$(vimdir)/addons/ftdetect
+	$(INSTALL) -d -m 0755 $(DESTDIR)$(vimdir)/registry
+	$(INSTALL) -m 0644 share/vim/syntax/cwa.vim     $(DESTDIR)$(vimdir)/addons/syntax
+	$(INSTALL) -m 0644 share/vim/syntax/pol.vim     $(DESTDIR)$(vimdir)/addons/syntax
+	$(INSTALL) -m 0644 share/vim/syntax/policyd.vim $(DESTDIR)$(vimdir)/addons/syntax
+	$(INSTALL) -m 0644 share/vim/ftdetect/clockwork.vim  $(DESTDIR)$(vimdir)/addons/ftdetect
+	$(INSTALL) -m 0644 share/vim/registry/clockwork.yaml $(DESTDIR)$(vimdir)/registry
 
 ############################################################
 # Lex/YACC Parsers

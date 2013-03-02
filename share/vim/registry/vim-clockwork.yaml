@@ -1,0 +1,7 @@
+addon: clockwork
+description: "Syntax highlighting for clockwork"
+files:
+  - ftdetect/clockwork.vim
+  - syntax/pol.vim
+  - syntax/policyd.vim
+  - syntax/cwa.vim

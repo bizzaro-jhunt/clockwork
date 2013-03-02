@@ -2,13 +2,19 @@ Source: clockwork
 Section: admin
 Priority: optional
 Maintainer: James Hunt <james@niftylogic.com>
-Build-Depends: debhelper (>= 8.0.0) openssl, libssl-dev (>= 1.0.0), libsqlite3-dev (>= 3.5.9), libaugeas-dev (>= 0.10.0)
+Build-Depends: debhelper (>= 8.0.0),
+               libaugeas-dev (>= 0.10.0),
+               libaugeas0 (>= 0.10.0),
+               libreadline6-dev,
+               libsqlite3-dev (>= 3.5.9),
+               libssl-dev (>= 1.0.0),
+               openssl
 Standards-Version: 3.9.3
 Homepage: http://clockwork.niftylogic.com/
 
 Package: clockwork-server
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ${misc:Depends}, ${shlibs:Depends}
 Description: Secure Configuration Management - Server
  Clockwork is a safe, secure and flexible system for managing system
  configurations through enforcement of targeted policies, expressed
@@ -22,7 +28,7 @@ Description: Secure Configuration Management - Server
 
 Package: clockwork-agent
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, augeas-lenses
+Depends: augeas-lenses, ${misc:Depends}, ${shlibs:Depends}
 Description: Secure Configuration Management - Agent
  Clockwork is a safe, secure and flexible system for managing system
  configurations through enforcement of targeted policies, expressed

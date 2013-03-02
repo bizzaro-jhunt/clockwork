@@ -1,5 +1,4 @@
 #DOCS#
-usr/share/man/man7/clockwork.7
 usr/share/man/man5/res_dir.5
 usr/share/man/man5/res_exec.5
 usr/share/man/man5/res_file.5
@@ -9,3 +8,4 @@ usr/share/man/man5/res_package.5
 usr/share/man/man5/res_service.5
 usr/share/man/man5/res_sysctl.5
 usr/share/man/man5/res_user.5
+usr/share/man/man7/clockwork.7

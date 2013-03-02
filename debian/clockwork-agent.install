@@ -1,6 +1,6 @@
+etc/clockwork/cwa.conf
+lib/clockwork/augeas
+lib/clockwork/gather.d
 sbin/cwa
 sbin/cwcert
 usr/share/man/man1/cwa.1
-lib/clockwork/augeas
-lib/clockwork/gather.d
-etc/clockwork/cwa.conf

@@ -2,7 +2,7 @@
 ### BEGIN INIT INFO
 # Provides:          clockwork
 # Required-Start:    $network $local_fs
-# Required-Stop:
+# Required-Stop:     $network $local_fs
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
 # Short-Description: <Enter a short description of the sortware>
@@ -13,14 +13,13 @@
 
 # Author: James Hunt <jrhunt@unknown>
 
-# PATH should only include /usr/* if it runs after the mountnfs.sh script
-PATH=/sbin:/usr/sbin:/bin:/usr/bin
+PATH=/sbin:/bin
 DESC=clockwork             # Introduce a short description here
 NAME=clockwork             # Introduce the short server's name here
-DAEMON=/usr/sbin/clockwork # Introduce the server's location here
+DAEMON=/sbin/policyd       # Introduce the server's location here
 DAEMON_ARGS=""             # Arguments to run the daemon with
 PIDFILE=/var/run/$NAME.pid
-SCRIPTNAME=/etc/init.d/$NAME
+SCRIPTNAME=/etc/init.d/policyd
 
 # Exit if the package is not installed
 [ -x $DAEMON ] || exit 0

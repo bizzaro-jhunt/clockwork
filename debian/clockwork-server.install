@@ -1,0 +1,9 @@
+sbin/cwca
+sbin/cwpol
+sbin/policyd
+usr/share/man/man1/policyd.1
+usr/share/man/man5/policyd.conf.5
+etc/clockwork/ssl/pending
+etc/clockwork/ssl/signed
+etc/clockwork/policyd.conf
+etc/clockwork/manifest.pol

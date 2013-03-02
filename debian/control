@@ -3,11 +3,11 @@ Section: admin
 Priority: optional
 Maintainer: James Hunt <james@niftylogic.com>
 Build-Depends: debhelper (>= 8.0.0)
-Standards-Version: 3.9.2
+Standards-Version: 3.9.3
 Homepage: http://clockwork.niftylogic.com/
 
 Package: clockwork-server
-Architecture: all
+Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Secure Configuration Management - Server
  Clockwork is a safe, secure and flexible system for managing system
@@ -21,7 +21,7 @@ Description: Secure Configuration Management - Server
  system, including the Certificate Authority and Policy Master.
 
 Package: clockwork-agent
-Architecture: all
+Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Secure Configuration Management - Agent
  Clockwork is a safe, secure and flexible system for managing system
@@ -36,6 +36,7 @@ Description: Secure Configuration Management - Agent
  policy from an upstream server and applying that policy locally.
 
 Package: clockwork-doc
+Section: doc
 Architecture: all
 Depends: ${misc:Depends}
 Description: Secure Configuration Management - Documentation
@@ -52,6 +53,6 @@ Package: vim-clockwork
 Architecture: all
 Depends: ${misc:Depends}
 Recommends: vim-addon-manager
-Description: Syntax highlighting for Clockwork policy files
+Description: Syntax highlighting for Clockwork files
  The vim-clockwork package provides filetype detection and syntax
- highlighting for Clockwork policy files (files ending in "*.pol").
+ highlighting for Clockwork policy and configuration files.

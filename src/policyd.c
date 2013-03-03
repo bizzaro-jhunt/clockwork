@@ -42,6 +42,8 @@ struct worker {
 
 	char *peer;
 
+	const char *ca_cert_file;
+	const char *key_file;
 	const char *requests_dir;
 	const char *certs_dir;
 	const char *db_file;
@@ -54,6 +56,7 @@ struct worker {
 	struct session session;
 
 	unsigned short peer_verified;
+	unsigned short autosign;
 };
 
 /**************************************************************/
@@ -313,6 +316,9 @@ unintr:
 	w->certs_dir    = s->certs_dir;
 	w->db_file      = s->db_file;
 	w->cache_dir    = s->cache_dir;
+	w->ca_cert_file = s->ca_cert_file;
+	w->key_file     = s->key_file;
+	w->autosign     = s->autosign;
 
 	w->socket = BIO_pop(s->listener);
 	if (!(w->ssl = SSL_new(s->ssl_ctx))) {
@@ -380,8 +386,9 @@ static int handle_HELLO(struct worker *w)
 static int handle_GET_CERT(struct worker *w)
 {
 	char *csr_file, *cert_file;
+	EVP_PKEY *key;
 	X509_REQ *csr = X509_REQ_new();
-	X509 *cert = NULL;
+	X509 *cert = NULL, *ca_cert;
 
 	if (pdu_decode_GET_CERT(RECV_PDU(&w->session), &csr) != 0) {
 		CRITICAL("Unable to decode GET_CERT PDU");
@@ -392,7 +399,32 @@ static int handle_GET_CERT(struct worker *w)
 	cert_file = string("%s/%s.pem", w->certs_dir, w->peer);
 	if (csr) {
 		unlink(cert_file);
-		cert_store_request(csr, csr_file);
+
+		if (w->autosign) {
+			INFO("Auto-signing inbound Certificate Request");
+
+			key = cert_retrieve_key(w->key_file);
+			if (!key) {
+				CRITICAL("Failed to retrieve CA private key");
+				return 0;
+			}
+
+			ca_cert = cert_retrieve_certificate(w->ca_cert_file);
+			cert = cert_sign_request(csr, ca_cert, key, 365*10);
+			if (!cert) {
+				CRITICAL("Failed to auto-sign certificate");
+				return 0;
+			}
+
+			if (cert_store_certificate(cert, cert_file) != 0) {
+				CRITICAL("Failed to store signed client certificate");
+				return 0;
+			}
+
+		} else {
+			INFO("Storing inbound Certificate Request");
+			cert_store_request(csr, csr_file);
+		}
 	} else {
 		cert = cert_retrieve_certificate(cert_file);
 	}

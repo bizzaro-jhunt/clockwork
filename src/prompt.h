@@ -22,7 +22,7 @@
 
 #include "clockwork.h"
 
-char* prompt(const char *text);
+char* prompt(const char *text, FILE* io);
 //char* prompt_without_echo(const char *prompt);
 
 #endif

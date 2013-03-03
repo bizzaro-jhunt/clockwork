@@ -329,7 +329,7 @@ static int cwca_new_main(const struct cwca_opts *args)
 		       "of the certificate authority's certificate.\n"
 		       "\n");
 
-		cert_prompt_for_subject(&subject);
+		cert_prompt_for_subject(&subject, stdin);
 
 		printf("\nGenerating new certificate for:\n\n");
 		cert_print_subject(stdout, "  ", &subject);
@@ -339,7 +339,7 @@ static int cwca_new_main(const struct cwca_opts *args)
 
 		do {
 			free(confirmation);
-			confirmation = prompt("Is this information correct (yes or no) ? ");
+			confirmation = prompt("Is this information correct (yes or no) ? ", stdin);
 		} while (strcmp(confirmation, "yes") != 0 && strcmp(confirmation, "no") != 0);
 
 	} while (strcmp(confirmation, "yes") != 0);

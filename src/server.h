@@ -64,6 +64,8 @@ struct server {
 	char *cache_dir;       /* where to cache client data (i.e. facts) */
 
 	char *listen;          /* interface/port to listen on */
+
+	int autosign;          /* whether or not to automatically sign certs */
 };
 
 int server_options(struct server *args);

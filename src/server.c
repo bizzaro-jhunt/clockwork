@@ -42,6 +42,7 @@ static struct server default_options = {
 	.db_file       = DEFAULT_MASTER_DB_FILE,
 	.cache_dir     = CW_CACHE_DIR,
 	.listen        = DEFAULT_POLICYD_LISTEN,
+	.autosign      = SERVER_OPT_FALSE,
 
 	/* Options below here are not available in the
 	   configuration file, only as defaults / CLI opts. */
@@ -144,6 +145,9 @@ static struct server* configured_options(const char *path)
 			}
 		}
 
+		v = hash_get(config, "autosign");
+		if (v) { s->autosign = strcmp(v, "yes") == 0 ? 1 : 0; }
+
 		hash_free_all(config);
 	}
 
@@ -165,6 +169,7 @@ static int merge_servers(struct server *a, struct server *b)
 	MERGE_BOOLEAN_OPTION(a,b,debug);
 	MERGE_BOOLEAN_OPTION(a,b,daemonize);
 	MERGE_BOOLEAN_OPTION(a,b,show_config);
+	MERGE_BOOLEAN_OPTION(a,b,autosign);
 
 	/* note: log_level handled differently */
 

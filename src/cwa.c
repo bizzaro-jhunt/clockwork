@@ -37,6 +37,7 @@
 
 static struct client* cwa_options(int argc, char **argv);
 static void show_help(void);
+static void show_compilation_options(void);
 
 static int gather_facts_from_script(const char *script, struct hash *facts);
 static int gather_facts(struct client *c);
@@ -111,16 +112,17 @@ static struct client* cwa_options(int argc, char **argv)
 {
 	struct client *c;
 
-	const char *short_opts = "h?c:s:p:nvqF";
+	const char *short_opts = "h?c:s:p:nvqFD";
 	struct option long_opts[] = {
-		{ "help",   no_argument,       NULL, 'h' },
-		{ "config", required_argument, NULL, 'c' },
-		{ "server", required_argument, NULL, 's' },
-		{ "port",   required_argument, NULL, 'p' },
-		{ "dry-run", no_argument,      NULL, 'n' },
-		{ "verbose", no_argument,      NULL, 'v' },
-		{ "quiet",  no_argument,       NULL, 'q' },
-		{ "facts",  no_argument,       NULL, 'F' },
+		{ "help",     no_argument,       NULL, 'h' },
+		{ "config",   required_argument, NULL, 'c' },
+		{ "server",   required_argument, NULL, 's' },
+		{ "port",     required_argument, NULL, 'p' },
+		{ "dry-run",  no_argument,       NULL, 'n' },
+		{ "verbose",  no_argument,       NULL, 'v' },
+		{ "quiet",    no_argument,       NULL, 'q' },
+		{ "facts",    no_argument,       NULL, 'F' },
+		{ "defaults", no_argument,       NULL, 'D'  },
 		{ 0, 0, 0, 0 },
 	};
 
@@ -133,6 +135,9 @@ static struct client* cwa_options(int argc, char **argv)
 		case 'h':
 		case '?':
 			show_help();
+			exit(0);
+		case 'D':
+			show_compilation_options();
 			exit(0);
 		case 'c':
 			free(c->config_file);
@@ -180,6 +185,51 @@ static void show_help(void)
 	       "\n"
 	       "  -p, --port            Override the TCP port number to connect to.\n"
 	       "\n");
+}
+
+#define DUMP_COMPILE_OPT(c) printf(" -D %s=\"%s\"\n", #c, c)
+static void show_compilation_options(void)
+{
+	printf("Clockwork compiled with...\n");
+	DUMP_COMPILE_OPT(SYS_PASSWD);
+	DUMP_COMPILE_OPT(SYS_GROUP);
+	DUMP_COMPILE_OPT(SYS_SHADOW);
+	DUMP_COMPILE_OPT(SYS_GSHADOW);
+
+	DUMP_COMPILE_OPT(CW_VAR_DIR);
+	DUMP_COMPILE_OPT(CW_ETC_DIR);
+	DUMP_COMPILE_OPT(CW_DATA_DIR);
+	DUMP_COMPILE_OPT(CW_LIB_DIR);
+	DUMP_COMPILE_OPT(CW_CACHE_DIR);
+
+	DUMP_COMPILE_OPT(AUGEAS_ROOT);
+	DUMP_COMPILE_OPT(AUGEAS_INCLUDES);
+	DUMP_COMPILE_OPT(HELP_FILES_DIR);
+
+	DUMP_COMPILE_OPT(DEFAULT_POLICYD_CONF);
+	DUMP_COMPILE_OPT(DEFAULT_CWA_CONF);
+	DUMP_COMPILE_OPT(DEFAULT_MANIFEST_POL);
+
+	DUMP_COMPILE_OPT(DEFAULT_SSL_CA_CERT_FILE);
+	DUMP_COMPILE_OPT(DEFAULT_SSL_CRL_FILE);
+	DUMP_COMPILE_OPT(DEFAULT_SSL_CERT_FILE);
+	DUMP_COMPILE_OPT(DEFAULT_SSL_REQUEST_FILE);
+	DUMP_COMPILE_OPT(DEFAULT_SSL_KEY_FILE);
+	DUMP_COMPILE_OPT(DEFAULT_SSL_REQUESTS_DIR);
+	DUMP_COMPILE_OPT(DEFAULT_SSL_CERTS_DIR);
+
+	DUMP_COMPILE_OPT(DEFAULT_POLICYD_LOCK_FILE);
+	DUMP_COMPILE_OPT(DEFAULT_POLICYD_PID_FILE);
+
+	DUMP_COMPILE_OPT(DEFAULT_MASTER_DB_FILE);
+	DUMP_COMPILE_OPT(DEFAULT_AGENT_DB_FILE);
+
+	DUMP_COMPILE_OPT(DEFAULT_GATHERER_DIR);
+	DUMP_COMPILE_OPT(DEFAULT_SERVER_NAME);
+	DUMP_COMPILE_OPT(DEFAULT_SERVER_PORT);
+	DUMP_COMPILE_OPT(DEFAULT_POLICYD_LISTEN);
+
+	DUMP_COMPILE_OPT(CACHED_FACTS_DIR);
 }
 
 static int gather_facts_from_script(const char *script, struct hash *facts)

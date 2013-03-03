@@ -25,9 +25,9 @@ augeas* augcw_init(void)
 {
 	augeas *au;
 
-	DEBUG("[augeas]: /files mapped to %s", AUGCW_ROOT);
-	DEBUG("[augeas]: loadpath is %s",      AUGCW_INC);
-	au = aug_init(AUGCW_ROOT, AUGCW_INC, AUGCW_OPTS);
+	DEBUG("[augeas]: /files mapped to %s", AUGEAS_ROOT);
+	DEBUG("[augeas]: loadpath is %s",      AUGEAS_INCLUDES);
+	au = aug_init(AUGEAS_ROOT, AUGEAS_INCLUDES, AUGCW_OPTS);
 	if (!au) {
 		CRITICAL("augeas initialization failed");
 		return NULL;

@@ -27,19 +27,16 @@ static struct client default_options = {
 	.log_level   = LOG_LEVEL_ERROR,
 	.mode        = 0,
 
-	.config_file  = CW_ETCDIR "/cwa.conf",
+	.config_file  = DEFAULT_CWA_CONF,
+	.ca_cert_file = DEFAULT_SSL_CA_CERT_FILE,
+	.cert_file    = DEFAULT_SSL_CERT_FILE,
+	.request_file = DEFAULT_SSL_REQUEST_FILE,
+	.key_file     = DEFAULT_SSL_KEY_FILE,
+	.db_file      = DEFAULT_AGENT_DB_FILE,
+	.gatherers    = DEFAULT_GATHERER_DIR "/*",
 
-	.ca_cert_file = CW_ETCDIR "/ssl/CA.pem",
-	.cert_file    = CW_ETCDIR "/ssl/cert.pem",
-	.request_file = CW_ETCDIR "/ssl/request.pem",
-	.key_file     = CW_ETCDIR "/ssl/key.pem",
-
-	.db_file      = CW_DATADIR "/agent.db",
-
-	.gatherers    = CW_LIBDIR "/gather.d/*",
-
-	.s_address    = "clockwork",
-	.s_port       = "7890"
+	.s_address    = DEFAULT_SERVER_NAME,
+	.s_port       = DEFAULT_SERVER_PORT,
 };
 
 /**************************************************************/

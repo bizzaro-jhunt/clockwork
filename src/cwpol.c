@@ -44,11 +44,6 @@ struct command {
 typedef int (*command_fn)(struct cwpol_opts *o, struct command*, int);
 
 #define slv(sl,i) (sl)->strings[(i)]
-#ifdef DEVEL
-#  define HELP_ROOT "share/help"
-#else
-#  define HELP_ROOT CW_LIBDIR "/help"
-#endif
 
 #define TOKEN_DELIM " \t"
 
@@ -219,7 +214,7 @@ static void free_command(struct command* c)
 
 COMMAND(about)
 {
-	if (show_help_file(HELP_ROOT "/about.help")) {
+	if (show_help_file(HELP_FILES_DIR "/about.help")) {
 		ERROR("Can't find help files.");
 		WARNING("You may want to check your installation.");
 	}
@@ -233,10 +228,10 @@ COMMAND(help)
 
 	if (c->argc >= 1) {
 		use_main = 0;
-		path = string(HELP_ROOT "/%s.help", slv(c->args, 0));
+		path = string(HELP_FILES_DIR "/%s.help", slv(c->args, 0));
 	} else {
 		use_main = 1;
-		path = strdup(HELP_ROOT "/main");
+		path = strdup(HELP_FILES_DIR "/main");
 	}
 
 	if (show_help_file(path) != 0 && interactive) {
@@ -728,7 +723,7 @@ static struct cwpol_opts* cwpol_options(int argc, char **argv, int interactive)
 	int opt, idx = 0;
 
 	o = xmalloc(sizeof(struct cwpol_opts));
-	o->cache = strdup(CW_CACHEDIR "/facts");
+	o->cache = strdup(CACHED_FACTS_DIR);
 	o->no_clobber = 0;
 
 	while ( (opt = getopt_long(argc, argv, short_opts, long_opts, &idx)) != -1) {

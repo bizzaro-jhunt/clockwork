@@ -3,18 +3,13 @@ AUTOMAKE_OPTIONS = foreign subdir-objects
 ############################################################
 
 # FIXME need a way to get these from ./configure
-CW_VARDIR    = /var
-CW_ETCDIR    = /etc/clockwork
-CW_DATADIR   = /var/lib/clockwork
-CW_LIBDIR    = /lib/clockwork
-CW_CACHEDIR  = /var/cache/clockwork
+CW_VAR_DIR    = /var
+CW_ETC_DIR    = /etc/clockwork
+CW_DATA_DIR   = /var/lib/clockwork
+CW_LIB_DIR    = /lib/clockwork
+CW_CACHE_DIR  = /var/cache/clockwork
 
-CFLAGS  = -Wall $(DEPS_CFLAGS) $(shell pkg-config --cflags augeas)
-CFLAGS += -DCW_VARDIR='"$(CW_VARDIR)"'
-CFLAGS += -DCW_ETCDIR='"$(CW_ETCDIR)"'
-CFLAGS += -DCW_DATADIR='"$(CW_DATADIR)"'
-CFLAGS += -DCW_LIBDIR='"$(CW_LIBDIR)"'
-CFLAGS += -DCW_CACHEDIR='"$(CW_CACHEDIR)"'
+AM_CFLAGS  = -Wall $(DEPS_CFLAGS) $(shell pkg-config --cflags augeas)
 
 LCOV    := lcov
 GENHTML := genhtml
@@ -108,33 +103,37 @@ manifest:
 	@echo >&2 "nothin doin"
 
 path-check:
-	@echo "   CW_VARDIR = $(CW_VARDIR)"
-	@echo "   CW_ETCDIR = $(CW_ETCDIR)"
-	@echo "   CW_LIBDIR = $(CW_LIBDIR)"
-	@echo "  CW_DATADIR = $(CW_DATADIR)"
-	@echo " CW_CACHEDIR = $(CW_CACHEDIR)"
+	@echo "   CW_VAR_DIR = $(CW_VAR_DIR)"
+	@echo "   CW_ETC_DIR = $(CW_ETC_DIR)"
+	@echo "   CW_LIB_DIR = $(CW_LIB_DIR)"
+	@echo "  CW_DATA_DIR = $(CW_DATA_DIR)"
+	@echo " CW_CACHE_DIR = $(CW_CACHE_DIR)"
 
 install-data-hook:
+	$(INSTALL) -d -m 0755 $(DESTDIR)$(CW_VAR_DIR)/run
+	$(INSTALL) -d -m 0755 $(DESTDIR)$(CW_VAR_DIR)/lock
+	$(INSTALL) -d -m 0755 $(DESTDIR)$(CW_CACHE_DIR)
+	$(INSTALL) -d -m 0755 $(DESTDIR)$(CW_DATA_DIR)
 	$(INSTALL) -d -m 0755 $(DESTDIR)$(datadir)/vim/addons/syntax
 	$(INSTALL) -d -m 0755 $(DESTDIR)$(datadir)/vim/addons/ftdetect
 	$(INSTALL) -d -m 0755 $(DESTDIR)$(datadir)/vim/registry
 	$(INSTALL)    -m 0644 share/vim/syntax/*.vim   $(DESTDIR)$(datadir)/vim/addons/syntax
 	$(INSTALL)    -m 0644 share/vim/ftdetect/*.vim $(DESTDIR)$(datadir)/vim/addons/ftdetect
 	$(INSTALL)    -m 0644 share/vim/registry/vim-clockwork.yaml $(DESTDIR)$(datadir)/vim/registry
-	$(INSTALL) -d -m 0755 $(DESTDIR)$(CW_LIBDIR)/augeas/lenses
-	$(INSTALL)    -m 0644 var/augeas/lenses/* $(DESTDIR)$(CW_LIBDIR)/augeas/lenses
+	$(INSTALL) -d -m 0755 $(DESTDIR)$(CW_LIB_DIR)/augeas/lenses
+	$(INSTALL)    -m 0644 var/augeas/lenses/* $(DESTDIR)$(CW_LIB_DIR)/augeas/lenses
 	$(INSTALL) -d -m 0755 $(DESTDIR)$(pkgdatadir)/db
 	$(INSTALL)    -m 0644 share/db/*.sql $(DESTDIR)$(pkgdatadir)/db
-	$(INSTALL) -d -m 0755 $(DESTDIR)$(CW_LIBDIR)/help
-	$(INSTALL)    -m 0644 share/help/* $(DESTDIR)$(CW_LIBDIR)/help
-	$(INSTALL) -d -m 0755 $(DESTDIR)$(CW_ETCDIR)
-	$(INSTALL) -d -m 0755 $(DESTDIR)$(CW_ETCDIR)/ssl/pending
-	$(INSTALL) -d -m 0755 $(DESTDIR)$(CW_ETCDIR)/ssl/signed
-	$(INSTALL)    -m 0644 share/examples/cwa.conf $(DESTDIR)$(CW_ETCDIR)/cwa.conf
-	$(INSTALL)    -m 0644 share/examples/policyd.conf $(DESTDIR)$(CW_ETCDIR)/policyd.conf
-	$(INSTALL)    -m 0644 share/examples/manifest.pol $(DESTDIR)$(CW_ETCDIR)/manifest.pol
-	$(INSTALL) -d -m 0755 $(DESTDIR)$(CW_LIBDIR)/gather.d
-	$(INSTALL)    -m 0755 share/gather.d/* $(DESTDIR)$(CW_LIBDIR)/gather.d
+	$(INSTALL) -d -m 0755 $(DESTDIR)$(CW_LIB_DIR)/help
+	$(INSTALL)    -m 0644 share/help/* $(DESTDIR)$(CW_LIB_DIR)/help
+	$(INSTALL) -d -m 0755 $(DESTDIR)$(CW_ETC_DIR)
+	$(INSTALL) -d -m 0755 $(DESTDIR)$(CW_ETC_DIR)/ssl/pending
+	$(INSTALL) -d -m 0755 $(DESTDIR)$(CW_ETC_DIR)/ssl/signed
+	$(INSTALL)    -m 0644 share/examples/cwa.conf $(DESTDIR)$(CW_ETC_DIR)/cwa.conf
+	$(INSTALL)    -m 0644 share/examples/policyd.conf $(DESTDIR)$(CW_ETC_DIR)/policyd.conf
+	$(INSTALL)    -m 0644 share/examples/manifest.pol $(DESTDIR)$(CW_ETC_DIR)/manifest.pol
+	$(INSTALL) -d -m 0755 $(DESTDIR)$(CW_LIB_DIR)/gather.d
+	$(INSTALL)    -m 0755 share/gather.d/* $(DESTDIR)$(CW_LIB_DIR)/gather.d
 
 ############################################################
 # Lex/YACC Parsers

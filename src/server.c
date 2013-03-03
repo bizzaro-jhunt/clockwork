@@ -25,29 +25,23 @@
 /**************************************************************/
 
 static struct server default_options = {
-	.daemonize = SERVER_OPT_TRUE,
-	.debug     = SERVER_OPT_FALSE,
-	.log_level = LOG_LEVEL_ERROR,
+	.daemonize     = SERVER_OPT_TRUE,
+	.debug         = SERVER_OPT_FALSE,
+	.log_level     = LOG_LEVEL_ERROR,
 
-	.config_file   = CW_ETCDIR "/policyd.conf",
-	.manifest_file = CW_ETCDIR "/manifest.pol",
-
-	.lock_file = CW_VARDIR "/lock/subsys/policyd",
-	.pid_file  = CW_VARDIR "/run/policyd.pid",
-
-	.ca_cert_file = CW_ETCDIR "/ssl/CA.pem",
-	.crl_file     = CW_ETCDIR "/ssl/revoked.pem",
-	.cert_file    = CW_ETCDIR "/ssl/cert.pem",
-	.key_file     = CW_ETCDIR "/ssl/key.pem",
-
-	.db_file      = CW_DATADIR "/master.db",
-
-	.requests_dir = CW_ETCDIR "/ssl/pending",
-	.certs_dir    = CW_ETCDIR "/ssl/signed",
-
-	.cache_dir    = CW_CACHEDIR,
-
-	.listen       = "0.0.0.0:7890",
+	.config_file   = DEFAULT_POLICYD_CONF,
+	.manifest_file = DEFAULT_MANIFEST_POL,
+	.lock_file     = DEFAULT_POLICYD_LOCK_FILE,
+	.pid_file      = DEFAULT_POLICYD_PID_FILE,
+	.ca_cert_file  = DEFAULT_SSL_CA_CERT_FILE,
+	.crl_file      = DEFAULT_SSL_CRL_FILE,
+	.cert_file     = DEFAULT_SSL_CERT_FILE,
+	.key_file      = DEFAULT_SSL_KEY_FILE,
+	.requests_dir  = DEFAULT_SSL_REQUESTS_DIR,
+	.certs_dir     = DEFAULT_SSL_CERTS_DIR,
+	.db_file       = DEFAULT_MASTER_DB_FILE,
+	.cache_dir     = CW_CACHE_DIR,
+	.listen        = DEFAULT_POLICYD_LISTEN,
 
 	/* Options below here are not available in the
 	   configuration file, only as defaults / CLI opts. */

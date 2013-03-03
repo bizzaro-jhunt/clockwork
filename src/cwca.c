@@ -639,7 +639,7 @@ static int cwca_new_setup_ca_dirs(const struct cwca_opts *args)
 		printf("  - Creating certs dir (%s)... failed\n", args->server->certs_dir);
 		return CWCA_OTHER_ERR;
 	} else {
-		printf("  - Creating certs dir (%s)... succeeded\n", args->server->requests_dir);
+		printf("  - Creating certs dir (%s)... succeeded\n", args->server->certs_dir);
 	}
 
 	return CWCA_SUCCESS;

@@ -184,6 +184,8 @@ static void show_help(void)
 	       "  -s, --server          Override the name (IP or DNS) of the policy master.\n"
 	       "\n"
 	       "  -p, --port            Override the TCP port number to connect to.\n"
+	       "\n"
+	       "  -D, --defaults        Dump compiled-in default values (paths, ports, etc.)\n"
 	       "\n");
 }
 

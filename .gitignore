@@ -73,3 +73,5 @@ config.h.in
 Makefile
 configure
 autom4te.cache
+
+dev/

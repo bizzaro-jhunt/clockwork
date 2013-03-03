@@ -1,0 +1,5 @@
+#!/bin/sh
+set -ex
+autoconf
+automake
+./configure CFLAGS="-DDEVEL -g"

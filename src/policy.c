@@ -624,8 +624,10 @@ void policy_free_all(struct policy *pol)
 	struct resource *r, *r_tmp;
 	struct dependency *d, *d_tmp;
 
-	for_each_resource_safe(r, r_tmp, pol) { resource_free(r); }
-	for_each_dependency_safe(d, d_tmp, pol) { dependency_free(d); }
+	if (pol) {
+		for_each_resource_safe(r, r_tmp, pol) { resource_free(r); }
+		for_each_dependency_safe(d, d_tmp, pol) { dependency_free(d); }
+	}
 	policy_free(pol);
 }
 

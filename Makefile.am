@@ -101,6 +101,9 @@ cwpol_SOURCES   = $(core_src) src/cwpol.c $(parser_spec_src)
 version:
 	@echo $(VERSION)
 
+distfile:
+	@echo $(PACKAGE)-$(VERSION).tar.gz
+
 manifest:
 	@echo >&2 "nothin doin"
 

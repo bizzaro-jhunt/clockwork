@@ -3439,7 +3439,7 @@ int res_exec_set(void *res, const char *name, const char *value)
 		ENFORCE(re, RES_EXEC_TEST);
 
 	} else if (strcmp(name, "ondemand") == 0) {
-		if (strcmp(value, "no") != 0) {
+		if (strcmp(value, "no") == 0) {
 			UNENFORCE(re, RES_EXEC_ONDEMAND);
 		} else {
 			ENFORCE(re, RES_EXEC_ONDEMAND);

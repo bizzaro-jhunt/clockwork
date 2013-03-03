@@ -27,6 +27,8 @@
 /* in development mode, don't touch the local system */
 #ifdef DEVEL
 #  define PREFIX "dev"
+#else
+#  define PREFIX
 #endif
 
 /* cleartext system password database **/

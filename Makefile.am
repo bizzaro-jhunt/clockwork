@@ -120,10 +120,10 @@ install-data-hook:
 	$(INSTALL)    -m 0644 share/vim/registry/vim-clockwork.yaml $(DESTDIR)$(datadir)/vim/registry
 	$(INSTALL) -d -m 0755 $(DESTDIR)$(CW_LIBDIR)/augeas/lenses
 	$(INSTALL)    -m 0644 var/augeas/lenses/* $(DESTDIR)$(CW_LIBDIR)/augeas/lenses
-	$(INSTALL) -d -m 0755 $(DESTDIR)$(CW_SHAREDIR)/db
-	$(INSTALL)    -m 0644 share/db/*.sql $(DESTDIR)$(CW_SHAREDIR)/db
-	$(INSTALL) -d -m 0755 $(DESTDIR)$(CW_SHAREDIR)/help
-	$(INSTALL)    -m 0644 share/help/* $(DESTDIR)$(CW_SHAREDIR)/help
+	$(INSTALL) -d -m 0755 $(DESTDIR)$(pkgdatadir)/db
+	$(INSTALL)    -m 0644 share/db/*.sql $(DESTDIR)$(pkgdatadir)/db
+	$(INSTALL) -d -m 0755 $(DESTDIR)$(CW_LIBDIR)/help
+	$(INSTALL)    -m 0644 share/help/* $(DESTDIR)$(CW_LIBDIR)/help
 	$(INSTALL) -d -m 0755 $(DESTDIR)$(CW_ETCDIR)
 	$(INSTALL) -d -m 0755 $(DESTDIR)$(CW_ETCDIR)/ssl/pending
 	$(INSTALL) -d -m 0755 $(DESTDIR)$(CW_ETCDIR)/ssl/signed

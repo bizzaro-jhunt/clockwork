@@ -15,7 +15,7 @@ Homepage: http://clockwork.niftylogic.com/
 
 Package: clockwork-server
 Architecture: any
-Depends: ${misc:Depends}, ${shlibs:Depends}
+Depends: ${misc:Depends}, ${shlibs:Depends}, sqlite3
 Description: Secure Configuration Management - Server
  Clockwork is a safe, secure and flexible system for managing system
  configurations through enforcement of targeted policies, expressed
@@ -29,7 +29,7 @@ Description: Secure Configuration Management - Server
 
 Package: clockwork-agent
 Architecture: any
-Depends: augeas-lenses, ${misc:Depends}, ${shlibs:Depends}
+Depends: augeas-lenses, ${misc:Depends}, ${shlibs:Depends}, sqlite3
 Description: Secure Configuration Management - Agent
  Clockwork is a safe, secure and flexible system for managing system
  configurations through enforcement of targeted policies, expressed

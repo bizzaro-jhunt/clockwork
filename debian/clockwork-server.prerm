@@ -1,0 +1,31 @@
+#!/bin/sh -e
+
+#
+# clockwork-server prerm
+#
+# author:  James Hunt <jhunt@synacor.com>
+# created: 2013-03-02
+#
+
+case "$1" in
+upgrade|remove)
+	if [ -x "/etc/init.d/clockwork-server" ]; then
+		if [ -x /usr/sbin/invoke-rc.d ]; then
+			invoke-rc.d clockwork-server stop || true
+		else
+			/etc/init.d/clockwork-server stop || true
+		fi
+	fi
+	sleep 2
+	;;
+deconfigure|failed-upgrade)
+	;;
+*)
+	echo >&2 "prerm called with unknown argument \`$1'"
+	exit 1
+	;;
+esac
+
+#DEBHELPER#
+
+exit 0

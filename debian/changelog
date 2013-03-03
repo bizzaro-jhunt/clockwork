@@ -1,3 +1,14 @@
+clockwork (0.2.8-2) unstable; urgency=low
+
+  * Fix the clockwork-server init script
+  * Start clockwork-server post-install
+  * Bundle the database schemas in -server and -agent
+  * Fix paths for Debian (/var/lock, etc.)
+  * Package help files (for cwpol) properly
+  * Add maintainer scripts for db initialization
+
+ -- James Hunt <james@niftylogic.com>  Sat,  2 Mar 2013 22:18:00 -0500
+
 clockwork (0.2.8-1) unstable; urgency=low
 
   * Initial release (Closes: LAB-15)

@@ -4,3 +4,4 @@ lib/clockwork/gather.d
 sbin/cwa
 sbin/cwcert
 usr/share/man/man1/cwa.1
+usr/share/clockwork/db/agent.sql

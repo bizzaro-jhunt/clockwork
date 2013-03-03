@@ -1,0 +1,28 @@
+#!/bin/sh -e
+
+#
+# clockwork-server postinst
+#
+# author:  James Hunt <jhunt@synacor.com>
+# created: 2013-03-02
+#
+
+case "$1" in
+configure)
+	# set up the initial db schema
+	DBDIR=/var/lib/clockwork
+	DATABASE=$DBDIR/agent.db
+	SCHEMA=/usr/share/clockwork/db/agent.sql
+	if [ ! -f $DATABASE ]; then
+		mkdir -p $DBDIR
+		sqlite3 $DATABASE < $SCHEMA
+	fi
+	;;
+*)
+	exit 0
+	;;
+esac
+
+#DEBHELPER#
+
+exit 0

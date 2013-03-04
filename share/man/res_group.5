@@ -1,5 +1,5 @@
 \"
-\"  Copyright 2011 James Hunt <james@jameshunt.us>
+\"  Copyright 2011-2013 James Hunt <james@niftylogic.com>
 \"
 \"  This file is part of Clockwork.
 \"
@@ -17,7 +17,7 @@
 \"  along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
 \"
 
-.TH res_group "5" "June 2011" "Clockwork" " Clockwork Resource Types"'"
+.TH res_group "5" "March 2013" "Clockwork" " Clockwork Resource Types"'"
 \"----------------------------------------------------------------
 .SH NAME
 res_group \- Clockwork Resource Type for system group accounts
@@ -74,6 +74,18 @@ currently on it.
 .RE
 .PP
 
+.B members
+.RS 8
+Like \fBmember\fR, except that it operates on a space-separated list
+of usernames to add or remove.  Negation rules still apply.
+.RE
+.PP
+
+.B admins
+.RS 8
+Like \fBadmin\fR, except that it takes a space-separated list
+of usernames to add or remove.  Negation rules still apply.
+
 .B password
 .br
 .B pwhash
@@ -114,7 +126,7 @@ and that \fIalice\fR does not.
 .nf
 group "projectx" {
   gid:      1337
-  password:"!!"
+  password: "!!"
 
   # add these users
   member:   "jose"
@@ -131,6 +143,16 @@ The \fBpassword\fR attribute is specified as an invalid hash to ensure
 membership in the projectx group is managed strictly by the system
 administrators (and, by extension, Clockwork).
 .PP
+Another way to handle the membership list is via \fBmembers\fR,
+like this:
+.PP
+.RS 4
+.nf
+group "projectx" {
+  gid:      1337
+  password: "!!"
+  members:  "jose bob eva !alice"
+}
 
 .SS Administrator Management
 Management of group administrators works just like group membership
@@ -185,14 +207,4 @@ None.
 
 \"----------------------------------------------------------------
 .SH AUTHOR
-Clockwork was conceived and written by James Hunt.
-.PP
-Original ideas were stolen from
-.B CFEngine
-(Mark Burgess) and
-.B Puppet
-(Luke Kanies).
-
-\"----------------------------------------------------------------
-.SH BUGS
-None.
+Clockwork was designed and written by James Hunt.

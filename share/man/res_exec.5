@@ -1,5 +1,5 @@
 \"
-\"  Copyright 2011 James Hunt <james@jameshunt.us>
+\"  Copyright 2011-2013 James Hunt <james@niftylogic.com>
 \"
 \"  This file is part of Clockwork.
 \"
@@ -17,7 +17,7 @@
 \"  along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
 \"
 
-.TH res_exec "5" "Apr 2012" "Clockwork" " Clockwork Resource Types"'"
+.TH res_exec "5" "March 2013" "Clockwork" " Clockwork Resource Types"'"
 \"----------------------------------------------------------------
 .SH NAME
 res_exec \- Clockwork Resource Type for arbitrary commands
@@ -64,17 +64,16 @@ Defaults to the group running \fBcwa\fR.
 .RE
 .PP
 
-\" FIXME: on-demand stuff not documented for now
-\".B ondemand
-\".RS 8
-\"Specify whether or not this command should be run on-demand only.
-\"If "yes", Clockwork will only execute \fBcommand\fR if another resource
-\"depends on it.
-\".PP
-\"This is an advanced use case for exec resources that can lead to some
-\"elaborate (and somewhat obtuse) behavior.  Use at your own peril.
-\".RE
-\".PP
+.B ondemand
+.RS 8
+Specify whether or not this command should be run on-demand only.
+If "yes", Clockwork will only execute \fBcommand\fR if another resource
+depends on it.
+.PP
+This is an advanced use case for exec resources that can lead to some
+elaborate (and somewhat obtuse) behavior.  Use at your own peril.
+.RE
+.PP
 
 \"----------------------------------------------------------------
 .SH EXAMPLES
@@ -89,8 +88,7 @@ exec "/usr/local/bin/bug-admins" { }
 .RE
 .PP
 Sometimes, however, you will want to run a command only in certain
-situations.  While the following is not recommended from a security
-standpoint, it does illustrate the concept of condtional execution:
+situations:
 .PP
 .RS 4
 .nf
@@ -104,6 +102,34 @@ exec "turn-off-selinux" {
 That is, turn off SELinux using the setenforce tool, but only do so
 if SELinux is actually in Enforcing mode (via the getenforce+grep test).
 .PP
+Managing derived files presents a problem with \fBres_file\fR(5) alone.
+For example, Postfix relies on compiled binary files for certain lookup
+tables.  The postmap utility is used to translate human-readable text
+files into this binary format.
+.PP
+You can use an on-demand exec resource to automate this regeneration,
+only in instances where the source file is updated:
+.PP
+.RS 4
+.nf
+file "/etc/postfix/some-map" {
+    owner:  "root"
+    group:  "root"
+    mode:   "0640"
+    source: "/files/postfix/some-map"
+}
+exec "regen some-map" {
+    command:  "/usr/bin/postmap -r /etc/postfix/some-map"
+    ondemand: "yes"
+}
+file "/etc/postfix/some-map" depends on exec("regen some-map")
+.fi
+.RE
+.PP
+Without the \fBondemand\fR option, Clockwork would continually re-run
+the postmap command on every single run, regardless of whether it was
+needed or not.
+.PP
 
 \"----------------------------------------------------------------
 .SH CAVEATS
@@ -111,17 +137,16 @@ if SELinux is actually in Enforcing mode (via the getenforce+grep test).
 .SS 1. Default Behavior
 .PP
 If you do not specify a \fBuser\fR and \fBgroup\fR, Clockwork will
-execute your commands as the user and group that owns the cwa process,
+execute your commands as the effective user and group running cwa,
 which is most likely root:root.  Any files created by the command
 executed will then be owned by root:root, which may not be what you
 intended.
 .PP
-As a general rule, it is best to alsways specify the user and group,
+As a general rule, it is best to always specify the user and group,
 even if you just set them explicitly to the defaults.
 .PP
 
 \"----------------------------------------------------------------
-\" FIXME: write about on-demand?
 .SH DEPENDENCIES
 The exec resource does not create implicit dependencies.  This is
 important to keep in mind if Clockwork is providing the binary or
@@ -144,25 +169,23 @@ exec("bug-admins") depends on file("/usr/local/bin/bug-admins")
 .fi
 .RE
 .PP
-Without the last line, there is a chance that Clockwork would try
-to run the exec resource first, before the bug-admins tool was
-created on the filesystem.
+Without the last line, Clockwork may enforce the exec resource
+before the \fIbug-admins\fR tool is created.
+.PP
+Dependencies interact with on-demand exec resources in a completely
+different way.  An on-demand exec (one that defines \fBondemand\fR
+as "yes") will only be executed if one of the resources that it
+depends on is changed.
 .PP
 
 \"----------------------------------------------------------------
 .SH AUTHOR
-Clockwork was conceived and written by James Hunt.
-.PP
-Original ideas were stolen from
-.B CFEngine
-(Mark Burgess) and
-.B Puppet
-(Luke Kanies).
+Clockwork was designed and written by James Hunt.
 
 \"----------------------------------------------------------------
 .SH BUGS
 .PP
-\" FIXME
+\" FIXME - CFM-14
 Due to a bug in the policy file parser, commands cannot contain
 backslashes.  This is a severe issue for running anything more
 than simple binaries or shell scripts, and will hopefully be fixed

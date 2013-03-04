@@ -13,5 +13,5 @@ cwpol is part of Clockwork, a Configuration Management System
 that enforces configuration policies on any number of host
 systems.  For more information, see clockwork(7).
 
-Clockwork was conceived of and written by James Hunt.
+Clockwork was designed and written by James Hunt.
 

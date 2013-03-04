@@ -1,5 +1,5 @@
 \"
-\"  Copyright 2011 James Hunt <james@jameshunt.us>
+\"  Copyright 2011-2013 James Hunt <james@niftylogic.com>
 \"
 \"  This file is part of Clockwork.
 \"
@@ -17,7 +17,7 @@
 \"  along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
 \"
 
-.TH res_service "5" "June 2011" "Clockwork" " Clockwork Resource Types"'"
+.TH res_service "5" "March 2013" "Clockwork" " Clockwork Resource Types"'"
 \"----------------------------------------------------------------
 .SH NAME
 res_service \- Clockwork Resource Type for system init services
@@ -39,6 +39,9 @@ supported:
 .IP \n[mgrs]. 3
 .B invoke-rc.d
 \- For Debian and Ubuntu
+.IP \n+[mgrs]
+.B chkconfig
+\- For RedHat / CentOS
 
 \"----------------------------------------------------------------
 .SH ATTRIBUTES
@@ -180,14 +183,4 @@ to do anything to the \fI/etc/syslog-ng.conf\fR file.
 
 \"----------------------------------------------------------------
 .SH AUTHOR
-Clockwork was conceived and written by James Hunt.
-.PP
-Original ideas were stolen from
-.B CFEngine
-(Mark Burgess) and
-.B Puppet
-(Luke Kanies).
-
-\"----------------------------------------------------------------
-.SH BUGS
-None.
+Clockwork was designed and written by James Hunt.

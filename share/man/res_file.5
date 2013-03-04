@@ -1,5 +1,5 @@
 \"
-\"  Copyright 2011 James Hunt <james@jameshunt.us>
+\"  Copyright 2011-2013 James Hunt <james@niftylogic.com>
 \"
 \"  This file is part of Clockwork.
 \"
@@ -17,7 +17,7 @@
 \"  along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
 \"
 
-.TH res_file "5" "June 2011" "Clockwork" " Clockwork Resource Types"'"
+.TH res_file "5" "March 2013" "Clockwork" " Clockwork Resource Types"'"
 \"----------------------------------------------------------------
 .SH NAME
 res_file \- Clockwork Resource Type for managing files
@@ -52,19 +52,19 @@ to specify almost every attribute of a file in a system policy:
 
 .B owner
 .RS 4
-The name or UID of the user who should own the file.
+The name of the user who should own the file.
 .RE
 .PP
 
 .B group
 .RS 4
-The name or GID of the group who should own this file.
+The name of the group who should own this file.
 .RE
 .PP
 
 .B mode
 .RS 4
-The permissions set for this file.  The value must be
+File access permissions.  The value must be
 specified in octal notation, i.e. 0755 for rwxr-xr-x.
 .RE
 .PP
@@ -157,7 +157,7 @@ All activity is monitored.
 .RE
 .PP
 This host resource will enforce a banner for all hosts that contains
-the standard "warning" verbiage as well as the local hostname:
+the standard "warning" verbiage and the local hostname:
 .PP
 .RS 4
 .nf
@@ -190,15 +190,8 @@ All activity is monitored.
 .SH CAVEATS
 
 .SS 1. Link Support
-Symbolic links and hard links cannot yet be created wth the file
+Symbolic links and hard links cannot (yet) be created with the file
 resource.
-.PP
-
-.SS 2. UID / GID Support
-Even though the documentation above says that the \fBowner\fR and
-\fBgroup\fR attributes can be set to either a name or an ID, the
-system only works with names.  IDs will be ignored, as if the ID
-was 0.
 .PP
 
 \"----------------------------------------------------------------
@@ -270,13 +263,7 @@ Create the file and retrieve its contents from the policy master.
 
 \"----------------------------------------------------------------
 .SH AUTHOR
-Clockwork was conceived and written by James Hunt.
-.PP
-Original ideas were stolen from
-.B CFEngine
-(Mark Burgess) and
-.B Puppet
-(Luke Kanies).
+Clockwork was designed and written by James Hunt.
 
 \"----------------------------------------------------------------
 .SH BUGS

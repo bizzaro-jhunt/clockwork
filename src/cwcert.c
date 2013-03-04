@@ -1,5 +1,5 @@
 /*
-  Copyright 2011-2013 James Hunt <james@jameshunt.us>
+  Copyright 2011-2013 James Hunt <james@niftylogic.com>
 
   This file is part of Clockwork.
 
@@ -222,9 +222,6 @@ static int cwcert_help_main(const struct cwcert_opts *args)
 	       "  test    - Test local certificate against policy master.\n"
 	       "  help    - Show this message.\n"
 	       "\n"
-	       "If no COMMAND is given, cwcert will pick either 'details' or 'new',\n"
-	       "depending on whether or not it has a certificate / request.\n"
-	       "\n"
 	       "ARGS can be any or all of the following:\n"
 	       "\n"
 	       "  -h, --help            Show this helpful message.\n"
@@ -243,6 +240,8 @@ static int cwcert_help_main(const struct cwcert_opts *args)
 	       "\n"
 	       "  -D, --debug           Set verbosity to DEBUG level.  Mainly intended for\n"
 	       "                        developers, but helpful in troubleshooting.\n"
+	       "\n"
+	       "  -V, --version         Print copyright and version information.\n"
 	       "\n");
 	return CWCERT_SUCCESS;
 }

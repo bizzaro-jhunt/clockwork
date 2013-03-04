@@ -1,5 +1,5 @@
 \"
-\"  Copyright 2011 James Hunt <james@jameshunt.us>
+\"  Copyright 2011-2013 James Hunt <james@niftylogic.com>
 \"
 \"  This file is part of Clockwork.
 \"
@@ -17,7 +17,7 @@
 \"  along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
 \"
 
-.TH res_dir "5" "June 2011" "Clockwork" " Clockwork Resource Types"'"
+.TH res_dir "5" "March 2013" "Clockwork" " Clockwork Resource Types"'"
 \"----------------------------------------------------------------
 .SH NAME
 res_dir \- Clockwork Resource Type for system directories
@@ -40,13 +40,13 @@ be managed.
 
 .B owner
 .RS 8
-The name or UID of the user who should own the directory.
+The name of the user who should own the directory.
 .RE
 .PP
 
 .B group
 .RS 8
-The name or GID of the group who should own this directory.
+The name of the group who should own this directory.
 .RE
 .PP
 
@@ -75,17 +75,6 @@ directory "/srv/www" {
 }
 .fi
 .RE
-.PP
-
-
-\"----------------------------------------------------------------
-.SH CAVEATS
-
-.SS 1. UID / GID Support
-Even though the documentation above says that the \fBowner\fR and
-\fBgroup\fR attributes can be set to either a name or an ID, the
-system only works with names.  IDs will be ignored, as if the ID
-was 0.
 .PP
 
 \"----------------------------------------------------------------
@@ -147,14 +136,4 @@ Create /u/apps/test.example.net, per policy (apache:web; 0775)
 
 \"----------------------------------------------------------------
 .SH AUTHOR
-Clockwork was conceived and written by James Hunt.
-.PP
-Original ideas were stolen from
-.B CFEngine
-(Mark Burgess) and
-.B Puppet
-(Luke Kanies).
-
-\"----------------------------------------------------------------
-.SH BUGS
-None.
+Clockwork was designed and written by James Hunt.

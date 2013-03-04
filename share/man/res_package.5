@@ -1,5 +1,5 @@
 \"
-\"  Copyright 2011 James Hunt <james@jameshunt.us>
+\"  Copyright 2011-2013 James Hunt <james@niftylogic.com>
 \"
 \"  This file is part of Clockwork.
 \"
@@ -17,7 +17,7 @@
 \"  along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
 \"
 
-.TH res_package "5" "June 2011" "Clockwork" " Clockwork Resource Types"'"
+.TH res_package "5" "March 2013" "Clockwork" " Clockwork Resource Types"'"
 \"----------------------------------------------------------------
 .SH NAME
 res_package \- Clockwork Resource Type for software packages
@@ -55,6 +55,10 @@ policy constructs should be used to get the correct name.
 .RS 8
 The (optional) version of the package to install.  If not specified,
 the latest available version from all known repositories will be used.
+.PP
+The special value "latest" is will cause Clockwork to keep the installed
+package at the latest version.  This differs from an unspecified version,
+which is a one-time installation of the most recent package.
 .RE
 .PP
 
@@ -162,14 +166,4 @@ package) is handled solely by the package manager.
 
 \"----------------------------------------------------------------
 .SH AUTHOR
-Clockwork was conceived and written by James Hunt.
-.PP
-Original ideas were stolen from
-.B CFEngine
-(Mark Burgess) and
-.B Puppet
-(Luke Kanies).
-
-\"----------------------------------------------------------------
-.SH BUGS
-None.
+Clockwork was designed and written by James Hunt.

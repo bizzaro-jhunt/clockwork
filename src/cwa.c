@@ -36,6 +36,7 @@
 #include "db.h"
 
 static struct client* cwa_options(int argc, char **argv);
+static void show_version(void);
 static void show_help(void);
 static void show_compilation_options(void);
 
@@ -112,7 +113,7 @@ static struct client* cwa_options(int argc, char **argv)
 {
 	struct client *c;
 
-	const char *short_opts = "h?c:s:p:nvqFD";
+	const char *short_opts = "h?c:s:p:nvqFDV";
 	struct option long_opts[] = {
 		{ "help",     no_argument,       NULL, 'h' },
 		{ "config",   required_argument, NULL, 'c' },
@@ -122,7 +123,8 @@ static struct client* cwa_options(int argc, char **argv)
 		{ "verbose",  no_argument,       NULL, 'v' },
 		{ "quiet",    no_argument,       NULL, 'q' },
 		{ "facts",    no_argument,       NULL, 'F' },
-		{ "defaults", no_argument,       NULL, 'D'  },
+		{ "defaults", no_argument,       NULL, 'D' },
+		{ "version",  no_argument,       NULL, 'V' },
 		{ 0, 0, 0, 0 },
 	};
 
@@ -135,6 +137,9 @@ static struct client* cwa_options(int argc, char **argv)
 		case 'h':
 		case '?':
 			show_help();
+			exit(0);
+		case 'V':
+			show_version();
 			exit(0);
 		case 'D':
 			show_compilation_options();
@@ -169,12 +174,20 @@ static struct client* cwa_options(int argc, char **argv)
 	return c;
 }
 
+static void show_version(void)
+{
+	printf("cwa (Clockwork) " VERSION "\n"
+	       "Copyright 2011-2013 James Hunt\n");
+}
+
 static void show_help(void)
 {
 	printf("USAGE: cwa [OPTIONS]\n"
 	       "\n"
 	       "  -h, --help            Show this helpful message.\n"
 	       "                        (for more in-depth help, check the man pages.)\n"
+	       "\n"
+	       "  -V, --version         Print version and copyright information.\n"
 	       "\n"
 	       "  -n, --dry-run         Do not enforce the policy locally, just verify policy\n"
 	       "                        retrieval and fact gathering.\n"
@@ -192,7 +205,7 @@ static void show_help(void)
 #define DUMP_COMPILE_OPT(c) printf(" -D %s=\"%s\"\n", #c, c)
 static void show_compilation_options(void)
 {
-	printf("Clockwork compiled with...\n");
+	printf("Clockwork v%s compiled with...\n", VERSION);
 	DUMP_COMPILE_OPT(SYS_PASSWD);
 	DUMP_COMPILE_OPT(SYS_GROUP);
 	DUMP_COMPILE_OPT(SYS_SHADOW);

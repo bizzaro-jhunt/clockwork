@@ -65,6 +65,7 @@ static pthread_mutex_t  manifest_mutex = PTHREAD_MUTEX_INITIALIZER;
 /**************************************************************/
 
 static struct server* policyd_options(int argc, char **argv);
+static void show_version(void);
 static void show_help(void);
 
 static struct worker* spawn(struct server *s);
@@ -177,7 +178,7 @@ static struct server* policyd_options(int argc, char **argv)
 {
 	struct server *s;
 
-	const char *short_opts = "h?FDvqQc:sl:t";
+	const char *short_opts = "h?FDvqQc:sl:tV";
 	struct option long_opts[] = {
 		{ "help",         no_argument,       NULL, 'h' },
 		{ "no-daemonize", no_argument,       NULL, 'F' },
@@ -188,6 +189,7 @@ static struct server* policyd_options(int argc, char **argv)
 		{ "show-config",  no_argument,       NULL, 's' },
 		{ "listen",       required_argument, NULL, 'l' },
 		{ "test",         no_argument,       NULL, 't' },
+		{ "version",      no_argument,       NULL, 'V' },
 		{ 0, 0, 0, 0 },
 	};
 
@@ -200,6 +202,9 @@ static struct server* policyd_options(int argc, char **argv)
 		case 'h':
 		case '?':
 			show_help();
+			exit(0);
+		case 'V':
+			show_version();
 			exit(0);
 		case 'F':
 			s->daemonize = SERVER_OPT_FALSE;
@@ -237,12 +242,20 @@ static struct server* policyd_options(int argc, char **argv)
 	return s;
 }
 
+static void show_version(void)
+{
+	printf("policyd (Clockwork) " VERSION "\n"
+	       "Copyright 2011-2013 James Hunt\n");
+}
+
 static void show_help(void)
 {
-	printf( "USAGE: policyd [OPTIONS]\n"
+	printf("USAGE: policyd [OPTIONS]\n"
 	       "\n"
 	       "  -h, --help            Show this helpful message.\n"
 	       "                        (for more in-depth help, check the man pages.)\n"
+	       "\n"
+	       "  -V, --version         Print version and copyright information.\n"
 	       "\n"
 	       "  -F, --foreground      Do not fork into the background.\n"
 	       "                        Useful for debugging with -D\n"

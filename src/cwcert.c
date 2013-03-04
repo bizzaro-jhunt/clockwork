@@ -55,6 +55,7 @@ struct cwcert_opts* cwcert_options(int argc, char **argv);
 
 static int negotiate_certificate(struct client *c, X509_REQ *csr);
 
+static int cwcert_version_main(const struct cwcert_opts *args);
 static int cwcert_help_main(const struct cwcert_opts *args);
 static int cwcert_details_main(const struct cwcert_opts *args);
 static int cwcert_new_main(const struct cwcert_opts *args);
@@ -84,6 +85,8 @@ int main(int argc, char **argv)
 		err = cwcert_renew_main(args);
 	} else if (strcmp(args->command, "test") == 0) {
 		err = cwcert_test_main(args);
+	} else if (strcmp(args->command, "version") == 0) {
+		err = cwcert_version_main(args);
 	} else {
 		return cwcert_help_main(args);
 	}
@@ -102,12 +105,13 @@ struct cwcert_opts* cwcert_options(int argc, char **argv)
 {
 	struct cwcert_opts *args;
 
-	const char *short_opts = "h?c:DOv";
+	const char *short_opts = "h?c:DOvV";
 	struct option long_opts[] = {
 		{ "config",  required_argument, NULL, 'c' },
 		{ "debug",   no_argument,       NULL, 'D' },
 		{ "offline", no_argument,       NULL, 'O' },
 		{ "verbose", no_argument,       NULL, 'v' },
+		{ "version", no_argument,       NULL, 'V' },
 		{ 0, 0, 0, 0 },
 	};
 
@@ -132,6 +136,10 @@ struct cwcert_opts* cwcert_options(int argc, char **argv)
 			break;
 		case 'v':
 			args->config->log_level++;
+			break;
+		case 'V':
+			free(args->command);
+			args->command = strdup("version");
 			break;
 		case 'h':
 		case '?':
@@ -186,6 +194,13 @@ static int negotiate_certificate(struct client *c, X509_REQ *csr)
 	X509_free(cert);
 	cert = NULL;
 	return 0;
+}
+
+static int cwcert_version_main(const struct cwcert_opts *args)
+{
+	printf("cwcert (Clockwork) " VERSION "\n"
+	       "Copyright 2011-2013 James Hunt\n");
+	return CWCERT_SUCCESS;
 }
 
 static int cwcert_help_main(const struct cwcert_opts *args)

@@ -66,6 +66,7 @@ static int mkdir_p(const char *path, int mode);
 static struct cwca_opts* cwca_options(int argc, char **argv);
 
 /* Command runners */
+static int cwca_version_main(const struct cwca_opts *args);
 static int cwca_help_main(const struct cwca_opts *args);
 static int cwca_new_main(const struct cwca_opts *args);
 static int cwca_issued_main(const struct cwca_opts *args);
@@ -99,6 +100,8 @@ int main(int argc, char **argv)
 		err = cwca_revoked_main(args);
 	} else if (strcmp(args->command, "sign") == 0) {
 		err = cwca_sign_main(args);
+	} else if (strcmp(args->command, "version") == 0) {
+		return cwca_version_main(args);
 	} else if (strcmp(args->command, "help") == 0) {
 		return cwca_help_main(args);
 	} else if (strcmp(args->command, "details") == 0) {
@@ -156,12 +159,13 @@ struct cwca_opts* cwca_options(int argc, char **argv)
 {
 	struct cwca_opts *cwca;
 
-	const char *short_opts = "h?c:DvqQ";
+	const char *short_opts = "h?c:DvqQV";
 	struct option long_opts[] = {
-		{ "help",   no_argument,       NULL, 'h' },
-		{ "config", required_argument, NULL, 'c' },
-		{ "silent", no_argument,       NULL, 'Q' },
-		{ "debug",  no_argument,       NULL, 'D' },
+		{ "help",    no_argument,       NULL, 'h' },
+		{ "config",  required_argument, NULL, 'c' },
+		{ "silent",  no_argument,       NULL, 'Q' },
+		{ "debug",   no_argument,       NULL, 'D' },
+		{ "version", no_argument,       NULL, 'V' },
 		{ 0, 0, 0, 0 },
 	};
 
@@ -192,6 +196,10 @@ struct cwca_opts* cwca_options(int argc, char **argv)
 			break;
 		case 'Q':
 			cwca->log_level = 0;
+			break;
+		case 'V':
+			free(cwca->command);
+			cwca->command = strdup("version");
 			break;
 		case 'h':
 		case '?':
@@ -225,6 +233,13 @@ struct cwca_opts* cwca_options(int argc, char **argv)
 	return cwca;
 }
 
+static int cwca_version_main(const struct cwca_opts *args)
+{
+	printf("cwca (Clockwork) " VERSION "\n"
+	       "Copyright 2011-2013 James Hunt\n");
+	return CWCA_SUCCESS;
+}
+
 static int cwca_help_main(const struct cwca_opts *args)
 {
 	printf("cwca - Clockwork Policy Master Certificate Authority Tool\n"
@@ -249,6 +264,8 @@ static int cwca_help_main(const struct cwca_opts *args)
 	       "If no COMMAND is given, cwca will default to 'pending'.\n"
 	       "\n"
 	       "OPTIONS can be any or all of the following:\n"
+	       "\n"
+	       "  -V, --version         Show version and copyright information.\n"
 	       "\n"
 	       "  -h, --help            Show this helpful message.\n"
 	       "                        (for more in-depth help, check the man pages.)\n"

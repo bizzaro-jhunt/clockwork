@@ -1251,17 +1251,17 @@ struct report* res_file_fixup(void *res, int dryrun, const struct resource_env *
 		if (dryrun) {
 			report_action(report, action, ACTION_SKIPPED);
 		} else {
+			if (env->file_fd == -1) {
+				report_action(report, action, ACTION_FAILED);
+				return report;
+			}
+
 			if (local_fd < 0) {
 				local_fd = open(rf->rf_lpath, O_CREAT | O_RDWR | O_TRUNC, rf->rf_mode);
 				if (local_fd == -1) {
 					report_action(report, action, ACTION_FAILED);
 					return report;
 				}
-			}
-
-			if (env->file_fd == -1) {
-				report_action(report, action, ACTION_FAILED);
-				return report;
 			}
 
 			if (_res_file_fd2fd(local_fd, env->file_fd, env->file_len) == -1) {

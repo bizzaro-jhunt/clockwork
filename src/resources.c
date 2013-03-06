@@ -139,6 +139,10 @@ static int _res_file_gen_rsha1(struct res_file *rf, struct hash *facts)
 
 	} else if (rf->rf_template) {
 		t = template_create(rf->rf_template, facts);
+		if (!t) {
+			return 0;
+		}
+
 		contents = template_render(t);
 
 		rc = sha1_data(contents, strlen(contents), &rf->rf_rsha1);

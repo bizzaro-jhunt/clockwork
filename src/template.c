@@ -197,6 +197,10 @@ void* template_deref_var(struct template *t, const char *name)
  */
 char* template_render(struct template *t)
 {
+	if (!t) {
+		return NULL;
+	}
+
 	char *data;
 	struct template_context ctx;
 	ctx.echo = 0;

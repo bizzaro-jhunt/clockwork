@@ -650,6 +650,11 @@ static int send_template(struct worker *w, const char *path)
 	int n;
 
 	t = template_create(path, w->facts);
+	if (!t) {
+		pdu_send_ERROR(&w->session, 510, "Missing");
+		return 1;
+	}
+
 	p = data = template_render(t);
 
 	while ((n = pdu_send_DATA(&w->session, -1, p)) > 0) {

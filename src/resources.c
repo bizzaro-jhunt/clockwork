@@ -3337,6 +3337,8 @@ void* res_exec_clone(const void *res, const char *key)
 	re->command = RES_DEFAULT_STR(orig, command, NULL);
 	re->test    = RES_DEFAULT_STR(orig, test,    NULL);
 
+	re->notified = 0;
+
 	re->key = NULL;
 	if (key) {
 		re->key = strdup(key);
@@ -3560,13 +3562,13 @@ int res_exec_stat(void *res, const struct resource_env *env)
 		re->gid = grdb_lookup_gid(env->group_grdb, re->group);
 	}
 
-	if (ENFORCED(re, RES_EXEC_TEST) && !ENFORCED(re, RES_EXEC_ONDEMAND)) {
+	if (ENFORCED(re, RES_EXEC_TEST)) {
 		if (_res_exec_run(re->test, re) == 0) {
 			ENFORCE(re, RES_EXEC_NEEDSRUN);
 		} else {
 			UNENFORCE(re, RES_EXEC_NEEDSRUN);
 		}
-	} else {
+	} else if (!ENFORCED(re, RES_EXEC_ONDEMAND)) {
 		ENFORCE(re, RES_EXEC_NEEDSRUN);
 	}
 

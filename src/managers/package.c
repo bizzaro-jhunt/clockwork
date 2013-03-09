@@ -95,7 +95,7 @@ DEFINE_PM_INSTALL(dpkg_apt) {
 	char *command;
 	int rc;
 
-	const char *vextra = (strchr(version, '-') ? "" : "-*");
+	const char *vextra = (version && strchr(version, '-') ? "" : "-*");
 	command = (version ? string("/usr/bin/apt-get install -qqy %s=%s%s",
 	                            package, version, vextra)
 	                   : string("/usr/bin/apt-get install -qqy %s", package));

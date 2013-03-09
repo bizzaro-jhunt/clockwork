@@ -6,8 +6,8 @@ AC_CONFIG_SRCDIR(src)
 AC_CONFIG_AUX_DIR(build/aux)
 AC_CONFIG_HEADERS(config.h)
 
-AC_INIT(clockwork, 0.3.1, bugs@niftylogic.com)
-AM_INIT_AUTOMAKE(0.3.1)
+AC_INIT(clockwork, 0.3.2, bugs@niftylogic.com)
+AM_INIT_AUTOMAKE(0.3.2)
 
 
 # Checks for programs.

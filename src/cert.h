@@ -1,5 +1,5 @@
 /*
-  Copyright 2011-2013 James Hunt <james@jameshunt.us>
+  Copyright 2011-2013 James Hunt <james@niftylogic.com>
 
   This file is part of Clockwork.
 
@@ -69,7 +69,8 @@ X509** cert_retrieve_certificates(const char *pathglob, size_t *len);
 int cert_store_certificate(X509 *cert, const char *certfile);
 
 char* cert_fingerprint_certificate(X509 *cert);
-int cert_prompt_for_subject(struct cert_subject *s);
+int cert_prompt_for_subject(struct cert_subject *s, FILE *io);
+int cert_read_subject(struct cert_subject *s, FILE *io);
 int cert_print_subject_terse(FILE *io, const struct cert_subject *s);
 
 int cert_print_subject(FILE *io, const char *prefix, const struct cert_subject *s);

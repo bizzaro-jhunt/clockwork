@@ -1,5 +1,5 @@
 /*
-  Copyright 2011-2013 James Hunt <james@jameshunt.us>
+  Copyright 2011-2013 James Hunt <james@niftylogic.com>
 
   This file is part of Clockwork.
 
@@ -48,6 +48,7 @@
 
 struct cwcert_opts {
 	char *command;
+	short interactive;
 	struct client *config;
 };
 
@@ -55,6 +56,7 @@ struct cwcert_opts* cwcert_options(int argc, char **argv);
 
 static int negotiate_certificate(struct client *c, X509_REQ *csr);
 
+static int cwcert_version_main(const struct cwcert_opts *args);
 static int cwcert_help_main(const struct cwcert_opts *args);
 static int cwcert_details_main(const struct cwcert_opts *args);
 static int cwcert_new_main(const struct cwcert_opts *args);
@@ -84,6 +86,8 @@ int main(int argc, char **argv)
 		err = cwcert_renew_main(args);
 	} else if (strcmp(args->command, "test") == 0) {
 		err = cwcert_test_main(args);
+	} else if (strcmp(args->command, "version") == 0) {
+		err = cwcert_version_main(args);
 	} else {
 		return cwcert_help_main(args);
 	}
@@ -102,12 +106,14 @@ struct cwcert_opts* cwcert_options(int argc, char **argv)
 {
 	struct cwcert_opts *args;
 
-	const char *short_opts = "h?c:DOv";
+	const char *short_opts = "h?c:DOvVb";
 	struct option long_opts[] = {
 		{ "config",  required_argument, NULL, 'c' },
 		{ "debug",   no_argument,       NULL, 'D' },
 		{ "offline", no_argument,       NULL, 'O' },
 		{ "verbose", no_argument,       NULL, 'v' },
+		{ "version", no_argument,       NULL, 'V' },
+		{ "batch",   no_argument,       NULL, 'b' },
 		{ 0, 0, 0, 0 },
 	};
 
@@ -115,6 +121,7 @@ struct cwcert_opts* cwcert_options(int argc, char **argv)
 
 	args = xmalloc(sizeof(struct cwcert_opts));
 	args->command = strdup("help");
+	args->interactive = 1;
 	args->config  = xmalloc(sizeof(struct client));
 	args->config->mode = CLIENT_MODE_ONLINE;
 
@@ -132,6 +139,13 @@ struct cwcert_opts* cwcert_options(int argc, char **argv)
 			break;
 		case 'v':
 			args->config->log_level++;
+			break;
+		case 'V':
+			free(args->command);
+			args->command = strdup("version");
+			break;
+		case 'b':
+			args->interactive = 0;
 			break;
 		case 'h':
 		case '?':
@@ -188,6 +202,13 @@ static int negotiate_certificate(struct client *c, X509_REQ *csr)
 	return 0;
 }
 
+static int cwcert_version_main(const struct cwcert_opts *args)
+{
+	printf("cwcert (Clockwork) " VERSION "\n"
+	       "Copyright 2011-2013 James Hunt\n");
+	return CWCERT_SUCCESS;
+}
+
 static int cwcert_help_main(const struct cwcert_opts *args)
 {
 	printf("cwcert - Clockwork Agent Certificate / Certificate Request Tool\n"
@@ -200,9 +221,6 @@ static int cwcert_help_main(const struct cwcert_opts *args)
 	       "  renew   - Renew this host's certificate / request.\n"
 	       "  test    - Test local certificate against policy master.\n"
 	       "  help    - Show this message.\n"
-	       "\n"
-	       "If no COMMAND is given, cwcert will pick either 'details' or 'new',\n"
-	       "depending on whether or not it has a certificate / request.\n"
 	       "\n"
 	       "ARGS can be any or all of the following:\n"
 	       "\n"
@@ -217,8 +235,13 @@ static int cwcert_help_main(const struct cwcert_opts *args)
 	       "  -O, --offline         Do not contact the Clockwork Policy Master.\n"
 	       "                        (If used with `test', causes nothing to be tested.)\n"
 	       "\n"
+	       "  -b, --batch           Run in batch-mode.  Answers to questions will be read\n"
+	       "                        from standard input, and you will not be confirmed."
+	       "\n"
 	       "  -D, --debug           Set verbosity to DEBUG level.  Mainly intended for\n"
 	       "                        developers, but helpful in troubleshooting.\n"
+	       "\n"
+	       "  -V, --version         Print copyright and version information.\n"
 	       "\n");
 	return CWCERT_SUCCESS;
 }
@@ -296,27 +319,32 @@ static int cwcert_new_main(const struct cwcert_opts *args)
 	}
 	subject.fqdn = fqdn;
 
-	do {
-		printf("You will now be asked for server identity information.\n"
-		       "\n"
-		       "The answers you provide will be used to construct the subject name\n"
-		       "of the certificate signing request sent to the Clockwork policy master.\n"
-		       "\n");
-
-		cert_prompt_for_subject(&subject);
-
-		printf("\nGenerating new certificate for:\n\n");
-		cert_print_subject(stdout, "  ", &subject);
-		printf("\nSubject for host certificate will be:\n\n  ");
-		cert_print_subject_terse(stdout, &subject);
-		printf("\n\n");
-
+	if (args->interactive) {
 		do {
-			free(confirmation);
-			confirmation = prompt("Is this information correct (yes or no) ? ");
-		} while (strcmp(confirmation, "yes") != 0 && strcmp(confirmation, "no") != 0);
+			printf("You will now be asked for server identity information.\n"
+			       "\n"
+			       "The answers you provide will be used to construct the subject name\n"
+			       "of the certificate signing request sent to the Clockwork policy master.\n"
+			       "\n");
 
-	} while (strcmp(confirmation, "yes") != 0);
+			cert_prompt_for_subject(&subject, stdin);
+
+			printf("\nGenerating new certificate for:\n\n");
+			cert_print_subject(stdout, "  ", &subject);
+			printf("\nSubject for host certificate will be:\n\n  ");
+			cert_print_subject_terse(stdout, &subject);
+			printf("\n\n");
+
+			do {
+				free(confirmation);
+				confirmation = prompt("Is this information correct (yes or no) ? ", stdin);
+			} while (strcmp(confirmation, "yes") != 0 && strcmp(confirmation, "no") != 0);
+
+		} while (strcmp(confirmation, "yes") != 0);
+
+	} else {
+		cert_read_subject(&subject, stdin);
+	}
 
 	INFO("Generating certificate signing request...");
 	request = cert_generate_request(key, &subject);

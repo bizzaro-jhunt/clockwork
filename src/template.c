@@ -1,5 +1,5 @@
 /*
-  Copyright 2011-2013 James Hunt <james@jameshunt.us>
+  Copyright 2011-2013 James Hunt <james@niftylogic.com>
 
   This file is part of Clockwork.
 
@@ -197,6 +197,10 @@ void* template_deref_var(struct template *t, const char *name)
  */
 char* template_render(struct template *t)
 {
+	if (!t) {
+		return NULL;
+	}
+
 	char *data;
 	struct template_context ctx;
 	ctx.echo = 0;

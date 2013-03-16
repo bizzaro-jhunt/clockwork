@@ -1,5 +1,5 @@
 /*
-  Copyright 2011-2013 James Hunt <james@jameshunt.us>
+  Copyright 2011-2013 James Hunt <james@niftylogic.com>
 
   This file is part of Clockwork.
 
@@ -96,7 +96,9 @@ static int _policy_normalize(struct policy *pol, struct hash *facts)
 
 	for_each_resource(r1, pol) {
 		DEBUG("Normalizing resource %s", r1->key);
-		if (resource_norm(r1, pol, facts) != 0) { return -1; }
+		if (resource_norm(r1, pol, facts) != 0) {
+			ERROR("Failed to normalize resource %s", r1->key);
+		}
 	}
 
 	/* expand defered dependencies */

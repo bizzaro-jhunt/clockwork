@@ -1,5 +1,5 @@
 \"
-\"  Copyright 2011 James Hunt <james@jameshunt.us>
+\"  Copyright 2011-2013 James Hunt <james@niftylogic.com>
 \"
 \"  This file is part of Clockwork.
 \"
@@ -17,7 +17,7 @@
 \"  along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
 \"
 
-.TH policyd.conf "5" "January 2011" "Clockwork" "Clockwork File Formats"
+.TH policyd.conf "5" "January 2013" "Clockwork" "Clockwork File Formats"
 .SH NAME
 policyd.conf \- Clockwork Policy Master configuration file
 .br
@@ -100,6 +100,14 @@ Directory where policyd will store signed SSL Certificates generated on
 behalf of agents via \fIcwca\fR.
 
 \"----------------------------------------------------------------------
+.SS autosign
+.PP
+If set to "yes", policyd will automatically sign any and all certificate
+requests sent to it.  This is very dangerous in production, but quite
+useful in lab environments.  See \fBAUTOMATIC CERTIFICATE SIGNING\fR for
+more details.
+
+\"----------------------------------------------------------------------
 .SS manifest_file
 .PP
 Path to the policy definitions.
@@ -169,6 +177,8 @@ key_file      = "/etc/clockwork/ssl/key.pem"
 requests_dir  = "/etc/clockwork/ssl/pending"
 .br
 certs_dir     = "/etc/clockwork/ssl/signed"
+.br
+autosign      = "no"
 .PP
 log_level     = "error"
 .PP
@@ -179,3 +189,48 @@ pid_file      = "/var/run/policyd.pid"
 db_file       = "/var/lib/clockwork/master.db"
 .br
 cache_dir     = "/var/cache/clockwork"
+
+\"----------------------------------------------------------------------
+.SH AUTOMATIC CERTIFICATE SIGNING
+.PP
+The \fBautosign\fR controls how policyd handles inbound certificate requests
+submitted by the cwcert tool.
+.PP
+If set to \fIno\fR (the default value), new certificate requests will be stored
+on the policy master's filesystem (in \fBrequests_dir\fR), to be signed manually
+via \fBcwca(1)\fR.
+.PP
+If set to \fIyes\fR, policyd will automatically sign any inbound certificate
+request with its CA private key.  \fBTHIS IS A VERY DANGEROUS OPTION\fR and
+should only be enabled after careful analysis of the security risks, namely:
+.PP
+.B Identity Theft
+.RS 4
+Since robust verification of the certificate request's originator is not
+performed, it is possible for rogue elements on the network to abuse the policy
+master and steal certificates by posing as other servers on the network.
+.RE
+.PP
+.B Denial of Service
+.RS 4
+Malicious users on the network may be able to trick the server into signing
+new certificates that superceded valid certificates in use by other hosts.
+.RE
+.PP
+.B Disclosure Vulnerabilities
+.RS 4
+With the ability to acquire a valid certificate from the policy master,
+untrustworthy systems will be able to access policies and configuration data
+that would normally be reserved for verified systems.  Depending on what is
+stored inside your policy and its static files and templates, this could be a
+source of valuable information that would allow attackers to take control of
+other parts of the network.
+.RE
+.PP
+That being said, some sites, especially R&D labs, may benefit from the decrease
+in management overhead that \fBautosign\fR brings.
+.PP
+
+\"----------------------------------------------------------------
+.SH AUTHOR
+Clockwork was designed and written by James Hunt.

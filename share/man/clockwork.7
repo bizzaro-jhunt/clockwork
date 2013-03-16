@@ -1,5 +1,5 @@
 \"
-\"  Copyright 2011 James Hunt <james@jameshunt.us>
+\"  Copyright 2011-2013 James Hunt <james@niftylogic.com>
 \"
 \"  This file is part of Clockwork.
 \"
@@ -17,17 +17,22 @@
 \"  along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
 \"
 
-.TH clockwork "7" "June 2011" "Clockwork" "Clockwork"
+.TH clockwork "7" "March 2013" "Clockwork" "Clockwork"
 \"----------------------------------------------------------------
 .SH NAME
 clockwork \- Configuration Management System
 .br
 
-\" FIXME: the intro sections need some work since this file
-\" FIXME: morphed into a general introduction.
 \"----------------------------------------------------------------
 .SH DESCRIPTION
-The manifest defines the resources that Clockwork
+.B Clockwork
+is a system configuration management system designed to securely enforce
+policies on one or more host systems.  It can ensure that files have the
+prescribed attributes (owner, group, permissions, etc.) and content.  It
+can maintain a specific set of installed packages, and even make sure that
+system user accounts exist.
+.PP
+The \fImanifest\fR defines the resources that Clockwork
 manages.  These definitions are grouped together into policies
 that are then applied to hosts.
 .PP
@@ -294,6 +299,13 @@ host "proddb2.widgets.net"   { enforce "base" }
 For the sake of brevity, example manifests will not have a lot of
 comments.  You are strongly encouraged to use comments in your
 real manifests.
+.PP
+
+\"-------------------------
+.SH ADVANCED CONFIGURATION
+.PP
+This section continues the tutorial from the last section, and
+introduces more advanced constructs for policy manifests.
 .PP
 
 \"-------------------------
@@ -680,12 +692,75 @@ To do this, it has to take into account inter-dependencies between
 resources.
 .PP
 The simplest dependency is between a file and its parent directories.
-
-\" FIXME: Needs more content
+.PP
+Sometimes, you will want to call out explicit dependencies that
+cannot be detected automatically by Clockwork.  For example, services,
+packages and configuration files are usually inter-dependent:
+.PP
+.RS 4
+.nf
+file "/etc/foo.conf" {
+    owner:  "root"
+    group:  "root"
+    mode:   0644
+    source: "/files/foo.conf"
+}
+package "foo-server" {
+    version: "1.2.5"
+}
+service "foo" {
+    running: "yes"
+    enabled: "yes"
+}
+.fi
+.RE
+.PP
+Clockwork can not possibly know how these resources inter-relate,
+or even that they are related.  This is where explicit dependencies
+come into play:
+.PP
+.RS 4
+.nf
+service("foo") depends on package("foo-server")
+file("/etc/foo.conf") affects service("foo")
+.fi
+.RE
+.PP
+In this case, the \fIfoo\fR service will not be started until both
+the \fIfoo-server\fR package and /etc/foo.conf are enforced.
+Furthermore, if the package is every updated, or the configuration
+file changes, the service will be reloaded.
+.PP
+The two types of dependencies (\fBdepends on\fR and \fBaffects\fR)
+illustrate the same concept, represented in complementary ways.
+"A depends on B" is quivalent to "B affects A".
+.PP
+Dependencies are activated differently by different resources.
+Refer to the resource-specific man pages for more information.
+.PP
 
 \"-------------------------
-\".SS Templates
-\"\" FIXME: Define template language +examples
+.SS Templates
+Clockwork features an embeded template rendering language for
+generating static files based on facts.
+.PP
+.RS 4
+.nf
+This is the <%= sys.fqdn %> host.
+
+<% if time.weekday is "mon" -%>
+ugh.  it's monday.
+<% elsif time.weekday is "fri" -%>
+yay! it's FRIDAY!!!
+<% else -%>
+whatever.  it's just <%= time.weekday %>.
+<% end -%>
+.fi
+.RE
+.PP
+For a full description of the Clockwork Templating Language,
+see \fBcwtemplate(1)\fR.
+.PP
 
 \"-------------------------
 .SS Overriding Values
@@ -762,12 +837,12 @@ overrides the \fBsource\fR attribute of the /etc/ssh/sshd_config file.
 \"to keep your policy configurations in a VCS (we use \fBgit\fR), because
 \"then you get:
 \"
-\"\" FIXME: Need more content
+\"\" FIXME: Best Practices needs more content
 \"
 \"\"-------------------------
 \".SS Testing Process
 \"
-\"\" FIXME: Need more content
+\"\" FIXME: Testing needs more content
 
 \"----------------------------------------------------------------
 \".SH RESOURCES
@@ -790,6 +865,55 @@ overrides the \fBsource\fR attribute of the /etc/ssh/sshd_config file.
 \".SS user
 
 \"----------------------------------------------------------------
+.SH CERTIFICATES AND SECURITY
+.PP
+Clockwork uses SSL/TLS certificates to encrypt communication between
+client and server.  This helps prevent eavesdropping, message tampering
+and replay attacks.  For additional security, both \fBpolicyd\fR(1)
+and \fBcwa\fR(1) have their own certificates, and each verifies the
+other's.
+.PP
+Clockwork features a certificate request protocol, and tools for
+managing the certificate authority, i.e. \fBcwca\fR(1), and agent
+certificates, via \fBcwcert\fR(2).
+.PP
+
+.SS client: Request Certificate
+.PP
+To get things started, the client needs to create a certificate request
+(normally called the \fBCSR\fR), and send it to the policy server.
+The \fBcwcert\fR utility's \fBnew\fR command is responsible for this.
+.PP
+
+.SS server: Accept Certificate Request
+.PP
+After receiving a \fISEND_CERT\fR request from a client, \fBpolicyd\fR
+either signs it (if \fBautosign\fR is on in policyd.conf), or stores
+the CSR in a dedicated directory, to be signed later.
+.PP
+
+.SS client: Poll Server for Certificate
+.PP
+At this point, the client is waiting on the server to sign the
+certificate.  \fBcwcert\fR will loop, continually asking the server
+for its signed certificate.
+.PP
+
+.SS server: Send Signed Certificate
+.PP
+Until the certificate is signed (manually or automatically), the server
+will respond to certificate polls with a \fBNO-CERT\fR response.
+.PP
+Once the certificate is signed, the server will begin responding to
+certificate polls with the full contents of the signed certificate.
+.PP
+
+.SS Complete
+.PP
+All done!
+.PP
+
+\"----------------------------------------------------------------
 \".SH REFERENCE
 \"
 \"\"-------------------------
@@ -809,12 +933,6 @@ overrides the \fBsource\fR attribute of the /etc/ssh/sshd_config file.
 
 \"----------------------------------------------------------------
 .SH AUTHOR
-Clockwork was conceived and written by James Hunt.
-.PP
-Original ideas were stolen from
-.B CFEngine
-(Mark Burgess) and
-.B Puppet
-(Luke Kanies).
+Clockwork was designed and written by James Hunt.
 
 \" vim:ft=groff

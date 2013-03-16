@@ -1,5 +1,5 @@
 /*
-  Copyright 2011-2013 James Hunt <james@jameshunt.us>
+  Copyright 2011-2013 James Hunt <james@niftylogic.com>
 
   This file is part of Clockwork.
 
@@ -22,7 +22,7 @@
 
 #include "clockwork.h"
 
-char* prompt(const char *text);
+char* prompt(const char *text, FILE* io);
 //char* prompt_without_echo(const char *prompt);
 
 #endif

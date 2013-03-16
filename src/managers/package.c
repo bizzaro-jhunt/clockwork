@@ -1,5 +1,5 @@
 /*
-  Copyright 2011-2013 James Hunt <james@jameshunt.us>
+  Copyright 2011-2013 James Hunt <james@niftylogic.com>
 
   This file is part of Clockwork.
 
@@ -95,7 +95,9 @@ DEFINE_PM_INSTALL(dpkg_apt) {
 	char *command;
 	int rc;
 
-	command = (version ? string("/usr/bin/apt-get install -qqy %s=%s-*", package, version)
+	const char *vextra = (version && strchr(version, '-') ? "" : "-*");
+	command = (version ? string("/usr/bin/apt-get install -qqy %s=%s%s",
+	                            package, version, vextra)
 	                   : string("/usr/bin/apt-get install -qqy %s", package));
 	rc = exec_command(command, NULL, NULL);
 	free(command);

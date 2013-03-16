@@ -1,0 +1,181 @@
+\"
+\"  Copyright 2011-2013 James Hunt <james@niftylogic.com>
+\"
+\"  This file is part of Clockwork.
+\"
+\"  Clockwork is free software: you can redistribute it and/or modify
+\"  it under the terms of the GNU General Public License as published by
+\"  the Free Software Foundation, either version 3 of the License, or
+\"  (at your option) any later version.
+\"
+\"  Clockwork is distributed in the hope that it will be useful,
+\"  but WITHOUT ANY WARRANTY; without even the implied warranty of
+\"  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+\"  GNU General Public License for more details.
+\"
+\"  You should have received a copy of the GNU General Public License
+\"  along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
+\"
+
+.TH cwca "1" "March 2013" "Clockwork" "Clockwork Certificate Authority"
+.SH NAME
+cwca \- Clockwork Certificate Authority
+.br
+.SH SYNOPSIS
+.B cwca
+command [options]
+
+.SH DESCRIPTION
+.B Clockwork
+is a system configuration management system designed to securely enforce
+policies on one or more host systems. It can ensure that files have the
+prescribed attributes (owner, group, permissions, etc.) and content. It
+can maintain a specific set of installed packages, and even make sure that
+system user accounts exist.
+.PP
+.B cwca
+manages the Clockwork Certificate Authority, part of the Policy Master
+that is responsible for signing and verifying agent certificates.
+
+.SH COMMANDS
+If the only non-option argument given is the fully qualified domain name
+of a host, cwca will assume the command details, and show certificate
+information for that host.
+.PP
+Otherwise, if no command is given, the pending command will be run.
+
+.PP
+.B new
+.RS 8
+Set up a new Certificate Authority, using a self-signed CA certificate.
+\fBcwca\fR will ask for the following information:
+.PP
+.RS 4
+.nf
+1. Country (C)
+2. State / Province (ST)
+3. Locality / City (L)
+4. Organization (O)
+5. Organizational Unit (OU)
+.fi
+.RE
+.RE
+
+.PP
+.B issued
+.RS 8
+List all signed / issued certificates, and the names of the hosts they
+were issued to.
+.RE
+
+.PP
+.B pending
+.RS 8
+List all pending certificate requests, and the names of the hosts they
+were requested by. The text "(verified)" will appear next to requests
+that came from clients that policyd was able to verify the hostname for
+(via a reverse lookup).
+.PP
+Note that if \fBpolicyd\fR is configured to automatically sign inbound
+requests via the \fBautosign\fR directive, this list will be empty.
+.RE
+
+.PP
+.B revoked
+.RS 4
+List all revoked certificates. Revoked certificates will not be honored
+by the Policy Master.
+.RE
+
+.PP
+.B details
+.I FQDN
+.RS 8
+Print information about a host's certificate or certificate request.
+.RE
+
+.PP
+.B sign
+.I FQDN
+.RS 8
+Sign the pending certificate request for FQDN. The next time that
+client connects and requests its signed certificate, this signed
+certificate will be sent.
+.RE
+
+.PP
+.B ignore
+.I FQDN
+.RS 8
+Remove the pending certificate request for FQDN from the list of
+pending certificates, but don't sign or revoke it.
+.RE
+
+.PP
+.B revoke
+.I FQDN
+.RS 8
+Revoke the currently valid certificate for FQDN.
+.RE
+
+.PP
+.B help
+.RS 8
+Show the help screen.
+.RE
+
+.SH OPTIONS
+.PP
+\fB\-V, \-\-version\fR
+.RS 8
+Print version and copyright information.
+.RE
+
+.PP
+\fB\-c, \-\-config\fR \fI/path/to/policyd.conf\fR
+.RS 8
+Specify the path to an alternate configuration file.  If not given, the
+default configuration file (/etc/clockwork/policyd.conf) is used instead.
+.RE
+
+\fB\-Q, \-\-silent\fR
+.RS 8
+Reset verbosity to the default setting, such that only
+.B CRITICAL
+and
+.B ERROR
+messages are logged, and all others are discarded.
+See \fB\-q\fR and \fB\-v\fR.
+.RE
+
+.PP
+.B \-q[qqq...]
+.RS 8
+Decrease verbosity by one level.  Can be used more than once.
+See \fB\-v\fR and \fB\-Q\fR.
+.RE
+
+.PP
+.B \-v[vvv...]
+.RS 8
+Increase verbosity by one level.  Can be used more than once.
+.RE
+
+.PP
+.B \-D, \-\-debug
+.RS 8
+Run in debug mode, logging to stderr instead of syslog.
+.RE
+
+.SH FILES
+.TP 8
+.B /etc/clockwork/policyd.conf
+Default configuration file that
+.B cwca
+reads on start up.  See \fBpolicyd.conf\fR(5) for details.
+
+.SH SEE ALSO
+\fBclockwork\fR(7), \fBpolicyd\fR(1) and \fBpolicyd.conf\fR(5)
+
+.SH AUTHOR
+Clockwork was designed and written by James Hunt.

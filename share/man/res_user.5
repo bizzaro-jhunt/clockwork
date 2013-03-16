@@ -1,5 +1,5 @@
 \"
-\"  Copyright 2011 James Hunt <james@jameshunt.us>
+\"  Copyright 2011-2013 James Hunt <james@niftylogic.com>
 \"
 \"  This file is part of Clockwork.
 \"
@@ -17,7 +17,7 @@
 \"  along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
 \"
 
-.TH res_user "5" "June 2011" "Clockwork" " Clockwork Resource Types"'"
+.TH res_user "5" "March 2013" "Clockwork" " Clockwork Resource Types"'"
 \"----------------------------------------------------------------
 .SH NAME
 res_user \- Clockwork Resource Type for system users
@@ -52,7 +52,7 @@ Numeric group ID for this acount's primary group.
 .RS 8
 Path to this user's home directory.  This attribute only sets
 the home directory path in /etc/password.  To create home directories
-for new users, see the \fBmakehome\fR / \fRskeleton\fB attribute.
+for new users, see the \fBmakehome\fR / \fBskeleton\fR attribute.
 .RE
 .PP
 
@@ -98,6 +98,16 @@ is one way of locking accounts out of a system.
 The (encrypted) password for this account.  Details of encryption depend
 on the specific platform and system configuration.  Clockwork does not
 attempt to encrypt or decrypt passwords for users.
+.RE
+.PP
+
+.B changepw
+.RS 8
+Whether or not Clockwork should change the passowrd of an existing user
+account, according to the value of \fBpassword\fR.  The primary use of
+this attribute is for provisioning new accounts with default initial
+passwords, but not forcibly reseting the password during subsequent
+runs.
 .RE
 .PP
 
@@ -208,7 +218,8 @@ user "eva" {
 .RE
 .PP
 If you specify password aging parameters, make sure you don't also set
-the account password via the \fBpassword\fR / \fBpwhash\fR attributes.
+the account password via the \fBpassword\fR / \fBpwhash\fR and
+\fBchangepw\fR attributes.
 .PP
 
 .SS Creating Home Directories
@@ -263,26 +274,14 @@ user "james" {
 \"----------------------------------------------------------------
 .SH CAVEATS
 
-.SS 1. Passwords are Forever
-If an encrypted password is supplied, it will always be enforced
-for the user.  It is therefore impossible to specify a password
-to be used only upon initial creation of the account.  If one is
-given, and the user subsequently changes their password, Clockwork
-will change it back.
-.PP
-That being said, setting passwords through Clockwork is discouraged,
-and other avenues of granting access (like SSH public / private
-keys) is encouraged.
-.PP
-
-.SS 2. Removing Home Directories
+.SS 1. Removing Home Directories
 Clockwork does not remove a user's home directory when it removes
 the account.  This is by design, to ensure that important data
 is not lost when users depart.  If you want to remove the home
 directory, use \fBres_file\fR(5) in concert with \fBres_user\fR.
 .PP
 
-.SS 3. Dependencies
+.SS 2. Dependencies
 For flexibility's sake, Clockwork does not create implicit dependencies
 on users for  their primary group.  If you specify that a user's primary GID
 should be 177, Clockwork will happily comply, even if there is no group
@@ -295,18 +294,8 @@ some strangeness when dealing with files owned by that user.
 
 \"----------------------------------------------------------------
 .SH DEPENDENCIES
-None.  See Caveat #3.
+None.  See Caveat #2.
 
 \"----------------------------------------------------------------
 .SH AUTHOR
-Clockwork was conceived and written by James Hunt.
-.PP
-Original ideas were stolen from
-.B CFEngine
-(Mark Burgess) and
-.B Puppet
-(Luke Kanies).
-
-\"----------------------------------------------------------------
-.SH BUGS
-None.
+Clockwork was designed and written by James Hunt.

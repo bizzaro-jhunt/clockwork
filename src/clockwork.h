@@ -1,5 +1,5 @@
 /*
-  Copyright 2011-2013 James Hunt <james@jameshunt.us>
+  Copyright 2011-2013 James Hunt <james@niftylogic.com>
 
   This file is part of Clockwork.
 
@@ -27,6 +27,8 @@
 /* in development mode, don't touch the local system */
 #ifdef DEVEL
 #  define PREFIX "dev"
+#else
+#  define PREFIX
 #endif
 
 /* cleartext system password database **/

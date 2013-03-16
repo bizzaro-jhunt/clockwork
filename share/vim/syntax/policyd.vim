@@ -16,6 +16,7 @@ syn match     policydComment    "#.*" contains=policydTodo
 syn keyword   policydDirective  ca_cert_file crl_file cert_file key_file
 syn keyword   policydDirective  manifest_file log_level certs_dir requests_dir
 syn keyword   policydDirective  lock_file pid_file db_file cache_dir
+syn keyword   policydDirective  autosign
 
 syn keyword   policydLogLevel   none emergency alert critical error warning notice info all debug
 

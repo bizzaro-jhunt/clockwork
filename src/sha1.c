@@ -9,7 +9,7 @@
     Ralph Giles     <giles@ghostscript.com>
 
   Adapted for use in Clockwork by:
-    James Hunt <james@jameshunt.us>
+    James Hunt <james@niftylogic.com>
 
   Clockwork is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by

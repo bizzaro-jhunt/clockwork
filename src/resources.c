@@ -1,5 +1,5 @@
 /*
-  Copyright 2011-2013 James Hunt <james@jameshunt.us>
+  Copyright 2011-2013 James Hunt <james@niftylogic.com>
 
   This file is part of Clockwork.
 
@@ -139,6 +139,10 @@ static int _res_file_gen_rsha1(struct res_file *rf, struct hash *facts)
 
 	} else if (rf->rf_template) {
 		t = template_create(rf->rf_template, facts);
+		if (!t) {
+			return 0;
+		}
+
 		contents = template_render(t);
 
 		rc = sha1_data(contents, strlen(contents), &rf->rf_rsha1);
@@ -1251,17 +1255,17 @@ struct report* res_file_fixup(void *res, int dryrun, const struct resource_env *
 		if (dryrun) {
 			report_action(report, action, ACTION_SKIPPED);
 		} else {
+			if (env->file_fd == -1) {
+				report_action(report, action, ACTION_FAILED);
+				return report;
+			}
+
 			if (local_fd < 0) {
 				local_fd = open(rf->rf_lpath, O_CREAT | O_RDWR | O_TRUNC, rf->rf_mode);
 				if (local_fd == -1) {
 					report_action(report, action, ACTION_FAILED);
 					return report;
 				}
-			}
-
-			if (env->file_fd == -1) {
-				report_action(report, action, ACTION_FAILED);
-				return report;
 			}
 
 			if (_res_file_fd2fd(local_fd, env->file_fd, env->file_len) == -1) {
@@ -3333,6 +3337,8 @@ void* res_exec_clone(const void *res, const char *key)
 	re->command = RES_DEFAULT_STR(orig, command, NULL);
 	re->test    = RES_DEFAULT_STR(orig, test,    NULL);
 
+	re->notified = 0;
+
 	re->key = NULL;
 	if (key) {
 		re->key = strdup(key);
@@ -3473,7 +3479,7 @@ int res_exec_match(const void *res, const char *name, const char *value)
 	return rc;
 }
 
-static int _res_exec_run(const char *command, uid_t uid, gid_t gid)
+static int _res_exec_run(const char *command, struct res_exec *re)
 {
 	int proc_stat;
 	int null_in, null_out;
@@ -3494,19 +3500,19 @@ static int _res_exec_run(const char *command, uid_t uid, gid_t gid)
 		dup2(null_out, 2);
 
 		/* set user and group is */
-		if (uid > 0) {
-			if (setuid(uid) != 0) {
-				WARNING("res_exec child could not switch to user ID %u to run `%s'", uid, command);
+		if (ENFORCED(re, RES_EXEC_UID)) {
+			if (setuid(re->uid) != 0) {
+				WARNING("res_exec child could not switch to user ID %u to run `%s'", re->uid, command);
 			} else {
-				DEBUG("res_exec child set UID to %u", uid);
+				DEBUG("res_exec child set UID to %u", re->uid);
 			}
 		}
 
-		if (gid > 0) {
-			if (setgid(gid) != 0) {
-				WARNING("res_exec child could not switch to group ID %u to run `%s'", uid, command);
+		if (ENFORCED(re, RES_EXEC_GID)) {
+			if (setgid(re->gid) != 0) {
+				WARNING("res_exec child could not switch to group ID %u to run `%s'", re->gid, command);
 			} else {
-				DEBUG("res_exec child set GID to %u", gid);
+				DEBUG("res_exec child set GID to %u", re->gid);
 			}
 		}
 
@@ -3514,7 +3520,19 @@ static int _res_exec_run(const char *command, uid_t uid, gid_t gid)
 		exit(42); /* Oops... exec failed */
 
 	default: /* parent */
-		DEBUG("res_exec: Running `%s' in sub-process %u", command, pid);
+		if (ENFORCED(re, RES_EXEC_UID) && ENFORCED(re, RES_EXEC_GID)) {
+			DEBUG("res_exec: Running `%s' as %s:%s (%d:%d) in sub-process %u",
+			      command, re->user, re->group, re->uid, re->gid, pid);
+		} else if (ENFORCED(re, RES_EXEC_UID)) {
+			DEBUG("res_exec: Running `%s' as user %s (%d) in sub-process %u",
+			      command, re->user, re->uid, pid);
+		} else if (ENFORCED(re, RES_EXEC_GID)) {
+			DEBUG("res_exec: Running `%s' as group %s (%d) in sub-process %u",
+			      command, re->group, re->gid, pid);
+		} else {
+			DEBUG("res_exec: Running `%s' in sub-process %u",
+			      command, pid);
+		}
 	}
 
 	waitpid(pid, &proc_stat, 0);
@@ -3533,24 +3551,24 @@ int res_exec_stat(void *res, const struct resource_env *env)
 	assert(re); // LCOV_EXCL_LINE
 	assert(re->command); // LCOV_EXCL_LINE
 
-	if (!re->uid && re->user) {
+	if (re->user) {
 		assert(env);            // LCOV_EXCL_LINE
 		assert(env->user_pwdb); // LCOV_EXCL_LINE
 		re->uid = pwdb_lookup_uid(env->user_pwdb,  re->user);
 	}
-	if (!re->gid && re->group) {
+	if (re->group) {
 		assert(env);             // LCOV_EXCL_LINE
 		assert(env->group_grdb); // LCOV_EXCL_LINE
 		re->gid = grdb_lookup_gid(env->group_grdb, re->group);
 	}
 
-	if (ENFORCED(re, RES_EXEC_TEST) && !ENFORCED(re, RES_EXEC_ONDEMAND)) {
-		if (_res_exec_run(re->test, re->uid, re->gid) == 0) {
+	if (ENFORCED(re, RES_EXEC_TEST)) {
+		if (_res_exec_run(re->test, re) == 0) {
 			ENFORCE(re, RES_EXEC_NEEDSRUN);
 		} else {
 			UNENFORCE(re, RES_EXEC_NEEDSRUN);
 		}
-	} else {
+	} else if (!ENFORCED(re, RES_EXEC_ONDEMAND)) {
 		ENFORCE(re, RES_EXEC_NEEDSRUN);
 	}
 
@@ -3570,7 +3588,7 @@ struct report* res_exec_fixup(void *res, int dryrun, const struct resource_env *
 		action = string("execute command");
 		if (dryrun) {
 			report_action(report, action, ACTION_SKIPPED);
-		} else if (_res_exec_run(re->command, re->uid, re->gid) == 0) {
+		} else if (_res_exec_run(re->command, re) == 0) {
 			report_action(report, action, ACTION_SUCCEEDED);
 		} else {
 			report_action(report, action, ACTION_FAILED);

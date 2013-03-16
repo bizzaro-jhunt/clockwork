@@ -1,5 +1,5 @@
 /*
-  Copyright 2011-2013 James Hunt <james@jameshunt.us>
+  Copyright 2011-2013 James Hunt <james@niftylogic.com>
 
   This file is part of Clockwork.
 
@@ -699,22 +699,46 @@ char* cert_fingerprint_certificate(X509 *cert)
   On success, returns 0.  On failure, returns non-zero and the
   contents of $subject is undefined.
  */
-int cert_prompt_for_subject(struct cert_subject *subject)
+int cert_prompt_for_subject(struct cert_subject *subject, FILE *io)
 {
+	if (!io) io = stdin;
+
 	free(subject->country);
-	subject->country = prompt("Country (C): ");
+	subject->country = prompt("Country (C): ", io);
 
 	free(subject->state);
-	subject->state = prompt("State / Province (ST): ");
+	subject->state = prompt("State / Province (ST): ", io);
 
 	free(subject->loc);
-	subject->loc = prompt("Locality / City (L): ");
+	subject->loc = prompt("Locality / City (L): ", io);
 
 	free(subject->org);
-	subject->org = prompt("Organization (O): ");
+	subject->org = prompt("Organization (O): ", io);
 
 	free(subject->org_unit);
-	subject->org_unit = prompt("Org. Unit (OU): ");
+	subject->org_unit = prompt("Org. Unit (OU): ", io);
+
+	return 0;
+}
+
+int cert_read_subject(struct cert_subject *subject, FILE *io)
+{
+	if (!io) io = stdin;
+
+	free(subject->country);
+	subject->country = prompt(NULL, io);
+
+	free(subject->state);
+	subject->state = prompt(NULL, io);
+
+	free(subject->loc);
+	subject->loc = prompt(NULL, io);
+
+	free(subject->org);
+	subject->org = prompt(NULL, io);
+
+	free(subject->org_unit);
+	subject->org_unit = prompt(NULL, io);
 
 	return 0;
 }

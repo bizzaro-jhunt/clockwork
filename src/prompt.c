@@ -1,5 +1,5 @@
 /*
-  Copyright 2011-2013 James Hunt <james@jameshunt.us>
+  Copyright 2011-2013 James Hunt <james@niftylogic.com>
 
   This file is part of Clockwork.
 
@@ -20,20 +20,22 @@
 #include "clockwork.h"
 #include "prompt.h"
 
-#include <termios.h>
+//#include <termios.h>
 
 #define PROMPT_BUFFER_SIZE 8192
 
-char* prompt(const char *text)
+char* prompt(const char *text, FILE *io)
 {
 	char buf[PROMPT_BUFFER_SIZE];
 	char *result = NULL, *p;
 	size_t len = 0, bytes = 0;
 
-	printf("%s", text);
+	if (text) {
+		printf("%s", text);
+	}
 
 	for (;;) {
-		while (!fgets(buf, PROMPT_BUFFER_SIZE, stdin))
+		while (!fgets(buf, PROMPT_BUFFER_SIZE, io))
 			;
 
 		bytes = strlen(buf);

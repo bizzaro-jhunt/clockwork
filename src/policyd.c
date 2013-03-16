@@ -1,5 +1,5 @@
 /*
-  Copyright 2011-2013 James Hunt <james@jameshunt.us>
+  Copyright 2011-2013 James Hunt <james@niftylogic.com>
 
   This file is part of Clockwork.
 
@@ -42,6 +42,8 @@ struct worker {
 
 	char *peer;
 
+	const char *ca_cert_file;
+	const char *key_file;
 	const char *requests_dir;
 	const char *certs_dir;
 	const char *db_file;
@@ -54,6 +56,7 @@ struct worker {
 	struct session session;
 
 	unsigned short peer_verified;
+	unsigned short autosign;
 };
 
 /**************************************************************/
@@ -65,6 +68,7 @@ static pthread_mutex_t  manifest_mutex = PTHREAD_MUTEX_INITIALIZER;
 /**************************************************************/
 
 static struct server* policyd_options(int argc, char **argv);
+static void show_version(void);
 static void show_help(void);
 
 static struct worker* spawn(struct server *s);
@@ -177,7 +181,7 @@ static struct server* policyd_options(int argc, char **argv)
 {
 	struct server *s;
 
-	const char *short_opts = "h?FDvqQc:sl:t";
+	const char *short_opts = "h?FDvqQc:sl:tV";
 	struct option long_opts[] = {
 		{ "help",         no_argument,       NULL, 'h' },
 		{ "no-daemonize", no_argument,       NULL, 'F' },
@@ -188,6 +192,7 @@ static struct server* policyd_options(int argc, char **argv)
 		{ "show-config",  no_argument,       NULL, 's' },
 		{ "listen",       required_argument, NULL, 'l' },
 		{ "test",         no_argument,       NULL, 't' },
+		{ "version",      no_argument,       NULL, 'V' },
 		{ 0, 0, 0, 0 },
 	};
 
@@ -200,6 +205,9 @@ static struct server* policyd_options(int argc, char **argv)
 		case 'h':
 		case '?':
 			show_help();
+			exit(0);
+		case 'V':
+			show_version();
 			exit(0);
 		case 'F':
 			s->daemonize = SERVER_OPT_FALSE;
@@ -237,12 +245,20 @@ static struct server* policyd_options(int argc, char **argv)
 	return s;
 }
 
+static void show_version(void)
+{
+	printf("policyd (Clockwork) " VERSION "\n"
+	       "Copyright 2011-2013 James Hunt\n");
+}
+
 static void show_help(void)
 {
-	printf( "USAGE: policyd [OPTIONS]\n"
+	printf("USAGE: policyd [OPTIONS]\n"
 	       "\n"
 	       "  -h, --help            Show this helpful message.\n"
 	       "                        (for more in-depth help, check the man pages.)\n"
+	       "\n"
+	       "  -V, --version         Print version and copyright information.\n"
 	       "\n"
 	       "  -F, --foreground      Do not fork into the background.\n"
 	       "                        Useful for debugging with -D\n"
@@ -300,6 +316,9 @@ unintr:
 	w->certs_dir    = s->certs_dir;
 	w->db_file      = s->db_file;
 	w->cache_dir    = s->cache_dir;
+	w->ca_cert_file = s->ca_cert_file;
+	w->key_file     = s->key_file;
+	w->autosign     = s->autosign;
 
 	w->socket = BIO_pop(s->listener);
 	if (!(w->ssl = SSL_new(s->ssl_ctx))) {
@@ -367,8 +386,9 @@ static int handle_HELLO(struct worker *w)
 static int handle_GET_CERT(struct worker *w)
 {
 	char *csr_file, *cert_file;
+	EVP_PKEY *key;
 	X509_REQ *csr = X509_REQ_new();
-	X509 *cert = NULL;
+	X509 *cert = NULL, *ca_cert;
 
 	if (pdu_decode_GET_CERT(RECV_PDU(&w->session), &csr) != 0) {
 		CRITICAL("Unable to decode GET_CERT PDU");
@@ -379,7 +399,32 @@ static int handle_GET_CERT(struct worker *w)
 	cert_file = string("%s/%s.pem", w->certs_dir, w->peer);
 	if (csr) {
 		unlink(cert_file);
-		cert_store_request(csr, csr_file);
+
+		if (w->autosign) {
+			INFO("Auto-signing inbound Certificate Request");
+
+			key = cert_retrieve_key(w->key_file);
+			if (!key) {
+				CRITICAL("Failed to retrieve CA private key");
+				return 0;
+			}
+
+			ca_cert = cert_retrieve_certificate(w->ca_cert_file);
+			cert = cert_sign_request(csr, ca_cert, key, 365*10);
+			if (!cert) {
+				CRITICAL("Failed to auto-sign certificate");
+				return 0;
+			}
+
+			if (cert_store_certificate(cert, cert_file) != 0) {
+				CRITICAL("Failed to store signed client certificate");
+				return 0;
+			}
+
+		} else {
+			INFO("Storing inbound Certificate Request");
+			cert_store_request(csr, csr_file);
+		}
 	} else {
 		cert = cert_retrieve_certificate(cert_file);
 	}
@@ -605,6 +650,11 @@ static int send_template(struct worker *w, const char *path)
 	int n;
 
 	t = template_create(path, w->facts);
+	if (!t) {
+		pdu_send_ERROR(&w->session, 510, "Missing");
+		return 1;
+	}
+
 	p = data = template_render(t);
 
 	while ((n = pdu_send_DATA(&w->session, -1, p)) > 0) {

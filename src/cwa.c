@@ -443,7 +443,7 @@ static int enforce_policy(struct client *c, struct job *job)
 				} else {
 					DEBUG("Attempting to retrieve file contents for %s", rf->rf_lpath);
 					bytes = get_file(&c->session, &rf->rf_rsha1, pipefd[1]);
-					if (bytes <= 0) {
+					if (bytes < 0) {
 						close(pipefd[0]);
 						close(pipefd[1]);
 

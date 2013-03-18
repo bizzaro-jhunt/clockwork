@@ -41,21 +41,6 @@ config.h
 /test/chroot/*.chroot
 /test/augeas
 
-src/conf/*.output
-src/conf/grammar.c
-src/conf/grammar.h
-src/conf/lexer.c
-
-src/spec/*.output
-src/spec/grammar.c
-src/spec/grammar.h
-src/spec/lexer.c
-
-src/tpl/*.output
-src/tpl/grammar.c
-src/tpl/grammar.h
-src/tpl/lexer.c
-
 /ext/build
 /ext/openssl
 

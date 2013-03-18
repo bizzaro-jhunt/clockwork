@@ -21,10 +21,6 @@ AM_YFLAGS = -d
 
 ############################################################
 
-BUILT_SOURCES    = src/spec/lexer.c src/spec/grammar.c src/spec/grammar.h
-BUILT_SOURCES   += src/conf/lexer.c src/conf/grammar.c src/conf/grammar.h
-BUILT_SOURCES   += src/tpl/lexer.c  src/tpl/grammar.c  src/tpl/grammar.h
-
 CLEANFILES       = $(BUILT_SOURCES)
 
 EXTRA_DIST       = share/db

@@ -111,10 +111,10 @@ static int _res_file_fd2fd(int dest, int src, ssize_t bytes)
 	char buf[_FD2FD_CHUNKSIZE];
 	ssize_t nread = 0;
 
-	while (bytes >= 0) {
+	while (bytes > 0) {
 		nread = (_FD2FD_CHUNKSIZE > bytes ? bytes : _FD2FD_CHUNKSIZE);
 
-		if ((nread = read(src, buf, nread)) < 0
+		if ((nread = read(src, buf, nread)) <= 0
 		 || write(dest, buf, nread) != nread) {
 			return -1;
 		}

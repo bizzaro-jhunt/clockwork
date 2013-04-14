@@ -20,15 +20,17 @@
 .TH res_group "5" "March 2013" "Clockwork" " Clockwork Resource Types"'"
 \"----------------------------------------------------------------
 .SH NAME
+.PP
 res_group \- Clockwork Resource Type for system group accounts
-.br
 
 \"----------------------------------------------------------------
 .SH DESCRIPTION
+.PP
 The group resource manages system group accounts.
 
 \"----------------------------------------------------------------
 .SH ATTRIBUTES
+.PP
 
 .B gid
 .RS 8
@@ -85,6 +87,8 @@ of usernames to add or remove.  Negation rules still apply.
 .RS 8
 Like \fBadmin\fR, except that it takes a space-separated list
 of usernames to add or remove.  Negation rules still apply.
+.RE
+.PP
 
 .B password
 .br
@@ -98,12 +102,12 @@ Details of encryption depend on the specific platform and system
 configuration.  Clockwork does not attempt to encrypt or decrypt passwords
 for groups.
 .RE
-.PP
 
 \"----------------------------------------------------------------
 .SH EXAMPLES
 
 .SS Basic Group Management
+.PP
 This example ensures that an \fIadmins\fR group exists on the system
 with a GID of 42.  This type of record can be used in conjunction with
 user resources (see \fBres_user\fR(5)) to define primary groups.
@@ -115,9 +119,9 @@ group "admins" {
 }
 .fi
 .RE
-.PP
 
 .SS Member Management
+.PP
 In this example, the policy ensures that the "projectx" group exists,
 that the users \fIjose\fR, \fIbob\fR and \fIeva\fR belong to the group,
 and that \fIalice\fR does not.
@@ -155,6 +159,7 @@ group "projectx" {
 }
 
 .SS Administrator Management
+.PP
 Management of group administrators works just like group membership
 management.  To ensure that \fIjames\fR is an admin in the "projectx"
 group, but that \fInick\fR is not:
@@ -168,12 +173,12 @@ group "projectx" {
 }
 .fi
 .RE
-.PP
 
 \"----------------------------------------------------------------
 .SH CAVEATS
 
 .SS 1. Primary vs. Auxiliary Groups
+.PP
 Under conventional user and group mechanics, a user's primary group
 is not included in their list of auxiliary groups.  To illustrate,
 the following policy snippet does not affect \fIjoe\fR's primary
@@ -195,16 +200,18 @@ user "joe" {
 .PP
 \fIjoe\fR's primary group will still be \fIusers\fR, even through
 the group definition attempts to remove him.
-.PP
 
 .SS 2. Duplicate GIDs
+.PP
 Clockwork does not attempt to enforce the uniqueness of group GIDs
 on the local system.
 
 \"----------------------------------------------------------------
 .SH DEPENDENCIES
+.PP
 None.
 
 \"----------------------------------------------------------------
 .SH AUTHOR
+.PP
 Clockwork was designed and written by James Hunt.

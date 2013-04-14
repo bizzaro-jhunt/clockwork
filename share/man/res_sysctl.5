@@ -20,11 +20,12 @@
 .TH res_sysctl "5" "March 2013" "Clockwork" " Clockwork Resource Types"'"
 \"----------------------------------------------------------------
 .SH NAME
+.PP
 res_sysctl \- Clockwork Resource Type for Kernel Parameters
-.br
 
 \"----------------------------------------------------------------
 .SH DESCRIPTION
+.PP
 The sysctl resource allows administrators to manage kernel and
 system parameters that are usually modified through the /proc/sys
 virtual mountpoint and /etc/sysctl.conf.
@@ -32,10 +33,10 @@ virtual mountpoint and /etc/sysctl.conf.
 \fBres_sysctl\fR has the advantage of being able to manage only
 parts of the /etc/sysctl.conf file, and make changes live to a running
 kernel.
-.PP
 
 \"----------------------------------------------------------------
 .SH ATTRIBUTES
+.PP
 
 .B name
 .RS 8
@@ -61,12 +62,12 @@ values are "yes" and "no".  Default value is "yes".  If you specify
 that the parameter change should not persist, then it will not be
 put in the /etc/sysctl.conf file.
 .RE
-.PP
 
 \"----------------------------------------------------------------
 .SH EXAMPLES
 
 .SS Basic Usage
+.PP
 Here are a few examples that will turn on spoof protection
 (reverse-path filter) in the kernel's IP stack:
 .PP
@@ -92,20 +93,19 @@ sysctl "net.ipv4.conf.all.rp_filter" {
 }
 .fi
 .RE
-.PP
-
 
 \"----------------------------------------------------------------
 .SH CAVEATS
 
 .SS 1. Use With CAUTION
+.PP
 Mucking about with kernel parameters can lead to unusable and
 broken systems.  Make sure you research the changes you are making
 and understand the consequences.  If possible, use a test server
 to stage sysctl changes.
-.PP
 
-.SS 2. Parameter \fIvalue\fB is Required
+.SS 2. Parameter \fIvalue\fR is Required
+.PP
 It does not make sense to set a kernel parameter without a value.
 If you do not specify one with the \fBvalue\fR attribute, Clockwork
 will essentially ignore the resource definition.  For example,
@@ -117,12 +117,13 @@ the following policy configuration does nothing:
 sysctl "kernel.printk" { }
 .fi
 .RE
-.PP
 
 \"----------------------------------------------------------------
 .SH DEPENDENCIES
+.PP
 None.
 
 \"----------------------------------------------------------------
 .SH AUTHOR
+.PP
 Clockwork was designed and written by James Hunt.

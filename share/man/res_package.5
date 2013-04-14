@@ -20,28 +20,28 @@
 .TH res_package "5" "March 2013" "Clockwork" " Clockwork Resource Types"'"
 \"----------------------------------------------------------------
 .SH NAME
+.PP
 res_package \- Clockwork Resource Type for software packages
-.br
 
 \"----------------------------------------------------------------
 .SH DESCRIPTION
+.PP
 The package resource allows administrators to specify what software
 should be installed (or not installed) on what hosts.  Package
 management is performed through the local system's package manager;
 standalone installation scripts (i.e. .bin files) are not supported.
 .PP
 The following Linux package managers are currently supported:
-.nr mgrs 1 1
-.IP \n[mgrs]. 3
+.IP 1. 3
 .B YUM
 \- For RPM-based platforms (RedHat, CentOS, SuSE, OEL, etc.)
-.IP \n+[mgrs]
+.IP 2.
 .B APT
 \- For DPKG-based platforms (Debian, Ubuntu, etc.)
-.PP
 
 \"----------------------------------------------------------------
 .SH ATTRIBUTES
+.PP
 
 .B name
 .RS 8
@@ -73,6 +73,7 @@ values are \fB"yes"\fR and \fB"no"\fR.  Default value is \fB"yes"\fR.
 .SH EXAMPLES
 
 .SS Installation of Packages
+.PP
 Ensure that the apache web server package, httpd, is installed and
 up-to-date:
 .PP
@@ -105,9 +106,9 @@ package "httpd" {
 }
 .fi
 .RE
-.PP
 
 .SS Removal of Packages
+.PP
 Removing packages is easy; just set \fBinstalled\fR to \fB"no"\fR:
 .PP
 .RS 4
@@ -119,6 +120,7 @@ package "emacs" {
 .RE
 
 .SS Platform Detection and Package Names
+.PP
 Not all distributions name their packages the same way.  Using \fIif\fR
 constructs in the policy definition makes it easy to accommodate
 different naming schemes.
@@ -148,22 +150,22 @@ be set to "mypackage", and then overidden if the agent is running on Ubuntu.
 
 \"----------------------------------------------------------------
 .SH CAVEATS
-.PP
+
 .SS 1. Package Removal and Versioning
 .PP
 Version information (set by the \fBversion\fR attribute) is ignored
 if the package is set to be removed.
-.PP
 
 \"----------------------------------------------------------------
 .SH DEPENDENCIES
+.PP
 None.
 .PP
 .B Note:
 Package dependency resolution (i.e. apache depends on the apr-util
 package) is handled solely by the package manager.
-.PP
 
 \"----------------------------------------------------------------
 .SH AUTHOR
+.PP
 Clockwork was designed and written by James Hunt.

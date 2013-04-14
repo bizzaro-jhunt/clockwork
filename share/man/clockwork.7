@@ -20,11 +20,12 @@
 .TH clockwork "7" "March 2013" "Clockwork" "Clockwork"
 \"----------------------------------------------------------------
 .SH NAME
+.PP
 clockwork \- Configuration Management System
-.br
 
 \"----------------------------------------------------------------
 .SH DESCRIPTION
+.PP
 .B Clockwork
 is a system configuration management system designed to securely enforce
 policies on one or more host systems.  It can ensure that files have the
@@ -38,11 +39,10 @@ that are then applied to hosts.
 .PP
 This document is both a gentle introduction to the manifest
 language and a full reference for its constructs.
-.PP
 
 \"----------------------------------------------------------------
 .SH INTRODUCTION
-
+.PP
 Let's start out by writing a simple, yet complete manifest for a
 small web hosting firm named Widgets, Inc.
 
@@ -71,13 +71,14 @@ concepts behind the Clockwork manifest language.
 
 \"-------------------------
 .SS Preparation
-
+.PP
 This tutorial assumes that the Clockwork software is installed on all
 servers, and that the policy master and agent are able to communicate.
 Default configuration is assumed.
 
 \"-------------------------
 .SS Getting Started
+.PP
 Let's start out by looking at the classical example given by most
 configuration management tutorials: the \fBsudoers\fR(5) file.
 .PP
@@ -180,10 +181,10 @@ We used extra whitespace to align the \fBenforce\fR keywords
 vertically to improve the legibility of the manifest.
 Feel free to use extra spaces (or tabs); Clockwork will ignore
 them.
-.PP
 
 \"-------------------------
 .SS Adding Another Policy
+.PP
 Let's add to our manifest by defining an \fBissue\fR(5) file in
 /etc/issue.  This file contains a banner that will be displayed
 to anyone attempting to log into the server.  It looks like this:
@@ -220,7 +221,7 @@ Clockwork agent to refresh the contents of /etc/issue file from the
 version on the server (in /var/clockwork/files/banner).
 .PP
 Test this new policy by adding it to the host definition for
-\fIlab1.widgets.net\fB:
+\fIlab1.widgets.net\fR:
 .PP
 .RS 4
 .nf
@@ -299,17 +300,16 @@ host "proddb2.widgets.net"   { enforce "base" }
 For the sake of brevity, example manifests will not have a lot of
 comments.  You are strongly encouraged to use comments in your
 real manifests.
-.PP
 
 \"-------------------------
 .SH ADVANCED CONFIGURATION
 .PP
 This section continues the tutorial from the last section, and
 introduces more advanced constructs for policy manifests.
-.PP
 
 \"-------------------------
 .SS Adding More Resources
+.PP
 Up until now, each policy we have defined ("security" and "banner")
 has contained only one resource.  This was done deliberately, to
 keep things simple, but Clockwork allows you to define as many
@@ -335,13 +335,14 @@ policy "security" {
     # Make sure that sudo is actually installed
     package "sudo" { installed: "yes" }
 }
-.if
+.fi
 .RE
 .PP
 Now, the sudo package will be installed if it isn't already.
 
 \"-------------------------
 .SS Including Other Files
+.PP
 In a real-world implementation, your manifest will contain dozens
 of policies and hundreds of resources (or more).  Keeping all of
 these in one file can become unmanageable, especially
@@ -439,9 +440,10 @@ include "hosts.pol"
 .PP
 See the \fBBEST PRACTICES\fR
 section for some useful approaches to splitting up a large manifest.
-.PP
+
 \"-------------------------
 .SS Conditionals
+.PP
 Not every resource definition applies to every host.  What works
 on your development servers may not be appropriate for your production
 boxes.
@@ -686,6 +688,7 @@ policy and resource definitions.
 
 \"-------------------------
 .SS Dependencies
+.PP
 Clockwork tries to reconcile the actual configuration with the
 enforced policy in a single run, and in as few steps as possible.
 To do this, it has to take into account inter-dependencies between
@@ -737,10 +740,10 @@ illustrate the same concept, represented in complementary ways.
 .PP
 Dependencies are activated differently by different resources.
 Refer to the resource-specific man pages for more information.
-.PP
 
 \"-------------------------
 .SS Templates
+.PP
 Clockwork features an embeded template rendering language for
 generating static files based on facts.
 .PP
@@ -760,10 +763,10 @@ whatever.  it's just <%= time.weekday %>.
 .PP
 For a full description of the Clockwork Templating Language,
 see \fBcwtemplate(1)\fR.
-.PP
 
 \"-------------------------
 .SS Overriding Values
+.PP
 Clockwork allows resource attributes to be overrided by later
 definitions with the same key.
 .PP
@@ -821,7 +824,6 @@ host "ftp1.example.com" {
 The ftp1 host has a more secure SSHD configuration
 than dev1, because the "secured" policy (enforced by ftp1)
 overrides the \fBsource\fR attribute of the /etc/ssh/sshd_config file.
-.PP
 
 \"----------------------------------------------------------------
 \".SH BEST PRACTICES
@@ -876,28 +878,24 @@ other's.
 Clockwork features a certificate request protocol, and tools for
 managing the certificate authority, i.e. \fBcwca\fR(1), and agent
 certificates, via \fBcwcert\fR(2).
-.PP
 
 .SS client: Request Certificate
 .PP
 To get things started, the client needs to create a certificate request
 (normally called the \fBCSR\fR), and send it to the policy server.
 The \fBcwcert\fR utility's \fBnew\fR command is responsible for this.
-.PP
 
 .SS server: Accept Certificate Request
 .PP
 After receiving a \fISEND_CERT\fR request from a client, \fBpolicyd\fR
 either signs it (if \fBautosign\fR is on in policyd.conf), or stores
 the CSR in a dedicated directory, to be signed later.
-.PP
 
 .SS client: Poll Server for Certificate
 .PP
 At this point, the client is waiting on the server to sign the
 certificate.  \fBcwcert\fR will loop, continually asking the server
 for its signed certificate.
-.PP
 
 .SS server: Send Signed Certificate
 .PP
@@ -906,12 +904,10 @@ will respond to certificate polls with a \fBNO-CERT\fR response.
 .PP
 Once the certificate is signed, the server will begin responding to
 certificate polls with the full contents of the signed certificate.
-.PP
 
 .SS Complete
 .PP
 All done!
-.PP
 
 \"----------------------------------------------------------------
 \".SH REFERENCE
@@ -933,6 +929,7 @@ All done!
 
 \"----------------------------------------------------------------
 .SH AUTHOR
+.PP
 Clockwork was designed and written by James Hunt.
 
 \" vim:ft=groff

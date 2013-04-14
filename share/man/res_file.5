@@ -20,35 +20,34 @@
 .TH res_file "5" "March 2013" "Clockwork" " Clockwork Resource Types"'"
 \"----------------------------------------------------------------
 .SH NAME
+.PP
 res_file \- Clockwork Resource Type for managing files
-.br
 
 \"----------------------------------------------------------------
 .SH DESCRIPTION
+.PP
 A fair portion of Linux system administration involves creating and
 maintaining configuration files.  The \fBres_file\fR resource for
 Clockwork automates much of this work by allowing an administrator
 to specify almost every attribute of a file in a system policy:
 .PP
 .RS 4
-.nr attrs 1 1
-.IP \n[attrs]. 3
+.IP 1. 3
 .B Ownership
 (user and group)
 
-.IP \n+[attrs].
+.IP 2.
 .B Permissions
 
-.IP \n+[attrs].
+.IP 3.
 .B Contents
 (both static and dynamic)
 
 .RE
-.PP
-
 
 \"----------------------------------------------------------------
 .SH ATTRIBUTES
+.PP
 
 .B owner
 .RS 4
@@ -103,12 +102,12 @@ The path (from the client's point of view) to the file to be managed.
 Whether or not this file should exist.  Valid values are
 "yes" and "no".  The default value is "yes".
 .RE
-.PP
-
 
 \"----------------------------------------------------------------
 .SH EXAMPLES
+.PP
 .SS Ownership and Permissions
+.PP
 Ensure ownership and permissions on /etc/sudoers:
 .PP
 .RS 4
@@ -120,9 +119,9 @@ file "/etc/sudoers" {
 }
 .fi
 .RE
-.PP
 
 .SS Complete Control
+.PP
 In this scenario, local changes to /etc/foo.conf, including edits,
 file removal, and ownership / permissions changes will be undone
 by the Clockwork agent.
@@ -137,9 +136,9 @@ file "/etc/foo.conf" {
 }
 .fi
 .RE
-.PP
 
 .SS Templates
+.PP
 Templates can be used to flexibly push out files that are similar
 on all hosts, but differ with host-specific details.  Assuming the
 following template (/clockwork/templates/banner.tpl):
@@ -184,37 +183,39 @@ All activity is monitored.
 ------------------------------------------------------------------
 .fi
 .RE
-.PP
 
 \"----------------------------------------------------------------
 .SH CAVEATS
 
 .SS 1. Link Support
+.PP
 Symbolic links and hard links cannot (yet) be created with the file
 resource.
 .PP
 
 \"----------------------------------------------------------------
 .SH DEPENDENCIES
-File resources implicitly create the following dependencies:
 .PP
+File resources implicitly create the following dependencies:
+
 .SS User Owner (owner)
+.PP
 If the
 .B owner
 attribute is specified, the file resource will depend on the
 existence of that user.  This is designed to ensure that files are
 owned by valid system users.
-.PP
 
 .SS Group Owner (group)
+.PP
 If the
 .B group
 attribute is specified, the file resource will depend on the
 existence of that group.  This is designed to ensure that files are
 owned by valid system groups.
-.PP
 
 .SS Parent Directories
+.PP
 All parent components of the file path will be created if the file
 should exist and does not.  By default, these parent directories
 will be owned by root:root with mode 0755.  However, if the policy
@@ -250,21 +251,21 @@ dir "/u/apps/test.example.net" {
 If the above policy was enforced on a host without the /u directory,
 the following would happen (in order):
 .PP
-.nr steps 1 1
-.IP \n[steps]. 3
+.IP 1. 3
 Create /u, per defaults (root:root; 0755)
-.IP \n+[steps].
+.IP 2.
 Create /u/apps, per policy (webmaster:web; 0755)
-.IP \n+[steps].
+.IP 3.
 Create /u/apps/test.example.net, per policy (apache:web; 0775)
-.IP \n+[steps].
+.IP 4.
 Create the file and retrieve its contents from the policy master.
-.PP
 
 \"----------------------------------------------------------------
 .SH AUTHOR
+.PP
 Clockwork was designed and written by James Hunt.
 
 \"----------------------------------------------------------------
 .SH BUGS
+.PP
 None.

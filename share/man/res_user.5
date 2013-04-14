@@ -20,15 +20,17 @@
 .TH res_user "5" "March 2013" "Clockwork" " Clockwork Resource Types"'"
 \"----------------------------------------------------------------
 .SH NAME
+.PP
 res_user \- Clockwork Resource Type for system users
-.br
 
 \"----------------------------------------------------------------
 .SH DESCRIPTION
+.PP
 The user resource manages system user accounts.
 
 \"----------------------------------------------------------------
 .SH ATTRIBUTES
+.PP
 
 .B uid
 .RS 8
@@ -162,12 +164,12 @@ with a pre-existing home directory.
 .PP
 See the \fBEXAMPLES\fR section for more information.
 .RE
-.PP
 
 \"----------------------------------------------------------------
 .SH EXAMPLES
 
 .SS Removing and Locking Accounts
+.PP
 To remove a user account:
 .PP
 .RS 4
@@ -188,9 +190,9 @@ user "jim" {
 }
 .fi
 .RE
-.PP
 
 .SS Password Expiration
+.PP
 The following example implements a password expiration policy:
 .PP
 .RS 4
@@ -220,9 +222,9 @@ user "eva" {
 If you specify password aging parameters, make sure you don't also set
 the account password via the \fBpassword\fR / \fBpwhash\fR and
 \fBchangepw\fR attributes.
-.PP
 
 .SS Creating Home Directories
+.PP
 The user resource can create the home directory for newly created
 users if the \fBmakehome\fR or \fBskeleton\fR attributes are set.
 .PP
@@ -268,13 +270,12 @@ user "james" {
 }
 .fi
 .RE
-.PP
-
 
 \"----------------------------------------------------------------
 .SH CAVEATS
 
 .SS 1. Removing Home Directories
+.PP
 Clockwork does not remove a user's home directory when it removes
 the account.  This is by design, to ensure that important data
 is not lost when users depart.  If you want to remove the home
@@ -282,6 +283,7 @@ directory, use \fBres_file\fR(5) in concert with \fBres_user\fR.
 .PP
 
 .SS 2. Dependencies
+.PP
 For flexibility's sake, Clockwork does not create implicit dependencies
 on users for  their primary group.  If you specify that a user's primary GID
 should be 177, Clockwork will happily comply, even if there is no group
@@ -289,13 +291,13 @@ defined on the system (either through policy or externally) with that GID.
 .PP
 This should not break normal operation of the system, but it will lead to
 some strangeness when dealing with files owned by that user.
-.PP
-
 
 \"----------------------------------------------------------------
 .SH DEPENDENCIES
+.PP
 None.  See Caveat #2.
 
 \"----------------------------------------------------------------
 .SH AUTHOR
+.PP
 Clockwork was designed and written by James Hunt.

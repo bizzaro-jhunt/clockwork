@@ -1,0 +1,25 @@
+#!/bin/bash
+
+WEBDIR=$1;
+if [[ -z $WEBDIR ]]; then
+	echo >&2 "USAGE: $0 /path/to/website"
+	exit 1
+fi
+
+for MANPAGE in $(find share/man -maxdepth 1 -type f -name '*.*' | sort -u); do
+	TITLE=$(basename $MANPAGE)
+	if [[ $TITLE == ".gitignore" ]]; then
+		continue;
+	fi
+	echo "[man2web] $TITLE.yml"
+	(
+		echo "title:  $TITLE"
+		echo "url:    /man/$TITLE.html"
+		echo "format: html"
+		echo "--- |-"
+		echo '<div class="man">'
+		man2html <$MANPAGE | sed -f build/man.sed
+		echo '</div>'
+	) > $WEBDIR/.verse/data/pages/$TITLE.yml
+done
+

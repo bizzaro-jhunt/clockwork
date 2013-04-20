@@ -1,5 +1,10 @@
 clockwork (0.2.8-2) unstable; urgency=low
 
+  * Fixed bug preventing empty files from being enforced properly
+
+ -- Geoff Franks <geoff@niftylogic.com>  Sun, 17 Mar 2013 22:32:00 -0400
+clockwork (0.2.8-2) unstable; urgency=low
+
   * Fix the clockwork-server init script
   * Start clockwork-server post-install
   * Bundle the database schemas in -server and -agent

@@ -32,6 +32,8 @@ stamp-h2
 
 config.h
 
+t/tmp
+t/*.t
 /test/defs.h
 /test/unit/run
 /test/unit/data

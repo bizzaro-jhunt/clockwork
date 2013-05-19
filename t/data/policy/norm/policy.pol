@@ -1,0 +1,30 @@
+policy "base" {
+	user "james" {
+		uid: 1009
+		gid: 2001
+	}
+
+	group "staff" {
+		gid: 2001
+	}
+
+	file "test-file" {
+		path:  "t/data/policy/norm/data/file"
+		owner: "james"
+		group: "staff"
+	}
+
+	dir "parent" {
+		path:  "t/data/policy/norm/data"
+		owner: "james"
+		group: "staff"
+		mode:  0750
+	}
+
+	dir "test-dir" {
+		path:  "t/data/policy/norm/data/dir"
+		owner: "james"
+		group: "staff"
+		mode:  0750
+	}
+}

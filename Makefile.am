@@ -9,7 +9,8 @@ CW_DATA_DIR   = /var/lib/clockwork
 CW_LIB_DIR    = /lib/clockwork
 CW_CACHE_DIR  = /var/cache/clockwork
 
-AM_CFLAGS  = -Wall $(DEPS_CFLAGS) $(shell pkg-config --cflags augeas)
+PKG_CFLAGS    = $(DEPS_CFLAGS) $(shell pkg-config --cflags augeas)
+AM_CFLAGS     = -Wall $(PKG_CFLAGS)
 
 LCOV    := lcov
 GENHTML := genhtml
@@ -78,6 +79,15 @@ parser_tpl_src  += src/tpl/lexer.l src/tpl/lexer_impl.h
 parser_tpl_src  += src/tpl/grammar.y
 
 core_src += $(parser_tpl_src)
+
+test_obj  = src/mem.o src/sha1.o src/userdb.o src/cert.o src/prompt.o src/exec.o src/augcw.o
+test_obj += src/policy.o src/resource.o src/resources.o src/job.o src/template.o
+test_obj += src/gear/hash.o src/gear/log.o src/gear/string.o src/gear/pack.o src/gear/path.o
+test_obj += src/managers/service.o src/managers/package.o
+test_obj += src/spec/parser.o src/spec/lexer.o src/spec/grammar.o
+test_obj += src/conf/parser.o src/conf/lexer.o src/conf/grammar.o
+test_obj += src/tpl/parser.o src/tpl/lexer.o src/tpl/grammar.o
+test_obj += src/proto.o
 
 root_sbindir = "/sbin"
 root_sbin_PROGRAMS = cwa cwcert policyd cwca cwpol
@@ -163,3 +173,17 @@ cov: clean-cov
 
 clean-cov:
 	find . -name '*.gcda' 2>/dev/null | xargs rm -f
+
+TEST_SOURCE := $(patsubst %.c,%.t,$(shell find t -maxdepth 1 -name '*.c' | sort))
+test: $(TEST_SOURCE)
+	prove -e '' $(TEST_SOURCE)
+
+t/%.t.o: t/%.c
+	$(CC) -I. -Isrc $(CFLAGS) $(PKG_CFLAGS) $(LDFLAGS) -c $+ -o $@
+t/%.t: t/%.t.o $(test_obj)
+	$(CC) $(LDFLAGS) $+ $(LIBS) -o $@
+
+t/helpers/%.o: t/helpers/%.c
+	$(CC) -I. -Isrc $(CFLAGS) $(PKG_CFLAGS) $(LDFLAGS) -c $+ -o $@
+t/helpers/proto: t/helpers/proto.o $(test_obj)
+	$(CC) $(LDFLAGS) $+ $(LIBS) -o $@

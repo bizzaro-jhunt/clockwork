@@ -178,8 +178,8 @@ TEST_SOURCE := $(patsubst %.c,%.t,$(shell find t -maxdepth 1 -name '*.c' | sort)
 test: $(TEST_SOURCE)
 	prove -e '' $(TEST_SOURCE)
 
-t/%.t.o: t/%.c
-	$(CC) -I. -Isrc $(CFLAGS) $(PKG_CFLAGS) $(LDFLAGS) -c $+ -o $@
+t/%.t.o: t/%.c config.h
+	$(CC) -I. -Isrc $(CFLAGS) $(PKG_CFLAGS) $(LDFLAGS) -c $< -o $@
 t/%.t: t/%.t.o $(test_obj)
 	$(CC) $(LDFLAGS) $+ $(LIBS) -o $@
 

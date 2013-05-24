@@ -185,7 +185,7 @@ t/%.t.o: t/%.c config.h
 t/%.t: t/%.t.o $(test_obj)
 	$(CC) $(LDFLAGS) $+ $(LIBS) -o $@
 
-t/helpers/%.o: t/helpers/%.c
-	$(CC) -I. -Isrc $(CFLAGS) $(PKG_CFLAGS) $(LDFLAGS) -c $+ -o $@
+t/helpers/%.o: t/helpers/%.c config.h
+	$(CC) -I. -Isrc $(CFLAGS) $(PKG_CFLAGS) $(LDFLAGS) -c $< -o $@
 t/helpers/proto: t/helpers/proto.o $(test_obj)
 	$(CC) $(LDFLAGS) $+ $(LIBS) -o $@

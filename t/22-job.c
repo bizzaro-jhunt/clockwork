@@ -92,7 +92,7 @@ int main(void) {
 		struct job *unpacked = NULL;
 		char *packed, *repacked;
 
-		ok(job = fake_job(), "created fake job");
+		isnt_null(job = fake_job(), "created fake job");
 		fake_job_run(job);
 
 		isnt_null(packed = job_pack(job), "packed job");

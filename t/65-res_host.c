@@ -20,6 +20,7 @@
 #include "test.h"
 #include "../src/clockwork.h"
 #include "../src/resources.h"
+#include "../src/augcw.h"
 
 #include <unistd.h>
 #include <sys/types.h>
@@ -55,7 +56,7 @@ int main(void) {
 		struct resource_env env;
 		struct report *report;
 
-		env.aug_context = augcw_init();
+		isnt_null(env.aug_context = augcw_init(), "Augeas initialized");
 
 		isnt_null(r = res_host_new("dne.niftylogic.net"), "created res_host");
 		res_host_set(r, "ip", "192.168.224.1");

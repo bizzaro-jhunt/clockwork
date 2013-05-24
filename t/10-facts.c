@@ -70,8 +70,8 @@ int main() {
 	hash_set(facts, "test.kernel", "2.6");
 	hash_set(facts, "sys.test",    "test-mode");
 
-	system("mkdir -p t/tmp");
-	system("rm -f t/tmp/write.facts");
+	sys("mkdir -p t/tmp");
+	sys("rm -f t/tmp/write.facts");
 	io = fopen("t/tmp/write.facts", "w");
 	ok_pointer(io, "open t/tmp/write.facts for writing");
 	ok(fact_write(io, facts) == 0, "wrote facts");

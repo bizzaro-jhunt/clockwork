@@ -70,9 +70,9 @@ int main(void) {
 		struct report *report;
 		struct stat st;
 
-		system("rm -rf t/tmp/res_dir");
-		system("mkdir -p t/tmp/res_dir");
-		system("chmod 0755 t/tmp/res_dir");
+		sys("rm -rf t/tmp/res_dir");
+		sys("mkdir -p t/tmp/res_dir");
+		sys("chmod 0755 t/tmp/res_dir");
 
 		if (stat("t/tmp/res_dir", &st) != 0) {
 			bail("failed to stat dir for resource callback tests");

@@ -145,7 +145,7 @@ int main(void) {
 		is_string( ent->pw_dir,    "/home/new_user", "new user home directory");
 		is_string( ent->pw_shell,  "/bin/bash",      "new user shell");
 
-		system("rm -f " PWFILE_NEW);
+		sys("rm -f " PWFILE_NEW);
 
 		pwdb_free(db);
 	}
@@ -293,7 +293,7 @@ int main(void) {
 		is_int(   ent->sp_inact,  0,           "account inactivity deadline");
 		is_int(   ent->sp_expire, 0,           "account expiry");
 
-		system("rm -f " SPFILE_NEW);
+		sys("rm -f " SPFILE_NEW);
 		spdb_free(db);
 	}
 
@@ -411,7 +411,7 @@ int main(void) {
 		is_string(ent->gr_name, "new_group", "group name");
 		is_int(   ent->gr_gid,  500,         "group GID");
 
-		system("rm -f " GRFILE_NEW);
+		sys("rm -f " GRFILE_NEW);
 		grdb_free(db);
 	}
 
@@ -430,7 +430,7 @@ int main(void) {
 		isnt_null(db = grdb_init(GRFILE_NEW), "read group db");
 		is_null(grdb_get_by_name(db, "sys"), "removal reflected on-disk");
 
-		system("rm -f " GRFILE_NEW);
+		sys("rm -f " GRFILE_NEW);
 		grdb_free(db);
 	}
 
@@ -451,7 +451,7 @@ int main(void) {
 		isnt_null(db = grdb_init(GRFILE_NEW), "read group db");
 		is_null(grdb_get_by_name(db, name), "removal reflected on-disk");
 
-		system("rm -f " GRFILE_NEW);
+		sys("rm -f " GRFILE_NEW);
 		free(name);
 		grdb_free(db);
 	}
@@ -544,7 +544,7 @@ int main(void) {
 		is_string(ent->sg_namp,   "new_group", "gshadow entry group name");
 		is_string(ent->sg_passwd, "$6$pwhash", "gshadow entry password hash");
 
-		system("rm -f " SGFILE_NEW);
+		sys("rm -f " SGFILE_NEW);
 		sgdb_free(db);
 	}
 

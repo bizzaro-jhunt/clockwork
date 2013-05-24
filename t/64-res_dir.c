@@ -110,7 +110,7 @@ int main(void) {
 
 		const char *path = TEST_UNIT_TEMP "/res_dir/fixme";
 
-		system("mkdir -p t/tmp/fixme-dir");
+		sys("mkdir -p t/tmp/fixme-dir");
 		if (stat("t/tmp/fixme-dir", &st) != 0)
 			bail("Failed to stat pre-fixup dir");
 		isnt_int(st.st_uid, 65542, "pre-fixup directory owner");

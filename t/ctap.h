@@ -212,4 +212,9 @@ static int _ctap_junkvar = 0;
 
 #define diag(msg, ...) _ctap_diag(stderr, msg, __VA_ARGS__)
 
+static void sys(const char *cmd)
+{
+	int rc = system(cmd);
+}
+
 #endif

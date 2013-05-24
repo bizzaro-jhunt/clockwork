@@ -108,8 +108,8 @@ int main(void) {
 		struct resource_env env;
 		struct report *report;
 
-		system("mkdir -p t/tmp/res_file");
-		system("cp -a t/data/res_file/fstab t/tmp/res_file/fstab");
+		sys("mkdir -p t/tmp/res_file");
+		sys("cp -a t/data/res_file/fstab t/tmp/res_file/fstab");
 
 		/* STAT the target file */
 		if (stat("t/tmp/res_file/fstab", &st) != 0)
@@ -161,7 +161,7 @@ int main(void) {
 		struct report *report;
 		struct resource_env env;
 
-		system("rm -f t/tmp/res_file/new_file");
+		sys("rm -f t/tmp/res_file/new_file");
 
 		env.file_fd = -1;
 		env.file_len = 0;
@@ -198,7 +198,7 @@ int main(void) {
 		struct report *report;
 		struct resource_env env;
 
-		system("cp -a t/data/res_file/delete t/tmp/res_file/delete");
+		sys("cp -a t/data/res_file/delete t/tmp/res_file/delete");
 		const char *path = TEST_UNIT_TEMP "/res_file/delete";
 
 		env.file_fd = -1;
@@ -227,7 +227,7 @@ int main(void) {
 		struct report *report;
 		struct resource_env env;
 
-		system("rm -f t/tmp/res_file/enoent");
+		sys("rm -f t/tmp/res_file/enoent");
 
 		env.file_fd = -1;
 		env.file_len = 0;

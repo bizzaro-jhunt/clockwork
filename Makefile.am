@@ -30,6 +30,7 @@ EXTRA_DIST      += share/gather.d
 EXTRA_DIST      += share/help
 EXTRA_DIST      += share/vim
 EXTRA_DIST      += var
+EXTRA_DIST      += t
 
 dist_man_MANS    = share/man/clockwork.7
 dist_man_MANS   += share/man/cwa.1

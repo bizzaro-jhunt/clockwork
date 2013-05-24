@@ -20,6 +20,7 @@
 #include "test.h"
 #include "../src/clockwork.h"
 #include "../src/resources.h"
+#include "../src/augcw.h"
 
 #include <unistd.h>
 #include <sys/types.h>

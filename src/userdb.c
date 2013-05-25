@@ -636,7 +636,7 @@ struct spwd* spdb_new_entry(struct spdb *db, const char *name)
 	sp->sp_warn = 7;
 	sp->sp_inact = -1;
 	sp->sp_expire = -1;
-	sp->sp_flag = -1;
+	sp->sp_flag = 0;
 
 	for (; db->next; db = db->next)
 		;

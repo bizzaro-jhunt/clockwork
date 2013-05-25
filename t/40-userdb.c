@@ -348,7 +348,7 @@ int main(void) {
 		is_int(   sp->sp_warn,            7, "default pw change warning");
 		is_int(   sp->sp_inact,          -1, "default inactivity deadline");
 		is_int(   sp->sp_expire,         -1, "default account expiry");
-		is_int(   sp->sp_flag,           -1, "default flags");
+		is_unsigned(sp->sp_flag,          0, "default flags");
 
 		spdb_free(db);
 	}

@@ -1157,12 +1157,12 @@ int res_file_stat(void *res, const struct resource_env *env)
 	if (!rf->rf_uid && rf->rf_owner) {
 		assert(env); // LCOV_EXCL_LINE
 		assert(env->user_pwdb); // LCOV_EXCL_LINE
-		rf->rf_uid = pwdb_lookup_uid(env->user_pwdb,  rf->rf_owner);
+		pwdb_lookup_uid(env->user_pwdb, rf->rf_owner, &rf->rf_uid);
 	}
 	if (!rf->rf_gid && rf->rf_group) {
 		assert(env); // LCOV_EXCL_LINE
 		assert(env->group_grdb); // LCOV_EXCL_LINE
-		rf->rf_gid = grdb_lookup_gid(env->group_grdb, rf->rf_group);
+		grdb_lookup_gid(env->group_grdb, rf->rf_group, &rf->rf_gid);
 	}
 
 	if (stat(rf->rf_lpath, &rf->rf_stat) == -1) { /* new file */
@@ -3163,12 +3163,12 @@ int res_dir_stat(void *res, const struct resource_env *env)
 	if (!rd->uid && rd->owner) {
 		assert(env);            // LCOV_EXCL_LINE
 		assert(env->user_pwdb); // LCOV_EXCL_LINE
-		rd->uid = pwdb_lookup_uid(env->user_pwdb,  rd->owner);
+		pwdb_lookup_uid(env->user_pwdb, rd->owner, &rd->uid);
 	}
 	if (!rd->gid && rd->group) {
 		assert(env);             // LCOV_EXCL_LINE
 		assert(env->group_grdb); // LCOV_EXCL_LINE
-		rd->gid = grdb_lookup_gid(env->group_grdb, rd->group);
+		grdb_lookup_gid(env->group_grdb, rd->group, &rd->gid);
 	}
 
 	if (stat(rd->path, &rd->stat) == -1) { /* new directory */
@@ -3554,12 +3554,12 @@ int res_exec_stat(void *res, const struct resource_env *env)
 	if (re->user) {
 		assert(env);            // LCOV_EXCL_LINE
 		assert(env->user_pwdb); // LCOV_EXCL_LINE
-		re->uid = pwdb_lookup_uid(env->user_pwdb,  re->user);
+		pwdb_lookup_uid(env->user_pwdb, re->user, &re->uid);
 	}
 	if (re->group) {
 		assert(env);             // LCOV_EXCL_LINE
 		assert(env->group_grdb); // LCOV_EXCL_LINE
-		re->gid = grdb_lookup_gid(env->group_grdb, re->group);
+		grdb_lookup_gid(env->group_grdb, re->group, &re->gid);
 	}
 
 	if (ENFORCED(re, RES_EXEC_TEST)) {

@@ -365,15 +365,20 @@ struct passwd* pwdb_get_by_name(struct pwdb *db, const char *name)
 /**
   Find UID in $db by $name
 
-  If found, returns the UID of the user account.
-  Otherwise, returns a negative value.
+  If found, returns the UID of the user account via the
+  $uid value-result argument and returns zero.
+
+  Otherwise, returns a non-zero value.
  */
-uid_t pwdb_lookup_uid(struct pwdb *db, const char *name)
+int pwdb_lookup_uid(struct pwdb *db, const char *name, uid_t *uid)
 {
-	if (!name) { return 0; }
+	if (!name || !uid) return -1;
 
 	struct passwd* u = pwdb_get_by_name(db, name);
-	return (u ? u->pw_uid : -1);
+	if (!u) return -1;
+
+	*uid = u->pw_uid;
+	return 0;
 }
 
 /**
@@ -805,15 +810,20 @@ struct group* grdb_get_by_name(struct grdb *db, const char *name)
 /**
   Find GID in $db by $name
 
-  If found, returns the GID of the group account.
-  Otherwise, returns a negative value.
+  If found, returns the GID of the group account via the
+  $gid value-result argument and returns zero.
+
+  Otherwise, returns a non-zero value.
  */
-gid_t grdb_lookup_gid(struct grdb *db, const char *name)
+int grdb_lookup_gid(struct grdb *db, const char *name, gid_t *gid)
 {
-	if (!name) { return 0; }
+	if (!name || !gid) return -1;
 
 	struct group *g = grdb_get_by_name(db, name);
-	return (g ? g->gr_gid : -1);
+	if (!g) return -1;
+
+	*gid = g->gr_gid;
+	return 0;
 }
 
 /**

@@ -70,7 +70,7 @@ struct sgdb {
 struct pwdb* pwdb_init(const char *path);
 struct passwd* pwdb_get_by_name(struct pwdb *db, const char *name);
 struct passwd* pwdb_get_by_uid(struct pwdb *db, uid_t uid);
-uid_t pwdb_lookup_uid(struct pwdb *db, const char *name);
+int pwdb_lookup_uid(struct pwdb *db, const char *name, uid_t *uid);
 uid_t pwdb_next_uid(struct pwdb *db);
 struct passwd* pwdb_new_entry(struct pwdb *db, const char *name, uid_t uid, gid_t gid);
 int pwdb_add(struct pwdb *db, struct passwd *pw);
@@ -88,7 +88,7 @@ void spdb_free(struct spdb *db);
 
 struct grdb* grdb_init(const char *path);
 struct group* grdb_get_by_name(struct grdb *db, const char *name);
-gid_t grdb_lookup_gid(struct grdb *db, const char *name);
+int grdb_lookup_gid(struct grdb *db, const char *name, gid_t *gid);
 struct group* grdb_get_by_gid(struct grdb *db, gid_t gid);
 struct group* grdb_new_entry(struct grdb *db, const char *name, gid_t gid);
 int grdb_add(struct grdb *db, struct group *g);

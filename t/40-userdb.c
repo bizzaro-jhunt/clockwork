@@ -224,13 +224,19 @@ int main(void) {
 
 	subtest {
 		struct pwdb *db;
+		uid_t uid = 42;
 
 		isnt_null(db = pwdb_init(PWFILE_UID), "read passwd");
-		is_int(pwdb_lookup_uid(db, NULL),        0, "lookup UID with NULL username");
-		// FIXME: fix uid lookups so that they can signal bad values
-		ok(pwdb_lookup_uid(db, "notauser") == -1, "lookup UID with bad username");
+
+		is_int(pwdb_lookup_uid(db, NULL, &uid), -1, "lookup UID with NULL username");
+		is_int(uid, 42, "uid value-result arg is untouched");
+
+		is_int(pwdb_lookup_uid(db, "notauser", &uid), -1, "lookup UID with username");
+		is_int(uid, 42, "uid value-result arg is untouched");
+
 		// see test/data/passwd-uid for valid users
-		is_int(pwdb_lookup_uid(db, "jrh1"),   2048, "lookup UID for jrh1 account");
+		is_int(pwdb_lookup_uid(db, "jrh1", &uid), 0, "lookup UID for jrh1 account");
+		is_int(uid, 2048, "UID for jrh1 account");
 
 		pwdb_free(db);
 	}
@@ -488,13 +494,19 @@ int main(void) {
 
 	subtest {
 		struct grdb *db;
+		gid_t gid = 42;
 
 		isnt_null(db = grdb_init(GRFILE), "read group db");
-		is_int(grdb_lookup_gid(db, NULL), 0, "lookup group with NULL group name");
-		// FIXME: fix gid lookups so that they can signal bad values
-		ok(grdb_lookup_gid(db, "notagroup") == -1, "lookup group with bad group name");
+
+		is_int(grdb_lookup_gid(db, NULL, &gid), -1, "lookup group with NULL group name");
+		is_int(gid, 42, "gid value-result arg is untouched");
+
+		is_int(grdb_lookup_gid(db, "notagroup", &gid), -1, "lookup GID with bad group name");
+		is_int(gid, 42, "gid value-result arg is untouched");
+
 		// see test/data/group for group definitions
-		is_int(grdb_lookup_gid(db, "service"), 909, "lookup group 'service'");
+		is_int(grdb_lookup_gid(db, "service", &gid), 0, "lookup group 'service'");
+		is_int(gid, 909, "GID for group 'service'");
 
 		grdb_free(db);
 	}

@@ -6,7 +6,7 @@ gmon.out
 callgrind.out.*
 *.swp
 .dirstamp
-stamp-h2
+stamp-h?
 
 *.tar.gz
 *.deb

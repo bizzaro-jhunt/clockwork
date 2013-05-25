@@ -149,28 +149,28 @@ static void resume() { _ctap_stack_pop(); }
 static void _ctap_eq_u64(uint64_t x, uint64_t y, const char *msg, const char *file, unsigned long line)
 {
 	if (!_ctap_assert(x == y, msg, 1, file, line)) {
-		_ctap_diag(stderr, "         got: %llu", x);
-		_ctap_diag(stderr, "    expected: %llu", y);
+		_ctap_diag(stderr, "         got: %llu (%x)", x, x);
+		_ctap_diag(stderr, "    expected: %llu (%x)", y, y);
 	}
 }
 static void _ctap_ne_u64(uint64_t x, uint64_t y, const char *msg, const char *file, unsigned long line)
 {
 	if (!_ctap_assert(x != y, msg, 1, file, line)) {
-		_ctap_diag(stderr, "         got: %llu", x);
+		_ctap_diag(stderr, "         got: %llu (%x)", x, x);
 		_ctap_diag(stderr, "    expected: <anything else>");
 	}
 }
 static void _ctap_eq_i64(int64_t x, int64_t y, const char *msg, const char *file, unsigned long line)
 {
 	if (!_ctap_assert(x == y, msg, 1, file, line)) {
-		_ctap_diag(stderr, "         got: %lli", x);
-		_ctap_diag(stderr, "    expected: %lli", y);
+		_ctap_diag(stderr, "         got: %lli (%x)", x, x);
+		_ctap_diag(stderr, "    expected: %lli (%x)", y, y);
 	}
 }
 static void _ctap_ne_i64(int64_t x, int64_t y, const char *msg, const char *file, unsigned long line)
 {
 	if (!_ctap_assert(x != y, msg, 1, file, line)) {
-		_ctap_diag(stderr, "         got: %lli", x);
+		_ctap_diag(stderr, "         got: %lli (%x)", x, x);
 		_ctap_diag(stderr, "    expected: <anything else>");
 	}
 }

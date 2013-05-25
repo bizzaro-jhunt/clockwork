@@ -176,15 +176,16 @@ clean-cov:
 	find . -name '*.gcda' 2>/dev/null | xargs rm -f
 
 TEST_SOURCE := $(patsubst %.c,%.t,$(shell find t -maxdepth 1 -name '*.c' | sort))
-test: $(TEST_SOURCE)
+tests: $(TEST_SOURCE)
 	prove -e '' $(TEST_SOURCE)
+test: t/helpers/proto tests
 
 t/%.t.o: t/%.c config.h
 	$(CC) -I. -Isrc $(CFLAGS) $(PKG_CFLAGS) $(LDFLAGS) -c $< -o $@
 t/%.t: t/%.t.o $(test_obj)
 	$(CC) $(LDFLAGS) $+ $(LIBS) -o $@
 
-t/helpers/%.o: t/helpers/%.c
-	$(CC) -I. -Isrc $(CFLAGS) $(PKG_CFLAGS) $(LDFLAGS) -c $+ -o $@
+t/helpers/%.o: t/helpers/%.c config.h
+	$(CC) -I. -Isrc $(CFLAGS) $(PKG_CFLAGS) $(LDFLAGS) -c $< -o $@
 t/helpers/proto: t/helpers/proto.o $(test_obj)
 	$(CC) $(LDFLAGS) $+ $(LIBS) -o $@

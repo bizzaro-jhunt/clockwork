@@ -34,12 +34,7 @@ config.h
 
 t/tmp
 t/*.t
-/test/defs.h
-/test/unit/run
-/test/unit/data
-/test/unit/tmp
-/test/unit/sha1_files.h
-/test/unit/helpers/proto
+/t/helpers/proto
 /test/chroot/*.chroot
 /test/augeas
 

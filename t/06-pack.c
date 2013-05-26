@@ -62,7 +62,7 @@ int main(void) {
 
 		/* Jenny, I've got your number... */
 		is_string(p = pack("", "L", 8675309), "00845fed", "packed 867-5309");
-		ok(unpack(p, "", "L", &u32) == 0, "unpacked uin32");
+		ok(unpack(p, "", "L", &u32) == 0, "unpacked uint32");
 		is_int(u32, 8675309, "unpacked value for 00845fed/L");
 		free(p);
 	}

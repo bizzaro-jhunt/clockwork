@@ -100,11 +100,20 @@ int main(void) {
 		free(p);
 
 		is_string(p = pack("", "a", "\"test\"\\t\\tdouble-tab \"plus quotes\""),
-			"\"\\\"test\\\"\\t\\tdouble-tab \\\"plus quotes\\\"\"",
+			"\"\\\"test\\\"\\\\t\\\\tdouble-tab \\\"plus quotes\\\"\"",
 			"packed a string with lots of escape chars");
 		ok(unpack(p, "", "a", &val) == 0, "unpacked crazy string");
 		is_string(val, "\"test\"\\t\\tdouble-tab \"plus quotes\"",
 			"unpacked string with lots of escape chars");
+		free(val);
+		free(p);
+
+		is_string(p = pack("", "a", "CFM-14 \\ test"),
+			"\"CFM-14 \\\\ test\"",
+			"packed a string with three backslashes");
+		ok(unpack(p, "", "a", &val) == 0, "unpacked CFM-14 test string");
+		is_string(val, "CFM-14 \\ test",
+			"unpacked CFM-14 test string");
 		free(val);
 		free(p);
 	}

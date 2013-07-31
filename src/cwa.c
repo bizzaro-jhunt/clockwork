@@ -254,10 +254,6 @@ static int gather_facts_from_script(const char *script, struct hash *facts)
 	FILE *input;
 	char *path_copy, *arg0;
 
-	path_copy = strdup(script);
-	arg0 = basename(path_copy);
-	free(path_copy);
-
 	INFO("Processing script %s", script);
 
 	if (pipe(pipefd) != 0) {
@@ -276,6 +272,9 @@ static int gather_facts_from_script(const char *script, struct hash *facts)
 		close(0); close(1); close(2);
 
 		dup2(pipefd[1], 1); /* dup pipe as stdout */
+
+		path_copy = strdup(script);
+		arg0 = basename(path_copy);
 
 		execl(script, arg0, NULL);
 		exit(1); /* if execl returns, we failed */

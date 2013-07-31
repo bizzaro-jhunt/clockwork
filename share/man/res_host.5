@@ -19,15 +19,17 @@
 
 .TH res_host "5" "March 2013" "Clockwork" " Clockwork Resource Types"'"
 .SH NAME
+.PP
 res_host \- Clockwork Resource Type for /etc/hosts entries
-.br
 
 .SH DESCRIPTION
+.PP
 The /etc/hosts file associates IP addresses to hostnames, without the use of external
 systems like NIS, LDAP or DNS.  Through the \fBhost\fR resource, a Clockwork policy
 can modify individual entries in /etc/hosts, without having to specify a complete map.
 
 .SH ATTRIBUTES
+.PP
 
 .B hostname
 .RS 8
@@ -50,6 +52,7 @@ separated by a single space.
 .SH EXAMPLES
 
 .SS Basic Usage
+.PP
 Map 10.0.0.21 to the hostname 'testhost1':
 .PP
 .RS 4
@@ -59,9 +62,9 @@ host "testhost1" {
 }
 .fi
 .RE
-.PP
 
 .SS Alias Usage
+.PP
 Map 10.0.0.21 to 'testhost1', but make 'test-1' and 'lab1' aliases:
 .PP
 .RS 4
@@ -130,17 +133,21 @@ modify the entry for \fIhostb\fR, but will instead append a fourth:
 .RE
 
 .SS 2. Overlapping Canonical and Alias Hostnames
+.PP
 Clockwork does not try to reconciliate overlap between canonical hostnames
 and aliases. If you are experiencing issues in this space, please contact
 the developers so that we can understand your needs.
 
 .SH DEPENDENCIES
+.PP
 None.
 
 .SH AUTHOR
+.PP
 Clockwork was designed and written by James Hunt.
 
 .SH BUGS
+.PP
 There is currently no way to remove a host entry.
 .PP
 There really should be an implicit dependency on /etc/hosts, if defined in

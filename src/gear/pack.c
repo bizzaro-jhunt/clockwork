@@ -25,6 +25,11 @@
 
 #include "gear.h"
 
+static int isescaped(char c)
+{
+	return (c == '"' || c == '\\');
+}
+
 static char* _escape(const char *string)
 {
 	char *escaped, *write_ptr;
@@ -37,17 +42,15 @@ static char* _escape(const char *string)
 
 	for (len = 0, read_ptr = string; *read_ptr; read_ptr++) {
 		len++;
-		if (*read_ptr == '"') {
+		if (isescaped(*read_ptr))
 			len++;
-		}
 	}
 
 	escaped = calloc(len + 1, sizeof(char));
 	if (!escaped) { return NULL; }
 	for (write_ptr = escaped, read_ptr = string; *read_ptr; read_ptr++) {
-		if (*read_ptr == '"') {
+		if (isescaped(*read_ptr))
 			*write_ptr++ = '\\';
-		}
 		*write_ptr++ = *read_ptr;
 	}
 	*write_ptr = '\0';
@@ -64,9 +67,8 @@ static char* _unescape(const char *string)
 
 	for (len = 0, read_ptr = string; *read_ptr; read_ptr++) {
 		len++;
-		if (*read_ptr == '"' && last == '\\') {
+		if (isescaped(*read_ptr) && last == '\\')
 			len--;
-		}
 		last = *read_ptr;
 	}
 
@@ -74,16 +76,8 @@ static char* _unescape(const char *string)
 	unescaped = calloc(len + 1, sizeof(char));
 	if (!unescaped) { return NULL; }
 	for (write_ptr = unescaped, read_ptr = string; *read_ptr; read_ptr++) {
-		if (last == '\\') {
-			if (*read_ptr == '"') {
-				*write_ptr++ = '"';
-			} else {
-				*write_ptr++ = '\\';
-				*write_ptr++ = *read_ptr;
-			}
-		} else if (*read_ptr != '\\') {
+		if ((isescaped(*read_ptr) && last == '\\') || *read_ptr != '\\')
 			*write_ptr++ = *read_ptr;
-		}
 		last = *read_ptr;
 	}
 	*write_ptr = '\0';
@@ -283,7 +277,7 @@ static char* _extract_string(const char *start)
 
 	for (a = start; *a && *a++ != '"'; )
 		;
-	for (last = '\0', b = a; *b && !(last != '\\' && *b == '"'); last = *b, b++)
+	for (last = '\0', b = a; *b && (last == '\\' || *b != '"'); last = *b++)
 		;
 
 	buf = calloc(b - a + 1, sizeof(char));

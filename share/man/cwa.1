@@ -19,9 +19,11 @@
 
 .TH cwa "1" "March 2013" "Clockwork" "Clockwork Policy Agent"
 .SH NAME
+.PP
 cwa \- Clockwork Policy Agent
-.br
+
 .SH SYNOPSIS
+.PP
 .B cwa
 [options]
 .br
@@ -30,7 +32,9 @@ cwa \- Clockwork Policy Agent
 .br
 .B cwa
 -s server.address -p port
+
 .SH DESCRIPTION
+.PP
 .B Clockwork
 is a system configuration management system designed to securely enforce
 policies on one or more host systems.  It can ensure that files have the
@@ -45,6 +49,7 @@ taking whatever steps necessary to bring the host back into line with that
 policy.
 
 .SH OPTIONS
+.PP
 \fB\-V\fR, \fB\-\-version\fR
 .RS 8
 Print version and copyright information.
@@ -76,26 +81,27 @@ Override the name (IP or DNS) of the policy master.
 .RE
 
 .SH EXIT STATUS
+.PP
 .B cwa
 exits 0 if it was able to retrieve the local host policy from the policy master,
 and successfully apply that policy to bring the host into 100% compliance.
 Otherwise, a non-zero exit code is used.
 
 .RS 4
-.nr step 0 1
-.IP \n+[step]. 3
+.IP 1. 3
 connect to the policy master
-.IP \n+[step].
+.IP 2.
 present local host facts
-.IP \n+[step].
+.IP 3.
 retrieve policy for the local host
-.IP \n+[step].
+.IP 4.
 evaulate compliance
-.IP \n+[step].
+.IP 5.
 "fix" non-compliant resources
 .RE
 
 .SH FILES
+.PP
 .TP 8
 .B /etc/clockwork/cwa.conf
 Default configuration file that
@@ -103,7 +109,9 @@ Default configuration file that
 reads on start up.  See \fBcwa.conf\fR(5) for details.
 
 .SH SEE ALSO
+.PP
 \fBclockwork\fR(7), \fBpolicyd\fR(1), \fBpolicyd.conf\fR(5) and \fBcwa.conf\fR(5)
 
 .SH AUTHOR
+.PP
 Clockwork was designed and written by James Hunt.

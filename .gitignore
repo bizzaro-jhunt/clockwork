@@ -6,7 +6,7 @@ gmon.out
 callgrind.out.*
 *.swp
 .dirstamp
-stamp-h2
+stamp-h?
 
 *.tar.gz
 *.deb
@@ -32,12 +32,9 @@ stamp-h2
 
 config.h
 
-/test/defs.h
-/test/unit/run
-/test/unit/data
-/test/unit/tmp
-/test/unit/sha1_files.h
-/test/unit/helpers/proto_helper
+t/tmp
+t/*.t
+/t/helpers/proto
 /test/chroot/*.chroot
 /test/augeas
 

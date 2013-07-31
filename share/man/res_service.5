@@ -20,11 +20,12 @@
 .TH res_service "5" "March 2013" "Clockwork" " Clockwork Resource Types"'"
 \"----------------------------------------------------------------
 .SH NAME
+.PP
 res_service \- Clockwork Resource Type for system init services
-.br
 
 \"----------------------------------------------------------------
 .SH DESCRIPTION
+.PP
 The service resource manages system services, normally found in
 /etc/init.d.  It can be used to restart or reload services in
 response to other system configuration changes through explicit
@@ -35,16 +36,16 @@ To manage boot-time services, Clockwork relies on the native service
 management tools like chkconfig.  The following tools are currently
 supported:
 .PP
-.nr mgrs 1 1
-.IP \n[mgrs]. 3
+.IP 1. 3
 .B invoke-rc.d
 \- For Debian and Ubuntu
-.IP \n+[mgrs]
+.IP 2.
 .B chkconfig
 \- For RedHat / CentOS
 
 \"----------------------------------------------------------------
 .SH ATTRIBUTES
+.PP
 
 .B name
 .br
@@ -100,6 +101,7 @@ has the same meaning as
 .SH EXAMPLES
 
 .SS Starting and Enabling Services
+.PP
 To ensure that SSH is running, and that it will automatically
 start when the system boots:
 .PP
@@ -123,9 +125,9 @@ service "sshd" {
 }
 .fi
 .RE
-.PP
 
 .SS Stopping and Disabling Services
+.PP
 To ensure that avahi never runs, ever:
 .PP
 .RS 4
@@ -136,7 +138,6 @@ service "avahi-daemon" {
 }
 .fi
 .RE
-.PP
 
 \"----------------------------------------------------------------
 .SH CAVEATS
@@ -151,10 +152,10 @@ it what to do.  For example, this policy snippet is useless:
 service "apache" { }
 .fi
 .RE
-.PP
 
 \"----------------------------------------------------------------
 .SH DEPENDENCIES
+.PP
 The service resource does not create implicit dependencies, but
 you can leverage explicit dependencies to reload services when their
 configuration changes.
@@ -179,8 +180,8 @@ service("syslog-ng") depends on file("/etc/syslog-ng.conf")
 .PP
 Now, the \fIsyslog-ng\fR service will be reloaded if Clockwork has
 to do anything to the \fI/etc/syslog-ng.conf\fR file.
-.PP
 
 \"----------------------------------------------------------------
 .SH AUTHOR
+.PP
 Clockwork was designed and written by James Hunt.

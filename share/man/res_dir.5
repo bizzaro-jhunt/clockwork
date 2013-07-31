@@ -20,16 +20,18 @@
 .TH res_dir "5" "March 2013" "Clockwork" " Clockwork Resource Types"'"
 \"----------------------------------------------------------------
 .SH NAME
+.PP
 res_dir \- Clockwork Resource Type for system directories
-.br
 
 \"----------------------------------------------------------------
 .SH DESCRIPTION
+.PP
 The \fBres_dir\fR resource gives administrators a way to manage
 the presence of directories and the permissions on them.
 
 \"----------------------------------------------------------------
 .SH ATTRIBUTES
+.PP
 
 .B path
 .RS 8
@@ -55,12 +57,12 @@ The name of the group who should own this directory.
 The permissions set for this directory.  THe value must be
 specified in octal notation, i.e. 0750 for rwxr-x---.
 .RE
-.PP
 
 \"----------------------------------------------------------------
 .SH EXAMPLES
 
 .SS Basic Usage
+.PP
 The following policy configuration would create /srv/www, and
 make it readable, writable and traversable by the apache user
 (for running Apache) and the web group (people who manage the
@@ -75,29 +77,30 @@ directory "/srv/www" {
 }
 .fi
 .RE
-.PP
 
 \"----------------------------------------------------------------
 .SH DEPENDENCIES
-Directory resources implicitly create the following dependencies:
 .PP
+Directory resources implicitly create the following dependencies:
+
 .SS User Owner (owner)
+.PP
 If the
 .B owner
 attribute is specified, the directory resource will depend on the
 existence of that user.  This is designed to ensure that directories
 are owned by valid system users.
-.PP
 
 .SS Group Owner (group)
+.PP
 If the
 .B group
 attribute is specified, the directory resource will depend on the
 existence of that group.  This is designed to ensure that directories
 are owned by valid system groups.
-.PP
 
 .SS Parent Directories
+.PP
 Missing directories in between the directory path and the root (/)
 will be created if necessary (for existant resources).
 By default, these parent directories will be owned by root:root with
@@ -125,15 +128,14 @@ dir "/u/apps/test.example.net" {
 If the above policy was enforced on a host without the /u directory,
 the following would happen (in order):
 .PP
-.nr steps 1 1
-.IP \n[steps]. 3
+.IP 1. 3
 Create /u, per defaults (root:root; 0755)
-.IP \n+[steps].
+.IP 2.
 Create /u/apps, per policy (webmaster:web; 0755)
-.IP \n+[steps].
+.IP 3.
 Create /u/apps/test.example.net, per policy (apache:web; 0775)
-.PP
 
 \"----------------------------------------------------------------
 .SH AUTHOR
+.PP
 Clockwork was designed and written by James Hunt.

@@ -19,14 +19,17 @@
 
 .TH cwpol "1" "March 2013" "Clockwork" "Clockwork Policy Agent"
 .SH NAME
+.PP
 cwpol \- Clockwork Policy Explorer
-.br
+
 .SH SYNOPSIS
+.PP
 .B cwpol
 [options]
 .I /path/to/manifest/file
 
 .SH DESCRIPTION
+.PP
 .B Clockwork
 is a system configuration management system designed to securely enforce
 policies on one or more host systems.  It can ensure that files have the
@@ -40,6 +43,7 @@ internals of a policy manifest, letting you explore how a policy would
 be implemented by the client agents.
 
 .SH OPTIONS
+.PP
 
 \fB\-e\fR, \fB\-\-execute\fR \fIcommand\fR
 .RS 8
@@ -72,6 +76,7 @@ any command script is ignored, as well as the \fB\-e\fR option.
 .RE
 
 .SH EXIT STATUS
+.PP
 In interactive mode and script interpreter mode, \fBcwpol\fR always
 exits with status 0.
 .PP
@@ -80,10 +85,13 @@ completed successfully, and exits non-zero when the first command
 (which may be the only command) fails.
 
 .SH FILES
+.PP
 None
 
 .SH SEE ALSO
+.PP
 \fBclockwork\fR(7), \fBpolicyd\fR(1), \fBpolicyd.conf\fR(5) and \fBcwa.conf\fR(5)
 
 .SH AUTHOR
+.PP
 Clockwork was designed and written by James Hunt.

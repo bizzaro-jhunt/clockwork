@@ -1106,8 +1106,9 @@ static void* signal_thread(void *arg)
 		exit(2);
 	}
 
+	/* effectively do nothing, without chewing the CPU */
 	for (;;)
-		;
+		sleep(789);
 }
 
 static int server_init_ssl(struct server *s)

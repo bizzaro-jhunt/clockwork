@@ -28,13 +28,17 @@ CLEANFILES      += t/helpers/proto
 CLEANFILES      += */*.t */**/*.t
 CLEANFILES      += */*.gc* */**/*.gc*
 
-EXTRA_DIST       = share/db
+EXTRA_DIST       = build doc extra t var
+EXTRA_DIST      += configure.dev
+EXTRA_DIST      += cwdb
+EXTRA_DIST      += HACKING
+EXTRA_DIST      += share/db
 EXTRA_DIST      += share/examples
 EXTRA_DIST      += share/gather.d
 EXTRA_DIST      += share/help
+EXTRA_DIST      += share/man
+EXTRA_DIST      += share/rpm
 EXTRA_DIST      += share/vim
-EXTRA_DIST      += var
-EXTRA_DIST      += t
 
 dist_man_MANS    = share/man/clockwork.7
 dist_man_MANS   += share/man/cwa.1

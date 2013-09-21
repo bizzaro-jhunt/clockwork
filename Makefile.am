@@ -100,12 +100,13 @@ test_obj += src/tpl/parser.o src/tpl/lexer.o src/tpl/grammar.o
 test_obj += src/proto.o
 
 root_sbindir = "/sbin"
-root_sbin_PROGRAMS = cwa cwcert policyd cwca cwpol
+root_sbin_PROGRAMS = cwa cwcert policyd cwca cwpol cwtemplate
 policyd_SOURCES = $(core_src) $(server_src) src/policyd.c $(parser_spec_src) $(parser_conf_src) src/db.c src/db.h
 cwca_SOURCES    = $(core_src) $(server_src) src/cwca.c $(parser_conf_src)
 cwa_SOURCES     = $(core_src) $(client_src) src/cwa.c $(manager_src) $(parser_conf_src) src/db.c src/db.h
 cwcert_SOURCES  = $(core_src) $(client_src) src/cwcert.c $(parser_conf_src)
 cwpol_SOURCES   = $(core_src) src/cwpol.c $(parser_spec_src)
+cwtemplate_SOURCES = $(core_src) $(client_src) src/cwtemplate.c $(parser_conf_src)
 
 ############################################################
 

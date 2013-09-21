@@ -239,3 +239,17 @@ void *hash_next(const struct hash *h, struct hash_cursor *c, char **key, void **
 	return *key;
 }
 
+int hash_merge(struct hash *a, const struct hash *b)
+{
+	assert(a); assert(b); // LCOV_EXCL_LINE;
+
+	char *k; void *v;
+	struct hash_cursor cursor;
+
+	for_each_key_value(b, &cursor, k, v) {
+		hash_set(a, k, v);
+	}
+	return 0;
+
+};
+

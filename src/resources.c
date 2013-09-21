@@ -647,6 +647,15 @@ struct report* res_user_fixup(void *res, int dryrun, const struct resource_env *
 		return report;
 	}
 
+	if (ENFORCED(ru, RES_USER_UID)) {
+		/* is the UID already taken? */
+		struct passwd *pw = pwdb_get_by_uid(env->user_pwdb, ru->ru_uid);
+		if (pw && strcmp(pw->pw_name, ru->ru_name) != 0) {
+			report_action(report, string("check UID conflict"), ACTION_FAILED);
+			return report;
+		}
+	}
+
 	if (!ru->ru_pw || !ru->ru_sp) {
 		action = string("create user");
 		new_user = 1;
@@ -1780,6 +1789,15 @@ struct report* res_group_fixup(void *res, int dryrun, const struct resource_env 
 		}
 
 		return report;
+	}
+
+	if (ENFORCED(rg, RES_GROUP_GID)) {
+		/* is the GID already taken? */
+		struct group *gr = grdb_get_by_gid(env->group_grdb, rg->rg_gid);
+		if (gr && strcmp(gr->gr_name, rg->rg_name) != 0) {
+			report_action(report, string("check GID conflict"), ACTION_FAILED);
+			return report;
+		}
 	}
 
 	if (!rg->rg_grp || !rg->rg_sg) {

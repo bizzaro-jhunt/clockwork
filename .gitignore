@@ -2,6 +2,7 @@
 *~
 *.gc??
 lcov.info
+coverage
 gmon.out
 callgrind.out.*
 *.swp

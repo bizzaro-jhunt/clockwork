@@ -12,10 +12,10 @@ CW_CACHE_DIR  = /var/cache/clockwork
 PKG_CFLAGS    = $(DEPS_CFLAGS) $(shell pkg-config --cflags augeas)
 AM_CFLAGS     = -Wall $(PKG_CFLAGS)
 
-LCOV    := lcov
-GENHTML := genhtml
+LCOV    := lcov --directory . --base-directory .
+GENHTML := genhtml --prefix $(shell dirname `pwd`)
 
-no_lcov_c := test/unit/**/* test/unit/* test/functional/*
+no_lcov_c := */t/*.c */t/*.h
 
 AM_LFLAGS = --header-file --yylineno
 AM_YFLAGS = -d
@@ -165,7 +165,18 @@ src/conf/lexer.c: src/conf/lexer.l src/conf/grammar.h src/conf/lexer_impl.h src/
 src/conf/grammar.c: src/conf/grammar.y src/conf/parser.c src/conf/parser.h src/conf/private.h
 	$(YACCCOMPILE) -p yyconf --output-file=src/conf/grammar.c $<
 
-cov: clean-cov
+.PHONY: coverage
+coverage:
+	make \
+		CFLAGS="-g -ftest-coverage -fprofile-arcs" \
+		LDFLAGS=-fprofile-arcs \
+		clean-cov \
+		clean \
+		test \
+		cov
+
+.PHONY: cov
+cov:
 	$(LCOV) --capture -o $@.info.tmp
 	$(LCOV) --remove $@.info.tmp $(no_lcov_c) > lcov.info
 	rm -f $@.info.tmp

@@ -23,6 +23,8 @@ AM_YFLAGS = -d
 ############################################################
 
 CLEANFILES       = $(BUILT_SOURCES)
+CLEANFILES      += */*.t */**/*.t
+CLEANFILES      += */*.gc* */**/*.gc*
 
 EXTRA_DIST       = share/db
 EXTRA_DIST      += share/examples

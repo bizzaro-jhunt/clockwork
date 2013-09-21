@@ -23,7 +23,6 @@ AM_YFLAGS = -d
 ############################################################
 
 CLEANFILES       = $(BUILT_SOURCES)
-CLEANFILES      += clockwork-*.tar.gz
 
 EXTRA_DIST       = share/db
 EXTRA_DIST      += share/examples

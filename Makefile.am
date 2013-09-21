@@ -23,6 +23,8 @@ AM_YFLAGS = -d
 ############################################################
 
 CLEANFILES       = $(BUILT_SOURCES)
+CLEANFILES      += t/**/*.o t/*.o
+CLEANFILES      += t/helpers/proto
 CLEANFILES      += */*.t */**/*.t
 CLEANFILES      += */*.gc* */**/*.gc*
 

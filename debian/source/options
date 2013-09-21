@@ -1,1 +1,1 @@
-extend-diff-ignore = '^(t|coverage|build-aux/*)'
+extend-diff-ignore = '^(t|coverage|build-aux/*|*.tar.gz)'

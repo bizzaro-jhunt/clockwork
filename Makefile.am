@@ -23,6 +23,7 @@ AM_YFLAGS = -d
 ############################################################
 
 CLEANFILES       = $(BUILT_SOURCES)
+CLEANFILES      += clockwork-*.tar.gz
 
 EXTRA_DIST       = share/db
 EXTRA_DIST      += share/examples
@@ -103,7 +104,7 @@ cwpol_SOURCES   = $(core_src) src/cwpol.c $(parser_spec_src)
 version:
 	@echo $(VERSION)
 
-distfile:
+distfile: dist
 	@echo $(PACKAGE)-$(VERSION).tar.gz
 
 manifest:

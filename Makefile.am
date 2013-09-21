@@ -27,6 +27,7 @@ CLEANFILES      += t/**/*.o t/*.o
 CLEANFILES      += t/helpers/proto
 CLEANFILES      += */*.t */**/*.t
 CLEANFILES      += */*.gc* */**/*.gc*
+CLEANFILES      += *.tmp lcov.info
 
 EXTRA_DIST       = build doc extra t var rpm
 EXTRA_DIST      += configure.dev

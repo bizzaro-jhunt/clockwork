@@ -894,7 +894,7 @@ NOTE: There is currently no way to chain multiple if blocks together in an
 if-else-if-else idiom.  Nested ifs provide a temporary work-around to this
 problem, but the long-term solution is still awaiting implementation.
 
-8.2. Implementation Details
+8.1. Implementation Details
 ---------------------------
 
 The specification parser is completely contained inside the spec/
@@ -907,7 +907,8 @@ best.  The remainder of this document attempts to collect my notes on the
 implementation.
 
 
-Filesystem Layout
+8.1.1. Filesystem Layout
+------------------------
 
 To keep things clean, the parser implementation is split out into multiple
 files, each with a distinct purpose:
@@ -955,7 +956,8 @@ These object files cannot stand on their own.  Any program wishing to make
 use of the parser must contain all three.
 
 
-Public API Overview
+8.1.2. Public API Overview
+--------------------------
 
 The public API for the parser subsystem consists of one function:
 

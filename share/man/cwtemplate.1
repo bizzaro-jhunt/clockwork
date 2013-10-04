@@ -71,11 +71,15 @@ Override a single fact with a new value.  This can be used with either
 gathered or cached facts; command-line facts always take precedence.
 .RE
 
+\fB\-C\fR, \fB\-\-check\fR
+.RS 8
+Don't render the template, just check that the template syntax is correct.
+.RE
+
 .SH EXIT STATUS
 .PP
 .B cwtemplate
-exits 0 if it was able to read fact data, parse the template and render
-it to standard output. Otherwise, a non-zero exit code is used.
+exits 0 if it was able to read fact data and parse the template.
 
 .SH FILES
 .PP

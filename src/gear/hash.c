@@ -239,6 +239,11 @@ void *hash_next(const struct hash *h, struct hash_cursor *c, char **key, void **
 	return *key;
 }
 
+/**
+  Merge two hashes ($a and $b) together
+
+  Values from $b are preferred over those from $a when keys overlap.
+ */
 int hash_merge(struct hash *a, const struct hash *b)
 {
 	assert(a); assert(b); // LCOV_EXCL_LINE;
@@ -250,6 +255,4 @@ int hash_merge(struct hash *a, const struct hash *b)
 		hash_set(a, k, v);
 	}
 	return 0;
-
 };
-

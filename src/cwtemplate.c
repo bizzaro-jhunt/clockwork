@@ -172,7 +172,7 @@ static void show_version(void)
 
 static void show_help(void)
 {
-	printf("USAGE: cwa [OPTIONS]\n"
+	printf("USAGE: cwtemplate [OPTIONS]\n"
 	       "\n"
 	       "  -h, --help            Show this helpful message.\n"
 	       "                        (for more in-depth help, check the man pages.)\n"
@@ -181,6 +181,10 @@ static void show_help(void)
 	       "\n"
 	       "  -c, --config          Specify the path to an alternate configuration file.\n"
 	       "\n"
-	       "  -D, --defaults        Dump compiled-in default values (paths, ports, etc.)\n"
+	       "  -C, --check           Don't render the template, just check the syntax.\n"
+	       "\n"
+	       "  -F, --facts           Specify the path to a cached facts file.\n"
+	       "\n"
+	       "  -f, --fact K=V        Set a fact.  Can be given more than once.\n"
 	       "\n");
 }

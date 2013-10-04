@@ -45,6 +45,7 @@ dist_man_MANS    = share/man/clockwork.7
 dist_man_MANS   += share/man/cwa.1
 dist_man_MANS   += share/man/cwa.conf.5
 dist_man_MANS   += share/man/cwpol.1
+dist_man_MANS   += share/man/cwtemplate.1
 dist_man_MANS   += share/man/policyd.1
 dist_man_MANS   += share/man/policyd.conf.5
 dist_man_MANS   += share/man/res_dir.5

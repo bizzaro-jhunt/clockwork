@@ -62,7 +62,7 @@ fact("sys.kernel.minor", $minor);
 $_ = qx($UNAME -n); chomp;
 fact("sys.hostname", $_);
 
-## sys.fqdn - Fully Qualfied Domain Name (relies on /etc/hosts)
+## sys.fqdn - Fully Qualified Domain Name (relies on /etc/hosts)
 $_ = qx(hostname -f); chomp;
 fact("sys.fqdn", $_);
 

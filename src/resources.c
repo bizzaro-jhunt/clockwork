@@ -2009,6 +2009,7 @@ void res_package_free(void *res)
 	if (rp) {
 		free(rp->name);
 		free(rp->version);
+		free(rp->installed);
 
 		free(rp->key);
 	}
@@ -2095,10 +2096,21 @@ int res_package_stat(void *res, const struct resource_env *env)
 	rp->installed = package_version(env->package_manager, rp->name);
 
 	if (xstrcmp(rp->version, "latest") == 0) {
+		free(rp->version);
 		rp->version = package_latest(env->package_manager, rp->name);
 	}
 
 	return 0;
+}
+
+static int vercmp(const char *have, const char *want)
+{
+	if (strcmp(have, want) == 0) return 0;
+	if (strchr(want, '-')) return -1;
+	if (strchr(have, '-')) {
+		return strncmp(have, want, strchr(have, '-')-have);
+	}
+	return -1;
 }
 
 struct report* res_package_fixup(void *res, int dryrun, const struct resource_env *env)
@@ -2143,7 +2155,7 @@ struct report* res_package_fixup(void *res, int dryrun, const struct resource_en
 		return report;
 	}
 
-	if (rp->version && strcmp(rp->installed, rp->version) != 0) {
+	if (rp->version && vercmp(rp->installed, rp->version) != 0) {
 		action = string("upgrade to v%s", rp->version);
 
 		if (dryrun) {

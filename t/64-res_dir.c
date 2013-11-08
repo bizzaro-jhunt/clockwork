@@ -76,6 +76,9 @@ int main(void) {
 		ok(ENFORCED(r, RES_DIR_MODE), "MODE is enforced");
 		is_int(r->mode, 0750, "dir mode to enforce");
 
+		is_int(res_dir_set(r, "what-does-the-fox-say", "ring-ding-ring-ding"),
+			-1, "res_dir_set doesn't like nonsensical attributes");
+
 		res_dir_free(r);
 	}
 

@@ -495,6 +495,10 @@ int res_user_set(void *res, const char *name, const char *value)
 		if (!ru->ru_mkhome) { return 0; }
 		ru->ru_skel = strdup(strcmp(value, "yes") == 0 ? "/etc/skel" : value);
 
+	} else {
+		/* unknown attribute. */
+		return -1;
+
 	}
 
 	return 0;

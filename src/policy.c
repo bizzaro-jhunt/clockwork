@@ -590,7 +590,10 @@ again:
 
 	case ATTR:
 		if (pgen->res) {
-			resource_set(pgen->res, node->data1, node->data2);
+			if (resource_set(pgen->res, node->data1, node->data2) != 0) {
+				WARNING("Unknown Attribute %s = '%s'",
+					node->data1, node->data2);
+			}
 		} else {
 			WARNING("Attribute %s = '%s' defined for unknown type",
 			        node->data1, node->data2);

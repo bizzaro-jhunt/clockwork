@@ -114,6 +114,9 @@ int main(void) {
 
 		ok(res_package_match(rp, "installed", "yes") != 0, "installed is not a matchable attr");
 
+		is_int(res_package_set(rp, "what-does-the-fox-say", "ring-ding-ring-ding"),
+			-1, "res_package_set doesn't like nonsensical attributes");
+
 		res_package_free(rp);
 	}
 

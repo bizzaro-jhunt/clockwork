@@ -172,5 +172,20 @@ int main(void) {
 		manifest_free(m);
 	}
 
+	subtest {
+		struct manifest *m;
+		struct policy *pol;
+		struct hash *facts;
+
+		facts = hash_new();
+		isnt_null(m = parse_file("t/data/policy/fail/unknown-attr.pol"),
+				"manifest parsed");
+		isnt_null(pol = policy_generate(hash_get(m->policies, "base"), facts),
+				"policy 'base' found");
+
+		policy_free_all(pol);
+		manifest_free(m);
+	}
+
 	done_testing();
 }

@@ -80,6 +80,9 @@ int main(void) {
 		report_free(report);
 #endif
 
+		is_int(res_sysctl_set(r, "what-does-the-fox-say", "ring-ding-ring-ding"),
+			-1, "res_sysctl_set doesn't like nonsensical attributes");
+
 		res_sysctl_free(r);
 	}
 

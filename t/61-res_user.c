@@ -129,6 +129,9 @@ int main(void) {
 		ok(ENFORCED(ru, RES_USER_LOCK), "LOCK enforced");
 		is_int(ru->ru_lock, 1, "account-locked flag");
 
+		is_int(res_user_set(ru, "what-does-the-fox-say", "ring-ding-ring-ding"),
+			-1, "res_user_set doesn't like nonsensical attributes");
+
 		res_user_free(ru);
 	}
 

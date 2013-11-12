@@ -87,6 +87,9 @@ int main(void) {
 		res_group_enforce_admins(rg, 0);
 		ok(!ENFORCED(rg, RES_GROUP_ADMINS), "ADMINS is not enforced");
 
+		is_int(res_group_set(rg, "what-does-the-fox-say", "ring-ding-ring-ding"),
+			-1, "res_group_set doesn't like nonsensical attributes");
+
 		res_group_free(rg);
 	}
 

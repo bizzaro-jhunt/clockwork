@@ -1,0 +1,7 @@
+policy "base" {
+	user "james" {
+		uid: 1009
+		gid: 2001
+		awesomeness: 11
+	}
+}

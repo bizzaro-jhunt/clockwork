@@ -57,6 +57,8 @@ struct worker {
 
 	unsigned short peer_verified;
 	unsigned short autosign;
+
+	int retain_days;
 };
 
 /**************************************************************/
@@ -319,6 +321,7 @@ unintr:
 	w->ca_cert_file = s->ca_cert_file;
 	w->key_file     = s->key_file;
 	w->autosign     = s->autosign;
+	w->retain_days  = s->retain_days;
 
 	w->socket = BIO_pop(s->listener);
 	if (!(w->ssl = SSL_new(s->ssl_ctx))) {
@@ -563,6 +566,9 @@ static int handle_REPORT(struct worker *w)
 	if (!db) {
 		CRITICAL("Unable to open reporting DB");
 		goto failed;
+	}
+	if (db_purge(db, w->retain_days) != 0) {
+		CRITICAL("Failed to purge expired report data");
 	}
 
 	host_id = masterdb_host(db, w->peer);

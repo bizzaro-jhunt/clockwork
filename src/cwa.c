@@ -526,6 +526,9 @@ static int save_report(struct client *c, struct job *job)
 	if (!db) {
 		return -1;
 	}
+	if (db_purge(db, c->retain_days) != 0) {
+		CRITICAL("Failed to purge expired report data");
+	}
 
 	if (agentdb_store_report(db, job) != 0) {
 		db_close(db);

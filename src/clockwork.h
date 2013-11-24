@@ -101,6 +101,8 @@
 #define DEFAULT_SERVER_PORT         "7890"
 #define DEFAULT_POLICYD_LISTEN      "0.0.0.0:" DEFAULT_SERVER_PORT
 
+#define DEFAULT_RETAIN_DAYS         45
+
 #define CACHED_FACTS_DIR            CW_CACHE_DIR "/facts"
 #define HELP_FILES_DIR              CW_LIB_DIR "/help"
 

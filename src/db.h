@@ -56,6 +56,7 @@ typedef sqlite3_int64 rowid;
 
 struct db* db_open(enum db_type type, const char *path);
 int db_close(struct db *db);
+int db_purge(struct db *db, int days);
 
 /* Policy Master tasks:
    create host

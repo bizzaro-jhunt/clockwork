@@ -37,6 +37,8 @@ static struct client default_options = {
 
 	.s_address    = DEFAULT_SERVER_NAME,
 	.s_port       = DEFAULT_SERVER_PORT,
+
+	.retain_days  = DEFAULT_RETAIN_DAYS,
 };
 
 /**************************************************************/
@@ -100,6 +102,9 @@ static struct client* configured_options(const char *path)
 				c->log_level = LOG_LEVEL_NONE;
 			}
 		}
+
+		v = hash_get(config, "report_retention");
+		if (v) { c->retain_days = strtoll(v, NULL, 10); }
 	}
 
 	return c;

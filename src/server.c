@@ -44,6 +44,8 @@ static struct server default_options = {
 	.listen        = DEFAULT_POLICYD_LISTEN,
 	.autosign      = SERVER_OPT_FALSE,
 
+	.retain_days   = DEFAULT_RETAIN_DAYS,
+
 	/* Options below here are not available in the
 	   configuration file, only as defaults / CLI opts. */
 
@@ -147,6 +149,9 @@ static struct server* configured_options(const char *path)
 
 		v = hash_get(config, "autosign");
 		if (v) { s->autosign = strcmp(v, "yes") == 0 ? 1 : 0; }
+
+		v = hash_get(config, "report_retention");
+		if (v) { s->retain_days = strtoll(v, NULL, 10); }
 
 		hash_free_all(config);
 	}

@@ -154,6 +154,15 @@ even itself), make sure that the path specified for \fBdb_file\fR is
 not the same as the path used by the agent.
 
 \"----------------------------------------------------------------------
+.SS report_retention
+.PP
+How many days to keep reports for.  Any reports older than this will be
+purged from the database to conserve disk space and keep IO access times
+down.
+.PP
+Defaults to 45 days.
+
+\"----------------------------------------------------------------------
 .SS cache_dir
 .PP
 A directory that policyd will use to cache the list of facts that agents

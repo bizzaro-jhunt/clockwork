@@ -66,6 +66,8 @@ struct server {
 	char *listen;          /* interface/port to listen on */
 
 	int autosign;          /* whether or not to automatically sign certs */
+
+	int retain_days;       /* How many days of reports to keep */
 };
 
 int server_options(struct server *args);

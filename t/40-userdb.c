@@ -57,8 +57,8 @@ static void assert_sgdb_get(struct sgdb *db, const char *name)
 	gr = sgdb_get_by_name(db, name);
 
 	snprintf(buf, 256, "Look up %s sgrp by name", name);
-	isnt_null(buf, gr);
-	is_string(buf, gr->sg_namp, name);
+	isnt_null(gr, buf);
+	is_string(gr->sg_namp, name, buf);
 }
 
 /*********************************************************/

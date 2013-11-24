@@ -529,7 +529,7 @@ int main(void) {
 		env.user_pwdb = pwdb_init(PASSWD_DB);
 		if (!env.user_pwdb) bail("failed to read passwd db");
 
-		env.user_spdb = sgdb_init(SHADOW_DB);
+		env.user_spdb = spdb_init(SHADOW_DB);
 		if (!env.user_spdb) bail("failed to read gshadow db");
 
 		ok(res_user_stat(ru, &env) == 0, "res_user_stat succeeds");
@@ -539,18 +539,18 @@ int main(void) {
 		is_int(report->fixed,     0, "user is not fixed");
 		is_int(report->compliant, 0, "user is non-compliant");
 
-		ok(pwdb_write(env.user_pwdb, NEW_PASSWD_DB)   == 0, "saved passwd db");
-		ok(sgdb_write(env.user_spdb, NEW_SHADOW_DB) == 0, "saved shadow db");
+		ok(pwdb_write(env.user_pwdb, NEW_PASSWD_DB) == 0, "saved passwd db");
+		ok(spdb_write(env.user_spdb, NEW_SHADOW_DB) == 0, "saved shadow db");
 
 		env_after.user_pwdb = pwdb_init(NEW_PASSWD_DB);
 		if (!env_after.user_pwdb) bail("failed to re-read passwd db");
 
-		env_after.user_spdb = sgdb_init(NEW_SHADOW_DB);
+		env_after.user_spdb = spdb_init(NEW_SHADOW_DB);
 		if (!env_after.user_spdb) bail("failed to re-read shadow db");
 
 		is_null(pwdb_get_by_name(env_after.user_pwdb, "conflictd"),
 			"user conflictd should not have been created in pwdb");
-		is_null(sgdb_get_by_name(env_after.user_spdb, "conflictd"),
+		is_null(spdb_get_by_name(env_after.user_spdb, "conflictd"),
 			"user conflictd should not have been created in spdb");
 	}
 
@@ -564,10 +564,10 @@ int main(void) {
 		res_user_set(ru, "present", "yes");
 		res_user_set(ru, "uid", "3"); /* conflict with sys user */
 
-		env.user_pwdb = grdb_init(PASSWD_DB);
+		env.user_pwdb = pwdb_init(PASSWD_DB);
 		if (!env.user_pwdb) bail("failed to read passwd db");
 
-		env.user_spdb = sgdb_init(SHADOW_DB);
+		env.user_spdb = spdb_init(SHADOW_DB);
 		if (!env.user_spdb) bail("failed to read gshadow db");
 
 		ok(res_user_stat(ru, &env) == 0, "res_user_stat succeeds");
@@ -577,16 +577,16 @@ int main(void) {
 		is_int(report->fixed,     0, "user is not fixed");
 		is_int(report->compliant, 0, "user is non-compliant");
 
-		ok(grdb_write(env.user_pwdb, NEW_PASSWD_DB)   == 0, "saved passwd db");
-		ok(sgdb_write(env.user_spdb, NEW_SHADOW_DB) == 0, "saved gshadow db");
+		ok(pwdb_write(env.user_pwdb, NEW_PASSWD_DB) == 0, "saved passwd db");
+		ok(spdb_write(env.user_spdb, NEW_SHADOW_DB) == 0, "saved gshadow db");
 
-		env_after.user_pwdb = grdb_init(NEW_PASSWD_DB);
+		env_after.user_pwdb = pwdb_init(NEW_PASSWD_DB);
 		if (!env_after.user_pwdb) bail("failed to re-read passwd db");
 
-		env_after.user_spdb = sgdb_init(NEW_SHADOW_DB);
+		env_after.user_spdb = spdb_init(NEW_SHADOW_DB);
 		if (!env_after.user_spdb) bail("failed to re-read gshadow db");
 
-		struct passwd *pw = grdb_get_by_name(env_after.user_pwdb, "daemon");
+		struct passwd *pw = pwdb_get_by_name(env_after.user_pwdb, "daemon");
 		isnt_null(pw, "daemon user should still exist in passwd db");
 		is_int(pw->pw_uid, 1, "daemon user UID unchanged");
 	}

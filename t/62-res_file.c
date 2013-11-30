@@ -368,7 +368,7 @@ int main(void) {
 		ok(res_file_attrs(rf, h) == 0, "got raw file attrs");
 		is_null(hash_get(h, "xyzzy"), "h.xyzzy is unset");
 
-		hash_free(h);
+		hash_free_all(h);
 		res_file_free(rf);
 	}
 

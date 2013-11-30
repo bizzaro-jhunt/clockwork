@@ -80,10 +80,12 @@ struct stringlist* augcw_getm(augeas *au, const char *pathexpr)
 		 || stringlist_add(values, value) != 0) {
 
 			stringlist_free(values);
+			while (rc--) free(results[rc]);
 			free(results);
 			return NULL;
 		}
 	}
+	while (rc--) free(results[rc]);
 	free(results);
 
 	return values;

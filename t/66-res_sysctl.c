@@ -179,7 +179,7 @@ int main(void) {
 		ok(res_sysctl_attrs(rs, h) == 0, "got res_sysctl attrs");
 		is_null(hash_get(h, "xyzzy"), "h.xyzzy is NULL (bad attr)");
 
-		hash_free(h);
+		hash_free_all(h);
 		res_sysctl_free(rs);
 	}
 

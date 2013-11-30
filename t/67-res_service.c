@@ -248,7 +248,7 @@ int main(void) {
 		ok(res_service_attrs(r, h) == 0, "retrieved attrs");
 		is_null(hash_get(h, "xyzzy"), "h.xyzzy is unset (bad attr)");
 
-		hash_free(h);
+		hash_free_all(h);
 		res_service_free(r);
 	}
 

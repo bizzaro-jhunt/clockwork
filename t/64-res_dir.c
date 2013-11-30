@@ -250,7 +250,7 @@ int main(void) {
 		ok(res_dir_attrs(rd, h) == 0, "restrieved res_dir attrs");
 		is_null(hash_get(h, "xyzzy"), "h.xyzzy is unset (bad attr)");
 
-		hash_free(h);
+		hash_free_all(h);
 		res_dir_free(rd);
 	}
 

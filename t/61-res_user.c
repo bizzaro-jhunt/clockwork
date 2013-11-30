@@ -456,9 +456,9 @@ int main(void) {
 		struct res_user *ru;
 		struct hash *h;
 
-		isnt_null(h = hash_new(), "hash created");
 		isnt_null(ru = res_user_new("user"), "res_user created");
 
+		isnt_null(h = hash_new(), "hash created");
 		ok(res_user_attrs(ru, h) == 0, "got raw user attributes");
 		is_string(hash_get(h, "username"), "user", "h.username");
 		is_string(hash_get(h, "present"),  "yes",  "h.present"); // default
@@ -492,6 +492,9 @@ int main(void) {
 		res_user_set(ru, "skeleton",   "/etc/skel");
 		res_user_set(ru, "present",    "no");
 
+		hash_free_all(h);
+		isnt_null(h = hash_new(), "hash created");
+
 		ok(res_user_attrs(ru, h) == 0, "got raw user attributes");
 		is_string(hash_get(h, "uid"),        "1001",       "h.uid");
 		is_string(hash_get(h, "gid"),        "2002",       "h.gid");
@@ -508,11 +511,14 @@ int main(void) {
 		is_string(hash_get(h, "skeleton"),   "/etc/skel",  "h.skeleton");
 		is_string(hash_get(h, "present"),    "no",         "h.present");
 
+		hash_free_all(h);
+		isnt_null(h = hash_new(), "hash created");
+
 		res_user_set(ru, "locked", "no");
 		ok(res_user_attrs(ru, h) == 0, "got raw user attributes");
 		is_string(hash_get(h, "locked"), "no", "h.locked");
 
-		hash_free(h);
+		hash_free_all(h);
 		res_user_free(ru);
 	}
 
@@ -552,6 +558,12 @@ int main(void) {
 			"user conflictd should not have been created in pwdb");
 		is_null(spdb_get_by_name(env_after.user_spdb, "conflictd"),
 			"user conflictd should not have been created in spdb");
+
+		report_free(report);
+		pwdb_free(env.user_pwdb);
+		spdb_free(env.user_spdb);
+		pwdb_free(env_after.user_pwdb);
+		spdb_free(env_after.user_spdb);
 	}
 
 	subtest { /* cfm-20 - edit an existing user with a conflicting UID */
@@ -589,6 +601,12 @@ int main(void) {
 		struct passwd *pw = pwdb_get_by_name(env_after.user_pwdb, "daemon");
 		isnt_null(pw, "daemon user should still exist in passwd db");
 		is_int(pw->pw_uid, 1, "daemon user UID unchanged");
+
+		report_free(report);
+		pwdb_free(env.user_pwdb);
+		spdb_free(env.user_spdb);
+		pwdb_free(env_after.user_pwdb);
+		spdb_free(env_after.user_spdb);
 	}
 
 	done_testing();

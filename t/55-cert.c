@@ -200,16 +200,23 @@ int main(void) {
 		isnt_null(subj = cert_certificate_issuer(ca_cert), "cert issuer found");
 		is_string(subj->org,  "Clockwork Root CA",  "CA issuer O=");
 		is_string(subj->fqdn, "cfm.niftylogic.net", "CA issuer CN=");
+		cert_subject_free(subj);
+
 		isnt_null(subj = cert_certificate_subject(ca_cert), "cert subject found");
 		is_string(subj->org,  "Clockwork Root CA",  "CA cert O=");
 		is_string(subj->fqdn, "cfm.niftylogic.net", "CA cert CN=");
+		cert_subject_free(subj);
+
 
 		isnt_null(subj = cert_certificate_issuer(cert), "cert issuer found");
 		is_string(subj->org,  "Clockwork Root CA",  "issuer O=");
 		is_string(subj->fqdn, "cfm.niftylogic.net", "issuer CN=");
+		cert_subject_free(subj);
+
 		isnt_null(subj = cert_certificate_subject(cert), "cert subject found");
 		is_string(subj->org,  "Signing Test",        "cert O=");
 		is_string(subj->fqdn, "sign.niftylogic.net", "cert CN=");
+		cert_subject_free(subj);
 
 		ok(cert_store_certificate(cert, "t/tmp/signed.pem") == 0,
 			"certificate stored in temp file");
@@ -219,9 +226,12 @@ int main(void) {
 		isnt_null(subj = cert_certificate_issuer(cert), "cert issuer found");
 		is_string(subj->org,  "Clockwork Root CA",  "issuer O=");
 		is_string(subj->fqdn, "cfm.niftylogic.net", "issuer CN=");
+		cert_subject_free(subj);
+
 		isnt_null(subj = cert_certificate_subject(cert), "cert subject found");
 		is_string(subj->org,  "Signing Test",        "cert O=");
 		is_string(subj->fqdn, "sign.niftylogic.net", "cert CN=");
+		cert_subject_free(subj);
 	}
 
 	subtest {

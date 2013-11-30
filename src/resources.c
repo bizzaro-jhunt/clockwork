@@ -44,6 +44,7 @@ static int _sysctl_write(const char *param, const char *value);
 static int _mkdir_p(const char *path);
 static int _mkdir_c(const char *path);
 static int _setup_path_deps(const char *key, const char *path, struct policy *pol);
+static void _hash_attr(struct hash *attrs, const char *key, void *val);
 
 #define RES_DEFAULT(orig,field,dflt) ((orig) ? (orig)->field : (dflt))
 #define RES_DEFAULT_STR(orig,field,dflt) xstrdup(RES_DEFAULT((orig),field,(dflt)))
@@ -317,6 +318,13 @@ failed:
 	return -1;
 }
 
+static void _hash_attr(struct hash *attrs, const char *key, void *val)
+{
+	void *prev = hash_get(attrs, key);
+	hash_set(attrs, key, val);
+	if (prev) { free(prev); }
+}
+
 
 /*****************************************************************/
 
@@ -392,21 +400,21 @@ int res_user_attrs(const void *res, struct hash *attrs)
 	const struct res_user *ru = (const struct res_user*)(res);
 	assert(ru); // LCOV_EXCL_LINE
 
-	hash_set(attrs, "username", strdup(ru->ru_name));
-	hash_set(attrs, "uid", ENFORCED(ru, RES_USER_UID) ? string("%u",ru->ru_uid) : NULL);
-	hash_set(attrs, "gid", ENFORCED(ru, RES_USER_GID) ? string("%u",ru->ru_gid) : NULL);
-	hash_set(attrs, "home", ENFORCED(ru, RES_USER_DIR) ? strdup(ru->ru_dir) : NULL);
-	hash_set(attrs, "present", strdup(ENFORCED(ru, RES_USER_ABSENT) ? "no" : "yes"));
-	hash_set(attrs, "locked", ENFORCED(ru, RES_USER_LOCK) ? strdup(ru->ru_lock ? "yes" : "no") : NULL);
-	hash_set(attrs, "comment", ENFORCED(ru, RES_USER_GECOS) ? strdup(ru->ru_gecos) : NULL);
-	hash_set(attrs, "shell", ENFORCED(ru, RES_USER_SHELL) ? strdup(ru->ru_shell) : NULL);
-	hash_set(attrs, "password", ENFORCED(ru, RES_USER_PASSWD) ? strdup(ru->ru_passwd) : NULL);
-	hash_set(attrs, "pwmin", ENFORCED(ru, RES_USER_PWMIN) ? string("%u", ru->ru_pwmin) : NULL);
-	hash_set(attrs, "pwmax", ENFORCED(ru, RES_USER_PWMAX) ? string("%u", ru->ru_pwmax) : NULL);
-	hash_set(attrs, "pwwarn", ENFORCED(ru, RES_USER_PWWARN) ? string("%u", ru->ru_pwwarn) : NULL);
-	hash_set(attrs, "inact", ENFORCED(ru, RES_USER_INACT) ? string("%u", ru->ru_inact) : NULL);
-	hash_set(attrs, "expiration", ENFORCED(ru, RES_USER_EXPIRE) ? string("%u", ru->ru_expire) : NULL);
-	hash_set(attrs, "skeleton", ENFORCED(ru, RES_USER_MKHOME) ? strdup(ru->ru_skel) : NULL);
+	_hash_attr(attrs, "username", strdup(ru->ru_name));
+	_hash_attr(attrs, "uid", ENFORCED(ru, RES_USER_UID) ? string("%u",ru->ru_uid) : NULL);
+	_hash_attr(attrs, "gid", ENFORCED(ru, RES_USER_GID) ? string("%u",ru->ru_gid) : NULL);
+	_hash_attr(attrs, "home", ENFORCED(ru, RES_USER_DIR) ? strdup(ru->ru_dir) : NULL);
+	_hash_attr(attrs, "present", strdup(ENFORCED(ru, RES_USER_ABSENT) ? "no" : "yes"));
+	_hash_attr(attrs, "locked", ENFORCED(ru, RES_USER_LOCK) ? strdup(ru->ru_lock ? "yes" : "no") : NULL);
+	_hash_attr(attrs, "comment", ENFORCED(ru, RES_USER_GECOS) ? strdup(ru->ru_gecos) : NULL);
+	_hash_attr(attrs, "shell", ENFORCED(ru, RES_USER_SHELL) ? strdup(ru->ru_shell) : NULL);
+	_hash_attr(attrs, "password", ENFORCED(ru, RES_USER_PASSWD) ? strdup(ru->ru_passwd) : NULL);
+	_hash_attr(attrs, "pwmin", ENFORCED(ru, RES_USER_PWMIN) ? string("%u", ru->ru_pwmin) : NULL);
+	_hash_attr(attrs, "pwmax", ENFORCED(ru, RES_USER_PWMAX) ? string("%u", ru->ru_pwmax) : NULL);
+	_hash_attr(attrs, "pwwarn", ENFORCED(ru, RES_USER_PWWARN) ? string("%u", ru->ru_pwwarn) : NULL);
+	_hash_attr(attrs, "inact", ENFORCED(ru, RES_USER_INACT) ? string("%u", ru->ru_inact) : NULL);
+	_hash_attr(attrs, "expiration", ENFORCED(ru, RES_USER_EXPIRE) ? string("%u", ru->ru_expire) : NULL);
+	_hash_attr(attrs, "skeleton", ENFORCED(ru, RES_USER_MKHOME) ? strdup(ru->ru_skel) : NULL);
 	return 0;
 }
 
@@ -1021,19 +1029,19 @@ int res_file_attrs(const void *res, struct hash *attrs)
 	const struct res_file *rf = (const struct res_file*)(res);
 	assert(rf); // LCOV_EXCL_LINE
 
-	hash_set(attrs, "path", rf->rf_lpath);
-	hash_set(attrs, "present", strdup(ENFORCED(rf, RES_FILE_ABSENT) ? "no" : "yes"));
+	_hash_attr(attrs, "path", strdup(rf->rf_lpath));
+	_hash_attr(attrs, "present", strdup(ENFORCED(rf, RES_FILE_ABSENT) ? "no" : "yes"));
 
-	hash_set(attrs, "owner", ENFORCED(rf, RES_FILE_UID) ? strdup(rf->rf_owner) : NULL);
-	hash_set(attrs, "group", ENFORCED(rf, RES_FILE_GID) ? strdup(rf->rf_group) : NULL);
-	hash_set(attrs, "mode", ENFORCED(rf, RES_FILE_MODE) ? string("%04o", rf->rf_mode) : NULL);
+	_hash_attr(attrs, "owner", ENFORCED(rf, RES_FILE_UID) ? strdup(rf->rf_owner) : NULL);
+	_hash_attr(attrs, "group", ENFORCED(rf, RES_FILE_GID) ? strdup(rf->rf_group) : NULL);
+	_hash_attr(attrs, "mode", ENFORCED(rf, RES_FILE_MODE) ? string("%04o", rf->rf_mode) : NULL);
 
 	if (ENFORCED(rf, RES_FILE_SHA1)) {
-		hash_set(attrs, "template", rf->rf_template ? strdup(rf->rf_template) : NULL);
-		hash_set(attrs, "source",   rf->rf_rpath    ? strdup(rf->rf_rpath)    : NULL);
+		_hash_attr(attrs, "template", xstrdup(rf->rf_template));
+		_hash_attr(attrs, "source",   xstrdup(rf->rf_rpath));
 	} else {
-		hash_set(attrs, "template", NULL);
-		hash_set(attrs, "source",   NULL);
+		_hash_attr(attrs, "template", NULL);
+		_hash_attr(attrs, "source",   NULL);
 	}
 
 	return 0;
@@ -1484,19 +1492,19 @@ int res_group_attrs(const void *res, struct hash *attrs)
 	const struct res_group *rg = (const struct res_group*)(res);
 	assert(rg); // LCOV_EXCL_LINE
 
-	hash_set(attrs, "name", strdup(rg->rg_name));
-	hash_set(attrs, "gid", ENFORCED(rg, RES_GROUP_GID) ? string("%u",rg->rg_gid) : NULL);
-	hash_set(attrs, "present", strdup(ENFORCED(rg, RES_GROUP_ABSENT) ? "no" : "yes"));
-	hash_set(attrs, "password", ENFORCED(rg, RES_GROUP_PASSWD) ? strdup(rg->rg_passwd) : NULL);
+	_hash_attr(attrs, "name", strdup(rg->rg_name));
+	_hash_attr(attrs, "gid", ENFORCED(rg, RES_GROUP_GID) ? string("%u",rg->rg_gid) : NULL);
+	_hash_attr(attrs, "present", strdup(ENFORCED(rg, RES_GROUP_ABSENT) ? "no" : "yes"));
+	_hash_attr(attrs, "password", ENFORCED(rg, RES_GROUP_PASSWD) ? strdup(rg->rg_passwd) : NULL);
 	if (ENFORCED(rg, RES_GROUP_MEMBERS)) {
-		hash_set(attrs, "members", _res_group_roster_mv(rg->rg_mem_add, rg->rg_mem_rm));
+		_hash_attr(attrs, "members", _res_group_roster_mv(rg->rg_mem_add, rg->rg_mem_rm));
 	} else {
-		hash_set(attrs, "members", NULL);
+		_hash_attr(attrs, "members", NULL);
 	}
 	if (ENFORCED(rg, RES_GROUP_ADMINS)) {
-		hash_set(attrs, "admins", _res_group_roster_mv(rg->rg_adm_add, rg->rg_adm_rm));
+		_hash_attr(attrs, "admins", _res_group_roster_mv(rg->rg_adm_add, rg->rg_adm_rm));
 	} else {
-		hash_set(attrs, "admins", NULL);
+		_hash_attr(attrs, "admins", NULL);
 	}
 	return 0;
 }
@@ -2034,9 +2042,9 @@ int res_package_attrs(const void *res, struct hash *attrs)
 	const struct res_package *rp = (const struct res_package*)(res);
 	assert(rp); // LCOV_EXCL_LINE
 
-	hash_set(attrs, "name", xstrdup(rp->name));
-	hash_set(attrs, "version", xstrdup(rp->version));
-	hash_set(attrs, "installed", strdup(ENFORCED(rp, RES_PACKAGE_ABSENT) ? "no" : "yes"));
+	_hash_attr(attrs, "name", xstrdup(rp->name));
+	_hash_attr(attrs, "version", xstrdup(rp->version));
+	_hash_attr(attrs, "installed", strdup(ENFORCED(rp, RES_PACKAGE_ABSENT) ? "no" : "yes"));
 	return 0;
 }
 
@@ -2263,9 +2271,9 @@ int res_service_attrs(const void *res, struct hash *attrs)
 	const struct res_service *rs = (const struct res_service*)(res);
 	assert(rs); // LCOV_EXCL_LINE
 
-	hash_set(attrs, "name", xstrdup(rs->service));
-	hash_set(attrs, "running", strdup(ENFORCED(rs, RES_SERVICE_RUNNING) ? "yes" : "no"));
-	hash_set(attrs, "enabled", strdup(ENFORCED(rs, RES_SERVICE_ENABLED) ? "yes" : "no"));
+	_hash_attr(attrs, "name", xstrdup(rs->service));
+	_hash_attr(attrs, "running", strdup(ENFORCED(rs, RES_SERVICE_RUNNING) ? "yes" : "no"));
+	_hash_attr(attrs, "enabled", strdup(ENFORCED(rs, RES_SERVICE_ENABLED) ? "yes" : "no"));
 	return 0;
 }
 
@@ -2499,7 +2507,9 @@ void res_host_free(void *res)
 {
 	struct res_host *rh = (struct res_host*)(res);
 	if (rh) {
+		free(rh->aug_root);
 		free(rh->hostname);
+		free(rh->ip);
 		stringlist_free(rh->aliases);
 
 		free(rh->key);
@@ -2521,13 +2531,13 @@ int res_host_attrs(const void *res, struct hash *attrs)
 	const struct res_host *rh = (const struct res_host*)(res);
 	assert(rh); // LCOV_EXCL_LINE
 
-	hash_set(attrs, "hostname", xstrdup(rh->hostname));
-	hash_set(attrs, "present",  strdup(ENFORCED(rh, RES_HOST_ABSENT) ? "no" : "yes"));
-	hash_set(attrs, "ip", xstrdup(rh->ip));
+	_hash_attr(attrs, "hostname", xstrdup(rh->hostname));
+	_hash_attr(attrs, "present",  strdup(ENFORCED(rh, RES_HOST_ABSENT) ? "no" : "yes"));
+	_hash_attr(attrs, "ip", xstrdup(rh->ip));
 	if (ENFORCED(rh, RES_HOST_ALIASES)) {
-		hash_set(attrs, "aliases", stringlist_join(rh->aliases, " "));
+		_hash_attr(attrs, "aliases", stringlist_join(rh->aliases, " "));
 	} else {
-		hash_set(attrs, "aliases", NULL);
+		_hash_attr(attrs, "aliases", NULL);
 	}
 	return 0;
 }
@@ -2632,6 +2642,7 @@ int res_host_stat(void *res, const struct resource_env *env)
 			}
 		}
 	}
+	while (rc--) free(results[rc]);
 	free(results);
 
 	if (ENFORCED(rh, RES_HOST_ALIASES)) {
@@ -2789,6 +2800,7 @@ void* res_host_unpack(const char *packed)
 
 	stringlist_free(rh->aliases);
 	rh->aliases = stringlist_split(joined, strlen(joined), " ", SPLIT_GREEDY);
+	free(joined);
 
 	return rh;
 }
@@ -2852,9 +2864,9 @@ int res_sysctl_attrs(const void *res, struct hash *attrs)
 	const struct res_sysctl *rs = (const struct res_sysctl*)(res);
 	assert(rs); // LCOV_EXCL_LINE
 
-	hash_set(attrs, "param", xstrdup(rs->param));
-	hash_set(attrs, "value", ENFORCED(rs, RES_SYSCTL_VALUE) ? strdup(rs->value) : NULL);
-	hash_set(attrs, "persist", strdup(ENFORCED(rs, RES_SYSCTL_PERSIST) ? "yes" : "no"));
+	_hash_attr(attrs, "param", xstrdup(rs->param));
+	_hash_attr(attrs, "value", ENFORCED(rs, RES_SYSCTL_VALUE) ? strdup(rs->value) : NULL);
+	_hash_attr(attrs, "persist", strdup(ENFORCED(rs, RES_SYSCTL_PERSIST) ? "yes" : "no"));
 	return 0;
 }
 
@@ -3077,11 +3089,11 @@ int res_dir_attrs(const void *res, struct hash *attrs)
 	const struct res_dir *rd = (const struct res_dir*)(res);
 	assert(rd); // LCOV_EXCL_LINE
 
-	hash_set(attrs, "path", xstrdup(rd->path));
-	hash_set(attrs, "owner", ENFORCED(rd, RES_DIR_UID) ? strdup(rd->owner) : NULL);
-	hash_set(attrs, "group", ENFORCED(rd, RES_DIR_GID) ? strdup(rd->group) : NULL);
-	hash_set(attrs, "mode", ENFORCED(rd, RES_DIR_MODE) ? string("%04o", rd->mode) : NULL);
-	hash_set(attrs, "present", strdup(ENFORCED(rd, RES_DIR_ABSENT) ? "no" : "yes"));
+	_hash_attr(attrs, "path", xstrdup(rd->path));
+	_hash_attr(attrs, "owner", ENFORCED(rd, RES_DIR_UID) ? strdup(rd->owner) : NULL);
+	_hash_attr(attrs, "group", ENFORCED(rd, RES_DIR_GID) ? strdup(rd->group) : NULL);
+	_hash_attr(attrs, "mode", ENFORCED(rd, RES_DIR_MODE) ? string("%04o", rd->mode) : NULL);
+	_hash_attr(attrs, "present", strdup(ENFORCED(rd, RES_DIR_ABSENT) ? "no" : "yes"));
 	return 0;
 }
 
@@ -3408,11 +3420,11 @@ int res_exec_attrs(const void *res, struct hash *attrs)
 	const struct res_exec *re = (const struct res_exec*)(res);
 	assert(re); // LCOV_EXCL_LINE
 
-	hash_set(attrs, "command", xstrdup(re->command));
-	hash_set(attrs, "test",    xstrdup(re->test));
-	hash_set(attrs, "user", ENFORCED(re, RES_EXEC_UID) ? strdup(re->user) : NULL);
-	hash_set(attrs, "group", ENFORCED(re, RES_EXEC_GID) ? strdup(re->group) : NULL);
-	hash_set(attrs, "ondemand", strdup(ENFORCED(re, RES_EXEC_ONDEMAND) ? "yes" : "no"));
+	_hash_attr(attrs, "command", xstrdup(re->command));
+	_hash_attr(attrs, "test",    xstrdup(re->test));
+	_hash_attr(attrs, "user", ENFORCED(re, RES_EXEC_UID) ? strdup(re->user) : NULL);
+	_hash_attr(attrs, "group", ENFORCED(re, RES_EXEC_GID) ? strdup(re->group) : NULL);
+	_hash_attr(attrs, "ondemand", strdup(ENFORCED(re, RES_EXEC_ONDEMAND) ? "yes" : "no"));
 	return 0;
 }
 

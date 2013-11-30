@@ -56,6 +56,8 @@ int main(void) {
 		struct resource_env env;
 		struct report *report;
 
+		env.package_manager = PM_dpkg_apt; /* not actually important */
+
 		r = res_package_new("foo");
 
 		/* want 0.3.5, have 0.3.5 = OK */
@@ -243,7 +245,7 @@ int main(void) {
 		ok(res_package_attrs(r, h) == 0, "got package attrs");
 		is_null(hash_get(h, "xyzzy"), "h.xyzzy is unset (bad attr)");
 
-		hash_free(h);
+		hash_free_all(h);
 		res_package_free(r);
 	}
 

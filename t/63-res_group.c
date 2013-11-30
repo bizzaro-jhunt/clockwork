@@ -443,7 +443,7 @@ int main(void) {
 		is_null(hash_get(h, "xyzzy"), "h.xyzzy is unset (bad attr)");
 
 		res_group_free(rg);
-		hash_free(h);
+		hash_free_all(h);
 	}
 
 	subtest { /* cfm-20 - create a group with a conflicting GID */
@@ -482,6 +482,12 @@ int main(void) {
 			"group conflictd should not have been created in grdb");
 		is_null(sgdb_get_by_name(env_after.group_sgdb, "conflictd"),
 			"group conflictd should not have been created in sgdb");
+
+		report_free(report);
+		grdb_free(env.group_grdb);
+		sgdb_free(env.group_sgdb);
+		grdb_free(env_after.group_grdb);
+		sgdb_free(env_after.group_sgdb);
 	}
 
 	subtest { /* cfm-20 - edit an existing group with a conflicting GID */
@@ -519,6 +525,8 @@ int main(void) {
 		struct group *gr = grdb_get_by_name(env_after.group_grdb, "daemon");
 		isnt_null(gr, "daemon group should still exist in group db");
 		is_int(gr->gr_gid, 1, "daemon group GID unchanged");
+
+		report_free(report);
 	}
 
 	done_testing();

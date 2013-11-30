@@ -183,7 +183,7 @@ int main(void) {
 		ok(res_host_attrs(rh, h) == 0, "got host attrs");
 		is_string(hash_get(h, "present"),  "no", "h.present");
 
-		hash_free(h);
+		hash_free_all(h);
 		res_host_free(rh);
 	}
 

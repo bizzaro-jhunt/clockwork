@@ -3,7 +3,7 @@
 
 AC_PREREQ(2.68)
 
-AC_INIT(clockwork, 0.4.2, bugs@niftylogic.com)
+AC_INIT(clockwork, 0.4.3, bugs@niftylogic.com)
 
 AC_CONFIG_SRCDIR([src])
 AC_CONFIG_AUX_DIR([build-aux])

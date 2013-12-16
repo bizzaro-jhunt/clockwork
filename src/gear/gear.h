@@ -214,6 +214,7 @@ void hash_free_all(struct hash *h);
 void* hash_get(const struct hash *h, const char *k);
 void* hash_set(struct hash *h, const char *k, void *v);
 void *hash_next(const struct hash *h, struct hash_cursor *c, char **key, void **val);
+int hash_merge(struct hash *a, const struct hash *b);
 
 /**
   Iterate over $h

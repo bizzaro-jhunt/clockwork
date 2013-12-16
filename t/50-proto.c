@@ -61,10 +61,11 @@ static int test_proto_conn_server(struct test_proto_conn *server, int r, int w)
 	if (SSL_CTX_set_cipher_list(server->ctx, "ADH") != 1) { return -2; }
 
 	dh = DH_generate_parameters(16, 2, NULL, NULL);
-	if (!DH_check(dh, &ignored)) { return -3; }
-	if (!DH_generate_key(dh)) { return -4; }
+	if (!DH_check(dh, &ignored)) { DH_free(dh); return -3; }
+	if (!DH_generate_key(dh))    { DH_free(dh); return -4; }
 
 	SSL_CTX_set_tmp_dh(server->ctx, dh);
+	DH_free(dh);
 
 	isnt_null(server->ssl = SSL_new(server->ctx), "SSL handle (server)");
 	if (!server->ssl) { return -3; }

@@ -129,6 +129,9 @@ int main(void) {
 		ok(ENFORCED(ru, RES_USER_LOCK), "LOCK enforced");
 		is_int(ru->ru_lock, 1, "account-locked flag");
 
+		is_int(res_user_set(ru, "what-does-the-fox-say", "ring-ding-ring-ding"),
+			-1, "res_user_set doesn't like nonsensical attributes");
+
 		res_user_free(ru);
 	}
 
@@ -453,9 +456,9 @@ int main(void) {
 		struct res_user *ru;
 		struct hash *h;
 
-		isnt_null(h = hash_new(), "hash created");
 		isnt_null(ru = res_user_new("user"), "res_user created");
 
+		isnt_null(h = hash_new(), "hash created");
 		ok(res_user_attrs(ru, h) == 0, "got raw user attributes");
 		is_string(hash_get(h, "username"), "user", "h.username");
 		is_string(hash_get(h, "present"),  "yes",  "h.present"); // default
@@ -489,6 +492,9 @@ int main(void) {
 		res_user_set(ru, "skeleton",   "/etc/skel");
 		res_user_set(ru, "present",    "no");
 
+		hash_free_all(h);
+		isnt_null(h = hash_new(), "hash created");
+
 		ok(res_user_attrs(ru, h) == 0, "got raw user attributes");
 		is_string(hash_get(h, "uid"),        "1001",       "h.uid");
 		is_string(hash_get(h, "gid"),        "2002",       "h.gid");
@@ -505,12 +511,102 @@ int main(void) {
 		is_string(hash_get(h, "skeleton"),   "/etc/skel",  "h.skeleton");
 		is_string(hash_get(h, "present"),    "no",         "h.present");
 
+		hash_free_all(h);
+		isnt_null(h = hash_new(), "hash created");
+
 		res_user_set(ru, "locked", "no");
 		ok(res_user_attrs(ru, h) == 0, "got raw user attributes");
 		is_string(hash_get(h, "locked"), "no", "h.locked");
 
-		hash_free(h);
+		hash_free_all(h);
 		res_user_free(ru);
+	}
+
+	subtest { /* cfm-20 - create a user with a conflicting UID */
+		struct res_user *ru;
+		struct report *report;
+		struct resource_env env;
+		struct resource_env env_after;
+
+		ru = res_user_new("conflictd");
+		res_user_set(ru, "present", "yes");
+		res_user_set(ru, "uid", "3"); /* conflict with sys user */
+
+		env.user_pwdb = pwdb_init(PASSWD_DB);
+		if (!env.user_pwdb) bail("failed to read passwd db");
+
+		env.user_spdb = spdb_init(SHADOW_DB);
+		if (!env.user_spdb) bail("failed to read gshadow db");
+
+		ok(res_user_stat(ru, &env) == 0, "res_user_stat succeeds");
+
+		isnt_null(report = res_user_fixup(ru, 0, &env), "user fixup");
+
+		is_int(report->fixed,     0, "user is not fixed");
+		is_int(report->compliant, 0, "user is non-compliant");
+
+		ok(pwdb_write(env.user_pwdb, NEW_PASSWD_DB) == 0, "saved passwd db");
+		ok(spdb_write(env.user_spdb, NEW_SHADOW_DB) == 0, "saved shadow db");
+
+		env_after.user_pwdb = pwdb_init(NEW_PASSWD_DB);
+		if (!env_after.user_pwdb) bail("failed to re-read passwd db");
+
+		env_after.user_spdb = spdb_init(NEW_SHADOW_DB);
+		if (!env_after.user_spdb) bail("failed to re-read shadow db");
+
+		is_null(pwdb_get_by_name(env_after.user_pwdb, "conflictd"),
+			"user conflictd should not have been created in pwdb");
+		is_null(spdb_get_by_name(env_after.user_spdb, "conflictd"),
+			"user conflictd should not have been created in spdb");
+
+		report_free(report);
+		pwdb_free(env.user_pwdb);
+		spdb_free(env.user_spdb);
+		pwdb_free(env_after.user_pwdb);
+		spdb_free(env_after.user_spdb);
+	}
+
+	subtest { /* cfm-20 - edit an existing user with a conflicting UID */
+		struct res_user *ru;
+		struct report *report;
+		struct resource_env env;
+		struct resource_env env_after;
+
+		ru = res_user_new("daemon");
+		res_user_set(ru, "present", "yes");
+		res_user_set(ru, "uid", "3"); /* conflict with sys user */
+
+		env.user_pwdb = pwdb_init(PASSWD_DB);
+		if (!env.user_pwdb) bail("failed to read passwd db");
+
+		env.user_spdb = spdb_init(SHADOW_DB);
+		if (!env.user_spdb) bail("failed to read gshadow db");
+
+		ok(res_user_stat(ru, &env) == 0, "res_user_stat succeeds");
+
+		isnt_null(report = res_user_fixup(ru, 0, &env), "user fixup");
+
+		is_int(report->fixed,     0, "user is not fixed");
+		is_int(report->compliant, 0, "user is non-compliant");
+
+		ok(pwdb_write(env.user_pwdb, NEW_PASSWD_DB) == 0, "saved passwd db");
+		ok(spdb_write(env.user_spdb, NEW_SHADOW_DB) == 0, "saved gshadow db");
+
+		env_after.user_pwdb = pwdb_init(NEW_PASSWD_DB);
+		if (!env_after.user_pwdb) bail("failed to re-read passwd db");
+
+		env_after.user_spdb = spdb_init(NEW_SHADOW_DB);
+		if (!env_after.user_spdb) bail("failed to re-read gshadow db");
+
+		struct passwd *pw = pwdb_get_by_name(env_after.user_pwdb, "daemon");
+		isnt_null(pw, "daemon user should still exist in passwd db");
+		is_int(pw->pw_uid, 1, "daemon user UID unchanged");
+
+		report_free(report);
+		pwdb_free(env.user_pwdb);
+		spdb_free(env.user_spdb);
+		pwdb_free(env_after.user_pwdb);
+		spdb_free(env_after.user_spdb);
 	}
 
 	done_testing();

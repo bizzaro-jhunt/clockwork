@@ -1,0 +1,98 @@
+\"
+\"  Copyright 2011-2013 James Hunt <james@niftylogic.com>
+\"
+\"  This file is part of Clockwork.
+\"
+\"  Clockwork is free software: you can redistribute it and/or modify
+\"  it under the terms of the GNU General Public License as published by
+\"  the Free Software Foundation, either version 3 of the License, or
+\"  (at your option) any later version.
+\"
+\"  Clockwork is distributed in the hope that it will be useful,
+\"  but WITHOUT ANY WARRANTY; without even the implied warranty of
+\"  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+\"  GNU General Public License for more details.
+\"
+\"  You should have received a copy of the GNU General Public License
+\"  along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
+\"
+
+.TH cwa "1" "September 2013" "Clockwork" "Clockwork Template Utility"
+.SH NAME
+.PP
+cwtemplate \- Clockwork Template Utility
+
+.SH SYNOPSIS
+.PP
+.B cwtemplate
+template-file > out-file
+.br
+.B cwtemplate
+-c /path/to/cwa.conf template-file
+
+.SH DESCRIPTION
+.PP
+.B Clockwork
+is a system configuration management system designed to securely enforce
+policies on one or more host systems.  It can ensure that files have the
+prescribed attributes (owner, group, permissions, etc.) and content.  It
+can maintain a specific set of installed packages, and even make sure that
+system user accounts exist.
+.PP
+.B cwtemplate
+is a utility program to aide in the creation of fact-based file templates.
+It renders a single template against various sets of facts, either gathered
+from the running system, specified in a cache file, or set via command-line
+arguments.
+
+.SH OPTIONS
+.PP
+\fB\-V\fR, \fB\-\-version\fR
+.RS 8
+Print version and copyright information.
+.RE
+
+\fB\-c\fR, \fB\-\-config\fR \fI/path/to/cwa.conf\fR
+.RS 8
+Specify the path to an alternate configuration file.  If not given, the
+default configuration file (/etc/clockwork/cwa.conf) is used instead.
+.RE
+
+\fB\-F\fR, \fB\-\-facts\fR \fI/path/to/cached.facts\fR
+.RS 8
+Tell \fBcwtemplate\fR to read facts from a file, where each line is a fact,
+and takes the form of \fBkey=values\\n\fR.  If specified, gathered facts
+are ignored.
+.RE
+
+\fB\-f\fR, \fB\-\-fact\fR \fIfact=value\fR
+.RS 8
+Override a single fact with a new value.  This can be used with either
+gathered or cached facts; command-line facts always take precedence.
+.RE
+
+\fB\-C\fR, \fB\-\-check\fR
+.RS 8
+Don't render the template, just check that the template syntax is correct.
+.RE
+
+.SH EXIT STATUS
+.PP
+.B cwtemplate
+exits 0 if it was able to read fact data and parse the template.
+
+.SH FILES
+.PP
+.TP 8
+.B /etc/clockwork/cwa.conf
+Default configuration file that
+.B cwa
+reads on start up.  See \fBcwa.conf\fR(5) for details.
+
+.SH SEE ALSO
+.PP
+\fBclockwork\fR(7), \fBcwa.conf\fR(5)
+
+.SH AUTHOR
+.PP
+Clockwork was designed and written by James Hunt.

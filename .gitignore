@@ -2,6 +2,7 @@
 *~
 *.gc??
 lcov.info
+coverage
 gmon.out
 callgrind.out.*
 *.swp
@@ -16,6 +17,7 @@ stamp-h?
 /cwa
 /cwcert
 /cwca
+/cwtemplate
 /sha1sum
 /polspec
 /tplspec

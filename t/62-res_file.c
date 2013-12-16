@@ -98,6 +98,9 @@ int main(void) {
 		ok(DIFFERENT(rf, RES_FILE_GID), "GID is out of compliance");
 		ok(DIFFERENT(rf, RES_FILE_MODE), "MODE is out of compliance");
 
+		is_int(res_file_set(rf, "what-does-the-fox-say", "ring-ding-ring-ding"),
+			-1, "res_file_set doesn't like nonsensical attributes");
+
 		res_file_free(rf);
 	}
 
@@ -365,7 +368,7 @@ int main(void) {
 		ok(res_file_attrs(rf, h) == 0, "got raw file attrs");
 		is_null(hash_get(h, "xyzzy"), "h.xyzzy is unset");
 
-		hash_free(h);
+		hash_free_all(h);
 		res_file_free(rf);
 	}
 

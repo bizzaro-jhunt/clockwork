@@ -153,6 +153,9 @@ int main(void) {
 		ok(res_service_match(rs, "service", "apache2") != 0, "!match service=apache2");
 		ok(res_service_match(rs, "running", "yes") != 0, "running is not a matchable attr");
 
+		is_int(res_service_set(rs, "what-does-the-fox-say", "ring-ding-ring-ding"),
+			-1, "res_service_set doesn't like nonsensical attributes");
+
 		res_service_free(rs);
 	}
 
@@ -245,7 +248,7 @@ int main(void) {
 		ok(res_service_attrs(r, h) == 0, "retrieved attrs");
 		is_null(hash_get(h, "xyzzy"), "h.xyzzy is unset (bad attr)");
 
-		hash_free(h);
+		hash_free_all(h);
 		res_service_free(r);
 	}
 

@@ -3,5 +3,7 @@ lib/clockwork/augeas
 lib/clockwork/gather.d
 sbin/cwa
 sbin/cwcert
+sbin/cwtemplate
 usr/share/man/man1/cwa.1
+usr/share/man/man1/cwtemplate.1
 usr/share/clockwork/db/agent.sql

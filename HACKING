@@ -723,3 +723,246 @@ Key:  . = detection
 + name
 + value
 + persist
+
+8. Clockwork Specification Language
+-----------------------------------
+
+This section explains the design of the Clockwork specification file
+format, with a focus on implementation of the lexer / parser as a reentrant
+Flex / Bison compiler.
+
+Clockwork specification files server two purposes:
+
+  1. Define Policies as a set of resources (based on host facts)
+  2. Identify which policy or policies apply to which host(s)
+
+Specifications are written in a declarative, block-based language.  Policies
+are defined in a block like this:
+
+  # Comments start with a '#' and continue to the
+  # end of the line, similar to bash, Perl and Ruby
+  policy "sample-policy" {
+    # Resource are defined here, inside the curly braces
+
+    group "staff" {
+      gid: 2140
+    }
+
+    user "jrhunt" {
+      uid:  701
+      gid:  2140
+      home: "/home/staff/jrhunt"
+    }
+
+  }
+
+The above policy, named "sample-policy", defines two resources: a group
+named staff and a user named jrhunt.  Each resource definition is itself a
+block.
+
+Resources must be defined inside of a policy; they cannot be defined
+globally, nor can they be nested inside of other resources.  Policies can
+only be defined at the top level (globally); they cannot nest.
+
+Attributes (which belong exclusibely to resource block) are defined in the
+form attribute_name: "value of attribute", where <attribute_name> is some
+keyword understood by the underlying resource type, and "value of attribute"
+is an appropriate value for the attribute.
+
+Conditionals are supported in two forms: if blocks at the policy level, and
+map blocks at the attirbute value.  Consider the following:
+
+  policy "conditional" {
+
+    # Only define the "ubuntu" user on Ubuntu installations
+    if (lsb.distro.id is "Ubuntu") {
+      user "ubuntu" {
+        home: "/srv/oper/ubuntu"
+      }
+    }
+
+    file "/etc/sudoers" {
+      mode:  0600
+      owner: "root"
+      group: "root"
+
+      source: map(sys.local.environment) {
+        "test": "/base/sudoers-loose"
+        "dev":  "/base/sudoers-loose"
+        "prod": "/base/sudoers-strict"
+      }
+    }
+
+  }
+
+The 'if' conditional block surrounding the "ubuntu" user definition ensures
+that the user will only be defined in the host fact "lsb.distro.id" is equal
+to the string "Ubuntu" (via case-sensitive string comparison).  If ths
+policy is applied to a Fedora or CentOS installation, the if test will fail,
+and the user resource will not be defined.
+
+Similarly, the map construct inside the "/etc/sudoers" file resource
+definition modifies the source attribute based on the current environment
+stored in the "sys.local.environment" fact.  For test and development boxes,
+the file is sourced from /base/sudoers-loose, a config that may allow
+developers to run specific commands that are normally the purview of root.
+In production, however, a different sudoers file is used, probably one that
+prevents developers from doing anything.
+
+While the two conditional forms are similar in intent, they vary in
+applicability.  An if block can only occur inside of a policy block, or
+nested inside of another if block.  The map construct can only appear in
+place of a static attribute value.  Therefore, these two configurations are
+semantically invalid:
+
+  policy "invalid-map" {
+
+    map(lsb.distro.id) {
+      "Ubuntu": user "ubuntu" {
+        home: "/srv/oper/ubuntu"
+      }
+    }
+
+  }
+
+and
+
+  policy "invalid-if" {
+
+    file "/etc/sudoers" {
+      mode:  0600
+      owner: "root"
+      group: "root"
+
+      source: if (sys.local.environment is "prod") {
+        "/base/sudoers-strict"
+      }
+    }
+
+  }
+
+Both conditional forms understand the idea of 'else', some control path that
+should be followed if the conditions presented do not hold.  For if blocks,
+the semantics are identical to most programming languages:
+
+  policy "if-else" {
+
+    # on Ubuntu hosts, define UID 42 as 'ubuntu'
+    if (lsb.distro.id is "Ubuntu") {
+      user "ubuntu" {
+        uid:  42
+        home: "/srv/oper/ubuntu"
+      }
+    } else { # everywhere else, define it as  'linux'
+      user "linux" {
+        uid:  42
+        home: "/srv/oper/linux"
+      }
+    }
+
+  }
+
+As the coments indicate, on Ubuntu boxes, user 42 will be named "ubuntu",
+and everywhere else (Gentoo, Debian, Slack) it will be "linux".
+
+The map construct works similarly, supplying a default attribute value if
+none of the test values match the actual value:
+
+  policy "map-with-else" {
+
+    file "/etc/sudoers" {
+      mode:  0600
+      owner: "root"
+      group: "root"
+
+      source: map(sys.local.environment) {
+        "test": "/base/sudoers-loose"
+        "dev":  "/base/sudoers-loose"
+        "prod": "/base/sudoers-strict"
+        else:   "/base/sudoers-untrusted"
+      }
+    }
+
+  }
+
+The final value case maps "/base/sudoers-untrusted" as the source for
+/etc/sudoers on any host that does not have a sys.local.environment of
+test, dev or prod.  This includes the edge case where the fact is not even
+defined.
+
+NOTE: There is currently no way to chain multiple if blocks together in an
+if-else-if-else idiom.  Nested ifs provide a temporary work-around to this
+problem, but the long-term solution is still awaiting implementation.
+
+8.1. Implementation Details
+---------------------------
+
+The specification parser is completely contained inside the spec/
+subdirecory of the project root.  It is implemented as a reentrant Flex
+lexical analyzer paired with a reentrant (pure) Bison LALR parser.
+
+The documentation on reentrancy in Flex and Bison, both on the 'net and in
+_lex & yacc 2nd Edition_ (Levine, Mason and Brown; O'Reilly) is sparse at
+best.  The remainder of this document attempts to collect my notes on the
+implementation.
+
+
+8.1.1. Filesystem Layout
+------------------------
+
+To keep things clean, the parser implementation is split out into multiple
+files, each with a distinct purpose:
+
+  lexer.l         Flex lexical analysis rules
+
+  lexer_impl.h    Supporting functions for lexer.l.  This file is never
+                  compiled outright; it is included in the lexer.l generated
+                  code, and contains implementation details like
+                  error-handling routines.
+
+  grammar.y       Bison LALR grammar rules
+
+  grammar_impl.h  Supporting functions for grammar.y.  This file is never
+                  compiled outright; it is included in the grammar.y
+                  generated code, and contains static routines of interest
+                  only to the Bison parser.
+
+  parser.h        Public spec parser API header file containing visible
+                  functions for interacting with the parser subsystem.
+
+  private.h       Private spec parser header file (used only by lexer.l and
+                  grammar.y generated code, when a function needs to be
+                  available to both components
+
+  parser.c        Implements the public parser API (as defined by parser.h).
+                  This file does not contain any function definitions that
+                  are internal to the lexer / parser (see lexer_impl.h and
+                  grammar_impl.h, respectively).
+
+These files are compiled to create the following object files:
+
+  lexer.o         Combination of lexer.c (as generated from lexer.l) and
+                  lexer_impl.h as a single translation unit.  Represents the
+                  lexical analyzer module.
+
+  grammar.o       Combination of grammar.c (as generated from grammar.y) and
+                  grammar_impl.h as a single translation unit.  Represents
+                  the LALR parser module.
+
+  parser.o        Compilation of parser.c; the public API necessary to drive
+                  the lexer / parser.
+
+These object files cannot stand on their own.  Any program wishing to make
+use of the parser must contain all three.
+
+
+8.1.2. Public API Overview
+--------------------------
+
+The public API for the parser subsystem consists of one function:
+
+  struct ast* parse_file(const char *path);
+
+This function opens path in read-only mode and parses it.  A pointer to the
+resulting abstract syntax tree is returned.  If unrecoverable errors are
+encountered, NULL is returned.

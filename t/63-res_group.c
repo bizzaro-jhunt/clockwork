@@ -87,6 +87,9 @@ int main(void) {
 		res_group_enforce_admins(rg, 0);
 		ok(!ENFORCED(rg, RES_GROUP_ADMINS), "ADMINS is not enforced");
 
+		is_int(res_group_set(rg, "what-does-the-fox-say", "ring-ding-ring-ding"),
+			-1, "res_group_set doesn't like nonsensical attributes");
+
 		res_group_free(rg);
 	}
 
@@ -440,7 +443,90 @@ int main(void) {
 		is_null(hash_get(h, "xyzzy"), "h.xyzzy is unset (bad attr)");
 
 		res_group_free(rg);
-		hash_free(h);
+		hash_free_all(h);
+	}
+
+	subtest { /* cfm-20 - create a group with a conflicting GID */
+		struct res_group *rg;
+		struct report *report;
+		struct resource_env env;
+		struct resource_env env_after;
+
+		rg = res_group_new("conflictd");
+		res_group_set(rg, "present", "yes");
+		res_group_set(rg, "gid", "3"); /* conflict with sys group */
+
+		env.group_grdb = grdb_init(GROUP_DB);
+		if (!env.group_grdb) bail("failed to read group db");
+
+		env.group_sgdb = sgdb_init(GSHADOW_DB);
+		if (!env.group_sgdb) bail("failed to read gshadow db");
+
+		ok(res_group_stat(rg, &env) == 0, "res_group_stat succeeds");
+
+		isnt_null(report = res_group_fixup(rg, 0, &env), "group fixup");
+
+		is_int(report->fixed,     0, "group is not fixed");
+		is_int(report->compliant, 0, "group is non-compliant");
+
+		ok(grdb_write(env.group_grdb, NEW_GROUP_DB)   == 0, "saved group db");
+		ok(sgdb_write(env.group_sgdb, NEW_GSHADOW_DB) == 0, "saved gshadow db");
+
+		env_after.group_grdb = grdb_init(NEW_GROUP_DB);
+		if (!env_after.group_grdb) bail("failed to re-read group db");
+
+		env_after.group_sgdb = sgdb_init(NEW_GSHADOW_DB);
+		if (!env_after.group_sgdb) bail("failed to re-read gshadow db");
+
+		is_null(grdb_get_by_name(env_after.group_grdb, "conflictd"),
+			"group conflictd should not have been created in grdb");
+		is_null(sgdb_get_by_name(env_after.group_sgdb, "conflictd"),
+			"group conflictd should not have been created in sgdb");
+
+		report_free(report);
+		grdb_free(env.group_grdb);
+		sgdb_free(env.group_sgdb);
+		grdb_free(env_after.group_grdb);
+		sgdb_free(env_after.group_sgdb);
+	}
+
+	subtest { /* cfm-20 - edit an existing group with a conflicting GID */
+		struct res_group *rg;
+		struct report *report;
+		struct resource_env env;
+		struct resource_env env_after;
+
+		rg = res_group_new("daemon");
+		res_group_set(rg, "present", "yes");
+		res_group_set(rg, "gid", "3"); /* conflict with sys group */
+
+		env.group_grdb = grdb_init(GROUP_DB);
+		if (!env.group_grdb) bail("failed to read group db");
+
+		env.group_sgdb = sgdb_init(GSHADOW_DB);
+		if (!env.group_sgdb) bail("failed to read gshadow db");
+
+		ok(res_group_stat(rg, &env) == 0, "res_group_stat succeeds");
+
+		isnt_null(report = res_group_fixup(rg, 0, &env), "group fixup");
+
+		is_int(report->fixed,     0, "group is not fixed");
+		is_int(report->compliant, 0, "group is non-compliant");
+
+		ok(grdb_write(env.group_grdb, NEW_GROUP_DB)   == 0, "saved group db");
+		ok(sgdb_write(env.group_sgdb, NEW_GSHADOW_DB) == 0, "saved gshadow db");
+
+		env_after.group_grdb = grdb_init(NEW_GROUP_DB);
+		if (!env_after.group_grdb) bail("failed to re-read group db");
+
+		env_after.group_sgdb = sgdb_init(NEW_GSHADOW_DB);
+		if (!env_after.group_sgdb) bail("failed to re-read gshadow db");
+
+		struct group *gr = grdb_get_by_name(env_after.group_grdb, "daemon");
+		isnt_null(gr, "daemon group should still exist in group db");
+		is_int(gr->gr_gid, 1, "daemon group GID unchanged");
+
+		report_free(report);
 	}
 
 	done_testing();

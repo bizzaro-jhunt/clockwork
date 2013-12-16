@@ -22,9 +22,7 @@
 #include "clockwork.h"
 
 #include <getopt.h>
-#include <glob.h>
 #include <sys/types.h>
-#include <sys/wait.h>
 #include <sys/time.h>
 
 #include "proto.h"
@@ -40,8 +38,6 @@ static void show_version(void);
 static void show_help(void);
 static void show_compilation_options(void);
 
-static int gather_facts_from_script(const char *script, struct hash *facts);
-static int gather_facts(struct client *c);
 static int get_policy(struct client *c);
 static int get_file(struct session *session, struct SHA1 *checksum, int fd);
 static int enforce_policy(struct client *c, struct job *job);
@@ -60,7 +56,7 @@ int main(int argc, char **argv)
 
 	c = cwa_options(argc, argv);
 	if (client_options(c) != 0) {
-		fprintf(stderr, "Unable to process server options");
+		fprintf(stderr, "Unable to process client options");
 		exit(2);
 	}
 	c->log_level = log_set(c->log_level);
@@ -68,7 +64,8 @@ int main(int argc, char **argv)
 	INFO("Running in mode %u", c->mode);
 
 	INFO("Gathering facts");
-	if (gather_facts(c) != 0) {
+	c->facts = hash_new();
+	if (fact_gather(c->gatherers, c->facts) != 0) {
 		CRITICAL("Unable to gather facts");
 		exit(1);
 	}
@@ -245,86 +242,6 @@ static void show_compilation_options(void)
 	DUMP_COMPILE_OPT(DEFAULT_POLICYD_LISTEN);
 
 	DUMP_COMPILE_OPT(CACHED_FACTS_DIR);
-}
-
-static int gather_facts_from_script(const char *script, struct hash *facts)
-{
-	pid_t pid;
-	int pipefd[2];
-	FILE *input;
-	char *path_copy, *arg0;
-
-	INFO("Processing script %s", script);
-
-	if (pipe(pipefd) != 0) {
-		perror("gather_facts");
-		return -1;
-	}
-
-	pid = fork();
-	switch (pid) {
-	case -1:
-		perror("gather_facts: fork");
-		return -1;
-
-	case 0: /* in child */
-		close(pipefd[0]);
-		close(0); close(1); close(2);
-
-		dup2(pipefd[1], 1); /* dup pipe as stdout */
-
-		path_copy = strdup(script);
-		arg0 = basename(path_copy);
-
-		execl(script, arg0, NULL);
-		exit(1); /* if execl returns, we failed */
-
-	default: /* in parent */
-		close(pipefd[1]);
-		input = fdopen(pipefd[0], "r");
-
-		fact_read(input, facts);
-		waitpid(pid, NULL, 0);
-		fclose(input);
-		close(pipefd[0]);
-
-		return 0;
-	}
-}
-
-static int gather_facts(struct client *c)
-{
-	glob_t scripts;
-	size_t i;
-
-	c->facts = hash_new();
-
-	switch(glob(c->gatherers, GLOB_MARK, NULL, &scripts)) {
-	case GLOB_NOMATCH:
-		globfree(&scripts);
-		if (gather_facts_from_script(c->gatherers, c->facts) != 0) {
-			hash_free(c->facts);
-			return -1;
-		}
-		return 0;
-
-	case GLOB_NOSPACE:
-	case GLOB_ABORTED:
-		hash_free(c->facts);
-		return -1;
-
-	}
-
-	for (i = 0; i < scripts.gl_pathc; i++) {
-		if (gather_facts_from_script(scripts.gl_pathv[i], c->facts) != 0) {
-			hash_free(c->facts);
-			globfree(&scripts);
-			return -1;
-		}
-	}
-
-	globfree(&scripts);
-	return 0;
 }
 
 static int get_policy(struct client *c)
@@ -608,6 +525,9 @@ static int save_report(struct client *c, struct job *job)
 	db = db_open(AGENTDB, c->db_file);
 	if (!db) {
 		return -1;
+	}
+	if (db_purge(db, c->retain_days) != 0) {
+		CRITICAL("Failed to purge expired report data");
 	}
 
 	if (agentdb_store_report(db, job) != 0) {

@@ -52,6 +52,61 @@ int main(void) {
 	}
 
 	subtest {
+		struct res_package *r;
+		struct resource_env env;
+		struct report *report;
+
+		env.package_manager = PM_dpkg_apt; /* not actually important */
+
+		r = res_package_new("foo");
+
+		/* want 0.3.5, have 0.3.5 = OK */
+		res_package_set(r, "version", "0.3.5");
+		free(r->installed); r->installed = strdup("0.3.5");
+		isnt_null(report = res_package_fixup(r, 1, &env),
+				"res_package_fixup(0.3.5 -> 0.3.5) is OK");
+		is_int(report->compliant, 1, "0.3.5 == 0.3.5 (compliant)");
+		is_int(report->fixed,     0, "0.3.5 == 0.3.5 (no fix needed)");
+		report_free(report);
+
+		/* want 0.3.5, have 0.3.5-3 = OK */
+		res_package_set(r, "version", "0.3.5");
+		free(r->installed); r->installed = strdup("0.3.5-3");
+		isnt_null(report = res_package_fixup(r, 1, &env),
+				"res_package_fixup(0.3.5-3 -> 0.3.5) is OK");
+		is_int(report->compliant, 1, "0.3.5-3 == 0.3.5 (compliant)");
+		is_int(report->fixed,     0, "0.3.5-3 == 0.3.5 (no fix needed)");
+		report_free(report);
+
+		/* want 0.3.5-3, have 0.3.5-3 = OK */
+		res_package_set(r, "version", "0.3.5-3");
+		free(r->installed); r->installed = strdup("0.3.5-3");
+		isnt_null(report = res_package_fixup(r, 1, &env),
+				"res_package_fixup(0.3.5-3 -> 0.3.5-3) is OK");
+		is_int(report->compliant, 1, "0.3.5-3 == 0.3.5-3 (compliant)");
+		is_int(report->fixed,     0, "0.3.5-3 == 0.3.5-3 (no fix needed)");
+		report_free(report);
+
+		/* want 0.3.5-3, have 0.3.5 = UPGRADE */
+		res_package_set(r, "version", "0.3.5-3");
+		free(r->installed); r->installed = strdup("0.3.5");
+		isnt_null(report = res_package_fixup(r, 1, &env),
+				"res_package_fixup(0.3.5 -> 0.3.5-3) is OK");
+		is_int(report->fixed, 1, "0.3.5 != 0.3.5-3 (fix needed)");
+		report_free(report);
+
+		/* want 0.3.5-3, have 0.3.5-1 = UPGRADE */
+		res_package_set(r, "version", "0.3.5-3");
+		free(r->installed); r->installed = strdup("0.3.5-1");
+		isnt_null(report = res_package_fixup(r, 1, &env),
+				"res_package_fixup(0.3.5-1 -> 0.3.5-3) is OK");
+		is_int(report->fixed, 1, "0.3.5-1 != 0.3.5-3 (fix needed)");
+		report_free(report);
+
+		res_package_free(r);
+	}
+
+	subtest {
 	#if TEST_AS_ROOT
 		struct res_package *r;
 		struct resource_env env;
@@ -113,6 +168,9 @@ int main(void) {
 		ok(res_package_match(rp, "name", "dtrace") != 0, "!match name=dtrace");
 
 		ok(res_package_match(rp, "installed", "yes") != 0, "installed is not a matchable attr");
+
+		is_int(res_package_set(rp, "what-does-the-fox-say", "ring-ding-ring-ding"),
+			-1, "res_package_set doesn't like nonsensical attributes");
 
 		res_package_free(rp);
 	}
@@ -187,7 +245,7 @@ int main(void) {
 		ok(res_package_attrs(r, h) == 0, "got package attrs");
 		is_null(hash_get(h, "xyzzy"), "h.xyzzy is unset (bad attr)");
 
-		hash_free(h);
+		hash_free_all(h);
 		res_package_free(r);
 	}
 

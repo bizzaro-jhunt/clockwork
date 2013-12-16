@@ -57,6 +57,8 @@ struct worker {
 
 	unsigned short peer_verified;
 	unsigned short autosign;
+
+	int retain_days;
 };
 
 /**************************************************************/
@@ -319,6 +321,7 @@ unintr:
 	w->ca_cert_file = s->ca_cert_file;
 	w->key_file     = s->key_file;
 	w->autosign     = s->autosign;
+	w->retain_days  = s->retain_days;
 
 	w->socket = BIO_pop(s->listener);
 	if (!(w->ssl = SSL_new(s->ssl_ctx))) {
@@ -378,7 +381,7 @@ static int handle_HELLO(struct worker *w)
 	if (w->peer_verified) {
 		pdu_send_HELLO(&w->session);
 	} else {
-		pdu_send_ERROR(&w->session, 401, "Peer Certificate Required");
+		pdu_send_ERROR(&w->session, 401, "Client Identity Unverified");
 	}
 	return 1;
 }
@@ -439,7 +442,7 @@ static int handle_FACTS(struct worker *w)
 {
 	if (!w->peer_verified) {
 		WARNING("Unverified peer tried to FACTS");
-		pdu_send_ERROR(&w->session, 401, "Peer Certificate Required");
+		pdu_send_ERROR(&w->session, 401, "Client Identity Unverified");
 		return 1;
 	}
 
@@ -475,7 +478,7 @@ static int handle_FILE(struct worker *w)
 
 	if (!w->peer_verified) {
 		WARNING("Unverified peer tried to FILE");
-		pdu_send_ERROR(&w->session, 401, "Peer Certificate Required");
+		pdu_send_ERROR(&w->session, 401, "Client Identity Unverified");
 		return 1;
 	}
 
@@ -550,7 +553,7 @@ static int handle_REPORT(struct worker *w)
 
 	if (!w->peer_verified) {
 		WARNING("Unverified peer tried to REPORT");
-		pdu_send_ERROR(&w->session, 401, "Peer Certificate Required");
+		pdu_send_ERROR(&w->session, 401, "Client Identity Unverified");
 		return 1;
 	}
 
@@ -563,6 +566,9 @@ static int handle_REPORT(struct worker *w)
 	if (!db) {
 		CRITICAL("Unable to open reporting DB");
 		goto failed;
+	}
+	if (db_purge(db, w->retain_days) != 0) {
+		CRITICAL("Failed to purge expired report data");
 	}
 
 	host_id = masterdb_host(db, w->peer);
@@ -612,8 +618,9 @@ static int verify_peer(struct worker *w)
 
 	sock = SSL_get_fd(w->ssl);
 	if (protocol_reverse_lookup_verify(sock, addr, 256) != 0) {
-		ERROR("FCrDNS lookup (ipv4) failed: %s", strerror(errno));
-		return -1;
+		ERROR("FCrDNS lookup (ipv4) failed: %s",
+			(errno == 0 ? "unspecified error" : strerror(errno)));
+		return 0;
 	}
 	w->peer = strdup(addr);
 	INFO("Connection on socket %u from '%s'", sock, w->peer);
@@ -1106,8 +1113,9 @@ static void* signal_thread(void *arg)
 		exit(2);
 	}
 
+	/* effectively do nothing, without chewing the CPU */
 	for (;;)
-		;
+		sleep(789);
 }
 
 static int server_init_ssl(struct server *s)

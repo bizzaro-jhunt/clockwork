@@ -31,47 +31,56 @@
 /**********************************************************/
 
 /* for older versions of glibc */
+static char SGBUF[8192], *SGADM[128], *SGMEM[128];
+static struct sgrp SGENT;
 static struct sgrp* fgetsgent(FILE *io)
 {
-	char buf[8192];
-	char *a, *b;
-	struct sgrp *g;
-	struct stringlist *l;
+	char *a, *b, *c;
+	if (feof(io) || !fgets(SGBUF, 8191, io)) { return NULL; }
 
-	if (feof(io) || !fgets(buf, 8191, io)) { return NULL; }
-
-	g = xmalloc(sizeof(struct sgrp));
-	if (!g) { return NULL; }
+	SGENT.sg_mem = SGMEM;
+	SGENT.sg_adm = SGADM;
 
 	/* name */
-	for (a = buf, b = a; *b && *b != ':'; b++)
+	for (a = SGBUF, b = a; *b && *b != ':'; b++)
 		;
 	*b = '\0';
-	g->sg_namp = strdup(a);
+	SGENT.sg_namp = a;
 
 	/* password */
 	for (a = ++b; *b && *b != ':'; b++)
 		;
 	*b = '\0';
-	g->sg_passwd = strdup(a);
+	SGENT.sg_passwd = a;
 
 	/* admins */
 	for (a = ++b; *b && *b != ':'; b++)
 		;
-	*b = '\0';
-	l = stringlist_split(a, b-a, ",", SPLIT_NORMAL);
-	g->sg_adm = l->strings;
-	free(l);
+	*b = '\0'; c = a;
+	while (c < b) {
+		for (a = c; *c && *c != ','; c++)
+			;
+		*c++ = '\0';
+		*(SGENT.sg_adm++) = a;
+	};
+	*(SGENT.sg_adm) = NULL;
 
 	/* members */
 	for (a = ++b; *b && *b != '\n'; b++)
 		;
-	*b = '\0';
-	l = stringlist_split(a, b-a, ",", SPLIT_NORMAL);
-	g->sg_mem = l->strings;
-	free(l);
+	*b = '\0'; c = a;
+	while (c < b) {
+		for (a = c; *c && *c != ','; c++)
+			;
+		*c++ = '\0';
+		*(SGENT.sg_mem++) = a;
+	};
+	*(SGENT.sg_mem) = NULL;
 
-	return g;
+	SGENT.sg_mem = SGMEM;
+	SGENT.sg_adm = SGADM;
+
+	return &SGENT;
 }
 
 static int putsgent(const struct sgrp *g, FILE *io)

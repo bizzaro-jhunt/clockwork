@@ -14,7 +14,7 @@ int main() {
 		hash_get(facts, "sys.kernel.version"),
 		"2.6.32-194.distro5-generic",
 		"parse fact line");
-	hash_free(facts);
+	hash_free_all(facts);
 
 	/**********************************************************/
 

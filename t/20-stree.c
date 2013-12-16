@@ -225,7 +225,7 @@ int main(void) {
 				file_count++;
 				file = (struct res_file*)(r->resource);
 				isnt_null(file, "got the first res_file defined");
-				if (user) {
+				if (file) {
 					is_int(file->rf_mode, 0600, "file mode");
 					is_string(file->rf_rpath, "std/etc-sudoers", "file remote path");
 					is_string(file->rf_lpath, "/etc/sudoers", "file local path");

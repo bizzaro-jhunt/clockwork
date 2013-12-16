@@ -146,39 +146,52 @@ int main(void) {
 	}
 
 	subtest {
+		char *s;
 		is_string(
-			render("<\% local.var1 = \"World!\" \%>Hello, <\%= local.var1 \%>\n"),
+			s = render("<\% local.var1 = \"World!\" \%>Hello, <\%= local.var1 \%>\n"),
 			"Hello, World!\n",
 			"local variable expansion");
+		free(s);
 	}
 
 	subtest {
+		char *s;
 		is_string(
-			render("This is <\%= local.var1 = \"SO \" \%>great!\n"),
+			s = render("This is <\%= local.var1 = \"SO \" \%>great!\n"),
 			"This is SO great!\n",
 			"echo variable assignment");
+		free(s);
+
 		is_string(
-			render("This is <\% local.var1 = \"NOT \" \%>great!\n"),
+			s = render("This is <\% local.var1 = \"NOT \" \%>great!\n"),
 			"This is great!\n",
 			"non-echo variable assignment");
+		free(s);
 
 		is_string(
-			render("ref = <\%= local.var1 \%>\n"),
+			s = render("ref = <\%= local.var1 \%>\n"),
 			"ref = Var 1\n",
 			"echo variable de-reference");
-		is_string(
-			render("Non-echo refs<\% local.var \%>\n"),
-			"Non-echo refs\n",
-			"non-echo variable de-reference");
+		free(s);
 
 		is_string(
-			render("Echo vals<\%= \" rock!\" \%>\n"),
+			s = render("Non-echo refs<\% local.var \%>\n"),
+			"Non-echo refs\n",
+			"non-echo variable de-reference");
+		free(s);
+
+
+		is_string(
+			s = render("Echo vals<\%= \" rock!\" \%>\n"),
 			"Echo vals rock!\n",
 			"echo string literal");
+		free(s);
+
 		is_string(
-			render("Non-echo vals<\% \" REGRESS\" \%>\n"),
+			s = render("Non-echo vals<\% \" REGRESS\" \%>\n"),
 			"Non-echo vals\n",
 			"non-echo string literal");
+		free(s);
 	}
 
 	subtest {

@@ -117,6 +117,9 @@ int stree_compare(const struct stree *a, const struct stree *b);
 struct hash* fact_read(FILE *io, struct hash *facts);
 int fact_write(FILE *io, struct hash *facts);
 int fact_parse(const char *line, struct hash *hash);
+int fact_exec_read(const char *script, struct hash *facts);
+int fact_cat_read(const char *file, struct hash *facts);
+int fact_gather(const char *paths, struct hash *facts);
 
 struct policy* policy_generate(struct stree *root, struct hash *facts);
 struct policy* policy_new(const char *name);

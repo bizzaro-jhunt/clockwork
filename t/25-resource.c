@@ -59,7 +59,7 @@ int main(void) {
 		is_string(hash_get(h, "ip"),       "127.0.0.1", "host ip attr");
 		is_null(hash_get(h, "aliases"), "aliases attr is unset");
 
-		hash_free(h);
+		hash_free_all(h);
 		resource_free(res);
 	}
 

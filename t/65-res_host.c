@@ -84,6 +84,9 @@ int main(void) {
 		is_int(report->compliant, 1, "resource is compliant");
 		report_free(report);
 
+		is_int(res_host_set(r, "what-does-the-fox-say", "ring-ding-ring-ding"),
+			-1, "res_host_set doesn't like nonsensical attributes");
+
 		res_host_free(r);
 	}
 
@@ -180,7 +183,7 @@ int main(void) {
 		ok(res_host_attrs(rh, h) == 0, "got host attrs");
 		is_string(hash_get(h, "present"),  "no", "h.present");
 
-		hash_free(h);
+		hash_free_all(h);
 		res_host_free(rh);
 	}
 

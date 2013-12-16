@@ -21,6 +21,10 @@
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
+#include <glob.h>
+#include <libgen.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 #include "policy.h"
 #include "resource.h"
@@ -328,6 +332,101 @@ int fact_parse(const char *line, struct hash *h)
 	return 0;
 }
 
+int fact_exec_read(const char *script, struct hash *facts)
+{
+	pid_t pid;
+	int pipefd[2];
+	FILE *input;
+	char *path_copy, *arg0;
+
+	INFO("Processing script %s", script);
+
+	if (pipe(pipefd) != 0) {
+		perror("gather_facts");
+		return -1;
+	}
+
+	pid = fork();
+	switch (pid) {
+	case -1:
+		perror("gather_facts: fork");
+		return -1;
+
+	case 0: /* in child */
+		close(pipefd[0]);
+		close(0); close(1); close(2);
+
+		dup2(pipefd[1], 1); /* dup pipe as stdout */
+
+		path_copy = strdup(script);
+		arg0 = basename(path_copy);
+
+		execl(script, arg0, NULL);
+		exit(1); /* if execl returns, we failed */
+
+	default: /* in parent */
+		close(pipefd[1]);
+		input = fdopen(pipefd[0], "r");
+
+		fact_read(input, facts);
+		waitpid(pid, NULL, 0);
+		fclose(input);
+		close(pipefd[0]);
+
+		return 0;
+	}
+}
+
+int fact_cat_read(const char *file, struct hash *facts)
+{
+	assert(file); // LCOV_EXCL_LINE
+	assert(facts); // LCOV_EXCL_LINE
+
+	FILE *input = fopen(file, "r");
+	if (!input) {
+		perror(file);
+		return -1;
+	}
+	if (fact_read(input, facts) == NULL) {
+		return -1;
+	}
+	return 0;
+}
+
+int fact_gather(const char *paths, struct hash *facts)
+{
+	glob_t scripts;
+	size_t i;
+
+	switch(glob(paths, GLOB_MARK, NULL, &scripts)) {
+	case GLOB_NOMATCH:
+		globfree(&scripts);
+		if (fact_exec_read(paths, facts) != 0) {
+			hash_free(facts);
+			return -1;
+		}
+		return 0;
+
+	case GLOB_NOSPACE:
+	case GLOB_ABORTED:
+		hash_free(facts);
+		return -1;
+
+	}
+
+	for (i = 0; i < scripts.gl_pathc; i++) {
+		if (fact_exec_read(scripts.gl_pathv[i], facts) != 0) {
+			hash_free(facts);
+			globfree(&scripts);
+			return -1;
+		}
+	}
+
+	globfree(&scripts);
+	return 0;
+}
+
+
 /**
   Read $facts from $io.
 
@@ -491,7 +590,10 @@ again:
 
 	case ATTR:
 		if (pgen->res) {
-			resource_set(pgen->res, node->data1, node->data2);
+			if (resource_set(pgen->res, node->data1, node->data2) != 0) {
+				WARNING("Unknown Attribute %s = '%s'",
+					node->data1, node->data2);
+			}
 		} else {
 			WARNING("Attribute %s = '%s' defined for unknown type",
 			        node->data1, node->data2);

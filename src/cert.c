@@ -289,6 +289,7 @@ X509_REQ** cert_retrieve_requests(const char *pathglob, size_t *len)
 		reqs[i] = cert_retrieve_request(files.gl_pathv[i]);
 	}
 
+	globfree(&files);
 	return reqs;
 }
 
@@ -381,50 +382,54 @@ int cert_store_request(X509_REQ *request, const char *csrfile)
 X509* cert_sign_request(X509_REQ *request, X509 *ca_cert, EVP_PKEY *cakey, unsigned int days)
 {
 	EVP_PKEY *pubkey;
-	X509 *cert;
+	X509 *cert = NULL;
 	int verified;
 
 	pubkey = X509_REQ_get_pubkey(request);
-	if (!pubkey) { return NULL; }
+	if (!pubkey) {
+		goto error;
+	}
 
 	verified = X509_REQ_verify(request, pubkey);
 	if (verified < 0) {
 		ERROR("Failed to verify certificate signing request");
-		return NULL;
+		goto error;
 	}
 	if (verified == 0) {
 		ERROR("Signature mismatch on certificate signing request");
-		return NULL;
+		goto error;
 	}
 
 	cert = X509_new();
-	if (!cert) { return NULL; }
+	if (!cert) {
+		goto error;
+	}
 
 	if (!X509_set_version(cert, 3)) {
 		ERROR("Failed to set X.509 version to 3");
-		return NULL;
+		goto error;
 	}
 
 	if (!rand_serial(NULL, X509_get_serialNumber(cert))) {
 		ERROR("Failed to generate serial number for certificate");
-		return NULL;
+		goto error;
 	}
 
 	if (ca_cert) {
 		if (!X509_set_issuer_name(cert, X509_get_subject_name(ca_cert))) {
 			ERROR("Failed to set issuer on new certificate");
-			return NULL;
+			goto error;
 		}
 	} else {
 		if (!X509_set_issuer_name(cert, request->req_info->subject)) {
 			ERROR("Failed to set issuer on new self-signed certificate");
-			return NULL;
+			goto error;
 		}
 	}
 
 	if (!X509_set_subject_name(cert, request->req_info->subject)) {
 		ERROR("Failed to set subject on new certificate");
-		return NULL;
+		goto error;
 	}
 
 	X509_gmtime_adj(X509_get_notBefore(cert), 0);
@@ -434,10 +439,13 @@ X509* cert_sign_request(X509_REQ *request, X509 *ca_cert, EVP_PKEY *cakey, unsig
 
 	if (!X509_sign(cert, cakey, EVP_sha1())) {
 		ERROR("Failed to sign certificate as CA");
-		return NULL;
+		goto error;
 	}
 
 	return cert;
+error:
+	if (cert) X509_free(cert);
+	return NULL;
 }
 
 static struct cert_subject* cert_get_subject(X509_NAME *name)
@@ -636,6 +644,7 @@ X509** cert_retrieve_certificates(const char *pathglob, size_t *len)
 		certs[i] = cert_retrieve_certificate(files.gl_pathv[i]);
 	}
 
+	globfree(&files);
 	return certs;
 }
 
@@ -925,12 +934,14 @@ int cert_revoke_certificate(X509_CRL *crl, X509 *cert, EVP_PKEY *key)
 		goto error;
 	}
 
+	ASN1_UTCTIME_free(revoked_at);
+	ASN1_ENUMERATED_free(reason_code);
 	return 0;
 
 error:
-	if (revoked_cert) {
-		X509_REVOKED_free(revoked_cert);
-	}
+	X509_REVOKED_free(revoked_cert);
+	ASN1_UTCTIME_free(revoked_at);
+	ASN1_ENUMERATED_free(reason_code);
 	return -1;
 }
 

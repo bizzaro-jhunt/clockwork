@@ -57,6 +57,8 @@ struct client {
 
 	char *s_address;           /* address of policy master */
 	char *s_port;              /* TCP port of policy master */
+
+	int retain_days;           /* How many days of reports to keep */
 };
 
 int client_options(struct client *args);

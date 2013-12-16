@@ -79,10 +79,6 @@ DEFINE_PM_VERSION(dpkg_apt) {
 		return NULL;
 	}
 
-	for (v = version; *v && *v != '-'; v++ )
-		;
-	if (*v == '-') { *v = '\0'; }
-
 	return version;
 }
 

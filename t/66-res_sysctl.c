@@ -80,6 +80,9 @@ int main(void) {
 		report_free(report);
 #endif
 
+		is_int(res_sysctl_set(r, "what-does-the-fox-say", "ring-ding-ring-ding"),
+			-1, "res_sysctl_set doesn't like nonsensical attributes");
+
 		res_sysctl_free(r);
 	}
 
@@ -176,7 +179,7 @@ int main(void) {
 		ok(res_sysctl_attrs(rs, h) == 0, "got res_sysctl attrs");
 		is_null(hash_get(h, "xyzzy"), "h.xyzzy is NULL (bad attr)");
 
-		hash_free(h);
+		hash_free_all(h);
 		res_sysctl_free(rs);
 	}
 

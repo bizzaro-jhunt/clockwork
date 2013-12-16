@@ -12,10 +12,10 @@ CW_CACHE_DIR  = /var/cache/clockwork
 PKG_CFLAGS    = $(DEPS_CFLAGS) $(shell pkg-config --cflags augeas)
 AM_CFLAGS     = -Wall $(PKG_CFLAGS)
 
-LCOV    := lcov
-GENHTML := genhtml
+LCOV    := lcov --directory . --base-directory .
+GENHTML := genhtml --prefix $(shell dirname `pwd`)
 
-no_lcov_c := test/unit/**/* test/unit/* test/functional/*
+no_lcov_c := */t/*.c */t/*.h
 
 AM_LFLAGS = --header-file --yylineno
 AM_YFLAGS = -d
@@ -23,19 +23,29 @@ AM_YFLAGS = -d
 ############################################################
 
 CLEANFILES       = $(BUILT_SOURCES)
+CLEANFILES      += t/**/*.o t/*.o
+CLEANFILES      += t/helpers/proto
+CLEANFILES      += */*.t */**/*.t
+CLEANFILES      += */*.gc* */**/*.gc*
+CLEANFILES      += *.tmp lcov.info
 
-EXTRA_DIST       = share/db
+EXTRA_DIST       = build doc extra t var rpm
+EXTRA_DIST      += configure.dev
+EXTRA_DIST      += cwdb
+EXTRA_DIST      += HACKING
+EXTRA_DIST      += share/db
 EXTRA_DIST      += share/examples
 EXTRA_DIST      += share/gather.d
 EXTRA_DIST      += share/help
+EXTRA_DIST      += share/man
+EXTRA_DIST      += share/rpm
 EXTRA_DIST      += share/vim
-EXTRA_DIST      += var
-EXTRA_DIST      += t
 
 dist_man_MANS    = share/man/clockwork.7
 dist_man_MANS   += share/man/cwa.1
 dist_man_MANS   += share/man/cwa.conf.5
 dist_man_MANS   += share/man/cwpol.1
+dist_man_MANS   += share/man/cwtemplate.1
 dist_man_MANS   += share/man/policyd.1
 dist_man_MANS   += share/man/policyd.conf.5
 dist_man_MANS   += share/man/res_dir.5
@@ -91,19 +101,20 @@ test_obj += src/tpl/parser.o src/tpl/lexer.o src/tpl/grammar.o
 test_obj += src/proto.o
 
 root_sbindir = "/sbin"
-root_sbin_PROGRAMS = cwa cwcert policyd cwca cwpol
+root_sbin_PROGRAMS = cwa cwcert policyd cwca cwpol cwtemplate
 policyd_SOURCES = $(core_src) $(server_src) src/policyd.c $(parser_spec_src) $(parser_conf_src) src/db.c src/db.h
 cwca_SOURCES    = $(core_src) $(server_src) src/cwca.c $(parser_conf_src)
 cwa_SOURCES     = $(core_src) $(client_src) src/cwa.c $(manager_src) $(parser_conf_src) src/db.c src/db.h
 cwcert_SOURCES  = $(core_src) $(client_src) src/cwcert.c $(parser_conf_src)
 cwpol_SOURCES   = $(core_src) src/cwpol.c $(parser_spec_src)
+cwtemplate_SOURCES = $(core_src) $(client_src) src/cwtemplate.c $(parser_conf_src)
 
 ############################################################
 
 version:
 	@echo $(VERSION)
 
-distfile:
+distfile: dist
 	@echo $(PACKAGE)-$(VERSION).tar.gz
 
 manifest:
@@ -165,7 +176,18 @@ src/conf/lexer.c: src/conf/lexer.l src/conf/grammar.h src/conf/lexer_impl.h src/
 src/conf/grammar.c: src/conf/grammar.y src/conf/parser.c src/conf/parser.h src/conf/private.h
 	$(YACCCOMPILE) -p yyconf --output-file=src/conf/grammar.c $<
 
-cov: clean-cov
+.PHONY: coverage
+coverage:
+	make \
+		CFLAGS="-g -ftest-coverage -fprofile-arcs" \
+		LDFLAGS=-fprofile-arcs \
+		clean-cov \
+		clean \
+		test \
+		cov
+
+.PHONY: cov
+cov:
 	$(LCOV) --capture -o $@.info.tmp
 	$(LCOV) --remove $@.info.tmp $(no_lcov_c) > lcov.info
 	rm -f $@.info.tmp

@@ -118,61 +118,41 @@ int db_purge(struct db *db, int days)
 {
 	if (days < 0) { return 0; }
 
-	const char *l_sql = "SELECT id FROM jobs WHERE started_at < ?";
-	sqlite3_stmt *l_stmt = NULL;
-
 	const char *j_sql = "DELETE FROM jobs WHERE started_at < ?";
-	sqlite3_stmt *j_stmt = NULL;
-
 	const char *a_sql = "DELETE FROM actions WHERE resource_id IN "
-		"(SELECT id FROM resources WHERE job_id = ?)";
-	sqlite3_stmt *a_stmt = NULL;
-
-	const char *r_sql = "DELETE FROM resources WHERE job_id = ?";
-	sqlite3_stmt *r_stmt = NULL;
+		"(SELECT id FROM resources LEFT JOIN jobs ON "
+			"resources.job_id = jobs.id WHERE jobs.id IS NULL)";
+	const char *r_sql = "DELETE FROM resources WHERE id IN "
+		"(SELECT id FROM resources LEFT JOIN jobs ON "
+			"resources.job_id = jobs.id WHERE jobs.id IS NULL)";
+	sqlite3_stmt *stmt = NULL;
 
 	time_t cutoff;
 	int rc;
-	sqlite3_int64 id;
 
 	if (!time(&cutoff)) { return -1; }
 	cutoff -= days*86400;
 
-	PREP(db->db, l_stmt, l_sql);
-	PREP(db->db, j_stmt, j_sql);
-	PREP(db->db, a_stmt, a_sql);
-	PREP(db->db, r_stmt, r_sql);
-
 	DEBUG("Purging job reports from before %i", cutoff);
-	/* find the old job IDs */
-	BIND_INT(l_stmt, 1, cutoff);
-	while ( (rc = sqlite3_step(l_stmt)) == SQLITE_ROW ) {
-		id = sqlite3_column_int64(l_stmt, 0);
-		DEBUG("Purging job #%i", id);
 
-		BIND_INT64(a_stmt, 1, id);
-		EXEC_SQL(a_stmt); RESET_SQL(a_stmt);
+	PREP(db->db, stmt, j_sql);
+	BIND_INT64(stmt, 1, cutoff);
+	EXEC_SQL(stmt);
+	FINALIZE(stmt);
 
-		BIND_INT64(r_stmt, 1, id);
-		EXEC_SQL(r_stmt); RESET_SQL(r_stmt);
-	}
-	if (rc != SQLITE_DONE) { goto failure; }
+	PREP(db->db, stmt, a_sql);
+	EXEC_SQL(stmt);
+	FINALIZE(stmt);
 
-	BIND_INT64(j_stmt, 1, cutoff);
-	EXEC_SQL(j_stmt); RESET_SQL(j_stmt);
+	PREP(db->db, stmt, r_sql);
+	EXEC_SQL(stmt);
+	FINALIZE(stmt);
 
-	FINALIZE(l_stmt);
-	FINALIZE(j_stmt);
-	FINALIZE(a_stmt);
-	FINALIZE(r_stmt);
 	return 0;
 
 failure:
 	DEBUG("Sqlite3 Error: %s", sqlite3_errmsg(db->db));
-	FINALIZE(l_stmt);
-	FINALIZE(j_stmt);
-	FINALIZE(a_stmt);
-	FINALIZE(r_stmt);
+	FINALIZE(stmt);
 	return 1;
 }
 

@@ -120,10 +120,10 @@ int db_purge(struct db *db, int days)
 
 	const char *j_sql = "DELETE FROM jobs WHERE started_at < ?";
 	const char *a_sql = "DELETE FROM actions WHERE resource_id IN "
-		"(SELECT id FROM resources LEFT JOIN jobs ON "
+		"(SELECT resources.id FROM resources LEFT JOIN jobs ON "
 			"resources.job_id = jobs.id WHERE jobs.id IS NULL)";
 	const char *r_sql = "DELETE FROM resources WHERE id IN "
-		"(SELECT id FROM resources LEFT JOIN jobs ON "
+		"(SELECT resources.id FROM resources LEFT JOIN jobs ON "
 			"resources.job_id = jobs.id WHERE jobs.id IS NULL)";
 	sqlite3_stmt *stmt = NULL;
 

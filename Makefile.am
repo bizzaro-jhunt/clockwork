@@ -24,8 +24,10 @@ AM_YFLAGS = -d
 
 CLEANFILES       = $(BUILT_SOURCES)
 CLEANFILES      += t/**/*.o t/*.o
+CLEANFILES      += t/helpers/executor
+CLEANFILES      += t/helpers/prompter
 CLEANFILES      += t/helpers/proto
-CLEANFILES      += */*.t */**/*.t
+CLEANFILES      += */*.t
 CLEANFILES      += */*.gc* */**/*.gc*
 CLEANFILES      += *.tmp lcov.info
 
@@ -199,8 +201,8 @@ clean-cov:
 
 TEST_SOURCE := $(patsubst %.c,%.t,$(shell find t -maxdepth 1 -name '*.c' | sort))
 tests: $(TEST_SOURCE)
-	prove -e '' $(TEST_SOURCE)
-test: t/helpers/proto tests
+	prove t/*.t t/func/*.t
+test: t/helpers/proto t/helpers/prompter t/helpers/executor tests
 
 t/%.t.o: t/%.c config.h
 	$(CC) -I. -Isrc $(CFLAGS) $(PKG_CFLAGS) $(LDFLAGS) -c $< -o $@
@@ -209,5 +211,9 @@ t/%.t: t/%.t.o $(test_obj)
 
 t/helpers/%.o: t/helpers/%.c config.h
 	$(CC) -I. -Isrc $(CFLAGS) $(PKG_CFLAGS) $(LDFLAGS) -c $< -o $@
+t/helpers/prompter: t/helpers/prompter.o $(test_obj)
+	$(CC) $(LDFLAGS) $+ $(LIBS) -o $@
 t/helpers/proto: t/helpers/proto.o $(test_obj)
+	$(CC) $(LDFLAGS) $+ $(LIBS) -o $@
+t/helpers/executor: t/helpers/executor.o $(test_obj)
 	$(CC) $(LDFLAGS) $+ $(LIBS) -o $@

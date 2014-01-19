@@ -3674,7 +3674,7 @@ void* res_exec_unpack(const char *packed)
 int res_exec_notify(void *res, const struct resource *dep)
 {
 	struct res_exec *re = (struct res_exec*)(res);
-	assert(re); // LCOV_EXCL)LINE
+	assert(re); // LCOV_EXCL_LINE
 
 	re->notified = 1;
 

@@ -37,6 +37,8 @@ config.h
 t/tmp
 t/*.t
 /t/helpers/proto
+/t/helpers/prompter
+/t/helpers/executor
 /test/chroot/*.chroot
 /test/augeas
 

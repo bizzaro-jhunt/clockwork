@@ -335,7 +335,7 @@ int fact_parse(const char *line, struct hash *h)
 int fact_exec_read(const char *script, struct hash *facts)
 {
 	pid_t pid;
-	int pipefd[2];
+	int pipefd[2], rc;
 	FILE *input;
 	char *path_copy, *arg0;
 
@@ -362,18 +362,21 @@ int fact_exec_read(const char *script, struct hash *facts)
 		arg0 = basename(path_copy);
 
 		execl(script, arg0, NULL);
-		exit(1); /* if execl returns, we failed */
+		exit(127); /* if execl returns, we failed */
 
 	default: /* in parent */
 		close(pipefd[1]);
 		input = fdopen(pipefd[0], "r");
 
 		fact_read(input, facts);
-		waitpid(pid, NULL, 0);
+		waitpid(pid, &rc, 0);
 		fclose(input);
 		close(pipefd[0]);
 
-		return 0;
+		// treat a fail to exec as an error;
+		// handle everything else (including signalled,
+		//  non-zero exit, core dumps and crashs)
+		return (WIFEXITED(rc) && WEXITSTATUS(rc) == 127) ? -1 : 0;
 	}
 }
 

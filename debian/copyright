@@ -10,7 +10,7 @@ License: GPL-3
  Use this software at your own risk.
  .
  On Debian systems, the complete text of the GNU General Public
- License, version 3, can be found in 
+ License, version 3, can be found in
  /usr/share/common-licenses/GPL-3.
 
 Files: debian/*
@@ -21,5 +21,5 @@ License: GPL-3
  Use this software at your own risk.
  .
  On Debian systems, the complete text of the GNU General Public
- License, version 3, can be found in 
+ License, version 3, can be found in
  /usr/share/common-licenses/GPL-3.

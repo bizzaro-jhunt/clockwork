@@ -74,3 +74,4 @@ disable)
 	exit $?
 	;;
 esac
+exit 125

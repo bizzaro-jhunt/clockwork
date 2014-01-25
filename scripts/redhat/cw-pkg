@@ -53,7 +53,7 @@ latest)
 	exit $?
 	;;
 install)
-	if [[ -z $VERSION ]]; then
+	if [ -z $VERSION ]; then
 		# no version
 		/usr/bin/yum install -qy "$NAME"
 		exit $?

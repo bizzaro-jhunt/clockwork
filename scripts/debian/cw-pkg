@@ -53,7 +53,7 @@ latest)
 	exit 0
 	;;
 install)
-	if [[ -z $VERSION ]]; then
+	if [ -z $VERSION ]; then
 		# no version
 		/usr/bin/apt-get install -qqy "$NAME"
 		exit $?

@@ -55,13 +55,15 @@ NAME=$2
 case $ACTION in
 run-status)
 	/usr/sbin/service $NAME status 2>/dev/null >/dev/null
-	[ $? == 7 ] && exit 1
-	exit $?
+	RC=$?
+	[ $RC = 7 ] && exit 1
+	exit $RC
 	;;
 boot-status)
 	/usr/sbin/invoke-rc.d --quiet --query "$NAME" start
-	[ $? == 104 ] && exit 0
-	exit $?
+	RC=$?
+	[ $RC = 104 ] && exit 0
+	exit $RC
 	;;
 start|stop|restart|reload)
 	/usr/sbin/service $NAME $ACTION 2>/dev/null >/dev/null
@@ -77,3 +79,4 @@ disable)
 	exit $?
 	;;
 esac
+exit 125

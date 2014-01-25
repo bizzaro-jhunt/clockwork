@@ -42,6 +42,7 @@ EXTRA_DIST      += share/help
 EXTRA_DIST      += share/man
 EXTRA_DIST      += share/rpm
 EXTRA_DIST      += share/vim
+EXTRA_DIST      += scripts
 
 dist_man_MANS    = share/man/clockwork.7
 dist_man_MANS   += share/man/cwa.1

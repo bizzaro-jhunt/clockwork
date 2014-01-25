@@ -59,6 +59,7 @@ install)
 		exit $?
 	else
 		# specific version
+		echo "$VERSION" | grep -q '-' || VERSION="$VERSION-*"
 		/usr/bin/apt-get install -qqy "$NAME=$VERSION"
 		exit $?
 	fi

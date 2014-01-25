@@ -25,9 +25,8 @@
 #include <augeas.h>
 
 #include "userdb.h"
-
-#include "managers/package.h"
-#include "managers/service.h"
+#include "package.h"
+#include "service.h"
 
 /** Resource Type Identifiers */
 enum restype {
@@ -57,8 +56,8 @@ enum restype {
   have to be updated with new members.
  */
 struct resource_env {
-	const struct package_manager *package_manager;
-	const struct service_manager *service_manager;
+	const char *package_manager;
+	const char *service_manager;
 
 	struct pwdb *user_pwdb;  /* /etc/passwd, for res_user */
 	struct spdb *user_spdb;  /* /etc/shadow, for res_user */

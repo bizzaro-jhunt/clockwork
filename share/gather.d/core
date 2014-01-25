@@ -13,23 +13,23 @@ sub fact($$)
 ##
 
 ## clockwork.manager.service - Service Manager Implementation
-## (paths taken from managers/service.c)
 my $SM = "unspecified";
 if (-x "/usr/sbin/invoke-rc.d" && -x "/usr/sbin/update-rc.d") {
-	$SM = "debian";
+	$SM = "/lib/clockwork/bin/debian/cw-pkg";
 } elsif (-x "/sbin/chkconfig") {
-	$SM = "chkconfig";
+	$SM = "/lib/clockwork/bin/redhat/cw-pkg";
 }
+$SM = "/lib/clockwork/bin/unspec/cw-pkg" if !-x $SM;
 fact("clockwork.manager.service", $SM);
 
 ## clockwork.manager.package - Package Manager Implementation
-## (paths taken from managers/package.c)
 my $PM = "unspecified";
 if (-x "/usr/bin/dpkg-query" && -x "/usr/bin/apt-get") {
-	$PM = "dpkg_apt";
+	$PM = "/lib/clockwork/bin/debian/cw-svc";
 } elsif (-x "/bin/rpm" && -x "/usr/bin/yum") {
-	$PM = "rpm_yum";
+	$PM = "/lib/clockwork/bin/redhat/cw-svc";
 }
+$PM = "/lib/clockwork/bin/unspec/cw-pkg" if !-x $PM;
 fact("clockwork.manager.package", $PM);
 
 ##

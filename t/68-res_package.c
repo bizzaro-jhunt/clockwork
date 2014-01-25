@@ -20,7 +20,7 @@
 #include "test.h"
 #include "../src/clockwork.h"
 #include "../src/resources.h"
-#include "../src/managers/package.h"
+#include "../src/package.h"
 
 #include <unistd.h>
 #include <sys/types.h>
@@ -56,7 +56,7 @@ int main(void) {
 		struct resource_env env;
 		struct report *report;
 
-		env.package_manager = PM_dpkg_apt; /* not actually important */
+		env.package_manager = "noop";
 
 		r = res_package_new("foo");
 

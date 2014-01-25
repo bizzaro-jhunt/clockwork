@@ -410,32 +410,14 @@ static int autodetect_managers(struct resource_env *env, const struct hash *fact
 	assert(facts); // LCOV_EXCL_LINE
 
 	/* FIXME: allow local installations to override clockwork.manager.* */
-	const char *sm = hash_get(facts, "clockwork.manager.service");
-	const char *pm = hash_get(facts, "clockwork.manager.package");
+	env->service_manager = hash_get(facts, "clockwork.manager.service");
+	env->package_manager = hash_get(facts, "clockwork.manager.package");
 
-	if (!sm || !pm) { return -1; }
+	if (!env->service_manager || !env->package_manager) { return -1; }
 
-	INFO("Using '%s' service manager", sm);
-	if (strcmp(sm, "debian") == 0) {
-		env->service_manager = SM_debian;
-	} else if (strcmp(sm, "chkconfig") == 0) {
-		env->service_manager = SM_chkconfig;
-	} else {
-		WARNING("Unrecognized clockwork.manager.service: '%s'", sm);
-		env->service_manager = NULL;
-	}
-
-	INFO("Using '%s' package manager", pm);
-	if (strcmp(pm, "dpkg_apt") == 0) {
-		env->package_manager = PM_dpkg_apt;
-	} else if (strcmp(pm, "rpm_yum") == 0) {
-		env->package_manager = PM_rpm_yum;
-	} else {
-		WARNING("Unrecognized clockwork.manager.package: '%s'", pm);
-		env->package_manager = NULL;
-	}
-
-	return (env->package_manager && env->service_manager ? 0 : -1);
+	INFO("Using '%s' service manager", env->service_manager);
+	INFO("Using '%s' package manager", env->package_manager);
+	return 0;
 }
 
 static void print_report(FILE *io, struct report *r)

@@ -69,15 +69,14 @@ core_src    += src/policy.h src/resource.h src/resources.h src/job.h src/templat
 core_src    += src/gear/hash.c src/gear/log.c src/gear/string.c src/gear/pack.c src/gear/path.c
 core_src    += src/gear/gear.h
 core_src    += src/clockwork.h
+core_src    += src/service.c src/package.c
+core_src    += src/service.h src/package.h
 
 client_src   = src/proto.c src/client.c
 client_src  += src/proto.h src/client.h
 
 server_src   = src/proto.c src/server.c
 server_src  += src/proto.h src/server.h
-
-manager_src  = src/managers/service.c src/managers/package.c
-manager_src += src/managers/service.h src/managers/package.h
 
 parser_spec_src  = src/spec/parser.c src/spec/parser.h src/spec/private.h
 parser_spec_src += src/spec/lexer.l src/spec/lexer_impl.h
@@ -96,7 +95,7 @@ core_src += $(parser_tpl_src)
 test_obj  = src/mem.o src/sha1.o src/userdb.o src/cert.o src/prompt.o src/exec.o src/augcw.o
 test_obj += src/policy.o src/resource.o src/resources.o src/job.o src/template.o
 test_obj += src/gear/hash.o src/gear/log.o src/gear/string.o src/gear/pack.o src/gear/path.o
-test_obj += src/managers/service.o src/managers/package.o
+test_obj += src/service.o src/package.o
 test_obj += src/spec/parser.o src/spec/lexer.o src/spec/grammar.o
 test_obj += src/conf/parser.o src/conf/lexer.o src/conf/grammar.o
 test_obj += src/tpl/parser.o src/tpl/lexer.o src/tpl/grammar.o
@@ -106,7 +105,7 @@ root_sbindir = "/sbin"
 root_sbin_PROGRAMS = cwa cwcert policyd cwca cwpol cwtemplate
 policyd_SOURCES = $(core_src) $(server_src) src/policyd.c $(parser_spec_src) $(parser_conf_src) src/db.c src/db.h
 cwca_SOURCES    = $(core_src) $(server_src) src/cwca.c $(parser_conf_src)
-cwa_SOURCES     = $(core_src) $(client_src) src/cwa.c $(manager_src) $(parser_conf_src) src/db.c src/db.h
+cwa_SOURCES     = $(core_src) $(client_src) src/cwa.c $(parser_conf_src) src/db.c src/db.h
 cwcert_SOURCES  = $(core_src) $(client_src) src/cwcert.c $(parser_conf_src)
 cwpol_SOURCES   = $(core_src) src/cwpol.c $(parser_spec_src)
 cwtemplate_SOURCES = $(core_src) $(client_src) src/cwtemplate.c $(parser_conf_src)
@@ -154,6 +153,13 @@ install-data-hook:
 	$(INSTALL)    -m 0644 share/examples/manifest.pol $(DESTDIR)$(CW_ETC_DIR)/manifest.pol
 	$(INSTALL) -d -m 0755 $(DESTDIR)$(CW_LIB_DIR)/gather.d
 	$(INSTALL)    -m 0755 share/gather.d/* $(DESTDIR)$(CW_LIB_DIR)/gather.d
+	$(INSTALL) -d -m 0755 $(DESTDIR)$(CW_LIB_DIR)/bin
+	$(INSTALL) -d -m 0755 $(DESTDIR)$(CW_LIB_DIR)/bin/debian
+	$(INSTALL)    -m 0755 scripts/debian/* $(DESTDIR)$(CW_LIB_DIR)/bin/debian
+	$(INSTALL) -d -m 0755 $(DESTDIR)$(CW_LIB_DIR)/bin/redhat
+	$(INSTALL)    -m 0755 scripts/redhat/* $(DESTDIR)$(CW_LIB_DIR)/bin/redhat
+	$(INSTALL) -d -m 0755 $(DESTDIR)$(CW_LIB_DIR)/bin/unspec
+	$(INSTALL)    -m 0755 scripts/unspec/* $(DESTDIR)$(CW_LIB_DIR)/bin/unspec
 
 ############################################################
 # Lex/YACC Parsers

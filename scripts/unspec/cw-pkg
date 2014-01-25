@@ -1,0 +1,17 @@
+#!/bin/sh
+
+#
+# unspec/cw-pkg - Portable Bourne Shell Package Manager
+#  (unspecified, noop platform)
+#
+#
+# author:  James Hunt <james@niftylogic.com>
+# created: 2014-01-25
+#
+
+# This is a special handler used as a failsafe fallback when
+# Clockwork can't figure out what package manager to use.
+#
+# It always exits 125 (unsupported action called).
+#
+exit 125

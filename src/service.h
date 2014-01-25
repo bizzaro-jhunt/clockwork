@@ -1,0 +1,36 @@
+/*
+  Copyright 2011-2014 James Hunt <james@niftylogic.com>
+
+  This file is part of Clockwork.
+
+  Clockwork is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  Clockwork is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+#ifndef _SERVICE_H
+#define _SERVICE_H
+
+#include "clockwork.h"
+
+int service_enabled(const char *mgr, const char *svc);
+int service_running(const char *mgr, const char *svc);
+
+int service_start(const char *mgr, const char *svc);
+int service_stop(const char *mgr, const char *svc);
+int service_restart(const char *mgr, const char *svc);
+int service_reload(const char *mgr, const char *svc);
+
+int service_enable(const char *mgr, const char *svc);
+int service_disable(const char *mgr, const char *svc);
+
+#endif

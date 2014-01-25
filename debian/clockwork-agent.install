@@ -1,6 +1,9 @@
 etc/clockwork/cwa.conf
 lib/clockwork/augeas
 lib/clockwork/gather.d
+lib/clockwork/bin/debian
+lib/clockwork/bin/redhat
+lib/clockwork/bin/unspec
 sbin/cwa
 sbin/cwcert
 sbin/cwtemplate

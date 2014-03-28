@@ -88,6 +88,13 @@ int main(void) {
 		resource_set(r, "gid", "2000");  /* ru_enf == 0000 1101 */
 		policy_add_resource(pol, r);
 
+		r = resource_new("user", "whiskey"); /* ru_enf == 0000 0001 */
+		resource_set(r, "password", "sour");
+		resource_set(r, "changepw", "yes");
+		resource_set(r, "uid", "101");   /* ru_enf == 0000 0101 */
+		resource_set(r, "gid", "2000");  /* ru_enf == 0000 1101 */
+		policy_add_resource(pol, r);
+
 		r = resource_new("group", "scotch"); /* rg_enf == 0000 0001 */
 		resource_set(r, "gid", "2000");  /* rg_enf == 0000 0101 */
 		policy_add_resource(pol, r);
@@ -105,7 +112,8 @@ int main(void) {
 		isnt_null(packed = policy_pack(pol), "packed policy");
 		is_string(packed,
 			"policy::\"1 user, 1 group, and 1 file\"\n"
-			"res_user::\"bourbon\"0000000d\"bourbon\"\"\"" "00000065" "000007d0" "\"\"\"\"\"\"" "00" "\"\"" "01" "00000000" "00000000" "00000000" "00000000" "ffffffff\n"
+			"res_user::\"bourbon\"0000000d\"bourbon\"\"*\"" "00000065" "000007d0" "\"\"\"\"\"\"" "00" "\"\"" "01" "00000000" "00000000" "00000000" "00000000" "ffffffff\n"
+			"res_user::\"whiskey\"0000000f\"whiskey\"\"sour\"" "00000065" "000007d0" "\"\"\"\"\"\"" "00" "\"\"" "01" "00000000" "00000000" "00000000" "00000000" "ffffffff\n"
 			"res_group::\"scotch\"00000005\"scotch\"\"\"000007d0\"\"\"\"\"\"\"\"\n"
 			"res_file::\"beer\"0000000f\"beer\"\"0123456789abcdef0123456789abcdef01234567\"" "\"george\"" "\"thoroughgood\"" "00000180",
 

@@ -352,7 +352,7 @@ void* res_user_clone(const void *res, const char *key)
 	ru->ru_expire = RES_DEFAULT(orig, ru_expire, -1);
 
 	ru->ru_name   = RES_DEFAULT_STR(orig, ru_name,   NULL);
-	ru->ru_passwd = RES_DEFAULT_STR(orig, ru_passwd, NULL);
+	ru->ru_passwd = RES_DEFAULT_STR(orig, ru_passwd, "*");
 	ru->ru_gecos  = RES_DEFAULT_STR(orig, ru_gecos,  NULL);
 	ru->ru_shell  = RES_DEFAULT_STR(orig, ru_shell,  NULL);
 	ru->ru_dir    = RES_DEFAULT_STR(orig, ru_dir,    NULL);
@@ -553,10 +553,8 @@ int res_user_stat(void *res, const struct resource_env *env)
 	ru->ru_sp = spdb_get_by_name(env->user_spdb, ru->ru_name);
 	if (!ru->ru_pw || !ru->ru_sp) { /* new account */
 		ru->different = ru->enforced;
-		if (ru->ru_passwd) {
-			/* always provision with password */
-			DIFF(ru, RES_USER_PASSWD);
-		}
+		/* always provision with password */
+		DIFF(ru, RES_USER_PASSWD);
 		return 0;
 	}
 
@@ -565,6 +563,10 @@ int res_user_stat(void *res, const struct resource_env *env)
 
 	if (ENFORCED(ru, RES_USER_NAME) && strcmp(ru->ru_name, ru->ru_pw->pw_name) != 0) {
 		DIFF(ru, RES_USER_NAME);
+	}
+
+	if (! ru->ru_sp->sp_pwdp || strlen(ru->ru_sp->sp_pwdp) == 0 ) {
+		DIFF(ru, RES_USER_PASSWD);
 	}
 
 	if (ENFORCED(ru, RES_USER_PASSWD) && strcmp(ru->ru_passwd, ru->ru_sp->sp_pwdp) != 0) {

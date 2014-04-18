@@ -1,5 +1,5 @@
 /*
-  Copyright 2011-2013 James Hunt <james@jameshunt.us>
+  Copyright 2011-2014 James Hunt <james@jameshunt.us>
 
   This file is part of Clockwork.
 
@@ -23,9 +23,7 @@
 /* "There's no point in seeking a remedy for a thunderbolt" - Syrus, _Maxims_ */
 #define SYRUS "Remedium frustra est contra fulmen quaerere"
 
-int main(void) {
-	test();
-
+TESTS {
 	subtest {
 		uint8_t  u8; uint16_t u16; uint32_t u32;
 		 int8_t  i8;  int16_t i16;  int32_t i32;

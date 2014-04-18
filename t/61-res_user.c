@@ -1,5 +1,5 @@
 /*
-  Copyright 2011-2013 James Hunt <james@niftylogic.com>
+  Copyright 2011-2014 James Hunt <james@niftylogic.com>
 
   This file is part of Clockwork.
 
@@ -32,9 +32,7 @@
 #define NEW_PASSWD_DB  "t/tmp/passwd"
 #define NEW_SHADOW_DB  "t/tmp/shadow"
 
-int main(void) {
-	test();
-
+TESTS {
 	subtest {
 		struct res_user *user;
 		char *key;
@@ -151,10 +149,10 @@ int main(void) {
 		res_user_set(ru, "pwwarn",   "3");
 
 		env.user_pwdb = pwdb_init(PASSWD_DB);
-		if (!env.user_pwdb) bail("failed to read passwd database");
+		if (!env.user_pwdb) BAIL_OUT("failed to read passwd database");
 
 		env.user_spdb = spdb_init(SHADOW_DB);
-		if (!env.user_spdb) bail("failed to read shadow database");
+		if (!env.user_spdb) BAIL_OUT("failed to read shadow database");
 
 		ok(res_user_stat(ru, &env) == 0, "res_user_stat succeeds");
 		ok(!DIFFERENT(ru, RES_USER_NAME),   "NAME is in compliance");
@@ -205,10 +203,10 @@ int main(void) {
 		res_user_set(ru, "skeleton", "/etc/skel.svc");
 
 		env.user_pwdb = pwdb_init(PASSWD_DB);
-		if (!env.user_pwdb) bail("failed to read passwd database");
+		if (!env.user_pwdb) BAIL_OUT("failed to read passwd database");
 
 		env.user_spdb = spdb_init(SHADOW_DB);
-		if (!env.user_spdb) bail("failed to read shadow database");
+		if (!env.user_spdb) BAIL_OUT("failed to read shadow database");
 
 		ok(res_user_stat(ru, &env) == 0, "res_user_stat succeeds");
 
@@ -242,10 +240,10 @@ int main(void) {
 		res_user_set(ru, "present", "no"); /* Remove the user */
 
 		env.user_pwdb = pwdb_init(PASSWD_DB);
-		if (!env.user_pwdb) bail("failed to read passwd database");
+		if (!env.user_pwdb) BAIL_OUT("failed to read passwd database");
 
 		env.user_spdb = spdb_init(SHADOW_DB);
-		if (!env.user_spdb) bail("failed to read shadow database");
+		if (!env.user_spdb) BAIL_OUT("failed to read shadow database");
 
 		ok(res_user_stat(ru, &env) == 0, "res_user_stat succeeds");
 		isnt_null(ru->ru_pw, "found user 'sys' in passwd db");
@@ -259,10 +257,10 @@ int main(void) {
 		ok(spdb_write(env.user_spdb, NEW_SHADOW_DB) == 0, "saved shadow db");
 
 		env_after.user_pwdb = pwdb_init(NEW_PASSWD_DB);
-		if (!env_after.user_pwdb) bail("failed to re-read passwd database");
+		if (!env_after.user_pwdb) BAIL_OUT("failed to re-read passwd database");
 
 		env_after.user_spdb = spdb_init(NEW_SHADOW_DB);
-		if (!env_after.user_spdb) bail("failed to re-read shadow database");
+		if (!env_after.user_spdb) BAIL_OUT("failed to re-read shadow database");
 
 		res_user_free(ru);
 		ru = res_user_new("sys");
@@ -287,10 +285,10 @@ int main(void) {
 		res_user_set(ru, "present", "no"); /* Remove the user */
 
 		env.user_pwdb = pwdb_init(PASSWD_DB);
-		if (!env.user_pwdb) bail("failed to read passwd database");
+		if (!env.user_pwdb) BAIL_OUT("failed to read passwd database");
 
 		env.user_spdb = spdb_init(SHADOW_DB);
-		if (!env.user_spdb) bail("failed to read shadow database");
+		if (!env.user_spdb) BAIL_OUT("failed to read shadow database");
 
 		ok(res_user_stat(ru, &env) == 0, "res_user_stat succeeds");
 		is_null(ru->ru_pw, "user not found in passwd db");
@@ -304,10 +302,10 @@ int main(void) {
 		ok(spdb_write(env.user_spdb, NEW_SHADOW_DB) == 0, "saved shadow db");
 
 		env_after.user_pwdb = pwdb_init(NEW_PASSWD_DB);
-		if (!env_after.user_pwdb) bail("failed to re-read passwd database");
+		if (!env_after.user_pwdb) BAIL_OUT("failed to re-read passwd database");
 
 		env_after.user_spdb = spdb_init(NEW_SHADOW_DB);
-		if (!env_after.user_spdb) bail("failed to re-read shadow database");
+		if (!env_after.user_spdb) BAIL_OUT("failed to re-read shadow database");
 
 		res_user_free(ru);
 		ru = res_user_new("non_existent_user");
@@ -533,10 +531,10 @@ int main(void) {
 		res_user_set(ru, "uid", "3"); /* conflict with sys user */
 
 		env.user_pwdb = pwdb_init(PASSWD_DB);
-		if (!env.user_pwdb) bail("failed to read passwd db");
+		if (!env.user_pwdb) BAIL_OUT("failed to read passwd db");
 
 		env.user_spdb = spdb_init(SHADOW_DB);
-		if (!env.user_spdb) bail("failed to read gshadow db");
+		if (!env.user_spdb) BAIL_OUT("failed to read gshadow db");
 
 		ok(res_user_stat(ru, &env) == 0, "res_user_stat succeeds");
 
@@ -549,10 +547,10 @@ int main(void) {
 		ok(spdb_write(env.user_spdb, NEW_SHADOW_DB) == 0, "saved shadow db");
 
 		env_after.user_pwdb = pwdb_init(NEW_PASSWD_DB);
-		if (!env_after.user_pwdb) bail("failed to re-read passwd db");
+		if (!env_after.user_pwdb) BAIL_OUT("failed to re-read passwd db");
 
 		env_after.user_spdb = spdb_init(NEW_SHADOW_DB);
-		if (!env_after.user_spdb) bail("failed to re-read shadow db");
+		if (!env_after.user_spdb) BAIL_OUT("failed to re-read shadow db");
 
 		is_null(pwdb_get_by_name(env_after.user_pwdb, "conflictd"),
 			"user conflictd should not have been created in pwdb");
@@ -577,10 +575,10 @@ int main(void) {
 		res_user_set(ru, "uid", "3"); /* conflict with sys user */
 
 		env.user_pwdb = pwdb_init(PASSWD_DB);
-		if (!env.user_pwdb) bail("failed to read passwd db");
+		if (!env.user_pwdb) BAIL_OUT("failed to read passwd db");
 
 		env.user_spdb = spdb_init(SHADOW_DB);
-		if (!env.user_spdb) bail("failed to read gshadow db");
+		if (!env.user_spdb) BAIL_OUT("failed to read gshadow db");
 
 		ok(res_user_stat(ru, &env) == 0, "res_user_stat succeeds");
 
@@ -593,10 +591,10 @@ int main(void) {
 		ok(spdb_write(env.user_spdb, NEW_SHADOW_DB) == 0, "saved gshadow db");
 
 		env_after.user_pwdb = pwdb_init(NEW_PASSWD_DB);
-		if (!env_after.user_pwdb) bail("failed to re-read passwd db");
+		if (!env_after.user_pwdb) BAIL_OUT("failed to re-read passwd db");
 
 		env_after.user_spdb = spdb_init(NEW_SHADOW_DB);
-		if (!env_after.user_spdb) bail("failed to re-read gshadow db");
+		if (!env_after.user_spdb) BAIL_OUT("failed to re-read gshadow db");
 
 		struct passwd *pw = pwdb_get_by_name(env_after.user_pwdb, "daemon");
 		isnt_null(pw, "daemon user should still exist in passwd db");

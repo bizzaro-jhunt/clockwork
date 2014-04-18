@@ -1,5 +1,5 @@
 /*
-  Copyright 2011-2013 James Hunt <james@niftylogic.com>
+  Copyright 2011-2014 James Hunt <james@niftylogic.com>
 
   This file is part of Clockwork.
 
@@ -20,9 +20,7 @@
 #include "test.h"
 #include "../src/mem.h"
 
-int main(void) {
-	test();
-
+TESTS {
 	char *s;
 
 	s = NULL; xfree(s);
@@ -34,11 +32,11 @@ int main(void) {
 	s = NULL; __xfree((void**)s);
 	pass("__xfree(&NULL) doesn't segfault");
 
-	ok_pointer(s = malloc(42), "allocate 42b buffer");
+	ok(s = malloc(42), "allocate 42b buffer");
 	xfree(s);
 	ok(s == NULL, "xfree(s) nullifies s");
 
-	ok_pointer(s = xmalloc(10), "xmalloc allocates memory");
+	ok(s = xmalloc(10), "xmalloc allocates memory");
 	is_string(s, "", "xmalloc memsets");
 	xfree(s);
 

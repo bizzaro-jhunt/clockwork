@@ -2,15 +2,14 @@ AUTOMAKE_OPTIONS = foreign subdir-objects
 
 ############################################################
 
-# FIXME need a way to get these from ./configure
-CW_VAR_DIR    = /var
-CW_ETC_DIR    = /etc/clockwork
-CW_DATA_DIR   = /var/lib/clockwork
-CW_LIB_DIR    = /lib/clockwork
-CW_CACHE_DIR  = /var/cache/clockwork
-
-PKG_CFLAGS    = $(DEPS_CFLAGS) $(shell pkg-config --cflags augeas)
-AM_CFLAGS     = -Wall $(PKG_CFLAGS)
+AM_CFLAGS  = -Wall $(DEPS_CFLAGS)
+# FIXME: use PKG_CHECK_MODULES(AUGEAS, augeas)...
+AM_CFLAGS += $(shell pkg-config --cflags augeas)
+AM_CFLAGS += -DCW_CACHE_DIR=\"$(pkglocalstatedir)\"
+AM_CFLAGS += -DCW_ETC_DIR=\"$(sysconfdir)\"
+AM_CFLAGS += -DCW_VAR_DIR=\"$(localstatedir)\"
+AM_CFLAGS += -DCW_DATA_DIR=\"$(pkglocalstatedir)\"
+AM_CFLAGS += -DCW_LIB_DIR=\"$(pkglibdir)\"
 
 LCOV    := lcov --directory . --base-directory .
 GENHTML := genhtml --prefix $(shell dirname `pwd`)
@@ -20,7 +19,173 @@ no_lcov_c := */t/*.c */t/*.h
 AM_LFLAGS = --header-file --yylineno
 AM_YFLAGS = -d
 
+LDADD = -lctap
+
+
 ############################################################
+
+vimdir=$(datarootdir)
+nobase_vim_DATA  = vim/addons/ftdetect/clockwork.vim
+nobase_vim_DATA += vim/addons/syntax/cwa.vim
+nobase_vim_DATA += vim/addons/syntax/policyd.vim
+nobase_vim_DATA += vim/addons/syntax/pol.vim
+nobase_vim_DATA += vim/registry/vim-clockwork.yaml
+
+helpdir=$(pkglibdir)
+AM_CFLAGS += -DHELP_FILES_DIR=\"$(helpdir)/help\"
+nobase_help_DATA  = help/about.help
+nobase_help_DATA += help/clear.help
+nobase_help_DATA += help/cli.help
+nobase_help_DATA += help/fact.help
+nobase_help_DATA += help/help.help
+nobase_help_DATA += help/load.help
+nobase_help_DATA += help/main
+nobase_help_DATA += help/quit.help
+nobase_help_DATA += help/show.help
+nobase_help_DATA += help/use.help
+
+augdir=$(pkglibdir)
+AM_CFLAGS += -DAUGEAS_INCLUDES=\"$(augdir)/augeas/lenses\"
+nobase_aug_DATA  = augeas/lenses/hosts.aug
+nobase_aug_DATA += augeas/lenses/util.aug
+
+sharedir=$(pkgdatadir)
+nobase_share_DATA  = examples/cwa.conf
+nobase_share_DATA += examples/cwcert.answers
+nobase_share_DATA += examples/manifest.pol
+nobase_share_DATA += examples/policyd.conf
+
+dbdir=$(pkgdatadir)
+nobase_db_DATA  = db/agent.sql
+nobase_db_DATA += db/master.sql
+
+scriptsdir=$(pkglibdir)
+debscriptsdir=$(scriptsdir)/bin/debian
+debscripts_SCRIPTS  = scripts/debian/cw-pkg
+debscripts_SCRIPTS += scripts/debian/cw-svc
+
+rhscriptsdir=$(scriptsdir)/bin/redhat
+rhscripts_SCRIPTS  = scripts/redhat/cw-pkg
+rhscripts_SCRIPTS += scripts/redhat/cw-svc
+
+defaultscriptsdir=$(scriptsdir)/bin/unspec
+defaultscripts_SCRIPTS  = scripts/unspec/cw-pkg
+defaultscripts_SCRIPTS += scripts/unspec/cw-svc
+
+gatherdir=$(pkglibdir)/gather.d
+gather_SCRIPTS  = gather.d/core
+gather_SCRIPTS += gather.d/time
+
+############################################################
+
+TESTS  = t/00-bits
+TESTS += t/01-string
+TESTS += t/04-hash
+TESTS += t/05-mem
+TESTS += t/06-pack
+TESTS += t/07-sha1
+TESTS += t/08-list
+TESTS += t/10-facts
+TESTS += t/15-path
+TESTS += t/20-stree
+TESTS += t/22-job
+TESTS += t/25-resource
+TESTS += t/30-policy
+TESTS += t/31-template
+TESTS += t/40-userdb
+TESTS += t/50-proto
+TESTS += t/55-cert
+TESTS += t/61-res_user
+TESTS += t/62-res_file
+TESTS += t/63-res_group
+TESTS += t/64-res_dir
+TESTS += t/65-res_host
+TESTS += t/66-res_sysctl
+TESTS += t/67-res_service
+TESTS += t/68-res_package
+TESTS += t/69-res_exec
+TESTS += t/70-managers
+
+TEST_HELPERS  = t/helpers/executor
+TEST_HELPERS += t/helpers/prompter
+TEST_HELPERS += t/helpers/proto
+
+check_PROGRAMS = $(TESTS) $(TEST_HELPERS)
+BUILT_TESTS    = $(TESTS) $(TEST_HELPERS)
+
+
+test_source  = src/mem.h        src/mem.c
+test_source += src/sha1.h       src/sha1.c
+test_source += src/userdb.h     src/userdb.c
+test_source += src/cert.h       src/cert.c
+test_source += src/prompt.h     src/prompt.c
+test_source += src/exec.h       src/exec.c
+test_source += src/augcw.h      src/augcw.c
+test_source += src/policy.h     src/policy.c
+test_source += src/resource.h   src/resource.c
+test_source += src/resources.h  src/resources.c
+test_source += src/job.h        src/job.c
+test_source += src/template.h   src/template.c
+test_source += src/service.h    src/service.c
+test_source += src/package.h    src/package.c
+test_source += src/proto.h      src/proto.c
+
+test_source += src/conf/grammar.y
+test_source += src/conf/lexer.l
+test_source += src/conf/parser.h
+test_source += src/conf/parser.c
+test_source += src/conf/private.h
+
+test_source += src/spec/grammar.y
+test_source += src/spec/lexer.l
+test_source += src/spec/parser.h
+test_source += src/spec/parser.c
+test_source += src/spec/private.h
+
+test_source += src/tpl/grammar.y
+test_source += src/tpl/lexer.l
+test_source += src/tpl/parser.h
+test_source += src/tpl/parser.c
+test_source += src/tpl/private.h
+
+test_source += src/gear/gear.h
+test_source += src/gear/hash.c
+test_source += src/gear/log.c
+test_source += src/gear/pack.c
+test_source += src/gear/path.c
+test_source += src/gear/string.c
+
+t_00_bits_SOURCES        = t/00-bits.c          $(test_source)
+t_01_string_SOURCES      = t/01-string.c        $(test_source)
+t_04_hash_SOURCES        = t/04-hash.c          $(test_source)
+t_05_mem_SOURCES         = t/05-mem.c           $(test_source)
+t_06_pack_SOURCES        = t/06-pack.c          $(test_source)
+t_07_sha1_SOURCES        = t/07-sha1.c          $(test_source)
+t_08_list_SOURCES        = t/08-list.c          $(test_source)
+t_10_facts_SOURCES       = t/10-facts.c         $(test_source)
+t_15_path_SOURCES        = t/15-path.c          $(test_source)
+t_20_stree_SOURCES       = t/20-stree.c         $(test_source)
+t_22_job_SOURCES         = t/22-job.c           $(test_source)
+t_25_resource_SOURCES    = t/25-resource.c      $(test_source)
+t_30_policy_SOURCES      = t/30-policy.c        $(test_source)
+t_31_template_SOURCES    = t/31-template.c      $(test_source)
+t_40_userdb_SOURCES      = t/40-userdb.c        $(test_source)
+t_50_proto_SOURCES       = t/50-proto.c         $(test_source)
+t_55_cert_SOURCES        = t/55-cert.c          $(test_source)
+t_61_res_user_SOURCES    = t/61-res_user.c      $(test_source)
+t_62_res_file_SOURCES    = t/62-res_file.c      $(test_source)
+t_63_res_group_SOURCES   = t/63-res_group.c     $(test_source)
+t_64_res_dir_SOURCES     = t/64-res_dir.c       $(test_source)
+t_65_res_host_SOURCES    = t/65-res_host.c      $(test_source)
+t_66_res_sysctl_SOURCES  = t/66-res_sysctl.c    $(test_source)
+t_67_res_service_SOURCES = t/67-res_service.c   $(test_source)
+t_68_res_package_SOURCES = t/68-res_package.c   $(test_source)
+t_69_res_exec_SOURCES    = t/69-res_exec.c      $(test_source)
+t_70_managers_SOURCES    = t/70-managers.c      $(test_source)
+
+t_helpers_executor_SOURCES = t/helpers/executor.c $(test_source)
+t_helpers_prompter_SOURCES = t/helpers/prompter.c $(test_source)
+t_helpers_proto_SOURCES    = t/helpers/proto.c    $(test_source)
 
 CLEANFILES       = $(BUILT_SOURCES)
 CLEANFILES      += t/**/*.o t/*.o
@@ -35,31 +200,33 @@ EXTRA_DIST       = build doc extra t var rpm
 EXTRA_DIST      += configure.dev
 EXTRA_DIST      += cwdb
 EXTRA_DIST      += HACKING
-EXTRA_DIST      += share/db
-EXTRA_DIST      += share/examples
-EXTRA_DIST      += share/gather.d
-EXTRA_DIST      += share/help
-EXTRA_DIST      += share/man
 EXTRA_DIST      += share/rpm
-EXTRA_DIST      += share/vim
-EXTRA_DIST      += scripts
 
-dist_man_MANS    = share/man/clockwork.7
-dist_man_MANS   += share/man/cwa.1
-dist_man_MANS   += share/man/cwa.conf.5
-dist_man_MANS   += share/man/cwpol.1
-dist_man_MANS   += share/man/cwtemplate.1
-dist_man_MANS   += share/man/policyd.1
-dist_man_MANS   += share/man/policyd.conf.5
-dist_man_MANS   += share/man/res_dir.5
-dist_man_MANS   += share/man/res_exec.5
-dist_man_MANS   += share/man/res_file.5
-dist_man_MANS   += share/man/res_group.5
-dist_man_MANS   += share/man/res_host.5
-dist_man_MANS   += share/man/res_package.5
-dist_man_MANS   += share/man/res_service.5
-dist_man_MANS   += share/man/res_sysctl.5
-dist_man_MANS   += share/man/res_user.5
+EXTRA_DIST      += augeas
+EXTRA_DIST      += db
+EXTRA_DIST      += examples
+EXTRA_DIST      += gather.d
+EXTRA_DIST      += help
+EXTRA_DIST      += man
+EXTRA_DIST      += scripts
+EXTRA_DIST      += vim
+
+dist_man_MANS    = man/clockwork.7
+dist_man_MANS   += man/cwa.1
+dist_man_MANS   += man/cwa.conf.5
+dist_man_MANS   += man/cwpol.1
+dist_man_MANS   += man/cwtemplate.1
+dist_man_MANS   += man/policyd.1
+dist_man_MANS   += man/policyd.conf.5
+dist_man_MANS   += man/res_dir.5
+dist_man_MANS   += man/res_exec.5
+dist_man_MANS   += man/res_file.5
+dist_man_MANS   += man/res_group.5
+dist_man_MANS   += man/res_host.5
+dist_man_MANS   += man/res_package.5
+dist_man_MANS   += man/res_service.5
+dist_man_MANS   += man/res_sysctl.5
+dist_man_MANS   += man/res_user.5
 
 ############################################################
 
@@ -102,8 +269,8 @@ test_obj += src/conf/parser.o src/conf/lexer.o src/conf/grammar.o
 test_obj += src/tpl/parser.o src/tpl/lexer.o src/tpl/grammar.o
 test_obj += src/proto.o
 
-root_sbindir = "/sbin"
-root_sbin_PROGRAMS = cwa cwcert policyd cwca cwpol cwtemplate
+sbindir = "$(prefix)/sbin"
+sbin_PROGRAMS = cwa cwcert policyd cwca cwpol cwtemplate
 policyd_SOURCES = $(core_src) $(server_src) src/policyd.c $(parser_spec_src) $(parser_conf_src) src/db.c src/db.h
 cwca_SOURCES    = $(core_src) $(server_src) src/cwca.c $(parser_conf_src)
 cwa_SOURCES     = $(core_src) $(client_src) src/cwa.c $(parser_conf_src) src/db.c src/db.h
@@ -121,46 +288,6 @@ distfile: dist
 
 manifest:
 	@echo >&2 "nothin doin"
-
-path-check:
-	@echo "   CW_VAR_DIR = $(CW_VAR_DIR)"
-	@echo "   CW_ETC_DIR = $(CW_ETC_DIR)"
-	@echo "   CW_LIB_DIR = $(CW_LIB_DIR)"
-	@echo "  CW_DATA_DIR = $(CW_DATA_DIR)"
-	@echo " CW_CACHE_DIR = $(CW_CACHE_DIR)"
-
-install-data-hook:
-	$(INSTALL) -d -m 0755 $(DESTDIR)$(CW_VAR_DIR)/run
-	$(INSTALL) -d -m 0755 $(DESTDIR)$(CW_VAR_DIR)/lock
-	$(INSTALL) -d -m 0755 $(DESTDIR)$(CW_CACHE_DIR)
-	$(INSTALL) -d -m 0755 $(DESTDIR)$(CW_DATA_DIR)
-	$(INSTALL) -d -m 0755 $(DESTDIR)$(datadir)/vim/addons/syntax
-	$(INSTALL) -d -m 0755 $(DESTDIR)$(datadir)/vim/addons/ftdetect
-	$(INSTALL) -d -m 0755 $(DESTDIR)$(datadir)/vim/registry
-	$(INSTALL)    -m 0644 share/vim/syntax/*.vim   $(DESTDIR)$(datadir)/vim/addons/syntax
-	$(INSTALL)    -m 0644 share/vim/ftdetect/*.vim $(DESTDIR)$(datadir)/vim/addons/ftdetect
-	$(INSTALL)    -m 0644 share/vim/registry/vim-clockwork.yaml $(DESTDIR)$(datadir)/vim/registry
-	$(INSTALL) -d -m 0755 $(DESTDIR)$(CW_LIB_DIR)/augeas/lenses
-	$(INSTALL)    -m 0644 var/augeas/lenses/* $(DESTDIR)$(CW_LIB_DIR)/augeas/lenses
-	$(INSTALL) -d -m 0755 $(DESTDIR)$(pkgdatadir)/db
-	$(INSTALL)    -m 0644 share/db/*.sql $(DESTDIR)$(pkgdatadir)/db
-	$(INSTALL) -d -m 0755 $(DESTDIR)$(CW_LIB_DIR)/help
-	$(INSTALL)    -m 0644 share/help/* $(DESTDIR)$(CW_LIB_DIR)/help
-	$(INSTALL) -d -m 0755 $(DESTDIR)$(CW_ETC_DIR)
-	$(INSTALL) -d -m 0755 $(DESTDIR)$(CW_ETC_DIR)/ssl/pending
-	$(INSTALL) -d -m 0755 $(DESTDIR)$(CW_ETC_DIR)/ssl/signed
-	$(INSTALL)    -m 0644 share/examples/cwa.conf $(DESTDIR)$(CW_ETC_DIR)/cwa.conf
-	$(INSTALL)    -m 0644 share/examples/policyd.conf $(DESTDIR)$(CW_ETC_DIR)/policyd.conf
-	$(INSTALL)    -m 0644 share/examples/manifest.pol $(DESTDIR)$(CW_ETC_DIR)/manifest.pol
-	$(INSTALL) -d -m 0755 $(DESTDIR)$(CW_LIB_DIR)/gather.d
-	$(INSTALL)    -m 0755 share/gather.d/* $(DESTDIR)$(CW_LIB_DIR)/gather.d
-	$(INSTALL) -d -m 0755 $(DESTDIR)$(CW_LIB_DIR)/bin
-	$(INSTALL) -d -m 0755 $(DESTDIR)$(CW_LIB_DIR)/bin/debian
-	$(INSTALL)    -m 0755 scripts/debian/* $(DESTDIR)$(CW_LIB_DIR)/bin/debian
-	$(INSTALL) -d -m 0755 $(DESTDIR)$(CW_LIB_DIR)/bin/redhat
-	$(INSTALL)    -m 0755 scripts/redhat/* $(DESTDIR)$(CW_LIB_DIR)/bin/redhat
-	$(INSTALL) -d -m 0755 $(DESTDIR)$(CW_LIB_DIR)/bin/unspec
-	$(INSTALL)    -m 0755 scripts/unspec/* $(DESTDIR)$(CW_LIB_DIR)/bin/unspec
 
 ############################################################
 # Lex/YACC Parsers
@@ -205,22 +332,3 @@ cov:
 
 clean-cov:
 	find . -name '*.gcda' 2>/dev/null | xargs rm -f
-
-TEST_SOURCE := $(patsubst %.c,%.t,$(shell find t -maxdepth 1 -name '*.c' | sort))
-tests: $(TEST_SOURCE)
-	prove t/*.t t/func/*.t
-test: t/helpers/proto t/helpers/prompter t/helpers/executor tests
-
-t/%.t.o: t/%.c config.h
-	$(CC) -I. -Isrc $(CFLAGS) $(PKG_CFLAGS) $(LDFLAGS) -c $< -o $@
-t/%.t: t/%.t.o $(test_obj)
-	$(CC) $(LDFLAGS) $+ $(LIBS) -o $@
-
-t/helpers/%.o: t/helpers/%.c config.h
-	$(CC) -I. -Isrc $(CFLAGS) $(PKG_CFLAGS) $(LDFLAGS) -c $< -o $@
-t/helpers/prompter: t/helpers/prompter.o $(test_obj)
-	$(CC) $(LDFLAGS) $+ $(LIBS) -o $@
-t/helpers/proto: t/helpers/proto.o $(test_obj)
-	$(CC) $(LDFLAGS) $+ $(LIBS) -o $@
-t/helpers/executor: t/helpers/executor.o $(test_obj)
-	$(CC) $(LDFLAGS) $+ $(LIBS) -o $@

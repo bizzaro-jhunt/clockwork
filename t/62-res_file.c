@@ -1,5 +1,5 @@
 /*
-  Copyright 2011-2013 James Hunt <james@niftylogic.com>
+  Copyright 2011-2014 James Hunt <james@niftylogic.com>
 
   This file is part of Clockwork.
 
@@ -26,9 +26,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-int main(void) {
-	test();
-
+TESTS {
 	subtest {
 		struct res_file *file;
 		char *key;
@@ -116,7 +114,7 @@ int main(void) {
 
 		/* STAT the target file */
 		if (stat("t/tmp/res_file/fstab", &st) != 0)
-			bail("failed to stat pre-remediation file");
+			BAIL_OUT("failed to stat pre-remediation file");
 
 		isnt_int(st.st_uid, 65542, "file owner pre-fixup");
 		isnt_int(st.st_gid, 65524, "file group pre-fixup");

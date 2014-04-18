@@ -1,14 +1,31 @@
+/*
+  Copyright 2011-2014 James Hunt <james@jameshunt.us>
+
+  This file is part of Clockwork.
+
+  Clockwork is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  Clockwork is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #include "test.h"
 #include "../src/policy.h"
 #include "../src/mem.h"
 
-int main() {
-	test();
-
+TESTS {
 	struct hash *facts;
 	FILE *io;
 
-	ok_pointer(facts = hash_new(), "allocated a new facts hash");
+	ok(facts = hash_new(), "allocated a new facts hash");
 	fact_parse("sys.kernel.version=2.6.32-194.distro5-generic\n", facts);
 	is_string(
 		hash_get(facts, "sys.kernel.version"),
@@ -19,9 +36,9 @@ int main() {
 	/**********************************************************/
 
 	io = fopen("t/data/facts/good.facts", "r");
-	ok_pointer(io, "good.facts file opened successfully");
+	ok(io, "good.facts file opened successfully");
 	facts = fact_read(io, NULL);
-	ok_pointer(facts, "fact_read() returns a good pointer");
+	ok(facts, "fact_read() returns a good pointer");
 	is_string(
 		hash_get(facts, "test.fact1"),
 		"fact1",
@@ -40,14 +57,14 @@ int main() {
 	/**********************************************************/
 
 	facts = hash_new();
-	ok_pointer(facts, "hash_new() != NULL");
+	ok(facts, "hash_new() != NULL");
 	io = fopen("t/data/facts/good.facts", "r");
-	ok_pointer(io, "Read good.facts");
+	ok(io, "Read good.facts");
 
 	hash_set(facts, "test.fact1", "OVERRIDE ME");
 	hash_set(facts, "test.fact2", "OVERRIDE ME");
 
-	ok_pointer(fact_read(io, facts), "fact_read(good.facts)");
+	ok(fact_read(io, facts), "fact_read(good.facts)");
 	is_string(
 		hash_get(facts, "test.fact1"), "fact1",
 		"get test.fact1");
@@ -87,8 +104,7 @@ int main() {
 	is_string(
 		hash_get(facts, "sys.os"), "linux",
 		"sys.os is defined (from os.facts)");
-	ok_null(
-		hash_get(facts, "not.defined"),
+	ok(!hash_get(facts, "not.defined"),
 		"not.defined fact (in skip.me) not defined");
 	hash_free_all(facts);
 
@@ -100,15 +116,14 @@ int main() {
 	is_string(
 		hash_get(facts, "sys.os"), "linux",
 		"sys.os is defined (from os.facts)");
-	ok_null(
-		hash_get(facts, "not.defined"),
+	ok(!hash_get(facts, "not.defined"),
 		"not.defined fact (in skip.me) not defined");
 	hash_free_all(facts);
 
 	/**********************************************************/
 
 	facts = hash_new();
-	ok(fact_gather("t/data/facts/gather.d/*.nomatch", facts) == -1,
+	ok(fact_gather("t/data/facts/gather.d/*.nomatch", facts) != 0,
 			"failed to gather facts from bad glob match");
 
 	/**********************************************************/
@@ -121,16 +136,16 @@ int main() {
 	sys("mkdir -p t/tmp");
 	sys("rm -f t/tmp/write.facts");
 	io = fopen("t/tmp/write.facts", "w");
-	ok_pointer(io, "open t/tmp/write.facts for writing");
+	ok(io, "open t/tmp/write.facts for writing");
 	ok(fact_write(io, facts) == 0, "wrote facts");
 	fclose(io);
 
 	hash_free(facts); /* don't use hash_free_all; we called hash_set
 			     with constant strings. */
 	io = fopen("t/tmp/write.facts", "r");
-	ok_pointer(io, "reopened write.facts for reading");
+	ok(io, "reopened write.facts for reading");
 	facts = hash_new();
-	ok_pointer(fact_read(io, facts), "fact_read()");
+	ok(fact_read(io, facts), "fact_read()");
 	fclose(io);
 	is_string(
 		hash_get(facts, "test.os"), "Ubuntu",
@@ -151,6 +166,27 @@ int main() {
 	is_string(
 		hash_get(facts, "exec.fact"), "Value",
 		"check exec.fact");
+	hash_free_all(facts);
+
+	/**********************************************************/
+
+	facts = hash_new();
+	ok(fact_exec_read("t/data/facts/ENOENT", facts) != 0,
+			"failed to read facts from a non-existent gatherer script");
+	hash_free_all(facts);
+
+	/**********************************************************/
+
+	facts = hash_new();
+	ok(fact_exec_read("t/data/facts/empty.sh", facts) != 0,
+			"failed to read facts from an empty gatherer script");
+	hash_free_all(facts);
+
+	/**********************************************************/
+
+	facts = hash_new();
+	ok(fact_exec_read("t/data/facts/non-exec.sh", facts) != 0,
+			"failed to read facts from a non-executable gatherer script");
 	hash_free_all(facts);
 
 	/**********************************************************/

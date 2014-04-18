@@ -892,9 +892,9 @@ int cert_revoke_certificate(X509_CRL *crl, X509 *cert, EVP_PKEY *key)
 	assert(crl); // LCOV_EXCL_LINE
 	assert(cert); // LCOV_EXCL_LINE
 
-	X509_REVOKED *revoked_cert;
-	ASN1_ENUMERATED *reason_code;
-	ASN1_TIME *revoked_at; /* now */
+	X509_REVOKED     *revoked_cert = NULL;
+	ASN1_ENUMERATED  *reason_code  = NULL;
+	ASN1_TIME        *revoked_at   = NULL;
 
 	if (cert_X509_CRL_get0_by_serial(crl, &revoked_cert, X509_get_serialNumber(cert)) == 0) {
 		DEBUG("Already revoked...");

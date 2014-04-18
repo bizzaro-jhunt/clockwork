@@ -1,5 +1,5 @@
 /*
-  Copyright 2011-2013 James Hunt <james@niftylogic.com>
+  Copyright 2011-2014 James Hunt <james@niftylogic.com>
 
   This file is part of Clockwork.
 
@@ -27,9 +27,7 @@
 #define FIPS2_OUT "84983e44" "1c3bd26e" "baae4aa1" "f95129e5" "e54670f1"
 #define FIPS3_OUT "34aa973c" "d4c4daa4" "f61eeb2b" "dbad2731" "6534016f"
 
-int main(void) {
-	test();
-
+TESTS {
 	struct SHA1 cksum, calc, init;
 	struct sha1_ctx ctx;
 	int i;

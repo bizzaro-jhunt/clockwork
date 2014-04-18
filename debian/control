@@ -11,6 +11,7 @@ Build-Depends: debhelper (>= 8.0.0),
                libssl-dev (>= 1.0.0),
                libtest-deep-perl,
                libtest-simple-perl,
+               libctap-dev (>= 1.1.4),
                openssl,
                pkg-config
 Standards-Version: 3.9.3

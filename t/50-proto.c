@@ -1,5 +1,5 @@
 /*
-  Copyright 2011-2013 James Hunt <james@niftylogic.com>
+  Copyright 2011-2014 James Hunt <james@niftylogic.com>
 
   This file is part of Clockwork.
 
@@ -143,8 +143,7 @@ static void child_expects_GET_CERT(void) { execl(SUB, ARG0, "GET_CERT", NULL); }
 static void child_expects_SEND_CERT(void) { execl(SUB, ARG0, "SEND_CERT", NULL); }
 static void child_expects_REPORT(void) { execl(SUB, ARG0, "REPORT", NULL); }
 
-int main(void) {
-	test();
+TESTS {
 	cert_init();
 	protocol_ssl_init();
 

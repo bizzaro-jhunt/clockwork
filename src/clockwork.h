@@ -33,44 +33,23 @@
 
 /* cleartext system password database **/
 #ifndef SYS_PASSWD
-#  define SYS_PASSWD PREFIX "/etc/passwd"
+#  define SYS_PASSWD PREFIX CW_ETC_DIR "/passwd"
 #endif
 
 /* encrypted system password database **/
 #ifndef SYS_SHADOW
-#define SYS_SHADOW PREFIX "/etc/shadow"
+#  define SYS_SHADOW PREFIX CW_ETC_DIR "/shadow"
 #endif
 
 /* cleartext system group database **/
 #ifndef SYS_GROUP
-#  define SYS_GROUP PREFIX "/etc/group"
+#  define SYS_GROUP PREFIX CW_ETC_DIR "/group"
 #endif
 
 /* encrypted system group database **/
 #ifndef SYS_GSHADOW
-#  define SYS_GSHADOW PREFIX "/etc/gshadow"
+#  define SYS_GSHADOW PREFIX CW_ETC_DIR "/gshadow"
 #endif
-
-#ifndef CW_VAR_DIR
-#  define CW_VAR_DIR PREFIX "/var"
-#endif
-
-#ifndef CW_ETC_DIR
-#  define CW_ETC_DIR PREFIX "/etc/clockwork"
-#endif
-
-#ifndef CW_DATA_DIR
-#  define CW_DATA_DIR PREFIX "/var/lib/clockwork"
-#endif
-
-#ifndef CW_LIB_DIR
-#  define CW_LIB_DIR PREFIX "/lib/clockwork"
-#endif
-
-#ifndef CW_CACHE_DIR
-#  define CW_CACHE_DIR PREFIX "/var/cache/clockwork"
-#endif
-
 
 #ifdef DEVEL
 #  define AUGEAS_ROOT "test/augeas"
@@ -104,9 +83,6 @@
 #define DEFAULT_RETAIN_DAYS         45
 
 #define CACHED_FACTS_DIR            CW_CACHE_DIR "/facts"
-#define HELP_FILES_DIR              CW_LIB_DIR "/help"
-
-#define AUGEAS_INCLUDES             CW_LIB_DIR "/augeas/lenses"
 
 #include <assert.h>
 #include <stdlib.h>

@@ -1,5 +1,5 @@
 /*
-  Copyright 2011-2013 James Hunt <james@niftylogic.com>
+  Copyright 2011-2014 James Hunt <james@niftylogic.com>
 
   This file is part of Clockwork.
 
@@ -63,9 +63,7 @@ static void assert_sgdb_get(struct sgdb *db, const char *name)
 
 /*********************************************************/
 
-int main(void) {
-	test();
-
+TESTS {
 	subtest {
 		struct pwdb *db;
 		struct passwd *pw;

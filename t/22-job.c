@@ -1,5 +1,5 @@
 /*
-  Copyright 2011-2013 James Hunt <james@niftylogic.com>
+  Copyright 2011-2014 James Hunt <james@niftylogic.com>
 
   This file is part of Clockwork.
 
@@ -49,9 +49,7 @@ static struct job* fake_job(void)
 	return job;
 }
 
-int main(void) {
-	test();
-
+TESTS {
 	subtest {
 		job_free(NULL);    pass("job_free(NULL) does not segfault");
 		report_free(NULL); pass("report_free(NULL) does not segfault");

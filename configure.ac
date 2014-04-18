@@ -2,14 +2,13 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.68)
-
-AC_INIT(clockwork, 0.4.7, bugs@niftylogic.com)
+AC_INIT([clockwork], [0.5.0], [bugs@niftylogic.com])
 
 AC_CONFIG_SRCDIR([src])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS(config.h)
 
-AM_INIT_AUTOMAKE(0.3.2)
+AM_INIT_AUTOMAKE([-Wall -Werror foreign subdir-objects])
 
 # Checks for programs.
 AC_PROG_YACC
@@ -17,7 +16,6 @@ AC_PROG_CC
 AC_PROG_LEX
 AC_PROG_INSTALL
 
-# Checks for libraries.
 AC_CHECK_LIB(ssl,
 	SSL_library_init,,
 	AC_MSG_ERROR(Missing OpenSSL libraries))
@@ -42,42 +40,45 @@ AC_CHECK_LIB(augeas,
 	aug_init,,
 	AC_MSG_ERROR(Missing Augeas library))
 
-# Checks for header files.
+AC_HAVE_LIBRARY(ctap,,
+	AC_MSG_ERROR(Missing ctap testing library))
 
-AC_CHECK_HEADERS([arpa/inet.h])
-AC_CHECK_HEADERS([assert.h])
-AC_CHECK_HEADERS([augeas.h])
-AC_CHECK_HEADERS([ctype.h])
-AC_CHECK_HEADERS([errno.h])
-AC_CHECK_HEADERS([fcntl.h])
-AC_CHECK_HEADERS([fts.h])
-AC_CHECK_HEADERS([getopt.h])
-AC_CHECK_HEADERS([glob.h])
-AC_CHECK_HEADERS([grp.h])
-AC_CHECK_HEADERS([libgen.h])
-AC_CHECK_HEADERS([linux/limits.h])
-AC_CHECK_HEADERS([netdb.h])
-AC_CHECK_HEADERS([pthread.h])
-AC_CHECK_HEADERS([pwd.h])
-AC_CHECK_HEADERS([readline/history.h])
-AC_CHECK_HEADERS([readline/readline.h])
-AC_CHECK_HEADERS([shadow.h])
-AC_CHECK_HEADERS([signal.h])
-AC_CHECK_HEADERS([sqlite3.h])
-AC_CHECK_HEADERS([stdarg.h])
-AC_CHECK_HEADERS([stdint.h])
-AC_CHECK_HEADERS([stdio.h])
-AC_CHECK_HEADERS([stdlib.h])
-AC_CHECK_HEADERS([string.h])
-AC_CHECK_HEADERS([sys/select.h])
-AC_CHECK_HEADERS([sys/socket.h])
-AC_CHECK_HEADERS([sys/stat.h])
-AC_CHECK_HEADERS([sys/time.h])
-AC_CHECK_HEADERS([sys/types.h])
-AC_CHECK_HEADERS([sys/utsname.h])
-AC_CHECK_HEADERS([sys/wait.h])
-AC_CHECK_HEADERS([time.h])
-AC_CHECK_HEADERS([unistd.h])
+AC_CHECK_HEADERS([\
+	arpa/inet.h \
+	assert.h \
+	augeas.h \
+	ctype.h \
+	errno.h \
+	fcntl.h \
+	fts.h \
+	getopt.h \
+	glob.h \
+	grp.h \
+	libgen.h \
+	linux/limits.h \
+	netdb.h \
+	pthread.h \
+	pwd.h \
+	readline/history.h \
+	readline/readline.h \
+	shadow.h \
+	signal.h \
+	sqlite3.h \
+	stdarg.h \
+	stdint.h \
+	stdio.h \
+	stdlib.h \
+	string.h \
+	sys/select.h \
+	sys/socket.h \
+	sys/stat.h \
+	sys/time.h \
+	sys/types.h \
+	sys/utsname.h \
+	sys/wait.h \
+	time.h \
+	unistd.h \
+])
 
 #AC_CHECK_HEADERS([libxml/tree.h])
 
@@ -110,18 +111,21 @@ AC_FUNC_FORK
 AC_FUNC_MALLOC
 AC_FUNC_REALLOC
 
-AC_CHECK_FUNCS([dup2])
-AC_CHECK_FUNCS([gettimeofday])
-AC_CHECK_FUNCS([memset])
-AC_CHECK_FUNCS([mkdir])
-AC_CHECK_FUNCS([rmdir])
-AC_CHECK_FUNCS([select])
-AC_CHECK_FUNCS([strcasecmp])
-AC_CHECK_FUNCS([strdup])
-AC_CHECK_FUNCS([strerror])
-AC_CHECK_FUNCS([strtol])
-AC_CHECK_FUNCS([strtoul])
-AC_CHECK_FUNCS([strtoull])
-AC_CHECK_FUNCS([uname])
+AC_CHECK_FUNCS([\
+	dup2 \
+	gettimeofday \
+	memset \
+	mkdir \
+	rmdir \
+	select \
+	strcasecmp \
+	strdup \
+	strerror \
+	strtol \
+	strtoul \
+	strtoull \
+	uname \
+])
 
-AC_OUTPUT(Makefile)
+AC_CONFIG_FILES([Makefile])
+AC_OUTPUT

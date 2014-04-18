@@ -1,5 +1,5 @@
 /*
-  Copyright 2011-2013 James Hunt <james@niftylogic.com>
+  Copyright 2011-2014 James Hunt <james@niftylogic.com>
 
   This file is part of Clockwork.
 
@@ -20,8 +20,7 @@
 #include "test.h"
 #include "../src/cert.h"
 
-int main(void) {
-	test();
+TESTS {
 	cert_init();
 
 	subtest {

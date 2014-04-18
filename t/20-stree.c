@@ -1,5 +1,5 @@
 /*
-  Copyright 2011-2013 James Hunt <james@niftylogic.com>
+  Copyright 2011-2014 James Hunt <james@niftylogic.com>
 
   This file is part of Clockwork.
 
@@ -27,11 +27,11 @@ static struct manifest *MANIFEST;
 static struct stree* child_of(struct stree *parent, struct stree *new)
 {
 	if (!new) {
-		bail("couldn't alloc a new stree node");
+		BAIL_OUT("couldn't alloc a new stree node");
 	}
 
 	if (stree_add(parent, new) != 0) {
-		bail("couldn't add stree to parent");
+		BAIL_OUT("couldn't add stree to parent");
 	}
 
 	return new;
@@ -164,9 +164,7 @@ static struct hash* facts_for_tikanga24(void)
 	return h;
 }
 
-int main(void) {
-	test();
-
+TESTS {
 	MANIFEST = manifest_new();
 
 	subtest {

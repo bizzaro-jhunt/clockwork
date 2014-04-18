@@ -17,8 +17,8 @@
   along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "clockwork.h"
-#include "exec.h"
+#include "../../src/clockwork.h"
+#include "../../src/exec.h"
 
 int main(int argc, char **argv)
 {

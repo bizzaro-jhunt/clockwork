@@ -1,5 +1,5 @@
 /*
-  Copyright 2011-2013 James Hunt <james@jameshunt.us>
+  Copyright 2011-2014 James Hunt <james@jameshunt.us>
 
   This file is part of Clockwork.
 
@@ -29,9 +29,7 @@ static void is_canonical(const char *orig_path, const char *expected)
 	path_free(p);
 }
 
-int main(void) {
-	test();
-
+TESTS {
 	subtest {
 		struct path *p = NULL;
 		path_free(p);

@@ -27,9 +27,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-int main(void) {
-	test();
-
+TESTS {
 	const char *SM = "t/data/managers/svc";
 	const char *PM = "t/data/managers/pkg";
 

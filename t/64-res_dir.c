@@ -1,5 +1,5 @@
 /*
-  Copyright 2011-2013 James Hunt <james@niftylogic.com>
+  Copyright 2011-2014 James Hunt <james@niftylogic.com>
 
   This file is part of Clockwork.
 
@@ -26,9 +26,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-int main(void) {
-	test();
-
+TESTS {
 	subtest {
 		struct res_dir *dir;
 		char *key;
@@ -115,7 +113,7 @@ int main(void) {
 
 		sys("mkdir -p t/tmp/fixme-dir");
 		if (stat("t/tmp/fixme-dir", &st) != 0)
-			bail("Failed to stat pre-fixup dir");
+			BAIL_OUT("Failed to stat pre-fixup dir");
 		isnt_int(st.st_uid, 65542, "pre-fixup directory owner");
 		isnt_int(st.st_gid, 65524, "pre-fixup directory group");
 		isnt_int(st.st_mode & 07777, 0754, "pre-fixup directory mode");
@@ -138,7 +136,7 @@ int main(void) {
 		is_int(report->compliant, 1, "dir is compliant");
 
 		if (stat("t/tmp/fixme-dir", &st) != 0)
-			bail("Failed to stat post-fixup dir");
+			BAIL_OUT("Failed to stat post-fixup dir");
 		is_int(st.st_uid, 65542, "post-fixup directory owner");
 		is_int(st.st_gid, 65524, "post-fixup directory group");
 		is_int(st.st_mode & 07777, 0754, "post-fixup directory mode");

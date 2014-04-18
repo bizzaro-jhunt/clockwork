@@ -17,8 +17,8 @@
   along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "clockwork.h"
-#include "prompt.h"
+#include "../../src/clockwork.h"
+#include "../../src/prompt.h"
 
 int main(int argc, char **argv)
 {

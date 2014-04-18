@@ -26,9 +26,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-int main(void) {
-	test();
-
+TESTS {
 	subtest {
 		struct res_exec *exec;
 		char *key;

@@ -1,10 +1,18 @@
 #ifndef T_TEST_H
 #define T_TEST_H
 
-#include "ctap.h"
+#include <ctap.h>
+#include <stdlib.h>
 #include "../src/resource.h"
 #include "../src/policy.h"
 
+#ifdef __GNUC__
+#define TEST_HELPER __attribute__ ((unused))
+#else
+#define TEST_HELPER
+#endif
+
+TEST_HELPER
 static int num_res(const struct policy *pol, enum restype t)
 {
 	int n = 0;
@@ -15,6 +23,7 @@ static int num_res(const struct policy *pol, enum restype t)
 	return n;
 }
 
+TEST_HELPER
 static int has_dep(const struct policy *pol, const char *a, const char *b)
 {
 	struct dependency *dep;
@@ -25,5 +34,13 @@ static int has_dep(const struct policy *pol, const char *a, const char *b)
 	}
 	return 0;
 }
+
+TEST_HELPER
+static void sys(const char *cmd)
+{
+	int rc = system(cmd);
+	rc++;
+}
+
 
 #endif

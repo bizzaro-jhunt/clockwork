@@ -37,8 +37,8 @@ static void
 _head1(char *buf)
 {
 	char *p;
-	if (p = strchr(buf, '\n')) { *p = '\0'; }
-	if (p = strchr(buf, '\r')) { *p = '\0'; }
+	if ((p = strchr(buf, '\n'))) { *p = '\0'; }
+	if ((p = strchr(buf, '\r'))) { *p = '\0'; }
 }
 
 int
@@ -80,7 +80,7 @@ package_version(const char *mgr, const char *pkg)
 char *
 package_latest(const char *mgr, const char *pkg)
 {
-	char *version, *p;
+	char *version;
 	int rc;
 
 	rc = _package_exec(mgr, "latest", pkg, NULL, &version);

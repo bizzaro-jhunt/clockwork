@@ -1,5 +1,5 @@
 /*
-  Copyright 2011-2013 James Hunt <james@niftylogic.com>
+  Copyright 2011-2014 James Hunt <james@niftylogic.com>
 
   This file is part of Clockwork.
 
@@ -72,9 +72,7 @@ static char* render(const char *code)
 	return final;
 }
 
-int main(void) {
-	test();
-
+TESTS {
 	subtest {
 		struct template *t;
 		char *actual;

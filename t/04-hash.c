@@ -1,5 +1,5 @@
 /*
-  Copyright 2011-2013 James Hunt <james@jameshunt.us>
+  Copyright 2011-2014 James Hunt <james@jameshunt.us>
 
   This file is part of Clockwork.
 
@@ -20,9 +20,7 @@
 #include "test.h"
 #include "../src/gear/gear.h"
 
-int main(void) {
-	test();
-
+TESTS {
 	ok(H64("test") == H64("test"),  "H64 equivalency");
 	ok(H64("test") != H64("other"), "H64 equivalency");
 

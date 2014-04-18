@@ -1,5 +1,5 @@
 /*
-  Copyright 2011-2013 James Hunt <james@niftylogic.com>
+  Copyright 2011-2014 James Hunt <james@niftylogic.com>
 
   This file is part of Clockwork.
 
@@ -21,9 +21,7 @@
 #include "../src/clockwork.h"
 #include "../src/resource.h"
 
-int main(void) {
-	test();
-
+TESTS {
 	subtest {
 		resource_free(NULL);
 		pass("resource_free(NULL) doesn't segfault");
@@ -75,7 +73,7 @@ int main(void) {
 		sys("chmod 0755 t/tmp/res_dir");
 
 		if (stat("t/tmp/res_dir", &st) != 0) {
-			bail("failed to stat dir for resource callback tests");
+			BAIL_OUT("failed to stat dir for resource callback tests");
 		}
 		ok(st.st_mode & 0777 != 0705, "pre-stat mode not 0705");
 
@@ -89,7 +87,7 @@ int main(void) {
 
 		isnt_null(report = resource_fixup(res, 0, &env), "fixed up");
 		if (stat("t/tmp/res_dir", &st) != 0) {
-			bail("failed to stat dir for resource callback tests");
+			BAIL_OUT("failed to stat dir for resource callback tests");
 		}
 		is_int(st.st_mode & 07777, 0705, "post-fixup mode");
 		ok(report->fixed, "resource was fixed");

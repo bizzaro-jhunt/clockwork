@@ -1,5 +1,5 @@
 /*
-  Copyright 2011-2013 James Hunt <james@niftylogic.com>
+  Copyright 2011-2014 James Hunt <james@niftylogic.com>
 
   This file is part of Clockwork.
 
@@ -27,9 +27,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-int main(void) {
-	test();
-
+TESTS {
 	subtest {
 		struct res_package *package;
 		char *key;

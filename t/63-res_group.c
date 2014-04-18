@@ -1,5 +1,5 @@
 /*
-  Copyright 2011-2013 James Hunt <james@niftylogic.com>
+  Copyright 2011-2014 James Hunt <james@niftylogic.com>
 
   This file is part of Clockwork.
 
@@ -32,9 +32,7 @@
 #define NEW_GROUP_DB   "t/tmp/group"
 #define NEW_GSHADOW_DB "t/tmp/gshadow"
 
-int main(void) {
-	test();
-
+TESTS {
 	subtest {
 		struct res_group *group;
 		char *key;
@@ -113,10 +111,10 @@ int main(void) {
 		res_group_remove_admin(rg, "admin2");
 
 		env.group_grdb = grdb_init(GROUP_DB);
-		if (!env.group_grdb) bail("failed to read group db");
+		if (!env.group_grdb) BAIL_OUT("failed to read group db");
 
 		env.group_sgdb = sgdb_init(GSHADOW_DB);
-		if (!env.group_sgdb) bail("failed to read gshadow db");
+		if (!env.group_sgdb) BAIL_OUT("failed to read gshadow db");
 
 		ok(res_group_stat(rg, &env) == 0, "res_group_stat succeeds");
 
@@ -159,10 +157,10 @@ int main(void) {
 		res_group_set(rg, "gid", "6010");
 
 		env.group_grdb = grdb_init(GROUP_DB);
-		if (!env.group_grdb) bail("failed to read group db");
+		if (!env.group_grdb) BAIL_OUT("failed to read group db");
 
 		env.group_sgdb = sgdb_init(GSHADOW_DB);
-		if (!env.group_sgdb) bail("failed to read gshadow db");
+		if (!env.group_sgdb) BAIL_OUT("failed to read gshadow db");
 
 		ok(res_group_stat(rg, &env) == 0, "res_group_stat succeeds");
 		isnt_null(report = res_group_fixup(rg, 0, &env), "group fixup");
@@ -189,10 +187,10 @@ int main(void) {
 		res_group_set(rg, "present", "no"); /* Remove the group */
 
 		env.group_grdb = grdb_init(GROUP_DB);
-		if (!env.group_grdb) bail("failed to read group db");
+		if (!env.group_grdb) BAIL_OUT("failed to read group db");
 
 		env.group_sgdb = sgdb_init(GSHADOW_DB);
-		if (!env.group_sgdb) bail("failed to read gshadow db");
+		if (!env.group_sgdb) BAIL_OUT("failed to read gshadow db");
 
 		ok(res_group_stat(rg, &env) == 0, "res_group_stat succeeds");
 		isnt_null(rg->rg_grp, "daemon group exists in group db");
@@ -206,10 +204,10 @@ int main(void) {
 		ok(sgdb_write(env.group_sgdb, NEW_GSHADOW_DB) == 0, "saved gshadow db");
 
 		env_after.group_grdb = grdb_init(NEW_GROUP_DB);
-		if (!env_after.group_grdb) bail("failed to re-read group db");
+		if (!env_after.group_grdb) BAIL_OUT("failed to re-read group db");
 
 		env_after.group_sgdb = sgdb_init(NEW_GSHADOW_DB);
-		if (!env_after.group_sgdb) bail("failed to re-read gshadow db");
+		if (!env_after.group_sgdb) BAIL_OUT("failed to re-read gshadow db");
 
 		res_group_free(rg);
 		rg = res_group_new("daemon");
@@ -236,10 +234,10 @@ int main(void) {
 		res_group_set(rg, "present", "no"); /* Remove the group */
 
 		env.group_grdb = grdb_init(GROUP_DB);
-		if (!env.group_grdb) bail("failed to read group db");
+		if (!env.group_grdb) BAIL_OUT("failed to read group db");
 
 		env.group_sgdb = sgdb_init(GSHADOW_DB);
-		if (!env.group_sgdb) bail("failed to read gshadow db");
+		if (!env.group_sgdb) BAIL_OUT("failed to read gshadow db");
 
 		ok(res_group_stat(rg, &env) == 0, "res_group_stat succeeds");
 		is_null(rg->rg_grp, "non-existent group does not exist in group db");
@@ -253,10 +251,10 @@ int main(void) {
 		ok(sgdb_write(env.group_sgdb, NEW_GSHADOW_DB) == 0, "saved gshadow db");
 
 		env_after.group_grdb = grdb_init(NEW_GROUP_DB);
-		if (!env_after.group_grdb) bail("failed to re-read group db");
+		if (!env_after.group_grdb) BAIL_OUT("failed to re-read group db");
 
 		env_after.group_sgdb = sgdb_init(NEW_GSHADOW_DB);
-		if (!env_after.group_sgdb) bail("failed to re-read gshadow db");
+		if (!env_after.group_sgdb) BAIL_OUT("failed to re-read gshadow db");
 
 		res_group_free(rg);
 		rg = res_group_new("non_existent_group");
@@ -457,10 +455,10 @@ int main(void) {
 		res_group_set(rg, "gid", "3"); /* conflict with sys group */
 
 		env.group_grdb = grdb_init(GROUP_DB);
-		if (!env.group_grdb) bail("failed to read group db");
+		if (!env.group_grdb) BAIL_OUT("failed to read group db");
 
 		env.group_sgdb = sgdb_init(GSHADOW_DB);
-		if (!env.group_sgdb) bail("failed to read gshadow db");
+		if (!env.group_sgdb) BAIL_OUT("failed to read gshadow db");
 
 		ok(res_group_stat(rg, &env) == 0, "res_group_stat succeeds");
 
@@ -473,10 +471,10 @@ int main(void) {
 		ok(sgdb_write(env.group_sgdb, NEW_GSHADOW_DB) == 0, "saved gshadow db");
 
 		env_after.group_grdb = grdb_init(NEW_GROUP_DB);
-		if (!env_after.group_grdb) bail("failed to re-read group db");
+		if (!env_after.group_grdb) BAIL_OUT("failed to re-read group db");
 
 		env_after.group_sgdb = sgdb_init(NEW_GSHADOW_DB);
-		if (!env_after.group_sgdb) bail("failed to re-read gshadow db");
+		if (!env_after.group_sgdb) BAIL_OUT("failed to re-read gshadow db");
 
 		is_null(grdb_get_by_name(env_after.group_grdb, "conflictd"),
 			"group conflictd should not have been created in grdb");
@@ -501,10 +499,10 @@ int main(void) {
 		res_group_set(rg, "gid", "3"); /* conflict with sys group */
 
 		env.group_grdb = grdb_init(GROUP_DB);
-		if (!env.group_grdb) bail("failed to read group db");
+		if (!env.group_grdb) BAIL_OUT("failed to read group db");
 
 		env.group_sgdb = sgdb_init(GSHADOW_DB);
-		if (!env.group_sgdb) bail("failed to read gshadow db");
+		if (!env.group_sgdb) BAIL_OUT("failed to read gshadow db");
 
 		ok(res_group_stat(rg, &env) == 0, "res_group_stat succeeds");
 
@@ -517,10 +515,10 @@ int main(void) {
 		ok(sgdb_write(env.group_sgdb, NEW_GSHADOW_DB) == 0, "saved gshadow db");
 
 		env_after.group_grdb = grdb_init(NEW_GROUP_DB);
-		if (!env_after.group_grdb) bail("failed to re-read group db");
+		if (!env_after.group_grdb) BAIL_OUT("failed to re-read group db");
 
 		env_after.group_sgdb = sgdb_init(NEW_GSHADOW_DB);
-		if (!env_after.group_sgdb) bail("failed to re-read gshadow db");
+		if (!env_after.group_sgdb) BAIL_OUT("failed to re-read gshadow db");
 
 		struct group *gr = grdb_get_by_name(env_after.group_grdb, "daemon");
 		isnt_null(gr, "daemon group should still exist in group db");

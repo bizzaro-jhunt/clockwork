@@ -26,11 +26,11 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#define PASSWD_DB  "t/data/userdb/passwd"
-#define SHADOW_DB  "t/data/userdb/shadow"
+#define PASSWD_DB  TEST_DATA "/userdb/passwd"
+#define SHADOW_DB  TEST_DATA "/userdb/shadow"
 
-#define NEW_PASSWD_DB  "t/tmp/passwd"
-#define NEW_SHADOW_DB  "t/tmp/shadow"
+#define NEW_PASSWD_DB  TEST_TMP "/passwd"
+#define NEW_SHADOW_DB  TEST_TMP "/shadow"
 
 TESTS {
 	subtest {
@@ -199,7 +199,7 @@ TESTS {
 		res_user_set(ru, "gid",      "20");
 		res_user_set(ru, "shell",    "/sbin/nologin");
 		res_user_set(ru, "comment",  "New Account");
-		res_user_set(ru, "home",     "t/tmp/new_user.home");
+		res_user_set(ru, "home",     TEST_TMP "/new_user.home");
 		res_user_set(ru, "skeleton", "/etc/skel.svc");
 
 		env.user_pwdb = pwdb_init(PASSWD_DB);
@@ -221,7 +221,7 @@ TESTS {
 		is_int(   ru->ru_pw->pw_gid,   20,                    "passwd GID");
 		is_string(ru->ru_pw->pw_gecos, "New Account",         "passwd GECOS field");
 		is_string(ru->ru_pw->pw_shell, "/sbin/nologin",       "passwd shell");
-		is_string(ru->ru_pw->pw_dir,   "t/tmp/new_user.home", "passwd home dir");
+		is_string(ru->ru_pw->pw_dir,   TEST_TMP "/new_user.home", "passwd home dir");
 		is_string(ru->ru_sp->sp_namp,  "new_user",            "shadow username");
 
 		report_free(report);

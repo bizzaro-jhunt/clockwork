@@ -150,7 +150,7 @@ TESTS {
 		struct hash *facts;
 
 		facts = hash_new();
-		isnt_null(m = parse_file("t/data/policy/norm/policy.pol"),
+		isnt_null(m = parse_file(TEST_DATA "/policy/norm/policy.pol"),
 				"manifest parsed");
 		isnt_null(pol = policy_generate(hash_get(m->policies, "base"), facts),
 				"policy 'base' found");
@@ -184,7 +184,7 @@ TESTS {
 		struct hash *facts;
 
 		facts = hash_new();
-		isnt_null(m = parse_file("t/data/policy/fail/unknown-attr.pol"),
+		isnt_null(m = parse_file(TEST_DATA "/policy/fail/unknown-attr.pol"),
 				"manifest parsed");
 		isnt_null(pol = policy_generate(hash_get(m->policies, "base"), facts),
 				"policy 'base' found");

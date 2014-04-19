@@ -34,7 +34,7 @@ TESTS {
 		char *fingerprint;
 		struct cert_subject *subj;
 
-		isnt_null(cert = cert_retrieve_certificate("t/data/x509/certs/test.pem"),
+		isnt_null(cert = cert_retrieve_certificate(TEST_DATA "/x509/certs/test.pem"),
 				"retrieved certificate");
 		isnt_null(subj = cert_certificate_issuer(cert), "got cert. issuer");
 		is_string(subj->country,  "US",                 "cert issuer C=");
@@ -70,17 +70,17 @@ TESTS {
 	subtest {
 		EVP_PKEY *key;
 
-		isnt_null(key = cert_retrieve_key("t/data/x509/keys/rsa128.pem"), "retrieved 128-bit RSA key");
+		isnt_null(key = cert_retrieve_key(TEST_DATA "/x509/keys/rsa128.pem"), "retrieved 128-bit RSA key");
 		is_int(key->type, EVP_PKEY_RSA, "rsa128.pem is an RSA key");
 		is_int(RSA_size(key->pkey.rsa) * 8, 128, "rsa128.pem is a 128-bit key");
 		EVP_PKEY_free(key);
 
-		isnt_null(key = cert_retrieve_key("t/data/x509/keys/rsa1024.pem"), "retrieved 1024-bit RSA key");
+		isnt_null(key = cert_retrieve_key(TEST_DATA "/x509/keys/rsa1024.pem"), "retrieved 1024-bit RSA key");
 		is_int(key->type, EVP_PKEY_RSA, "rsa1024.pem is an RSA key");
 		is_int(RSA_size(key->pkey.rsa) * 8, 1024, "rsa1024.pem is a 1024-bit key");
 		EVP_PKEY_free(key);
 
-		isnt_null(key = cert_retrieve_key("t/data/x509/keys/rsa2048.pem"), "retrieved 2048-bit RSA key");
+		isnt_null(key = cert_retrieve_key(TEST_DATA "/x509/keys/rsa2048.pem"), "retrieved 2048-bit RSA key");
 		is_int(key->type, EVP_PKEY_RSA, "rsa2048.pem is an RSA key");
 		is_int(RSA_size(key->pkey.rsa) * 8, 2048, "rsa2048.pem is a 2048-bit key");
 		EVP_PKEY_free(key);
@@ -98,12 +98,12 @@ TESTS {
 	subtest {
 		EVP_PKEY *key, *reread;
 
-		isnt_null(key = cert_retrieve_key("t/data/x509/keys/rsa2048.pem"),
+		isnt_null(key = cert_retrieve_key(TEST_DATA "/x509/keys/rsa2048.pem"),
 				"retrieved key (prior to store and check)");
 
 		ok(cert_store_key(key, "/no/such/path") != 0, "store with bad path");
-		ok(cert_store_key(key, "t/tmp/key1.pem") == 0, "stored key in temp file");
-		isnt_null(reread = cert_retrieve_key("t/tmp/key1.pem"), "re-retrieved key");
+		ok(cert_store_key(key, TEST_TMP "/key1.pem") == 0, "stored key in temp file");
+		isnt_null(reread = cert_retrieve_key(TEST_TMP "/key1.pem"), "re-retrieved key");
 
 		EVP_PKEY_free(key);
 		EVP_PKEY_free(reread);
@@ -115,7 +115,7 @@ TESTS {
 		struct cert_subject *subj;
 
 		is_null(cert_retrieve_request("/no/such/path"), "retrieve CSR bad path");
-		isnt_null(request = cert_retrieve_request("t/data/x509/csrs/csr.pem"),
+		isnt_null(request = cert_retrieve_request(TEST_DATA "/x509/csrs/csr.pem"),
 				"retrieved cert signing request");
 
 		isnt_null(subj = cert_request_subject(request), "got CSR subject");
@@ -145,7 +145,7 @@ TESTS {
 			.fqdn     = "c.example.net"
 		};
 
-		isnt_null(key = cert_retrieve_key("t/data/x509/keys/rsa2048.pem"),
+		isnt_null(key = cert_retrieve_key(TEST_DATA "/x509/keys/rsa2048.pem"),
 			"retrieved key for CSR generation");
 		isnt_null(request = cert_generate_request(key, &build_subject),
 			"generated a certificate signing request");
@@ -167,13 +167,13 @@ TESTS {
 	subtest {
 		X509_REQ *request, *reread;
 
-		isnt_null(request = cert_retrieve_request("t/data/x509/csrs/csr.pem"),
+		isnt_null(request = cert_retrieve_request(TEST_DATA "/x509/csrs/csr.pem"),
 			"Retrieved CSR (prior to store/check)");
 		ok(cert_store_request(request, "no/such/path") != 0,
 			"CSR storage fails with bad path");
-		ok(cert_store_request(request, "t/tmp/csr1.pem") == 0,
+		ok(cert_store_request(request, TEST_TMP "/csr1.pem") == 0,
 			"stored CSR into temp file");
-		isnt_null(reread = cert_retrieve_request("t/tmp/csr1.pem"),
+		isnt_null(reread = cert_retrieve_request(TEST_TMP "/csr1.pem"),
 			"reread CSR from temp file");
 
 		X509_REQ_free(request);
@@ -187,11 +187,11 @@ TESTS {
 		EVP_PKEY *ca_key;
 		struct cert_subject *subj;
 
-		isnt_null(ca_cert = cert_retrieve_certificate("t/data/x509/ca/cert.pem"),
+		isnt_null(ca_cert = cert_retrieve_certificate(TEST_DATA "/x509/ca/cert.pem"),
 			"retrieved CA certificate");
-		isnt_null(ca_key = cert_retrieve_key("t/data/x509/ca/key.pem"),
+		isnt_null(ca_key = cert_retrieve_key(TEST_DATA "/x509/ca/key.pem"),
 			"retrieved CA signing key");
-		isnt_null(csr = cert_retrieve_request("t/data/x509/csrs/sign-me.pem"),
+		isnt_null(csr = cert_retrieve_request(TEST_DATA "/x509/csrs/sign-me.pem"),
 			"retrieved certificate signing request");
 
 		isnt_null(cert = cert_sign_request(csr, ca_cert, ca_key, 2), "signed");
@@ -217,10 +217,10 @@ TESTS {
 		is_string(subj->fqdn, "sign.niftylogic.net", "cert CN=");
 		cert_subject_free(subj);
 
-		ok(cert_store_certificate(cert, "t/tmp/signed.pem") == 0,
+		ok(cert_store_certificate(cert, TEST_TMP "/signed.pem") == 0,
 			"certificate stored in temp file");
 
-		isnt_null(cert = cert_retrieve_certificate("t/tmp/signed.pem"),
+		isnt_null(cert = cert_retrieve_certificate(TEST_TMP "/signed.pem"),
 			"re-read signed certificate");
 		isnt_null(subj = cert_certificate_issuer(cert), "cert issuer found");
 		is_string(subj->org,  "Clockwork Root CA",  "issuer O=");
@@ -238,9 +238,9 @@ TESTS {
 		EVP_PKEY *ca_key;
 		X509 *cert, *ca_cert;
 
-		isnt_null(ca_cert = cert_retrieve_certificate("t/data/x509/ca/cert.pem"), "read CA cert");
-		isnt_null(ca_key = cert_retrieve_key("t/data/x509/ca/key.pem"), "read signing key");
-		isnt_null(cert = cert_retrieve_certificate("t/data/x509/certs/revoke-me.pem"), "read cert");
+		isnt_null(ca_cert = cert_retrieve_certificate(TEST_DATA "/x509/ca/cert.pem"), "read CA cert");
+		isnt_null(ca_key = cert_retrieve_key(TEST_DATA "/x509/ca/key.pem"), "read signing key");
+		isnt_null(cert = cert_retrieve_certificate(TEST_DATA "/x509/certs/revoke-me.pem"), "read cert");
 
 		isnt_null(crl = cert_generate_crl(ca_cert), "generated CRL");
 		ok(cert_is_revoked(crl, cert) != 0, "cert not already revoked");
@@ -250,8 +250,8 @@ TESTS {
 		ok(cert_revoke_certificate(crl, cert, ca_key) != 0, "double-revoke fails");
 		ok(cert_is_revoked(crl, cert) == 0, "CRL still lists cert as revoked");
 
-		ok(cert_store_crl(crl, "t/tmp/crl.pem") == 0, "wrote CRL to temp file");
-		isnt_null(crl = cert_retrieve_crl("t/tmp/crl.pem"), "retrieved CRL from temp file");
+		ok(cert_store_crl(crl, TEST_TMP "/crl.pem") == 0, "wrote CRL to temp file");
+		isnt_null(crl = cert_retrieve_crl(TEST_TMP "/crl.pem"), "retrieved CRL from temp file");
 		ok(cert_is_revoked(crl, cert) == 0, "CRL still lists cert as revoked");
 	}
 
@@ -260,16 +260,16 @@ TESTS {
 		X509 **certs;
 		size_t n = 0;
 
-		isnt_null(reqs = cert_retrieve_requests("t/data/x509/csrs/*.pem", &n), "read CSRs");
+		isnt_null(reqs = cert_retrieve_requests(TEST_DATA "/x509/csrs/*.pem", &n), "read CSRs");
 		ok(n > 0, "found multiple cert requests");
 
-		is_null(cert_retrieve_requests("t/data/x509/*.csr", &n), "no requests (bad path)");
+		is_null(cert_retrieve_requests(TEST_DATA "/x509/*.csr", &n), "no requests (bad path)");
 		is_int(n, 0, "no requests (bad path)");
 
-		isnt_null(certs = cert_retrieve_certificates("t/data/x509/certs/*.pem", &n), "read certs");
+		isnt_null(certs = cert_retrieve_certificates(TEST_DATA "/x509/certs/*.pem", &n), "read certs");
 		ok(n > 0, "found multiple certs");
 
-		is_null(cert_retrieve_certificates("t/data/x509/*.cert", &n), "no certs (bad path)");
+		is_null(cert_retrieve_certificates(TEST_DATA "/x509/*.cert", &n), "no certs (bad path)");
 		is_int(n, 0, "no certs(bad path)");
 	}
 

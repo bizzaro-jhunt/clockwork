@@ -5,6 +5,7 @@ AUTOMAKE_OPTIONS = foreign subdir-objects
 AM_CFLAGS  = -Wall $(DEPS_CFLAGS)
 # FIXME: use PKG_CHECK_MODULES(AUGEAS, augeas)...
 AM_CFLAGS += $(shell pkg-config --cflags augeas)
+AM_CFLAGS += -DTEST_DATA=\"$(srcdir)/t/data\"
 AM_CFLAGS += -DCW_CACHE_DIR=\"$(pkglocalstatedir)\"
 AM_CFLAGS += -DCW_ETC_DIR=\"$(sysconfdir)\"
 AM_CFLAGS += -DCW_VAR_DIR=\"$(localstatedir)\"
@@ -188,13 +189,9 @@ t_helpers_prompter_SOURCES = t/helpers/prompter.c $(test_source)
 t_helpers_proto_SOURCES    = t/helpers/proto.c    $(test_source)
 
 CLEANFILES       = $(BUILT_SOURCES)
-CLEANFILES      += t/**/*.o t/*.o
-CLEANFILES      += t/helpers/executor
-CLEANFILES      += t/helpers/prompter
-CLEANFILES      += t/helpers/proto
-CLEANFILES      += */*.t
 CLEANFILES      += */*.gc* */**/*.gc*
 CLEANFILES      += *.tmp lcov.info
+CLEANFILES      += t/tmp/*
 
 EXTRA_DIST       = build doc extra t var rpm
 EXTRA_DIST      += configure.dev
@@ -210,6 +207,8 @@ EXTRA_DIST      += help
 EXTRA_DIST      += man
 EXTRA_DIST      += scripts
 EXTRA_DIST      += vim
+
+EXTRA_DIST      += t/data
 
 dist_man_MANS    = man/clockwork.7
 dist_man_MANS   += man/cwa.1

@@ -26,11 +26,11 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#define GROUP_DB   "t/data/userdb/group"
-#define GSHADOW_DB "t/data/userdb/gshadow"
+#define GROUP_DB   TEST_DATA "/userdb/group"
+#define GSHADOW_DB TEST_DATA "/userdb/gshadow"
 
-#define NEW_GROUP_DB   "t/tmp/group"
-#define NEW_GSHADOW_DB "t/tmp/gshadow"
+#define NEW_GROUP_DB   TEST_TMP "/group"
+#define NEW_GSHADOW_DB TEST_TMP "/gshadow"
 
 TESTS {
 	subtest {

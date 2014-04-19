@@ -72,8 +72,8 @@ TESTS {
 		ok(ENFORCED(rf, RES_FILE_SHA1), "SHA1 enforced");
 		is_string(rf->rf_rpath, "t/data/sha1/file", "source file to enforce");
 
-		res_file_set(rf, "path", "t/tmp/file");
-		is_string(rf->rf_lpath, "t/tmp/file", "target file to enforce");
+		res_file_set(rf, "path", TEST_TMP "/file");
+		is_string(rf->rf_lpath, TEST_TMP "/file", "target file to enforce");
 
 		res_file_free(rf);
 	}
@@ -82,7 +82,7 @@ TESTS {
 		struct res_file *rf;
 
 		rf = res_file_new("sudoers");
-		res_file_set(rf, "path", "t/data/res_file/sudoers");
+		res_file_set(rf, "path", TEST_DATA "/res_file/sudoers");
 		res_file_set(rf, "owner", "someuser");
 		rf->rf_uid = 1001;
 		res_file_set(rf, "group", "somegroup");
@@ -109,11 +109,11 @@ TESTS {
 		struct resource_env env;
 		struct report *report;
 
-		sys("mkdir -p t/tmp/res_file");
-		sys("cp -a t/data/res_file/fstab t/tmp/res_file/fstab");
+		sys("mkdir -p " TEST_TMP "/res_file");
+		sys("cp -a t/data/res_file/fstab " TEST_TMP "/res_file/fstab");
 
 		/* STAT the target file */
-		if (stat("t/tmp/res_file/fstab", &st) != 0)
+		if (stat(TEST_TMP "/res_file/fstab", &st) != 0)
 			BAIL_OUT("failed to stat pre-remediation file");
 
 		isnt_int(st.st_uid, 65542, "file owner pre-fixup");
@@ -121,16 +121,16 @@ TESTS {
 		isnt_int(st.st_mode & 0777, 0754, "file mode pre-fixup");
 
 		rf = res_file_new("fstab");
-		res_file_set(rf, "path",  "t/tmp/res_file/fstab");
+		res_file_set(rf, "path",  TEST_TMP "/res_file/fstab");
 		res_file_set(rf, "owner", "someuser");
 		rf->rf_uid = 65542;
 		res_file_set(rf, "group", "somegroup");
 		rf->rf_gid = 65524;
 		res_file_set(rf, "mode",  "0754");
-		res_file_set(rf, "source", "t/data/res_file/fstab");
+		res_file_set(rf, "source", TEST_DATA "/res_file/fstab");
 
 		/* set up the resource_env for content remediation */
-		env.file_fd = open("t/data/res_file/fstab", O_RDONLY);
+		env.file_fd = open(TEST_DATA "/res_file/fstab", O_RDONLY);
 		ok(env.file_fd > 0, "opened 'remote' file");
 		env.file_len = st.st_size;
 
@@ -144,7 +144,7 @@ TESTS {
 		is_int(report->compliant, 1, "file is compliant");
 
 		/* STAT the fixed up file */
-		if (stat("t/tmp/res_file/fstab", &st) != 0)
+		if (stat(TEST_TMP "/res_file/fstab", &st) != 0)
 			vail("failed to stat post-remediation file");
 		is_int(st.st_uid, 65542, "file owner post-fixup");
 		is_int(st.st_gid, 65524, "file group post-fixup");
@@ -162,12 +162,12 @@ TESTS {
 		struct report *report;
 		struct resource_env env;
 
-		sys("rm -f t/tmp/res_file/new_file");
+		sys("rm -f " TEST_TMP "/res_file/new_file");
 
 		env.file_fd = -1;
 		env.file_len = 0;
 
-		rf = res_file_new("t/tmp/res_file/new_file");
+		rf = res_file_new(TEST_TMP "/res_file/new_file");
 		res_file_set(rf, "owner", "someuser");
 		rf->rf_uid = 65542;
 		res_file_set(rf, "group", "somegroup");
@@ -176,12 +176,12 @@ TESTS {
 
 		ok(res_file_stat(rf, &env) == 0, "res_file_stat succeeds");
 		is_int(rf->rf_exists, 0, "file does not already exists");
-		ok(stat("t/tmp/res_file/new_file", &st) != 0, "pre-fixup stat fails");
+		ok(stat(TEST_TMP "/res_file/new_file", &st) != 0, "pre-fixup stat fails");
 
 		isnt_null(report = res_file_fixup(rf, 0, &env), "file fixup");
 		is_int(report->fixed,     1, "file is fixed");
 		is_int(report->compliant, 1, "file is compliant");
-		ok(stat("t/tmp/res_file/new_file", &st) == 0, "post-fixup stat succeeds");
+		ok(stat(TEST_TMP "/res_file/new_file", &st) == 0, "post-fixup stat succeeds");
 
 		is_int(st.st_uid, 65542, "file UID");
 		is_int(st.st_gid, 65524, "file GID");
@@ -199,7 +199,7 @@ TESTS {
 		struct report *report;
 		struct resource_env env;
 
-		sys("cp -a t/data/res_file/delete t/tmp/res_file/delete");
+		sys("cp -a " TEST_DATA "/res_file/delete " TEST_TMP "/res_file/delete");
 		const char *path = TEST_UNIT_TEMP "/res_file/delete";
 
 		env.file_fd = -1;
@@ -210,12 +210,12 @@ TESTS {
 
 		ok(res_file_stat(rf, &env) == 0, "res_file_stat succeeds");
 		is_int(rf->rf_exists, 1, "file exists");
-		ok(stat("t/tmp/res_file/delete", &st) == 0, "pre-remediation stat succeeds");
+		ok(stat(TEST_TMP "/res_file/delete", &st) == 0, "pre-remediation stat succeeds");
 
 		isnt_null(report = res_file_fixup(rf, 0, &env), "file fixup");
 		is_int(report->fixed,     1, "file is fixed");
 		is_int(report->compliant, 1, "file is compliant");
-		ok(stat("t/tmp/res_file/delete", &st) != 0, "pre-remediation stat fails");
+		ok(stat(TEST_TMP "/res_file/delete", &st) != 0, "pre-remediation stat fails");
 
 		res_file_free(rf);
 		report_free(report);
@@ -228,7 +228,7 @@ TESTS {
 		struct report *report;
 		struct resource_env env;
 
-		sys("rm -f t/tmp/res_file/enoent");
+		sys("rm -f " TEST_TMP "/res_file/enoent");
 
 		env.file_fd = -1;
 		env.file_len = 0;
@@ -238,12 +238,12 @@ TESTS {
 
 		ok(res_file_stat(rf, &env) == 0, "res_file_stat succeeds");
 		is_int(rf->rf_exists, 0, "file doesnt exist");
-		ok(stat("t/tmp/res_file/enoent", &st) != 0, "pre-fixup stat fails");
+		ok(stat(TEST_TMP "/res_file/enoent", &st) != 0, "pre-fixup stat fails");
 
 		isnt_null(report = res_file_fixup(rf, 0, &env), "file fixup");
 		is_int(report->fixed,     0, "file was already compliant");
 		is_int(report->compliant, 1, "file is compliant");
-		ok(stat("t/tmp/res_file/enoent", &st) != 0, "post-fixup stat fails");
+		ok(stat(TEST_TMP "/res_file/enoent", &st) != 0, "post-fixup stat fails");
 
 		res_file_free(rf);
 		report_free(report);

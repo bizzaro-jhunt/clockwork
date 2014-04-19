@@ -27,25 +27,25 @@
 #define ABORT_CODE 42
 
 /* for pwdb_init failure-to-open scenarios */
-#define BAD_FILE "/non/existent/file"
-#define NOT_DIR  "/etc/passwd/is/not/a/directory"
+#define BAD_FILE    "/non/existent/file"
+#define NOT_DIR     "/etc/passwd/is/not/a/directory"
 
 /* test /etc/passwd file */
-#define PWFILE     "t/data/userdb/passwd"
-#define PWFILE_UID "t/data/userdb/passwd-uid"
-#define PWFILE_NEW "t/tmp/passwd"
+#define PWFILE      TEST_DATA "/userdb/passwd"
+#define PWFILE_UID  TEST_DATA "/userdb/passwd-uid"
+#define PWFILE_NEW  TEST_TMP  "/passwd"
 
 /* test /etc/shadow file */
-#define SPFILE     "t/data/userdb/shadow"
-#define SPFILE_NEW "t/tmp/shadow"
+#define SPFILE      TEST_DATA "/userdb/shadow"
+#define SPFILE_NEW  TEST_TMP  "/shadow"
 
 /* test /etc/group file */
-#define GRFILE     "t/data/userdb/group"
-#define GRFILE_NEW "t/tmp/group"
+#define GRFILE      TEST_DATA "/userdb/group"
+#define GRFILE_NEW  TEST_TMP  "/group"
 
 /* test /etc/gshadow file */
-#define SGFILE     "t/data/userdb/gshadow"
-#define SGFILE_NEW "t/tmp/gshadow"
+#define SGFILE      TEST_DATA "/userdb/gshadow"
+#define SGFILE_NEW  TEST_TMP  "/gshadow"
 
 /*********************************************************/
 

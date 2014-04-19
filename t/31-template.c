@@ -24,7 +24,7 @@
 #include <sys/types.h>
 #include <fcntl.h>
 
-#define TPL_FILE "t/tmp/scratch.tpl"
+#define TPL_FILE TEST_TMP "/scratch.tpl"
 
 static int cat(const char *path, const char *what)
 {

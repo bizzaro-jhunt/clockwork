@@ -12,6 +12,14 @@
 #define TEST_HELPER
 #endif
 
+#ifndef TEST_DATA
+#define TEST_DATA "t/data"
+#endif
+
+#ifndef TEST_TMP
+#define TEST_TMP  "t/tmp"
+#endif
+
 TEST_HELPER
 static int num_res(const struct policy *pol, enum restype t)
 {

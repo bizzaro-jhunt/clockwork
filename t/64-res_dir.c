@@ -84,7 +84,7 @@ TESTS {
 		struct res_dir *r;
 
 		r = res_dir_new("dir1");
-		res_dir_set(r, "path", "t/data");
+		res_dir_set(r, "path", TEST_DATA);
 		res_dir_set(r, "owner", "someuser");
 		r->uid = 1001;
 		res_dir_set(r, "group", "staff");
@@ -111,15 +111,15 @@ TESTS {
 
 		const char *path = TEST_UNIT_TEMP "/res_dir/fixme";
 
-		sys("mkdir -p t/tmp/fixme-dir");
-		if (stat("t/tmp/fixme-dir", &st) != 0)
+		sys("mkdir -p " TEST_TMP "/fixme-dir");
+		if (stat(TEST_TMP "/fixme-dir", &st) != 0)
 			BAIL_OUT("Failed to stat pre-fixup dir");
 		isnt_int(st.st_uid, 65542, "pre-fixup directory owner");
 		isnt_int(st.st_gid, 65524, "pre-fixup directory group");
 		isnt_int(st.st_mode & 07777, 0754, "pre-fixup directory mode");
 
 		r = res_dir_new("fix");
-		res_dir_set(r, "path",  "t/tmp/fixme-dir");
+		res_dir_set(r, "path",  TEST_TMP "/fixme-dir");
 		res_dir_set(r, "owner", "someuser");
 		r->uid = 65542;
 		res_dir_set(r, "group", "somegroup");
@@ -135,7 +135,7 @@ TESTS {
 		is_int(report->fixed,     1, "dir is fixed");
 		is_int(report->compliant, 1, "dir is compliant");
 
-		if (stat("t/tmp/fixme-dir", &st) != 0)
+		if (stat(TEST_TMP "/fixme-dir", &st) != 0)
 			BAIL_OUT("Failed to stat post-fixup dir");
 		is_int(st.st_uid, 65542, "post-fixup directory owner");
 		is_int(st.st_gid, 65524, "post-fixup directory group");

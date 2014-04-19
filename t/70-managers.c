@@ -28,8 +28,8 @@
 #include <fcntl.h>
 
 TESTS {
-	const char *SM = "t/data/managers/svc";
-	const char *PM = "t/data/managers/pkg";
+	const char *SM = TEST_DATA "/managers/svc";
+	const char *PM = TEST_DATA "/managers/pkg";
 
 	subtest {
 		/* running-service */

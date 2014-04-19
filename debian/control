@@ -5,13 +5,14 @@ Maintainer: James Hunt <james@niftylogic.com>
 Build-Depends: debhelper (>= 8.0.0),
                libaugeas-dev (>= 0.10.0),
                libaugeas0 (>= 0.10.0),
+               libctap (>= 1.1.4),
+               libctap-dev (>= 1.1.4),
                libfile-slurp-perl,
                libreadline6-dev,
                libsqlite3-dev (>= 3.5.9),
                libssl-dev (>= 1.0.0),
                libtest-deep-perl,
                libtest-simple-perl,
-               libctap-dev (>= 1.1.4),
                openssl,
                pkg-config
 Standards-Version: 3.9.3

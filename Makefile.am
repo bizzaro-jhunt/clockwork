@@ -188,11 +188,7 @@ CLEANFILES      += *.tmp lcov.info
 CLEANFILES      += t/tmp/*
 
 EXTRA_DIST       = HACKING
-EXTRA_DIST      += configure.dev
-EXTRA_DIST      += cwdb
-
 EXTRA_DIST      += augeas db gather.d scripts
-EXTRA_DIST      += build
 EXTRA_DIST      += examples extras
 EXTRA_DIST      += help man
 EXTRA_DIST      += t/data

@@ -62,109 +62,16 @@ Supporting Software Development Tools
 -----------------------------
 
 To get started, you'll want to configure your build environment.
-If you run the ./configure script with the --development flag,
-Clockwork will generate a Makefile component in ./config with
-all the settings you will need to compile with profiling and
-debugging support.
+We recommend:
 
-  $ ./configure --development
-  ===================================
-  Clockwork will be built as follows:
-
-  Environment: development
-
-  User:  clockwork
-  Group: clockwork
-
-  DESTDIR: /
-
-  SBINDIR: /sbin
-  VARDIR:  /var/clockwork
-  ETCDIR:  /etc/clockwork
-  MANDIR:  /usr/share/man
-
-  Build agent tools?    [ Y ]
-  Build master tools?   [ Y ]
-
-  ===================================
-  configuration saved to ./config
-
-(or something like that).
-
-You can ignore the path variables (SBINDIR, VARDIR, etc.) for now;
-unless you issue a `make install', they will remain unused.
-
-You can get a full summary of the build configuration by issuing:
-
-  $ ./configure --show
-
-More technical detail is given by:
-
-  $ make summary
-
-  ===================================
-  Clockwork will be built as follows:
-
-  Environment: release
-
-  User:  clockwork
-  Group: clockwork
-
-  DESTDIR: /
-
-  SBINDIR: /sbin
-  VARDIR:  /var/clockwork
-  ETCDIR:  /etc/clockwork
-  MANDIR:  /usr/share/man
-  HOMEDIR: /var/clockwork
-
-  Build agent tools?    [ Y ]
-  Build master tools?   [ Y ]
-
-  ===================================
-  Build-specific options
-
-  ROOT:      /home/jrhunt/code/cfm
-
-  Externals
-   OpenSSL:  local
-
-  Commands
-   cc:       gcc -L./ext/openssl/lib -lcrypto -lssl -lpthread -lsqlite3 -laugeas -DNDEBUG -fdata-sections -ffunction-sections  -Wl,--gc-sections -Wl,-s
-   lex:      flex --header-file --yylineno
-   yacc:     bison -Wall --token-table --defines
-   valgrind: tools/valgrind
-   lcov:     lcov --directory . --base-directory .
-   genhtml:  genhtml --prefix /home/jrhunt/code
+  $ ./autogen.sh
+  $ ./configure CFLAGS="-DDEVEL -g"
 
 
 
-
-3. A NOTE ON `EXTERNALS'
+3. THERE IS NO SECTION 3
 ------------------------
-(This section is no longer relevant)
-
-In the Clockwork root there is a directory called `ext'.  This directory
-houses external dependencies compiled specifically for Clockwork dev work.
-
-Primarily, it hosts a custom-built version of the OpenSSL library, compiled
-with -DPURIFY and debugging support.  OpenSSL does weird things with
-unitialized stack-allocated variables, esp. in RAND_load_file.  Its unusual
-memory practices stem from its constant hunger for random bits of data,
-and they tend to confuse and anger Valgrind's Memcheck tool.
-
-With the -DPURIFY option, OpenSSL is supposed to compile in such a way
-that Memcheck doesn't complain about everything the library does.
-
-To build the externals, issue a `make externals' and wait.
-
-The custom OpenSSL build will be installed in ext/openssl, and the Makefile
-will pick up on it.  In the `make summary' output, the "OpenSSL" external
-will be listed as 'local' if OpenSSL is installed under ext/.
-
-The ext/ directory is ignored during all cleanup targets except for
-`make dist'.  Specifically, `make clean' will leave the directory intact.
-
+(ha!)
 
 
 

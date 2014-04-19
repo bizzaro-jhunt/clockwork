@@ -18,8 +18,6 @@ Add check for database availability / creation in policyd -t / cwa
 Regular Expression support in manifest definition
 Document custom fact creation
 
-Finish cwdb
-
 Portability Items
 =================
 
@@ -38,5 +36,4 @@ Perpetual List of Things To Do
   - cwa
   - cwcert
   - cwpol
-  - cwdb    [NEW]
   - res_* (one for each resource)

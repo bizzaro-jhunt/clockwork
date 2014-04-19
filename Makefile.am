@@ -271,8 +271,6 @@ manifest:
 ############################################################
 # Lex/YACC Parsers
 
-parserdefs: src/spec/lexer.c src/spec/grammar.c src/tpl/lexer.c src/tpl/grammar.c src/conf/lexer.c src/conf/grammar.c
-
 src/spec/lexer.c: src/spec/lexer.l src/spec/grammar.h src/spec/lexer_impl.h src/spec/parser.h src/spec/private.h
 	$(LEXCOMPILE) --outfile=$@ $<
 

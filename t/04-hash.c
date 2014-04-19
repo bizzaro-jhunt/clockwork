@@ -115,19 +115,19 @@ TESTS {
 
 		for_each_key_value(h, &c, key, value) {
 			if (strcmp(key, "promise") == 0) {
-				saw_promise = 1;
+				saw_promise++;
 				is_string(value, "esimorp", "h.promise");
 
 			} else if (strcmp(key, "snooze") == 0) {
-				saw_snooze = 1;
+				saw_snooze++;
 				is_string(value, "ezoons", "h.snooze");
 
 			} else if (strcmp(key, "central") == 0) {
-				saw_central = 1;
+				saw_central++;
 				is_string(value, "lartnec", "h.central");
 
 			} else if (strcmp(key, "bridge") == 0) {
-				saw_bridge = 1;
+				saw_bridge++;
 				is_string(value, "egdirb", "h.bridge");
 
 			} else {
@@ -135,6 +135,11 @@ TESTS {
 			}
 		}
 		hash_free(h);
+
+		is_int(saw_promise, 1, "saw the promise key only once");
+		is_int(saw_snooze,  1, "saw the snooze key only once");
+		is_int(saw_central, 1, "saw the central key only once");
+		is_int(saw_bridge,  1, "saw the bridge key only once");
 	}
 
 	done_testing();

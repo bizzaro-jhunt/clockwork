@@ -394,7 +394,6 @@ TESTS {
 
 	subtest {
 		struct stringlist *sl1, *sl2;
-		int total = 0;
 		int capacity = 0;
 
 		const char *list1 = "a b c d e f g h i j k l m n";
@@ -404,7 +403,6 @@ TESTS {
 		sl1 = stringlist_split(list1, strlen(list1), " ", 0);
 		sl2 = stringlist_split(list2, strlen(list2), " ", 0);
 
-		total = sl1->num + sl2->num;
 		capacity = sl1->len;
 		ok(sl1->num + sl2->num > sl1->len, "combined list len > sl1 capacity");
 		ok(stringlist_add_all(sl1, sl2) == 0, "combined lists");

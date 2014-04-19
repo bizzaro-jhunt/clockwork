@@ -112,7 +112,6 @@ TESTS {
 	subtest {
 		struct hash *v;
 		struct template *t;
-		const char *expect = "v1: one\nv2: not two\n";
 		char *actual;
 
 		isnt_null(v = hash_new(), "created vars hash");

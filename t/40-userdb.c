@@ -49,20 +49,6 @@
 
 /*********************************************************/
 
-static void assert_sgdb_get(struct sgdb *db, const char *name)
-{
-	char buf[256];
-	struct sgrp *gr;
-
-	gr = sgdb_get_by_name(db, name);
-
-	snprintf(buf, 256, "Look up %s sgrp by name", name);
-	isnt_null(gr, buf);
-	is_string(gr->sg_namp, name, buf);
-}
-
-/*********************************************************/
-
 TESTS {
 	subtest {
 		struct pwdb *db;

@@ -75,7 +75,7 @@ TESTS {
 		if (stat(TEST_TMP "/res_dir", &st) != 0) {
 			BAIL_OUT("failed to stat dir for resource callback tests");
 		}
-		ok(st.st_mode & 0777 != 0705, "pre-stat mode not 0705");
+		ok((st.st_mode & 0777) != 0705, "pre-stat mode not 0705");
 
 		isnt_null(res = resource_new("dir", TEST_TMP "/res_dir"),
 			"created res_dir resource");

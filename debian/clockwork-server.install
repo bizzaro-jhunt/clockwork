@@ -1,11 +1,11 @@
-etc/clockwork/manifest.pol
-etc/clockwork/policyd.conf
-etc/clockwork/ssl/pending
-etc/clockwork/ssl/signed
+examples/manifest.pol etc/clockwork
+examples/policyd.conf etc/clockwork
 lib/clockwork/help
 sbin/cwca
 sbin/cwpol
 sbin/policyd
 usr/share/clockwork/db/master.sql
+usr/share/man/man1/cwca.1
+usr/share/man/man1/cwpol.1
 usr/share/man/man1/policyd.1
 usr/share/man/man5/policyd.conf.5

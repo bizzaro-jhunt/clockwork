@@ -1,7 +1,7 @@
 #!/bin/sh -e
 
 #
-# clockwork-server postinst
+# clockwork-agent postinst
 #
 # author:  James Hunt <jhunt@synacor.com>
 # created: 2013-03-02

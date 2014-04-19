@@ -1,14 +1,16 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
+define([CLOCKWORK_VERSION], [0.5.0])
+
 AC_PREREQ(2.68)
-AC_INIT([clockwork], [0.5.0], [bugs@niftylogic.com])
+AC_INIT([clockwork], CLOCKWORK_VERSION, [bugs@niftylogic.com])
 
 AC_CONFIG_SRCDIR([src])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS(config.h)
 
-AM_INIT_AUTOMAKE([-Wall -Werror foreign subdir-objects])
+AM_INIT_AUTOMAKE([clockwork], CLOCKWORK_VERSION, [-Wall -Werror foreign subdir-objects])
 
 # Checks for programs.
 AC_PROG_YACC

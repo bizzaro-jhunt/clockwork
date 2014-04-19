@@ -1,5 +1,5 @@
-usr/share/vim/addons/ftdetect/clockwork.vim
-usr/share/vim/addons/syntax/cwa.vim
-usr/share/vim/addons/syntax/pol.vim
-usr/share/vim/addons/syntax/policyd.vim
-usr/share/vim/registry/vim-clockwork.yaml
+extras/vim/ftdetect/clockwork.vim       usr/share/vim/addons/ftdetect
+extras/vim/syntax/cwa.vim               usr/share/vim/addons/syntax
+extras/vim/syntax/pol.vim               usr/share/vim/addons/syntax
+extras/vim/syntax/policyd.vim           usr/share/vim/addons/syntax
+extras/vim/registry/vim-clockwork.yaml  usr/share/vim/registry

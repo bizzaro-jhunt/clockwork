@@ -90,3 +90,13 @@ t/67-res_service
 t/68-res_package
 t/69-res_exec
 t/70-managers
+
+*.debhelper.log
+*.debhelper
+*.substvars
+debian/clockwork-agent/
+debian/clockwork-doc/
+debian/clockwork-server/
+debian/files
+debian/tmp/
+debian/vim-clockwork/

@@ -2,14 +2,20 @@ AUTOMAKE_OPTIONS = foreign subdir-objects
 
 ############################################################
 
+pkgsysconfdir = $(sysconfdir)/$(PACKAGE)
+cachedir = $(localstatedir)/cache
+pkgcachedir = $(cachedir)/$(PACKAGE)
+sharedir = $(datarootdir)/share
+pkgsharedir = $(sharedir)/$(PACKAGE)
+
 AM_CFLAGS  = -Wall $(DEPS_CFLAGS)
 # FIXME: use PKG_CHECK_MODULES(AUGEAS, augeas)...
 AM_CFLAGS += $(shell pkg-config --cflags augeas)
 AM_CFLAGS += -DTEST_DATA=\"$(srcdir)/t/data\"
-AM_CFLAGS += -DCW_CACHE_DIR=\"$(pkglocalstatedir)\"
-AM_CFLAGS += -DCW_ETC_DIR=\"$(sysconfdir)\"
+AM_CFLAGS += -DCW_CACHE_DIR=\"$(pkgcachedir)\"
+AM_CFLAGS += -DCW_ETC_DIR=\"$(pkgsysconfdir)\"
 AM_CFLAGS += -DCW_VAR_DIR=\"$(localstatedir)\"
-AM_CFLAGS += -DCW_DATA_DIR=\"$(pkglocalstatedir)\"
+AM_CFLAGS += -DCW_DATA_DIR=\"$(localstatedir)/lib/@PACKAGE_NAME@\"
 AM_CFLAGS += -DCW_LIB_DIR=\"$(pkglibdir)\"
 
 LCOV    := lcov --directory . --base-directory .
@@ -24,13 +30,6 @@ LDADD = -lctap
 
 
 ############################################################
-
-vimdir=$(datarootdir)
-nobase_vim_DATA  = vim/addons/ftdetect/clockwork.vim
-nobase_vim_DATA += vim/addons/syntax/cwa.vim
-nobase_vim_DATA += vim/addons/syntax/policyd.vim
-nobase_vim_DATA += vim/addons/syntax/pol.vim
-nobase_vim_DATA += vim/registry/vim-clockwork.yaml
 
 helpdir=$(pkglibdir)
 AM_CFLAGS += -DHELP_FILES_DIR=\"$(helpdir)/help\"
@@ -50,15 +49,9 @@ AM_CFLAGS += -DAUGEAS_INCLUDES=\"$(augdir)/augeas/lenses\"
 nobase_aug_DATA  = augeas/lenses/hosts.aug
 nobase_aug_DATA += augeas/lenses/util.aug
 
-sharedir=$(pkgdatadir)
-nobase_share_DATA  = examples/cwa.conf
-nobase_share_DATA += examples/cwcert.answers
-nobase_share_DATA += examples/manifest.pol
-nobase_share_DATA += examples/policyd.conf
-
-dbdir=$(pkgdatadir)
-nobase_db_DATA  = db/agent.sql
-nobase_db_DATA += db/master.sql
+extrasdir=$(pkgsharedir)
+nobase_extras_DATA  = db/agent.sql
+nobase_extras_DATA += db/master.sql
 
 scriptsdir=$(pkglibdir)
 debscriptsdir=$(scriptsdir)/bin/debian
@@ -193,26 +186,26 @@ CLEANFILES      += */*.gc* */**/*.gc*
 CLEANFILES      += *.tmp lcov.info
 CLEANFILES      += t/tmp/*
 
-EXTRA_DIST       = build doc extra t var rpm
+EXTRA_DIST       = HACKING
 EXTRA_DIST      += configure.dev
 EXTRA_DIST      += cwdb
-EXTRA_DIST      += HACKING
-EXTRA_DIST      += share/rpm
 
 EXTRA_DIST      += augeas
+EXTRA_DIST      += build
 EXTRA_DIST      += db
 EXTRA_DIST      += examples
+EXTRA_DIST      += extras
 EXTRA_DIST      += gather.d
 EXTRA_DIST      += help
 EXTRA_DIST      += man
 EXTRA_DIST      += scripts
-EXTRA_DIST      += vim
-
-EXTRA_DIST      += t/data
+EXTRA_DIST      += t t/data
 
 dist_man_MANS    = man/clockwork.7
 dist_man_MANS   += man/cwa.1
 dist_man_MANS   += man/cwa.conf.5
+dist_man_MANS   += man/cwca.1
+dist_man_MANS   += man/cwcert.1
 dist_man_MANS   += man/cwpol.1
 dist_man_MANS   += man/cwtemplate.1
 dist_man_MANS   += man/policyd.1

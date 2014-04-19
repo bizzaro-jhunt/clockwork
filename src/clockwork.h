@@ -21,6 +21,9 @@
 #define CLOCKWORK_H
 
 #include "config.h"
+#ifndef VERSION
+#define VERSION PACKAGE_VERSION
+#endif
 
 #define _GNU_SOURCE
 
@@ -33,22 +36,22 @@
 
 /* cleartext system password database **/
 #ifndef SYS_PASSWD
-#  define SYS_PASSWD PREFIX CW_ETC_DIR "/passwd"
+#  define SYS_PASSWD PREFIX "/etc/passwd"
 #endif
 
 /* encrypted system password database **/
 #ifndef SYS_SHADOW
-#  define SYS_SHADOW PREFIX CW_ETC_DIR "/shadow"
+#  define SYS_SHADOW PREFIX "/etc/shadow"
 #endif
 
 /* cleartext system group database **/
 #ifndef SYS_GROUP
-#  define SYS_GROUP PREFIX CW_ETC_DIR "/group"
+#  define SYS_GROUP PREFIX "/etc/group"
 #endif
 
 /* encrypted system group database **/
 #ifndef SYS_GSHADOW
-#  define SYS_GSHADOW PREFIX CW_ETC_DIR "/gshadow"
+#  define SYS_GSHADOW PREFIX "/etc/gshadow"
 #endif
 
 #ifdef DEVEL

@@ -7,7 +7,7 @@ AC_PREREQ(2.68)
 AC_INIT([clockwork], CLOCKWORK_VERSION, [bugs@niftylogic.com])
 
 AC_CONFIG_SRCDIR([src])
-AC_CONFIG_AUX_DIR([build-aux])
+AC_CONFIG_AUX_DIR([build])
 AC_CONFIG_HEADERS(config.h)
 
 AM_INIT_AUTOMAKE([clockwork], CLOCKWORK_VERSION, [-Wall -Werror foreign subdir-objects])

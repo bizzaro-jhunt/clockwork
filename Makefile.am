@@ -1,4 +1,5 @@
 AUTOMAKE_OPTIONS = foreign subdir-objects
+ACLOCAL_AMFLAGS=-I build
 
 ############################################################
 
@@ -17,11 +18,7 @@ AM_CFLAGS += -DCW_ETC_DIR=\"$(pkgsysconfdir)\"
 AM_CFLAGS += -DCW_VAR_DIR=\"$(localstatedir)\"
 AM_CFLAGS += -DCW_DATA_DIR=\"$(localstatedir)/lib/@PACKAGE_NAME@\"
 AM_CFLAGS += -DCW_LIB_DIR=\"$(pkglibdir)\"
-
-LCOV    := lcov --directory . --base-directory .
-GENHTML := genhtml --prefix $(shell dirname `pwd`)
-
-no_lcov_c := */t/*.c */t/*.h
+AM_CFLAGS += @GCOV_CFLAGS@
 
 AM_LFLAGS = --header-file --yylineno
 AM_YFLAGS = -d
@@ -183,8 +180,7 @@ t_helpers_prompter_SOURCES = t/helpers/prompter.c $(test_source)
 t_helpers_proto_SOURCES    = t/helpers/proto.c    $(test_source)
 
 CLEANFILES       = $(BUILT_SOURCES)
-CLEANFILES      += */*.gc* */**/*.gc*
-CLEANFILES      += *.tmp lcov.info
+CLEANFILES      += *.tmp
 CLEANFILES      += t/tmp/*
 
 EXTRA_DIST       = HACKING autogen.sh
@@ -264,6 +260,8 @@ distfile: dist
 manifest:
 	@echo >&2 "nothin doin"
 
+test: check
+
 ############################################################
 # Lex/YACC Parsers
 
@@ -285,23 +283,25 @@ src/conf/lexer.c: src/conf/lexer.l src/conf/grammar.h src/conf/lexer_impl.h src/
 src/conf/grammar.c: src/conf/grammar.y src/conf/parser.c src/conf/parser.h src/conf/private.h
 	$(YACCCOMPILE) -p yyconf --output-file=src/conf/grammar.c $<
 
-.PHONY: coverage
+if GCOV_ENABLED
+coverage-clean:
+	@rm -fr coverage
+	@find . -name "*.gcda" -exec rm {} \;
+	@lcov --directory . --zerocounters
+
+coverage-report:
+	@mkdir -p coverage
+	@lcov --compat-libtool --directory . --base-directory . --capture --output-file coverage/app.info
+	@genhtml -o coverage/ coverage/app.info
+
 coverage:
-	make \
-		CFLAGS="-g -ftest-coverage -fprofile-arcs" \
-		LDFLAGS=-fprofile-arcs \
-		clean-cov \
-		clean \
-		test \
-		cov
+	@make coverage-report
 
-.PHONY: cov
-cov:
-	$(LCOV) --capture -o $@.info.tmp
-	$(LCOV) --remove $@.info.tmp $(no_lcov_c) > lcov.info
-	rm -f $@.info.tmp
-	rm -rf coverage
-	$(GENHTML) -o coverage lcov.info
+clean-local:
+	@make coverage-clean
 
-clean-cov:
-	find . -name '*.gcda' 2>/dev/null | xargs rm -f
+check:
+	@make coverage
+
+.PHONY: coverage-clean coverage-report coverage
+endif

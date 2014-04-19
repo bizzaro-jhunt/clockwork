@@ -187,7 +187,7 @@ CLEANFILES      += */*.gc* */**/*.gc*
 CLEANFILES      += *.tmp lcov.info
 CLEANFILES      += t/tmp/*
 
-EXTRA_DIST       = HACKING
+EXTRA_DIST       = HACKING autogen.sh
 EXTRA_DIST      += augeas db gather.d scripts
 EXTRA_DIST      += examples extras
 EXTRA_DIST      += help man

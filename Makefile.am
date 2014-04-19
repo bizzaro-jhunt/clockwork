@@ -108,7 +108,8 @@ check_PROGRAMS = $(TESTS) $(TEST_HELPERS)
 BUILT_TESTS    = $(TESTS) $(TEST_HELPERS)
 
 
-test_source  = src/mem.h        src/mem.c
+test_source  = t/test.h
+test_source += src/mem.h        src/mem.c
 test_source += src/sha1.h       src/sha1.c
 test_source += src/userdb.h     src/userdb.c
 test_source += src/cert.h       src/cert.c
@@ -190,16 +191,11 @@ EXTRA_DIST       = HACKING
 EXTRA_DIST      += configure.dev
 EXTRA_DIST      += cwdb
 
-EXTRA_DIST      += augeas
+EXTRA_DIST      += augeas db gather.d scripts
 EXTRA_DIST      += build
-EXTRA_DIST      += db
-EXTRA_DIST      += examples
-EXTRA_DIST      += extras
-EXTRA_DIST      += gather.d
-EXTRA_DIST      += help
-EXTRA_DIST      += man
-EXTRA_DIST      += scripts
-EXTRA_DIST      += t t/data
+EXTRA_DIST      += examples extras
+EXTRA_DIST      += help man
+EXTRA_DIST      += t/data
 
 dist_man_MANS    = man/clockwork.7
 dist_man_MANS   += man/cwa.1
@@ -251,15 +247,6 @@ parser_tpl_src  += src/tpl/lexer.l src/tpl/lexer_impl.h
 parser_tpl_src  += src/tpl/grammar.y
 
 core_src += $(parser_tpl_src)
-
-test_obj  = src/mem.o src/sha1.o src/userdb.o src/cert.o src/prompt.o src/exec.o src/augcw.o
-test_obj += src/policy.o src/resource.o src/resources.o src/job.o src/template.o
-test_obj += src/gear/hash.o src/gear/log.o src/gear/string.o src/gear/pack.o src/gear/path.o
-test_obj += src/service.o src/package.o
-test_obj += src/spec/parser.o src/spec/lexer.o src/spec/grammar.o
-test_obj += src/conf/parser.o src/conf/lexer.o src/conf/grammar.o
-test_obj += src/tpl/parser.o src/tpl/lexer.o src/tpl/grammar.o
-test_obj += src/proto.o
 
 sbindir = "$(prefix)/sbin"
 sbin_PROGRAMS = cwa cwcert policyd cwca cwpol cwtemplate

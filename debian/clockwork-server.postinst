@@ -17,17 +17,6 @@ configure)
 			/etc/init.d/clockwork-server start || true
 		fi
 	fi
-	sleep 2
-
-	# set up the initial db schema
-	DBDIR=/var/lib/clockwork
-	DATABASE=$DBDIR/master.db
-	SCHEMA=/usr/share/clockwork/db/master.sql
-	if [ ! -f $DATABASE ]; then
-		mkdir -p $DBDIR
-		sqlite3 $DATABASE < $SCHEMA
-	fi
-
 	;;
 *)
 	exit 0

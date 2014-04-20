@@ -418,11 +418,7 @@ int fact_gather(const char *paths, struct hash *facts)
 	}
 
 	for (i = 0; i < scripts.gl_pathc; i++) {
-		if (fact_exec_read(scripts.gl_pathv[i], facts) != 0) {
-			hash_free(facts);
-			globfree(&scripts);
-			return -1;
-		}
+		fact_exec_read(scripts.gl_pathv[i], facts);
 	}
 
 	globfree(&scripts);

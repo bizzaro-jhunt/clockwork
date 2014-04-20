@@ -191,5 +191,13 @@ TESTS {
 
 	/**********************************************************/
 
+	facts = hash_new();
+	ok(fact_gather(TEST_DATA "/facts/gather.d/*", facts) == 0,
+			"gather facts from a directory of exec-scripts");
+	is_string(
+		hash_get(facts, "sys.hostname"), "host22",
+		"sys.hostname is defined (from node.facts)");
+	hash_free_all(facts);
+
 	done_testing();
 }

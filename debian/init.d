@@ -72,7 +72,10 @@ do_stop() {
 }
 
 do_reload() {
-	start-stop-daemon --stop --signal 1 --quiet --pidfile $PIDFILE --name $NAME
+	$DAEMON -t >/dev/null \
+		|| return 1
+	start-stop-daemon --stop --signal 1 --quiet --pidfile $PIDFILE --name $NAME \
+		|| return 1
 	return 0
 }
 

@@ -92,8 +92,6 @@ int job_start(struct job *job);
 int job_end(struct job *job);
 
 int job_add_report(struct job *job, struct report *report);
-char* job_pack(const struct job *job);
-struct job* job_unpack(const char *packed);
 
 struct report* report_new(const char *type, const char *key);
 void report_free(struct report *report);

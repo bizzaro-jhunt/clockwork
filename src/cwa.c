@@ -43,7 +43,6 @@ static int enforce_policy(struct client *c, struct job *job);
 static int autodetect_managers(struct resource_env *env, const struct hash *facts);
 static void print_report(FILE *io, struct report *r);
 static int print_summary(FILE *io, struct job *job);
-static int send_report(struct client *c, struct job *job);
 
 /**************************************************************/
 
@@ -465,25 +464,4 @@ static int print_summary(FILE *io, struct job *job)
 	fprintf(io, "run duration: %0.2fs\n", job->duration / 1000000.0);
 
 	return 0;
-}
-
-static int send_report(struct client *c, struct job *job)
-{
-	if (pdu_send_REPORT(&c->session, job) < 0) { goto disconnect; }
-	if (pdu_receive(&c->session) < 0) {
-		goto disconnect;
-	}
-
-	if (RECV_PDU(&c->session)->op != PROTOCOL_OP_BYE) {
-		CRITICAL("Unexpected op from server: %u", RECV_PDU(&c->session)->op);
-		pdu_send_ERROR(&c->session, 505, "Protocol Error");
-		goto disconnect;
-	}
-
-	return 0;
-
-disconnect:
-	DEBUG("send_report forcing a disconnect");
-	client_disconnect(c);
-	exit(1);
 }

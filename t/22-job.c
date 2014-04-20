@@ -85,32 +85,5 @@ TESTS {
 		job_free(job);
 	}
 
-	subtest {
-		struct job *job = NULL;
-		struct job *unpacked = NULL;
-		char *packed, *repacked;
-
-		isnt_null(job = fake_job(), "created fake job");
-		fake_job_run(job);
-
-		isnt_null(packed = job_pack(job), "packed job");
-		isnt_null(unpacked = job_unpack(packed), "unpacked job");
-
-		is_int(unpacked->start.tv_usec, 0, "unpacked job start time (ms)");
-		is_int(unpacked->end.tv_usec,   0, "unpacked job end time (ms)");
-
-		is_int(unpacked->start.tv_sec, job->start.tv_sec, "job start times (seconds) match");
-		is_int(unpacked->end.tv_sec,   job->end.tv_sec,   "job end times (seconds) match");
-		is_int(unpacked->duration,     job->duration,     "job durations match");
-
-		repacked = job_pack(unpacked);
-		is_string(repacked, packed, "pack(unpack(pack(job))) == pack(job)");
-
-		free(packed);
-		free(repacked);
-		job_free(job);
-		job_free(unpacked);
-	}
-
 	done_testing();
 }

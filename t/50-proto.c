@@ -55,7 +55,6 @@ static int test_proto_conn_server(struct test_proto_conn *server, int r, int w)
 
 	isnt_null(server->ctx = SSL_CTX_new(TLSv1_method()), "SSL context (server)");
 
-	/* this failed for REPORT; maybe we hit our limit? */
 	if (!server->ctx) { protocol_ssl_backtrace(); }
 	if (!server->ctx) { return -1; }
 	if (SSL_CTX_set_cipher_list(server->ctx, "ADH") != 1) { return -2; }
@@ -141,7 +140,6 @@ static void child_expects_FILE(void) { execl(SUB, ARG0, "FILE", PDU_SHA1, NULL);
 static void child_expects_DATA(void) { execl(SUB, ARG0, "DATA", NULL); }
 static void child_expects_GET_CERT(void) { execl(SUB, ARG0, "GET_CERT", NULL); }
 static void child_expects_SEND_CERT(void) { execl(SUB, ARG0, "SEND_CERT", NULL); }
-static void child_expects_REPORT(void) { execl(SUB, ARG0, "REPORT", NULL); }
 
 TESTS {
 	cert_init();
@@ -154,7 +152,6 @@ TESTS {
 		is_string(protocol_op_name(PROTOCOL_OP_POLICY),    "POLICY",    "POLICY op name");
 		is_string(protocol_op_name(PROTOCOL_OP_FILE),      "FILE",      "FILE op name");
 		is_string(protocol_op_name(PROTOCOL_OP_DATA),      "DATA",      "DATA op name");
-		is_string(protocol_op_name(PROTOCOL_OP_REPORT),    "REPORT",    "REPORT op name");
 		is_string(protocol_op_name(PROTOCOL_OP_BYE),       "BYE",       "BYE op name");
 		is_string(protocol_op_name(PROTOCOL_OP_GET_CERT),  "GET_CERT",  "GET_CERT op name");
 		is_string(protocol_op_name(PROTOCOL_OP_SEND_CERT), "SEND_CERT", "SEND_CERT op name");
@@ -306,31 +303,6 @@ TESTS {
 		waitfork(pid, &server);
 
 		protocol_session_deinit(&server.session);
-	}
-
-	subtest {
-		pid_t pid;
-		struct test_proto_conn server;
-
-		struct job *job;
-		struct report *report;
-
-		job = job_new();
-		job_start(job);
-		job_end(job);
-
-		report = report_new("User", "test1");
-		report_action(report, string("Create user"), ACTION_SKIPPED);
-		report_action(report, string("Create home dir"), ACTION_SKIPPED);
-		job_add_report(job, report);
-
-		pid = fork_test(&server, child_expects_REPORT);
-		ok(pdu_send_REPORT(&server.session, job) == 0,
-			"pdu_send_REPORT returns successfully");
-		waitfork(pid, &server);
-
-		protocol_session_deinit(&server.session);
-		job_free(job);
 	}
 
 	cert_deinit();

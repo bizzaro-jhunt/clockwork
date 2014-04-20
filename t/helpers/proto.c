@@ -32,7 +32,6 @@
      DATA
      GET_CERT
      SEND_CERT
-     REPORT
  */
 
 struct conn {
@@ -96,7 +95,6 @@ HANDLER(FILE);
 HANDLER(DATA);
 HANDLER(GET_CERT);
 HANDLER(SEND_CERT);
-HANDLER(REPORT);
 
 int main(int argc, char **argv)
 {
@@ -117,7 +115,6 @@ int main(int argc, char **argv)
 	DISPATCH(DATA,      &c.session);
 	DISPATCH(GET_CERT,  &c.session);
 	DISPATCH(SEND_CERT, &c.session);
-	DISPATCH(REPORT,    &c.session);
 
 	teardown(&c);
 	return rc;
@@ -245,17 +242,3 @@ HANDLE(SEND_CERT)
 
 	return 0;
 }
-
-HANDLE(REPORT)
-{
-	struct job *job = NULL;
-
-	pdu_receive(s);
-	if (RECV_PDU(s)->op != PROTOCOL_OP_REPORT) { return CW_EFAIL+1; }
-	if (pdu_decode_REPORT(RECV_PDU(s), &job) != 0) { return CW_EFAIL+2; }
-	if (!job) { return CW_EFAIL+3; }
-
-	job_free(job);
-	return 0;
-}
-

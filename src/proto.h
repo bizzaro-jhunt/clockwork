@@ -44,7 +44,7 @@ enum proto_op {
 	PROTOCOL_OP_POLICY,
 	PROTOCOL_OP_FILE,
 	PROTOCOL_OP_DATA,
-	PROTOCOL_OP_REPORT,
+	PROTOCOL_OP_LEGACY1,
 	PROTOCOL_OP_BYE,
 
 	PROTOCOL_OP_GET_CERT,
@@ -127,13 +127,11 @@ int pdu_send_FILE(struct session *s, struct SHA1 *checksum);
 int pdu_send_DATA(struct session *s, int srcfd, const char *data);
 int pdu_send_GET_CERT(struct session *s, X509_REQ  *csr);
 int pdu_send_SEND_CERT(struct session *s, X509  *cert);
-int pdu_send_REPORT(struct session *s, struct job *job);
 
 int pdu_decode_ERROR(struct pdu *pdu, uint16_t *err_code, uint8_t **str, size_t *len);
 int pdu_decode_FACTS(struct pdu *pdu, struct hash *facts);
 int pdu_decode_POLICY(struct pdu *pdu, struct policy **policy);
 int pdu_decode_GET_CERT(struct pdu *pdu, X509_REQ **csr);
 int pdu_decode_SEND_CERT(struct pdu *pdu, X509 **cert);
-int pdu_decode_REPORT(struct pdu *pdu, struct job **job);
 
 #endif

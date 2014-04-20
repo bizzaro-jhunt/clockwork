@@ -5,7 +5,6 @@ digraph agent {
 	NOT_VERIFIED [label="ERROR/401",style=filled,fillcolor="#ff6600"];
 
 	BYE1 [label="BYE"];
-	BYE2 [label="BYE"];
 	BYE3 [label="BYE"];
 	BYE4 [label="BYE"];
 
@@ -20,13 +19,10 @@ digraph agent {
 	HELLO -> VERIFIED;
 
 	VERIFIED -> FACTS  -> POLICY -> BYE4;
-//	VERIFIED -> REPORT -> BYE2;
 
-	POLICY -> REPORT -> BYE2;
 	POLICY -> FILE -> DATA;
 	          FILE -> DATA [dir=back];
 
-	DATA -> REPORT;
 	DATA -> BYE1;
 
 
@@ -36,8 +32,8 @@ digraph agent {
 	{rank=same; S1; POLICY;                 }
 	{rank=same; C2; FILE;     BYE4;         }
 	{rank=same; S2; DATA;                   }
-	{rank=same; C3; BYE1;     REPORT;       }
-	{rank=same; S3;           BYE2;         }
+	{rank=same; C3; BYE1;                   }
+	{rank=same; S3;                         }
 
 };
 

@@ -36,7 +36,7 @@ static const char *protocol_op_names[] = {
 	"POLICY",
 	"FILE",
 	"DATA",
-	"REPORT",
+	"LEGACY1",
 	"BYE",
 
 	"GET_CERT",
@@ -561,63 +561,6 @@ int pdu_decode_SEND_CERT(struct pdu *pdu, X509 **cert)
 		*cert = NULL;
 	}
 	return 0;
-}
-
-/**
-  Send a REPORT PDU to the remote end, for $job.
-
-  REPORT PDUs are sent to the policy master by clients after they
-  have evaluated and enforced their policy locally.  The PDU contains
-  a packed job structure that represents the run and everything that
-  was attempted to bring the local system into compliance.
-
-  On success, returns 0.  On failure, returns non-zero.
- */
-int pdu_send_REPORT(struct session *session, struct job *job)
-{
-	assert(session); // LCOV_EXCL_LINE
-	assert(job); // LCOV_EXCL_LINE
-
-	struct pdu *pdu = SEND_PDU(session);
-	char *packed;
-	size_t len;
-
-	packed = job_pack(job);
-	if (!packed) {
-		return -1;
-	}
-
-	len = strlen(packed);
-
-	if (pdu_allocate(pdu, PROTOCOL_OP_REPORT, len) < 0) {
-		free(packed);
-		return -1;
-	}
-
-	memcpy(pdu->data, packed, len);
-	free(packed);
-
-	DEBUG("SEND REPORT (op:%u) - (report data)", pdu->op);
-	return pdu_write(session->io, pdu);
-}
-
-/**
-  Decode a REPORT PDU into $job.
-
-  On success, returns 0.  On failure, returns non-zero.
- */
-int pdu_decode_REPORT(struct pdu *pdu, struct job **job)
-{
-	assert(pdu); // LCOV_EXCL_LINE
-	assert(pdu->op == PROTOCOL_OP_REPORT); // LCOV_EXCL_LINE
-	assert(job); // LCOV_EXCL_LINE
-
-	*job = job_unpack((char*)pdu->data);
-	if (*job) {
-		return 0;
-	} else {
-		return -1;
-	}
 }
 
 /**

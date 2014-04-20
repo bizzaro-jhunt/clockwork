@@ -81,7 +81,6 @@ static int handle_HELLO(struct worker *w);
 static int handle_GET_CERT(struct worker *w);
 static int handle_FACTS(struct worker *w);
 static int handle_FILE(struct worker *w);
-static int handle_REPORT(struct worker *w);
 static int handle_unknown(struct worker *w);
 
 static void sighup_handler(int, siginfo_t*, void*);
@@ -542,12 +541,6 @@ static int handle_FILE(struct worker *w)
 	return 1;
 }
 
-static int handle_REPORT(struct worker *w)
-{
-	/* this is a noop now */
-	return 1;
-}
-
 static int handle_unknown(struct worker *w)
 {
 	char *message;
@@ -989,10 +982,6 @@ static void* worker_thread(void *arg)
 
 		case PROTOCOL_OP_FILE:
 			if (!handle_FILE(w)) { done = 1; }
-			break;
-
-		case PROTOCOL_OP_REPORT:
-			if (!handle_REPORT(w)) { done = 1; }
 			break;
 
 		default:

@@ -1,0 +1,5 @@
+clockwork (0.5.1-1) precise; urgency=low
+
+  * Stub changelog, built by changelog-generator
+
+ -- Package Builder <packages@niftylogic.com>  Sat, 19 Apr 2014 23:13:51 -0400

@@ -56,8 +56,6 @@ struct server {
 	char *cert_file;       /* path to policy master's certificate */
 	char *key_file;        /* path to policy master's private key */
 
-	char *db_file;         /* path to the master database */
-
 	char *requests_dir;    /* where to store signing requests */
 	char *certs_dir;       /* where to store signed certificates */
 

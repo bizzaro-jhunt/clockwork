@@ -51,8 +51,6 @@ struct client {
 	char *request_file;        /* path to local certificate request */
 	char *key_file;            /* path to local private key */
 
-	char *db_file;             /* path to the local agent database */
-
 	char *gatherers;           /* shell glob of fact gatherer scripts */
 
 	char *s_address;           /* address of policy master */

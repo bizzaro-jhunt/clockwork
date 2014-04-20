@@ -32,7 +32,6 @@ static struct client default_options = {
 	.cert_file    = DEFAULT_SSL_CERT_FILE,
 	.request_file = DEFAULT_SSL_REQUEST_FILE,
 	.key_file     = DEFAULT_SSL_KEY_FILE,
-	.db_file      = DEFAULT_AGENT_DB_FILE,
 	.gatherers    = DEFAULT_GATHERER_DIR "/*",
 
 	.s_address    = DEFAULT_SERVER_NAME,
@@ -69,9 +68,6 @@ static struct client* configured_options(const char *path)
 
 		v = hash_get(config, "key_file");
 		if (v) { c->key_file = strdup(v); }
-
-		v = hash_get(config, "db_file");
-		if (v) { c->db_file = strdup(v); }
 
 		v = hash_get(config, "gatherers");
 		if (v) { c->gatherers = strdup(v); }
@@ -122,7 +118,6 @@ static int merge_clients(struct client *a, struct client *b)
 	MERGE_STRING_OPTION(a,b,cert_file);
 	MERGE_STRING_OPTION(a,b,request_file);
 	MERGE_STRING_OPTION(a,b,key_file);
-	MERGE_STRING_OPTION(a,b,db_file);
 	MERGE_STRING_OPTION(a,b,gatherers);
 	MERGE_STRING_OPTION(a,b,s_address);
 	MERGE_STRING_OPTION(a,b,s_port);

@@ -46,10 +46,6 @@ AM_CFLAGS += -DAUGEAS_INCLUDES=\"$(augdir)/augeas/lenses\"
 nobase_aug_DATA  = augeas/lenses/hosts.aug
 nobase_aug_DATA += augeas/lenses/util.aug
 
-extrasdir=$(pkgsharedir)
-nobase_extras_DATA  = db/agent.sql
-nobase_extras_DATA += db/master.sql
-
 scriptsdir=$(pkglibdir)
 debscriptsdir=$(scriptsdir)/bin/debian
 debscripts_SCRIPTS  = scripts/debian/cw-pkg
@@ -184,7 +180,7 @@ CLEANFILES      += *.tmp
 CLEANFILES      += t/tmp/*
 
 EXTRA_DIST       = HACKING autogen.sh
-EXTRA_DIST      += augeas db gather.d scripts
+EXTRA_DIST      += augeas gather.d scripts
 EXTRA_DIST      += examples extras
 EXTRA_DIST      += help man
 EXTRA_DIST      += t/data
@@ -242,9 +238,9 @@ core_src += $(parser_tpl_src)
 
 sbindir = "$(prefix)/sbin"
 sbin_PROGRAMS = cwa cwcert policyd cwca cwpol cwtemplate
-policyd_SOURCES = $(core_src) $(server_src) src/policyd.c $(parser_spec_src) $(parser_conf_src) src/db.c src/db.h
+policyd_SOURCES = $(core_src) $(server_src) src/policyd.c $(parser_spec_src) $(parser_conf_src)
 cwca_SOURCES    = $(core_src) $(server_src) src/cwca.c $(parser_conf_src)
-cwa_SOURCES     = $(core_src) $(client_src) src/cwa.c $(parser_conf_src) src/db.c src/db.h
+cwa_SOURCES     = $(core_src) $(client_src) src/cwa.c $(parser_conf_src)
 cwcert_SOURCES  = $(core_src) $(client_src) src/cwcert.c $(parser_conf_src)
 cwpol_SOURCES   = $(core_src) src/cwpol.c $(parser_spec_src)
 cwtemplate_SOURCES = $(core_src) $(client_src) src/cwtemplate.c $(parser_conf_src)

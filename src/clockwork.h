@@ -74,9 +74,6 @@
 #define DEFAULT_POLICYD_LOCK_FILE   CW_VAR_DIR "/lock/policyd"
 #define DEFAULT_POLICYD_PID_FILE    CW_VAR_DIR "/run/policyd.pid"
 
-#define DEFAULT_MASTER_DB_FILE      CW_DATA_DIR "/master.db"
-#define DEFAULT_AGENT_DB_FILE       CW_DATA_DIR "/agent.db"
-
 #define DEFAULT_GATHERER_DIR        CW_LIB_DIR "/gather.d"
 
 #define DEFAULT_SERVER_NAME         "clockwork"

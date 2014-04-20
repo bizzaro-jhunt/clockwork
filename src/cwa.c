@@ -31,7 +31,6 @@
 #include "client.h"
 #include "resources.h"
 #include "augcw.h"
-#include "db.h"
 
 static struct client* cwa_options(int argc, char **argv);
 static void show_version(void);
@@ -45,7 +44,6 @@ static int autodetect_managers(struct resource_env *env, const struct hash *fact
 static void print_report(FILE *io, struct report *r);
 static int print_summary(FILE *io, struct job *job);
 static int send_report(struct client *c, struct job *job);
-static int save_report(struct client *c, struct job *job);
 
 /**************************************************************/
 
@@ -91,14 +89,6 @@ int main(int argc, char **argv)
 	get_policy(c);
 	enforce_policy(c, job);
 	print_summary(stdout, job);
-	if (c->mode != CLIENT_MODE_TEST) {
-		if (save_report(c, job) != 0) {
-			WARNING("Unable to store report in local database.");
-		}
-		if (send_report(c, job) != 0) {
-			WARNING("Unable to send report to master database.");
-		}
-	}
 
 	client_bye(c);
 	return 0;
@@ -232,9 +222,6 @@ static void show_compilation_options(void)
 
 	DUMP_COMPILE_OPT(DEFAULT_POLICYD_LOCK_FILE);
 	DUMP_COMPILE_OPT(DEFAULT_POLICYD_PID_FILE);
-
-	DUMP_COMPILE_OPT(DEFAULT_MASTER_DB_FILE);
-	DUMP_COMPILE_OPT(DEFAULT_AGENT_DB_FILE);
 
 	DUMP_COMPILE_OPT(DEFAULT_GATHERER_DIR);
 	DUMP_COMPILE_OPT(DEFAULT_SERVER_NAME);
@@ -499,24 +486,4 @@ disconnect:
 	DEBUG("send_report forcing a disconnect");
 	client_disconnect(c);
 	exit(1);
-}
-
-static int save_report(struct client *c, struct job *job)
-{
-	struct db *db;
-	db = db_open(AGENTDB, c->db_file);
-	if (!db) {
-		return -1;
-	}
-	if (db_purge(db, c->retain_days) != 0) {
-		CRITICAL("Failed to purge expired report data");
-	}
-
-	if (agentdb_store_report(db, job) != 0) {
-		db_close(db);
-		return -1;
-	}
-
-	db_close(db);
-	return 0;
 }

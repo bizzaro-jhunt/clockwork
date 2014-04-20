@@ -39,7 +39,6 @@ static struct server default_options = {
 	.key_file      = DEFAULT_SSL_KEY_FILE,
 	.requests_dir  = DEFAULT_SSL_REQUESTS_DIR,
 	.certs_dir     = DEFAULT_SSL_CERTS_DIR,
-	.db_file       = DEFAULT_MASTER_DB_FILE,
 	.cache_dir     = CW_CACHE_DIR,
 	.listen        = DEFAULT_POLICYD_LISTEN,
 	.autosign      = SERVER_OPT_FALSE,
@@ -71,7 +70,6 @@ static void server_free(struct server *s)
 		xfree(s->crl_file);
 		xfree(s->cert_file);
 		xfree(s->key_file);
-		xfree(s->db_file);
 		xfree(s->requests_dir);
 		xfree(s->certs_dir);
 		xfree(s->cache_dir);
@@ -122,9 +120,6 @@ static struct server* configured_options(const char *path)
 
 		v = hash_get(config, "manifest_file");
 		if (v) { s->manifest_file = strdup(v); }
-
-		v = hash_get(config, "db_file");
-		if (v) { s->db_file = strdup(v); }
 
 		v = hash_get(config, "log_level");
 		if (v) {
@@ -186,7 +181,6 @@ static int merge_servers(struct server *a, struct server *b)
 	MERGE_STRING_OPTION(a,b,crl_file);
 	MERGE_STRING_OPTION(a,b,cert_file);
 	MERGE_STRING_OPTION(a,b,key_file);
-	MERGE_STRING_OPTION(a,b,db_file);
 	MERGE_STRING_OPTION(a,b,requests_dir);
 	MERGE_STRING_OPTION(a,b,certs_dir);
 	MERGE_STRING_OPTION(a,b,cache_dir);

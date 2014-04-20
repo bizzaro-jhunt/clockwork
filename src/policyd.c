@@ -31,7 +31,6 @@
 #include "spec/parser.h"
 #include "server.h"
 #include "resources.h"
-#include "db.h"
 
 /**************************************************************/
 
@@ -46,7 +45,6 @@ struct worker {
 	const char *key_file;
 	const char *requests_dir;
 	const char *certs_dir;
-	const char *db_file;
 	const char *cache_dir;
 
 	struct hash   *facts;
@@ -316,7 +314,6 @@ unintr:
 	/* constant references to server config */
 	w->requests_dir = s->requests_dir;
 	w->certs_dir    = s->certs_dir;
-	w->db_file      = s->db_file;
 	w->cache_dir    = s->cache_dir;
 	w->ca_cert_file = s->ca_cert_file;
 	w->key_file     = s->key_file;
@@ -547,52 +544,8 @@ static int handle_FILE(struct worker *w)
 
 static int handle_REPORT(struct worker *w)
 {
-	struct job *job;
-	rowid host_id;
-	struct db *db = NULL;
-
-	if (!w->peer_verified) {
-		WARNING("Unverified peer tried to REPORT");
-		pdu_send_ERROR(&w->session, 401, "Client Identity Unverified");
-		return 1;
-	}
-
-	if (pdu_decode_REPORT(RECV_PDU(&w->session), &job) != 0) {
-		CRITICAL("Unable to decode REPORT");
-		return 0;
-	}
-
-	db = db_open(MASTERDB, w->db_file);
-	if (!db) {
-		CRITICAL("Unable to open reporting DB");
-		goto failed;
-	}
-	if (db_purge(db, w->retain_days) != 0) {
-		CRITICAL("Failed to purge expired report data");
-	}
-
-	host_id = masterdb_host(db, w->peer);
-	if (host_id == NULL_ROWID) {
-		CRITICAL("Failed to find or create host record for '%s'", w->peer);
-		goto failed;
-	}
-
-	if (masterdb_store_report(db, host_id, job) != 0) {
-		CRITICAL("Unable to save report in reporting DB");
-		goto failed;
-	}
-	INFO("saved client report in reporting database");
-	db_close(db);
-	job_free(job);
-
-	if (pdu_send_BYE(&w->session) < 0) { return 0; }
-
+	/* this is a noop now */
 	return 1;
-
-failed:
-	db_close(db);
-	job_free(job);
-	return 0;
 }
 
 static int handle_unknown(struct worker *w)
@@ -811,7 +764,6 @@ static void show_config(struct server *s)
 	printf("pid_file      = \"%s\"\n", s->pid_file);
 	printf("\n");
 	printf("manifest_file = \"%s\"\n", s->manifest_file);
-	printf("db_file       = \"%s\"\n", s->db_file);
 	printf("\n");
 	printf("listen        = %s\n", s->listen);
 	printf("\n");
@@ -914,21 +866,6 @@ static int check_config(struct server *s)
 		rc = 1;
 	}
 	free(copy);
-
-	/* db_file (exists && writable) || dir_writable) */
-	if ((err = check_file_writable(s->db_file)) != 0) {
-		if (err == ENOENT) {
-			dir = dirname(copy = strdup(s->db_file));
-			if ((err = check_dir_writable(dir)) != 0) {
-				fprintf(stderr, "db_file directory (%s) : %s\n", dir, strerror(err));
-				rc = 1;
-			}
-			free(copy);
-		} else {
-			fprintf(stderr, "db_file (%s) : %s\n", s->db_file, strerror(err));
-			rc = 1;
-		}
-	}
 
 	/* cache_dir exists && writable */
 	if ((err = check_dir_writable(s->cache_dir)) != 0) {

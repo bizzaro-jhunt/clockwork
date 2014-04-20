@@ -1,7 +1,7 @@
 cwpol - Clockwork Policy Explorer
 =================================
 
-Copyright 2011-2013 James Hunt
+Copyright 2011-2014 James Hunt
 
 The policy explorer allows you to poke around a manifest,
 inspecting resources, policies and hosts.  It lets you load

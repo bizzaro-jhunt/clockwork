@@ -1,5 +1,5 @@
 /*
-  Copyright 2011-2013 James Hunt <james@niftylogic.com>
+  Copyright 2011-2014 James Hunt <james@jameshunt.us>
 
   This file is part of Clockwork.
 
@@ -205,7 +205,7 @@ static int negotiate_certificate(struct client *c, X509_REQ *csr)
 static int cwcert_version_main(const struct cwcert_opts *args)
 {
 	printf("cwcert (Clockwork) " VERSION "\n"
-	       "Copyright 2011-2013 James Hunt\n");
+	       "Copyright 2011-2014 James Hunt\n");
 	return CWCERT_SUCCESS;
 }
 

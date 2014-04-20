@@ -11,7 +11,7 @@
 #                    through enforcement of targeted policies.
 ### END INIT INFO
 
-# Author: James Hunt <james@niftylogic.com>
+# Author: James Hunt <james@jameshunt.us>
 
 PATH=/sbin:/bin
 DESC=clockwork

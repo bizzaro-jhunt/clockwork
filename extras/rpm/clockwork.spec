@@ -117,8 +117,8 @@ rm -rf %{buildroot}
 
 
 %changelog
-* Sun Apr 22 2012 James Hunt <james@niftylogic.com> - 0.2.4-1
+* Sun Apr 22 2012 James Hunt <james@jameshunt.us> - 0.2.4-1
 - New version
 
-* Tue Apr 10 2012 James Hunt <james@niftylogic.com> - 0.2.3-7
+* Tue Apr 10 2012 James Hunt <james@jameshunt.us> - 0.2.3-7
 - Initial RPM build

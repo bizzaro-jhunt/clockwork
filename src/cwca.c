@@ -1,5 +1,5 @@
 /*
-  Copyright 2011-2013 James Hunt <james@niftylogic.com>
+  Copyright 2011-2014 James Hunt <james@jameshunt.us>
 
   This file is part of Clockwork.
 
@@ -236,7 +236,7 @@ struct cwca_opts* cwca_options(int argc, char **argv)
 static int cwca_version_main(const struct cwca_opts *args)
 {
 	printf("cwca (Clockwork) " VERSION "\n"
-	       "Copyright 2011-2013 James Hunt\n");
+	       "Copyright 2011-2014 James Hunt\n");
 	return CWCA_SUCCESS;
 }
 

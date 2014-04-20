@@ -1,5 +1,5 @@
 /*
-  Copyright 2011-2013 James Hunt <james@niftylogic.com>
+  Copyright 2011-2014 James Hunt <james@jameshunt.us>
 
   This file is part of Clockwork.
 
@@ -248,7 +248,7 @@ static struct server* policyd_options(int argc, char **argv)
 static void show_version(void)
 {
 	printf("policyd (Clockwork) " VERSION "\n"
-	       "Copyright 2011-2013 James Hunt\n");
+	       "Copyright 2011-2014 James Hunt\n");
 }
 
 static void show_help(void)

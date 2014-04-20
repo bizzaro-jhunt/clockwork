@@ -77,7 +77,7 @@
 #line 1 "src/conf/grammar.y"
 
 /*
-  Copyright 2011-2013 James Hunt <james@niftylogic.com>
+  Copyright 2011-2014 James Hunt <james@jameshunt.us>
 
   This file is part of Clockwork.
 

@@ -1,7 +1,7 @@
 Source: clockwork
 Section: admin
 Priority: optional
-Maintainer: James Hunt <james@niftylogic.com>
+Maintainer: James Hunt <james@jameshunt.us>
 Build-Depends: debhelper (>= 8.0.0),
                libaugeas-dev (>= 0.10.0),
                libaugeas0 (>= 0.10.0),

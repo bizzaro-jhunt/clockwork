@@ -1,7 +1,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-define([CLOCKWORK_VERSION], [0.5.3])
+define([CLOCKWORK_VERSION], [0.5.4])
 
 AC_PREREQ(2.68)
 AC_INIT([clockwork], CLOCKWORK_VERSION, [bugs@niftylogic.com])

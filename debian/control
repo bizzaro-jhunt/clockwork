@@ -2,7 +2,9 @@ Source: clockwork
 Section: admin
 Priority: optional
 Maintainer: James Hunt <james@jameshunt.us>
-Build-Depends: debhelper (>= 8.0.0),
+Build-Depends: bison,
+               debhelper (>= 8.0.0),
+               flex,
                libaugeas-dev (>= 0.10.0),
                libaugeas0 (>= 0.10.0),
                libctap (>= 1.1.4),

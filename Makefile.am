@@ -257,8 +257,6 @@ manifest:
 	@echo >&2 "nothin doin"
 
 test: check
-coverage:
-	@echo >&2 "nothin doin"
 
 ############################################################
 # Lex/YACC Parsers
@@ -302,4 +300,8 @@ check:
 	@make coverage
 
 .PHONY: coverage-clean coverage-report coverage
+else
+coverage:
+	@echo >&2 "nothin doin"
+.PHONY: coverage
 endif

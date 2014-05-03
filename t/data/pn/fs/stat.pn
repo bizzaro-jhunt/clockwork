@@ -1,0 +1,66 @@
+;;
+;; fs/stat.pn
+;; Pendulum Test Script
+;;
+
+SET %A "t/tmp/pn/fs/test.file"
+CALL &FS.FILE?
+OK? @else.1
+  PRINT "%s is a regular file\n"
+  JUMP @test.2
+else.1:
+  PRINT "%s is NOT a regular file\n"
+  SYSERR
+
+test.2:
+SET %A "t/tmp/pn/fs/test.dir"
+CALL &FS.DIR?
+OK? @else.2
+  PRINT "%s is a directory\n"
+  JUMP @test.3
+else.2:
+  PRINT "%s is NOT a directory\n"
+  SYSERR
+
+test.3:
+SET %A "t/tmp/pn/fs/test.symlink"
+CALL &FS.SYMLINK?
+OK? @else.3
+  PRINT "%s is a symlink\n"
+  JUMP @test.4
+else.3:
+  PRINT "%s is NOT a symlink\n"
+
+test.4:
+SET %A "t/tmp/pn/fs/test.fifo"
+CALL &FS.FIFO?
+OK? @else.4
+  PRINT "%s is a fifo\n"
+  JUMP @test.5
+else.4:
+  PRINT "%s is NOT a fifo\n"
+  SYSERR
+
+test.5:
+SET %A "/dev/null"
+CALL &FS.CHARDEV?
+OK? @else.5
+  PRINT "%s is a chardev\n"
+  JUMP @test.6
+else.5:
+  PRINT "%s is NOT a chardev\n"
+  SYSERR
+
+test.6:
+SET %A "/dev/ram0"
+CALL &FS.BLOCKDEV?
+OK? @else.6
+  PRINT "%s is a blockdev\n"
+  JUMP @test.7
+else.6:
+  PRINT "%s is NOT a blockdev\n"
+  SYSERR
+
+test.7:
+PRINT "fin\n"
+HALT

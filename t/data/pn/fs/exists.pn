@@ -1,0 +1,66 @@
+;;
+;; fs/exists\npn
+;; Pendulum Test Script
+;;
+
+SET %A "t/tmp/pn/fs/test.file"
+CALL &FS.EXISTS?
+OK? @else.1
+  PRINT "%s exists\n"
+  JUMP @test.2
+else.1:
+  PRINT "%s does NOT exist\n"
+  SYSERR
+
+test.2:
+SET %A "t/tmp/pn/fs/test.dir"
+CALL &FS.EXISTS?
+OK? @else.2
+  PRINT "%s exists\n"
+  JUMP @test.3
+else.2:
+  PRINT "%s does NOT exist\n"
+  SYSERR
+
+test.3:
+SET %A "t/tmp/pn/fs/test.symlink"
+CALL &FS.EXISTS?
+OK? @else.3
+  PRINT "%s exists\n"
+  JUMP @test.4
+else.3:
+  PRINT "%s does NOT exist\n"
+
+test.4:
+SET %A "t/tmp/pn/fs/test.fifo"
+CALL &FS.EXISTS?
+OK? @else.4
+  PRINT "%s exists\n"
+  JUMP @test.5
+else.4:
+  PRINT "%s does NOT exist\n"
+  SYSERR
+
+test.5:
+SET %A "/dev/null"
+CALL &FS.EXISTS?
+OK? @else.5
+  PRINT "%s exists\n"
+  JUMP @test.6
+else.5:
+  PRINT "%s does NOT exist\n"
+  SYSERR
+
+test.6:
+SET %A "/dev/ram0"
+CALL &FS.EXISTS?
+OK? @else.6
+  PRINT "%s exists\n"
+  JUMP @test.7
+else.6:
+  PRINT "%s does NOT exist\n"
+  SYSERR
+
+test.7:
+PRINT "fin\n"
+HALT

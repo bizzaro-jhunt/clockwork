@@ -66,7 +66,7 @@ static pn_word cwa_fs_is_socket(pn_machine *m)
 static pn_word cwa_fs_exists(pn_machine *m)
 {
 	struct stat st;
-	return stat((const char *)m->A, &st) == 0 ? 0 : 1;
+	return lstat((const char *)m->A, &st) == 0 ? 0 : 1;
 }
 
 static pn_word cwa_fs_mkdir(pn_machine *m)

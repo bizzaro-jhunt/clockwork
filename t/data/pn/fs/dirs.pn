@@ -1,0 +1,49 @@
+;;
+;; fs/dirs.pn
+;; Pendulum Test Script
+;;
+
+SET %A "t/tmp/pn/fs/new.dir"
+CALL &FS.EXISTS?
+OK? @else.1
+  PRINT "%s already exists!"
+  HALT
+
+else.1:
+  CALL &FS.MKDIR
+  OK? @else.2
+    CALL &FS.DIR?
+    OK? @else.3
+      PRINT "%s created\n"
+      JUMP @remove
+
+    else.3:
+      PRINT "%s not created!\n"
+      HALT
+
+  else.2:
+    PRINT "mkdir(%s) call failed\n"
+    SYSERR
+    HALT
+
+remove:
+  CALL &FS.RMDIR
+  OK? @else.3
+    CALL &FS.DIR?
+    OK? @else.4
+      PRINT "%s not removed\n"
+      SYSERR
+      HALT
+
+    else.4:
+      PRINT "%s removed\n"
+      JUMP @done
+
+  else.3:
+    PRINT "rmdir(%s) call failed\n"
+    SYSERR
+    HALT
+
+done:
+PRINT "fin\n"
+HALT

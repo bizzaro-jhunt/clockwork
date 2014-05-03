@@ -65,41 +65,46 @@ gather_SCRIPTS += gather.d/time
 
 ############################################################
 
-TESTS  = t/00-bits
-TESTS += t/01-string
-TESTS += t/04-hash
-TESTS += t/05-mem
-TESTS += t/06-pack
-TESTS += t/07-sha1
-TESTS += t/08-list
-TESTS += t/10-facts
-TESTS += t/15-path
-TESTS += t/20-stree
-TESTS += t/22-job
-TESTS += t/25-resource
-TESTS += t/30-policy
-TESTS += t/31-template
-TESTS += t/40-userdb
-TESTS += t/50-proto
-TESTS += t/55-cert
-TESTS += t/61-res_user
-TESTS += t/62-res_file
-TESTS += t/63-res_group
-TESTS += t/64-res_dir
-TESTS += t/65-res_host
-TESTS += t/66-res_sysctl
-TESTS += t/67-res_service
-TESTS += t/68-res_package
-TESTS += t/69-res_exec
-TESTS += t/70-managers
+CTAP_TESTS =
+PERL_TESTS = 
+
+CTAP_TESTS += t/00-bits
+CTAP_TESTS += t/01-string
+CTAP_TESTS += t/04-hash
+CTAP_TESTS += t/05-mem
+CTAP_TESTS += t/06-pack
+CTAP_TESTS += t/07-sha1
+CTAP_TESTS += t/08-list
+CTAP_TESTS += t/10-facts
+CTAP_TESTS += t/15-path
+CTAP_TESTS += t/20-stree
+CTAP_TESTS += t/22-job
+CTAP_TESTS += t/25-resource
+CTAP_TESTS += t/30-policy
+CTAP_TESTS += t/31-template
+CTAP_TESTS += t/40-userdb
+CTAP_TESTS += t/50-proto
+CTAP_TESTS += t/55-cert
+CTAP_TESTS += t/61-res_user
+CTAP_TESTS += t/62-res_file
+CTAP_TESTS += t/63-res_group
+CTAP_TESTS += t/64-res_dir
+CTAP_TESTS += t/65-res_host
+CTAP_TESTS += t/66-res_sysctl
+CTAP_TESTS += t/67-res_service
+CTAP_TESTS += t/68-res_package
+CTAP_TESTS += t/69-res_exec
+CTAP_TESTS += t/70-managers
+
+PERL_TESTS += t/pendulum/01-basics.t
 
 TEST_HELPERS  = t/helpers/executor
 TEST_HELPERS += t/helpers/prompter
 TEST_HELPERS += t/helpers/proto
 
-check_PROGRAMS = $(TESTS) $(TEST_HELPERS)
-BUILT_TESTS    = $(TESTS) $(TEST_HELPERS)
-
+TESTS          = $(CTAP_TESTS) $(PERL_TESTS)
+BUILT_TESTS    = $(CTAP_TESTS) $(TEST_HELPERS)
+check_PROGRAMS = $(CTAP_TESTS) $(TEST_HELPERS)
 
 test_source  = t/test.h
 test_source += src/mem.h        src/mem.c
@@ -237,13 +242,14 @@ parser_tpl_src  += src/tpl/grammar.y
 core_src += $(parser_tpl_src)
 
 sbindir = "$(prefix)/sbin"
-sbin_PROGRAMS = cwa cwcert policyd cwca cwpol cwtemplate
+sbin_PROGRAMS = cwa cwcert policyd cwca cwpol cwtemplate pn
 policyd_SOURCES = $(core_src) $(server_src) src/policyd.c $(parser_spec_src) $(parser_conf_src)
 cwca_SOURCES    = $(core_src) $(server_src) src/cwca.c $(parser_conf_src)
 cwa_SOURCES     = $(core_src) $(client_src) src/cwa.c $(parser_conf_src)
 cwcert_SOURCES  = $(core_src) $(client_src) src/cwcert.c $(parser_conf_src)
 cwpol_SOURCES   = $(core_src) src/cwpol.c $(parser_spec_src)
 cwtemplate_SOURCES = $(core_src) $(client_src) src/cwtemplate.c $(parser_conf_src)
+pn_SOURCES      = src/pn.c src/pendulum_funcs.h src/pendulum_funcs.c src/pendulum.h src/pendulum.c
 
 ############################################################
 

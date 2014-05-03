@@ -1,0 +1,23 @@
+;;
+;; t/data/pn/vcheck.pn
+;; Pendulum Test Script
+;;
+
+test.1:
+  VCHECK 0
+  OK? @test.1.else
+    PRINT "pendulum is at least v0\n"
+    JUMP @test.2
+  test.1.else:
+    PRINT "pendulum is not yet v0\n"
+
+test.2:
+  VCHECK 9999
+  OK? @test.2.else
+    PRINT "pendulum is at least v9999\n"
+    JUMP @test.3
+  test.2.else:
+    PRINT "pendulum is not yet v9999\n"
+
+test.3:
+HALT

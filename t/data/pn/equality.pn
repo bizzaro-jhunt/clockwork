@@ -1,0 +1,192 @@
+;;
+;; t/data/pn/equality.pn
+;; Pendulum Test Script
+;;
+
+SET %T1 42
+SET %T2 54
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+test.1:
+EQ? @else.1
+  PRINT "EQ? 42 54 was true\n"
+  JUMP @test.2
+else.1:
+  PRINT "EQ? 42 54 was false\n"
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+test.2:
+NE? @else.2
+  PRINT "NE? 42 54 was true\n"
+  JUMP @test.3
+else.2:
+  PRINT "NE? 42 54 was false\n"
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+test.3:
+GT? @else.3
+  PRINT "GT? 42 54 was true\n"
+  JUMP @test.4
+else.3:
+  PRINT "GT? 42 54 was false\n"
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+test.4:
+GTE? @else.4
+  PRINT "GTE 42 54 was true\n"
+  JUMP @test.5
+else.4:
+  PRINT "GTE? 42 54 was false\n"
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+test.5:
+LT? @else.5
+  PRINT "LT? 42 54 was true\n"
+  JUMP @test.6
+else.5:
+  PRINT "LT? 42 54 was false\n"
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+test.6:
+LTE? @else.6
+  PRINT "LTE? 42 54 was true\n"
+  JUMP @part.2
+else.6:
+  PRINT "LTE? 42 54 was false\n"
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+part.2:
+PRINT "\n"
+
+SET %T1 29
+SET %T2 29
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+test.7:
+EQ? @else.7
+  PRINT "EQ? 29 29 was true\n"
+  JUMP @test.8
+else.7:
+  PRINT "EQ? 29 29 was false\n"
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+test.8:
+NE? @else.8
+  PRINT "NE? 29 29 was true\n"
+  JUMP @test.9
+else.8:
+  PRINT "NE? 29 29 was false\n"
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+test.9:
+GT? @else.9
+  PRINT "GT? 29 29 was true\n"
+  JUMP @test.10
+else.9:
+  PRINT "GT? 29 29 was false\n"
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+test.10:
+GTE? @else.10
+  PRINT "GTE? 29 29 was true\n"
+  JUMP @test.11
+else.10:
+  PRINT "GTE? 29 29 was false\n"
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+test.11:
+LT? @else.11
+  PRINT "LT? 29 29 was true\n"
+  JUMP @test.12
+else.11:
+  PRINT "LT? 29 29 was false\n"
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+test.12:
+LTE? @else.12
+  PRINT "LTE? 29 29 was true\n"
+  JUMP @part.3
+else.12:
+  PRINT "LTE? 29 29 was false\n"
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+part.3:
+PRINT "\n"
+SET %T1 1860
+SET %T2 1776
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+test.13:
+EQ? @else.13
+  PRINT "EQ? 1860 1776 was true\n"
+  JUMP @test.14
+else.13:
+  PRINT "EQ? 1860 1776 was false\n"
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+test.14:
+NE? @else.14
+  PRINT "NE? 1860 1776 was true\n"
+  JUMP @test.15
+else.14:
+  PRINT "NE? 1860 1776 was false\n"
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+test.15:
+GT? @else.15
+  PRINT "GT? 1860 1776 was true\n"
+  JUMP @test.16
+else.15:
+  PRINT "GT? 1860 1776 was false\n"
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+test.16:
+GTE? @else.16
+  PRINT "GTE? 1860 1776 was true\n"
+  JUMP @test.17
+else.16:
+  PRINT "GTE? 1860 1776 was false\n"
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+test.17:
+LT? @else.17
+  PRINT "LT? 1860 1776 was true\n"
+  JUMP @test.18
+else.17:
+  PRINT "LT? 1860 1776 was false\n"
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+test.18:
+LTE? @else.18
+  PRINT "LTE? 1860 1776 was true\n"
+  JUMP @test.19
+else.18:
+  PRINT "LTE? 1860 1776 was false\n"
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+test.19:
+;; placeholder; start new tests here
+
+PRINT "fin\n"
+HALT

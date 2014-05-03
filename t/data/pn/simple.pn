@@ -1,0 +1,7 @@
+;;
+;; t/data/pn/simple.pn
+;; Pendulum Test Script
+;;
+
+PRINT "Hello, World!\n"
+HALT

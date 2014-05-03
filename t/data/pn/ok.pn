@@ -1,0 +1,20 @@
+;;
+;; t/data/pn/ok.pn
+;; Pendulum Test Script
+;;
+
+SET %R 1
+OK? @else.1
+  PRINT "OK? continues if R register is non-zero\n"
+  JUMP @next
+else.1:
+  PRINT "OK? jumps if R register is non-zero\n"
+
+next:
+SET %R 0
+OK? @else.2
+  PRINT "OK? continues if R register is zero\n"
+  HALT
+else.2:
+  PRINT "OK? jumps if R register is zero\n"
+  HALT

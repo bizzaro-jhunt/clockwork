@@ -1,0 +1,38 @@
+;;
+;; t/data/pn/cmp.pn
+;; Pendulum Test Script
+
+SET %A "Apple"
+SET %B "apple"
+SET %C "Apple"
+
+test.1:
+COPY %A %T1
+COPY %C %T2
+CMP? @else.1
+  PRINT "CMP? works\n"
+  JUMP @test.2
+else.1:
+  PRINT "CMP? failed\n"
+
+test.2:
+COPY %A %T1
+COPY %B %T2
+CMP? @else.2
+  PRINT "CMP? is not case-sensitive\n"
+  JUMP @test.3
+else.2:
+  PRINT "CMP? is case-sensitive\n"
+
+test.3:
+COPY %A %T1
+COPY %A %T2
+CMP? @else.3
+  PRINT "CMP? treats same strings as equal\n"
+  JUMP @test.4
+else.3:
+  PRINT "CMP? does not treat same strings as equal\n"
+
+test.4:
+PRINT "fin\n"
+HALT

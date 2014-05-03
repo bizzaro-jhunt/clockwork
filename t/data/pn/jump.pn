@@ -1,0 +1,27 @@
+;;
+;; t/data/pn/jump.pn
+;; Pendulum Test Script
+;;
+
+JUMP @start
+done:
+  PRINT "fin\n"
+  HALT
+
+previous:
+  PRINT "@previous\n"
+  JUMP @next
+
+PRINT "--- code after jump to @next should never exec --\n"
+
+start:
+  PRINT "@start\n"
+  JUMP @previous
+
+PRINT "--- code after jump to @previous should never exec --\n"
+
+next:
+  PRINT "@next\n"
+  JUMP @done
+
+PRINT "--- code after jump to @done should never exec --\n"

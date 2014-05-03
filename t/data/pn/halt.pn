@@ -1,0 +1,9 @@
+;;
+;; t/data/pn/halt.pn
+;; Pendulum Test Script
+;;
+
+PRINT "Calling Halt...\n"
+HALT
+
+PRINT "--- code after HALT should never exec ---\n"

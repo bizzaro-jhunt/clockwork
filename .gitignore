@@ -23,6 +23,7 @@ stamp-h?
 /tplspec
 /confdump
 /cwpol
+/pn
 
 /debug/package-manager
 /debug/service-manager

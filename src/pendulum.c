@@ -31,6 +31,7 @@
 #define  PN_OP_DUMP    0x0011
 #define  PN_OP_TRACE   0x0012
 #define  PN_OP_VCHECK  0x0013
+#define  PN_OP_SYSERR  0x0014
 #define  PN_OP_INVAL   0x00ff
 
 static const char *OP_NAMES[] = {
@@ -54,6 +55,7 @@ static const char *OP_NAMES[] = {
 	"DUMP",
 	"TRACE",
 	"VCHECK",
+	"SYSERR",
 	"(invalid)",
 	NULL,
 };
@@ -159,6 +161,7 @@ static int s_resolve_op(const char *op)
 	if (strcmp(op, "DUMP")   == 0) return PN_OP_DUMP;
 	if (strcmp(op, "TRACE")  == 0) return PN_OP_TRACE;
 	if (strcmp(op, "VCHECK") == 0) return PN_OP_VCHECK;
+	if (strcmp(op, "SYSERR") == 0) return PN_OP_SYSERR;
 	fprintf(stderr, "Invalid op: '%s'\n", op);
 	return PN_OP_INVAL;
 }
@@ -488,6 +491,11 @@ int pn_run(pn_machine *m)
 		case PN_OP_VCHECK:
 			pn_trace(m, TRACE_START " v%i >= v%i\n", TRACE_ARGS, PENDULUM_VERSION, PC.arg1);
 			m->R = (PENDULUM_VERSION >= PC.arg1) ? 0 : 1;
+			NEXT;
+
+		case PN_OP_SYSERR:
+			pn_trace(m, TRACE_START " errno=%i\n", TRACE_ARGS, errno);
+			fprintf(m->dump_fd, "SYSTEM ERROR %i: %s\n", errno, strerror(errno));
 			NEXT;
 
 		default: pn_die(m, "Unknown / Invalid operand");

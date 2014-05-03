@@ -17,49 +17,49 @@
 static pn_word cwa_fs_is_file(pn_machine *m)
 {
 	struct stat st;
-	if (stat((const char *)m->A, &st) != 0) return 1;
+	if (lstat((const char *)m->A, &st) != 0) return 1;
 	return S_ISREG(st.st_mode) ? 0 : 1;
 }
 
 static pn_word cwa_fs_is_dir(pn_machine *m)
 {
 	struct stat st;
-	if (stat((const char *)m->A, &st) != 0) return 1;
+	if (lstat((const char *)m->A, &st) != 0) return 1;
 	return S_ISDIR(st.st_mode) ? 0 : 1;
 }
 
 static pn_word cwa_fs_is_chardev(pn_machine *m)
 {
 	struct stat st;
-	if (stat((const char *)m->A, &st) != 0) return 1;
+	if (lstat((const char *)m->A, &st) != 0) return 1;
 	return S_ISCHR(st.st_mode) ? 0 : 1;
 }
 
 static pn_word cwa_fs_is_blockdev(pn_machine *m)
 {
 	struct stat st;
-	if (stat((const char *)m->A, &st) != 0) return 1;
+	if (lstat((const char *)m->A, &st) != 0) return 1;
 	return S_ISBLK(st.st_mode) ? 0 : 1;
 }
 
 static pn_word cwa_fs_is_fifo(pn_machine *m)
 {
 	struct stat st;
-	if (stat((const char *)m->A, &st) != 0) return 1;
+	if (lstat((const char *)m->A, &st) != 0) return 1;
 	return S_ISFIFO(st.st_mode) ? 0 : 1;
 }
 
 static pn_word cwa_fs_is_symlink(pn_machine *m)
 {
 	struct stat st;
-	if (stat((const char *)m->A, &st) != 0) return 1;
+	if (lstat((const char *)m->A, &st) != 0) return 1;
 	return S_ISLNK(st.st_mode) ? 0 : 1;
 }
 
 static pn_word cwa_fs_is_socket(pn_machine *m)
 {
 	struct stat st;
-	if (stat((const char *)m->A, &st) != 0) return 1;
+	if (lstat((const char *)m->A, &st) != 0) return 1;
 	return S_ISSOCK(st.st_mode) ? 0 : 1;
 }
 

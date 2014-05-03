@@ -1,0 +1,57 @@
+;;
+;; users/delete.pn
+;; Pendulum Test Script
+;;
+
+SET %F "t/tmp/pn/users/passwd"
+COPY %F %A
+CALL &PWDB.OPEN
+OK? @open.fail
+
+SET %A 1       ;; by username
+SET %B "user"
+CALL &PWDB.FIND
+OK? @missing
+
+PRINT "found user 'user'\n"
+CALL &PWDB.REMOVE
+OK? @remove-failed
+
+COPY %F %A
+CALL &PWDB.WRITE
+OK? @update-failed
+CALL &PWDB.CLOSE
+OK? @update-failed
+
+CALL &PWDB.OPEN
+OK? @open.fail
+
+SET %A 1       ;; by username
+SET %B "user"
+CALL &PWDB.FIND
+OK? @deleted
+PRINT "found user 'user', post-delete\n"
+HALT
+
+open.fail:
+  PRINT "Failed to open passwd file\n"
+  SYSERR
+  HALT
+
+missing:
+  PRINT "user not found, pre-delete\n"
+  HALT
+
+deleted:
+  PRINT "user not found, post-delete\n"
+  HALT
+
+remove-failed:
+  PRINT "failed to delete user\n"
+  SYSERR
+  HALT
+
+update-failed:
+  PRINT "failed to update user\n"
+  SYSERR
+  HALT

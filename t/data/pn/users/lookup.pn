@@ -1,0 +1,92 @@
+;;
+;; users/lookup.pn
+;; Pendulum Test Script
+;;
+
+SET %F "t/tmp/pn/users/passwd"
+COPY %F %A
+CALL &PWDB.OPEN
+OK? @open.fail
+  PRINT "passwd opened\n"
+  JUMP @root
+
+open.fail:
+  PRINT "Failed to open passwd file\n"
+  SYSERR
+  HALT
+
+root:
+  SET %A 1       ;; by username
+  SET %B "root"
+  CALL &PWDB.FIND
+  OK? @root.not-found
+    PRINT "found root user\n"
+    CALL &PWDB.GET_GID
+    COPY %R %B
+    CALL &PWDB.GET_UID
+    COPY %R %A
+    PRINT "root has UID/GID %i:%i\n"
+    JUMP @sys
+  root.not-found:
+    PRINT "root user not found\n"
+
+sys:
+  SET %A 1
+  SET %B "sys"
+  CALL &PWDB.FIND
+  OK? @sys.not-found
+    PRINT "found sys user\n"
+    CALL &PWDB.GET_GID
+    COPY %R %B
+    CALL &PWDB.GET_UID
+    COPY %R %A
+    PRINT "sys has UID/GID %i:%i\n"
+    JUMP @svc
+
+  sys.not-found:
+    PRINT "sys user not found\n"
+
+svc:
+  SET %A 1
+  SET %B "svc"
+  CALL &PWDB.FIND
+  OK? @svc.not-found
+    PRINT "found svc user\n"
+    CALL &PWDB.GET_GID
+    COPY %R %B
+    CALL &PWDB.GET_UID
+    COPY %R %A
+    PRINT "svc has UID/GID %i:%i\n"
+    JUMP @uid100
+
+  svc.not-found:
+    PRINT "svc user not found\n"
+
+uid100:
+  SET %A 0    ;; by UID
+  SET %B 100
+  CALL &PWDB.FIND
+  OK? @uid100.not-found
+    PRINT "found UID 100\n"
+    CALL &PWDB.GET_NAME
+    COPY %R %A
+    PRINT "UID 100 is '%s'\n"
+    JUMP @ballyhoo
+
+  uid100.not-found:
+    PRINT "UID 100 not found\n"
+
+ballyhoo:
+  SET %A 1
+  SET %B "ballyhoo"
+  CALL &PWDB.FIND
+  OK? @ballyhoo.not-found
+    PRINT "found ballyhoo user\n"
+    JUMP @done
+  ballyhoo.not-found:
+    PRINT "ballyhoo user not found\n"
+
+done:
+COPY %F %A
+CALL &PWDB.WRITE
+CALL &PWDB.CLOSE

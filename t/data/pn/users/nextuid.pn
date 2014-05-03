@@ -1,0 +1,46 @@
+;;
+;; users/nextuid.pn
+;; Pendulum Test Script
+;;
+
+SET %F "t/tmp/pn/users/passwd"
+COPY %F %A
+CALL &PWDB.OPEN
+OK? @open.fail
+
+SET %A 0
+CALL &PWDB.NEXT_UID
+OK? @fail
+PRINT "next UID >= %i is %i\n"
+
+SET %A 2
+CALL &PWDB.NEXT_UID
+OK? @fail
+PRINT "next UID >= %i is %i\n"
+
+SET %A 500
+CALL &PWDB.NEXT_UID
+OK? @fail
+PRINT "next UID >= %i is %i\n"
+
+SET %A 6500
+CALL &PWDB.NEXT_UID
+OK? @fail
+PRINT "next UID >= %i is %i\n"
+
+SET %A 9001
+CALL &PWDB.NEXT_UID
+OK? @fail
+PRINT "next UID >= %i is %i\n"
+
+HALT
+
+open.fail:
+  PRINT "failed to open passwd database\n"
+  SYSERR
+  HALT
+
+fail:
+  PRINT "call to PWDB.NEXT_UID failed\n"
+  SYSERR
+  HALT

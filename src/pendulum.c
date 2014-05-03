@@ -513,6 +513,6 @@ int pn_die(pn_machine *m, const char *e)
 	assert(m);
 	assert(e);
 
-	fprintf(stderr, "REG.MACHINE failed: %s\n", e);
+	fprintf(stderr, "Fatal Pendulum Error: %s\n", e);
 	exit(2);
 }

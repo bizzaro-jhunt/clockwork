@@ -5,12 +5,29 @@
 #include <string.h>
 #include <syslog.h>
 #include <unistd.h>
+#include <assert.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#include <pwd.h>
+#include <shadow.h>
+#include <grp.h>
+
 #include "pendulum_funcs.h"
+//#include "userdb.h"
+
+struct pwdb {
+	struct pwdb   *next;     /* the next database entry */
+	struct passwd *passwd;   /* user account record */
+};
+static struct pwdb *PWDB;
+
+struct udata {
+	struct pwdb   *pwdb;
+	struct passwd *pwent;
+};
 
 /***************************************************/
 
@@ -114,6 +131,254 @@ static pn_word cwa_fs_rmdir(pn_machine *m)
 
 /***************************************************/
 
+static struct pwdb* s_fgetpwent(FILE *input)
+{
+	assert(input);
+
+	struct passwd *passwd = fgetpwent(input);
+	if (!passwd) return NULL;
+
+	struct pwdb *ent;
+	ent = calloc(1, sizeof(struct pwdb));
+	ent->passwd = calloc(1, sizeof(struct passwd));
+
+	ent->passwd->pw_name   = strdup(passwd->pw_name);
+	ent->passwd->pw_passwd = strdup(passwd->pw_passwd);
+	ent->passwd->pw_uid    = passwd->pw_uid;
+	ent->passwd->pw_gid    = passwd->pw_gid;
+	ent->passwd->pw_gecos  = strdup(passwd->pw_gecos);
+	ent->passwd->pw_dir    = strdup(passwd->pw_dir);
+	ent->passwd->pw_shell  = strdup(passwd->pw_shell);
+	return ent;
+}
+
+static pn_word cwa_pwdb_open(pn_machine *m)
+{
+	struct pwdb *cur, *entry;
+	FILE *input;
+
+	input = fopen((const char *)m->A, "r");
+	if (!input) return 1;
+
+	PWDB = cur = entry = NULL;
+	errno = 0;
+	while ((entry = s_fgetpwent(input)) != NULL) {
+		if (!PWDB) {
+			PWDB = entry;
+		} else {
+			cur->next = entry;
+		}
+
+		cur = entry;
+	}
+
+	fclose(input);
+	return 0;
+}
+
+static pn_word cwa_pwdb_lookup(pn_machine *m)
+{
+	struct pwdb *db;
+	if (m->A) {
+		for (db = PWDB; db; db = db->next) {
+			if (db->passwd && strcmp(db->passwd->pw_name, (const char *)m->B) == 0) {
+				m->A = (pn_word)db->passwd;
+				return 0;
+			}
+		}
+	} else {
+		for (db = PWDB; db; db = db->next) {
+			if (db->passwd && db->passwd->pw_uid == (uid_t)m->B) {
+				m->A = (pn_word)db->passwd;
+				return 0;
+			}
+		}
+	}
+	return 1;
+}
+
+static pn_word cwa_pwdb_get_uid(pn_machine *m)
+{
+	return (pn_word)(((struct passwd*)m->A)->pw_uid);
+}
+
+static pn_word cwa_pwdb_get_gid(pn_machine *m)
+{
+	return (pn_word)(((struct passwd*)m->A)->pw_gid);
+}
+
+static pn_word cwa_pwdb_get_name(pn_machine *m)
+{
+	return (pn_word)(((struct passwd*)m->A)->pw_name);
+}
+
+static pn_word cwa_pwdb_get_passwd(pn_machine *m)
+{
+	return (pn_word)(((struct passwd*)m->A)->pw_passwd);
+}
+
+static pn_word cwa_pwdb_get_gecos(pn_machine *m)
+{
+	return (pn_word)(((struct passwd*)m->A)->pw_gecos);
+}
+
+static pn_word cwa_pwdb_get_home(pn_machine *m)
+{
+	return (pn_word)(((struct passwd*)m->A)->pw_dir);
+}
+
+static pn_word cwa_pwdb_get_shell(pn_machine *m)
+{
+	return (pn_word)(((struct passwd*)m->A)->pw_shell);
+}
+
+static pn_word cwa_pwdb_set_uid(pn_machine *m)
+{
+	((struct passwd*)m->A)->pw_uid = (uid_t)m->B;
+	return 0;
+}
+
+static pn_word cwa_pwdb_set_gid(pn_machine *m)
+{
+	((struct passwd*)m->A)->pw_gid = (gid_t)m->B;
+	return 0;
+}
+
+static pn_word cwa_pwdb_set_name(pn_machine *m)
+{
+	free(((struct passwd*)m->A)->pw_name);
+	((struct passwd*)m->A)->pw_name = strdup((const char *)m->B);
+	return 0;
+}
+
+static pn_word cwa_pwdb_set_passwd(pn_machine *m)
+{
+	free(((struct passwd*)m->A)->pw_passwd);
+	((struct passwd*)m->A)->pw_passwd = strdup((const char *)m->B);
+	return 0;
+}
+
+static pn_word cwa_pwdb_set_gecos(pn_machine *m)
+{
+	free(((struct passwd*)m->A)->pw_gecos);
+	((struct passwd*)m->A)->pw_gecos = strdup((const char *)m->B);
+	return 0;
+}
+
+static pn_word cwa_pwdb_set_home(pn_machine *m)
+{
+	free(((struct passwd*)m->A)->pw_dir);
+	((struct passwd*)m->A)->pw_dir = strdup((const char *)m->B);
+	return 0;
+}
+
+static pn_word cwa_pwdb_set_shell(pn_machine *m)
+{
+	free(((struct passwd*)m->A)->pw_shell);
+	((struct passwd*)m->A)->pw_shell = strdup((const char *)m->B);
+	return 0;
+}
+
+static pn_word cwa_pwdb_create(pn_machine *m)
+{
+	if (!PWDB) return 1;
+
+	struct pwdb *ent;
+	for (ent = PWDB; ent->next; ent = ent->next)
+		;
+
+	ent->next = calloc(1, sizeof(struct pwdb));
+	ent->next->passwd = calloc(1, sizeof(struct passwd));
+	ent->next->passwd->pw_name  = strdup((const char *)m->A);
+	ent->next->passwd->pw_uid   = (uid_t)m->B;
+	ent->next->passwd->pw_gid   = (uid_t)m->C;
+	ent->next->passwd->pw_gecos = strdup((const char *)m->A);
+	ent->next->passwd->pw_dir   = strdup("/");
+	ent->next->passwd->pw_shell = strdup("/bin/false");
+	return 0;
+}
+
+static pn_word cwa_pwdb_next_uid(pn_machine *m)
+{
+	if (!PWDB) return 1;
+
+	struct pwdb *db;
+	uid_t uid = (uid_t)m->A;
+UID: while (uid < 65536) {
+		for (db = PWDB; db; db = db->next) {
+			if (db->passwd->pw_uid != uid) continue;
+			uid++; goto UID;
+		}
+		m->B = (pn_word)uid;
+		return 0;
+	}
+	return 1;
+}
+
+static pn_word cwa_pwdb_remove(pn_machine *m)
+{
+	struct passwd *pw = (struct passwd*)m->A;
+	if (!PWDB || !pw) return 1;
+
+	struct pwdb *db, *ent = NULL;
+	for (db = PWDB; db; ent = db, db = db->next) {
+		if (db->passwd == pw) {
+			free(db->passwd->pw_name);
+			free(db->passwd->pw_passwd);
+			free(db->passwd->pw_gecos);
+			free(db->passwd->pw_dir);
+			free(db->passwd->pw_shell);
+			free(db->passwd);
+
+			if (ent) {
+				ent->next = db->next;
+				free(db);
+			}
+			return 0;
+		}
+	}
+	return 1;
+}
+
+static pn_word cwa_pwdb_write(pn_machine *m)
+{
+	FILE *output;
+
+	output = fopen((const char *)m->A, "w");
+	if (!output) return 1;
+
+	struct pwdb *db;
+	for (db = PWDB; db; db = db->next) {
+		if (db->passwd && putpwent(db->passwd, output) == -1) {
+			fclose(output);
+			return -1;
+		}
+	}
+	fclose(output);
+	return 0;
+}
+
+static pn_word cwa_pwdb_close(pn_machine *m)
+{
+	struct pwdb *cur, *entry = PWDB;
+
+	while (entry) {
+		cur = entry->next;
+		free(entry->passwd->pw_name);
+		free(entry->passwd->pw_passwd);
+		free(entry->passwd->pw_gecos);
+		free(entry->passwd->pw_dir);
+		free(entry->passwd->pw_shell);
+		free(entry->passwd);
+		free(entry);
+		entry = cur;
+	}
+	PWDB = NULL;
+	return 0;
+}
+
+/***************************************************/
+
 int pendulum_funcs(pn_machine *m)
 {
 	pn_func(m, "FS.EXISTS?",   cwa_fs_exists);
@@ -135,6 +400,32 @@ int pendulum_funcs(pn_machine *m)
 
 	pn_func(m, "FS.CHOWN",   cwa_fs_chown);
 	pn_func(m, "FS.CHMOD",   cwa_fs_chmod);
+
+
+	pn_func(m,  "PWDB.OPEN",        cwa_pwdb_open);
+	pn_func(m,  "PWDB.FIND",        cwa_pwdb_lookup);
+
+	pn_func(m,  "PWDB.GET_UID",     cwa_pwdb_get_uid);
+	pn_func(m,  "PWDB.GET_GID",     cwa_pwdb_get_gid);
+	pn_func(m,  "PWDB.GET_NAME",    cwa_pwdb_get_name);
+	pn_func(m,  "PWDB.GET_PASSWD",  cwa_pwdb_get_passwd);
+	pn_func(m,  "PWDB.GET_GECOS",   cwa_pwdb_get_gecos);
+	pn_func(m,  "PWDB.GET_HOME",    cwa_pwdb_get_home);
+	pn_func(m,  "PWDB.GET_SHELL",   cwa_pwdb_get_shell);
+
+	pn_func(m,  "PWDB.SET_UID",     cwa_pwdb_set_uid);
+	pn_func(m,  "PWDB.SET_GID",     cwa_pwdb_set_gid);
+	pn_func(m,  "PWDB.SET_NAME",    cwa_pwdb_set_name);
+	pn_func(m,  "PWDB.SET_PASSWD",  cwa_pwdb_set_passwd);
+	pn_func(m,  "PWDB.SET_GECOS",   cwa_pwdb_set_gecos);
+	pn_func(m,  "PWDB.SET_HOME",    cwa_pwdb_set_home);
+	pn_func(m,  "PWDB.SET_SHELL",   cwa_pwdb_set_shell);
+
+	pn_func(m,  "PWDB.CREATE",      cwa_pwdb_create);
+	pn_func(m,  "PWDB.NEXT_UID",    cwa_pwdb_next_uid);
+	pn_func(m,  "PWDB.REMOVE",      cwa_pwdb_remove);
+	pn_func(m,  "PWDB.WRITE",       cwa_pwdb_write);
+	pn_func(m,  "PWDB.CLOSE",       cwa_pwdb_close);
 
 	return 0;
 }

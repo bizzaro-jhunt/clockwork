@@ -1,0 +1,67 @@
+;;
+;; users/create.pn
+;; Pendulum Test Script
+;;
+
+SET %F "t/tmp/pn/users/passwd"
+COPY %F %A
+CALL &PWDB.OPEN
+OK? @open.fail
+
+SET %A 1     ;; by username
+SET %B "new"
+CALL &PWDB.FIND
+OK? @start
+  PRINT "found user 'new' before we created it...\n"
+  HALT
+
+start:
+PRINT "user 'new' does not exist\n"
+SET %A "new" ;; username
+SET %B 9001  ;; UID
+SET %C 9002  ;; GID
+CALL &PWDB.CREATE
+OK? @create.fail
+
+COPY %F %A
+CALL &PWDB.WRITE
+OK? @create.fail
+CALL &PWDB.CLOSE
+OK? @create.fail
+
+CALL &PWDB.OPEN
+OK? @open.fail
+
+SET %A 1
+SET %B "new"
+CALL &PWDB.FIND
+OK? @missing
+
+PRINT "user 'new' found, post-create\n"
+
+COPY %A %E ;; save the handle address
+CALL &PWDB.GET_UID
+COPY %R %A
+PRINT "UID is %i\n"
+
+COPY %E %A
+CALL &PWDB.GET_GID
+COPY %R %A
+PRINT "GID is %i\n"
+
+HALT
+
+missing:
+  PRINT "unable to find 'new' user, post-create\n"
+  SYSERR
+  HALT
+
+open.fail:
+  PRINT "failed to open passwd file\n"
+  SYSERR
+  HALT
+
+create.fail:
+  PRINT "failed to create new user\n"
+  SYSERR
+  HALT

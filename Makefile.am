@@ -97,6 +97,7 @@ CTAP_TESTS += t/70-managers
 PERL_TESTS = 
 PERL_TESTS += t/pendulum/01-basics.t
 PERL_TESTS += t/pendulum/10-fs.t
+PERL_TESTS += t/pendulum/11-users.t
 
 TEST_HELPERS  = t/helpers/executor
 TEST_HELPERS += t/helpers/prompter

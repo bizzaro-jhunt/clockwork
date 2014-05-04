@@ -63,6 +63,7 @@ autom4te.cache
 
 dev/
 
+t/base/conf
 
 t/00-bits
 t/01-string

@@ -66,6 +66,8 @@ gather_SCRIPTS += gather.d/time
 ############################################################
 
 CTAP_TESTS =
+CTAP_TESTS += t/base/conf
+
 CTAP_TESTS += t/00-bits
 CTAP_TESTS += t/01-string
 CTAP_TESTS += t/04-hash
@@ -125,12 +127,6 @@ test_source += src/service.h    src/service.c
 test_source += src/package.h    src/package.c
 test_source += src/proto.h      src/proto.c
 
-test_source += src/conf/grammar.y
-test_source += src/conf/lexer.l
-test_source += src/conf/parser.h
-test_source += src/conf/parser.c
-test_source += src/conf/private.h
-
 test_source += src/spec/grammar.y
 test_source += src/spec/lexer.l
 test_source += src/spec/parser.h
@@ -149,6 +145,8 @@ test_source += src/gear/log.c
 test_source += src/gear/pack.c
 test_source += src/gear/path.c
 test_source += src/gear/string.c
+
+t_base_conf_SOURCES      = t/base/conf.c src/conffile.h src/conffile.c src/gear.h src/gear/hash.c
 
 t_00_bits_SOURCES        = t/00-bits.c          $(test_source)
 t_01_string_SOURCES      = t/01-string.c        $(test_source)
@@ -233,9 +231,7 @@ parser_spec_src  = src/spec/parser.c src/spec/parser.h src/spec/private.h
 parser_spec_src += src/spec/lexer.l src/spec/lexer_impl.h
 parser_spec_src += src/spec/grammar.y src/spec/grammar_impl.h
 
-parser_conf_src  = src/conf/parser.c src/conf/parser.h src/conf/private.h
-parser_conf_src += src/conf/lexer.l src/conf/lexer_impl.h
-parser_conf_src += src/conf/grammar.y
+parser_conf_src  = src/conffile.h src/conffile.c
 
 parser_tpl_src   = src/tpl/parser.c src/tpl/parser.h src/tpl/private.h
 parser_tpl_src  += src/tpl/lexer.l src/tpl/lexer_impl.h
@@ -280,12 +276,6 @@ src/tpl/lexer.c: src/tpl/lexer.l src/tpl/grammar.h src/tpl/lexer_impl.h src/tpl/
 
 src/tpl/grammar.c: src/tpl/grammar.y src/tpl/parser.c src/tpl/parser.h src/tpl/private.h
 	$(YACCCOMPILE) -p yytpl --output-file=src/tpl/grammar.c $<
-
-src/conf/lexer.c: src/conf/lexer.l src/conf/grammar.h src/conf/lexer_impl.h src/conf/private.h
-	$(LEXCOMPILE) --outfile=$@ $<
-
-src/conf/grammar.c: src/conf/grammar.y src/conf/parser.c src/conf/parser.h src/conf/private.h
-	$(YACCCOMPILE) -p yyconf --output-file=src/conf/grammar.c $<
 
 if GCOV_ENABLED
 coverage-clean:

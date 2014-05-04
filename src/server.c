@@ -20,7 +20,7 @@
 #include "clockwork.h"
 
 #include "server.h"
-#include "conf/parser.h"
+#include "conffile.h"
 
 /**************************************************************/
 

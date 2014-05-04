@@ -17,8 +17,8 @@
   along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _CONFIG_PARSER_H
-#define _CONFIG_PARSER_H
+#ifndef _CONFFILE_H
+#define _CONFFILE_H
 
 struct hash* parse_config(const char *path);
 

@@ -19,7 +19,7 @@
 
 #include "client.h"
 #include "cert.h"
-#include "conf/parser.h"
+#include "conffile.h"
 
 /**************************************************************/
 

@@ -22,6 +22,8 @@ struct pn_machine {
 	pn_word R,  Er;
 	pn_word Ip, Dp;
 
+	void *U;
+
 	FILE *dump_fd;
 	int trace;
 

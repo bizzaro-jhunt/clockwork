@@ -22,12 +22,13 @@ struct pwdb {
 	struct pwdb   *next;     /* the next database entry */
 	struct passwd *passwd;   /* user account record */
 };
-static struct pwdb *PWDB;
 
-struct udata {
+typedef struct {
 	struct pwdb   *pwdb;
 	struct passwd *pwent;
-};
+} udata;
+
+#define UDATA(m) ((udata*)(m->U))
 
 /***************************************************/
 
@@ -160,15 +161,14 @@ static pn_word cwa_pwdb_open(pn_machine *m)
 	input = fopen((const char *)m->A, "r");
 	if (!input) return 1;
 
-	PWDB = cur = entry = NULL;
+	UDATA(m)->pwdb = cur = entry = NULL;
 	errno = 0;
 	while ((entry = s_fgetpwent(input)) != NULL) {
-		if (!PWDB) {
-			PWDB = entry;
+		if (!UDATA(m)->pwdb) {
+			UDATA(m)->pwdb = entry;
 		} else {
 			cur->next = entry;
 		}
-
 		cur = entry;
 	}
 
@@ -180,16 +180,16 @@ static pn_word cwa_pwdb_lookup(pn_machine *m)
 {
 	struct pwdb *db;
 	if (m->A) {
-		for (db = PWDB; db; db = db->next) {
+		for (db = UDATA(m)->pwdb; db; db = db->next) {
 			if (db->passwd && strcmp(db->passwd->pw_name, (const char *)m->B) == 0) {
-				m->A = (pn_word)db->passwd;
+				UDATA(m)->pwent = db->passwd;
 				return 0;
 			}
 		}
 	} else {
-		for (db = PWDB; db; db = db->next) {
+		for (db = UDATA(m)->pwdb; db; db = db->next) {
 			if (db->passwd && db->passwd->pw_uid == (uid_t)m->B) {
-				m->A = (pn_word)db->passwd;
+				UDATA(m)->pwent = db->passwd;
 				return 0;
 			}
 		}
@@ -199,92 +199,92 @@ static pn_word cwa_pwdb_lookup(pn_machine *m)
 
 static pn_word cwa_pwdb_get_uid(pn_machine *m)
 {
-	return (pn_word)(((struct passwd*)m->A)->pw_uid);
+	return (pn_word)(UDATA(m)->pwent->pw_uid);
 }
 
 static pn_word cwa_pwdb_get_gid(pn_machine *m)
 {
-	return (pn_word)(((struct passwd*)m->A)->pw_gid);
+	return (pn_word)(UDATA(m)->pwent->pw_gid);
 }
 
 static pn_word cwa_pwdb_get_name(pn_machine *m)
 {
-	return (pn_word)(((struct passwd*)m->A)->pw_name);
+	return (pn_word)(UDATA(m)->pwent->pw_name);
 }
 
 static pn_word cwa_pwdb_get_passwd(pn_machine *m)
 {
-	return (pn_word)(((struct passwd*)m->A)->pw_passwd);
+	return (pn_word)(UDATA(m)->pwent->pw_passwd);
 }
 
 static pn_word cwa_pwdb_get_gecos(pn_machine *m)
 {
-	return (pn_word)(((struct passwd*)m->A)->pw_gecos);
+	return (pn_word)(UDATA(m)->pwent->pw_gecos);
 }
 
 static pn_word cwa_pwdb_get_home(pn_machine *m)
 {
-	return (pn_word)(((struct passwd*)m->A)->pw_dir);
+	return (pn_word)(UDATA(m)->pwent->pw_dir);
 }
 
 static pn_word cwa_pwdb_get_shell(pn_machine *m)
 {
-	return (pn_word)(((struct passwd*)m->A)->pw_shell);
+	return (pn_word)(UDATA(m)->pwent->pw_shell);
 }
 
 static pn_word cwa_pwdb_set_uid(pn_machine *m)
 {
-	((struct passwd*)m->A)->pw_uid = (uid_t)m->B;
+	UDATA(m)->pwent->pw_uid = (uid_t)m->B;
 	return 0;
 }
 
 static pn_word cwa_pwdb_set_gid(pn_machine *m)
 {
-	((struct passwd*)m->A)->pw_gid = (gid_t)m->B;
+	UDATA(m)->pwent->pw_gid = (gid_t)m->B;
 	return 0;
 }
 
 static pn_word cwa_pwdb_set_name(pn_machine *m)
 {
-	free(((struct passwd*)m->A)->pw_name);
-	((struct passwd*)m->A)->pw_name = strdup((const char *)m->B);
+	free(UDATA(m)->pwent->pw_name);
+	UDATA(m)->pwent->pw_name = strdup((const char *)m->B);
 	return 0;
 }
 
 static pn_word cwa_pwdb_set_passwd(pn_machine *m)
 {
-	free(((struct passwd*)m->A)->pw_passwd);
-	((struct passwd*)m->A)->pw_passwd = strdup((const char *)m->B);
+	free(UDATA(m)->pwent->pw_passwd);
+	UDATA(m)->pwent->pw_passwd = strdup((const char *)m->B);
 	return 0;
 }
 
 static pn_word cwa_pwdb_set_gecos(pn_machine *m)
 {
-	free(((struct passwd*)m->A)->pw_gecos);
-	((struct passwd*)m->A)->pw_gecos = strdup((const char *)m->B);
+	free(UDATA(m)->pwent->pw_gecos);
+	UDATA(m)->pwent->pw_gecos = strdup((const char *)m->B);
 	return 0;
 }
 
 static pn_word cwa_pwdb_set_home(pn_machine *m)
 {
-	free(((struct passwd*)m->A)->pw_dir);
-	((struct passwd*)m->A)->pw_dir = strdup((const char *)m->B);
+	free(UDATA(m)->pwent->pw_dir);
+	UDATA(m)->pwent->pw_dir = strdup((const char *)m->B);
 	return 0;
 }
 
 static pn_word cwa_pwdb_set_shell(pn_machine *m)
 {
-	free(((struct passwd*)m->A)->pw_shell);
-	((struct passwd*)m->A)->pw_shell = strdup((const char *)m->B);
+	free(UDATA(m)->pwent->pw_shell);
+	UDATA(m)->pwent->pw_shell = strdup((const char *)m->B);
 	return 0;
 }
 
 static pn_word cwa_pwdb_create(pn_machine *m)
 {
-	if (!PWDB) return 1;
+	if (!UDATA(m)->pwdb) return 1;
 
 	struct pwdb *ent;
-	for (ent = PWDB; ent->next; ent = ent->next)
+	for (ent = UDATA(m)->pwdb; ent->next; ent = ent->next)
 		;
 
 	ent->next = calloc(1, sizeof(struct pwdb));
@@ -300,12 +300,12 @@ static pn_word cwa_pwdb_create(pn_machine *m)
 
 static pn_word cwa_pwdb_next_uid(pn_machine *m)
 {
-	if (!PWDB) return 1;
+	if (!UDATA(m)->pwdb) return 1;
 
 	struct pwdb *db;
 	uid_t uid = (uid_t)m->A;
 UID: while (uid < 65536) {
-		for (db = PWDB; db; db = db->next) {
+		for (db = UDATA(m)->pwdb; db; db = db->next) {
 			if (db->passwd->pw_uid != uid) continue;
 			uid++; goto UID;
 		}
@@ -317,12 +317,11 @@ UID: while (uid < 65536) {
 
 static pn_word cwa_pwdb_remove(pn_machine *m)
 {
-	struct passwd *pw = (struct passwd*)m->A;
-	if (!PWDB || !pw) return 1;
+	if (!UDATA(m)->pwdb || !UDATA(m)->pwent) return 1;
 
 	struct pwdb *db, *ent = NULL;
-	for (db = PWDB; db; ent = db, db = db->next) {
-		if (db->passwd == pw) {
+	for (db = UDATA(m)->pwdb; db; ent = db, db = db->next) {
+		if (db->passwd == UDATA(m)->pwent) {
 			free(db->passwd->pw_name);
 			free(db->passwd->pw_passwd);
 			free(db->passwd->pw_gecos);
@@ -348,7 +347,7 @@ static pn_word cwa_pwdb_write(pn_machine *m)
 	if (!output) return 1;
 
 	struct pwdb *db;
-	for (db = PWDB; db; db = db->next) {
+	for (db = UDATA(m)->pwdb; db; db = db->next) {
 		if (db->passwd && putpwent(db->passwd, output) == -1) {
 			fclose(output);
 			return -1;
@@ -360,7 +359,7 @@ static pn_word cwa_pwdb_write(pn_machine *m)
 
 static pn_word cwa_pwdb_close(pn_machine *m)
 {
-	struct pwdb *cur, *entry = PWDB;
+	struct pwdb *cur, *entry = UDATA(m)->pwdb;
 
 	while (entry) {
 		cur = entry->next;
@@ -373,7 +372,7 @@ static pn_word cwa_pwdb_close(pn_machine *m)
 		free(entry);
 		entry = cur;
 	}
-	PWDB = NULL;
+	UDATA(m)->pwdb = NULL;
 	return 0;
 }
 
@@ -426,6 +425,8 @@ int pendulum_funcs(pn_machine *m)
 	pn_func(m,  "PWDB.REMOVE",      cwa_pwdb_remove);
 	pn_func(m,  "PWDB.WRITE",       cwa_pwdb_write);
 	pn_func(m,  "PWDB.CLOSE",       cwa_pwdb_close);
+
+	m->U = calloc(1, sizeof(udata));
 
 	return 0;
 }

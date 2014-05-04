@@ -39,12 +39,10 @@ OK? @missing
 
 PRINT "user 'new' found, post-create\n"
 
-COPY %A %E ;; save the handle address
 CALL &PWDB.GET_UID
 COPY %R %A
 PRINT "UID is %i\n"
 
-COPY %E %A
 CALL &PWDB.GET_GID
 COPY %R %A
 PRINT "GID is %i\n"

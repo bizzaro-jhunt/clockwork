@@ -19,38 +19,30 @@ start:
   SET %B "svc"
   CALL &PWDB.FIND
   OK? @not-found
-    COPY %A %E ;; save the handle address
-
     CALL &PWDB.GET_NAME
     COPY %R %A
     PRINT "username: %s\n"
 
-    COPY %E %A
     CALL &PWDB.GET_UID
     COPY %R %A
     PRINT "uid: %i\n"
 
-    COPY %E %A
     CALL &PWDB.GET_GID
     COPY %R %A
     PRINT "gid: %i\n"
 
-    COPY %E %A
     CALL &PWDB.GET_PASSWD
     COPY %R %A
     PRINT "passwd: %s\n"
 
-    COPY %E %A
     CALL &PWDB.GET_GECOS
     COPY %R %A
     PRINT "gecos: '%s'\n"
 
-    COPY %E %A
     CALL &PWDB.GET_HOME
     COPY %R %A
     PRINT "home: %s\n"
 
-    COPY %E %A
     CALL &PWDB.GET_SHELL
     COPY %R %A
     PRINT "shell: %s\n"

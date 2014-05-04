@@ -3,12 +3,8 @@ use strict;
 use warnings;
 
 use Test::More;
-use Test::Deep;
-
-use Test::More;
 use t::pendulum::common;
 
-# NB: If this changes, all the tests will need to change as well...
 my $TESTS = "t/data/pn/users";
 
 # NB: If this changes, all the tests will need to change as well...
@@ -35,6 +31,7 @@ sys:*:13991:0:99999:7:::
 user:$6$nahablHe$1qen4PePmYtEIC6aCTYoQFLgMp//snQY7nDGU7.9iVzXrmmCYLDsOKc22J6MPRUuH/X4XJ7w.JaEXjofw9h1d/:14871:0:99999:7:::
 svc:*:13991:0:99999:7:::
 EOF
+close SHADOW;
 
 pendulum_ok "$TESTS/lookup.pn", <<'EOF', "lookup.pn";
 passwd opened

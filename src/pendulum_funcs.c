@@ -935,25 +935,41 @@ static pn_word cwa_user_remove(pn_machine *m)
 {
 	if (!UDATA(m)->pwdb || !UDATA(m)->pwent) return 1;
 
-	struct pwdb *db, *ent = NULL;
-	for (db = UDATA(m)->pwdb; db; ent = db, db = db->next) {
-		if (db->passwd == UDATA(m)->pwent) {
-			free(db->passwd->pw_name);
-			free(db->passwd->pw_passwd);
-			free(db->passwd->pw_gecos);
-			free(db->passwd->pw_dir);
-			free(db->passwd->pw_shell);
-			free(db->passwd);
-			db->passwd = NULL;
+	struct pwdb *pw, *pwent = NULL;
+	for (pw = UDATA(m)->pwdb; pw; pwent = pw, pw = pw->next) {
+		if (pw->passwd == UDATA(m)->pwent) {
+			free(pw->passwd->pw_name);
+			free(pw->passwd->pw_passwd);
+			free(pw->passwd->pw_gecos);
+			free(pw->passwd->pw_dir);
+			free(pw->passwd->pw_shell);
+			free(pw->passwd);
+			pw->passwd = NULL;
 
-			if (ent) {
-				ent->next = db->next;
-				free(db);
+			if (pwent) {
+				pwent->next = pw->next;
+				free(pw);
 			}
-			return 0;
+			break;
 		}
 	}
-	return 1;
+
+	struct spdb *sp, *spent = NULL;
+	for (sp = UDATA(m)->spdb; sp; spent = sp, sp = sp->next) {
+		if (sp->spwd == UDATA(m)->spent) {
+			free(sp->spwd->sp_namp);
+			free(sp->spwd->sp_pwdp);
+			free(sp->spwd);
+			sp->spwd = NULL;
+
+			if (spent) {
+				spent->next = sp->next;
+				free(sp);
+			}
+			break;
+		}
+	}
+	return 0;
 }
 
 /*

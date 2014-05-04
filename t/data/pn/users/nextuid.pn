@@ -23,12 +23,12 @@ CALL &USER.NEXT_UID
 OK? @fail
 PRINT "next UID >= %i is %i\n"
 
-SET %A 6500
+SET %A 999
 CALL &USER.NEXT_UID
 OK? @fail
 PRINT "next UID >= %i is %i\n"
 
-SET %A 9001
+SET %A 6500
 CALL &USER.NEXT_UID
 OK? @fail
 PRINT "next UID >= %i is %i\n"

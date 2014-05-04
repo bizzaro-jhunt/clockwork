@@ -46,6 +46,26 @@ SET %B "/bin/false"
 CALL &USER.SET_SHELL
 OK? @update-failed
 
+SET %B 90
+CALL &USER.SET_PWMIN
+OK? @update-failed
+
+SET %B 104
+CALL &USER.SET_PWMAX
+OK? @update-failed
+
+SET %B 14
+CALL &USER.SET_PWWARN
+OK? @update-failed
+
+SET %B 12345
+CALL &USER.SET_INACT
+OK? @update-failed
+
+SET %B 2468
+CALL &USER.SET_EXPIRY
+OK? @update-failed
+
 COPY %F %A
 CALL &PWDB.WRITE
 OK? @update-failed
@@ -96,6 +116,26 @@ PRINT "home: %s\n"
 CALL &USER.GET_SHELL
 COPY %R %A
 PRINT "shell: %s\n"
+
+CALL &USER.GET_PWMIN
+COPY %R %A
+PRINT "pwmin: %i\n"
+
+CALL &USER.GET_PWMAX
+COPY %R %A
+PRINT "pwmax: %i\n"
+
+CALL &USER.GET_PWWARN
+COPY %R %A
+PRINT "pwwarn: %i\n"
+
+CALL &USER.GET_INACT
+COPY %R %A
+PRINT "inact: %i\n"
+
+CALL &USER.GET_EXPIRY
+COPY %R %A
+PRINT "expire: %i\n"
 
 HALT
 

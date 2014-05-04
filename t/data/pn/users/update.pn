@@ -6,92 +6,108 @@
 SET %F "t/tmp/pn/users/passwd"
 COPY %F %A
 CALL &PWDB.OPEN
-OK? @open.fail
-  JUMP @start
+OK? @pwdb.open.fail
 
-open.fail:
+SET %E "t/tmp/pn/users/shadow"
+COPY %E %A
+CALL &SPDB.OPEN
+OK? @spdb.open.fail
+
+SET %A 1       ;; by username
+SET %B "svc"
+CALL &USER.FIND
+OK? @not-found
+
+SET %B "svc2"
+CALL &USER.SET_NAME
+OK? @update-failed
+
+SET %B 1999
+CALL &USER.SET_UID
+OK? @update-failed
+
+SET %B 1909
+CALL &USER.SET_GID
+OK? @update-failed
+
+SET %B "lol"
+CALL &USER.SET_PASSWD
+OK? @update-failed
+
+SET %B "A New Service Account"
+CALL &USER.SET_GECOS
+OK? @update-failed
+
+SET %B "/var/lib/nowhere"
+CALL &USER.SET_HOME
+OK? @update-failed
+
+SET %B "/bin/false"
+CALL &USER.SET_SHELL
+OK? @update-failed
+
+COPY %F %A
+CALL &PWDB.WRITE
+OK? @update-failed
+CALL &PWDB.CLOSE
+OK? @update-failed
+
+CALL &PWDB.OPEN
+OK? @pwdb.open.fail
+
+COPY %E %A
+CALL &SPDB.WRITE
+OK? @update-failed
+CALL &SPDB.CLOSE
+OK? @update-failed
+
+CALL &SPDB.OPEN
+OK? @spdb.open.fail
+
+SET %A 1       ;; by username
+SET %B "svc2"
+CALL &USER.FIND
+OK? @not-found
+
+CALL &USER.GET_NAME
+COPY %R %A
+PRINT "username: %s\n"
+
+CALL &USER.GET_UID
+COPY %R %A
+PRINT "uid: %i\n"
+
+CALL &USER.GET_GID
+COPY %R %A
+PRINT "gid: %i\n"
+
+CALL &USER.GET_PASSWD
+COPY %R %A
+PRINT "passwd: %s\n"
+
+CALL &USER.GET_GECOS
+COPY %R %A
+PRINT "gecos: '%s'\n"
+
+CALL &USER.GET_HOME
+COPY %R %A
+PRINT "home: %s\n"
+
+CALL &USER.GET_SHELL
+COPY %R %A
+PRINT "shell: %s\n"
+
+HALT
+
+pwdb.open.fail:
   PRINT "Failed to open passwd file\n"
   SYSERR
   HALT
 
-start:
-  SET %A 1       ;; by username
-  SET %B "svc"
-  CALL &PWDB.FIND
-  OK? @not-found
-
-  SET %B "svc2"
-  CALL &PWDB.SET_NAME
-  OK? @update-failed
-
-  SET %B 1999
-  CALL &PWDB.SET_UID
-  OK? @update-failed
-
-  SET %B 1909
-  CALL &PWDB.SET_GID
-  OK? @update-failed
-
-  SET %B "lol"
-  CALL &PWDB.SET_PASSWD
-  OK? @update-failed
-
-  SET %B "A New Service Account"
-  CALL &PWDB.SET_GECOS
-  OK? @update-failed
-
-  SET %B "/var/lib/nowhere"
-  CALL &PWDB.SET_HOME
-  OK? @update-failed
-
-  SET %B "/bin/false"
-  CALL &PWDB.SET_SHELL
-  OK? @update-failed
-
-  COPY %F %A
-  CALL &PWDB.WRITE
-  OK? @update-failed
-  CALL &PWDB.CLOSE
-  OK? @update-failed
-
-  CALL &PWDB.OPEN
-  OK? @update-failed
-
-summary:
-  SET %A 1       ;; by username
-  SET %B "svc2"
-  CALL &PWDB.FIND
-  OK? @not-found
-
-    CALL &PWDB.GET_NAME
-    COPY %R %A
-    PRINT "username: %s\n"
-
-    CALL &PWDB.GET_UID
-    COPY %R %A
-    PRINT "uid: %i\n"
-
-    CALL &PWDB.GET_GID
-    COPY %R %A
-    PRINT "gid: %i\n"
-
-    CALL &PWDB.GET_PASSWD
-    COPY %R %A
-    PRINT "passwd: %s\n"
-
-    CALL &PWDB.GET_GECOS
-    COPY %R %A
-    PRINT "gecos: '%s'\n"
-
-    CALL &PWDB.GET_HOME
-    COPY %R %A
-    PRINT "home: %s\n"
-
-    CALL &PWDB.GET_SHELL
-    COPY %R %A
-    PRINT "shell: %s\n"
-
-    HALT
+spdb.open.fail:
+  PRINT "Failed to open shadow file\n"
+  SYSERR
+  HALT
 
 not-found:
   PRINT "user not found\n"

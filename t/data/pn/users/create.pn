@@ -6,11 +6,16 @@
 SET %F "t/tmp/pn/users/passwd"
 COPY %F %A
 CALL &PWDB.OPEN
-OK? @open.fail
+OK? @pwdb.open.fail
+
+SET %E "t/tmp/pn/users/shadow"
+COPY %E %A
+CALL &SPDB.OPEN
+OK? @spdb.open.fail
 
 SET %A 1     ;; by username
 SET %B "new"
-CALL &PWDB.FIND
+CALL &USER.FIND
 OK? @start
   PRINT "found user 'new' before we created it...\n"
   HALT
@@ -20,7 +25,7 @@ PRINT "user 'new' does not exist\n"
 SET %A "new" ;; username
 SET %B 9001  ;; UID
 SET %C 9002  ;; GID
-CALL &PWDB.CREATE
+CALL &USER.CREATE
 OK? @create.fail
 
 COPY %F %A
@@ -30,20 +35,29 @@ CALL &PWDB.CLOSE
 OK? @create.fail
 
 CALL &PWDB.OPEN
-OK? @open.fail
+OK? @pwdb.open.fail
+
+COPY %E %A
+CALL &SPDB.WRITE
+OK? @create.fail
+CALL &SPDB.CLOSE
+OK? @create.fail
+
+CALL &SPDB.OPEN
+OK? @spdb.open.fail
 
 SET %A 1
 SET %B "new"
-CALL &PWDB.FIND
+CALL &USER.FIND
 OK? @missing
 
 PRINT "user 'new' found, post-create\n"
 
-CALL &PWDB.GET_UID
+CALL &USER.GET_UID
 COPY %R %A
 PRINT "UID is %i\n"
 
-CALL &PWDB.GET_GID
+CALL &USER.GET_GID
 COPY %R %A
 PRINT "GID is %i\n"
 
@@ -54,7 +68,12 @@ missing:
   SYSERR
   HALT
 
-open.fail:
+spdb.open.fail:
+  PRINT "failed to open shadow file\n"
+  SYSERR
+  HALT
+
+pwdb.open.fail:
   PRINT "failed to open passwd file\n"
   SYSERR
   HALT

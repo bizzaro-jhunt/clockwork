@@ -6,15 +6,20 @@
 SET %F "t/tmp/pn/users/passwd"
 COPY %F %A
 CALL &PWDB.OPEN
-OK? @open.fail
+OK? @pwdb.open.fail
+
+SET %E "t/tmp/pn/users/shadow"
+COPY %E %A
+CALL &SPDB.OPEN
+OK? @spdb.open.fail
 
 SET %A 1       ;; by username
 SET %B "user"
-CALL &PWDB.FIND
+CALL &USER.FIND
 OK? @missing
 
 PRINT "found user 'user'\n"
-CALL &PWDB.REMOVE
+CALL &USER.REMOVE
 OK? @remove-failed
 
 COPY %F %A
@@ -24,17 +29,31 @@ CALL &PWDB.CLOSE
 OK? @update-failed
 
 CALL &PWDB.OPEN
-OK? @open.fail
+OK? @pwdb.open.fail
+
+COPY %E %A
+CALL &SPDB.WRITE
+OK? @update-failed
+CALL &SPDB.CLOSE
+OK? @update-failed
+
+CALL &SPDB.OPEN
+OK? @spdb.open.fail
 
 SET %A 1       ;; by username
 SET %B "user"
-CALL &PWDB.FIND
+CALL &USER.FIND
 OK? @deleted
 PRINT "found user 'user', post-delete\n"
 HALT
 
-open.fail:
+pwdb.open.fail:
   PRINT "Failed to open passwd file\n"
+  SYSERR
+  HALT
+
+spdb.open.fail:
+  PRINT "Failed to open shadow file\n"
   SYSERR
   HALT
 

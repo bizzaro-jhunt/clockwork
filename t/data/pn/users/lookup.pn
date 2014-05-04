@@ -6,24 +6,35 @@
 SET %F "t/tmp/pn/users/passwd"
 COPY %F %A
 CALL &PWDB.OPEN
-OK? @open.fail
+OK? @pwdb.open.fail
   PRINT "passwd opened\n"
+
+SET %E "t/tmp/pn/users/shadow"
+COPY %E %A
+CALL &SPDB.OPEN
+OK? @spdb.open.fail
+  PRINT "shadow opened\n"
   JUMP @root
 
-open.fail:
+pwdb.open.fail:
   PRINT "Failed to open passwd file\n"
+  SYSERR
+  HALT
+
+spdb.open.fail:
+  PRINT "Failed to open shadow file\n"
   SYSERR
   HALT
 
 root:
   SET %A 1       ;; by username
   SET %B "root"
-  CALL &PWDB.FIND
+  CALL &USER.FIND
   OK? @root.not-found
     PRINT "found root user\n"
-    CALL &PWDB.GET_GID
+    CALL &USER.GET_GID
     COPY %R %B
-    CALL &PWDB.GET_UID
+    CALL &USER.GET_UID
     COPY %R %A
     PRINT "root has UID/GID %i:%i\n"
     JUMP @sys
@@ -33,12 +44,12 @@ root:
 sys:
   SET %A 1
   SET %B "sys"
-  CALL &PWDB.FIND
+  CALL &USER.FIND
   OK? @sys.not-found
     PRINT "found sys user\n"
-    CALL &PWDB.GET_GID
+    CALL &USER.GET_GID
     COPY %R %B
-    CALL &PWDB.GET_UID
+    CALL &USER.GET_UID
     COPY %R %A
     PRINT "sys has UID/GID %i:%i\n"
     JUMP @svc
@@ -49,12 +60,12 @@ sys:
 svc:
   SET %A 1
   SET %B "svc"
-  CALL &PWDB.FIND
+  CALL &USER.FIND
   OK? @svc.not-found
     PRINT "found svc user\n"
-    CALL &PWDB.GET_GID
+    CALL &USER.GET_GID
     COPY %R %B
-    CALL &PWDB.GET_UID
+    CALL &USER.GET_UID
     COPY %R %A
     PRINT "svc has UID/GID %i:%i\n"
     JUMP @uid100
@@ -65,10 +76,10 @@ svc:
 uid100:
   SET %A 0    ;; by UID
   SET %B 100
-  CALL &PWDB.FIND
+  CALL &USER.FIND
   OK? @uid100.not-found
     PRINT "found UID 100\n"
-    CALL &PWDB.GET_NAME
+    CALL &USER.GET_NAME
     COPY %R %A
     PRINT "UID 100 is '%s'\n"
     JUMP @ballyhoo
@@ -79,7 +90,7 @@ uid100:
 ballyhoo:
   SET %A 1
   SET %B "ballyhoo"
-  CALL &PWDB.FIND
+  CALL &USER.FIND
   OK? @ballyhoo.not-found
     PRINT "found ballyhoo user\n"
     JUMP @done
@@ -87,6 +98,5 @@ ballyhoo:
     PRINT "ballyhoo user not found\n"
 
 done:
-COPY %F %A
-CALL &PWDB.WRITE
 CALL &PWDB.CLOSE
+CALL &SPDB.CLOSE

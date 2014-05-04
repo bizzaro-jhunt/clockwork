@@ -9,27 +9,27 @@ CALL &PWDB.OPEN
 OK? @open.fail
 
 SET %A 0
-CALL &PWDB.NEXT_UID
+CALL &USER.NEXT_UID
 OK? @fail
 PRINT "next UID >= %i is %i\n"
 
 SET %A 2
-CALL &PWDB.NEXT_UID
+CALL &USER.NEXT_UID
 OK? @fail
 PRINT "next UID >= %i is %i\n"
 
 SET %A 500
-CALL &PWDB.NEXT_UID
+CALL &USER.NEXT_UID
 OK? @fail
 PRINT "next UID >= %i is %i\n"
 
 SET %A 6500
-CALL &PWDB.NEXT_UID
+CALL &USER.NEXT_UID
 OK? @fail
 PRINT "next UID >= %i is %i\n"
 
 SET %A 9001
-CALL &PWDB.NEXT_UID
+CALL &USER.NEXT_UID
 OK? @fail
 PRINT "next UID >= %i is %i\n"
 
@@ -41,6 +41,6 @@ open.fail:
   HALT
 
 fail:
-  PRINT "call to PWDB.NEXT_UID failed\n"
+  PRINT "call to USER.NEXT_UID failed\n"
   SYSERR
   HALT

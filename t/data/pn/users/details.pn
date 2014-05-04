@@ -6,46 +6,81 @@
 SET %F "t/tmp/pn/users/passwd"
 COPY %F %A
 CALL &PWDB.OPEN
-OK? @open.fail
-  JUMP @start
+OK? @pwdb.open.fail
 
-open.fail:
-  PRINT "Failed to open passwd file\n"
+SET %E "t/tmp/pn/users/shadow"
+COPY %E %A
+CALL &SPDB.OPEN
+OK? @spdb.open.fail
+
+JUMP @start
+
+spdb.open.fail:
+  PRINT "failed to open shadow file\n"
+  SYSERR
+  HALT
+
+pwdb.open.fail:
+  PRINT "failed to open passwd file\n"
   SYSERR
   HALT
 
 start:
   SET %A 1       ;; by username
   SET %B "svc"
-  CALL &PWDB.FIND
+  CALL &USER.FIND
   OK? @not-found
-    CALL &PWDB.GET_NAME
+    CALL &USER.GET_NAME
     COPY %R %A
     PRINT "username: %s\n"
 
-    CALL &PWDB.GET_UID
+    CALL &USER.GET_UID
     COPY %R %A
     PRINT "uid: %i\n"
 
-    CALL &PWDB.GET_GID
+    CALL &USER.GET_GID
     COPY %R %A
     PRINT "gid: %i\n"
 
-    CALL &PWDB.GET_PASSWD
+    CALL &USER.GET_PASSWD
     COPY %R %A
     PRINT "passwd: %s\n"
 
-    CALL &PWDB.GET_GECOS
+    CALL &USER.GET_GECOS
     COPY %R %A
     PRINT "gecos: '%s'\n"
 
-    CALL &PWDB.GET_HOME
+    CALL &USER.GET_HOME
     COPY %R %A
     PRINT "home: %s\n"
 
-    CALL &PWDB.GET_SHELL
+    CALL &USER.GET_SHELL
     COPY %R %A
     PRINT "shell: %s\n"
+
+    CALL &USER.GET_PWHASH
+    COPY %R %A
+    PRINT "pwhash: '%s'\n"
+
+    CALL &USER.GET_PWMIN
+    COPY %R %A
+    PRINT "pwmin: %i\n"
+
+    CALL &USER.GET_PWMAX
+    COPY %R %A
+    PRINT "pwmax: %i\n"
+
+    CALL &USER.GET_PWWARN
+    COPY %R %A
+    PRINT "pwwarn: %i\n"
+
+    CALL &USER.GET_EXPIRY
+    COPY %R %A
+    PRINT "expire: %i\n"
+
+    CALL &USER.GET_INACT
+    COPY %R %A
+    PRINT "inact: %i\n"
 
     HALT
 

@@ -98,6 +98,7 @@ PERL_TESTS =
 PERL_TESTS += t/pendulum/01-basics.t
 PERL_TESTS += t/pendulum/10-fs.t
 PERL_TESTS += t/pendulum/11-users.t
+PERL_TESTS += t/pendulum/12-groups.t
 
 TEST_HELPERS  = t/helpers/executor
 TEST_HELPERS += t/helpers/prompter

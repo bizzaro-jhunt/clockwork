@@ -1,0 +1,79 @@
+;;
+;; groups/create.pn
+;; Pendulum Test Script
+;;
+
+SET %F "t/tmp/pn/groups/group"
+COPY %F %A
+CALL &GRDB.OPEN
+OK? @grdb.open.fail
+
+SET %E "t/tmp/pn/groups/gshadow"
+COPY %E %A
+CALL &SGDB.OPEN
+OK? @sgdb.open.fail
+
+SET %A 1     ;; by name
+SET %B "new"
+CALL &GROUP.FIND
+OK? @start
+  PRINT "found group 'new' before we created it...\n"
+  HALT
+
+start:
+PRINT "group 'new' does not exist\n"
+SET %A "new" ;; name
+SET %B 9002  ;; GID
+CALL &GROUP.CREATE
+OK? @create.fail
+
+COPY %F %A
+CALL &GRDB.WRITE
+OK? @create.fail
+CALL &GRDB.CLOSE
+OK? @create.fail
+
+CALL &GRDB.OPEN
+OK? @grdb.open.fail
+
+COPY %E %A
+CALL &SGDB.WRITE
+OK? @create.fail
+CALL &SGDB.CLOSE
+OK? @create.fail
+
+CALL &SGDB.OPEN
+OK? @sgdb.open.fail
+
+SET %A 1
+SET %B "new"
+CALL &GROUP.FIND
+OK? @missing
+
+PRINT "group 'new' found, post-create\n"
+
+CALL &GROUP.GET_GID
+COPY %R %A
+PRINT "GID is %i\n"
+
+HALT
+
+missing:
+  PRINT "unable to find 'new' group, post-create\n"
+  SYSERR
+  HALT
+
+sgdb.open.fail:
+  PRINT "failed to open gshadow file\n"
+  SYSERR
+  HALT
+
+grdb.open.fail:
+  PRINT "failed to open group file\n"
+  SYSERR
+  HALT
+
+create.fail:
+  PRINT "failed to create new group\n"
+  SYSERR
+  HALT

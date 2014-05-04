@@ -7,6 +7,7 @@ use File::Temp qw/tempfile/;
 use base 'Exporter';
 our @EXPORT_OK = qw/
 	pendulum_ok
+	file_is
 /;
 our @EXPORT = @EXPORT_OK;
 
@@ -16,7 +17,7 @@ my $PN = "./pn";
 
 sub pendulum_ok
 {
-	my ($script, $output, $message, %opts) = @_;
+	my ($script, $expect, $message, %opts) = @_;
 	$message ||= "$script run ok";
 	$opts{timeout} ||= 5;
 
@@ -64,7 +65,7 @@ sub pendulum_ok
 		return 0;
 	}
 
-	my $diff = diff \$actual, \$output, {
+	my $diff = diff \$actual, \$expect, {
 		FILENAME_A => 'actual-output',    MTIME_A => time,
 		FILENAME_B => 'expected-output',  MTIME_B => time,
 		STYLE      => 'Unified',
@@ -81,6 +82,33 @@ sub pendulum_ok
 	if ($errors) {
 		$T->ok(0, "$message: $script printed to standard error");
 		$T->diag($errors);
+		return 0;
+	}
+
+	pass $message;
+	return 1;
+}
+
+sub file_is
+{
+	my ($path, $expect, $message) = @_;
+	$message ||= "$path contents";
+
+	open my $fh, "<", $path
+		or $T->bail_out("Failed to open $path for reading: $!");
+	my $actual = do { local $/; <$fh> };
+	close $fh;
+
+	my $diff = diff \$actual, \$expect, {
+		FILENAME_A => 'actual-output',    MTIME_A => time,
+		FILENAME_B => 'expected-output',  MTIME_B => time,
+		STYLE      => 'Unified',
+		CONTEXT    => 8
+	};
+
+	if ($diff) {
+		$T->ok(0, $message);
+		$T->diag("differences follow:\n$diff");
 		return 0;
 	}
 

@@ -1,0 +1,122 @@
+;;
+;; groups/membership.pn
+;; Pendulum Test Script
+;;
+
+SET %A "t/tmp/pn/groups/group"
+CALL &GRDB.OPEN
+OK? @grdb.open.fail
+
+SET %A "t/tmp/pn/groups/gshadow"
+CALL &SGDB.OPEN
+OK? @sgdb.open.fail
+
+
+members:
+SET %A 1
+SET %B "members"
+CALL &GROUP.FIND
+OK? @members.not.found
+  PRINT "checking group 'members'\n"
+
+  members.admin1:
+    SET %A "admin1"
+    CALL &GROUP.HAS_ADMIN?
+    OK? @members.admin1.not
+      PRINT "%s is an admin\n"
+      JUMP @members.admin2
+    members.admin1.not:
+      PRINT "%s is NOT an admin\n"
+
+  members.admin2:
+    SET %A "admin2"
+    CALL &GROUP.HAS_ADMIN?
+    OK? @members.admin2.not
+      PRINT "%s is an admin\n"
+      JUMP @members.admin3
+    members.admin2.not:
+      PRINT "%s is NOT an admin\n"
+
+  members.admin3:
+    SET %A "admin3"
+    CALL &GROUP.HAS_ADMIN?
+    OK? @members.admin3.not
+      PRINT "%s is an admin\n"
+      JUMP @members.account1
+    members.admin3.not:
+      PRINT "%s is NOT an admin\n"
+
+  members.account1:
+    SET %A "account1"
+    CALL &GROUP.HAS_MEMBER?
+    OK? @members.account1.not
+      PRINT "%s is a member\n"
+      JUMP @members.root
+    members.account1.not:
+      PRINT "%s is NOT a member\n"
+
+  members.root:
+    SET %A "root"
+    CALL &GROUP.HAS_MEMBER?
+    OK? @members.root.not
+      PRINT "%s is a member\n"
+      JUMP @next
+    members.root.not:
+      PRINT "%s is NOT a member\n"
+      JUMP @next
+
+members.not.found:
+  PRINT "group 'members' not found\n"
+
+next:
+PRINT "\n"
+
+bin:
+SET %A 1
+SET %B "bin"
+CALL &GROUP.FIND
+OK? @bin.not.found
+  PRINT "checking group 'bin'\n"
+
+  bin.admin:
+    SET %A "root"
+    CALL &GROUP.HAS_ADMIN?
+    OK? @bin.admin.not
+      PRINT "%s is an admin\n"
+      JUMP @bin.member
+    bin.admin.not:
+      PRINT "%s is NOT an admin\n"
+
+  bin.member:
+    SET %A "root"
+    CALL &GROUP.HAS_MEMBER?
+    OK? @bin.member.not
+      PRINT "%s is a member\n"
+      JUMP @done
+    bin.member.not:
+      PRINT "%s is NOT a member\n"
+      JUMP @done
+
+bin.not.found:
+  PRINT "group 'bin' not found\n"
+
+done:
+PRINT "\nfin\n"
+HALT
+
+
+
+
+grdb.open.fail:
+  PRINT "Failed to open group file\n"
+  SYSERR
+  HALT
+
+sgdb.open.fail:
+  PRINT "Failed to open gshadow file\n"
+  SYSERR
+  HALT
+
+  PRINT "%s is NOT an admin\n"
+
+  PRINT "%s is NOT a member\n"

@@ -1,0 +1,157 @@
+;;
+;; groups/update.pn
+;; Pendulum Test Script
+;;
+
+SET %F "t/tmp/pn/groups/group"
+COPY %F %A
+CALL &GRDB.OPEN
+OK? @grdb.open.fail
+
+SET %E "t/tmp/pn/groups/gshadow"
+COPY %E %A
+CALL &SGDB.OPEN
+OK? @sgdb.open.fail
+
+SET %A 1       ;; by name
+SET %B "service"
+CALL &GROUP.FIND
+OK? @not-found
+
+SET %A "account1"
+CALL &GROUP.HAS_MEMBER?
+OK? @pre.not.a.member
+  PRINT "%s is a member\n"
+  JUMP @pre.check.admin1
+
+pre.not.a.member:
+  PRINT "%s is NOT a member\n"
+  JUMP @pre.check.admin1
+
+pre.check.admin1:
+SET %A "admin1"
+CALL &GROUP.HAS_ADMIN?
+OK? @pre.not.an.admin
+  PRINT "%s is an admin\n"
+  JUMP @update
+
+pre.not.an.admin:
+  PRINT "%s is NOT an admin\n"
+  JUMP @update
+
+
+update:
+
+SET %B "renamed"
+CALL &GROUP.SET_NAME
+OK? @update-failed
+
+SET %B 919
+CALL &GROUP.SET_GID
+OK? @update-failed
+
+SET %B "*"
+CALL &GROUP.SET_PASSWD
+OK? @update-failed
+
+SET %B "crypted.hash"
+CALL &GROUP.SET_PWHASH
+OK? @update-failed
+
+SET %A "account1"
+CALL &GROUP.RM_MEMBER
+OK? @update-failed
+
+SET %A "admin2"
+CALL &GROUP.RM_ADMIN
+OK? @update-failed
+
+SET %A "account3"
+CALL &GROUP.ADD_MEMBER
+OK? @update-failed
+
+SET %A "admin1"
+CALL &GROUP.ADD_ADMIN
+OK? @update-failed
+
+COPY %F %A
+CALL &GRDB.WRITE
+OK? @update-failed
+CALL &GRDB.CLOSE
+OK? @update-failed
+
+CALL &GRDB.OPEN
+OK? @grdb.open.fail
+
+COPY %E %A
+CALL &SGDB.WRITE
+OK? @update-failed
+CALL &SGDB.CLOSE
+OK? @update-failed
+
+CALL &SGDB.OPEN
+OK? @sgdb.open.fail
+
+SET %A 1       ;; by name
+SET %B "renamed"
+CALL &GROUP.FIND
+OK? @not-found
+
+CALL &GROUP.GET_NAME
+COPY %R %A
+PRINT "name: %s\n"
+
+CALL &GROUP.GET_GID
+COPY %R %A
+PRINT "gid: %i\n"
+
+CALL &GROUP.GET_PASSWD
+COPY %R %A
+PRINT "passwd: '%s'\n"
+
+CALL &GROUP.GET_PWHASH
+COPY %R %A
+PRINT "pwhash: '%s'\n"
+
+SET %A "account1"
+CALL &GROUP.HAS_MEMBER?
+OK? @post.not.a.member
+  PRINT "%s is a member\n"
+  JUMP @post.check.admin1
+
+post.not.a.member:
+  PRINT "%s is NOT a member\n"
+  JUMP @post.check.admin1
+
+post.check.admin1:
+SET %A "admin1"
+CALL &GROUP.HAS_ADMIN?
+OK? @post.not.an.admin
+  PRINT "%s is an admin\n"
+  JUMP @done
+
+post.not.an.admin:
+  PRINT "%s is NOT an admin\n"
+  JUMP @done
+
+done:
+HALT
+
+grdb.open.fail:
+  PRINT "Failed to open group file\n"
+  SYSERR
+  HALT
+
+sgdb.open.fail:
+  PRINT "Failed to open gshadow file\n"
+  SYSERR
+  HALT
+
+not-found:
+  PRINT "group not found\n"
+  HALT
+
+update-failed:
+  PRINT "failed to update group\n"
+  SYSERR
+  HALT

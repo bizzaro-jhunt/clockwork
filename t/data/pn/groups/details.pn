@@ -1,0 +1,52 @@
+;;
+;; groups/details.pn
+;; Pendulum Test Script
+;;
+
+SET %F "t/tmp/pn/groups/group"
+COPY %F %A
+CALL &GRDB.OPEN
+OK? @grdb.open.fail
+
+SET %E "t/tmp/pn/groups/gshadow"
+COPY %E %A
+CALL &SGDB.OPEN
+OK? @sgdb.open.fail
+
+JUMP @start
+
+sgdb.open.fail:
+  PRINT "failed to open gshadow file\n"
+  SYSERR
+  HALT
+
+grdb.open.fail:
+  PRINT "failed to open group file\n"
+  SYSERR
+  HALT
+
+start:
+  SET %A 1       ;; by name
+  SET %B "service"
+  CALL &GROUP.FIND
+  OK? @not-found
+    CALL &GROUP.GET_NAME
+    COPY %R %A
+    PRINT "name: %s\n"
+
+    CALL &GROUP.GET_GID
+    COPY %R %A
+    PRINT "gid: %i\n"
+
+    CALL &GROUP.GET_PASSWD
+    COPY %R %A
+    PRINT "passwd: '%s'\n"
+
+    CALL &GROUP.GET_PWHASH
+    COPY %R %A
+    PRINT "pwhash: '%s'\n"
+
+    HALT
+
+  not-found:
+    PRINT "service group not found\n"

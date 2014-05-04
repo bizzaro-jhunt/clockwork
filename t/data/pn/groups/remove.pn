@@ -1,0 +1,76 @@
+;;
+;; groups/delete.pn
+;; Pendulum Test Script
+;;
+
+SET %F "t/tmp/pn/groups/group"
+COPY %F %A
+CALL &GRDB.OPEN
+OK? @grdb.open.fail
+
+SET %E "t/tmp/pn/groups/gshadow"
+COPY %E %A
+CALL &SGDB.OPEN
+OK? @sgdb.open.fail
+
+SET %A 1       ;; by name
+SET %B "users"
+CALL &GROUP.FIND
+OK? @missing
+
+PRINT "found group 'users'\n"
+CALL &GROUP.REMOVE
+OK? @remove-failed
+
+COPY %F %A
+CALL &GRDB.WRITE
+OK? @update-failed
+CALL &GRDB.CLOSE
+OK? @update-failed
+
+CALL &GRDB.OPEN
+OK? @grdb.open.fail
+
+COPY %E %A
+CALL &SGDB.WRITE
+OK? @update-failed
+CALL &SGDB.CLOSE
+OK? @update-failed
+
+CALL &SGDB.OPEN
+OK? @sgdb.open.fail
+
+SET %A 1       ;; by name
+SET %B "users"
+CALL &GROUP.FIND
+OK? @deleted
+PRINT "found group 'group', post-delete\n"
+HALT
+
+grdb.open.fail:
+  PRINT "Failed to open group file\n"
+  SYSERR
+  HALT
+
+sgdb.open.fail:
+  PRINT "Failed to open gshadow file\n"
+  SYSERR
+  HALT
+
+missing:
+  PRINT "group not found, pre-delete\n"
+  HALT
+
+deleted:
+  PRINT "group not found, post-delete\n"
+  HALT
+
+remove-failed:
+  PRINT "failed to delete group\n"
+  SYSERR
+  HALT
+
+update-failed:
+  PRINT "failed to update group\n"
+  SYSERR
+  HALT

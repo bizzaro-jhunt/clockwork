@@ -1,0 +1,46 @@
+;;
+;; groups/nextuid.pn
+;; Pendulum Test Script
+;;
+
+SET %F "t/tmp/pn/groups/group"
+COPY %F %A
+CALL &GRDB.OPEN
+OK? @open.fail
+
+SET %A 0
+CALL &GROUP.NEXT_GID
+OK? @fail
+PRINT "next GID >= %i is %i\n"
+
+SET %A 2
+CALL &GROUP.NEXT_GID
+OK? @fail
+PRINT "next GID >= %i is %i\n"
+
+SET %A 500
+CALL &GROUP.NEXT_GID
+OK? @fail
+PRINT "next GID >= %i is %i\n"
+
+SET %A 909
+CALL &GROUP.NEXT_GID
+OK? @fail
+PRINT "next GID >= %i is %i\n"
+
+SET %A 6500
+CALL &GROUP.NEXT_GID
+OK? @fail
+PRINT "next GID >= %i is %i\n"
+
+HALT
+
+open.fail:
+  PRINT "failed to open group database\n"
+  SYSERR
+  HALT
+
+fail:
+  PRINT "call to GROUP.NEXT_GID failed\n"
+  SYSERR
+  HALT

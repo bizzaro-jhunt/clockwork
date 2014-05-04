@@ -1,0 +1,80 @@
+;;
+;; groups/lookup.pn
+;; Pendulum Test Script
+;;
+
+SET %F "t/tmp/pn/groups/group"
+COPY %F %A
+CALL &GRDB.OPEN
+OK? @grdb.open.fail
+  PRINT "group opened\n"
+
+SET %E "t/tmp/pn/groups/gshadow"
+COPY %E %A
+CALL &SGDB.OPEN
+OK? @sgdb.open.fail
+  PRINT "gshadow opened\n"
+
+daemon:
+  SET %A 1 ;; by group name
+  SET %B "daemon"
+  CALL &GROUP.FIND
+  OK? @daemon.not.found
+    PRINT "found daemon group\n"
+    CALL &GROUP.GET_GID
+    COPY %R %A
+    PRINT "group daemon has GID %i\n"
+    JUMP @members
+  daemon.not.found:
+    PRINT "group daemon not found\n"
+
+members:
+  SET %A 1 ;; by group name
+  SET %B "members"
+  CALL &GROUP.FIND
+  OK? @members.not.found
+    PRINT "found group members\n"
+    CALL &GROUP.GET_GID
+    COPY %R %A
+    PRINT "group members has GID %i\n"
+    JUMP @gid909
+  members.not.found:
+    PRINT "group members not found\n"
+
+gid909:
+  SET %A 0 ;; by GID
+  SET %B 909
+  CALL &GROUP.FIND
+  OK? @gid909.not.found
+    PRINT "found GID 909\n"
+    CALL &GROUP.GET_NAME
+    COPY %R %A
+    PRINT "GID 909 is '%s'\n"
+    JUMP @ballyhoo
+  gid909.not.found:
+    PRINT "GID 909 not found\n"
+
+ballyhoo:
+  SET %A 1
+  SET %B "ballyhoo"
+  CALL &GROUP.FIND
+  OK? @ballyhoo.not.found
+    PRINT "found ballyhoo group\n"
+    JUMP @done
+  ballyhoo.not.found:
+    PRINT "ballyhoo group not found\n"
+
+done:
+CALL &GRDB.CLOSE
+CALL &SGDB.CLOSE
+HALT
+
+grdb.open.fail:
+  PRINT "Failed to open group file\n"
+  SYSERR
+  HALT
+
+sgdb.open.fail:
+  PRINT "Failed to open gshadow file\n"
+  SYSERR
+  HALT

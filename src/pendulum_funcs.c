@@ -1,3 +1,5 @@
+#define _GNU_SOURCE
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -16,7 +18,189 @@
 #include <grp.h>
 
 #include "pendulum_funcs.h"
-//#include "userdb.h"
+
+/*
+
+    ##     ## ######## ##       ########  ######## ########   ######
+    ##     ## ##       ##       ##     ## ##       ##     ## ##    ##
+    ##     ## ##       ##       ##     ## ##       ##     ## ##
+    ######### ######   ##       ########  ######   ########   ######
+    ##     ## ##       ##       ##        ##       ##   ##         ##
+    ##     ## ##       ##       ##        ##       ##    ##  ##    ##
+    ##     ## ######## ######## ##        ######## ##     ##  ######
+
+ */
+
+static char ** s_strlist_munge(char **l, const char *add, const char *rm)
+{
+	char **n, **t;
+	size_t plus = 1;
+	if (add) plus++;
+	if (rm)  plus--;
+
+	if (!l) return NULL;
+	for (t = l; *t; t++)
+		;
+
+	n = calloc(t - l  + plus, sizeof(char*));
+	for (t = n; *l; l++) {
+		if (rm && strcmp(*l, rm) == 0) continue;
+		*t++ = strdup(*l);
+	}
+	if (add) *t++ = strdup(add);
+
+	return n;
+}
+
+void s_strlist_free(char **a)
+{
+	char **s;
+	if (!a || !*a) return;
+	s = a;
+	while (*s) {
+		free(*s++);
+	}
+	free(a);
+}
+
+static char ** s_strlist_dup(char **l)
+{
+	return s_strlist_munge(l, NULL, NULL);
+}
+
+static char ** s_strlist_add(char **l, const char *add)
+{
+	char **n = s_strlist_munge(l, add, NULL);
+	if (n) s_strlist_free(l);
+	return n;
+}
+
+static char ** s_strlist_remove(char **l, const char *rm)
+{
+	char **n = s_strlist_munge(l, NULL, rm);
+	if (n) s_strlist_free(l);
+	return n;
+}
+
+static char * s_strlist_join(char **l, const char *delim)
+{
+	size_t n = 1; /* null terminator */
+	size_t dn = strlen(delim);
+	char **i;
+	for (i = l; *i; n += strlen(*i) + (i == l ? 0 : dn), i++)
+		;
+
+	char *p, *buf = calloc(n, sizeof(char));
+	for (p = buf, i = l; *i; i++) {
+		if (i != l) {
+			strcpy(p, delim);
+			p += dn;
+		}
+		strcpy(p, *i);
+		p += strlen(*i);
+	}
+	return buf;
+}
+
+/*
+
+     ######   #######  ##     ## ########     ###    ########
+    ##    ## ##     ## ###   ### ##     ##   ## ##      ##
+    ##       ##     ## #### #### ##     ##  ##   ##     ##
+    ##       ##     ## ## ### ## ########  ##     ##    ##
+    ##       ##     ## ##     ## ##        #########    ##
+    ##    ## ##     ## ##     ## ##        ##     ##    ##
+     ######   #######  ##     ## ##        ##     ##    ##
+
+ */
+
+/* for older versions of glibc */
+/* ripped from some version of glibc, >2.5 */
+struct sgrp {
+	char  *sg_namp;
+	char  *sg_passwd;
+	char **sg_adm;
+	char **sg_mem;
+};
+static char SGBUF[8192], *SGADM[128], *SGMEM[128];
+static struct sgrp SGENT;
+static struct sgrp* fgetsgent(FILE *io)
+{
+	char *a, *b, *c;
+	if (feof(io) || !fgets(SGBUF, 8191, io)) { return NULL; }
+
+	SGENT.sg_mem = SGMEM;
+	SGENT.sg_adm = SGADM;
+
+	/* name */
+	for (a = SGBUF, b = a; *b && *b != ':'; b++)
+		;
+	*b = '\0';
+	SGENT.sg_namp = a;
+
+	/* password */
+	for (a = ++b; *b && *b != ':'; b++)
+		;
+	*b = '\0';
+	SGENT.sg_passwd = a;
+
+	/* admins */
+	for (a = ++b; *b && *b != ':'; b++)
+		;
+	*b = '\0'; c = a;
+	while (c < b) {
+		for (a = c; *c && *c != ','; c++)
+			;
+		*c++ = '\0';
+		*(SGENT.sg_adm++) = a;
+	};
+	*(SGENT.sg_adm) = NULL;
+
+	/* members */
+	for (a = ++b; *b && *b != '\n'; b++)
+		;
+	*b = '\0'; c = a;
+	while (c < b) {
+		for (a = c; *c && *c != ','; c++)
+			;
+		*c++ = '\0';
+		*(SGENT.sg_mem++) = a;
+	};
+	*(SGENT.sg_mem) = NULL;
+
+	SGENT.sg_mem = SGMEM;
+	SGENT.sg_adm = SGADM;
+
+	return &SGENT;
+}
+
+static int putsgent(const struct sgrp *g, FILE *io)
+{
+	char *members, *admins;
+	int ret;
+
+	admins  = s_strlist_join(g->sg_adm, ",");
+	members = s_strlist_join(g->sg_mem, ",");
+
+	ret = fprintf(io, "%s:%s:%s:%s\n", g->sg_namp, g->sg_passwd, admins, members);
+
+	free(admins);
+	free(members);
+
+	return ret;
+}
+
+/*
+
+    ########     ###    ########    ###
+    ##     ##   ## ##      ##      ## ##
+    ##     ##  ##   ##     ##     ##   ##
+    ##     ## ##     ##    ##    ##     ##
+    ##     ## #########    ##    #########
+    ##     ## ##     ##    ##    ##     ##
+    ########  ##     ##    ##    ##     ##
+
+ */
 
 struct pwdb {
 	struct pwdb   *next;     /* the next database entry */
@@ -342,16 +526,68 @@ static pn_word cwa_spdb_close(pn_machine *m)
 
 static pn_word cwa_grdb_open(pn_machine *m)
 {
+	struct grdb *cur, *ent;
+	struct group *group;
+	FILE *input;
+
+	input = fopen((const char *)m->A, "r");
+	if (!input) return 1;
+
+	UDATA(m)->grdb = cur = ent = NULL;
+	errno = 0;
+	while ((group = fgetgrent(input)) != NULL) {
+		ent = calloc(1, sizeof(struct grdb));
+		ent->group = calloc(1, sizeof(struct group));
+
+		ent->group->gr_name   = strdup(group->gr_name);
+		ent->group->gr_gid    = group->gr_gid;
+		ent->group->gr_passwd = strdup(group->gr_passwd);
+		ent->group->gr_mem    = s_strlist_dup(group->gr_mem);
+
+		if (!UDATA(m)->grdb) {
+			UDATA(m)->grdb = ent;
+		} else {
+			cur->next = ent;
+		}
+		cur = ent;
+	}
+
+	fclose(input);
 	return 0;
 }
 
 static pn_word cwa_grdb_write(pn_machine *m)
 {
+	FILE *output;
+
+	output = fopen((const char *)m->A, "w");
+	if (!output) return 1;
+
+	struct grdb *db;
+	for (db = UDATA(m)->grdb; db; db = db->next) {
+		if (db->group && putgrent(db->group, output) == -1) {
+			fclose(output);
+			return 1;
+		}
+	}
+	fclose(output);
 	return 0;
 }
 
 static pn_word cwa_grdb_close(pn_machine *m)
 {
+	struct grdb *cur;
+	struct grdb *ent = UDATA(m)->grdb;
+
+	while (ent) {
+		cur = ent->next;
+		free(ent->group->gr_name);
+		free(ent->group->gr_passwd);
+		s_strlist_free(ent->group->gr_mem);
+		free(ent->group);
+		free(ent);
+		ent = cur;
+	}
 	return 0;
 }
 
@@ -369,16 +605,69 @@ static pn_word cwa_grdb_close(pn_machine *m)
 
 static pn_word cwa_sgdb_open(pn_machine *m)
 {
+	struct sgdb *cur, *ent;
+	struct sgrp *sgrp;
+	FILE *input;
+
+	input = fopen((const char *)m->A, "r");
+	if (!input) return 1;
+
+	UDATA(m)->sgdb = cur = ent = NULL;
+	errno = 0;
+	while ((sgrp = fgetsgent(input)) != NULL) {
+		ent = calloc(1, sizeof(struct sgdb));
+		ent->sgrp = calloc(1, sizeof(struct sgrp));
+
+		ent->sgrp->sg_namp   = strdup(sgrp->sg_namp);
+		ent->sgrp->sg_passwd = strdup(sgrp->sg_passwd);
+		ent->sgrp->sg_mem    = s_strlist_dup(sgrp->sg_mem);
+		ent->sgrp->sg_adm    = s_strlist_dup(sgrp->sg_adm);
+
+		if (!UDATA(m)->sgdb) {
+			UDATA(m)->sgdb = ent;
+		} else {
+			cur->next = ent;
+		}
+		cur = ent;
+	}
+
+	fclose(input);
 	return 0;
 }
 
 static pn_word cwa_sgdb_write(pn_machine *m)
 {
+	FILE *output;
+
+	output = fopen((const char *)m->A, "w");
+	if (!output) return 1;
+
+	struct sgdb *db;
+	for (db = UDATA(m)->sgdb; db; db = db->next) {
+		if (db->sgrp && putsgent(db->sgrp, output) == -1) {
+			fclose(output);
+			return 1;
+		}
+	}
+	fclose(output);
 	return 0;
 }
 
 static pn_word cwa_sgdb_close(pn_machine *m)
 {
+	struct sgdb *cur;
+	struct sgdb *ent = UDATA(m)->sgdb;
+
+	while (ent) {
+		cur = ent->next;
+		free(ent->sgrp->sg_namp);
+		free(ent->sgrp->sg_passwd);
+		s_strlist_free(ent->sgrp->sg_mem);
+		s_strlist_free(ent->sgrp->sg_adm);
+		free(ent->sgrp);
+		free(ent);
+		ent = cur;
+	}
 	return 0;
 }
 
@@ -560,31 +849,31 @@ static pn_word cwa_user_set_pwhash(pn_machine *m)
 
 static pn_word cwa_user_set_pwmin(pn_machine *m)
 {
-	UDATA(m)->spent->sp_min = (signed long)(m->A);
+	UDATA(m)->spent->sp_min = (signed long)(m->B);
 	return 0;
 }
 
 static pn_word cwa_user_set_pwmax(pn_machine *m)
 {
-	UDATA(m)->spent->sp_max = (signed long)(m->A);
+	UDATA(m)->spent->sp_max = (signed long)(m->B);
 	return 0;
 }
 
 static pn_word cwa_user_set_pwwarn(pn_machine *m)
 {
-	UDATA(m)->spent->sp_warn = (signed long)(m->A);
+	UDATA(m)->spent->sp_warn = (signed long)(m->B);
 	return 0;
 }
 
 static pn_word cwa_user_set_inact(pn_machine *m)
 {
-	UDATA(m)->spent->sp_inact = (signed long)(m->A);
+	UDATA(m)->spent->sp_inact = (signed long)(m->B);
 	return 0;
 }
 
 static pn_word cwa_user_set_expiry(pn_machine *m)
 {
-	UDATA(m)->spent->sp_expire = (signed long)(m->A);
+	UDATA(m)->spent->sp_expire = (signed long)(m->B);
 	return 0;
 }
 
@@ -655,6 +944,7 @@ static pn_word cwa_user_remove(pn_machine *m)
 			free(db->passwd->pw_dir);
 			free(db->passwd->pw_shell);
 			free(db->passwd);
+			db->passwd = NULL;
 
 			if (ent) {
 				ent->next = db->next;
@@ -664,6 +954,252 @@ static pn_word cwa_user_remove(pn_machine *m)
 		}
 	}
 	return 1;
+}
+
+/*
+
+     ######   ########   #######  ##     ## ########
+    ##    ##  ##     ## ##     ## ##     ## ##     ##
+    ##        ##     ## ##     ## ##     ## ##     ##
+    ##   #### ########  ##     ## ##     ## ########
+    ##    ##  ##   ##   ##     ## ##     ## ##
+    ##    ##  ##    ##  ##     ## ##     ## ##
+     ######   ##     ##  #######   #######  ##
+
+ */
+
+static pn_word cwa_group_find(pn_machine *m)
+{
+	struct grdb *gr;
+	struct sgdb *sg;
+
+	if (!UDATA(m)->grdb) pn_die(m, "group database not opened (use GRDB.OPEN)");
+	if (!UDATA(m)->sgdb) pn_die(m, "gshadow database not opened (use SGDB.OPEN)");
+
+	if (m->A) {
+		for (gr = UDATA(m)->grdb; gr; gr = gr->next) {
+			if (gr->group && strcmp(gr->group->gr_name, (const char *)m->B) == 0) {
+				UDATA(m)->grent = gr->group;
+				goto found;
+			}
+		}
+	} else {
+		for (gr = UDATA(m)->grdb; gr; gr = gr->next) {
+			if (gr->group && gr->group->gr_gid == (gid_t)m->B) {
+				UDATA(m)->grent = gr->group;
+				goto found;
+			}
+		}
+	}
+	return 1;
+
+found:
+	/* now, look for the shadow entry */
+	for (sg = UDATA(m)->sgdb; sg; sg = sg->next) {
+		if (sg->sgrp && strcmp(sg->sgrp->sg_namp, gr->group->gr_name) == 0) {
+			UDATA(m)->sgent = sg->sgrp;
+			return 0;
+		}
+	}
+	return 1;
+}
+
+static pn_word cwa_group_next_gid(pn_machine *m)
+{
+	if (!UDATA(m)->grdb) return 1;
+
+	struct grdb *db;
+	gid_t gid = (gid_t)m->A;
+GID: while (gid < 65536) {
+		for (db = UDATA(m)->grdb; db; db = db->next) {
+			if (db->group->gr_gid != gid) continue;
+			gid++; goto GID;
+		}
+		m->B = (pn_word)gid;
+		return 0;
+	}
+	return 1;
+}
+
+static pn_word cwa_group_create(pn_machine *m)
+{
+	if (!UDATA(m)->grdb) return 1;
+
+	struct grdb *gr;
+	for (gr = UDATA(m)->grdb; gr->next; gr = gr->next)
+		;
+
+	gr->next = calloc(1, sizeof(struct grdb));
+	gr->next->group = calloc(1, sizeof(struct group));
+	gr->next->group->gr_name   = strdup((const char *)m->A);
+	gr->next->group->gr_gid    = (uid_t)m->B;
+	gr->next->group->gr_passwd = strdup("x");
+	UDATA(m)->grent = gr->next->group;
+
+	struct sgdb *sg;
+	for (sg = UDATA(m)->sgdb; sg->next; sg = sg->next)
+		;
+
+	sg->next = calloc(1, sizeof(struct sgdb));
+	sg->next->sgrp = calloc(1, sizeof(struct sgrp));
+	sg->next->sgrp->sg_namp   = strdup((const char *)m->A);
+	sg->next->sgrp->sg_passwd = strdup("*");
+	sg->next->sgrp->sg_mem    = calloc(1, sizeof(char *));
+	sg->next->sgrp->sg_adm    = calloc(1, sizeof(char *));
+	UDATA(m)->sgent = sg->next->sgrp;
+
+	return 0;
+}
+
+static pn_word cwa_group_remove(pn_machine *m)
+{
+	if (!UDATA(m)->grdb || !UDATA(m)->grent) return 1;
+	if (!UDATA(m)->sgdb || !UDATA(m)->sgent) return 1;
+
+	struct grdb *gr, *grent = NULL;
+	for (gr = UDATA(m)->grdb; gr; grent = gr, gr = gr->next) {
+		if (gr->group == UDATA(m)->grent) {
+			free(gr->group->gr_name);
+			free(gr->group->gr_passwd);
+			s_strlist_free(gr->group->gr_mem);
+			free(gr->group);
+			gr->group = NULL;
+
+			if (grent) {
+				grent->next = gr->next;
+				free(gr);
+			}
+			break;
+		}
+	}
+
+	struct sgdb *sg, *sgent = NULL;
+	for (sg = UDATA(m)->sgdb; sg; sgent = sg, sg = sg->next) {
+		if (sg->sgrp == UDATA(m)->sgent) {
+			free(sg->sgrp->sg_namp);
+			free(sg->sgrp->sg_passwd);
+			s_strlist_free(sg->sgrp->sg_mem);
+			s_strlist_free(sg->sgrp->sg_adm);
+			free(sg->sgrp);
+			sg->sgrp = NULL;
+
+			if (sgent) {
+				sgent->next = sg->next;
+				free(sg);
+			}
+			break;
+		}
+	}
+	return 0;
+}
+
+static pn_word cwa_group_has_member(pn_machine *m)
+{
+	if (!UDATA(m)->grent) return 1;
+
+	char **l;
+	for (l = UDATA(m)->grent->gr_mem; *l; l++) {
+		if (strcmp(*l, (const char *)m->A) == 0) return 0;
+	}
+	return 1;
+}
+
+static pn_word cwa_group_has_admin(pn_machine *m)
+{
+	if (!UDATA(m)->sgent) return 1;
+
+	char **l;
+	for (l = UDATA(m)->sgent->sg_adm; *l; l++) {
+		if (strcmp(*l, (const char *)m->A) == 0) return 0;
+	}
+	return 1;
+}
+
+static pn_word cwa_group_rm_member(pn_machine *m)
+{
+	if (!UDATA(m)->sgent) return 1;
+	UDATA(m)->grent->gr_mem = s_strlist_remove(
+		UDATA(m)->grent->gr_mem, (const char *)m->A);
+	UDATA(m)->sgent->sg_mem = s_strlist_remove(
+		UDATA(m)->sgent->sg_mem, (const char *)m->A);
+	return 0;
+}
+
+static pn_word cwa_group_rm_admin(pn_machine *m)
+{
+	if (!UDATA(m)->sgent) return 1;
+	UDATA(m)->sgent->sg_adm = s_strlist_remove(
+		UDATA(m)->sgent->sg_adm, (const char *)m->A);
+	return 0;
+}
+
+static pn_word cwa_group_add_member(pn_machine *m)
+{
+	if (!UDATA(m)->sgent) return 1;
+	UDATA(m)->grent->gr_mem = s_strlist_add(
+		UDATA(m)->grent->gr_mem, (const char *)m->A);
+	UDATA(m)->sgent->sg_mem = s_strlist_add(
+		UDATA(m)->sgent->sg_mem, (const char *)m->A);
+	return 0;
+}
+
+static pn_word cwa_group_add_admin(pn_machine *m)
+{
+	if (!UDATA(m)->sgent) return 1;
+	UDATA(m)->sgent->sg_adm = s_strlist_add(
+		UDATA(m)->sgent->sg_adm, (const char *)m->A);
+	return 0;
+}
+
+static pn_word cwa_group_get_gid(pn_machine *m)
+{
+	return (pn_word)(UDATA(m)->grent->gr_gid);
+}
+
+static pn_word cwa_group_get_name(pn_machine *m)
+{
+	return (pn_word)(UDATA(m)->grent->gr_name);
+}
+
+static pn_word cwa_group_get_passwd(pn_machine *m)
+{
+	return (pn_word)(UDATA(m)->grent->gr_passwd);
+}
+
+static pn_word cwa_group_get_pwhash(pn_machine *m)
+{
+	return (pn_word)(UDATA(m)->sgent->sg_passwd);
+}
+
+static pn_word cwa_group_set_gid(pn_machine *m)
+{
+	UDATA(m)->grent->gr_gid = (gid_t)m->B;
+	return 0;
+}
+
+static pn_word cwa_group_set_name(pn_machine *m)
+{
+	free(UDATA(m)->grent->gr_name);
+	UDATA(m)->grent->gr_name = strdup((const char *)m->B);
+
+	free(UDATA(m)->sgent->sg_namp);
+	UDATA(m)->sgent->sg_namp = strdup((const char *)m->B);
+
+	return 0;
+}
+
+static pn_word cwa_group_set_passwd(pn_machine *m)
+{
+	free(UDATA(m)->grent->gr_passwd);
+	UDATA(m)->grent->gr_passwd = strdup((const char *)m->B);
+	return 0;
+}
+
+static pn_word cwa_group_set_pwhash(pn_machine *m)
+{
+	free(UDATA(m)->sgent->sg_passwd);
+	UDATA(m)->sgent->sg_passwd = strdup((const char *)m->B);
+	return 0;
 }
 
 /*
@@ -752,6 +1288,28 @@ int pendulum_funcs(pn_machine *m)
 	pn_func(m,  "USER.SET_PWWARN",  cwa_user_set_pwwarn);
 	pn_func(m,  "USER.SET_INACT",   cwa_user_set_inact);
 	pn_func(m,  "USER.SET_EXPIRY",  cwa_user_set_expiry);
+
+	pn_func(m,  "GROUP.FIND",       cwa_group_find);
+	pn_func(m,  "GROUP.NEXT_GID",   cwa_group_next_gid);
+	pn_func(m,  "GROUP.CREATE",     cwa_group_create);
+	pn_func(m,  "GROUP.REMOVE",     cwa_group_remove);
+
+	pn_func(m,  "GROUP.HAS_ADMIN?", cwa_group_has_admin);
+	pn_func(m,  "GROUP.HAS_MEMBER?", cwa_group_has_member);
+	pn_func(m,  "GROUP.RM_ADMIN",    cwa_group_rm_admin);
+	pn_func(m,  "GROUP.RM_MEMBER",    cwa_group_rm_member);
+	pn_func(m,  "GROUP.ADD_ADMIN",    cwa_group_add_admin);
+	pn_func(m,  "GROUP.ADD_MEMBER",    cwa_group_add_member);
+
+	pn_func(m,  "GROUP.GET_GID",    cwa_group_get_gid);
+	pn_func(m,  "GROUP.GET_NAME",   cwa_group_get_name);
+	pn_func(m,  "GROUP.GET_PASSWD", cwa_group_get_passwd);
+	pn_func(m,  "GROUP.GET_PWHASH", cwa_group_get_pwhash);
+
+	pn_func(m,  "GROUP.SET_GID",    cwa_group_set_gid);
+	pn_func(m,  "GROUP.SET_NAME",   cwa_group_set_name);
+	pn_func(m,  "GROUP.SET_PASSWD", cwa_group_set_passwd);
+	pn_func(m,  "GROUP.SET_PWHASH", cwa_group_set_pwhash);
 
 	m->U = calloc(1, sizeof(udata));
 

@@ -141,7 +141,7 @@ int main(int argc, char **argv)
 	struct manifest *manifest;
 	int redundant, count, mem;
 
-	printf("POL:SPEC   A Policy Specification Compiler\n" \
+	printf("cwcc - A Clockwork Compiler\n" \
 	       "\n" \
 	       "This program will traverse an abstract syntax tree generated\n" \
 	       "by the lex/yacc parser allowing you to verify correctness\n" \

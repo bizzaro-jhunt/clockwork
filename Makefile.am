@@ -240,7 +240,7 @@ parser_tpl_src  += src/tpl/grammar.y
 core_src += $(parser_tpl_src)
 
 sbindir = "$(prefix)/sbin"
-sbin_PROGRAMS = cwa cwcert policyd cwca cwpol cwtemplate pn
+sbin_PROGRAMS = cwa cwcert policyd cwca cwpol cwtemplate pn cwspec
 policyd_SOURCES = $(core_src) $(server_src) src/policyd.c $(parser_spec_src) $(parser_conf_src)
 cwca_SOURCES    = $(core_src) $(server_src) src/cwca.c $(parser_conf_src)
 cwa_SOURCES     = $(core_src) $(client_src) src/cwa.c $(parser_conf_src)
@@ -248,6 +248,7 @@ cwcert_SOURCES  = $(core_src) $(client_src) src/cwcert.c $(parser_conf_src)
 cwpol_SOURCES   = $(core_src) src/cwpol.c $(parser_spec_src)
 cwtemplate_SOURCES = $(core_src) $(client_src) src/cwtemplate.c $(parser_conf_src)
 pn_SOURCES      = src/pn.c src/pendulum_funcs.h src/pendulum_funcs.c src/pendulum.h src/pendulum.c
+cwspec_SOURCES  = src/cwspec.c $(core_src) $(parser_spec_src)
 
 ############################################################
 

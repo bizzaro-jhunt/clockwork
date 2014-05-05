@@ -1,0 +1,81 @@
+# manifest.pol, for t/policy/*.t tests
+
+policy "file1" {
+	file "/etc/sudoers" {
+		owner: "root"
+		group: "root"
+		mode:  0400
+	}
+}
+host "file1.test" { enforce "file1" }
+
+policy "file2" {
+	file "/path/to/delete" {
+		present: "no"
+	}
+}
+host "file2.test" { enforce "file2" }
+
+policy "file3" {
+	file "/chmod-me" {
+		present: "yes"
+		mode:    0644
+	}
+}
+host "file3.test" { enforce "file3" }
+
+policy "file4" {
+	file "/home/jrhunt/stuff" {
+		present: "yes"
+		mode:    0410
+		owner:   "jrhunt"
+		group:   "staff"
+	}
+}
+host "file4.test" { enforce "file4" }
+
+####################################################
+####################################################
+
+policy "user1" {
+	user "t1user" {
+		present: "no"
+	}
+}
+host "user1.test" { enforce "user1" }
+
+policy "user2" {
+	user "t2user" {
+		uid:    1231
+		gid:    1818
+		home:   "/home/t2user"
+		password: "$$crypto"
+	}
+}
+host "user2.test" { enforce "user2" }
+
+policy "user3" {
+	user "t3user" {
+		home:   "/home/t3user"
+		password: "$$crypto"
+	}
+}
+host "user3.test" { enforce "user3" }
+
+policy "user4" {
+	user "t4user" {
+		uid:        1231
+		gid:        1818
+		home:       "/home/t4user"
+		gecos:      "Name,,,,"
+		shell:      "/bin/bash"
+		pwmin:      99
+		pwmax:      305
+		pwwarn:     14
+		inact:      9998
+		expiration: 9999
+		changepw:   "yes"
+		password:   "$$crypto"
+	}
+}
+host "user4.test" { enforce "user4" }

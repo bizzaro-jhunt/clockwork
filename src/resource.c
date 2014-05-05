@@ -28,6 +28,7 @@ typedef int (*resource_attrs_f)(const void *res, struct hash *attrs);
 typedef int (*resource_norm_f)(void *res, struct policy *pol, struct hash *facts);
 typedef int (*resource_set_f)(void *res, const char *attr, const char *value);
 typedef int (*resource_match_f)(const void *res, const char *attr, const char *value);
+typedef int (*resource_gencode_f)(const void *res, FILE *io, unsigned int next);
 typedef int (*resource_stat_f)(void *res, const struct resource_env *env);
 typedef struct report* (*resource_fixup_f)(void *res, int dryrun, const struct resource_env *env);
 typedef int (*resource_notify_f)(void *res, const struct resource *dep);
@@ -45,6 +46,7 @@ typedef void* (*resource_unpack_f)(const char *packed);
 	    .norm_callback = res_ ## t ## _norm,    \
 	     .set_callback = res_ ## t ## _set,     \
 	   .match_callback = res_ ## t ## _match,   \
+	 .gencode_callback = res_ ## t ## _gencode, \
 	    .stat_callback = res_ ## t ## _stat,    \
 	   .fixup_callback = res_ ## t ## _fixup,   \
 	  .notify_callback = res_ ## t ## _notify,  \
@@ -63,6 +65,7 @@ typedef void* (*resource_unpack_f)(const char *packed);
 		resource_norm_f     norm_callback;
 		resource_set_f      set_callback;
 		resource_match_f    match_callback;
+		resource_gencode_f  gencode_callback;
 		resource_stat_f     stat_callback;
 		resource_fixup_f    fixup_callback;
 		resource_notify_f   notify_callback;
@@ -471,6 +474,14 @@ int resource_match(const struct resource *r, const char *attr, const char *value
 	assert(r->type != RES_UNKNOWN); // LCOV_EXCL_LINE
 
 	return (*(resource_types[r->type].match_callback))(r->resource, attr, value);
+}
+
+int resource_gencode(const struct resource *r, FILE *io, unsigned int next)
+{
+	assert(r); // LCOV_EXCL_LINE
+	assert(r->type != RES_UNKNOWN); // LCOV_EXCL_LINE
+
+	return (*(resource_types[r->type].gencode_callback))(r->resource, io, next);
 }
 
 /**

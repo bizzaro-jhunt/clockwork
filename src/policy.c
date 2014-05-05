@@ -846,6 +846,16 @@ int policy_notify(const struct policy *pol, const struct resource *cause)
 	return 0;
 }
 
+int policy_gencode(const struct policy *pol, FILE *io)
+{
+	struct resource *r;
+	unsigned int next = 1;
+	for_each_resource(r, pol) {
+		resource_gencode(r, io, next++);
+	}
+	return 0;
+}
+
 /**
   Pack $pol into a string.
 

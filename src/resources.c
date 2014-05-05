@@ -537,6 +537,105 @@ int res_user_match(const void *res, const char *name, const char *value)
 	return rc;
 }
 
+int res_user_gencode(const void *res, FILE *io, unsigned int next)
+{
+	struct res_user *r = (struct res_user*)(res);
+	assert(r); // LCOV_EXCL_LINE
+
+	fprintf(io, ";; res_user %s\n", r->key);
+	fprintf(io, "SET %%A 0\n");
+	fprintf(io, "SET %%B \"%s\"\n", r->ru_name);
+	fprintf(io, "CALL &USER.FIND\n");
+	if (ENFORCED(r, RES_USER_ABSENT)) {
+		fprintf(io, "OK? @next.%i\n", next);
+		fprintf(io, "  CALL &USER.REMOVE\n");
+	} else {
+		fprintf(io, "OK? @create.%i\n", next);
+		fprintf(io, "  JUMP @check.ids.%i\n", next);
+		fprintf(io, "create.%i:\n", next);
+		if (ENFORCED(r, RES_USER_GID)) {
+			fprintf(io, "SET %%C %i\n", r->ru_gid);
+		} else {
+			fprintf(io, "SET %%A 0\n");
+			fprintf(io, "SET %%B \"%s\"\n", r->ru_name);
+			fprintf(io, "CALL &GROUP.FIND\n");
+			fprintf(io, "OK? @group.found.%i\n", next);
+			fprintf(io, "  COPY %%B %%A\n");
+			fprintf(io, "  CALL &GROUP.NEXT_GID\n");
+			fprintf(io, "  COPY %%R %%B\n");
+			fprintf(io, "  COPY %%R %%C\n");
+			fprintf(io, "  CALL &GROUP.CREATE\n");
+			fprintf(io, "  JUMP @group.done.%i\n", next);
+			fprintf(io, "group.found.%i:\n", next);
+			fprintf(io, "  CALL &GROUP.GET_GID\n");
+			fprintf(io, "  COPY %%R %%C\n");
+			fprintf(io, "group.done.%i:\n", next);
+		}
+		if (ENFORCED(r, RES_USER_UID)) {
+			fprintf(io, "SET %%B %i\n", r->ru_uid);
+		} else {
+			fprintf(io, "CALL &USER.NEXT_UID\n");
+			fprintf(io, "COPY %%R %%B\n");
+		}
+		fprintf(io, "CALL &USER.CREATE\n");
+		if (r->ru_passwd && !ENFORCED(r, RES_USER_PASSWD)) {
+			fprintf(io, "SET %%B \"x\"\n");
+			fprintf(io, "CALL &USER.SET_PASSWD\n");
+			fprintf(io, "SET %%B \"%s\"\n", r->ru_passwd);
+			fprintf(io, "CALL &USER.SET_PWHASH\n");
+		}
+		fprintf(io, "JUMP @exists.%i\n", next);
+		fprintf(io, "check.ids.%i:\n", next);
+		if (ENFORCED(r, RES_USER_UID)) {
+			fprintf(io, "SET %%B %i\n", r->ru_uid);
+			fprintf(io, "CALL &USER.SET_UID\n");
+		}
+		if (ENFORCED(r, RES_USER_GID)) {
+			fprintf(io, "SET %%B %i\n", r->ru_gid);
+			fprintf(io, "CALL &USER.SET_GID\n");
+		}
+		fprintf(io, "exists.%i:\n", next);
+
+		if (ENFORCED(r, RES_USER_PASSWD)) {
+			fprintf(io, "SET %%B \"x\"\n");
+			fprintf(io, "CALL &USER.SET_PASSWD\n");
+			fprintf(io, "SET %%B \"%s\"\n", r->ru_passwd);
+			fprintf(io, "CALL &USER.SET_PWHASH\n");
+		}
+
+		if (ENFORCED(r, RES_USER_GECOS)) {
+			fprintf(io, "SET %%B \"%s\"\n", r->ru_gecos);
+			fprintf(io, "CALL &USER.SET_GECOS\n");
+		}
+		if (ENFORCED(r, RES_USER_SHELL)) {
+			fprintf(io, "SET %%B \"%s\"\n", r->ru_shell);
+			fprintf(io, "CALL &USER.SET_SHELL\n");
+		}
+		if (ENFORCED(r, RES_USER_PWMIN)) {
+			fprintf(io, "SET %%B %li\n", r->ru_pwmin);
+			fprintf(io, "CALL &USER.SET_PWMIN\n");
+		}
+		if (ENFORCED(r, RES_USER_PWMAX)) {
+			fprintf(io, "SET %%B %li\n", r->ru_pwmax);
+			fprintf(io, "CALL &USER.SET_PWMAX\n");
+		}
+		if (ENFORCED(r, RES_USER_PWWARN)) {
+			fprintf(io, "SET %%B %li\n", r->ru_pwwarn);
+			fprintf(io, "CALL &USER.SET_PWWARN\n");
+		}
+		if (ENFORCED(r, RES_USER_INACT)) {
+			fprintf(io, "SET %%B %li\n", r->ru_inact);
+			fprintf(io, "CALL &USER.SET_INACT\n");
+		}
+		if (ENFORCED(r, RES_USER_EXPIRE)) {
+			fprintf(io, "SET %%B %li\n", r->ru_expire);
+			fprintf(io, "CALL &USER.SET_EXPIRY\n");
+		}
+	}
+
+	return 0;
+}
+
 int res_user_stat(void *res, const struct resource_env *env)
 {
 	struct res_user *ru = (struct res_user*)(res);
@@ -1165,6 +1264,77 @@ int res_file_match(const void *res, const char *name, const char *value)
 	return rc;
 }
 
+int res_file_gencode(const void *res, FILE *io, unsigned int next)
+{
+	struct res_file *r = (struct res_file*)(res);
+	assert(r); // LCOV_EXCL_LINE
+
+	fprintf(io, ";; res_file %s\n", r->key);
+	fprintf(io, "SET %%A \"%s\"\n", r->rf_lpath);
+
+	if (ENFORCED(r, RES_FILE_ABSENT)) {
+		fprintf(io, "CALL &FS.EXISTS?\n");
+		fprintf(io, "OK? @next.%i\n", next);
+		fprintf(io, "  CALL &FS.UNLINK\n");
+		fprintf(io, "  JUMP @next.%i\n", next);
+		return 0;
+	}
+
+	fprintf(io, "CALL &FS.EXISTS?\n");
+	fprintf(io, "OK? @create.%i\n", next);
+	fprintf(io, "  JUMP @exists.%i\n", next);
+	fprintf(io, "create.%i:\n", next);
+	fprintf(io, "  CALL &FS.MKFILE\n");
+	fprintf(io, "exists.%i:\n", next);
+
+	if (ENFORCED(r, RES_FILE_UID) || ENFORCED(r, RES_FILE_GID)) {
+		fprintf(io, "COPY %%A %%F\n");
+		fprintf(io, "SET %%D 0\n");
+		fprintf(io, "SET %%E 0\n");
+
+		if (ENFORCED(r, RES_FILE_UID)) {
+			fprintf(io, "SET %%A 0\n");
+			fprintf(io, "SET %%B \"%s\"\n", r->rf_owner);
+			fprintf(io, "CALL &USER.FIND\n");
+			fprintf(io, "OK? @found.user.%i\n", next);
+			fprintf(io, "  COPY %%B %%A\n");
+			fprintf(io, "  PRINT \"Unable to find user '%%s'\\n\"\n");
+			fprintf(io, "  JUMP @userfind.done.%i\n", next);
+			fprintf(io, "found.user.%i:\n", next);
+			fprintf(io, "CALL &USER.GET_UID\n");
+			fprintf(io, "COPY %%R %%D\n");
+			fprintf(io, "userfind.done.%i:\n", next);
+		}
+
+		if (ENFORCED(r, RES_FILE_GID)) {
+			fprintf(io, "SET %%A 0\n");
+			fprintf(io, "SET %%B \"%s\"\n", r->rf_group);
+			fprintf(io, "CALL &GROUP.FIND\n");
+			fprintf(io, "OK? @found.group.%i\n", next);
+			fprintf(io, "  COPY %%B %%A\n");
+			fprintf(io, "  PRINT \"Unable to find group '%%s'\\n\"\n");
+			fprintf(io, "  JUMP @groupfind.done.%i\n", next);
+			fprintf(io, "found.group.%i:\n", next);
+			fprintf(io, "CALL &GROUP.GET_GID\n");
+			fprintf(io, "COPY %%R %%E\n");
+			fprintf(io, "groupfind.done.%i:\n", next);
+		}
+		fprintf(io, "COPY %%F %%A\n");
+		fprintf(io, "COPY %%D %%B\n");
+		fprintf(io, "COPY %%E %%C\n");
+		fprintf(io, "CALL &FS.CHOWN\n");
+	}
+
+	if (ENFORCED(r, RES_FILE_MODE)) {
+		fprintf(io, "SET %%B 0%o\n", r->rf_mode);
+		fprintf(io, "CALL &FS.CHMOD\n");
+	}
+
+	/* FIXME - handle file contents! */
+
+	return 0;
+}
+
 /*
  * Fill in the local details of res_file structure,
  * including invoking stat(2)
@@ -1604,6 +1774,11 @@ int res_group_match(const void *res, const char *name, const char *value)
 	rc = strcmp(test_value, value);
 	free(test_value);
 	return rc;
+}
+
+int res_group_gencode(const void *res, FILE *io, unsigned int next)
+{
+	return 0;
 }
 
 int res_group_enforce_members(struct res_group *rg, int enforce)
@@ -2098,6 +2273,11 @@ int res_package_match(const void *res, const char *name, const char *value)
 	return rc;
 }
 
+int res_package_gencode(const void *res, FILE *io, unsigned int next)
+{
+	return 0;
+}
+
 int res_package_stat(void *res, const struct resource_env *env)
 {
 	struct res_package *rp = (struct res_package*)(res);
@@ -2352,6 +2532,11 @@ int res_service_match(const void *res, const char *name, const char *value)
 	return rc;
 }
 
+int res_service_gencode(const void *res, FILE *io, unsigned int next)
+{
+	return 0;
+}
+
 int res_service_stat(void *res, const struct resource_env *env)
 {
 	struct res_service *rs = (struct res_service*)(res);
@@ -2603,6 +2788,11 @@ int res_host_match(const void *res, const char *name, const char *value)
 	rc = strcmp(test_value, value);
 	free(test_value);
 	return rc;
+}
+
+int res_host_gencode(const void *res, FILE *io, unsigned int next)
+{
+	return 0;
 }
 
 int res_host_stat(void *res, const struct resource_env *env)
@@ -2922,6 +3112,11 @@ int res_sysctl_match(const void *res, const char *name, const char *value)
 	return rc;
 }
 
+int res_sysctl_gencode(const void *res, FILE *io, unsigned int next)
+{
+	return 0;
+}
+
 int res_sysctl_stat(void *res, const struct resource_env *env)
 {
 	struct res_sysctl *rs = (struct res_sysctl*)(res);
@@ -3199,6 +3394,11 @@ int res_dir_match(const void *res, const char *name, const char *value)
 	rc = strcmp(test_value, value);
 	free(test_value);
 	return rc;
+}
+
+int res_dir_gencode(const void *res, FILE *io, unsigned int next)
+{
+	return 0;
 }
 
 int res_dir_stat(void *res, const struct resource_env *env)
@@ -3525,6 +3725,11 @@ int res_exec_match(const void *res, const char *name, const char *value)
 	rc = strcmp(test_value, value);
 	free(test_value);
 	return rc;
+}
+
+int res_exec_gencode(const void *res, FILE *io, unsigned int next)
+{
+	return 0;
 }
 
 static int _res_exec_run(const char *command, struct res_exec *re)

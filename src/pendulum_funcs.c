@@ -11,6 +11,8 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
+#include <sys/select.h>
 #include <fcntl.h>
 
 #include <pwd.h>
@@ -100,6 +102,92 @@ static char * s_strlist_join(char **l, const char *delim)
 		p += strlen(*i);
 	}
 	return buf;
+}
+
+#define EXEC_OUTPUT_MAX 256
+static int s_exec(const char *cmd, char **out, char **err)
+{
+	int proc_stat;
+	int outfd[2], errfd[2];
+	size_t n;
+	pid_t pid;
+	fd_set fds;
+	int nfds = 0;
+	int read_stdout = (out ? 1 : 0);
+	int read_stderr = (err ? 1 : 0);
+	int nullfd;
+
+	nullfd = open("/dev/null", O_WRONLY);
+	if (read_stdout && pipe(outfd) != 0) { return 254; }
+	if (read_stderr && pipe(errfd) != 0) { return 254; }
+
+	switch (pid = fork()) {
+
+	case -1: /* failed to fork */
+		if (read_stdout) {
+			close(outfd[0]);
+			close(outfd[1]);
+		}
+		if (read_stderr) {
+			close(errfd[0]);
+			close(errfd[1]);
+		}
+		return 255;
+
+	case 0: /* in child */
+		close(0);
+		dup2((read_stdout ? outfd[1] : nullfd), 1);
+		dup2((read_stderr ? errfd[1] : nullfd), 2);
+
+		execl("/bin/sh", "sh", "-c", cmd, (char*)NULL);
+		exit(1);
+
+	default: /* in parent */
+		if (!read_stdout && !read_stderr) { break; }
+
+		FD_ZERO(&fds);
+
+		if (read_stderr) {
+			close(errfd[1]);
+			FD_SET(errfd[0], &fds);
+			nfds = (nfds > errfd[0] ? nfds : errfd[0]);
+		}
+		if (read_stdout) {
+			close(outfd[1]);
+			FD_SET(outfd[0], &fds);
+			nfds = (nfds > outfd[0] ? nfds : outfd[0]);
+		}
+
+		nfds++;
+		while ((read_stdout || read_stderr) && select(nfds, &fds, NULL, NULL, NULL) > 0) {
+			if (read_stdout && FD_ISSET(outfd[0], &fds)) {
+				*out = calloc(EXEC_OUTPUT_MAX, sizeof(char));
+				n = read(outfd[0], *out, EXEC_OUTPUT_MAX);
+				(*out)[n] = '\0';
+
+				FD_CLR(outfd[0], &fds);
+				close(outfd[0]);
+				read_stdout = 0;
+			}
+
+			if (read_stderr && FD_ISSET(errfd[0], &fds)) {
+				*err = calloc(EXEC_OUTPUT_MAX, sizeof(char));
+				n = read(errfd[0], *err, EXEC_OUTPUT_MAX);
+				(*err)[n] = '\0';
+
+				FD_CLR(errfd[0], &fds);
+				close(errfd[0]);
+				read_stderr = 0;
+			}
+
+			if (read_stdout) { FD_SET(outfd[0], &fds); }
+			if (read_stderr) { FD_SET(errfd[0], &fds); }
+		}
+	}
+
+	waitpid(pid, &proc_stat, 0);
+	if (!WIFEXITED(proc_stat)) return 255;
+	return WEXITSTATUS(proc_stat);
 }
 
 /*
@@ -231,6 +319,8 @@ typedef struct {
 
 	struct sgdb   *sgdb;
 	struct sgrp   *sgent;
+
+	char *exec_last;
 } udata;
 
 #define UDATA(m) ((udata*)(m->U))
@@ -356,6 +446,36 @@ static pn_word cwa_fs_put(pn_machine *m)
 	size_t n = fprintf(output, "%s", (const char *)m->B);
 	fclose(output);
 	return n == strlen((const char *)m->B) ? 0 : 1;
+}
+
+/*
+
+    ######## ##     ## ########  ######
+    ##        ##   ##  ##       ##    ##
+    ##         ## ##   ##       ##
+    ######      ###    ######   ##
+    ##         ## ##   ##       ##
+    ##        ##   ##  ##       ##    ##
+    ######## ##     ## ########  ######
+
+*/
+
+static pn_word cwa_exec_check(pn_machine *m)
+{
+	return s_exec((const char *)m->A, NULL, NULL);
+}
+
+static pn_word cwa_exec_run1(pn_machine *m)
+{
+	char *out, *p;
+	int rc = s_exec((const char *)m->A, &out, NULL);
+
+	for (p = out; *p && *p != '\n'; p++);
+	*p = '\0';
+
+	free(UDATA(m)->exec_last);
+	m->S2 = (pn_word)(UDATA(m)->exec_last = out);
+	return rc;
 }
 
 /*
@@ -1341,6 +1461,9 @@ int pendulum_funcs(pn_machine *m)
 	pn_func(m,  "GROUP.SET_NAME",   cwa_group_set_name);
 	pn_func(m,  "GROUP.SET_PASSWD", cwa_group_set_passwd);
 	pn_func(m,  "GROUP.SET_PWHASH", cwa_group_set_pwhash);
+
+	pn_func(m,  "EXEC.CHECK",       cwa_exec_check);
+	pn_func(m,  "EXEC.RUN1",        cwa_exec_run1);
 
 	m->U = calloc(1, sizeof(udata));
 

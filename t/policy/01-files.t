@@ -17,7 +17,7 @@ exists.1:
 COPY %A %F
 SET %D 0
 SET %E 0
-SET %A 0
+SET %A 1
 SET %B "root"
 CALL &USER.FIND
 OK? @found.user.1
@@ -28,7 +28,7 @@ found.user.1:
 CALL &USER.GET_UID
 COPY %R %D
 userfind.done.1:
-SET %A 0
+SET %A 1
 SET %B "root"
 CALL &GROUP.FIND
 OK? @found.group.1
@@ -45,6 +45,7 @@ COPY %E %C
 CALL &FS.CHOWN
 SET %B 0400
 CALL &FS.CHMOD
+next.1:
 EOF
 
 gencode_ok "use host file2.test", <<'EOF', "file removal";
@@ -54,6 +55,7 @@ CALL &FS.EXISTS?
 OK? @next.1
   CALL &FS.UNLINK
   JUMP @next.1
+next.1:
 EOF
 
 gencode_ok "use host file3.test", <<'EOF', "file without chown";
@@ -67,6 +69,7 @@ create.1:
 exists.1:
 SET %B 0644
 CALL &FS.CHMOD
+next.1:
 EOF
 
 gencode_ok "use host file4.test", <<'EOF', "file with non-root owner";
@@ -81,7 +84,7 @@ exists.1:
 COPY %A %F
 SET %D 0
 SET %E 0
-SET %A 0
+SET %A 1
 SET %B "jrhunt"
 CALL &USER.FIND
 OK? @found.user.1
@@ -92,7 +95,7 @@ found.user.1:
 CALL &USER.GET_UID
 COPY %R %D
 userfind.done.1:
-SET %A 0
+SET %A 1
 SET %B "staff"
 CALL &GROUP.FIND
 OK? @found.group.1
@@ -109,6 +112,7 @@ COPY %E %C
 CALL &FS.CHOWN
 SET %B 0410
 CALL &FS.CHMOD
+next.1:
 EOF
 
 done_testing;

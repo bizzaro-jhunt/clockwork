@@ -849,9 +849,11 @@ int policy_notify(const struct policy *pol, const struct resource *cause)
 int policy_gencode(const struct policy *pol, FILE *io)
 {
 	struct resource *r;
-	unsigned int next = 1;
+	unsigned int next = 0;
 	for_each_resource(r, pol) {
-		resource_gencode(r, io, next++);
+		next++;
+		resource_gencode(r, io, next);
+		fprintf(io, "next.%i:\n", next);
 	}
 	return 0;
 }

@@ -535,6 +535,7 @@ static pn_word cwa_grdb_open(pn_machine *m)
 
 	UDATA(m)->grdb = cur = ent = NULL;
 	errno = 0;
+
 	while ((group = fgetgrent(input)) != NULL) {
 		ent = calloc(1, sizeof(struct grdb));
 		ent->group = calloc(1, sizeof(struct group));

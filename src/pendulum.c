@@ -13,30 +13,32 @@
 
 #define  PN_OP_NOOP    0x0000
 #define  PN_OP_OK      0x0001
-#define  PN_OP_EQ      0x0002
-#define  PN_OP_NE      0x0003
-#define  PN_OP_CMP     0x0004
-#define  PN_OP_GT      0x0005
-#define  PN_OP_GTE     0x0006
-#define  PN_OP_LT      0x0007
-#define  PN_OP_LTE     0x0008
-#define  PN_OP_COPY    0x0009
-#define  PN_OP_SET     0x000a
-#define  PN_OP_HALT    0x000b
-#define  PN_OP_ERROR   0x000c
-#define  PN_OP_LOG     0x000d
-#define  PN_OP_CALL    0x000e
-#define  PN_OP_PRINT   0x000f
-#define  PN_OP_JUMP    0x0010
-#define  PN_OP_DUMP    0x0011
-#define  PN_OP_TRACE   0x0012
-#define  PN_OP_VCHECK  0x0013
-#define  PN_OP_SYSERR  0x0014
+#define  PN_OP_NOTOK   0x0002
+#define  PN_OP_EQ      0x0003
+#define  PN_OP_NE      0x0004
+#define  PN_OP_CMP     0x0005
+#define  PN_OP_GT      0x0006
+#define  PN_OP_GTE     0x0007
+#define  PN_OP_LT      0x0008
+#define  PN_OP_LTE     0x0009
+#define  PN_OP_COPY    0x000a
+#define  PN_OP_SET     0x000b
+#define  PN_OP_HALT    0x000c
+#define  PN_OP_ERROR   0x000d
+#define  PN_OP_LOG     0x000e
+#define  PN_OP_CALL    0x000f
+#define  PN_OP_PRINT   0x0010
+#define  PN_OP_JUMP    0x0011
+#define  PN_OP_DUMP    0x0012
+#define  PN_OP_TRACE   0x0013
+#define  PN_OP_VCHECK  0x0014
+#define  PN_OP_SYSERR  0x0015
 #define  PN_OP_INVAL   0x00ff
 
 static const char *OP_NAMES[] = {
 	"NOOP",
 	"OK?",
+	"NOTOK?",
 	"EQ?",
 	"NE?",
 	"CMP?",
@@ -150,6 +152,7 @@ static int s_resolve_op(const char *op)
 	if (strcmp(op, "LT?")    == 0) return PN_OP_LT;
 	if (strcmp(op, "LTE?")   == 0) return PN_OP_LTE;
 	if (strcmp(op, "OK?")    == 0) return PN_OP_OK;
+	if (strcmp(op, "NOTOK?") == 0) return PN_OP_NOTOK;
 	if (strcmp(op, "COPY")   == 0) return PN_OP_COPY;
 	if (strcmp(op, "SET")    == 0) return PN_OP_SET;
 	if (strcmp(op, "HALT")   == 0) return PN_OP_HALT;
@@ -345,6 +348,7 @@ int pn_parse(pn_machine *m, FILE *io)
 		free(arg1); free(arg2);
 		arg1 = arg2 = NULL;
 	}
+	m->codesize++;
 
 	errno = ENOBUFS;
 	m->code = calloc(m->codesize, sizeof(pn_opcode));
@@ -404,7 +408,6 @@ int pn_run(pn_machine *m)
                  break
 #   define NEXT    m->Ip++; break
 
-	/* FIXME - TRACE support !!! */
 	while (m->Ip < m->codesize) {
 		switch (PC.op) {
 		case PN_OP_NOOP:
@@ -421,13 +424,14 @@ int pn_run(pn_machine *m)
 			m->Ip = m->Tr ? m->Ip + 1 : PC.arg1;
 			break;
 
-		case PN_OP_EQ:   TEST(m->T1 == m->T2, m->T1, "==", m->T2);
-		case PN_OP_NE:   TEST(m->T1 != m->T2, m->T1, "!=", m->T2);
-		case PN_OP_GT:   TEST(m->T1 >  m->T2, m->T1, ">",  m->T2);
-		case PN_OP_GTE:  TEST(m->T1 >= m->T2, m->T1, ">=", m->T2);
-		case PN_OP_LT:   TEST(m->T1 <  m->T2, m->T1, "<",  m->T2);
-		case PN_OP_LTE:  TEST(m->T1 <= m->T2, m->T1, "<=", m->T2);
-		case PN_OP_OK:   TEST(m->R  == 0,     m->R,  "==", 0);
+		case PN_OP_EQ:    TEST(m->T1 == m->T2, m->T1, "==", m->T2);
+		case PN_OP_NE:    TEST(m->T1 != m->T2, m->T1, "!=", m->T2);
+		case PN_OP_GT:    TEST(m->T1 >  m->T2, m->T1, ">",  m->T2);
+		case PN_OP_GTE:   TEST(m->T1 >= m->T2, m->T1, ">=", m->T2);
+		case PN_OP_LT:    TEST(m->T1 <  m->T2, m->T1, "<",  m->T2);
+		case PN_OP_LTE:   TEST(m->T1 <= m->T2, m->T1, "<=", m->T2);
+		case PN_OP_OK:    TEST(m->R  == 0,     m->R,  "==", 0);
+		case PN_OP_NOTOK: TEST(m->R  != 0,     m->R,  "!=", 0);
 
 		case PN_OP_COPY:
 			pn_trace(m, TRACE_START " %%%s -> %%%s\n",

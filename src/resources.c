@@ -543,9 +543,10 @@ int res_user_gencode(const void *res, FILE *io, unsigned int next)
 	assert(r); // LCOV_EXCL_LINE
 
 	fprintf(io, ";; res_user %s\n", r->key);
-	fprintf(io, "SET %%A 0\n");
+	fprintf(io, "SET %%A 1\n");
 	fprintf(io, "SET %%B \"%s\"\n", r->ru_name);
 	fprintf(io, "CALL &USER.FIND\n");
+
 	if (ENFORCED(r, RES_USER_ABSENT)) {
 		fprintf(io, "OK? @next.%i\n", next);
 		fprintf(io, "  CALL &USER.REMOVE\n");
@@ -556,7 +557,7 @@ int res_user_gencode(const void *res, FILE *io, unsigned int next)
 		if (ENFORCED(r, RES_USER_GID)) {
 			fprintf(io, "SET %%C %i\n", r->ru_gid);
 		} else {
-			fprintf(io, "SET %%A 0\n");
+			fprintf(io, "SET %%A 1\n");
 			fprintf(io, "SET %%B \"%s\"\n", r->ru_name);
 			fprintf(io, "CALL &GROUP.FIND\n");
 			fprintf(io, "OK? @group.found.%i\n", next);
@@ -1293,7 +1294,7 @@ int res_file_gencode(const void *res, FILE *io, unsigned int next)
 		fprintf(io, "SET %%E 0\n");
 
 		if (ENFORCED(r, RES_FILE_UID)) {
-			fprintf(io, "SET %%A 0\n");
+			fprintf(io, "SET %%A 1\n");
 			fprintf(io, "SET %%B \"%s\"\n", r->rf_owner);
 			fprintf(io, "CALL &USER.FIND\n");
 			fprintf(io, "OK? @found.user.%i\n", next);
@@ -1307,7 +1308,7 @@ int res_file_gencode(const void *res, FILE *io, unsigned int next)
 		}
 
 		if (ENFORCED(r, RES_FILE_GID)) {
-			fprintf(io, "SET %%A 0\n");
+			fprintf(io, "SET %%A 1\n");
 			fprintf(io, "SET %%B \"%s\"\n", r->rf_group);
 			fprintf(io, "CALL &GROUP.FIND\n");
 			fprintf(io, "OK? @found.group.%i\n", next);
@@ -1778,6 +1779,85 @@ int res_group_match(const void *res, const char *name, const char *value)
 
 int res_group_gencode(const void *res, FILE *io, unsigned int next)
 {
+	struct res_group *r = (struct res_group*)(res);
+	assert(r); // LCOV_EXCL_LINE
+
+	fprintf(io, ";; res_group %s\n", r->key);
+	fprintf(io, "SET %%A 1\n");
+	fprintf(io, "SET %%B \"%s\"\n", r->rg_name);
+	fprintf(io, "CALL &GROUP.FIND\n");
+
+	if (ENFORCED(r, RES_GROUP_ABSENT)) {
+		fprintf(io, "OK? @next.%i\n", next);
+		fprintf(io, "  CALL &GROUP.REMOVE\n");
+	} else {
+		fprintf(io, "OK? @found.%i\n", next);
+		fprintf(io, "  COPY %%B %%A\n");
+
+		if (ENFORCED(r, RES_GROUP_GID)) {
+			fprintf(io, "  SET %%B %i\n", r->rg_gid);
+		} else {
+			fprintf(io, "  CALL &GROUP.NEXT_GID\n");
+			fprintf(io, "  COPY %%R %%B\n");
+		}
+
+		fprintf(io, "  CALL &GROUP.CREATE\n");
+		fprintf(io, "  JUMP @update.%i\n", next);
+		fprintf(io, "found.%i:\n", next);
+
+		if (ENFORCED(r, RES_GROUP_GID)) {
+			fprintf(io, "  SET %%B %i\n", r->rg_gid);
+			fprintf(io, "  CALL &GROUP.SET_GID\n");
+		}
+
+		fprintf(io, "update.%i:\n", next);
+
+		if (ENFORCED(r, RES_GROUP_PASSWD)) {
+			fprintf(io, "SET %%B \"x\"\n");
+			fprintf(io, "CALL &GROUP.SET_PASSWD\n");
+			fprintf(io, "SET %%B \"%s\"\n", r->rg_passwd);
+			fprintf(io, "CALL &GROUP.SET_PWHASH\n");
+		}
+
+		if (ENFORCED(r, RES_GROUP_MEMBERS)) {
+			fprintf(io, ";; members\n");
+			char ** name;
+			for (name = r->rg_mem_add->strings; *name; name++) {
+				fprintf(io, "SET %%A \"%s\"\n", *name);
+				fprintf(io, "CALL &GROUP.HAS_MEMBER?\n");
+				fprintf(io, "OK? @member.%s.else.%i\n", *name, next);
+				fprintf(io, "  CALL &GROUP.ADD_MEMBER\n");
+				fprintf(io, "member.%s.else.%i:\n", *name, next);
+			}
+			for (name = r->rg_mem_rm->strings; *name; name++) {
+				fprintf(io, "SET %%A \"%s\"\n", *name);
+				fprintf(io, "CALL &GROUP.HAS_MEMBER?\n");
+				fprintf(io, "NOTOK? @member.%s.else.%i\n", *name, next);
+				fprintf(io, "  CALL &GROUP.RM_MEMBER\n");
+				fprintf(io, "member.%s.else.%i:\n", *name, next);
+			}
+		}
+
+		if (ENFORCED(r, RES_GROUP_ADMINS)) {
+			fprintf(io, ";; admins\n");
+			char ** name;
+			for (name = r->rg_adm_add->strings; *name; name++) {
+				fprintf(io, "SET %%A \"%s\"\n", *name);
+				fprintf(io, "CALL &GROUP.HAS_ADMIN?\n");
+				fprintf(io, "OK? @admin.%s.else.%i\n", *name, next);
+				fprintf(io, "  CALL &GROUP.ADD_ADMIN\n");
+				fprintf(io, "admin.%s.else.%i:\n", *name, next);
+			}
+			for (name = r->rg_adm_rm->strings; *name; name++) {
+				fprintf(io, "SET %%A \"%s\"\n", *name);
+				fprintf(io, "CALL &GROUP.HAS_ADMIN?\n");
+				fprintf(io, "NOTOK? @admin.%s.else.%i\n", *name, next);
+				fprintf(io, "  CALL &GROUP.RM_ADMIN\n");
+				fprintf(io, "admin.%s.else.%i:\n", *name, next);
+			}
+		}
+	}
+
 	return 0;
 }
 

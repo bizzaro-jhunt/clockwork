@@ -79,3 +79,36 @@ policy "user4" {
 	}
 }
 host "user4.test" { enforce "user4" }
+
+####################################################
+####################################################
+
+policy "group1" {
+	group "group1" {
+		present: "no"
+	}
+}
+host "group1.test" { enforce "group1" }
+
+policy "group2" {
+	group "group2" {
+		gid: 6766
+	}
+}
+host "group2.test" { enforce "group2" }
+
+policy "group3" {
+	group "group3" { }
+}
+host "group3.test" { enforce "group3" }
+
+policy "group4" {
+	group "group4" {
+		gid:      6778
+		password: "$$crypt"
+		changepw: "yes"
+		members:  "user1 !user3 user2"
+		admins:   "!root adm1"
+	}
+}
+host "group4.test" { enforce "group4" }

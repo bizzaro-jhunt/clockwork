@@ -94,8 +94,10 @@ sub file_is
 	my ($path, $expect, $message) = @_;
 	$message ||= "$path contents";
 
-	open my $fh, "<", $path
-		or $T->bail_out("Failed to open $path for reading: $!");
+	open my $fh, "<", $path or do {
+		$T->ok(0, "Failed to open $path for reading: $!");
+		return 0;
+	};
 	my $actual = do { local $/; <$fh> };
 	close $fh;
 

@@ -1,0 +1,14 @@
+;;
+;; fs/put.pn
+;; Pendulum Test Script
+;;
+
+SET %A "t/tmp/pn/fs/putfile"
+SET %B "0\n"
+CALL &FS.PUT
+OK? @failed
+  PRINT "OK\n"
+  HALT
+failed:
+PRINT "FAILED\n"
+SYSERR

@@ -44,4 +44,11 @@ $TEMP/new.dir removed
 fin
 EOF
 
+unlink "$TEMP/putfile";
+pendulum_ok "$TESTS/put.pn", <<EOF, "put.pn";
+OK
+EOF
+
+file_is "$TEMP/putfile", "0\n", "FS.PUT wrote the file";
+
 done_testing;

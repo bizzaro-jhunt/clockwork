@@ -112,3 +112,40 @@ policy "group4" {
 	}
 }
 host "group4.test" { enforce "group4" }
+
+####################################################
+####################################################
+
+policy "dir1" {
+	dir "/etc/sudoers" {
+		owner: "root"
+		group: "root"
+		mode:  0400
+	}
+}
+host "dir1.test" { enforce "dir1" }
+
+policy "dir2" {
+	dir "/path/to/delete" {
+		present: "no"
+	}
+}
+host "dir2.test" { enforce "dir2" }
+
+policy "dir3" {
+	dir "/chmod-me" {
+		present: "yes"
+		mode:    0755
+	}
+}
+host "dir3.test" { enforce "dir3" }
+
+policy "dir4" {
+	dir "/home/jrhunt/bin" {
+		present: "yes"
+		mode:    0710
+		owner:   "jrhunt"
+		group:   "staff"
+	}
+}
+host "dir4.test" { enforce "dir4" }

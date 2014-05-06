@@ -3478,6 +3478,70 @@ int res_dir_match(const void *res, const char *name, const char *value)
 
 int res_dir_gencode(const void *res, FILE *io, unsigned int next)
 {
+	struct res_dir *r = (struct res_dir*)(res);
+	assert(r); // LCOV_EXCL_LINE
+
+	fprintf(io, ";; res_dir %s\n", r->key);
+	fprintf(io, "SET %%A \"%s\"\n", r->path);
+
+	if (ENFORCED(r, RES_DIR_ABSENT)) {
+		fprintf(io, "CALL &FS.EXISTS?\n");
+		fprintf(io, "OK? @next.%i\n", next);
+		fprintf(io, "  CALL &FS.RMDIR\n");
+		fprintf(io, "  JUMP @next.%i\n", next);
+		return 0;
+	}
+
+	fprintf(io, "CALL &FS.EXISTS?\n");
+	fprintf(io, "OK? @create.%i\n", next);
+	fprintf(io, "  JUMP @exists.%i\n", next);
+	fprintf(io, "create.%i:\n", next);
+	fprintf(io, "  CALL &FS.MKDIR\n");
+	fprintf(io, "exists.%i:\n", next);
+
+	if (ENFORCED(r, RES_DIR_UID) || ENFORCED(r, RES_DIR_GID)) {
+		fprintf(io, "COPY %%A %%F\n");
+		fprintf(io, "SET %%D 0\n");
+		fprintf(io, "SET %%E 0\n");
+
+		if (ENFORCED(r, RES_DIR_UID)) {
+			fprintf(io, "SET %%A 1\n");
+			fprintf(io, "SET %%B \"%s\"\n", r->owner);
+			fprintf(io, "CALL &USER.FIND\n");
+			fprintf(io, "OK? @found.user.%i\n", next);
+			fprintf(io, "  COPY %%B %%A\n");
+			fprintf(io, "  PRINT \"Unable to find user '%%s'\\n\"\n");
+			fprintf(io, "  JUMP @userfind.done.%i\n", next);
+			fprintf(io, "found.user.%i:\n", next);
+			fprintf(io, "CALL &USER.GET_UID\n");
+			fprintf(io, "COPY %%R %%D\n");
+			fprintf(io, "userfind.done.%i:\n", next);
+		}
+
+		if (ENFORCED(r, RES_DIR_GID)) {
+			fprintf(io, "SET %%A 1\n");
+			fprintf(io, "SET %%B \"%s\"\n", r->group);
+			fprintf(io, "CALL &GROUP.FIND\n");
+			fprintf(io, "OK? @found.group.%i\n", next);
+			fprintf(io, "  COPY %%B %%A\n");
+			fprintf(io, "  PRINT \"Unable to find group '%%s'\\n\"\n");
+			fprintf(io, "  JUMP @groupfind.done.%i\n", next);
+			fprintf(io, "found.group.%i:\n", next);
+			fprintf(io, "CALL &GROUP.GET_GID\n");
+			fprintf(io, "COPY %%R %%E\n");
+			fprintf(io, "groupfind.done.%i:\n", next);
+		}
+		fprintf(io, "COPY %%F %%A\n");
+		fprintf(io, "COPY %%D %%B\n");
+		fprintf(io, "COPY %%E %%C\n");
+		fprintf(io, "CALL &FS.CHOWN\n");
+	}
+
+	if (ENFORCED(r, RES_DIR_MODE)) {
+		fprintf(io, "SET %%B 0%o\n", r->mode);
+		fprintf(io, "CALL &FS.CHMOD\n");
+	}
+
 	return 0;
 }
 

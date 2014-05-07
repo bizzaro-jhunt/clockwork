@@ -149,3 +149,32 @@ policy "dir4" {
 	}
 }
 host "dir4.test" { enforce "dir4" }
+
+####################################################
+####################################################
+
+policy "service1" {
+	service "snmpd" {
+		running: "yes"
+		enabled: "yes"
+	}
+}
+host "service1.test" { enforce "service1" }
+
+policy "service2" {
+	service "microcode" {
+		running: "no"
+	}
+}
+host "service2.test" { enforce "service2" }
+
+policy "service3" {
+	service "neverwhere" {
+		running:  "no"
+		enabled:  "no"
+
+		stopped:  "yes"
+		disabled: "yes"
+	}
+}
+host "service3.test" { enforce "service3" }

@@ -2614,6 +2614,28 @@ int res_service_match(const void *res, const char *name, const char *value)
 
 int res_service_gencode(const void *res, FILE *io, unsigned int next)
 {
+	struct res_service *r = (struct res_service*)(res);
+	assert(r); // LCOV_EXCL_LINE
+
+	fprintf(io, ";; res_service %s\n", r->key);
+	if (ENFORCED(r, RES_SERVICE_ENABLED)) {
+		fprintf(io, "SET %%A \"cwtool service enable %s\"\n", r->service);
+		fprintf(io, "CALL &EXEC.CHECK\n");
+
+	} else if (ENFORCED(r, RES_SERVICE_DISABLED)) {
+		fprintf(io, "SET %%A \"cwtool service disable %s\"\n", r->service);
+		fprintf(io, "CALL &EXEC.CHECK\n");
+	}
+
+	if (ENFORCED(r, RES_SERVICE_RUNNING)) {
+		fprintf(io, "SET %%A \"cwtool service start %s\"\n", r->service);
+		fprintf(io, "CALL &EXEC.CHECK\n");
+
+	} else if (ENFORCED(r, RES_SERVICE_STOPPED)) {
+		fprintf(io, "SET %%A \"cwtool service stop %s\"\n", r->service);
+		fprintf(io, "CALL &EXEC.CHECK\n");
+	}
+
 	return 0;
 }
 

@@ -178,3 +178,26 @@ policy "service3" {
 	}
 }
 host "service3.test" { enforce "service3" }
+
+####################################################
+####################################################
+
+policy "package1" {
+	package "binutils" { }
+}
+host "package1.test" { enforce "package1" }
+
+policy "package2" {
+	package "binutils" {
+		installed: "no"
+	}
+}
+host "package2.test" { enforce "package2" }
+
+policy "package3" {
+	package "binutils" {
+		installed: "yes"
+		version: "1.2.3"
+	}
+}
+host "package3.test" { enforce "package3" }

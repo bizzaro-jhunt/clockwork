@@ -2355,6 +2355,16 @@ int res_package_match(const void *res, const char *name, const char *value)
 
 int res_package_gencode(const void *res, FILE *io, unsigned int next)
 {
+	struct res_package *r = (struct res_package*)(res);
+	assert(r); // LCOV_EXCL_LINE
+
+	fprintf(io, ";; res_package %s\n", r->key);
+	if (ENFORCED(r, RES_PACKAGE_ABSENT)) {
+		fprintf(io, "SET %%A \"cwtool package remove %s\"\n", r->name);
+	} else {
+		fprintf(io, "SET %%A \"cwtool package install %s %s\"\n", r->name, r->version ? r->version : "latest");
+	}
+	fprintf(io, "CALL &EXEC.CHECK\n");
 	return 0;
 }
 

@@ -1,0 +1,25 @@
+;;
+;; augeas/noop.pn
+;; Pendulum Test Script
+;;
+
+SET %A "t/tmp/pn/augeas"
+SET %B "t/data/aug/includes"
+CALL &AUGEAS.INIT
+NOTOK? @init.ok
+  COPY %R %A
+  PRINT "init failed: %i\n"
+  HALT
+
+init.ok:
+  PRINT "initialized\n"
+
+CALL &AUGEAS.CLOSE
+NOTOK? @close.ok
+  COPY %R %A
+  PRINT "close failed: %i\n"
+  HALT
+
+close.ok:
+PRINT "torn down\n"
+HALT

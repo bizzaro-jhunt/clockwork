@@ -15,6 +15,8 @@
 #include <sys/select.h>
 #include <fcntl.h>
 
+#include <augeas.h>
+
 #include <pwd.h>
 #include <shadow.h>
 #include <grp.h>
@@ -321,6 +323,8 @@ typedef struct {
 	struct sgrp   *sgent;
 
 	char *exec_last;
+
+	augeas *aug_ctx;
 } udata;
 
 #define UDATA(m) ((udata*)(m->U))
@@ -437,7 +441,6 @@ static pn_word cwa_fs_rmdir(pn_machine *m)
 
 static pn_word cwa_fs_put(pn_machine *m)
 {
-	/* TODO - open %A, write %B, close */
 	FILE *output;
 
 	output = fopen((const char *)m->A, "w");
@@ -446,6 +449,77 @@ static pn_word cwa_fs_put(pn_machine *m)
 	size_t n = fprintf(output, "%s", (const char *)m->B);
 	fclose(output);
 	return n == strlen((const char *)m->B) ? 0 : 1;
+}
+
+/*
+
+       ###    ##     ##  ######   ########    ###     ######
+      ## ##   ##     ## ##    ##  ##         ## ##   ##    ##
+     ##   ##  ##     ## ##        ##        ##   ##  ##
+    ##     ## ##     ## ##   #### ######   ##     ##  ######
+    ######### ##     ## ##    ##  ##       #########       ##
+    ##     ## ##     ## ##    ##  ##       ##     ## ##    ##
+    ##     ##  #######   ######   ######## ##     ##  ######
+
+ */
+
+static pn_word cwa_aug_init(pn_machine *m)
+{
+	UDATA(m)->aug_ctx = aug_init(
+		(const char *)m->A, (const char *)m->B,
+		AUG_NO_STDINC|AUG_NO_LOAD|AUG_NO_MODL_AUTOLOAD);
+
+	if (aug_set(UDATA(m)->aug_ctx, "/augeas/load/Hosts/lens", "Hosts.lns") < 0
+	 || aug_set(UDATA(m)->aug_ctx, "/augeas/load/Hosts/incl", "/etc/hosts") < 0
+	 || aug_load(UDATA(m)->aug_ctx) != 0) {
+		return 1;
+	}
+	return 0;
+}
+
+static pn_word cwa_aug_syserr(pn_machine *m)
+{
+	char **err = NULL;
+	const char *value;
+	int rc = aug_match(UDATA(m)->aug_ctx, "/augeas//error", &err);
+	if (!rc) return 1;
+
+	int i;
+	fprintf(stderr, "found %u augeas errors\n", rc);
+	for (i = 0; i < rc; i++) {
+		aug_get(UDATA(m)->aug_ctx, err[i], &value);
+		fprintf(stderr, "augeas error: %s - %s\n", err[i], value);
+	}
+	free(err);
+	return 0;
+}
+
+static pn_word cwa_aug_save(pn_machine *m)
+{
+	return aug_save(UDATA(m)->aug_ctx);
+}
+
+static pn_word cwa_aug_close(pn_machine *m)
+{
+	aug_close(UDATA(m)->aug_ctx);
+	UDATA(m)->aug_ctx = NULL;
+	return 0;
+}
+
+static pn_word cwa_aug_set(pn_machine *m)
+{
+	return aug_set(UDATA(m)->aug_ctx, (const char *)m->A, (const char *)m->B);
+}
+
+static pn_word cwa_aug_get(pn_machine *m)
+{
+	/* TODO - call aug_get(%A) against UDATA context */
+	return 0;
+}
+
+static pn_word cwa_aug_remove(pn_machine *m)
+{
+	return aug_rm(UDATA(m)->aug_ctx, (const char *)m->A) > 0 ? 0 : 1;
 }
 
 /*
@@ -1461,6 +1535,14 @@ int pendulum_funcs(pn_machine *m)
 	pn_func(m,  "GROUP.SET_NAME",   cwa_group_set_name);
 	pn_func(m,  "GROUP.SET_PASSWD", cwa_group_set_passwd);
 	pn_func(m,  "GROUP.SET_PWHASH", cwa_group_set_pwhash);
+
+	pn_func(m,  "AUGEAS.INIT",      cwa_aug_init);
+	pn_func(m,  "AUGEAS.SYSERR",    cwa_aug_syserr);
+	pn_func(m,  "AUGEAS.SAVE",      cwa_aug_save);
+	pn_func(m,  "AUGEAS.CLOSE",     cwa_aug_close);
+	pn_func(m,  "AUGEAS.SET",       cwa_aug_set);
+	pn_func(m,  "AUGEAS.GET",       cwa_aug_get);
+	pn_func(m,  "AUGEAS.REMOVE",    cwa_aug_remove);
 
 	pn_func(m,  "EXEC.CHECK",       cwa_exec_check);
 	pn_func(m,  "EXEC.RUN1",        cwa_exec_run1);

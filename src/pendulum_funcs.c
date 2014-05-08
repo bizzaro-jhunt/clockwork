@@ -35,6 +35,30 @@
 
  */
 
+static char *s_format(const char *fmt, ...)
+{
+	char buf[256];
+	char *buf2;
+	size_t n;
+	va_list args;
+
+	va_start(args, fmt);
+	n = vsnprintf(buf, 256, fmt, args) + 1;
+	va_end(args);
+	if (n > 256) {
+		buf2 = calloc(n, sizeof(char));
+		if (!buf2) { return NULL; }
+
+		va_start(args, fmt);
+		vsnprintf(buf2, n, fmt, args);
+		va_end(args);
+	} else {
+		buf2 = strdup(buf);
+	}
+
+	return buf2;
+}
+
 static char ** s_strlist_munge(char **l, const char *add, const char *rm)
 {
 	char **n, **t;
@@ -509,20 +533,27 @@ static pn_word cwa_aug_close(pn_machine *m)
 
 static pn_word cwa_aug_set(pn_machine *m)
 {
-	return aug_set(UDATA(m)->aug_ctx, (const char *)m->A, (const char *)m->B);
+	char *path = s_format((const char *)m->A, m->C, m->D, m->E, m->F);
+	int rc = aug_set(UDATA(m)->aug_ctx, path, (const char *)m->B);
+	free(path);
+	return rc;
 }
 
 static pn_word cwa_aug_get(pn_machine *m)
 {
-	int rc = aug_get(UDATA(m)->aug_ctx, (const char *)m->A, &(UDATA(m)->aug_last));
+	char *path = s_format((const char *)m->A, m->C, m->D, m->E, m->F);
+	int rc = aug_get(UDATA(m)->aug_ctx, path, &(UDATA(m)->aug_last));
 	m->S2 = (pn_word)(UDATA(m)->aug_last);
+	free(path);
 	return rc == 1 ? 0 : 1;
 }
 
 static pn_word cwa_aug_find(pn_machine *m)
 {
 	char **r = NULL;
-	int rc = aug_match(UDATA(m)->aug_ctx, (const char *)m->A, &r);
+	char *path = s_format((const char *)m->A, m->C, m->D, m->E, m->F);
+	int rc = aug_match(UDATA(m)->aug_ctx, path, &r);
+	free(path);
 	if (rc != 1) return 1;
 
 	UDATA(m)->aug_last = strdup(r[0]);
@@ -533,7 +564,10 @@ static pn_word cwa_aug_find(pn_machine *m)
 
 static pn_word cwa_aug_remove(pn_machine *m)
 {
-	return aug_rm(UDATA(m)->aug_ctx, (const char *)m->A) > 0 ? 0 : 1;
+	char *path = s_format((const char *)m->A, m->C, m->D, m->E, m->F);
+	int rc = aug_rm(UDATA(m)->aug_ctx, (const char *)m->A) > 1 ? 0 : 1;
+	free(path);
+	return rc;
 }
 
 /*

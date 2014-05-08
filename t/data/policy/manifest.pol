@@ -201,3 +201,22 @@ policy "package3" {
 	}
 }
 host "package3.test" { enforce "package3" }
+
+####################################################
+####################################################
+
+policy "host1" {
+	host "example.com" {
+		ip: "1.2.3.4"
+		alias: "www.example.com example.org"
+	}
+}
+host "host1.test" { enforce "host1" }
+
+policy "host2" {
+	host "remove.me" {
+		present: "no"
+		ip: "2.4.6.8"
+	}
+}
+host "host2.test" { enforce "host2" }

@@ -111,6 +111,7 @@ PERL_TESTS += t/policy/03-groups.t
 PERL_TESTS += t/policy/04-dirs.t
 PERL_TESTS += t/policy/05-services.t
 PERL_TESTS += t/policy/06-packages.t
+PERL_TESTS += t/policy/07-hosts.t
 
 TEST_HELPERS  = t/helpers/executor
 TEST_HELPERS += t/helpers/prompter

@@ -2904,6 +2904,45 @@ int res_host_match(const void *res, const char *name, const char *value)
 
 int res_host_gencode(const void *res, FILE *io, unsigned int next)
 {
+	struct res_host *r = (struct res_host*)(res);
+	assert(r); // LCOV_EXCL_LINE
+
+	fprintf(io, ";; res_host %s\n", r->key);
+	fprintf(io, "SET %%A \"/files/etc/hosts/*[ipaddr = \\\"%s\\\" and canonical = \\\"%s\\\"]\"\n", r->ip, r->hostname);
+	fprintf(io, "CALL &AUGEAS.FIND\n");
+
+	if (ENFORCED(r, RES_HOST_ABSENT)) {
+		fprintf(io, "OK @not.found.%i\n", next);
+		fprintf(io, "  COPY %%R %%A\n");
+		fprintf(io, "  CALL &AUGEAS.REMOVE\n");
+		fprintf(io, "not.found.%i:\n", next);
+
+	} else {
+		fprintf(io, "NOTOK @found.%i\n", next);
+		fprintf(io, "  SET %%A \"/files/etc/hosts/%i/ipaddr\"\n", 99999+next);
+		fprintf(io, "  SET %%B \"%s\"\n", r->ip);
+		fprintf(io, "  CALL &AUGEAS.SET\n");
+		fprintf(io, "  SET %%A \"/files/etc/hosts/%i/canonical\"\n", 99999+next);
+		fprintf(io, "  SET %%B \"%s\"\n", r->hostname);
+		fprintf(io, "  CALL &AUGEAS.SET\n");
+		fprintf(io, "  JUMP @aliases.%i\n", next);
+		fprintf(io, "found.%i:\n", next);
+		fprintf(io, "  COPY %%S2 %%A\n");
+
+		if (ENFORCED(r, RES_HOST_ALIASES)) {
+			fprintf(io, "SET %%C \"/alias\"\n");
+			fprintf(io, "CALL &AUGEAS.REMOVE\n");
+
+			int i;
+			for (i = 0; i < r->aliases->num; i++) {
+				fprintf(io, "SET %%C \"/alias[%u]\"\n", i);
+				fprintf(io, "SET %%B \"%s\"\n", r->aliases->strings[i]);
+				fprintf(io, "CALL &AUGEAS.SET\n");
+			}
+		}
+	}
+
+
 	return 0;
 }
 

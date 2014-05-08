@@ -68,13 +68,19 @@ package_version(const char *mgr, const char *pkg)
 
 	rc = _package_exec(mgr, "version", pkg, NULL, &version);
 
-	if (rc != 0 || *version == '\0') {
+	if (rc == 0) {
+		//package installed, return version
+		_head1(version);
+		return version;
+	} if (rc == 1) {
+		// package wasn't installed
 		free(version);
 		return NULL;
+	} else {
+		// something's wrong with dpkg status
+		free(version);
+		return "error";
 	}
-
-	_head1(version);
-	return version;
 }
 
 char *

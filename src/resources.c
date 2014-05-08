@@ -2138,6 +2138,12 @@ struct report* res_package_fixup(void *res, int dryrun, const struct resource_en
 	struct report *report = report_new("Package", rp->name);
 	char *action;
 
+	if (strcmp(rp->installed, "error") == 0) {
+		action = string("manage package");
+		report_action(report, action, ACTION_FAILED);
+		return report;
+	}
+
 	if (ENFORCED(rp, RES_PACKAGE_ABSENT)) {
 		if (rp->installed) {
 			action = string("uninstall package");
@@ -2169,6 +2175,8 @@ struct report* res_package_fixup(void *res, int dryrun, const struct resource_en
 		return report;
 	}
 
+	// if rp->installed is 'error', this won't be triggered, as
+	// this is caught above, as a general package mgmt failure
 	if (rp->version && vercmp(rp->installed, rp->version) != 0) {
 		action = string("upgrade to v%s", rp->version);
 

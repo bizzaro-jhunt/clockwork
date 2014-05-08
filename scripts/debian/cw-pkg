@@ -14,8 +14,9 @@
 #   version PKG       Print out the installed version of
 #                     the named package, on a single line.
 #
-#                       exit 0    = package is installed
-#                       otherwise = package is not installed
+#                       exit 0 = package is installed
+#                       exit 1 = package is not installed
+#                       exit 2 = package is in a error state (non-installed and non-removed)
 #
 #   latest PKG        Print out the latest available version
 #                     of the named package, on a single line,
@@ -45,8 +46,18 @@ VERSION=$3
 
 case $ACTION in
 version)
-	/usr/bin/dpkg-query -W -f='${Version}' "$NAME"
-	exit $?
+	out=$(/usr/bin/dpkg-query -W -f='${db:status-abbrev} ${Version}' "$NAME")
+	rc=$?
+	status=$(echo $out | cut -d " " -f1)
+	version=$(echo $out | cut -d " " -f2)
+	if [ "$status" = "rc" -o "$status" = "un" -o $rc -ne 0 ]; then
+		exit 1 # treat as not installed
+	elif [ "$status" = "ii" ]; then
+		echo $version
+		exit 0 # treat as installed
+	else
+		exit 2 # treat as broken
+	fi
 	;;
 latest)
 	# FIXME: make this work under debian

@@ -90,6 +90,9 @@ t/67-res_service
 t/68-res_package
 t/69-res_exec
 t/70-managers
+t/*.log
+t/*.trs
+test-suite.log
 
 *.debhelper.log
 *.debhelper

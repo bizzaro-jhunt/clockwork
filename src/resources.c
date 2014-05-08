@@ -2138,8 +2138,8 @@ struct report* res_package_fixup(void *res, int dryrun, const struct resource_en
 	struct report *report = report_new("Package", rp->name);
 	char *action;
 
-	if (strcmp(rp->installed, "error") == 0) {
-		action = string("manage package");
+	if (rp->installed && strcmp(rp->installed, string("error")) == 0) {
+		action = string("verify clean package status");
 		report_action(report, action, ACTION_FAILED);
 		return report;
 	}

@@ -220,3 +220,21 @@ policy "host2" {
 	}
 }
 host "host2.test" { enforce "host2" }
+
+####################################################
+####################################################
+
+policy "sysctl1" {
+	sysctl "net.ipv6.icmp.ratelimit" {
+		value: "1005"
+	}
+}
+host "sysctl1.test" { enforce "sysctl1" }
+
+policy "sysctl2" {
+	sysctl "net.ipv6.icmp.ratelimit" {
+		value: "0"
+		persist: "yes"
+	}
+}
+host "sysctl2.test" { enforce "sysctl2" }

@@ -3265,6 +3265,35 @@ int res_sysctl_match(const void *res, const char *name, const char *value)
 
 int res_sysctl_gencode(const void *res, FILE *io, unsigned int next)
 {
+	struct res_sysctl *r = (struct res_sysctl*)(res);
+	assert(r); // LCOV_EXCL_LINE
+
+	char *p, *path = strdup(r->param);
+	for (p = path; *p; p++)
+		if (*p == '.') *p = '/';
+
+	fprintf(io, ";; res_sysctl %s\n", r->key);
+	if (ENFORCED(r, RES_SYSCTL_VALUE)) {
+		fprintf(io, "SET %%A \"/proc/sys/%s\"\n", path);
+		fprintf(io, "CALL &FS.GET\n");
+		fprintf(io, "COPY %%S2 %%T1\n");
+		fprintf(io, "SET %%T2 \"%s\"\n", r->value);
+		fprintf(io, "CMP? @diff.%i\n", next);
+		fprintf(io, "  JUMP @done.%i\n", next);
+		fprintf(io, "diff.%i:\n", next);
+		fprintf(io, "  COPY %%T2 %%B\n");
+		fprintf(io, "  CALL &FS.PUT\n");
+		fprintf(io, "done.%i:\n", next);
+
+		if (ENFORCED(r, RES_SYSCTL_PERSIST)) {
+			fprintf(io, "SET %%A \"/files/etc/sysctl.conf/%%s\"\n");
+			fprintf(io, "SET %%B \"%s\"\n", r->value);
+			fprintf(io, "SET %%C \"%s\"\n", r->param);
+			fprintf(io, "CALL &AUGEAS.SET\n");
+		}
+	}
+
+	free(path);
 	return 0;
 }
 

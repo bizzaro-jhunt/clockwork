@@ -466,14 +466,27 @@ static pn_word cwa_fs_rmdir(pn_machine *m)
 
 static pn_word cwa_fs_put(pn_machine *m)
 {
-	FILE *output;
-
-	output = fopen((const char *)m->A, "w");
+	FILE *output = fopen((const char *)m->A, "w");
 	if (!output) return 1;
 
 	size_t n = fprintf(output, "%s", (const char *)m->B);
 	fclose(output);
 	return n == strlen((const char *)m->B) ? 0 : 1;
+}
+
+static pn_word cwa_fs_get(pn_machine *m)
+{
+	FILE *input = fopen((const char *)m->A, "r");
+	if (!input) return 1;
+
+	char buf[8192] = {0};
+	if (!fgets(buf, 8192, input)) {
+		fclose(input);
+		return 1;
+	}
+	m->S2 = (pn_word)strdup(buf);
+	fclose(input);
+	return 0;
 }
 
 /*
@@ -1501,6 +1514,7 @@ int pendulum_funcs(pn_machine *m)
 	pn_func(m,  "FS.MKDIR",           cwa_fs_mkdir);
 	pn_func(m,  "FS.MKFILE",          cwa_fs_mkfile);
 	pn_func(m,  "FS.PUT",             cwa_fs_put);
+	pn_func(m,  "FS.GET",             cwa_fs_get);
 	pn_func(m,  "FS.SYMLINK",         cwa_fs_symlink);
 	pn_func(m,  "FS.HARDLINK",        cwa_fs_link);
 

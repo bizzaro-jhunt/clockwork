@@ -61,4 +61,11 @@ ff02::2 ip6-allrouters
 10.8.7.9	new.host.example
 EOF
 
+revert;
+pendulum_ok "$TESTS/get.pn", <<'EOF', "get.pn";
+hosts/3/canonical is ip6-localnet
+hosts/3/ipaddr is fe00::0
+found host at /files/etc/hosts/1
+EOF
+
 done_testing;

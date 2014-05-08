@@ -325,6 +325,7 @@ typedef struct {
 	char *exec_last;
 
 	augeas *aug_ctx;
+	const char *aug_last;
 } udata;
 
 #define UDATA(m) ((udata*)(m->U))
@@ -513,7 +514,20 @@ static pn_word cwa_aug_set(pn_machine *m)
 
 static pn_word cwa_aug_get(pn_machine *m)
 {
-	/* TODO - call aug_get(%A) against UDATA context */
+	int rc = aug_get(UDATA(m)->aug_ctx, (const char *)m->A, &(UDATA(m)->aug_last));
+	m->S2 = (pn_word)(UDATA(m)->aug_last);
+	return rc == 1 ? 0 : 1;
+}
+
+static pn_word cwa_aug_find(pn_machine *m)
+{
+	char **r = NULL;
+	int rc = aug_match(UDATA(m)->aug_ctx, (const char *)m->A, &r);
+	if (rc != 1) return 1;
+
+	UDATA(m)->aug_last = strdup(r[0]);
+	m->S2 = (pn_word)(UDATA(m)->aug_last);
+	free(r);
 	return 0;
 }
 
@@ -1441,111 +1455,111 @@ static pn_word cwa_group_set_pwhash(pn_machine *m)
 
 int pendulum_funcs(pn_machine *m)
 {
-	pn_func(m, "FS.EXISTS?",   cwa_fs_exists);
-	pn_func(m, "FS.FILE?",     cwa_fs_is_file);
-	pn_func(m, "FS.DIR?",      cwa_fs_is_dir);
-	pn_func(m, "FS.CHARDEV?",  cwa_fs_is_chardev);
-	pn_func(m, "FS.BLOCKDEV?", cwa_fs_is_blockdev);
-	pn_func(m, "FS.FIFO?",     cwa_fs_is_fifo);
-	pn_func(m, "FS.SYMLINK?",  cwa_fs_is_symlink);
-	pn_func(m, "FS.SOCKET?",   cwa_fs_is_socket);
+	pn_func(m,  "FS.EXISTS?",         cwa_fs_exists);
+	pn_func(m,  "FS.FILE?",           cwa_fs_is_file);
+	pn_func(m,  "FS.DIR?",            cwa_fs_is_dir);
+	pn_func(m,  "FS.CHARDEV?",        cwa_fs_is_chardev);
+	pn_func(m,  "FS.BLOCKDEV?",       cwa_fs_is_blockdev);
+	pn_func(m,  "FS.FIFO?",           cwa_fs_is_fifo);
+	pn_func(m,  "FS.SYMLINK?",        cwa_fs_is_symlink);
+	pn_func(m,  "FS.SOCKET?",         cwa_fs_is_socket);
 
-	pn_func(m, "FS.MKDIR",     cwa_fs_mkdir);
-	pn_func(m, "FS.MKFILE",    cwa_fs_mkfile);
-	pn_func(m, "FS.PUT",       cwa_fs_put);
-	pn_func(m, "FS.SYMLINK",   cwa_fs_symlink);
-	pn_func(m, "FS.HARDLINK",  cwa_fs_link);
+	pn_func(m,  "FS.MKDIR",           cwa_fs_mkdir);
+	pn_func(m,  "FS.MKFILE",          cwa_fs_mkfile);
+	pn_func(m,  "FS.PUT",             cwa_fs_put);
+	pn_func(m,  "FS.SYMLINK",         cwa_fs_symlink);
+	pn_func(m,  "FS.HARDLINK",        cwa_fs_link);
 
-	pn_func(m, "FS.UNLINK",  cwa_fs_unlink);
-	pn_func(m, "FS.RMDIR",   cwa_fs_rmdir);
+	pn_func(m,  "FS.UNLINK",          cwa_fs_unlink);
+	pn_func(m,  "FS.RMDIR",           cwa_fs_rmdir);
 
-	pn_func(m, "FS.CHOWN",   cwa_fs_chown);
-	pn_func(m, "FS.CHMOD",   cwa_fs_chmod);
+	pn_func(m,  "FS.CHOWN",           cwa_fs_chown);
+	pn_func(m,  "FS.CHMOD",           cwa_fs_chmod);
 
+	pn_func(m,  "PWDB.OPEN",          cwa_pwdb_open);
+	pn_func(m,  "PWDB.WRITE",         cwa_pwdb_write);
+	pn_func(m,  "PWDB.CLOSE",         cwa_pwdb_close);
 
-	pn_func(m,  "PWDB.OPEN",        cwa_pwdb_open);
-	pn_func(m,  "PWDB.WRITE",       cwa_pwdb_write);
-	pn_func(m,  "PWDB.CLOSE",       cwa_pwdb_close);
+	pn_func(m,  "SPDB.OPEN",          cwa_spdb_open);
+	pn_func(m,  "SPDB.WRITE",         cwa_spdb_write);
+	pn_func(m,  "SPDB.CLOSE",         cwa_spdb_close);
 
-	pn_func(m,  "SPDB.OPEN",        cwa_spdb_open);
-	pn_func(m,  "SPDB.WRITE",       cwa_spdb_write);
-	pn_func(m,  "SPDB.CLOSE",       cwa_spdb_close);
+	pn_func(m,  "GRDB.OPEN",          cwa_grdb_open);
+	pn_func(m,  "GRDB.WRITE",         cwa_grdb_write);
+	pn_func(m,  "GRDB.CLOSE",         cwa_grdb_close);
 
-	pn_func(m,  "GRDB.OPEN",        cwa_grdb_open);
-	pn_func(m,  "GRDB.WRITE",       cwa_grdb_write);
-	pn_func(m,  "GRDB.CLOSE",       cwa_grdb_close);
+	pn_func(m,  "SGDB.OPEN",          cwa_sgdb_open);
+	pn_func(m,  "SGDB.WRITE",         cwa_sgdb_write);
+	pn_func(m,  "SGDB.CLOSE",         cwa_sgdb_close);
 
-	pn_func(m,  "SGDB.OPEN",        cwa_sgdb_open);
-	pn_func(m,  "SGDB.WRITE",       cwa_sgdb_write);
-	pn_func(m,  "SGDB.CLOSE",       cwa_sgdb_close);
+	pn_func(m,  "USER.FIND",          cwa_user_find);
+	pn_func(m,  "USER.NEXT_UID",      cwa_user_next_uid);
+	pn_func(m,  "USER.CREATE",        cwa_user_create);
+	pn_func(m,  "USER.REMOVE",        cwa_user_remove);
 
-	pn_func(m,  "USER.FIND",        cwa_user_find);
-	pn_func(m,  "USER.NEXT_UID",    cwa_user_next_uid);
-	pn_func(m,  "USER.CREATE",      cwa_user_create);
-	pn_func(m,  "USER.REMOVE",      cwa_user_remove);
+	pn_func(m,  "USER.LOCKED?",       cwa_user_is_locked);
 
-	pn_func(m,  "USER.LOCKED?",     cwa_user_is_locked);
+	pn_func(m,  "USER.GET_UID",       cwa_user_get_uid);
+	pn_func(m,  "USER.GET_GID",       cwa_user_get_gid);
+	pn_func(m,  "USER.GET_NAME",      cwa_user_get_name);
+	pn_func(m,  "USER.GET_PASSWD",    cwa_user_get_passwd);
+	pn_func(m,  "USER.GET_GECOS",     cwa_user_get_gecos);
+	pn_func(m,  "USER.GET_HOME",      cwa_user_get_home);
+	pn_func(m,  "USER.GET_SHELL",     cwa_user_get_shell);
+	pn_func(m,  "USER.GET_PWHASH",    cwa_user_get_pwhash);
+	pn_func(m,  "USER.GET_PWMIN",     cwa_user_get_pwmin);
+	pn_func(m,  "USER.GET_PWMAX",     cwa_user_get_pwmax);
+	pn_func(m,  "USER.GET_PWWARN",    cwa_user_get_pwwarn);
+	pn_func(m,  "USER.GET_INACT",     cwa_user_get_inact);
+	pn_func(m,  "USER.GET_EXPIRY",    cwa_user_get_expiry);
 
-	pn_func(m,  "USER.GET_UID",     cwa_user_get_uid);
-	pn_func(m,  "USER.GET_GID",     cwa_user_get_gid);
-	pn_func(m,  "USER.GET_NAME",    cwa_user_get_name);
-	pn_func(m,  "USER.GET_PASSWD",  cwa_user_get_passwd);
-	pn_func(m,  "USER.GET_GECOS",   cwa_user_get_gecos);
-	pn_func(m,  "USER.GET_HOME",    cwa_user_get_home);
-	pn_func(m,  "USER.GET_SHELL",   cwa_user_get_shell);
-	pn_func(m,  "USER.GET_PWHASH",  cwa_user_get_pwhash);
-	pn_func(m,  "USER.GET_PWMIN",   cwa_user_get_pwmin);
-	pn_func(m,  "USER.GET_PWMAX",   cwa_user_get_pwmax);
-	pn_func(m,  "USER.GET_PWWARN",  cwa_user_get_pwwarn);
-	pn_func(m,  "USER.GET_INACT",   cwa_user_get_inact);
-	pn_func(m,  "USER.GET_EXPIRY",  cwa_user_get_expiry);
+	pn_func(m,  "USER.SET_UID",       cwa_user_set_uid);
+	pn_func(m,  "USER.SET_GID",       cwa_user_set_gid);
+	pn_func(m,  "USER.SET_NAME",      cwa_user_set_name);
+	pn_func(m,  "USER.SET_PASSWD",    cwa_user_set_passwd);
+	pn_func(m,  "USER.SET_GECOS",     cwa_user_set_gecos);
+	pn_func(m,  "USER.SET_HOME",      cwa_user_set_home);
+	pn_func(m,  "USER.SET_SHELL",     cwa_user_set_shell);
+	pn_func(m,  "USER.SET_PWHASH",    cwa_user_set_pwhash);
+	pn_func(m,  "USER.SET_PWMIN",     cwa_user_set_pwmin);
+	pn_func(m,  "USER.SET_PWMAX",     cwa_user_set_pwmax);
+	pn_func(m,  "USER.SET_PWWARN",    cwa_user_set_pwwarn);
+	pn_func(m,  "USER.SET_INACT",     cwa_user_set_inact);
+	pn_func(m,  "USER.SET_EXPIRY",    cwa_user_set_expiry);
 
-	pn_func(m,  "USER.SET_UID",     cwa_user_set_uid);
-	pn_func(m,  "USER.SET_GID",     cwa_user_set_gid);
-	pn_func(m,  "USER.SET_NAME",    cwa_user_set_name);
-	pn_func(m,  "USER.SET_PASSWD",  cwa_user_set_passwd);
-	pn_func(m,  "USER.SET_GECOS",   cwa_user_set_gecos);
-	pn_func(m,  "USER.SET_HOME",    cwa_user_set_home);
-	pn_func(m,  "USER.SET_SHELL",   cwa_user_set_shell);
-	pn_func(m,  "USER.SET_PWHASH",  cwa_user_set_pwhash);
-	pn_func(m,  "USER.SET_PWMIN",   cwa_user_set_pwmin);
-	pn_func(m,  "USER.SET_PWMAX",   cwa_user_set_pwmax);
-	pn_func(m,  "USER.SET_PWWARN",  cwa_user_set_pwwarn);
-	pn_func(m,  "USER.SET_INACT",   cwa_user_set_inact);
-	pn_func(m,  "USER.SET_EXPIRY",  cwa_user_set_expiry);
+	pn_func(m,  "GROUP.FIND",         cwa_group_find);
+	pn_func(m,  "GROUP.NEXT_GID",     cwa_group_next_gid);
+	pn_func(m,  "GROUP.CREATE",       cwa_group_create);
+	pn_func(m,  "GROUP.REMOVE",       cwa_group_remove);
 
-	pn_func(m,  "GROUP.FIND",       cwa_group_find);
-	pn_func(m,  "GROUP.NEXT_GID",   cwa_group_next_gid);
-	pn_func(m,  "GROUP.CREATE",     cwa_group_create);
-	pn_func(m,  "GROUP.REMOVE",     cwa_group_remove);
-
-	pn_func(m,  "GROUP.HAS_ADMIN?", cwa_group_has_admin);
-	pn_func(m,  "GROUP.HAS_MEMBER?", cwa_group_has_member);
-	pn_func(m,  "GROUP.RM_ADMIN",    cwa_group_rm_admin);
+	pn_func(m,  "GROUP.HAS_ADMIN?",   cwa_group_has_admin);
+	pn_func(m,  "GROUP.HAS_MEMBER?",  cwa_group_has_member);
+	pn_func(m,  "GROUP.RM_ADMIN",     cwa_group_rm_admin);
 	pn_func(m,  "GROUP.RM_MEMBER",    cwa_group_rm_member);
 	pn_func(m,  "GROUP.ADD_ADMIN",    cwa_group_add_admin);
-	pn_func(m,  "GROUP.ADD_MEMBER",    cwa_group_add_member);
+	pn_func(m,  "GROUP.ADD_MEMBER",   cwa_group_add_member);
 
-	pn_func(m,  "GROUP.GET_GID",    cwa_group_get_gid);
-	pn_func(m,  "GROUP.GET_NAME",   cwa_group_get_name);
-	pn_func(m,  "GROUP.GET_PASSWD", cwa_group_get_passwd);
-	pn_func(m,  "GROUP.GET_PWHASH", cwa_group_get_pwhash);
+	pn_func(m,  "GROUP.GET_GID",      cwa_group_get_gid);
+	pn_func(m,  "GROUP.GET_NAME",     cwa_group_get_name);
+	pn_func(m,  "GROUP.GET_PASSWD",   cwa_group_get_passwd);
+	pn_func(m,  "GROUP.GET_PWHASH",   cwa_group_get_pwhash);
 
-	pn_func(m,  "GROUP.SET_GID",    cwa_group_set_gid);
-	pn_func(m,  "GROUP.SET_NAME",   cwa_group_set_name);
-	pn_func(m,  "GROUP.SET_PASSWD", cwa_group_set_passwd);
-	pn_func(m,  "GROUP.SET_PWHASH", cwa_group_set_pwhash);
+	pn_func(m,  "GROUP.SET_GID",      cwa_group_set_gid);
+	pn_func(m,  "GROUP.SET_NAME",     cwa_group_set_name);
+	pn_func(m,  "GROUP.SET_PASSWD",   cwa_group_set_passwd);
+	pn_func(m,  "GROUP.SET_PWHASH",   cwa_group_set_pwhash);
 
-	pn_func(m,  "AUGEAS.INIT",      cwa_aug_init);
-	pn_func(m,  "AUGEAS.SYSERR",    cwa_aug_syserr);
-	pn_func(m,  "AUGEAS.SAVE",      cwa_aug_save);
-	pn_func(m,  "AUGEAS.CLOSE",     cwa_aug_close);
-	pn_func(m,  "AUGEAS.SET",       cwa_aug_set);
-	pn_func(m,  "AUGEAS.GET",       cwa_aug_get);
-	pn_func(m,  "AUGEAS.REMOVE",    cwa_aug_remove);
+	pn_func(m,  "AUGEAS.INIT",        cwa_aug_init);
+	pn_func(m,  "AUGEAS.SYSERR",      cwa_aug_syserr);
+	pn_func(m,  "AUGEAS.SAVE",        cwa_aug_save);
+	pn_func(m,  "AUGEAS.CLOSE",       cwa_aug_close);
+	pn_func(m,  "AUGEAS.SET",         cwa_aug_set);
+	pn_func(m,  "AUGEAS.GET",         cwa_aug_get);
+	pn_func(m,  "AUGEAS.FIND",        cwa_aug_find);
+	pn_func(m,  "AUGEAS.REMOVE",      cwa_aug_remove);
 
-	pn_func(m,  "EXEC.CHECK",       cwa_exec_check);
-	pn_func(m,  "EXEC.RUN1",        cwa_exec_run1);
+	pn_func(m,  "EXEC.CHECK",         cwa_exec_check);
+	pn_func(m,  "EXEC.RUN1",          cwa_exec_run1);
 
 	m->U = calloc(1, sizeof(udata));
 

@@ -44,6 +44,8 @@ ACTION=$1
 NAME=$2
 VERSION=$3
 
+export DEBIAN_FRONTEND=noninteractive
+
 case $ACTION in
 version)
 	out=$(/usr/bin/dpkg-query -W -f='${db:status-abbrev} ${Version}' "$NAME")
@@ -66,17 +68,17 @@ latest)
 install)
 	if [ -z $VERSION ]; then
 		# no version
-		/usr/bin/apt-get install -qqy "$NAME"
+		/usr/bin/apt-get install -qq --assume-no "$NAME"
 		exit $?
 	else
 		# specific version
 		echo "$VERSION" | grep -q '-' || VERSION="$VERSION-*"
-		/usr/bin/apt-get install -qqy "$NAME=$VERSION"
+		/usr/bin/apt-get install -qq --assume-no "$NAME=$VERSION"
 		exit $?
 	fi
 	;;
 remove)
-	/usr/bin/apt-get purge -qqy "$NAME"
+	/usr/bin/apt-get purge -qq --assume-no "$NAME"
 	exit $?
 	;;
 esac

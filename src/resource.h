@@ -137,14 +137,6 @@ struct dependency {
  */
 #define ENFORCED(r,a)  (((r)->enforced  & a) == a)
 
-/**
-  Check if attribute $a is out of compliance on $r.
-
-  Returns non-zero (true) if $a is non-compliant, and
-  zero (false) if not.
- */
-#define DIFFERENT(r,a) (((r)->different & a) == a)
-
 enum restype resource_type(const char *type_name);
 struct resource* resource_new(const char *type, const char *key);
 struct resource* resource_clone(const struct resource *orig, const char *key);

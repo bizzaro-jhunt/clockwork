@@ -31,7 +31,7 @@
 
 int main(int argc, char **argv)
 {
-	struct manifest *manifest = parse_file("test.pol");
+	struct manifest *manifest = parse_file("/cfm/etc/manifest.pol");
 	if (!manifest) exit(1);
 
 	void *context  = zmq_ctx_new();
@@ -78,6 +78,7 @@ int main(int argc, char **argv)
 				cw_pdu_send(listener, reply);
 
 				munmap(code, len);
+				fclose(io);
 			}
 
 		} else {

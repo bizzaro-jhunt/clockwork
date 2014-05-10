@@ -19,9 +19,48 @@
 
 #include "clockwork.h"
 #include "cw.h"
+
 #include <zmq.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/mman.h>
+#include <netdb.h>
+
+#include "policy.h"
 
 #define INTERVAL 1000 * 5
+
+static char* s_myfqdn(void)
+{
+	struct addrinfo hints, *info, *p;
+	int rc;
+
+	char nodename[1024];
+	nodename[1023] = '\0';
+	gethostname(nodename, 1023);
+
+	memset(&hints, 0, sizeof hints);
+	hints.ai_family   = AF_UNSPEC; /*either IPV4 or IPV6*/
+	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_flags    = AI_CANONNAME;
+
+	rc = getaddrinfo(nodename, NULL, &hints, &info);
+	if (rc != 0) {
+		cw_log(LOG_ERR, "Failed to lookup %s: %s", nodename, gai_strerror(rc));
+		return NULL;
+	}
+
+	char *ret = NULL;
+	for (p = info; p != NULL; p = p->ai_next) {
+		if (strcmp(p->ai_canonname, nodename) == 0) continue;
+		ret = strdup(p->ai_canonname);
+		break;
+	}
+
+	freeaddrinfo(info);
+	return ret ? ret : strdup(nodename);
+}
 
 int main(int argc, char **argv)
 {
@@ -31,6 +70,10 @@ int main(int argc, char **argv)
 	zmq_bind(listener, "tcp://*:2324");
 	cw_log_open("cogd", "stdout");
 	cw_log(LOG_INFO, "cogd starting up");
+
+	char *myfqdn = s_myfqdn();
+	if (!myfqdn) exit(1);
+	cw_log(LOG_INFO, "detected my FQDN as '%s'", myfqdn);
 
 	int64_t next_run = cw_time_ms();
 	while (!cw_sig_interrupt()) {
@@ -51,12 +94,11 @@ int main(int argc, char **argv)
 			pdu = cw_pdu_recv(listener);
 			assert(pdu);
 
-			if (strcmp(pdu->type, "POLICY") == 0) {
-				char *name  = cw_pdu_text(pdu, 1);
-				char *facts = cw_pdu_text(pdu, 2);
-				cw_log(LOG_INFO, "inbound policy request for %s", name);
+			if (strcmp(pdu->type, "INFO") == 0) {
+				char *code = cw_pdu_text(pdu, 1);
+				cw_log(LOG_INFO, "inbound INFO request:\n%s", code);
 
-				reply = cw_pdu_make(pdu->src, 2, "OK", "NOOP\n");
+				reply = cw_pdu_make(pdu->src, 2, "OK", "");
 				cw_pdu_send(listener, reply);
 
 			} else {
@@ -67,6 +109,24 @@ int main(int argc, char **argv)
 		}
 
 		if (cw_time_ms() >= next_run) {
+			struct hash *facts = hash_new();
+			if (fact_gather("/lib/clockwork/gather.d/*", facts) != 0) {
+				cw_log(LOG_CRIT, "Unable to gather facts");
+				goto maybe_next_time;
+			}
+
+			FILE *io = tmpfile();
+			assert(io);
+			rc = fact_write(io, facts);
+			assert(rc == 0);
+			fprintf(io, "%c", '\0');
+			size_t len = ftell(io);
+
+			char *factstr = mmap(NULL, len, PROT_READ, MAP_SHARED, fileno(io), 0);
+			if (!factstr) {
+				cw_log(LOG_CRIT, "Failed to mmap fact data");
+			}
+
 			void *client = zmq_socket(context, ZMQ_DEALER);
 			char *endpoint = strdup("tcp://localhost:2323");
 			cw_log(LOG_INFO, "connecting to %s", endpoint);
@@ -75,8 +135,11 @@ int main(int argc, char **argv)
 			assert(rc == 0);
 
 			cw_pdu_t *pdu, *reply;
-			pdu = cw_pdu_make(NULL, 3, "POLICY", "file2.test", "fact=value\n");
+			pdu = cw_pdu_make(NULL, 3, "POLICY", myfqdn, factstr);
 			rc = cw_pdu_send(client, pdu);
+
+			munmap(factstr, len);
+			fclose(io);
 
 			/* fixme: guard against clockd going down! */
 			reply = cw_pdu_recv(client);
@@ -91,6 +154,8 @@ int main(int argc, char **argv)
 
 			cw_zmq_shutdown(client, 0);
 			cw_log(LOG_INFO, "closed connection");
+
+	maybe_next_time:
 			next_run = cw_time_ms() + INTERVAL;
 		}
 	}

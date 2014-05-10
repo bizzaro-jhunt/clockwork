@@ -19,7 +19,6 @@
 
 #include "resources.h"
 #include "template.h"
-#include "augcw.h"
 
 #include <fts.h>
 #include <fcntl.h>

@@ -61,8 +61,6 @@ gather_SCRIPTS += gather.d/time
 ############################################################
 
 CTAP_TESTS =
-CTAP_TESTS += t/base/conf
-
 CTAP_TESTS += t/00-bits
 CTAP_TESTS += t/01-string
 CTAP_TESTS += t/04-hash
@@ -136,8 +134,6 @@ test_source += src/gear/hash.c
 test_source += src/gear/path.c
 test_source += src/gear/string.c
 
-t_base_conf_SOURCES      = t/base/conf.c src/conffile.h src/conffile.c src/gear.h src/gear/hash.c
-
 t_00_bits_SOURCES        = t/00-bits.c          $(test_source)
 t_01_string_SOURCES      = t/01-string.c        $(test_source)
 t_04_hash_SOURCES        = t/04-hash.c          $(test_source)
@@ -201,8 +197,6 @@ parser_spec_src  = src/spec/parser.c src/spec/parser.h src/spec/private.h
 parser_spec_src += src/spec/lexer.l src/spec/lexer_impl.h
 parser_spec_src += src/spec/grammar.y src/spec/grammar_impl.h
 
-parser_conf_src  = src/conffile.h src/conffile.c
-
 parser_tpl_src   = src/tpl/parser.c src/tpl/parser.h src/tpl/private.h
 parser_tpl_src  += src/tpl/lexer.l src/tpl/lexer_impl.h
 parser_tpl_src  += src/tpl/grammar.y
@@ -212,7 +206,7 @@ core_src += $(parser_tpl_src)
 sbindir = "$(prefix)/sbin"
 sbin_PROGRAMS = cwpol cwtemplate pn cwspec clockd cogd
 cwpol_SOURCES   = $(core_src) src/cwpol.c $(parser_spec_src)
-cwtemplate_SOURCES = $(core_src) src/cwtemplate.c $(parser_conf_src)
+cwtemplate_SOURCES = $(core_src) src/cwtemplate.c
 pn_SOURCES      = src/pn.c src/pendulum_funcs.h src/pendulum_funcs.c src/pendulum.h src/pendulum.c
 cwspec_SOURCES  = src/cwspec.c $(core_src) $(parser_spec_src)
 clockd_SOURCES  = src/clockd.c $(core_src) $(parser_spec_src)

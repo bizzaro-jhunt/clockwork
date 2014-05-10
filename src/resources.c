@@ -34,14 +34,8 @@
 
 #define _FD2FD_CHUNKSIZE 16384
 
-static int _res_user_populate_home(const char *home, const char *skel, uid_t uid, gid_t gid);
 static int _res_file_gen_rsha1(struct res_file *rf, struct hash *facts);
-static int _res_file_fd2fd(int dest, int src, ssize_t bytes);
 static int _group_update(struct stringlist*, struct stringlist*, const char*);
-static char* _sysctl_path(const char *param);
-static int _sysctl_write(const char *param, const char *value);
-static int _mkdir_p(const char *path);
-static int _mkdir_c(const char *path);
 static int _setup_path_deps(const char *key, const char *path, struct policy *pol);
 static void _hash_attr(struct hash *attrs, const char *key, void *val);
 
@@ -50,6 +44,7 @@ static void _hash_attr(struct hash *attrs, const char *key, void *val);
 
 /*****************************************************************/
 
+/* FIXME: need to manage home in PENDULUM code !!!
 static int _res_user_populate_home(const char *home, const char *skel, uid_t uid, gid_t gid)
 {
 	FTS *fts;
@@ -124,6 +119,7 @@ static int _res_file_fd2fd(int dest, int src, ssize_t bytes)
 
 	return 0;
 }
+*/
 
 static int _res_file_gen_rsha1(struct res_file *rf, struct hash *facts)
 {
@@ -168,91 +164,6 @@ static int _group_update(struct stringlist *add, struct stringlist *rm, const ch
 	}
 
 	return 0;
-}
-
-static char* _sysctl_path(const char *param)
-{
-	char *path, *p;
-
-	path = string("/proc/sys/%s", param);
-	for (p = path; *p; p++) {
-		if (*p == '.') {
-			*p = '/';
-		}
-	}
-
-	return path;
-}
-
-static int _sysctl_write(const char *param, const char *value)
-{
-	char *path;
-	int fd;
-	size_t len;
-	ssize_t n, nwritten;
-
-	path = _sysctl_path(param);
-	cw_log(LOG_DEBUG, "sysctl: Writing value to %s", path);
-	fd = open(path, O_WRONLY);
-	free(path);
-
-	if (fd < 0) {
-		return -1;
-	}
-
-	len = strlen(value);
-	nwritten = 0;
-	do {
-		n = write(fd, value + nwritten, len - nwritten);
-		cw_log(LOG_DEBUG, "%i/%u bytes written; n = %i", nwritten, len, n);
-		if (n <= 0) { return n; }
-		nwritten += n;
-	} while (nwritten < len);
-
-	return nwritten;
-}
-
-static int _mkdir_p(const char *s)
-{
-	struct path *p;
-	struct stat st;
-	memset(&st, 0, sizeof(struct stat));
-
-	p = path_new(s);
-	if (path_canon(p) != 0) { goto failed; }
-
-	do {
-		errno = 0;
-		if (stat(path(p), &st) == 0) { break; }
-		if (errno != ENOENT) { goto failed; }
-
-		cw_log(LOG_DEBUG, "mkdir: %s does not exist...", path(p));
-	} while (path_pop(p) != 0);
-
-	while (path_push(p) != 0) {
-		cw_log(LOG_DEBUG, "mkdir: creating %s", path(p));
-		if (mkdir(path(p), 0755) != 0) { goto failed; }
-	}
-
-	path_free(p);
-	return 0;
-
-failed:
-	path_free(p);
-	return -1;
-}
-
-static int _mkdir_c(const char *s)
-{
-	char *copy = strdup(s);
-	char *dir = dirname(copy);
-	int rc;
-
-	cw_log(LOG_DEBUG, "mkdir_c: passing %s to _mkdir_p", dir);
-	rc =_mkdir_p(dir);
-
-	free(copy);
-	return rc;
 }
 
 static int _setup_path_deps(const char *key, const char *spath, struct policy *pol)
@@ -611,303 +522,6 @@ int res_user_gencode(const void *res, FILE *io, unsigned int next)
 	return 0;
 }
 
-struct report* res_user_fixup(void *res, int dryrun, const struct resource_env *env)
-{
-	struct res_user *ru = (struct res_user*)(res);
-	assert(ru); // LCOV_EXCL_LINE
-	assert(env); // LCOV_EXCL_LINE
-	assert(env->user_pwdb); // LCOV_EXCL_LINE
-	assert(env->user_spdb); // LCOV_EXCL_LINE
-
-	struct report *report;
-	char *action;
-
-	int new_user = 0;
-
-	report = report_new("User", ru->ru_name);
-
-	/* Remove the user if RES_USER_ABSENT */
-	if (ENFORCED(ru, RES_USER_ABSENT)) {
-		if (ru->ru_pw || ru->ru_sp) {
-			action = string("remove user");
-
-			if (dryrun) {
-				report_action(report, action, ACTION_SKIPPED);
-				return report;
-			}
-
-			if ((ru->ru_pw && pwdb_rm(env->user_pwdb, ru->ru_pw) != 0)
-			 || (ru->ru_sp && spdb_rm(env->user_spdb, ru->ru_sp) != 0)) {
-				report_action(report, action, ACTION_FAILED);
-			} else {
-				report_action(report, action, ACTION_SUCCEEDED);
-			}
-		}
-
-		return report;
-	}
-
-	if (ENFORCED(ru, RES_USER_UID)) {
-		/* is the UID already taken? */
-		struct passwd *pw = pwdb_get_by_uid(env->user_pwdb, ru->ru_uid);
-		if (pw && strcmp(pw->pw_name, ru->ru_name) != 0) {
-			report_action(report, string("check UID conflict"), ACTION_FAILED);
-			return report;
-		}
-	}
-
-	if (!ru->ru_pw || !ru->ru_sp) {
-		action = string("create user");
-		new_user = 1;
-
-		if (!ru->ru_pw) { ru->ru_pw = pwdb_new_entry(env->user_pwdb, ru->ru_name, ru->ru_uid, ru->ru_gid); }
-		if (!ru->ru_sp) { ru->ru_sp = spdb_new_entry(env->user_spdb, ru->ru_name); }
-
-		if (dryrun) {
-			report_action(report, action, ACTION_SKIPPED);
-		} else if (ru->ru_pw && ru->ru_sp) {
-			report_action(report, action, ACTION_SUCCEEDED);
-		} else {
-			report_action(report, action, ACTION_FAILED);
-			return report;
-		}
-	}
-
-	if (DIFFERENT(ru, RES_USER_PASSWD)) {
-		if (new_user) {
-			action = string("set user password");
-		} else {
-			action = string("change user password");
-		}
-
-		if (dryrun) {
-			report_action(report, action, ACTION_SKIPPED);
-		} else {
-			xfree(ru->ru_pw->pw_passwd);
-			ru->ru_pw->pw_passwd = strdup("x");
-
-			xfree(ru->ru_sp->sp_pwdp);
-			ru->ru_sp->sp_pwdp = strdup(ru->ru_passwd);
-
-			/* set "password last changed" date */
-			time_t now = time(NULL);
-			ru->ru_sp->sp_lstchg = now / 86400;
-
-			report_action(report, action, ACTION_SUCCEEDED);
-		}
-	}
-
-	if (DIFFERENT(ru, RES_USER_UID)) {
-		if (new_user) {
-			action = string("set uid to %u", ru->ru_uid);
-		} else {
-			action = string("change uid from %u to %u", ru->ru_pw->pw_uid, ru->ru_uid);
-		}
-
-		if (dryrun) {
-			report_action(report, action, ACTION_SKIPPED);
-		} else {
-			ru->ru_pw->pw_uid = ru->ru_uid;
-			report_action(report, action, ACTION_SUCCEEDED);
-		}
-	}
-
-	if (DIFFERENT(ru, RES_USER_GID)) {
-		if (new_user) {
-			action = string("set gid to %u", ru->ru_gid);
-		} else {
-			action = string("change gid from %u to %u", ru->ru_pw->pw_gid, ru->ru_gid);
-		}
-
-		if (dryrun) {
-			report_action(report, action, ACTION_SKIPPED);
-		} else {
-			ru->ru_pw->pw_gid = ru->ru_gid;
-			report_action(report, action, ACTION_SUCCEEDED);
-		}
-	}
-
-	if (DIFFERENT(ru, RES_USER_GECOS)) {
-		if (new_user) {
-			action = string("set GECOS to %s", ru->ru_gecos);
-		} else {
-			action = string("change GECOS to %s", ru->ru_gecos);
-		}
-
-		if (dryrun) {
-			report_action(report, action, ACTION_SKIPPED);
-		} else {
-			xfree(ru->ru_pw->pw_gecos);
-			ru->ru_pw->pw_gecos = strdup(ru->ru_gecos);
-
-			report_action(report, action, ACTION_SUCCEEDED);
-		}
-	}
-
-	if (DIFFERENT(ru, RES_USER_DIR)) {
-		if (new_user) {
-			action = string("set home directory to %s", ru->ru_dir);
-		} else {
-			action = string("change home from %s to %s", ru->ru_pw->pw_dir, ru->ru_dir);
-		}
-
-		if (dryrun) {
-			report_action(report, action, ACTION_SKIPPED);
-		} else {
-			xfree(ru->ru_pw->pw_dir);
-			ru->ru_pw->pw_dir = strdup(ru->ru_dir);
-			report_action(report, action, ACTION_SUCCEEDED);
-		}
-	}
-
-	if (DIFFERENT(ru, RES_USER_MKHOME)) {
-		action = string("create home directory %s", ru->ru_dir);
-
-		if (dryrun) {
-			report_action(report, action, ACTION_SKIPPED);
-		} else {
-			if (mkdir(ru->ru_dir, 0700) == 0
-			 && chown(ru->ru_dir, ru->ru_pw->pw_uid, ru->ru_pw->pw_gid) == 0) {
-				report_action(report, action, ACTION_SUCCEEDED);
-			} else {
-				report_action(report, action, ACTION_FAILED);
-			}
-		}
-
-		if (ru->ru_skel) {
-			action = string("populate home directory from %s", ru->ru_skel);
-
-			if (dryrun) {
-				report_action(report, action, ACTION_SKIPPED);
-			} else {
-				/* copy *all* files from ru_skel into ru_dir */
-				if (_res_user_populate_home(ru->ru_dir, ru->ru_skel, ru->ru_pw->pw_uid, ru->ru_pw->pw_gid) == 0) {
-					report_action(report, action, ACTION_SUCCEEDED);
-				} else {
-					report_action(report, action, ACTION_FAILED);
-				}
-			}
-		}
-	}
-
-	if (DIFFERENT(ru, RES_USER_SHELL)) {
-		if (new_user) {
-			action = string("set login shell to %s", ru->ru_shell);
-		} else {
-			action = string("change shell from %s to %s", ru->ru_pw->pw_shell, ru->ru_shell);
-		}
-
-		if (dryrun) {
-			report_action(report, action, ACTION_SKIPPED);
-		} else {
-			xfree(ru->ru_pw->pw_shell);
-			ru->ru_pw->pw_shell = strdup(ru->ru_shell);
-			report_action(report, action, ACTION_SUCCEEDED);
-		}
-	}
-
-	if (DIFFERENT(ru, RES_USER_PWMIN)) {
-		if (new_user) {
-			action = string("set password minimum age to %u days", ru->ru_pwmin);
-		} else {
-			action = string("change password minimum age to %u days", ru->ru_pwmin);
-		}
-
-		if (dryrun) {
-			report_action(report, action, ACTION_SKIPPED);
-		} else {
-			ru->ru_sp->sp_min = ru->ru_pwmin;
-			report_action(report, action, ACTION_SUCCEEDED);
-		}
-	}
-
-	if (DIFFERENT(ru, RES_USER_PWMAX)) {
-		if (new_user) {
-			action = string("set password maximum age to %u days", ru->ru_pwmax);
-		} else {
-			action = string("change password maximum age to %u days", ru->ru_pwmax);
-		}
-
-		if (dryrun) {
-			report_action(report, action, ACTION_SKIPPED);
-		} else {
-			ru->ru_sp->sp_max = ru->ru_pwmax;
-			report_action(report, action, ACTION_SUCCEEDED);
-		}
-	}
-
-	if (DIFFERENT(ru, RES_USER_PWWARN)) {
-		if (new_user) {
-			action = string("set password expiry warning to %u days", ru->ru_pwwarn);
-		} else {
-			action = string("change password expiry warning to %u days", ru->ru_pwwarn);
-		}
-
-		if (dryrun) {
-			report_action(report, action, ACTION_SKIPPED);
-		} else {
-			ru->ru_sp->sp_warn = ru->ru_pwwarn;
-			report_action(report, action, ACTION_SUCCEEDED);
-		}
-	}
-
-	if (DIFFERENT(ru, RES_USER_INACT)) {
-		if (ru->ru_inact) {
-			action = string("deactivate account");
-		} else {
-			action = string("activate account");
-		}
-
-		if (dryrun) {
-			report_action(report, action, ACTION_SKIPPED);
-		} else {
-			ru->ru_sp->sp_inact = ru->ru_inact;
-			report_action(report, action, ACTION_SUCCEEDED);
-		}
-	}
-
-	if (DIFFERENT(ru, RES_USER_EXPIRE)) {
-		if (new_user) {
-			action = string("set account expiration to %u", ru->ru_expire);
-		} else {
-			action = string("change account expiration to %u", ru->ru_expire);
-		}
-
-		if (dryrun) {
-			report_action(report, action, ACTION_SKIPPED);
-		} else {
-			ru->ru_sp->sp_expire = ru->ru_expire;
-			report_action(report, action, ACTION_SUCCEEDED);
-		}
-	}
-
-	if (DIFFERENT(ru, RES_USER_LOCK)) {
-		size_t len = strlen(ru->ru_sp->sp_pwdp) + 2;
-		char pbuf[len], *password;
-		memcpy(pbuf + 1, ru->ru_sp->sp_pwdp, len - 1);
-
-		if (ru->ru_lock) {
-			action = string("lock account");
-			pbuf[0] = '!';
-			password = pbuf;
-		} else {
-			action = string("unlock account");
-			password = pbuf + 1;
-		}
-
-		if (dryrun) {
-			report_action(report, action, ACTION_SKIPPED);
-		} else {
-			xfree(ru->ru_sp->sp_pwdp);
-			ru->ru_sp->sp_pwdp = strdup(password);
-
-			report_action(report, action, ACTION_SUCCEEDED);
-		}
-	}
-
-	return report;
-}
-
 #define PACK_FORMAT "aLaaLLaaaCaCLLLLL"
 char* res_user_pack(const void *res)
 {
@@ -1220,132 +834,6 @@ int res_file_gencode(const void *res, FILE *io, unsigned int next)
 	/* FIXME - handle file contents! */
 
 	return 0;
-}
-
-struct report* res_file_fixup(void *res, int dryrun, const struct resource_env *env)
-{
-	struct res_file *rf = (struct res_file*)(res);
-	assert(rf); // LCOV_EXCL_LINE
-	assert(env); // LCOV_EXCL_LINE
-
-	struct report *report = report_new("File", rf->rf_lpath);
-	char *action;
-	int new_file = 0;
-	int local_fd = -1;
-
-	/* Remove the file */
-	if (ENFORCED(rf, RES_FILE_ABSENT)) {
-		if (rf->rf_exists == 1) {
-			action = string("remove file");
-
-			if (dryrun) {
-				report_action(report, action, ACTION_SKIPPED);
-			} else if (unlink(rf->rf_lpath) == 0) {
-				report_action(report, action, ACTION_SUCCEEDED);
-			} else {
-				report_action(report, action, ACTION_FAILED);
-			}
-		}
-
-		return report;
-	}
-
-	if (!rf->rf_exists) {
-		new_file = 1;
-		action = string("create file");
-
-		if (dryrun) {
-			report_action(report, action, ACTION_SKIPPED);
-		} else {
-			_mkdir_c(rf->rf_lpath);
-			local_fd = creat(rf->rf_lpath, rf->rf_mode);
-			if (local_fd >= 0) {
-				report_action(report, action, ACTION_SUCCEEDED);
-			} else {
-				report_action(report, action, ACTION_FAILED);
-				return report;
-			}
-		}
-
-		rf->different = rf->enforced;
-		/* No need to chmod the file again */
-		UNDIFF(rf, RES_FILE_MODE);
-	}
-
-	if (DIFFERENT(rf, RES_FILE_SHA1)) {
-		assert(rf->rf_lpath); // LCOV_EXCL_LINE
-
-		action = string("update content from master copy");
-		if (dryrun) {
-			report_action(report, action, ACTION_SKIPPED);
-		} else {
-			if (env->file_fd == -1) {
-				report_action(report, action, ACTION_FAILED);
-				return report;
-			}
-
-			if (local_fd < 0) {
-				local_fd = open(rf->rf_lpath, O_CREAT | O_RDWR | O_TRUNC, rf->rf_mode);
-				if (local_fd == -1) {
-					report_action(report, action, ACTION_FAILED);
-					return report;
-				}
-			}
-
-			if (_res_file_fd2fd(local_fd, env->file_fd, env->file_len) == -1) {
-				report_action(report, action, ACTION_FAILED);
-				return report;
-			}
-
-			report_action(report, action, ACTION_SUCCEEDED);
-		}
-	}
-
-	if (DIFFERENT(rf, RES_FILE_UID)) {
-		if (new_file) {
-			action = string("set owner to %s(%u)", rf->rf_owner, rf->rf_uid);
-		} else {
-			action = string("change owner from %u to %s(%u)", rf->rf_stat.st_uid, rf->rf_owner, rf->rf_uid);
-		}
-
-		if (dryrun) {
-			report_action(report, action, ACTION_SKIPPED);
-		} else if (chown(rf->rf_lpath, rf->rf_uid, -1) == 0) {
-			report_action(report, action, ACTION_SUCCEEDED);
-		} else {
-			report_action(report, action, ACTION_FAILED);
-		}
-	}
-
-	if (DIFFERENT(rf, RES_FILE_GID)) {
-		if (new_file) {
-			action = string("set group to %s(%u)", rf->rf_group, rf->rf_gid);
-		} else {
-			action = string("change group from %u to %s(%u)", rf->rf_stat.st_gid, rf->rf_group, rf->rf_gid);
-		}
-
-		if (dryrun) {
-			report_action(report, action, ACTION_SKIPPED);
-		} else if (chown(rf->rf_lpath, -1, rf->rf_gid) == 0) {
-			report_action(report, action, ACTION_SUCCEEDED);
-		} else {
-			report_action(report, action, ACTION_FAILED);
-		}
-	}
-
-	if (DIFFERENT(rf, RES_FILE_MODE)) {
-		action = string("change permissions from %04o to %04o", rf->rf_stat.st_mode & 07777, rf->rf_mode);
-
-		if (dryrun) {
-			report_action(report, action, ACTION_SKIPPED);
-		} else if (chmod(rf->rf_lpath, rf->rf_mode) == 0) {
-			report_action(report, action, ACTION_SUCCEEDED);
-		} else {
-			report_action(report, action, ACTION_FAILED);
-		}
-	}
-
-	return report;
 }
 
 #define PACK_FORMAT "aLaaaaL"
@@ -1775,161 +1263,6 @@ int res_group_remove_admin(struct res_group *rg, const char *user)
 	return _group_update(rg->rg_adm_rm, rg->rg_adm_add, user);
 }
 
-struct report* res_group_fixup(void *res, int dryrun, const struct resource_env *env)
-{
-	struct res_group *rg = (struct res_group*)(res);
-	assert(rg); // LCOV_EXCL_LINE
-	assert(env); // LCOV_EXCL_LINE
-	assert(env->group_grdb); // LCOV_EXCL_LINE
-	assert(env->group_sgdb); // LCOV_EXCL_LINE
-
-	struct report *report;
-	char *action;
-
-	int new_group = 0;
-	struct stringlist *orig;
-	struct stringlist *to_add;
-	struct stringlist *to_remove;
-
-	report = report_new("Group", rg->rg_name);
-
-	/* Remove the group if RES_GROUP_ABSENT */
-	if (ENFORCED(rg, RES_GROUP_ABSENT)) {
-		if (rg->rg_grp || rg->rg_sg) {
-			action = string("remove group");
-
-			if (dryrun) {
-				report_action(report, action, ACTION_SKIPPED);
-			} else {
-				if ((rg->rg_grp && grdb_rm(env->group_grdb, rg->rg_grp) != 0)
-				 || (rg->rg_sg && sgdb_rm(env->group_sgdb, rg->rg_sg) != 0)) {
-					report_action(report, action, ACTION_FAILED);
-				} else {
-					report_action(report, action, ACTION_SUCCEEDED);
-				}
-			}
-		}
-
-		return report;
-	}
-
-	if (ENFORCED(rg, RES_GROUP_GID)) {
-		/* is the GID already taken? */
-		struct group *gr = grdb_get_by_gid(env->group_grdb, rg->rg_gid);
-		if (gr && strcmp(gr->gr_name, rg->rg_name) != 0) {
-			report_action(report, string("check GID conflict"), ACTION_FAILED);
-			return report;
-		}
-	}
-
-	if (!rg->rg_grp || !rg->rg_sg) {
-		new_group = 1;
-		action = string("create group");
-
-		if (!rg->rg_grp) { rg->rg_grp = grdb_new_entry(env->group_grdb, rg->rg_name, rg->rg_gid); }
-		if (!rg->rg_sg)  { rg->rg_sg = sgdb_new_entry(env->group_sgdb, rg->rg_name); }
-
-		if (dryrun) {
-			report_action(report, action, ACTION_SKIPPED);
-		} else if (rg->rg_grp && rg->rg_sg) {
-			report_action(report, action, ACTION_SUCCEEDED);
-		} else {
-			report_action(report, action, ACTION_FAILED);
-		}
-	}
-
-	if (DIFFERENT(rg, RES_GROUP_PASSWD)) {
-		if (new_group) {
-			action = string("set group membership password");
-		} else {
-			action = string("change group membership password");
-		}
-
-		if (dryrun) {
-			report_action(report, action, ACTION_SKIPPED);
-		} else {
-			xfree(rg->rg_grp->gr_passwd);
-			rg->rg_grp->gr_passwd = strdup("x");
-			xfree(rg->rg_sg->sg_passwd);
-			rg->rg_sg->sg_passwd = strdup(rg->rg_passwd);
-
-			report_action(report, action, ACTION_SUCCEEDED);
-		}
-	}
-
-	if (DIFFERENT(rg, RES_GROUP_GID)) {
-		if (new_group) {
-			action = string("set gid to %u", rg->rg_gid);
-		} else {
-			action = string("change gid from %u to %u", rg->rg_grp->gr_gid, rg->rg_gid);
-		}
-
-		if (dryrun) {
-			report_action(report, action, ACTION_SKIPPED);
-		} else {
-			rg->rg_grp->gr_gid = rg->rg_gid;
-			report_action(report, action, ACTION_SUCCEEDED);
-		}
-	}
-
-	if (ENFORCED(rg, RES_GROUP_MEMBERS) && DIFFERENT(rg, RES_GROUP_MEMBERS)) {
-		orig = stringlist_new(rg->rg_grp->gr_mem);
-		to_add = stringlist_dup(rg->rg_mem_add);
-		stringlist_remove_all(to_add, orig);
-
-		to_remove = stringlist_intersect(orig, rg->rg_mem_rm);
-
-		if (!dryrun) {
-			/* replace gr_mem and sg_mem with the rg_mem stringlist */
-			xarrfree(rg->rg_grp->gr_mem);
-			rg->rg_grp->gr_mem = xarrdup(rg->rg_mem->strings);
-
-			xarrfree(rg->rg_sg->sg_mem);
-			rg->rg_sg->sg_mem = xarrdup(rg->rg_mem->strings);
-		}
-
-		size_t i;
-		for (i = 0; i < to_add->num; i++) {
-			report_action(report, string("add %s", to_add->strings[i]), (dryrun ? ACTION_SKIPPED : ACTION_SUCCEEDED));
-		}
-		for (i = 0; i < to_remove->num; i++) {
-			report_action(report, string("remove %s", to_remove->strings[i]), (dryrun ? ACTION_SKIPPED : ACTION_SUCCEEDED));
-		}
-
-		stringlist_free(orig);
-		stringlist_free(to_add);
-		stringlist_free(to_remove);
-	}
-
-	if (ENFORCED(rg, RES_GROUP_ADMINS) && DIFFERENT(rg, RES_GROUP_ADMINS)) {
-		orig = stringlist_new(rg->rg_sg->sg_adm);
-		to_add = stringlist_dup(rg->rg_adm_add);
-		stringlist_remove_all(to_add, orig);
-
-		to_remove = stringlist_intersect(orig, rg->rg_mem_add);
-
-		if (!dryrun) {
-			/* replace sg_adm with the rg_adm stringlist */
-			xarrfree(rg->rg_sg->sg_adm);
-			rg->rg_sg->sg_adm = xarrdup(rg->rg_adm->strings);
-		}
-
-		size_t i;
-		for (i = 0; i < to_add->num; i++) {
-			report_action(report, string("grant admin rights to %s", to_add->strings[i]), (dryrun ? ACTION_SKIPPED : ACTION_SUCCEEDED));
-		}
-		for (i = 0; i < to_remove->num; i++) {
-			report_action(report, string("revoke admin rights from %s", to_remove->strings[i]), (dryrun ? ACTION_SKIPPED : ACTION_SUCCEEDED));
-		}
-
-		stringlist_free(orig);
-		stringlist_free(to_add);
-		stringlist_free(to_remove);
-	}
-
-	return report;
-}
-
 #define PACK_FORMAT "aLaaLaaaa"
 char *res_group_pack(const void *res)
 {
@@ -2119,75 +1452,6 @@ int res_package_gencode(const void *res, FILE *io, unsigned int next)
 	}
 	fprintf(io, "CALL &EXEC.CHECK\n");
 	return 0;
-}
-
-static int vercmp(const char *have, const char *want)
-{
-	if (strcmp(have, want) == 0) return 0;
-	if (strchr(want, '-')) return -1;
-	if (strchr(have, '-')) {
-		return strncmp(have, want, strchr(have, '-')-have);
-	}
-	return -1;
-}
-
-struct report* res_package_fixup(void *res, int dryrun, const struct resource_env *env)
-{
-	struct res_package *rp = (struct res_package*)(res);
-
-	assert(rp); // LCOV_EXCL_LINE
-	assert(env); // LCOV_EXCL_LINE
-	assert(env->package_manager); // LCOV_EXCL_LINE
-
-	struct report *report = report_new("Package", rp->name);
-	char *action;
-
-	if (ENFORCED(rp, RES_PACKAGE_ABSENT)) {
-		if (rp->installed) {
-			action = string("uninstall package");
-
-			if (dryrun) {
-				report_action(report, action, ACTION_SKIPPED);
-			} else if (package_remove(env->package_manager, rp->name) == 0) {
-				report_action(report, action, ACTION_SUCCEEDED);
-			} else {
-				report_action(report, action, ACTION_FAILED);
-			}
-		}
-
-		return report;
-	}
-
-	if (!rp->installed) {
-		action = (rp->version ? string("install package v%s", rp->version)
-		                      : string("install package (latest version)"));
-
-		if (dryrun) {
-			report_action(report, action, ACTION_SKIPPED);
-		} else if (package_install(env->package_manager, rp->name, rp->version) == 0) {
-			report_action(report, action, ACTION_SUCCEEDED);
-		} else {
-			report_action(report, action, ACTION_FAILED);
-		}
-
-		return report;
-	}
-
-	if (rp->version && vercmp(rp->installed, rp->version) != 0) {
-		action = string("upgrade to v%s", rp->version);
-
-		if (dryrun) {
-			report_action(report, action, ACTION_SKIPPED);
-		} else if (package_install(env->package_manager, rp->name, rp->version) == 0) {
-			report_action(report, action, ACTION_SUCCEEDED);
-		} else {
-			report_action(report, action, ACTION_FAILED);
-		}
-
-		return report;
-	}
-
-	return report;
 }
 
 #define PACK_FORMAT "aLaa"
@@ -2381,78 +1645,6 @@ int res_service_gencode(const void *res, FILE *io, unsigned int next)
 	}
 
 	return 0;
-}
-
-struct report* res_service_fixup(void *res, int dryrun, const struct resource_env *env)
-{
-	struct res_service *rs = (struct res_service*)(res);
-
-	assert(rs); // LCOV_EXCL_LINE
-	assert(env); // LCOV_EXCL_LINE
-	assert(env->service_manager); // LCOV_EXCL_LINE
-
-	struct report *report = report_new("Service", rs->service);
-	char *action;
-
-	if (ENFORCED(rs, RES_SERVICE_ENABLED) && !rs->enabled) {
-		action = string("enable service");
-
-		if (dryrun) {
-			report_action(report, action, ACTION_SKIPPED);
-		} else if (service_enable(env->service_manager, rs->service) == 0) {
-			report_action(report, action, ACTION_SUCCEEDED);
-		} else {
-			report_action(report, action, ACTION_FAILED);
-		}
-
-	} else if (ENFORCED(rs, RES_SERVICE_DISABLED) && rs->enabled) {
-		action = string("disable service");
-
-		if (dryrun) {
-			report_action(report, action, ACTION_SKIPPED);
-		} else if (service_disable(env->service_manager, rs->service) == 0) {
-			report_action(report, action, ACTION_SUCCEEDED);
-		} else {
-			report_action(report, action, ACTION_FAILED);
-		}
-	}
-
-	if (ENFORCED(rs, RES_SERVICE_RUNNING) && !rs->running) {
-		action = string("start service");
-
-		if (dryrun) {
-			report_action(report, action, ACTION_SKIPPED);
-		} else if (service_start(env->service_manager, rs->service) == 0) {
-			report_action(report, action, ACTION_SUCCEEDED);
-		} else {
-			report_action(report, action, ACTION_FAILED);
-		}
-
-	} else if (ENFORCED(rs, RES_SERVICE_STOPPED) && rs->running) {
-		action = string("stop service");
-
-		if (dryrun) {
-			report_action(report, action, ACTION_SKIPPED);
-		} else if (service_stop(env->service_manager, rs->service) == 0) {
-			report_action(report, action, ACTION_SUCCEEDED);
-		} else {
-			report_action(report, action, ACTION_FAILED);
-		}
-	} else if (rs->running && rs->notified) {
-		action = string("reload service (via dependency)");
-
-		if (dryrun) {
-			report_action(report, action, ACTION_SKIPPED);
-		} else if (service_reload(env->service_manager, rs->service) == 0) {
-			report_action(report, action, ACTION_SUCCEEDED);
-		} else {
-			report_action(report, action, ACTION_FAILED);
-		}
-	}
-
-	rs->notified = 0;
-
-	return report;
 }
 
 #define PACK_FORMAT "aLa"
@@ -2666,105 +1858,6 @@ int res_host_gencode(const void *res, FILE *io, unsigned int next)
 	return 0;
 }
 
-struct report* res_host_fixup(void *res, int dryrun, const struct resource_env *env)
-{
-	struct res_host *rh = (struct res_host*)(res);
-	assert(rh); // LCOV_EXCL_LINE
-	assert(env); // LCOV_EXCL_LINE
-
-	char *tmp1, *tmp2;
-	int i;
-
-	struct report *report;
-	char *action;
-
-	int just_created = 0;
-
-	report = report_new("Host Entry", rh->hostname);
-
-	if (ENFORCED(rh, RES_HOST_ABSENT)) {
-		if (rh->aug_root) {
-			action = string("remove host entry");
-
-			if (dryrun) {
-				report_action(report, action, ACTION_SKIPPED);
-				return report;
-			}
-
-			if (aug_rm(env->aug_context, rh->aug_root) > 0) {
-				report_action(report, action, ACTION_SUCCEEDED);
-			} else {
-				report_action(report, action, ACTION_FAILED);
-			}
-
-			return report;
-		}
-
-	} else {
-		if (!rh->aug_root) {
-			action = string("create host entry");
-
-			if (dryrun) {
-				report_action(report, action, ACTION_SKIPPED);
-			} else {
-				rh->aug_root = string("/files/etc/hosts/0%u", rh);
-				tmp1 = string("%s/ipaddr",    rh->aug_root);
-				tmp2 = string("%s/canonical", rh->aug_root);
-
-				cw_log(LOG_DEBUG, "res_host: Setting %s to %s", tmp1, rh->ip);
-				cw_log(LOG_DEBUG, "res_host: Setting %s to %s", tmp2, rh->hostname);
-
-				if (aug_set(env->aug_context, tmp1, rh->ip) < 0
-				 || aug_set(env->aug_context, tmp2, rh->hostname) < 0) {
-
-					report_action(report, action, ACTION_FAILED);
-					free(rh->aug_root);
-					rh->aug_root = NULL;
-				} else {
-					report_action(report, action, ACTION_SUCCEEDED);
-					just_created = 1;
-				}
-
-				free(tmp1);
-				free(tmp2);
-			}
-		}
-	}
-
-	if (DIFFERENT(rh, RES_HOST_ALIASES) && rh->aliases) {
-		action = string("setting host aliases");
-
-		if (dryrun && !just_created) {
-			report_action(report, action, ACTION_SKIPPED);
-		} else {
-			tmp1 = string("%s/alias", rh->aug_root);
-			cw_log(LOG_DEBUG, "res_host: removing %s", tmp1);
-			if (aug_rm(env->aug_context, tmp1) < 0) {
-				report_action(report, action, ACTION_FAILED);
-				action = NULL; // prevent future report for this action
-			}
-			free(tmp1);
-
-			for (i = 0; i < rh->aliases->num; i++) {
-				tmp1 = string("%s/alias[%u]", rh->aug_root, i+1);
-				cw_log(LOG_DEBUG, "res_host: set %s to %s", tmp1, rh->aliases->strings[i]);
-				if (aug_set(env->aug_context, tmp1, rh->aliases->strings[i]) < 0
-				 && action) {
-					report_action(report, action, ACTION_FAILED);
-					action = NULL; // prevent future report
-				}
-				free(tmp1);
-			}
-
-			if (action) {
-				report_action(report, action, ACTION_SUCCEEDED);
-			}
-		}
-	}
-
-	return report;
-}
-
 #define PACK_FORMAT "aLaaa"
 char* res_host_pack(const void *res)
 {
@@ -2952,50 +2045,6 @@ int res_sysctl_gencode(const void *res, FILE *io, unsigned int next)
 
 	free(path);
 	return 0;
-}
-
-struct report* res_sysctl_fixup(void *res, int dryrun, const struct resource_env *env)
-{
-	struct res_sysctl *rs = (struct res_sysctl*)(res);
-	assert(rs); // LCOV_EXCL_LINE
-	assert(env); // LCOV_EXCL_LINE
-
-	char *aug_path;
-
-	struct report *report;
-	char *action;
-
-	report = report_new("Sysctl", rs->param);
-
-	if (DIFFERENT(rs, RES_SYSCTL_VALUE)) {
-		action = string("set kernel param to '%s' via /proc/sys", rs->value);
-		if (dryrun) {
-			report_action(report, action, ACTION_SKIPPED);
-		} else {
-			if (_sysctl_write(rs->param, rs->value) > 0) {
-				report_action(report, action, ACTION_SUCCEEDED);
-			} else {
-				report_action(report, action, ACTION_FAILED);
-			}
-		}
-	}
-
-	if (DIFFERENT(rs, RES_SYSCTL_PERSIST)) {
-		action = string("save setting in /etc/sysctl.conf");
-		if (dryrun) {
-			report_action(report, action, ACTION_SKIPPED);
-		} else {
-			aug_path = string("/files/etc/sysctl.conf/%s", rs->param);
-			if (aug_set(env->aug_context, aug_path, rs->value) < 0) {
-				report_action(report, action, ACTION_FAILED);
-			} else {
-				report_action(report, action, ACTION_SUCCEEDED);
-			}
-			free(aug_path);
-		}
-	}
-
-	return report;
 }
 
 #define PACK_FORMAT "aLaaS"
@@ -3266,97 +2315,6 @@ int res_dir_gencode(const void *res, FILE *io, unsigned int next)
 	return 0;
 }
 
-struct report* res_dir_fixup(void *res, int dryrun, const struct resource_env *env)
-{
-	struct res_dir *rd = (struct res_dir*)(res);
-	assert(rd); // LCOV_EXCL_LINE
-	assert(env); // LCOV_EXCL_LINE
-
-	struct report *report = report_new("Directory", rd->path);
-	char *action;
-	int new_dir = 0;
-
-	/* Remove the directory */
-	/* FIXME: do we remove the entire directory? */
-	if (ENFORCED(rd, RES_DIR_ABSENT)) {
-		if (rd->exists == 1) {
-			action = string("remove directory");
-
-			if (dryrun) {
-				report_action(report, action, ACTION_SKIPPED);
-			} else if (rmdir(rd->path) == 0) {
-				report_action(report, action, ACTION_SUCCEEDED);
-			} else {
-				report_action(report, action, ACTION_FAILED);
-			}
-		}
-
-		return report;
-	}
-
-	if (!rd->exists) {
-		new_dir = 1;
-		action = string("create directory");
-
-		if (dryrun) {
-			report_action(report, action, ACTION_SKIPPED);
-		} else if (_mkdir_p(rd->path) == 0) {
-			report_action(report, action, ACTION_SUCCEEDED);
-		} else {
-			report_action(report, action, ACTION_FAILED);
-			return report;
-		}
-
-		rd->different = rd->enforced;
-	}
-
-	if (DIFFERENT(rd, RES_DIR_UID)) {
-		if (new_dir) {
-			action = string("set owner to %s(%u)", rd->owner, rd->uid);
-		} else {
-			action = string("change owner from %u to %s(%u)", rd->stat.st_uid, rd->owner, rd->uid);
-		}
-
-		if (dryrun) {
-			report_action(report, action, ACTION_SKIPPED);
-		} else if (chown(rd->path, rd->uid, -1) == 0) {
-			report_action(report, action, ACTION_SUCCEEDED);
-		} else {
-			report_action(report, action, ACTION_FAILED);
-		}
-	}
-
-	if (DIFFERENT(rd, RES_DIR_GID)) {
-		if (new_dir) {
-			action = string("set group to %s(%u)", rd->group, rd->gid);
-		} else {
-			action = string("change group from %u to %s(%u)", rd->stat.st_gid, rd->group, rd->gid);
-		}
-
-		if (dryrun) {
-			report_action(report, action, ACTION_SKIPPED);
-		} else if (chown(rd->path, -1, rd->gid) == 0) {
-			report_action(report, action, ACTION_SUCCEEDED);
-		} else {
-			report_action(report, action, ACTION_FAILED);
-		}
-	}
-
-	if (DIFFERENT(rd, RES_DIR_MODE)) {
-		action = string("change permissions from %04o to %04o", rd->stat.st_mode & 07777, rd->mode);
-
-		if (dryrun) {
-			report_action(report, action, ACTION_SKIPPED);
-		} else if (chmod(rd->path, rd->mode) == 0) {
-			report_action(report, action, ACTION_SUCCEEDED);
-		} else {
-			report_action(report, action, ACTION_FAILED);
-		}
-	}
-
-	return report;
-}
-
 #define PACK_FORMAT "aLaaaL"
 char *res_dir_pack(const void *res)
 {
@@ -3557,6 +2515,7 @@ int res_exec_gencode(const void *res, FILE *io, unsigned int next)
 	return 0;
 }
 
+#if 0
 static int _res_exec_run(const char *command, struct res_exec *re)
 {
 	int proc_stat;
@@ -3623,7 +2582,6 @@ static int _res_exec_run(const char *command, struct res_exec *re)
 	return WEXITSTATUS(proc_stat);
 }
 
-/*
 int res_exec_stat(void *res, const struct resource_env *env)
 {
 	struct res_exec *re = (struct res_exec*)(res);
@@ -3653,7 +2611,7 @@ int res_exec_stat(void *res, const struct resource_env *env)
 
 	return 0;
 }
-*/
+
 struct report* res_exec_fixup(void *res, int dryrun, const struct resource_env *env)
 {
 	struct res_exec *re = (struct res_exec*)(res);
@@ -3676,6 +2634,7 @@ struct report* res_exec_fixup(void *res, int dryrun, const struct resource_env *
 
 	return report;
 }
+#endif
 
 #define PACK_FORMAT "aLaaaa"
 char *res_exec_pack(const void *res)

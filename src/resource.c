@@ -29,7 +29,6 @@ typedef int (*resource_norm_f)(void *res, struct policy *pol, struct hash *facts
 typedef int (*resource_set_f)(void *res, const char *attr, const char *value);
 typedef int (*resource_match_f)(const void *res, const char *attr, const char *value);
 typedef int (*resource_gencode_f)(const void *res, FILE *io, unsigned int next);
-typedef struct report* (*resource_fixup_f)(void *res, int dryrun, const struct resource_env *env);
 typedef int (*resource_notify_f)(void *res, const struct resource *dep);
 typedef char* (*resource_pack_f)(const void *res);
 typedef void* (*resource_unpack_f)(const char *packed);
@@ -46,7 +45,6 @@ typedef void* (*resource_unpack_f)(const char *packed);
 	     .set_callback = res_ ## t ## _set,     \
 	   .match_callback = res_ ## t ## _match,   \
 	 .gencode_callback = res_ ## t ## _gencode, \
-	   .fixup_callback = res_ ## t ## _fixup,   \
 	  .notify_callback = res_ ## t ## _notify,  \
 	    .pack_callback = res_ ## t ## _pack,    \
 	  .unpack_callback = res_ ## t ## _unpack   }
@@ -64,7 +62,6 @@ typedef void* (*resource_unpack_f)(const char *packed);
 		resource_set_f      set_callback;
 		resource_match_f    match_callback;
 		resource_gencode_f  gencode_callback;
-		resource_fixup_f    fixup_callback;
 		resource_notify_f   notify_callback;
 		resource_pack_f     pack_callback;
 		resource_unpack_f   unpack_callback;
@@ -246,33 +243,6 @@ int resource_set(struct resource *r, const char *attr, const char *value)
 	assert(value); // LCOV_EXCL_LINE
 
 	return (*(resource_types[r->type].set_callback))(r->resource, attr, value);
-}
-
-/**
-  Fixup resource $r.
-
-  Bring the local resource (client-side) into compliance with
-  the enforced attributes of the policy (server-side) definition.
-
-  This function calls the `res_*_fixup` resource callback
-  appropriate to the type of resource $r.
-
-  If $dryrun is non-zero, no actions will be taken against the system,
-  but the returned report will still describe the actions that would
-  have been taken, each with a result of 'skipped.'
-
-  On success, returns a report that describes what actions were taken
-  and what their results were.  On failure, return NULL.
-
-  The inability to enforce the policy is *not* considered a failure.
- */
-struct report* resource_fixup(struct resource *r, int dryrun, const struct resource_env *env)
-{
-	assert(r); // LCOV_EXCL_LINE
-	assert(r->type != RES_UNKNOWN); // LCOV_EXCL_LINE
-	assert(env); // LCOV_EXCL_LINE
-
-	return (*(resource_types[r->type].fixup_callback))(r->resource, dryrun, env);
 }
 
 /**

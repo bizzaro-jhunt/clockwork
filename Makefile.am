@@ -83,7 +83,6 @@ CTAP_TESTS += t/25-resource
 CTAP_TESTS += t/30-policy
 CTAP_TESTS += t/31-template
 CTAP_TESTS += t/40-userdb
-CTAP_TESTS += t/50-proto
 CTAP_TESTS += t/55-cert
 CTAP_TESTS += t/61-res_user
 CTAP_TESTS += t/62-res_file
@@ -115,7 +114,6 @@ PERL_TESTS += t/policy/07-hosts.t
 
 TEST_HELPERS  = t/helpers/executor
 TEST_HELPERS += t/helpers/prompter
-TEST_HELPERS += t/helpers/proto
 
 TESTS          = $(CTAP_TESTS) $(PERL_TESTS)
 BUILT_TESTS    = $(CTAP_TESTS) $(TEST_HELPERS)
@@ -137,7 +135,6 @@ test_source += src/job.h        src/job.c
 test_source += src/template.h   src/template.c
 test_source += src/service.h    src/service.c
 test_source += src/package.h    src/package.c
-test_source += src/proto.h      src/proto.c
 
 test_source += src/spec/grammar.y
 test_source += src/spec/lexer.l
@@ -174,7 +171,6 @@ t_25_resource_SOURCES    = t/25-resource.c      $(test_source)
 t_30_policy_SOURCES      = t/30-policy.c        $(test_source)
 t_31_template_SOURCES    = t/31-template.c      $(test_source)
 t_40_userdb_SOURCES      = t/40-userdb.c        $(test_source)
-t_50_proto_SOURCES       = t/50-proto.c         $(test_source)
 t_55_cert_SOURCES        = t/55-cert.c          $(test_source)
 t_61_res_user_SOURCES    = t/61-res_user.c      $(test_source)
 t_62_res_file_SOURCES    = t/62-res_file.c      $(test_source)
@@ -189,7 +185,6 @@ t_70_managers_SOURCES    = t/70-managers.c      $(test_source)
 
 t_helpers_executor_SOURCES = t/helpers/executor.c $(test_source)
 t_helpers_prompter_SOURCES = t/helpers/prompter.c $(test_source)
-t_helpers_proto_SOURCES    = t/helpers/proto.c    $(test_source)
 
 CLEANFILES       = $(BUILT_SOURCES)
 CLEANFILES      += *.tmp
@@ -202,14 +197,8 @@ EXTRA_DIST      += help man
 EXTRA_DIST      += t/data
 
 dist_man_MANS    = man/clockwork.7
-dist_man_MANS   += man/cwa.1
-dist_man_MANS   += man/cwa.conf.5
-dist_man_MANS   += man/cwca.1
-dist_man_MANS   += man/cwcert.1
 dist_man_MANS   += man/cwpol.1
 dist_man_MANS   += man/cwtemplate.1
-dist_man_MANS   += man/policyd.1
-dist_man_MANS   += man/policyd.conf.5
 dist_man_MANS   += man/res_dir.5
 dist_man_MANS   += man/res_exec.5
 dist_man_MANS   += man/res_file.5
@@ -233,12 +222,6 @@ core_src    += src/clockwork.h
 core_src    += src/service.c src/package.c
 core_src    += src/service.h src/package.h
 
-client_src   = src/proto.c src/client.c
-client_src  += src/proto.h src/client.h
-
-server_src   = src/proto.c src/server.c
-server_src  += src/proto.h src/server.h
-
 parser_spec_src  = src/spec/parser.c src/spec/parser.h src/spec/private.h
 parser_spec_src += src/spec/lexer.l src/spec/lexer_impl.h
 parser_spec_src += src/spec/grammar.y src/spec/grammar_impl.h
@@ -252,13 +235,9 @@ parser_tpl_src  += src/tpl/grammar.y
 core_src += $(parser_tpl_src)
 
 sbindir = "$(prefix)/sbin"
-sbin_PROGRAMS = cwa cwcert policyd cwca cwpol cwtemplate pn cwspec clockd cogd
-policyd_SOURCES = $(core_src) $(server_src) src/policyd.c $(parser_spec_src) $(parser_conf_src)
-cwca_SOURCES    = $(core_src) $(server_src) src/cwca.c $(parser_conf_src)
-cwa_SOURCES     = $(core_src) $(client_src) src/cwa.c $(parser_conf_src)
-cwcert_SOURCES  = $(core_src) $(client_src) src/cwcert.c $(parser_conf_src)
+sbin_PROGRAMS = cwpol cwtemplate pn cwspec clockd cogd
 cwpol_SOURCES   = $(core_src) src/cwpol.c $(parser_spec_src)
-cwtemplate_SOURCES = $(core_src) $(client_src) src/cwtemplate.c $(parser_conf_src)
+cwtemplate_SOURCES = $(core_src) src/cwtemplate.c $(parser_conf_src)
 pn_SOURCES      = src/pn.c src/pendulum_funcs.h src/pendulum_funcs.c src/pendulum.h src/pendulum.c
 cwspec_SOURCES  = src/cwspec.c $(core_src) $(parser_spec_src)
 clockd_SOURCES  = src/clockd.c $(core_src) $(parser_spec_src)

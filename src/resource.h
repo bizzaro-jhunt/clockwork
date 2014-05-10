@@ -153,7 +153,6 @@ char *resource_key(const struct resource *r);
 struct hash* resource_attrs(const struct resource *r);
 int resource_norm(struct resource *r, struct policy *pol, struct hash *facts);
 int resource_set(struct resource *r, const char *attr, const char *value);
-struct report* resource_fixup(struct resource *r, int dryrun, const struct resource_env *env);
 int resource_notify(struct resource *r, const struct resource *dep);
 char *resource_pack(const struct resource *r);
 struct resource *resource_unpack(const char *packed);

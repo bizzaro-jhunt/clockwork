@@ -45,8 +45,6 @@ int            res_ ## t ## _attrs(const void *res, struct hash *attrs); \
 int            res_ ## t ## _norm(void *res, struct policy *pol, struct hash *facts); \
 int            res_ ## t ## _set(void *res, const char *attr, const char *value); \
 int            res_ ## t ## _match(const void *res, const char *attr, const char *value); \
-int            res_ ## t ## _stat(void *res, const struct resource_env *env); \
-struct report* res_ ## t ## _fixup(void *res, int dryrun, const struct resource_env *env); \
 int            res_ ## t ## _notify(void *res, const struct resource *dep); \
 char*          res_ ## t ## _pack(const void *res); \
 void*          res_ ## t ## _unpack(const char *packed)

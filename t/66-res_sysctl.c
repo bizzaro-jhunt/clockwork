@@ -67,54 +67,6 @@ TESTS {
 
 	subtest {
 		struct res_sysctl *rs;
-		char *packed;
-		const char *expected;
-
-		rs = res_sysctl_new("ip");
-		res_sysctl_set(rs, "param", "kernel.net.ip");
-		res_sysctl_set(rs, "value", "1");
-		res_sysctl_set(rs, "persist", "yes");
-
-		packed = res_sysctl_pack(rs);
-		expected = "res_sysctl::\"ip\"00000003\"kernel.net.ip\"\"1\"0001";
-		is_string(packed, expected, "sysctl packs properly");
-		free(packed);
-
-		res_sysctl_set(rs, "persist", "no");
-		packed = res_sysctl_pack(rs);
-		expected = "res_sysctl::\"ip\"00000001\"kernel.net.ip\"\"1\"0000";
-		is_string(packed, expected, "sysctl packs properly");
-		free(packed);
-
-		res_sysctl_free(rs);
-	}
-
-	subtest {
-		struct res_sysctl *rs;
-		const char *packed;
-
-		packed = "res_sysctl::\"param\""
-			"00000003"
-			"\"net.ipv4.echo\""
-			"\"2\""
-			"0001";
-
-		is_null(res_sysctl_unpack("<invalid pack data>"), "res_sysctl_unpack handles bad data");
-		isnt_null(rs = res_sysctl_unpack(packed), "res_sysctl_unpacks properly");
-
-		is_string(rs->key,     "param",         "unpacked sysctl key");
-		is_string(rs->param,   "net.ipv4.echo", "unpacked sysctl param");
-		is_string(rs->value,   "2",             "unpacked sysctl value");
-		is_int(   rs->persist, 1,               "unpacked sysctl persist");
-
-		ok(ENFORCED(rs, RES_SYSCTL_VALUE),   "VALUE is enforced");
-		ok(ENFORCED(rs, RES_SYSCTL_PERSIST), "PERSIST is enforced");
-
-		res_sysctl_free(rs);
-	}
-
-	subtest {
-		struct res_sysctl *rs;
 		struct hash *h;
 
 		isnt_null(h = hash_new(), "created hash");

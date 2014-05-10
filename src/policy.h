@@ -132,7 +132,5 @@ int policy_add_dependency(struct policy *pol, struct dependency *dep);
 int policy_notify(const struct policy *pol, const struct resource *cause);
 
 int policy_gencode(const struct policy *pol, FILE *io);
-char* policy_pack(const struct policy *pol);
-struct policy* policy_unpack(const char *packed);
 
 #endif

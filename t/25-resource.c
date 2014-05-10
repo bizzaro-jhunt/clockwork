@@ -122,41 +122,6 @@ TESTS {
 	subtest {
 		is_null(resource_new("nonexistent_resource", "DNF"),
 			"can't create unknown resource types");
-		is_null(resource_unpack("no-such-resource::\"key\"00000001"),
-			"can't unpack unknown resource types");
-	}
-
-	subtest {
-		struct dependency *d;
-		char *packed;
-
-		isnt_null(d = dependency_new("res.a", "res.b"), "created dep obj");
-		is_string(d->a, "res.a", "a-side of dependency");
-		is_string(d->b, "res.b", "b-side of dependency");
-
-		is_string(
-			packed = dependency_pack(d),
-			"dependency::\"res.a\"\"res.b\"",
-			"Dependency packs properly");
-
-		dependency_free(d);
-		free(packed);
-	}
-
-	subtest {
-		struct dependency *d;
-
-		is_null(dependency_unpack("<invalid pack data>"),
-			"dependency_unpack returns NULL on bad data");
-
-		isnt_null(d = dependency_unpack("dependency::\"file1\"\"user2\""),
-			"unpacked dependency object");
-		is_string(d->a, "file1", "a-side of dependency");
-		is_string(d->b, "user2", "b-side of dependency");
-		is_null(d->resource_a, "d->resource_a");
-		is_null(d->resource_b, "d->resource_b");
-
-		dependency_free(d);
 	}
 
 	done_testing();

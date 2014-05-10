@@ -522,39 +522,6 @@ int res_user_gencode(const void *res, FILE *io, unsigned int next)
 	return 0;
 }
 
-#define PACK_FORMAT "aLaaLLaaaCaCLLLLL"
-char* res_user_pack(const void *res)
-{
-	const struct res_user *ru = (const struct res_user*)(res);
-	assert(ru); // LCOV_EXCL_LINE
-
-	return pack("res_user::", PACK_FORMAT,
-	            ru->key, ru->enforced,
-	            ru->ru_name,   ru->ru_passwd, ru->ru_uid,    ru->ru_gid,
-	            ru->ru_gecos,  ru->ru_shell,  ru->ru_dir,    ru->ru_mkhome,
-	            ru->ru_skel,   ru->ru_lock,   ru->ru_pwmin,  ru->ru_pwmax,
-	            ru->ru_pwwarn, ru->ru_inact,  ru->ru_expire);
-}
-
-void* res_user_unpack(const char *packed)
-{
-	struct res_user *ru = res_user_new(NULL);
-
-	if (unpack(packed, "res_user::", PACK_FORMAT,
-		&ru->key, &ru->enforced,
-		&ru->ru_name,   &ru->ru_passwd, &ru->ru_uid,    &ru->ru_gid,
-		&ru->ru_gecos,  &ru->ru_shell,  &ru->ru_dir,    &ru->ru_mkhome,
-		&ru->ru_skel,   &ru->ru_lock,   &ru->ru_pwmin,  &ru->ru_pwmax,
-		&ru->ru_pwwarn, &ru->ru_inact,  &ru->ru_expire) != 0) {
-
-		res_user_free(ru);
-		return NULL;
-	}
-
-	return ru;
-}
-#undef PACK_FORMAT
-
 int res_user_notify(void *res, const struct resource *dep) { return 0; }
 
 
@@ -835,38 +802,6 @@ int res_file_gencode(const void *res, FILE *io, unsigned int next)
 
 	return 0;
 }
-
-#define PACK_FORMAT "aLaaaaL"
-char* res_file_pack(const void *res)
-{
-	const struct res_file *rf = (const struct res_file*)(res);
-	assert(rf); // LCOV_EXCL_LINE
-
-	return pack("res_file::", PACK_FORMAT,
-	            rf->key, rf->enforced,
-	            rf->rf_lpath, rf->rf_rsha1.hex, rf->rf_owner, rf->rf_group, rf->rf_mode);
-}
-
-void* res_file_unpack(const char *packed)
-{
-	char *hex = NULL;
-	struct res_file *rf = res_file_new(NULL);
-
-	if (unpack(packed, "res_file::", PACK_FORMAT,
-		&rf->key, &rf->enforced,
-		&rf->rf_lpath, &hex, &rf->rf_owner, &rf->rf_group, &rf->rf_mode) != 0) {
-
-		free(hex);
-		res_file_free(rf);
-		return NULL;
-	}
-
-	sha1_init(&rf->rf_rsha1, hex);
-	free(hex);
-
-	return rf;
-}
-#undef PACK_FORMAT
 
 int res_file_notify(void *res, const struct resource *dep) { return 0; }
 
@@ -1263,70 +1198,6 @@ int res_group_remove_admin(struct res_group *rg, const char *user)
 	return _group_update(rg->rg_adm_rm, rg->rg_adm_add, user);
 }
 
-#define PACK_FORMAT "aLaaLaaaa"
-char *res_group_pack(const void *res)
-{
-	const struct res_group *rg = (const struct res_group*)(res);
-	assert(rg); // LCOV_EXCL_LINE
-
-	char *tmp;
-	char *mem_add = NULL, *mem_rm = NULL,
-	     *adm_add = NULL, *adm_rm = NULL;
-
-	if (!(mem_add = stringlist_join(rg->rg_mem_add, "."))
-	 || !(mem_rm  = stringlist_join(rg->rg_mem_rm,  "."))
-	 || !(adm_add = stringlist_join(rg->rg_adm_add, "."))
-	 || !(adm_rm  = stringlist_join(rg->rg_adm_rm,  "."))) {
-		free(mem_add); free(mem_rm);
-		free(adm_add); free(adm_rm);
-		return NULL;
-	}
-
-	tmp = pack("res_group::", PACK_FORMAT,
-	           rg->key, rg->enforced,
-	           rg->rg_name, rg->rg_passwd, rg->rg_gid,
-	           mem_add, mem_rm, adm_add, adm_rm);
-
-	free(mem_add); free(mem_rm);
-	free(adm_add); free(adm_rm);
-
-	return tmp;
-}
-
-void* res_group_unpack(const char *packed)
-{
-	char *mem_add = NULL, *mem_rm = NULL,
-	     *adm_add = NULL, *adm_rm = NULL;
-	struct res_group *rg = res_group_new(NULL);
-
-	if (unpack(packed, "res_group::", PACK_FORMAT,
-		&rg->key, &rg->enforced,
-		&rg->rg_name, &rg->rg_passwd, &rg->rg_gid,
-		&mem_add, &mem_rm, &adm_add, &adm_rm)) {
-
-		res_group_free(rg);
-		return NULL;
-	}
-
-	stringlist_free(rg->rg_mem_add);
-	rg->rg_mem_add = stringlist_split(mem_add, strlen(mem_add), ".", 0);
-
-	stringlist_free(rg->rg_mem_rm);
-	rg->rg_mem_rm  = stringlist_split(mem_rm,  strlen(mem_rm),  ".", 0);
-
-	stringlist_free(rg->rg_adm_add);
-	rg->rg_adm_add = stringlist_split(adm_add, strlen(adm_add), ".", 0);
-
-	stringlist_free(rg->rg_adm_rm);
-	rg->rg_adm_rm  = stringlist_split(adm_rm,  strlen(adm_rm),  ".", 0);
-
-	free(mem_add); free(mem_rm);
-	free(adm_add); free(adm_rm);
-
-	return rg;
-}
-#undef PACK_FORMAT
-
 int res_group_notify(void *res, const struct resource *dep) { return 0; }
 
 /*****************************************************************/
@@ -1453,37 +1324,6 @@ int res_package_gencode(const void *res, FILE *io, unsigned int next)
 	fprintf(io, "CALL &EXEC.CHECK\n");
 	return 0;
 }
-
-#define PACK_FORMAT "aLaa"
-char* res_package_pack(const void *res)
-{
-	const struct res_package *rp = (const struct res_package*)(res);
-	assert(rp); // LCOV_EXCL_LINE
-
-	return pack("res_package::", PACK_FORMAT,
-	            rp->key, rp->enforced, rp->name, rp->version);
-}
-
-void* res_package_unpack(const char *packed)
-{
-	struct res_package *rp = res_package_new(NULL);
-
-	if (unpack(packed, "res_package::", PACK_FORMAT,
-		&rp->key, &rp->enforced, &rp->name, &rp->version) != 0) {
-
-		res_package_free(rp);
-		return NULL;
-	}
-
-	if (rp->version && !*(rp->version)) {
-		/* treat "" as NULL */
-		free(rp->version);
-		rp->version = NULL;
-	}
-
-	return rp;
-}
-#undef PACK_FORMAT
 
 int res_package_notify(void *res, const struct resource *dep) { return 0; }
 
@@ -1646,31 +1486,6 @@ int res_service_gencode(const void *res, FILE *io, unsigned int next)
 
 	return 0;
 }
-
-#define PACK_FORMAT "aLa"
-char* res_service_pack(const void *res)
-{
-	const struct res_service *rs = (const struct res_service*)(res);
-	assert(rs); // LCOV_EXCL_LINE
-
-	return pack("res_service::", PACK_FORMAT,
-	            rs->key, rs->enforced, rs->service);
-}
-
-void* res_service_unpack(const char *packed)
-{
-	struct res_service *rs = res_service_new(NULL);
-
-	if (unpack(packed, "res_service::", PACK_FORMAT,
-		&rs->key, &rs->enforced, &rs->service) != 0) {
-
-		res_service_free(rs);
-		return NULL;
-	}
-
-	return rs;
-}
-#undef PACK_FORMAT
 
 int res_service_notify(void *res, const struct resource *dep)
 {
@@ -1858,47 +1673,6 @@ int res_host_gencode(const void *res, FILE *io, unsigned int next)
 	return 0;
 }
 
-#define PACK_FORMAT "aLaaa"
-char* res_host_pack(const void *res)
-{
-	const struct res_host *rh = (const struct res_host*)(res);
-	assert(rh); // LCOV_EXCL_LINE
-
-	char *joined;
-	char *p;
-
-	joined = stringlist_join(rh->aliases, " ");
-
-	p = pack("res_host::", PACK_FORMAT,
-	         rh->key, rh->enforced,
-	         rh->hostname, rh->ip, joined);
-
-	free(joined);
-	return p;
-}
-
-void* res_host_unpack(const char *packed)
-{
-	struct res_host *rh = res_host_new(NULL);
-	char *joined = NULL;
-
-	if (unpack(packed, "res_host::", PACK_FORMAT,
-		&rh->key, &rh->enforced,
-		&rh->hostname, &rh->ip, &joined) != 0) {
-
-		res_host_free(rh);
-		free(joined);
-		return NULL;
-	}
-
-	stringlist_free(rh->aliases);
-	rh->aliases = stringlist_split(joined, strlen(joined), " ", SPLIT_GREEDY);
-	free(joined);
-
-	return rh;
-}
-#undef PACK_FORMAT
-
 int res_host_notify(void *res, const struct resource *dep) { return 0; }
 
 /*****************************************************************/
@@ -2046,33 +1820,6 @@ int res_sysctl_gencode(const void *res, FILE *io, unsigned int next)
 	free(path);
 	return 0;
 }
-
-#define PACK_FORMAT "aLaaS"
-char* res_sysctl_pack(const void *res)
-{
-	const struct res_sysctl *rs = (const struct res_sysctl*)(res);
-	assert(rs); // LCOV_EXCL_LINE
-
-	return pack("res_sysctl::", PACK_FORMAT,
-		rs->key, rs->enforced,
-		rs->param, rs->value, rs->persist ? 1 : 0);
-}
-
-void* res_sysctl_unpack(const char *packed)
-{
-	struct res_sysctl *rs = res_sysctl_new(NULL);
-
-	if (unpack(packed, "res_sysctl::", PACK_FORMAT,
-		&rs->key, &rs->enforced,
-		&rs->param, &rs->value, &rs->persist) != 0) {
-
-		res_sysctl_free(rs);
-		return NULL;
-	}
-
-	return rs;
-}
-#undef PACK_FORMAT
 
 int res_sysctl_notify(void* res, const struct resource *dep) { return 0; }
 
@@ -2314,33 +2061,6 @@ int res_dir_gencode(const void *res, FILE *io, unsigned int next)
 
 	return 0;
 }
-
-#define PACK_FORMAT "aLaaaL"
-char *res_dir_pack(const void *res)
-{
-	const struct res_dir *rd = (const struct res_dir*)(res);
-	assert(rd); // LCOV_EXCL_LINE
-
-	return pack("res_dir::", PACK_FORMAT,
-		rd->key, rd->enforced,
-		rd->path, rd->owner, rd->group, rd->mode);
-}
-
-void* res_dir_unpack(const char *packed)
-{
-	struct res_dir *rd = res_dir_new(NULL);
-
-	if (unpack(packed, "res_dir::", PACK_FORMAT,
-		&rd->key, &rd->enforced,
-		&rd->path, &rd->owner, &rd->group, &rd->mode) != 0) {
-
-		res_dir_free(rd);
-		return NULL;
-	}
-
-	return rd;
-}
-#undef PACK_FORMAT
 
 int res_dir_notify(void *res, const struct resource *dep) { return 0; }
 
@@ -2636,33 +2356,6 @@ struct report* res_exec_fixup(void *res, int dryrun, const struct resource_env *
 }
 #endif
 
-#define PACK_FORMAT "aLaaaa"
-char *res_exec_pack(const void *res)
-{
-	const struct res_exec *re = (const struct res_exec*)(res);
-	assert(re); // LCOV_EXCL_LINE
-
-	return pack("res_exec::", PACK_FORMAT,
-		re->key, re->enforced,
-		re->command, re->test, re->user, re->group);
-}
-
-void* res_exec_unpack(const char *packed)
-{
-	struct res_exec *re = res_exec_new(NULL);
-
-	if (unpack(packed, "res_exec::", PACK_FORMAT,
-		&re->key, &re->enforced,
-		&re->command, &re->test, &re->user, &re->group) != 0) {
-
-		res_exec_free(re);
-		return NULL;
-	}
-
-	return re;
-}
-#undef PACK_FORMAT
-
 int res_exec_notify(void *res, const struct resource *dep)
 {
 	struct res_exec *re = (struct res_exec*)(res);
@@ -2672,5 +2365,3 @@ int res_exec_notify(void *res, const struct resource *dep)
 
 	return 0;
 }
-
-

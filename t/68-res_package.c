@@ -69,51 +69,6 @@ TESTS {
 
 	subtest {
 		struct res_package *r;
-		char *expected = "res_package::\"pkg-name\""
-		                 "00000000"
-		                 "\"pkg-name\""
-		                 "\"1.2.3-5\"";
-		char *actual;
-
-		isnt_null(r = res_package_new("pkg-name"), "generated package");
-		res_package_set(r, "version", "1.2.3-5");
-
-		isnt_null(actual = res_package_pack(r), "pack succeeded");
-		is_string(actual, expected, "packed properly");
-
-		res_package_free(r);
-		free(actual);
-	}
-
-	subtest {
-		struct res_package *r;
-		char *packed;
-
-		packed = "res_package::\"pkgkey\""
-			"00000000"
-			"\"libtao-dev\""
-			"\"5.6.3\"";
-
-		is_null(res_package_unpack("<invalid packed data>"), "res_package_unpack handles bad data");
-
-		isnt_null(r = res_package_unpack(packed), "res_package_unpack succeeds");
-		is_string(r->key,     "pkgkey",     "unpacked package key");
-		is_string(r->name,    "libtao-dev", "unpacked package name");
-		is_string(r->version, "5.6.3",      "unpacked package version");
-		res_package_free(r);
-
-		packed = "res_package::\"pkgkey\""
-			"00000000"
-			"\"libtao-dev\""
-			"\"\"";
-
-		isnt_null(r = res_package_unpack(packed), "res_package_unpack succeeds");
-		is_null(r->version, "translate empty version string into NULL version");
-		res_package_free(r);
-	}
-
-	subtest {
-		struct res_package *r;
 		struct hash *h;
 
 		h = hash_new();

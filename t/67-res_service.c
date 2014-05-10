@@ -159,49 +159,6 @@ TESTS {
 
 	subtest {
 		struct res_service *r;
-		char *packed;
-		const char *expected;
-
-		r = res_service_new("svckey");
-		res_service_set(r, "service", "service-name");
-		res_service_set(r, "running", "yes");
-		res_service_set(r, "enabled", "yes");
-
-		packed = res_service_pack(r);
-		expected = "res_service::\"svckey\""
-			"00000005"
-			"\"service-name\"";
-
-		is_string(packed, expected, "packs properly");
-
-		res_service_free(r);
-		free(packed);
-	}
-
-	subtest {
-		struct res_service *r;
-		char *packed;
-
-		packed = "res_service::\"svckey\""
-			"00000005"
-			"\"service-name\"";
-
-		is_null(res_service_unpack("<invalid packed data>"), "res_service_unpack handles bad data");
-		isnt_null(r = res_service_unpack(packed), "res_service_unpack succeeds");
-
-		is_string(r->key,     "svckey",       "unpacked service key");
-		is_string(r->service, "service-name", "unpacked service name");
-
-		ok( ENFORCED(r, RES_SERVICE_RUNNING),  "RUNNING is enforced");
-		ok(!ENFORCED(r, RES_SERVICE_STOPPED),  "STOPPED is not enforced");
-		ok( ENFORCED(r, RES_SERVICE_ENABLED),  "ENABLED is enforced");
-		ok(!ENFORCED(r, RES_SERVICE_DISABLED), "DISABLED is not enforced");
-
-		res_service_free(r);
-	}
-
-	subtest {
-		struct res_service *r;
 		struct hash *h;
 
 		isnt_null(h = hash_new(), "created hash");

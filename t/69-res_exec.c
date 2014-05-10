@@ -80,52 +80,6 @@ TESTS {
 
 	subtest {
 		struct res_exec *r;
-		char *expected = "res_exec::\"exec-name\""
-		                 "0000001e"
-		                 "\"/usr/bin/do-stuff\""
-		                 "\"/usr/bin/test-it\""
-		                 "\"root\""
-		                 "\"adm\"";
-		char *actual;
-
-		isnt_null(r = res_exec_new("exec-name"), "generated exec");
-		res_exec_set(r, "command",  "/usr/bin/do-stuff");
-		res_exec_set(r, "test",     "/usr/bin/test-it");
-		res_exec_set(r, "user",     "root");
-		res_exec_set(r, "group",    "adm");
-		res_exec_set(r, "ondemand", "yes");
-
-		isnt_null(actual = res_exec_pack(r), "pack succeeded");
-		is_string(actual, expected, "packed properly");
-
-		res_exec_free(r);
-		free(actual);
-	}
-
-	subtest {
-		struct res_exec *r;
-		char *packed;
-
-		packed = "res_exec::\"exec-name\""
-		         "00000000"
-		         "\"/usr/bin/do-stuff\""
-		         "\"/usr/bin/test-it\""
-		         "\"root\""
-		         "\"adm\"";
-
-		is_null(res_exec_unpack("<invalid packed data>"), "res_exec_unpack handles bad data");
-
-		isnt_null(r = res_exec_unpack(packed), "res_exec_unpack succeeds");
-		is_string(r->key,     "exec-name",         "unpacked exec key");
-		is_string(r->command, "/usr/bin/do-stuff", "unpacked exec command");
-		is_string(r->test,    "/usr/bin/test-it",  "unpacked exec test command");
-		is_string(r->user,    "root",              "unpacked exec user");
-		is_string(r->group,   "adm",               "unpacked exec group");
-		res_exec_free(r);
-	}
-
-	subtest {
-		struct res_exec *r;
 		struct hash *h;
 
 		h = hash_new();

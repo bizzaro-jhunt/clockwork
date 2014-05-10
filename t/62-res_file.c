@@ -95,68 +95,6 @@ TESTS {
 
 	subtest {
 		struct res_file *rf;
-		char *packed;
-		const char *expected;
-
-		rf = res_file_new("/etc/sudoers");                      /* rf_enf == 0000 0000 */
-
-		res_file_set(rf, "owner",  "someuser");             /* rf_enf == 0000 0001 */
-		res_file_set(rf, "group",  "somegroup");            /* rf_enf == 0000 0011 */
-		res_file_set(rf, "mode",   "0644");                 /* rf_enf == 0000 0111 */
-		res_file_set(rf, "source", "/etc/issue");           /* rf_enf == 0000 1111 */
-		/* sneakily override the checksum */
-		sha1_init(&rf->rf_rsha1, "0123456789abcdef0123456789abcdef01234567");
-
-		packed = res_file_pack(rf);
-		expected = "res_file::\"/etc/sudoers\""
-			"0000000f" /* RES_FILE_*, all OR'ed together */
-			"\"/etc/sudoers\""
-			"\"0123456789abcdef0123456789abcdef01234567\""
-			"\"someuser\"" /* rf_owner */
-			"\"somegroup\"" /* rf_group */
-			"000001a4" /* rf_mode 0644 */
-			"";
-		is_string(expected, packed, "packs properly");
-
-		res_file_free(rf);
-		free(packed);
-	}
-
-	subtest {
-		struct res_file *rf;
-		char *packed;
-
-		packed = "res_file::\"somefile\""
-			"00000003" /* UID and GID only */
-			"\"/etc/sudoers\""
-			"\"0123456789abcdef0123456789abcdef01234567\""
-			"\"someuser\""  /* rf_owner */
-			"\"somegroup\"" /* rf_group */
-			"000001a4" /* rf_mode 0644 */
-			"";
-
-		is_null(res_file_unpack("<invalid packed data>"),
-				"res_file_unpack handles bad data");
-		isnt_null(rf = res_file_unpack(packed), "res_file_unpack succeeds");
-
-		is_string(rf->key,      "somefile",     "unpacked file key");
-		is_string(rf->rf_lpath, "/etc/sudoers", "unpacked file local path");
-		is_string(rf->rf_owner, "someuser",     "unpacked file owner");
-		is_string(rf->rf_group, "somegroup",    "unpacked file group");
-		is_int(   rf->rf_mode,  0644,           "unpacked file mode");
-		is_string(rf->rf_rsha1.hex, "0123456789abcdef0123456789abcdef01234567",
-				"unpacked remote SHA1");
-
-		ok(!ENFORCED(rf, RES_FILE_SHA1), "SHA1 is not enforced");
-		ok(!ENFORCED(rf, RES_FILE_MODE), "MODE is not enforced");
-		ok( ENFORCED(rf, RES_FILE_UID), "UID is not enforced");
-		ok( ENFORCED(rf, RES_FILE_GID), "GID is not enforced");
-
-		res_file_free(rf);
-	}
-
-	subtest {
-		struct res_file *rf;
 		struct hash *h;
 
 		isnt_null(h = hash_new(), "created hash");

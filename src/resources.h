@@ -45,9 +45,7 @@ int            res_ ## t ## _attrs(const void *res, struct hash *attrs); \
 int            res_ ## t ## _norm(void *res, struct policy *pol, struct hash *facts); \
 int            res_ ## t ## _set(void *res, const char *attr, const char *value); \
 int            res_ ## t ## _match(const void *res, const char *attr, const char *value); \
-int            res_ ## t ## _notify(void *res, const struct resource *dep); \
-char*          res_ ## t ## _pack(const void *res); \
-void*          res_ ## t ## _unpack(const char *packed)
+int            res_ ## t ## _notify(void *res, const struct resource *dep)
 
 #define RES_NONE 0x00
 

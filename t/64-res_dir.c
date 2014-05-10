@@ -101,55 +101,6 @@ TESTS {
 
 	subtest {
 		struct res_dir *rd;
-		char *packed;
-		const char *expected;
-
-		rd = res_dir_new("home");
-		res_dir_set(rd, "path",    "/home");
-		res_dir_set(rd, "owner",   "root");
-		res_dir_set(rd, "group",   "users");
-		res_dir_set(rd, "mode",    "0750");
-		res_dir_set(rd, "present", "no");
-
-		packed = res_dir_pack(rd);
-		/* mode 0750 (octal) = 000001e8 (hex) */
-		expected = "res_dir::\"home\"80000007\"/home\"\"root\"\"users\"000001e8";
-		is_string(packed, expected, "dir packs properly");
-
-		res_dir_free(rd);
-		free(packed);
-	}
-
-	subtest {
-		struct res_dir *rd;
-		const char *packed;
-
-		packed = "res_dir::\"dirkey\""
-			"80000007"
-			"\"/tmp\""
-			"\"root\""
-			"\"sys\""
-			"000003ff";
-
-		is_null(res_dir_unpack("<invalid packed data>"), "res_dir_unpack handles bad data");
-		isnt_null(rd = res_dir_unpack(packed), "res_dir_unpack succeeds");
-
-		ok(ENFORCED(rd, RES_DIR_UID),    "UID is enforced");
-		ok(ENFORCED(rd, RES_DIR_GID),    "GID is enforced");
-		ok(ENFORCED(rd, RES_DIR_MODE),   "MODE is enforced");
-		ok(ENFORCED(rd, RES_DIR_ABSENT), "ABSENT is enforced");
-
-		is_string(rd->key,   "dirkey", "unpacked dir key");
-		is_string(rd->path,  "/tmp",   "unpacked dir path");
-		is_string(rd->owner, "root",   "unpacked dir owner");
-		is_string(rd->group, "sys",    "unpacked dir group");
-		is_int(   rd->mode,  01777,    "unpacked dir mode");
-
-		res_dir_free(rd);
-	}
-
-	subtest {
-		struct res_dir *rd;
 		struct hash *h;
 
 		isnt_null(h = hash_new(), "hash created");

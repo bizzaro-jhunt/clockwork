@@ -30,12 +30,9 @@ typedef int (*resource_set_f)(void *res, const char *attr, const char *value);
 typedef int (*resource_match_f)(const void *res, const char *attr, const char *value);
 typedef int (*resource_gencode_f)(const void *res, FILE *io, unsigned int next);
 typedef int (*resource_notify_f)(void *res, const struct resource *dep);
-typedef char* (*resource_pack_f)(const void *res);
-typedef void* (*resource_unpack_f)(const char *packed);
 
 #define RESOURCE_TYPE(t) { \
 	             .name = #t,                    \
-	      .pack_prefix = "res_" #t "::",        \
 	     .new_callback = res_ ## t ## _new,     \
 	   .clone_callback = res_ ## t ## _clone,   \
 	    .free_callback = res_ ## t ## _free,    \
@@ -45,13 +42,10 @@ typedef void* (*resource_unpack_f)(const char *packed);
 	     .set_callback = res_ ## t ## _set,     \
 	   .match_callback = res_ ## t ## _match,   \
 	 .gencode_callback = res_ ## t ## _gencode, \
-	  .notify_callback = res_ ## t ## _notify,  \
-	    .pack_callback = res_ ## t ## _pack,    \
-	  .unpack_callback = res_ ## t ## _unpack   }
+	  .notify_callback = res_ ## t ## _notify,  }
 
 	const struct {
 		const char         *name;
-		const char         *pack_prefix;
 
 		resource_new_f      new_callback;
 		resource_clone_f    clone_callback;
@@ -63,8 +57,6 @@ typedef void* (*resource_unpack_f)(const char *packed);
 		resource_match_f    match_callback;
 		resource_gencode_f  gencode_callback;
 		resource_notify_f   notify_callback;
-		resource_pack_f     pack_callback;
-		resource_unpack_f   unpack_callback;
 
 	} resource_types[RES_UNKNOWN] = {
 		RESOURCE_TYPE(user),
@@ -269,66 +261,6 @@ int resource_notify(struct resource *r, const struct resource *dep)
 }
 
 /**
-  Pack resource $r.
-
-  Using @pack, serialize the data contained in $r into a string
-  that can be stored or transmitted for use some other place or
-  some other time.
-
-  The string returned by this function should be freed by the caller.
-
-  The final serialized form of a resource can be passed to
-  @resource_unpack to get an identical in-memory resource structure
-  back.
-
-  On success, returns the string representation of $r.
-  On failure, returns NULL.
- */
-char *resource_pack(const struct resource *r)
-{
-	assert(r); // LCOV_EXCL_LINE
-	assert(r->type != RES_UNKNOWN); // LCOV_EXCL_LINE
-
-	return (*(resource_types[r->type].pack_callback))(r->resource);
-}
-
-/**
-  Unpack $packed into a resource.
-
-  Using @unpack, unserialize the string representation given
-  and populate a resource definition containing the correct
-  enforcement and attribute values.
-
-  The pointer returned by this function should be passed to
-  @resource_free to de-allocate and release its memory.
-
-  On success, returns the resource that $packed represents.
-  On failure, returns NULL.
- */
-struct resource *resource_unpack(const char *packed)
-{
-	assert(packed); // LCOV_EXCL_LINE
-	struct resource *r = NULL;
-
-	/* This one is a bit different, because we need to determine
-	   the resource data type from the packed prefix. */
-
-	enum restype i;
-	for (i = 0; i < RES_UNKNOWN; i++) {
-		if (strncmp(packed, resource_types[i].pack_prefix,
-		            strlen(resource_types[i].pack_prefix)) == 0) {
-			r = xmalloc(sizeof(struct resource));
-			r->type = i;
-			r->resource = (*(resource_types[i].unpack_callback))(packed);
-			r->key = (*(resource_types[i].key_callback))(r->resource);
-			break;
-		}
-	}
-
-	return r;
-}
-
-/**
   Add a Resource Dependency
 
   Mainly intended for use by the Policy implementation, this
@@ -464,57 +396,3 @@ void dependency_free(struct dependency *dep)
 		free(dep);
 	}
 }
-
-#define PACK_FORMAT "aa"
-/**
-  Pack Dependency $dep
-
-  Using @pack, serialize $dep into a string that can be stored
-  or transmitted for use some other place or some other time.
-
-  The string returned by this function should be freed by the caller.
-
-  The final serialized form of a dependency can be passed to
-  @dependency_unpack to get an identical in-memory dependency
-  structure back.
-
-  On success, returns a string representing $dep.
-  On failure, returns NULL.
- */
-char *dependency_pack(const struct dependency *dep)
-{
-	assert(dep); // LCOV_EXCL_LINE
-
-	return pack("dependency::", PACK_FORMAT, dep->a, dep->b);
-}
-
-/**
-  Unserialize $packed into a Dependency
-
-  Using @unpack, unserialize $packed and populate a dependency
-  definition containing the resource identifiers of the dependent
-  and causal resources.
-
-  This function does not resolve resource identifiers to their
-  corresponding resources, since it lacks the context to do so.
-
-  The pointer returned by this function should be passed to
-  @dependency_free to de-allocate and release its memory.
-
-  On success, returns the dependency represented by $packed.
-  On failure, returns NULL.
- */
-struct dependency *dependency_unpack(const char *packed)
-{
-	struct dependency *dep = dependency_new(NULL, NULL);
-
-	if (unpack(packed, "dependency::", PACK_FORMAT,
-	    &dep->a, &dep->b) != 0) {
-
-		dependency_free(dep);
-		return NULL;
-	}
-
-	return dep;
-}
-#undef PACK_FORMAT

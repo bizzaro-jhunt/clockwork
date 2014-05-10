@@ -154,8 +154,6 @@ struct hash* resource_attrs(const struct resource *r);
 int resource_norm(struct resource *r, struct policy *pol, struct hash *facts);
 int resource_set(struct resource *r, const char *attr, const char *value);
 int resource_notify(struct resource *r, const struct resource *dep);
-char *resource_pack(const struct resource *r);
-struct resource *resource_unpack(const char *packed);
 int resource_match(const struct resource *r, const char *attr, const char *value);
 int resource_gencode(const struct resource *r, FILE *io, unsigned int next);
 
@@ -165,7 +163,5 @@ int resource_depends_on(const struct resource *r, const struct resource *dep);
 
 struct dependency* dependency_new(const char *a, const char *b);
 void dependency_free(struct dependency *dep);
-char *dependency_pack(const struct dependency *dep);
-struct dependency *dependency_unpack(const char *packed);
 
 #endif

@@ -222,9 +222,6 @@ int hash_merge(struct hash *a, const struct hash *b);
 	for ((cursor)->l1 = 0, (cursor)->l2 = -1; \
 	     hash_next((hash), (cursor), &(key), (void**)&(val)); )
 
-char* pack(const char *prefix, const char *format, ...);
-int unpack(const char *packed, const char *prefix, const char *format, ...);
-
 #define for_each_string(l,i) for ((i)=0; (i)<(l)->num; (i)++)
 
 int STRINGLIST_SORT_ASC(const void *a, const void *b);

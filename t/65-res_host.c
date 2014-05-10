@@ -72,53 +72,6 @@ TESTS {
 
 	subtest {
 		struct res_host *rh;
-		char *packed;
-		const char *expected;
-
-		rh = res_host_new("127");
-		res_host_set(rh, "hostname", "localhost");
-		res_host_set(rh, "address",  "127.0.0.1");
-		res_host_set(rh, "aliases",  "localhost.localdomain box1");
-
-		packed = res_host_pack(rh);
-		expected = "res_host::\"127\""
-			"00000001" /* RES_HOST_ALIASES only */
-			"\"localhost\""
-			"\"127.0.0.1\""
-			"\"localhost.localdomain box1\"";
-		is_string(packed, expected, "res_host packs properly");
-
-		free(packed);
-		res_host_free(rh);
-	}
-
-	subtest {
-		const char *packed;
-		struct res_host *rh;
-
-		packed = "res_host::\"127\""
-			"00000001" /* RES_HOST_ALIASES only */
-			"\"localhost\""
-			"\"127.0.0.1\""
-			"\"localhost.localdomain box1\"";
-
-		is_null(res_host_unpack("<invalid pack data>"), "res_host_unpack handles bad data");
-		isnt_null(rh = res_host_unpack(packed), "unpacks successfully");
-
-		is_string(rh->key,      "127",       "unpacked host key");
-		is_string(rh->hostname, "localhost", "unpacked host name");
-		is_string(rh->ip,       "127.0.0.1", "unpacked host IP");
-
-		is_int(rh->aliases->num, 2, "found 2 aliases");
-		is_string(rh->aliases->strings[0], "localhost.localdomain", "alias[0]");
-		is_string(rh->aliases->strings[1], "box1",                  "alias[1]");
-		is_null(rh->aliases->strings[2], "alias[2] is NULL");
-
-		res_host_free(rh);
-	}
-
-	subtest {
-		struct res_host *rh;
 		struct hash *h;
 
 		isnt_null(h = hash_new(), "created hash");

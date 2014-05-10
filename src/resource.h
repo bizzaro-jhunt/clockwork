@@ -24,10 +24,7 @@
 #include "cw.h"
 
 #include <augeas.h>
-
 #include "userdb.h"
-#include "package.h"
-#include "service.h"
 
 /** Resource Type Identifiers */
 enum restype {

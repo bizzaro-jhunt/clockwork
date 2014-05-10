@@ -85,7 +85,6 @@ CTAP_TESTS += t/66-res_sysctl
 CTAP_TESTS += t/67-res_service
 CTAP_TESTS += t/68-res_package
 CTAP_TESTS += t/69-res_exec
-CTAP_TESTS += t/70-managers
 
 PERL_TESTS = 
 PERL_TESTS += t/pendulum/01-basics.t
@@ -120,8 +119,6 @@ test_source += src/policy.h     src/policy.c
 test_source += src/resource.h   src/resource.c
 test_source += src/resources.h  src/resources.c
 test_source += src/template.h   src/template.c
-test_source += src/service.h    src/service.c
-test_source += src/package.h    src/package.c
 
 test_source += src/spec/grammar.y
 test_source += src/spec/lexer.l
@@ -164,7 +161,6 @@ t_66_res_sysctl_SOURCES  = t/66-res_sysctl.c    $(test_source)
 t_67_res_service_SOURCES = t/67-res_service.c   $(test_source)
 t_68_res_package_SOURCES = t/68-res_package.c   $(test_source)
 t_69_res_exec_SOURCES    = t/69-res_exec.c      $(test_source)
-t_70_managers_SOURCES    = t/70-managers.c      $(test_source)
 
 t_helpers_executor_SOURCES = t/helpers/executor.c $(test_source)
 
@@ -201,8 +197,6 @@ core_src    += src/policy.h src/resource.h src/resources.h src/template.h
 core_src    += src/gear/hash.c src/gear/string.c src/gear/path.c
 core_src    += src/gear/gear.h
 core_src    += src/clockwork.h
-core_src    += src/service.c src/package.c
-core_src    += src/service.h src/package.h
 
 parser_spec_src  = src/spec/parser.c src/spec/parser.h src/spec/private.h
 parser_spec_src += src/spec/lexer.l src/spec/lexer_impl.h

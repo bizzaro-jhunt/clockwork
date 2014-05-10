@@ -43,35 +43,6 @@ enum restype {
 	RES_UNKNOWN /* must be LAST */
 };
 
-/**
-  Resource Environment
-
-  Represents the full environment needed by all resources for fixups.
-
-  For example, when fixing up user resources, res_user needs access to
-  the password and shadow databases to create, update and remove accounts.
-  These databases (pwdb and spdb structures) are stored in the resource
-  environment and shared with all resources.
-
-  As new resources are implemented, the resource_env structure will
-  have to be updated with new members.
- */
-struct resource_env {
-	const char *package_manager;
-	const char *service_manager;
-
-	struct pwdb *user_pwdb;  /* /etc/passwd, for res_user */
-	struct spdb *user_spdb;  /* /etc/shadow, for res_user */
-
-	struct grdb *group_grdb; /* /etc/group,   for res_group */
-	struct sgdb *group_sgdb; /* /etc/gshadow, for res_group */
-
-	augeas *aug_context;     /* Augeas, for sub-file config edits */
-
-	int file_fd;      /* used by res_file to refresh file contents. */
-	ssize_t file_len; /* bytes to read from file_fd before EOF */
-};
-
 struct policy;
 
 /**

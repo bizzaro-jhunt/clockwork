@@ -14,10 +14,6 @@ AM_CFLAGS  = -Wall $(DEPS_CFLAGS)
 AM_CFLAGS += $(shell pkg-config --cflags augeas)
 AM_CFLAGS += -DTEST_DATA=\"$(srcdir)/t/data\"
 AM_CFLAGS += -DCW_CACHE_DIR=\"$(pkgcachedir)\"
-AM_CFLAGS += -DCW_ETC_DIR=\"$(pkgsysconfdir)\"
-AM_CFLAGS += -DCW_VAR_DIR=\"$(localstatedir)\"
-AM_CFLAGS += -DCW_DATA_DIR=\"$(localstatedir)/lib/@PACKAGE_NAME@\"
-AM_CFLAGS += -DCW_LIB_DIR=\"$(pkglibdir)\"
 AM_CFLAGS += @GCOV_CFLAGS@
 
 AM_LFLAGS = --header-file --yylineno
@@ -42,7 +38,6 @@ nobase_help_DATA += help/show.help
 nobase_help_DATA += help/use.help
 
 augdir=$(pkglibdir)
-AM_CFLAGS += -DAUGEAS_INCLUDES=\"$(augdir)/augeas/lenses\"
 nobase_aug_DATA  = augeas/lenses/hosts.aug
 nobase_aug_DATA += augeas/lenses/util.aug
 
@@ -81,7 +76,6 @@ CTAP_TESTS += t/25-resource
 CTAP_TESTS += t/30-policy
 CTAP_TESTS += t/31-template
 CTAP_TESTS += t/40-userdb
-CTAP_TESTS += t/55-cert
 CTAP_TESTS += t/61-res_user
 CTAP_TESTS += t/62-res_file
 CTAP_TESTS += t/63-res_group
@@ -111,7 +105,6 @@ PERL_TESTS += t/policy/06-packages.t
 PERL_TESTS += t/policy/07-hosts.t
 
 TEST_HELPERS  = t/helpers/executor
-TEST_HELPERS += t/helpers/prompter
 
 TESTS          = $(CTAP_TESTS) $(PERL_TESTS)
 BUILT_TESTS    = $(CTAP_TESTS) $(TEST_HELPERS)
@@ -122,8 +115,6 @@ test_source += src/cw.h src/cw.c
 test_source += src/mem.h        src/mem.c
 test_source += src/sha1.h       src/sha1.c
 test_source += src/userdb.h     src/userdb.c
-test_source += src/cert.h       src/cert.c
-test_source += src/prompt.h     src/prompt.c
 test_source += src/exec.h       src/exec.c
 test_source += src/policy.h     src/policy.c
 test_source += src/resource.h   src/resource.c
@@ -164,7 +155,6 @@ t_25_resource_SOURCES    = t/25-resource.c      $(test_source)
 t_30_policy_SOURCES      = t/30-policy.c        $(test_source)
 t_31_template_SOURCES    = t/31-template.c      $(test_source)
 t_40_userdb_SOURCES      = t/40-userdb.c        $(test_source)
-t_55_cert_SOURCES        = t/55-cert.c          $(test_source)
 t_61_res_user_SOURCES    = t/61-res_user.c      $(test_source)
 t_62_res_file_SOURCES    = t/62-res_file.c      $(test_source)
 t_63_res_group_SOURCES   = t/63-res_group.c     $(test_source)
@@ -177,7 +167,6 @@ t_69_res_exec_SOURCES    = t/69-res_exec.c      $(test_source)
 t_70_managers_SOURCES    = t/70-managers.c      $(test_source)
 
 t_helpers_executor_SOURCES = t/helpers/executor.c $(test_source)
-t_helpers_prompter_SOURCES = t/helpers/prompter.c $(test_source)
 
 CLEANFILES       = $(BUILT_SOURCES)
 CLEANFILES      += *.tmp
@@ -205,8 +194,8 @@ dist_man_MANS   += man/res_user.5
 ############################################################
 
 core_src     = src/cw.h src/cw.c
-core_src    += src/mem.c src/sha1.c src/userdb.c src/cert.c src/prompt.c src/exec.c
-core_src    += src/mem.h src/sha1.h src/userdb.h src/cert.h src/prompt.h src/exec.h
+core_src    += src/mem.c src/sha1.c src/userdb.c src/exec.c
+core_src    += src/mem.h src/sha1.h src/userdb.h src/exec.h
 core_src    += src/policy.c src/resource.c src/resources.c src/template.c
 core_src    += src/policy.h src/resource.h src/resources.h src/template.h
 core_src    += src/gear/hash.c src/gear/string.c src/gear/path.c

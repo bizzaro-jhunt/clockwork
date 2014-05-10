@@ -60,28 +60,6 @@
 #  define AUGEAS_ROOT "/"
 #endif
 
-#define DEFAULT_POLICYD_CONF        CW_ETC_DIR "/policyd.conf"
-#define DEFAULT_CWA_CONF            CW_ETC_DIR "/cwa.conf"
-#define DEFAULT_MANIFEST_POL        CW_ETC_DIR "/manifest.pol"
-#define DEFAULT_SSL_CA_CERT_FILE    CW_ETC_DIR "/ssl/CA.pem"
-#define DEFAULT_SSL_CRL_FILE        CW_ETC_DIR "/ssl/revoked.pem"
-#define DEFAULT_SSL_CERT_FILE       CW_ETC_DIR "/ssl/cert.pem"
-#define DEFAULT_SSL_REQUEST_FILE    CW_ETC_DIR "/ssl/request.pem"
-#define DEFAULT_SSL_KEY_FILE        CW_ETC_DIR "/ssl/key.pem"
-#define DEFAULT_SSL_REQUESTS_DIR    CW_ETC_DIR "/ssl/pending"
-#define DEFAULT_SSL_CERTS_DIR       CW_ETC_DIR "/ssl/signed"
-
-#define DEFAULT_POLICYD_LOCK_FILE   CW_VAR_DIR "/lock/policyd"
-#define DEFAULT_POLICYD_PID_FILE    CW_VAR_DIR "/run/policyd.pid"
-
-#define DEFAULT_GATHERER_DIR        CW_LIB_DIR "/gather.d"
-
-#define DEFAULT_SERVER_NAME         "clockwork"
-#define DEFAULT_SERVER_PORT         "7890"
-#define DEFAULT_POLICYD_LISTEN      "0.0.0.0:" DEFAULT_SERVER_PORT
-
-#define DEFAULT_RETAIN_DAYS         45
-
 #define CACHED_FACTS_DIR            CW_CACHE_DIR "/facts"
 
 #include <assert.h>

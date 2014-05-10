@@ -135,7 +135,7 @@ int main(int argc, char **argv)
 		printf("Type `about' for information on this program.\n");
 		printf("Type `help' to get help on shell commands.\n");
 
-		hist = string("%s/.cwpol_history", getenv("HOME"));
+		hist = cw_string("%s/.cwpol_history", getenv("HOME"));
 		if (hist) {
 			using_history();
 			read_history(hist);
@@ -150,10 +150,10 @@ int main(int argc, char **argv)
 			if (have_output) { printf("\n"); }
 			free(ps1);
 			switch (CONTEXT.type) {
-			case CONTEXT_NONE:   ps1 = string("global> ");                  break;
-			case CONTEXT_HOST:   ps1 = string("host:%s> ", CONTEXT.name);   break;
-			case CONTEXT_POLICY: ps1 = string("policy:%s> ", CONTEXT.name); break;
-			default: ps1 = string("> "); break;
+			case CONTEXT_NONE:   ps1 = cw_string("global> ");                  break;
+			case CONTEXT_HOST:   ps1 = cw_string("host:%s> ", CONTEXT.name);   break;
+			case CONTEXT_POLICY: ps1 = cw_string("policy:%s> ", CONTEXT.name); break;
+			default: ps1 = cw_string("> "); break;
 			}
 		}
 
@@ -229,7 +229,7 @@ COMMAND(help)
 
 	if (c->argc >= 1) {
 		use_main = 0;
-		path = string(HELP_FILES_DIR "/%s.help", slv(c->args, 0));
+		path = cw_string(HELP_FILES_DIR "/%s.help", slv(c->args, 0));
 	} else {
 		use_main = 1;
 		path = strdup(HELP_FILES_DIR "/main");
@@ -342,7 +342,7 @@ COMMAND(use)
 
 			/* try to load facts */
 			if (o->no_clobber == 0) {
-				char *path = string("%s/%s.facts", o->cache, target);
+				char *path = cw_string("%s/%s.facts", o->cache, target);
 				cw_log(LOG_INFO, "auto-loading host facts from %s", o->cache);
 				load_facts_from_path(path);
 				free(path);
@@ -662,7 +662,7 @@ static void show_resources(void)
 static void show_resource(const char *type, const char *name)
 {
 	struct resource *r;
-	char *target = string("%s:%s", type, name);
+	char *target = cw_string("%s:%s", type, name);
 	struct hash *attrs;
 	struct stringlist *keys;
 	size_t i;
@@ -689,7 +689,7 @@ static void show_resource(const char *type, const char *name)
 			maxlen = (n > maxlen ? n : maxlen);
 		}
 
-		fmt = string("  %%-%us: \"%%s\"\n", maxlen+1);
+		fmt = cw_string("  %%-%us: \"%%s\"\n", maxlen+1);
 
 		printf("\n");
 		printf("%s \"%s\" {\n", type, name);
@@ -744,7 +744,7 @@ static struct cwpol_opts* cwpol_options(int argc, char **argv, int interactive)
 
 		case 'f':
 			free(o->facts);
-			o->facts = string("load facts from %s", optarg);
+			o->facts = cw_string("load facts from %s", optarg);
 			break;
 
 		case 'c':
@@ -765,7 +765,7 @@ static struct cwpol_opts* cwpol_options(int argc, char **argv, int interactive)
 
 	if (optind == argc - 1) {
 		free(o->manifest);
-		o->manifest = string("load %s", argv[optind]);
+		o->manifest = cw_string("load %s", argv[optind]);
 	} else if (optind < argc) {
 		free(o->command);
 		o->command = strdup("help");

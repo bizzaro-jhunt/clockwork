@@ -122,7 +122,7 @@ static char* lexer_resolve_path_spec(const char *current_file, const char *path)
 	file_dup = strdup(current_file);
 	base = dirname(file_dup);
 
-	full_path = string("%s/%s", base, path);
+	full_path = cw_string("%s/%s", base, path);
 	free(file_dup);
 
 	return full_path;

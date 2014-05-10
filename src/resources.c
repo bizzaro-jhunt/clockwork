@@ -63,8 +63,8 @@ static int _res_user_populate_home(const char *home, const char *skel, uid_t uid
 
 	while ( (ent = fts_read(fts)) != NULL ) {
 		if (strcmp(ent->fts_accpath, ent->fts_path) != 0) {
-			home_path = string("%s/%s", home, ent->fts_accpath);
-			skel_path = string("%s/%s", skel, ent->fts_accpath);
+			home_path = cw_string("%s/%s", home, ent->fts_accpath);
+			skel_path = cw_string("%s/%s", skel, ent->fts_accpath);
 			mode = ent->fts_statp->st_mode & 0777;
 
 			if (S_ISREG(ent->fts_statp->st_mode)) {
@@ -276,7 +276,7 @@ char* res_user_key(const void *res)
 	const struct res_user *ru = (struct res_user*)(res);
 	assert(ru); // LCOV_EXCL_LINE
 
-	return string("user:%s", ru->key);
+	return cw_string("user:%s", ru->key);
 }
 
 int res_user_attrs(const void *res, struct hash *attrs)
@@ -285,19 +285,19 @@ int res_user_attrs(const void *res, struct hash *attrs)
 	assert(ru); // LCOV_EXCL_LINE
 
 	_hash_attr(attrs, "username", strdup(ru->ru_name));
-	_hash_attr(attrs, "uid", ENFORCED(ru, RES_USER_UID) ? string("%u",ru->ru_uid) : NULL);
-	_hash_attr(attrs, "gid", ENFORCED(ru, RES_USER_GID) ? string("%u",ru->ru_gid) : NULL);
+	_hash_attr(attrs, "uid", ENFORCED(ru, RES_USER_UID) ? cw_string("%u",ru->ru_uid) : NULL);
+	_hash_attr(attrs, "gid", ENFORCED(ru, RES_USER_GID) ? cw_string("%u",ru->ru_gid) : NULL);
 	_hash_attr(attrs, "home", ENFORCED(ru, RES_USER_DIR) ? strdup(ru->ru_dir) : NULL);
 	_hash_attr(attrs, "present", strdup(ENFORCED(ru, RES_USER_ABSENT) ? "no" : "yes"));
 	_hash_attr(attrs, "locked", ENFORCED(ru, RES_USER_LOCK) ? strdup(ru->ru_lock ? "yes" : "no") : NULL);
 	_hash_attr(attrs, "comment", ENFORCED(ru, RES_USER_GECOS) ? strdup(ru->ru_gecos) : NULL);
 	_hash_attr(attrs, "shell", ENFORCED(ru, RES_USER_SHELL) ? strdup(ru->ru_shell) : NULL);
 	_hash_attr(attrs, "password", ENFORCED(ru, RES_USER_PASSWD) ? strdup(ru->ru_passwd) : NULL);
-	_hash_attr(attrs, "pwmin", ENFORCED(ru, RES_USER_PWMIN) ? string("%u", ru->ru_pwmin) : NULL);
-	_hash_attr(attrs, "pwmax", ENFORCED(ru, RES_USER_PWMAX) ? string("%u", ru->ru_pwmax) : NULL);
-	_hash_attr(attrs, "pwwarn", ENFORCED(ru, RES_USER_PWWARN) ? string("%u", ru->ru_pwwarn) : NULL);
-	_hash_attr(attrs, "inact", ENFORCED(ru, RES_USER_INACT) ? string("%u", ru->ru_inact) : NULL);
-	_hash_attr(attrs, "expiration", ENFORCED(ru, RES_USER_EXPIRE) ? string("%u", ru->ru_expire) : NULL);
+	_hash_attr(attrs, "pwmin", ENFORCED(ru, RES_USER_PWMIN) ? cw_string("%u", ru->ru_pwmin) : NULL);
+	_hash_attr(attrs, "pwmax", ENFORCED(ru, RES_USER_PWMAX) ? cw_string("%u", ru->ru_pwmax) : NULL);
+	_hash_attr(attrs, "pwwarn", ENFORCED(ru, RES_USER_PWWARN) ? cw_string("%u", ru->ru_pwwarn) : NULL);
+	_hash_attr(attrs, "inact", ENFORCED(ru, RES_USER_INACT) ? cw_string("%u", ru->ru_inact) : NULL);
+	_hash_attr(attrs, "expiration", ENFORCED(ru, RES_USER_EXPIRE) ? cw_string("%u", ru->ru_expire) : NULL);
 	_hash_attr(attrs, "skeleton", ENFORCED(ru, RES_USER_MKHOME) ? strdup(ru->ru_skel) : NULL);
 	return 0;
 }
@@ -405,13 +405,13 @@ int res_user_match(const void *res, const char *name, const char *value)
 	int rc;
 
 	if (strcmp(name, "uid") == 0) {
-		test_value = string("%u", ru->ru_uid);
+		test_value = cw_string("%u", ru->ru_uid);
 	} else if (strcmp(name, "gid") == 0) {
-		test_value = string("%u", ru->ru_gid);
+		test_value = cw_string("%u", ru->ru_gid);
 	} else if (strcmp(name, "username") == 0) {
-		test_value = string("%s", ru->ru_name);
+		test_value = cw_string("%s", ru->ru_name);
 	} else if (strcmp(name, "home") == 0) {
-		test_value = string("%s", ru->ru_dir);
+		test_value = cw_string("%s", ru->ru_dir);
 	} else {
 		return 1;
 	}
@@ -587,7 +587,7 @@ char* res_file_key(const void *res)
 	const struct res_file *rf = (struct res_file*)(res);
 	assert(rf); // LCOV_EXCL_LINE
 
-	return string("file:%s", rf->key);
+	return cw_string("file:%s", rf->key);
 }
 
 #define DUMP_UNSPEC(io,s) fprintf(io, "# %s unspecified\n", s)
@@ -602,7 +602,7 @@ int res_file_attrs(const void *res, struct hash *attrs)
 
 	_hash_attr(attrs, "owner", ENFORCED(rf, RES_FILE_UID) ? strdup(rf->rf_owner) : NULL);
 	_hash_attr(attrs, "group", ENFORCED(rf, RES_FILE_GID) ? strdup(rf->rf_group) : NULL);
-	_hash_attr(attrs, "mode", ENFORCED(rf, RES_FILE_MODE) ? string("%04o", rf->rf_mode) : NULL);
+	_hash_attr(attrs, "mode", ENFORCED(rf, RES_FILE_MODE) ? cw_string("%04o", rf->rf_mode) : NULL);
 
 	if (ENFORCED(rf, RES_FILE_SHA1)) {
 		_hash_attr(attrs, "template", cw_strdup(rf->rf_template));
@@ -723,7 +723,7 @@ int res_file_match(const void *res, const char *name, const char *value)
 	int rc;
 
 	if (strcmp(name, "path") == 0) {
-		test_value = string("%s", rf->rf_lpath);
+		test_value = cw_string("%s", rf->rf_lpath);
 	} else {
 		return 1;
 	}
@@ -879,7 +879,7 @@ char* res_group_key(const void *res)
 	const struct res_group *rg = (struct res_group*)(res);
 	assert(rg); // LCOV_EXCL_LINE
 
-	return string("group:%s", rg->key);
+	return cw_string("group:%s", rg->key);
 }
 
 static char* _res_group_roster_mv(struct stringlist *add, struct stringlist *rm)
@@ -896,7 +896,7 @@ static char* _res_group_roster_mv(struct stringlist *add, struct stringlist *rm)
 	}
 
 	if (added && removed) {
-		final = string("%s !%s", added, removed);
+		final = cw_string("%s !%s", added, removed);
 		free(added);
 		free(removed);
 		added = removed = NULL;
@@ -905,7 +905,7 @@ static char* _res_group_roster_mv(struct stringlist *add, struct stringlist *rm)
 		final = added;
 
 	} else if (removed) {
-		final = string("!%s", removed);
+		final = cw_string("!%s", removed);
 		free(removed);
 		removed = NULL;
 
@@ -922,7 +922,7 @@ int res_group_attrs(const void *res, struct hash *attrs)
 	assert(rg); // LCOV_EXCL_LINE
 
 	_hash_attr(attrs, "name", strdup(rg->rg_name));
-	_hash_attr(attrs, "gid", ENFORCED(rg, RES_GROUP_GID) ? string("%u",rg->rg_gid) : NULL);
+	_hash_attr(attrs, "gid", ENFORCED(rg, RES_GROUP_GID) ? cw_string("%u",rg->rg_gid) : NULL);
 	_hash_attr(attrs, "present", strdup(ENFORCED(rg, RES_GROUP_ABSENT) ? "no" : "yes"));
 	_hash_attr(attrs, "password", ENFORCED(rg, RES_GROUP_PASSWD) ? strdup(rg->rg_passwd) : NULL);
 	if (ENFORCED(rg, RES_GROUP_MEMBERS)) {
@@ -1021,9 +1021,9 @@ int res_group_match(const void *res, const char *name, const char *value)
 	int rc;
 
 	if (strcmp(name, "gid") == 0) {
-		test_value = string("%u", rg->rg_gid);
+		test_value = cw_string("%u", rg->rg_gid);
 	} else if (strcmp(name, "name") == 0) {
-		test_value = string("%s", rg->rg_name);
+		test_value = cw_string("%s", rg->rg_name);
 	} else {
 		return 1;
 	}
@@ -1251,7 +1251,7 @@ char* res_package_key(const void *res)
 	const struct res_package *rp = (struct res_package*)(res);
 	assert(rp); // LCOV_EXCL_LINE
 
-	return string("package:%s", rp->key);
+	return cw_string("package:%s", rp->key);
 }
 
 int res_package_attrs(const void *res, struct hash *attrs)
@@ -1303,7 +1303,7 @@ int res_package_match(const void *res, const char *name, const char *value)
 	int rc;
 
 	if (strcmp(name, "name") == 0) {
-		test_value = string("%s", rp->name);
+		test_value = cw_string("%s", rp->name);
 	} else {
 		return 1;
 	}
@@ -1376,7 +1376,7 @@ char* res_service_key(const void *res)
 	const struct res_service *rs = (struct res_service*)(res);
 	assert(rs); // LCOV_EXCL_LINE
 
-	return string("service:%s", rs->key);
+	return cw_string("service:%s", rs->key);
 }
 
 int res_service_attrs(const void *res, struct hash *attrs)
@@ -1453,7 +1453,7 @@ int res_service_match(const void *res, const char *name, const char *value)
 	int rc;
 
 	if (strcmp(name, "name") == 0 || strcmp(name, "service") == 0) {
-		test_value = string("%s", rs->service);
+		test_value = cw_string("%s", rs->service);
 	} else {
 		return 1;
 	}
@@ -1552,7 +1552,7 @@ char* res_host_key(const void *res)
 	const struct res_host *rh = (struct res_host*)(res);
 	assert(rh); // LCOV_EXCL_LINE
 
-	return string("host:%s", rh->key);
+	return cw_string("host:%s", rh->key);
 }
 
 int res_host_attrs(const void *res, struct hash *attrs)
@@ -1620,9 +1620,9 @@ int res_host_match(const void *res, const char *name, const char *value)
 	int rc;
 
 	if (strcmp(name, "hostname") == 0) {
-		test_value = string("%s", rh->hostname);
+		test_value = cw_string("%s", rh->hostname);
 	} else if (strcmp(name, "ip") == 0 || strcmp(name, "address") == 0) {
-		test_value = string("%s", rh->ip);
+		test_value = cw_string("%s", rh->ip);
 	} else {
 		return 1;
 	}
@@ -1726,7 +1726,7 @@ char* res_sysctl_key(const void *res)
 	const struct res_sysctl *rs = (struct res_sysctl*)(res);
 	assert(rs); // LCOV_EXCL_LINE
 
-	return string("sysctl:%s", rs->key);
+	return cw_string("sysctl:%s", rs->key);
 }
 
 int res_sysctl_attrs(const void *res, struct hash *attrs)
@@ -1780,7 +1780,7 @@ int res_sysctl_match(const void *res, const char *name, const char *value)
 	int rc;
 
 	if (strcmp(name, "param") == 0) {
-		test_value = string("%s", rs->param);
+		test_value = cw_string("%s", rs->param);
 	} else {
 		return 1;
 	}
@@ -1878,7 +1878,7 @@ char *res_dir_key(const void *res)
 	const struct res_dir *rd = (const struct res_dir*)(res);
 	assert(rd); // LCOV_EXCL_LINE
 
-	return string("dir:%s", rd->key);
+	return cw_string("dir:%s", rd->key);
 }
 
 int res_dir_attrs(const void *res, struct hash *attrs)
@@ -1889,7 +1889,7 @@ int res_dir_attrs(const void *res, struct hash *attrs)
 	_hash_attr(attrs, "path", cw_strdup(rd->path));
 	_hash_attr(attrs, "owner", ENFORCED(rd, RES_DIR_UID) ? strdup(rd->owner) : NULL);
 	_hash_attr(attrs, "group", ENFORCED(rd, RES_DIR_GID) ? strdup(rd->group) : NULL);
-	_hash_attr(attrs, "mode", ENFORCED(rd, RES_DIR_MODE) ? string("%04o", rd->mode) : NULL);
+	_hash_attr(attrs, "mode", ENFORCED(rd, RES_DIR_MODE) ? cw_string("%04o", rd->mode) : NULL);
 	_hash_attr(attrs, "present", strdup(ENFORCED(rd, RES_DIR_ABSENT) ? "no" : "yes"));
 	return 0;
 }
@@ -1986,7 +1986,7 @@ int res_dir_match(const void *res, const char *name, const char *value)
 	int rc;
 
 	if (strcmp(name, "path") == 0) {
-		test_value = string("%s", rd->path);
+		test_value = cw_string("%s", rd->path);
 	} else {
 		return 1;
 	}
@@ -2120,7 +2120,7 @@ char *res_exec_key(const void *res)
 	const struct res_exec *re = (const struct res_exec*)(res);
 	assert(re); // LCOV_EXCL_LINE
 
-	return string("exec:%s", re->key);
+	return cw_string("exec:%s", re->key);
 }
 
 int res_exec_attrs(const void *res, struct hash *attrs)
@@ -2223,7 +2223,7 @@ int res_exec_match(const void *res, const char *name, const char *value)
 
 	/* FIXME: match on key? */
 	if (strcmp(name, "command") == 0) {
-		test_value = string("%s", re->command);
+		test_value = cw_string("%s", re->command);
 	} else {
 		return 1;
 	}
@@ -2345,7 +2345,7 @@ struct report* res_exec_fixup(void *res, int dryrun, const struct resource_env *
 	char *action;
 
 	if (ENFORCED(re, RES_EXEC_NEEDSRUN) || re->notified) {
-		action = string("execute command");
+		action = cw_string("execute command");
 		if (dryrun) {
 			report_action(report, action, ACTION_SKIPPED);
 		} else if (_res_exec_run(re->command, re) == 0) {

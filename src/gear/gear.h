@@ -176,7 +176,6 @@ struct path {
 	size_t    len;
 };
 
-char* string(const char *fmt, ...);
 struct string* string_new(const char *str, size_t block);
 void string_free(struct string *s);
 

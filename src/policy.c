@@ -536,7 +536,7 @@ static struct resource * _policy_find_resource(struct policy_generator *pgen, co
 	char *key;
 	struct resource *r = NULL;
 
-	if ((key = string("%s:%s", type, id)) != NULL) {
+	if ((key = cw_string("%s:%s", type, id)) != NULL) {
 		r = hash_get(pgen->policy->index, key);
 		free(key);
 	}
@@ -628,8 +628,8 @@ again:
 			return -1;
 		}
 
-		dep.a = string("%s:%s", node->nodes[0]->data1, node->nodes[0]->data2);
-		dep.b = string("%s:%s", node->nodes[1]->data1, node->nodes[1]->data2);
+		dep.a = cw_string("%s:%s", node->nodes[0]->data1, node->nodes[0]->data2);
+		dep.b = cw_string("%s:%s", node->nodes[1]->data1, node->nodes[1]->data2);
 		pgen->dep = dependency_new(dep.a, dep.b);
 		free(dep.a);
 		free(dep.b);

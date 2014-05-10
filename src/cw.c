@@ -210,6 +210,36 @@ cw_list_t *cw_list_pop(cw_list_t *l)
 }
 
 /*
+     ######  ######## ########  #### ##    ##  ######    ######
+    ##    ##    ##    ##     ##  ##  ###   ## ##    ##  ##    ##
+    ##          ##    ##     ##  ##  ####  ## ##        ##
+     ######     ##    ########   ##  ## ## ## ##   ####  ######
+          ##    ##    ##   ##    ##  ##  #### ##    ##        ##
+    ##    ##    ##    ##    ##   ##  ##   ### ##    ##  ##    ##
+     ######     ##    ##     ## #### ##    ##  ######    ######
+ */
+
+char* cw_string(const char *fmt, ...)
+{
+	char buf[256], *s;
+	va_list args;
+	va_start(args, fmt);
+	size_t n = vsnprintf(buf, 256, fmt, args) + 1;
+	va_end(args);
+
+	if (n > 256) {
+		s = cw_alloc(n * sizeof(char));
+
+		va_start(args, fmt);
+		vsnprintf(s, n, fmt, args);
+		va_end(args);
+		return s;
+	}
+
+	return cw_strdup(buf);
+}
+
+/*
     ######## #### ##     ## ########
        ##     ##  ###   ### ##
        ##     ##  #### #### ##

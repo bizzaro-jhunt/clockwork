@@ -154,48 +154,6 @@ static size_t _sl_capacity(struct stringlist *sl)
 /*****************************************************************/
 
 /**
-  Create a new string, with printf-like behavior.
-
-  For formatting options, see `printf(3)`.
-
-  Example:
-
-  <code>
-  // this:
-  char *s = string("Forty-two = %u\n", 42);
-  printf("%s", s);
-
-  // is equivalent to:
-  printf("Forty-two = %u\n", 42);
-  </code>
-
-  The returned string must be freed by the caller.
- */
-char* string(const char *fmt, ...)
-{
-	char buf[256];
-	char *buf2;
-	size_t n;
-	va_list args;
-
-	va_start(args, fmt);
-	n = vsnprintf(buf, 256, fmt, args) + 1;
-	va_end(args);
-	if (n > 256) {
-		buf2 = calloc(n, sizeof(char));
-		if (!buf2) { return NULL; }
-
-		va_start(args, fmt);
-		vsnprintf(buf2, n, fmt, args);
-		va_end(args);
-	} else {
-		buf2 = strdup(buf);
-	}
-
-	return buf2;
-}
-
-/**
   Create a new variable-length string
 
   If $str is not NULL, the new string will contain a copy of

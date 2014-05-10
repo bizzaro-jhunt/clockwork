@@ -43,15 +43,15 @@ TESTS {
 
 
 	char buf[129];
-	s = string("%s: %u 0x%08x", "Clockwork test build", 1025, 1025);
-	isnt_null(s, "string() returns a non-NULL pointer");
-	is_string(s, "Clockwork test build: 1025 0x00000401", "string() formats properly");
+	s = cw_string("%s: %u 0x%08x", "Clockwork test build", 1025, 1025);
+	isnt_null(s, "cw_string() returns a non-NULL pointer");
+	is_string(s, "Clockwork test build: 1025 0x00000401", "cw_string() formats properly");
 	free(s);
 
 	memset(buf, 'x', 128); buf[128] = '\0';
 	is_int(strlen(buf), 128, "buffer is 128 octets long");
-	s = string("%sA%sB%sC%sD", buf, buf, buf, buf);
-	is_int(strlen(s), 4+(128*4), "string() dynamically sizes buffer");
+	s = cw_string("%sA%sB%sC%sD", buf, buf, buf, buf);
+	is_int(strlen(s), 4+(128*4), "cw_string() dynamically sizes buffer");
 	free(s);
 
 	done_testing();

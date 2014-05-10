@@ -21,6 +21,7 @@
 #define AUGCW_H
 
 #include "clockwork.h"
+#include "cw.h"
 #include <augeas.h>
 
 augeas* augcw_init(void);

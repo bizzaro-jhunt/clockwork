@@ -18,6 +18,7 @@
  */
 
 #include "clockwork.h"
+#include "cw.h"
 
 #include <getopt.h>
 
@@ -73,10 +74,8 @@ int main(int argc, char **argv)
 	cert_init();
 
 	args = cwcert_options(argc, argv);
-	args->config->log_level = log_set(args->config->log_level);
-	INFO("Log level is now %s (%u)",
-	     log_level_name(args->config->log_level),
-	     args->config->log_level);
+	args->config->log_level = cw_log_level(args->config->log_level, NULL);
+	cw_log(LOG_INFO, "Log level is now %s", cw_log_level_name(-1));
 
 	if (strcmp(args->command, "details") == 0) {
 		err = cwcert_details_main(args);
@@ -132,7 +131,7 @@ struct cwcert_opts* cwcert_options(int argc, char **argv)
 			args->config->config_file = strdup(optarg);
 			break;
 		case 'D':
-			args->config->log_level = LOG_LEVEL_DEBUG;
+			args->config->log_level = LOG_DEBUG;
 			break;
 		case 'O':
 			args->config->mode = CLIENT_MODE_OFFLINE;
@@ -161,7 +160,7 @@ struct cwcert_opts* cwcert_options(int argc, char **argv)
 	}
 
 	if (client_options(args->config) != 0) {
-		ERROR("Unable to process client options");
+		cw_log(LOG_ERR, "Unable to process client options");
 		exit(2);
 	}
 
@@ -174,13 +173,13 @@ static int negotiate_certificate(struct client *c, X509_REQ *csr)
 
 	if (pdu_send_GET_CERT(&c->session, csr) < 0) { exit(1); }
 	if (pdu_receive(&c->session) < 0) {
-		CRITICAL("Error: %u - %s", c->session.errnum, c->session.errstr);
+		cw_log(LOG_CRIT, "Error: %u - %s", c->session.errnum, c->session.errstr);
 		client_disconnect(c);
 		exit(1);
 	}
 
 	if (RECV_PDU(&c->session)->op != PROTOCOL_OP_SEND_CERT) {
-		CRITICAL("Unexpected op from server: %u", RECV_PDU(&c->session)->op);
+		cw_log(LOG_CRIT, "Unexpected op from server: %u", RECV_PDU(&c->session)->op);
 		client_disconnect(c);
 		exit(1);
 	}
@@ -194,7 +193,7 @@ static int negotiate_certificate(struct client *c, X509_REQ *csr)
 		return 1;
 	}
 
-	INFO("Received certificate from %s:%s", c->s_address, c->s_port);
+	cw_log(LOG_INFO, "Received certificate from %s:%s", c->s_address, c->s_port);
 	cert_store_certificate(cert, c->cert_file);
 
 	X509_free(cert);
@@ -283,23 +282,23 @@ static int cwcert_new_main(const struct cwcert_opts *args)
 
 	key = cert_retrieve_key(args->config->key_file);
 	if (!key) {
-		INFO("Creating new key");
+		cw_log(LOG_INFO, "Creating new key");
 		key = cert_generate_key(2048);
 		if (!key) {
-			CRITICAL("Unable to create new key");
+			cw_log(LOG_CRIT, "Unable to create new key");
 			return CWCERT_SSL_ERROR;
 		}
 		if (cert_store_key(key, args->config->key_file) != 0) {
-			CRITICAL("Unable to store new key in %s", args->config->key_file);
+			cw_log(LOG_CRIT, "Unable to store new key in %s", args->config->key_file);
 			return CWCERT_SSL_ERROR;
 		}
 	}
 
-	INFO("Removing old certificate %s", args->config->cert_file);
+	cw_log(LOG_INFO, "Removing old certificate %s", args->config->cert_file);
 	unlink(args->config->cert_file);
 
 	if (args->config->mode == CLIENT_MODE_OFFLINE) {
-		INFO("Skipping check with policy master (offline mode)");
+		cw_log(LOG_INFO, "Skipping check with policy master (offline mode)");
 
 	} else {
 		if (client_connect(args->config, 1) != 0) { exit(1); }
@@ -314,7 +313,7 @@ static int cwcert_new_main(const struct cwcert_opts *args)
 	memset(&subject, 0, sizeof(subject));
 	subject.type = strdup("CWA");
 	if (cert_my_hostname(fqdn, 1024) != 0) {
-		ERROR("Failed to get local hostname!");
+		cw_log(LOG_ERR, "Failed to get local hostname!");
 		return CWCERT_OTHER_ERR;
 	}
 	subject.fqdn = fqdn;
@@ -346,16 +345,16 @@ static int cwcert_new_main(const struct cwcert_opts *args)
 		cert_read_subject(&subject, stdin);
 	}
 
-	INFO("Generating certificate signing request...");
+	cw_log(LOG_INFO, "Generating certificate signing request...");
 	request = cert_generate_request(key, &subject);
 	if (!request) {
-		CRITICAL("Unable to generate certificate signing request.");
+		cw_log(LOG_CRIT, "Unable to generate certificate signing request.");
 		return CWCERT_SSL_ERROR;
 	}
 
-	INFO("Saving certificate signing request to %s", args->config->request_file);
+	cw_log(LOG_INFO, "Saving certificate signing request to %s", args->config->request_file);
 	if (cert_store_request(request, args->config->request_file) != 0) {
-		CRITICAL("Unable to save certificate signing request" );
+		cw_log(LOG_CRIT, "Unable to save certificate signing request" );
 		return CWCERT_OTHER_ERR;
 	}
 
@@ -372,31 +371,31 @@ static int cwcert_renew_main(const struct cwcert_opts *args)
 
 	key = cert_retrieve_key(args->config->key_file);
 	if (!key) {
-		CRITICAL("Unable to retrieve private key");
+		cw_log(LOG_CRIT, "Unable to retrieve private key");
 		return CWCERT_OTHER_ERR;
 	}
 
 	old_cert = cert_retrieve_certificate(args->config->cert_file);
 	if (!old_cert) {
-		CRITICAL("Unable to retrieve previous signed certificate");
+		cw_log(LOG_CRIT, "Unable to retrieve previous signed certificate");
 		return CWCERT_OTHER_ERR;
 	}
 
 	subject = cert_certificate_subject(old_cert);
 	if (!subject) {
-		CRITICAL("Unable to parse Certificate Subject");
+		cw_log(LOG_CRIT, "Unable to parse Certificate Subject");
 		return CWCERT_SSL_ERROR;
 	}
 
 	request = cert_generate_request(key, subject);
 	if (!request) {
-		CRITICAL("Unable to generate certificate signing request.");
+		cw_log(LOG_CRIT, "Unable to generate certificate signing request.");
 		return CWCERT_SSL_ERROR;
 	}
 
-	INFO("Saving certificate signing request to %s", args->config->request_file);
+	cw_log(LOG_INFO, "Saving certificate signing request to %s", args->config->request_file);
 	if (cert_store_request(request, args->config->request_file) != 0) {
-		CRITICAL("Unable to save certificate signing request" );
+		cw_log(LOG_CRIT, "Unable to save certificate signing request" );
 		return CWCERT_OTHER_ERR;
 	}
 
@@ -409,17 +408,17 @@ static int cwcert_test_main(const struct cwcert_opts *args)
 
 	key = cert_retrieve_key(args->config->key_file);
 	if (!key) {
-		ERROR("No private key found.  Have you run `cwcert new'?");
+		cw_log(LOG_ERR, "No private key found.  Have you run `cwcert new'?");
 		return CWCERT_OTHER_ERR;
 	}
 
 	if (args->config->mode == CLIENT_MODE_OFFLINE) {
-		INFO("Skipping test against policy master (offline mode)");
+		cw_log(LOG_INFO, "Skipping test against policy master (offline mode)");
 		return CWCERT_SUCCESS;
 	}
 
 	if (client_connect(args->config, 1) != 0) {
-		ERROR("Connection to %s:%s refused", args->config->s_address, args->config->s_port);
+		cw_log(LOG_ERR, "Connection to %s:%s refused", args->config->s_address, args->config->s_port);
 		return CWCERT_OTHER_ERR;
 	}
 	if (client_hello(args->config) == 0) {
@@ -436,11 +435,11 @@ static int cwcert_test_main(const struct cwcert_opts *args)
 static int submit_request(const struct cwcert_opts *args, X509_REQ *request)
 {
 	if (args->config->mode == CLIENT_MODE_OFFLINE) {
-		INFO("Skipping verification with policy master (offline mode)");
+		cw_log(LOG_INFO, "Skipping verification with policy master (offline mode)");
 		return CWCERT_SUCCESS;
 
 	} else {
-		INFO("Sending certificate signing request to server");
+		cw_log(LOG_INFO, "Sending certificate signing request to server");
 		while (negotiate_certificate(args->config, request) != 0) {
 			printf("awaiting `cwca sign' on policy master...\n");
 			request = NULL;
@@ -449,17 +448,17 @@ static int submit_request(const struct cwcert_opts *args, X509_REQ *request)
 
 		client_bye(args->config);
 		if (client_connect(args->config, 1) != 0) {
-			CRITICAL("Unable to reconnect to verify");
+			cw_log(LOG_CRIT, "Unable to reconnect to verify");
 			return CWCERT_OTHER_ERR;
 		}
 
 		if (client_hello(args->config) != 0) {
-			CRITICAL("Issued certificate is not valid");
+			cw_log(LOG_CRIT, "Issued certificate is not valid");
 			client_bye(args->config);
 			return CWCERT_OTHER_ERR;
 		}
 
-		INFO("Completed");
+		cw_log(LOG_INFO, "Completed");
 		client_bye(args->config);
 		return CWCERT_SUCCESS;
 	}

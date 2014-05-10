@@ -25,11 +25,11 @@ augeas* augcw_init(void)
 {
 	augeas *au;
 
-	DEBUG("[augeas]: /files mapped to %s", AUGEAS_ROOT);
-	DEBUG("[augeas]: loadpath is %s",      AUGEAS_INCLUDES);
+	cw_log(LOG_DEBUG, "[augeas]: /files mapped to %s", AUGEAS_ROOT);
+	cw_log(LOG_DEBUG, "[augeas]: loadpath is %s",      AUGEAS_INCLUDES);
 	au = aug_init(AUGEAS_ROOT, AUGEAS_INCLUDES, AUGCW_OPTS);
 	if (!au) {
-		CRITICAL("augeas initialization failed");
+		cw_log(LOG_CRIT, "augeas initialization failed");
 		return NULL;
 	}
 
@@ -37,7 +37,7 @@ augeas* augcw_init(void)
 	 || aug_set(au, "/augeas/load/Hosts/incl", "/etc/hosts") < 0
 	 || aug_load(au) != 0) {
 
-		CRITICAL("augeas load failed");
+		cw_log(LOG_CRIT, "augeas load failed");
 		augcw_errors(au);
 		aug_close(au);
 		return NULL;
@@ -57,11 +57,11 @@ void augcw_errors(augeas* au)
 	rc = aug_match(au, "/augeas//error", &results);
 	if (rc == 0) { return; }
 
-	INFO("%u Augeas errors found\n", rc);
+	cw_log(LOG_INFO, "%u Augeas errors found\n", rc);
 	for (i = 0; i < rc; i++) {
 		aug_get(au, results[i], &value);
-		DEBUG(  "[epath]: %s", results[i]);
-		WARNING("[error]: %s", value);
+		cw_log(LOG_DEBUG,   "[epath]: %s", results[i]);
+		cw_log(LOG_WARNING, "[error]: %s", value);
 	}
 	free(results);
 }

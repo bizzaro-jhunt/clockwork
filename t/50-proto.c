@@ -103,7 +103,7 @@ static pid_t fork_test(struct test_proto_conn *server, child_fn test)
 		dup2(c2s[1], 1);
 
 		(*test)();
-		CRITICAL("fork_test: exec in child failed: %s", strerror(errno));
+		cw_log(LOG_CRIT, "fork_test: exec in child failed: %s", strerror(errno));
 		exit(127);
 
 	} else {

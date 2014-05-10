@@ -168,7 +168,7 @@ EVP_PKEY* cert_retrieve_key(const char *keyfile)
 		key = PEM_read_PrivateKey(fp, NULL, NULL, NULL);
 		fclose(fp);
 	} else {
-		DEBUG("Unable to open %s for key retrieval", keyfile);
+		cw_log(LOG_DEBUG, "Unable to open %s for key retrieval", keyfile);
 	}
 
 	return key;
@@ -313,7 +313,7 @@ X509_REQ* cert_generate_request(EVP_PKEY* key, const struct cert_subject *subj)
 	X509_REQ_set_pubkey(request, key);
 
 	if (!X509_REQ_set_version(request, 3)) {
-		ERROR("Failed to set X.509 version to 3");
+		cw_log(LOG_ERR, "Failed to set X.509 version to 3");
 		return NULL;
 	}
 
@@ -392,11 +392,11 @@ X509* cert_sign_request(X509_REQ *request, X509 *ca_cert, EVP_PKEY *cakey, unsig
 
 	verified = X509_REQ_verify(request, pubkey);
 	if (verified < 0) {
-		ERROR("Failed to verify certificate signing request");
+		cw_log(LOG_ERR, "Failed to verify certificate signing request");
 		goto error;
 	}
 	if (verified == 0) {
-		ERROR("Signature mismatch on certificate signing request");
+		cw_log(LOG_ERR, "Signature mismatch on certificate signing request");
 		goto error;
 	}
 
@@ -406,29 +406,29 @@ X509* cert_sign_request(X509_REQ *request, X509 *ca_cert, EVP_PKEY *cakey, unsig
 	}
 
 	if (!X509_set_version(cert, 3)) {
-		ERROR("Failed to set X.509 version to 3");
+		cw_log(LOG_ERR, "Failed to set X.509 version to 3");
 		goto error;
 	}
 
 	if (!rand_serial(NULL, X509_get_serialNumber(cert))) {
-		ERROR("Failed to generate serial number for certificate");
+		cw_log(LOG_ERR, "Failed to generate serial number for certificate");
 		goto error;
 	}
 
 	if (ca_cert) {
 		if (!X509_set_issuer_name(cert, X509_get_subject_name(ca_cert))) {
-			ERROR("Failed to set issuer on new certificate");
+			cw_log(LOG_ERR, "Failed to set issuer on new certificate");
 			goto error;
 		}
 	} else {
 		if (!X509_set_issuer_name(cert, request->req_info->subject)) {
-			ERROR("Failed to set issuer on new self-signed certificate");
+			cw_log(LOG_ERR, "Failed to set issuer on new self-signed certificate");
 			goto error;
 		}
 	}
 
 	if (!X509_set_subject_name(cert, request->req_info->subject)) {
-		ERROR("Failed to set subject on new certificate");
+		cw_log(LOG_ERR, "Failed to set subject on new certificate");
 		goto error;
 	}
 
@@ -438,7 +438,7 @@ X509* cert_sign_request(X509_REQ *request, X509 *ca_cert, EVP_PKEY *cakey, unsig
 	EVP_PKEY_free(pubkey);
 
 	if (!X509_sign(cert, cakey, EVP_sha1())) {
-		ERROR("Failed to sign certificate as CA");
+		cw_log(LOG_ERR, "Failed to sign certificate as CA");
 		goto error;
 	}
 
@@ -897,7 +897,7 @@ int cert_revoke_certificate(X509_CRL *crl, X509 *cert, EVP_PKEY *key)
 	ASN1_TIME        *revoked_at   = NULL;
 
 	if (cert_X509_CRL_get0_by_serial(crl, &revoked_cert, X509_get_serialNumber(cert)) == 0) {
-		DEBUG("Already revoked...");
+		cw_log(LOG_DEBUG, "Already revoked...");
 		/* already revoked */
 		return 1;
 	}

@@ -78,7 +78,7 @@ again:
 		return 0;
 
 	default:
-		ERROR("Bad node type: %i", n->type);
+		cw_log(LOG_ERR, "Bad node type: %i", n->type);
 		return -1;
 	}
 

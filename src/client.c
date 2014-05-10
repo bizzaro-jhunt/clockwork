@@ -24,7 +24,7 @@
 /**************************************************************/
 
 static struct client default_options = {
-	.log_level   = LOG_LEVEL_ERROR,
+	.log_level   = LOG_ERR,
 	.mode        = 0,
 
 	.config_file  = DEFAULT_CWA_CONF,
@@ -78,24 +78,25 @@ static struct client* configured_options(const char *path)
 		v = hash_get(config, "port");
 		if (v) { c->s_port = strdup(v); }
 
+		/* FIXME: cw_log_level can take a string... */
 		v = hash_get(config, "log_level");
 		if (v) {
 			if (strcmp(v, "critical") == 0) {
-				c->log_level = LOG_LEVEL_CRITICAL;
+				c->log_level = LOG_CRIT;
 			} else if (strcmp(v, "error") == 0) {
-				c->log_level = LOG_LEVEL_ERROR;
+				c->log_level = LOG_ERR;
 			} else if (strcmp(v, "warning") == 0) {
-				c->log_level = LOG_LEVEL_WARNING;
+				c->log_level = LOG_WARNING;
 			} else if (strcmp(v, "notice") == 0) {
-				c->log_level = LOG_LEVEL_NOTICE;
+				c->log_level = LOG_NOTICE;
 			} else if (strcmp(v, "info") == 0) {
-				c->log_level = LOG_LEVEL_INFO;
+				c->log_level = LOG_INFO;
 			} else if (strcmp(v, "debug") == 0) {
-				c->log_level = LOG_LEVEL_DEBUG;
+				c->log_level = LOG_DEBUG;
 			} else if (strcmp(v, "all") == 0) {
-				c->log_level = LOG_LEVEL_ALL;
+				c->log_level = LOG_DEBUG;
 			} else { // handle "none" implicitly
-				c->log_level = LOG_LEVEL_NONE;
+				c->log_level = LOG_EMERG;
 			}
 		}
 
@@ -147,16 +148,16 @@ static SSL_CTX* client_ssl_ctx(struct client *c, int use_cert)
 {
 	SSL_CTX *ctx;
 
-	INFO("Setting up client SSL context");
+	cw_log(LOG_INFO, "Setting up client SSL context");
 	if (!(ctx = SSL_CTX_new(TLSv1_method()))) {
-		ERROR("Failed to set up new TLSv1 SSL context");
+		cw_log(LOG_ERR, "Failed to set up new TLSv1 SSL context");
 		protocol_ssl_backtrace();
 		return NULL;
 	}
 
-	DEBUG(" - Loading CA certificate chain from %s", c->ca_cert_file);
+	cw_log(LOG_DEBUG, " - Loading CA certificate chain from %s", c->ca_cert_file);
 	if (!SSL_CTX_load_verify_locations(ctx, c->ca_cert_file, NULL)) {
-		ERROR("Failed to load CA certificate chain (%s)", c->ca_cert_file);
+		cw_log(LOG_ERR, "Failed to load CA certificate chain (%s)", c->ca_cert_file);
 		SSL_CTX_free(ctx);
 		protocol_ssl_backtrace();
 		return NULL;
@@ -164,23 +165,23 @@ static SSL_CTX* client_ssl_ctx(struct client *c, int use_cert)
 
 	c->verified = 0;
 	if (use_cert) {
-		DEBUG(" - Loading certificate from %s", c->cert_file);
+		cw_log(LOG_DEBUG, " - Loading certificate from %s", c->cert_file);
 		if (!SSL_CTX_use_certificate_file(ctx, c->cert_file, SSL_FILETYPE_PEM)) {
-			WARNING("No certificate to load (%s); running in 'unverified client' mode", c->cert_file);
+			cw_log(LOG_WARNING, "No certificate to load (%s); running in 'unverified client' mode", c->cert_file);
 		} else {
 			c->verified = 1;
 		}
 	}
 
-	DEBUG(" - Loading private key from %s", c->key_file);
+	cw_log(LOG_DEBUG, " - Loading private key from %s", c->key_file);
 	if (!SSL_CTX_use_PrivateKey_file(ctx, c->key_file, SSL_FILETYPE_PEM)) {
-		ERROR("Failed to load private key (%s)", c->key_file);
+		cw_log(LOG_ERR, "Failed to load private key (%s)", c->key_file);
 		SSL_CTX_free(ctx);
 		protocol_ssl_backtrace();
 		return NULL;
 	}
 
-	DEBUG(" - Setting peer verification flags");
+	cw_log(LOG_DEBUG, " - Setting peer verification flags");
 	SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, NULL);
 	SSL_CTX_set_verify_depth(ctx, 4);
 
@@ -192,22 +193,22 @@ static int client_do_connect(struct client *c)
 	char *addr;
 
 	addr = string("%s:%s", c->s_address, c->s_port);
-	DEBUG("Connecting to %s", addr);
+	cw_log(LOG_DEBUG, "Connecting to %s", addr);
 
 	c->socket = BIO_new_connect(addr);
 	if (!c->socket || BIO_do_connect(c->socket) <= 0) {
-		DEBUG("Failed to create a new BIO connection object");
+		cw_log(LOG_DEBUG, "Failed to create a new BIO connection object");
 		return -1;
 	}
 
 	if (!(c->ssl = SSL_new(c->ssl_ctx))) {
-		DEBUG("Failed to create an SSL connection");
+		cw_log(LOG_DEBUG, "Failed to create an SSL connection");
 		return -1;
 	}
 
 	SSL_set_bio(c->ssl, c->socket, c->socket);
 	if (SSL_connect(c->ssl) <= 0) {
-		DEBUG("Failed to initiate SSL connection");
+		cw_log(LOG_DEBUG, "Failed to initiate SSL connection");
 		protocol_ssl_backtrace();
 		SSL_free(c->ssl);
 		c->ssl = NULL;
@@ -227,19 +228,19 @@ int client_connect(struct client *c, int unverified)
 	c->ssl_ctx = client_ssl_ctx(c, 1);
 	connected = client_do_connect(c);
 	if (connected != 0 && c->verified && unverified) {
-		DEBUG("Verified mode failed; switching to unverified mode");
+		cw_log(LOG_DEBUG, "Verified mode failed; switching to unverified mode");
 		SSL_CTX_free(c->ssl_ctx);
 		c->ssl_ctx = client_ssl_ctx(c, 0);
 		connected = client_do_connect(c);
 	}
 
 	if (connected != 0) {
-		DEBUG("SSL connection (%sverified mode) failed", unverified ? "un" : "");
+		cw_log(LOG_DEBUG, "SSL connection (%sverified mode) failed", unverified ? "un" : "");
 		return -1;
 	}
 
 	if ((err = protocol_ssl_verify_peer(c->ssl, c->s_address)) != X509_V_OK) {
-		CRITICAL("Server certificate verification failed: %s", X509_verify_cert_error_string(err));
+		cw_log(LOG_CRIT, "Server certificate verification failed: %s", X509_verify_cert_error_string(err));
 		protocol_ssl_backtrace();
 		return -1;
 	}
@@ -254,10 +255,10 @@ int client_hello(struct client *c)
 
 	if (pdu_receive(&c->session) < 0) {
 		if (c->session.errnum == 401) {
-			DEBUG("Peer certificate required");
+			cw_log(LOG_DEBUG, "Peer certificate required");
 			return -1;
 		}
-		CRITICAL("Error: %u - %s", c->session.errnum, c->session.errstr);
+		cw_log(LOG_CRIT, "Error: %u - %s", c->session.errnum, c->session.errstr);
 		client_disconnect(c);
 		exit(1);
 	}

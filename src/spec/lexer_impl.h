@@ -71,7 +71,7 @@ static FILE* lexer_open(const char *path, spec_parser_context *ctx)
 	seen->st_ino = st.st_ino;
 	seen->io     = io;
 	cw_list_init(&(seen->ls));
-	cw_list_push(&seen->ls, &ctx->fseen);
+	cw_list_push(&ctx->fseen, &seen->ls);
 	return io;
 }
 
@@ -136,10 +136,10 @@ void spec_parser_error(void *user, const char *fmt, ...)
 
 	va_start(args, fmt);
 	if (vsnprintf(buf, 256, fmt, args) < 0) {
-		CRITICAL("%s:%u: error: vsnprintf failed in spec_parser_error",
+		cw_log(LOG_CRIT, "%s:%u: error: vsnprintf failed in spec_parser_error",
 		                ctx->file, yyget_lineno(ctx->scanner));
 	} else {
-		CRITICAL("%s:%u: error: %s", ctx->file, yyget_lineno(ctx->scanner), buf);
+		cw_log(LOG_CRIT, "%s:%u: error: %s", ctx->file, yyget_lineno(ctx->scanner), buf);
 	}
 	ctx->errors++;
 }
@@ -152,11 +152,11 @@ void spec_parser_warning(void *user, const char *fmt, ...)
 
 	va_start(args, fmt);
 	if (vsnprintf(buf, 256, fmt, args) < 0) {
-		CRITICAL("%s:%u: error: vsnprintf failed in spec_parser_warning",
+		cw_log(LOG_CRIT, "%s:%u: error: vsnprintf failed in spec_parser_warning",
 		                ctx->file, yyget_lineno(ctx->scanner));
 		ctx->errors++; /* treat this as an error */
 	} else {
-		CRITICAL("%s:%u: warning: %s", ctx->file, yyget_lineno(ctx->scanner), buf);
+		cw_log(LOG_CRIT, "%s:%u: warning: %s", ctx->file, yyget_lineno(ctx->scanner), buf);
 		ctx->warnings++; 
 	}
 }

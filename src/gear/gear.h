@@ -176,16 +176,6 @@ struct path {
 	size_t    len;
 };
 
-#define LOG_LEVEL_ALL         8
-#define LOG_LEVEL_DEBUG       7
-#define LOG_LEVEL_INFO        6
-#define LOG_LEVEL_NOTICE      5
-#define LOG_LEVEL_WARNING     4
-#define LOG_LEVEL_ERROR       3
-#define LOG_LEVEL_CRITICAL    2
-#define LOG_LEVEL_NONE        1
-
-
 char* string(const char *fmt, ...);
 struct string* string_new(const char *str, size_t block);
 void string_free(struct string *s);
@@ -261,17 +251,5 @@ const char *path(struct path *path);
 int path_canon(struct path *path);
 int path_push(struct path *path);
 int path_pop(struct path *path);
-
-void log_init(const char *ident);
-int log_set(int level);
-int log_level(void);
-const char* log_level_name(int level);
-
-void CRITICAL(const char *format, ...);
-void ERROR(const char *format, ...);
-void WARNING(const char *format, ...);
-void NOTICE(const char *format, ...);
-void INFO(const char *format, ...);
-void DEBUG(const char *format, ...);
 
 #endif

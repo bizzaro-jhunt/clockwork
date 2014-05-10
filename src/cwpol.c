@@ -19,6 +19,7 @@
 
 
 #include "clockwork.h"
+#include "cw.h"
 #include "policy.h"
 #include "spec/parser.h"
 #include <getopt.h>
@@ -119,11 +120,11 @@ int main(int argc, char **argv)
 
 	setup();
 	if (opts->manifest) {
-		DEBUG("pre-loading manifest: %s", opts->manifest);
+		cw_log(LOG_DEBUG, "pre-loading manifest: %s", opts->manifest);
 		dispatch1(opts, opts->manifest, 0);
 	}
 	if (opts->facts) {
-		DEBUG("pre-loading facts: %s", opts->facts);
+		cw_log(LOG_DEBUG, "pre-loading facts: %s", opts->facts);
 		dispatch1(opts, opts->facts, 0);
 	}
 	if (opts->command) {
@@ -216,8 +217,8 @@ static void free_command(struct command* c)
 COMMAND(about)
 {
 	if (show_help_file(HELP_FILES_DIR "/about.help")) {
-		ERROR("Can't find help files.");
-		WARNING("You may want to check your installation.");
+		cw_log(LOG_ERR, "Can't find help files.");
+		cw_log(LOG_WARNING, "You may want to check your installation.");
 	}
 	return 0;
 }
@@ -237,11 +238,11 @@ COMMAND(help)
 
 	if (show_help_file(path) != 0 && interactive) {
 		if (use_main) {
-			ERROR("Can't find main help file.");
-			INFO("You may want to check your installation.");
+			cw_log(LOG_ERR, "Can't find main help file.");
+			cw_log(LOG_INFO, "You may want to check your installation.");
 		} else {
-			ERROR("Nothing known about '%s'.", slv(c->args,0));
-			INFO("Try 'help' for a list of commands.");
+			cw_log(LOG_ERR, "Nothing known about '%s'.", slv(c->args,0));
+			cw_log(LOG_INFO, "Try 'help' for a list of commands.");
 		}
 	}
 	return 0;
@@ -249,7 +250,7 @@ COMMAND(help)
 
 COMMAND(quit)
 {
-	INFO("Goodbye...");
+	cw_log(LOG_INFO, "Goodbye...");
 	return 1;
 }
 
@@ -275,8 +276,8 @@ COMMAND(show)
 
 	} else if (c->argc == 1 && strcmp(type, "resources") == 0) {
 		if (!CONTEXT.root) {
-			ERROR("Invalid referential context");
-			INFO("Select a host or policy through the 'use' command");
+			cw_log(LOG_ERR, "Invalid referential context");
+			cw_log(LOG_INFO, "Select a host or policy through the 'use' command");
 			return 0;
 		}
 
@@ -284,20 +285,20 @@ COMMAND(show)
 
 	} else if (c->argc == 2) {
 		if (!CONTEXT.root) {
-			ERROR("Invalid referential context");
-			INFO("Select a host or policy through the 'use' command");
+			cw_log(LOG_ERR, "Invalid referential context");
+			cw_log(LOG_INFO, "Select a host or policy through the 'use' command");
 			return 0;
 		}
 
 		show_resource(slv(c->args,0), slv(c->args,1));
 	} else {
-		ERROR("Missing required arguments");
-		INFO("   show fact <name>");
-		INFO("   show facts [like pattern]");
-		INFO("   show hosts");
-		INFO("   show policies");
-		INFO("   show resources");
-		INFO("   show <resource-type> <name>");
+		cw_log(LOG_ERR, "Missing required arguments");
+		cw_log(LOG_INFO, "   show fact <name>");
+		cw_log(LOG_INFO, "   show facts [like pattern]");
+		cw_log(LOG_INFO, "   show hosts");
+		cw_log(LOG_INFO, "   show policies");
+		cw_log(LOG_INFO, "   show resources");
+		cw_log(LOG_INFO, "   show <resource-type> <name>");
 	}
 	return 0;
 }
@@ -317,23 +318,23 @@ COMMAND(use)
 		set_context(CONTEXT_NONE, NULL, NULL);
 		return 0;
 	} else {
-		ERROR("Missing required arguments");
-		INFO("   use global");
-		INFO("   use host <hostname>");
-		INFO("   use policy <policy>");
+		cw_log(LOG_ERR, "Missing required arguments");
+		cw_log(LOG_INFO, "   use global");
+		cw_log(LOG_INFO, "   use host <hostname>");
+		cw_log(LOG_INFO, "   use policy <policy>");
 		return 0;
 	}
 
 	if (!MANIFEST) {
-		ERROR("No manifest loaded (try `load <filename>'");
+		cw_log(LOG_ERR, "No manifest loaded (try `load <filename>'");
 		return 0;
 	}
 
 	if (strcmp(type, "host") == 0) {
 		if (!(root = hash_get(MANIFEST->hosts, target))) {
-			WARNING("Host '%s' not explicitly defined; falling back to default", target);
+			cw_log(LOG_WARNING, "Host '%s' not explicitly defined; falling back to default", target);
 			if (!(root = MANIFEST->fallback)) {
-				ERROR("No default host defined", target);
+				cw_log(LOG_ERR, "No default host defined", target);
 			}
 		}
 
@@ -343,24 +344,24 @@ COMMAND(use)
 			/* try to load facts */
 			if (o->no_clobber == 0) {
 				char *path = string("%s/%s.facts", o->cache, target);
-				INFO("auto-loading host facts from %s", o->cache);
+				cw_log(LOG_INFO, "auto-loading host facts from %s", o->cache);
 				load_facts_from_path(path);
 				free(path);
 
 			} else if (interactive) {
-				INFO("using previously loaded / defined facts");
-				INFO("you may want to `clear facts' and");
-				INFO("`use host %s' again", target);
+				cw_log(LOG_INFO, "using previously loaded / defined facts");
+				cw_log(LOG_INFO, "you may want to `clear facts' and");
+				cw_log(LOG_INFO, "`use host %s' again", target);
 			}
 		}
 	} else if (strcmp(type, "policy") == 0) {
 		if (!(root = hash_get(MANIFEST->policies, target))) {
-			ERROR("No such policy '%s'", target);
+			cw_log(LOG_ERR, "No such policy '%s'", target);
 		} else {
 			set_context(CONTEXT_POLICY, target, root);
 		}
 	} else {
-		ERROR("Unknown context type: '%s'", type);
+		cw_log(LOG_ERR, "Unknown context type: '%s'", type);
 	}
 	return 0;
 }
@@ -388,7 +389,7 @@ COMMAND(fact)
 		v = strdup(a);
 
 		if (!*k || !*v) {
-			ERROR("Malformed fact.  See `help fact'");
+			cw_log(LOG_ERR, "Malformed fact.  See `help fact'");
 			return 0;
 		}
 
@@ -402,8 +403,8 @@ COMMAND(fact)
 		return 0;
 	}
 
-	ERROR("Missing required arguments");
-	INFO("   fact new.fact.name = fact.value");
+	cw_log(LOG_ERR, "Missing required arguments");
+	cw_log(LOG_INFO, "   fact new.fact.name = fact.value");
 	return 0;
 }
 
@@ -419,22 +420,22 @@ COMMAND(load)
 	}
 
 	if (c->argc == 1) {
-		if (interactive) { INFO("Reading in %s", slv(c->args,0)); }
+		if (interactive) { cw_log(LOG_INFO, "Reading in %s", slv(c->args,0)); }
 
 		manifest_free(MANIFEST);
 		MANIFEST = parse_file(slv(c->args,0));
 		if (!MANIFEST) {
-			INFO("Failed to load manifest");
+			cw_log(LOG_INFO, "Failed to load manifest");
 			return 0;
 		}
 
-		if (interactive) { INFO("Loaded manifest."); }
+		if (interactive) { cw_log(LOG_INFO, "Loaded manifest."); }
 		return 0;
 	}
 
-	ERROR("Missing required arguments");
-	INFO("   load facts from /path/to/file");
-	INFO("   load /path/to/manifest.pol");
+	cw_log(LOG_ERR, "Missing required arguments");
+	cw_log(LOG_INFO, "   load facts from /path/to/file");
+	cw_log(LOG_INFO, "   load /path/to/manifest.pol");
 
 	return 0;
 }
@@ -449,15 +450,15 @@ COMMAND(clear)
 		return 0;
 	}
 
-	ERROR("Missing required arguments");
-	INFO("   clear facts");
+	cw_log(LOG_ERR, "Missing required arguments");
+	cw_log(LOG_INFO, "   clear facts");
 	return 0;
 }
 
 COMMAND(gencode)
 {
 	if (CONTEXT.type != CONTEXT_HOST) {
-		ERROR("gencode should only be used in a 'host' context\n");
+		cw_log(LOG_ERR, "gencode should only be used in a 'host' context\n");
 	} else {
 		policy_gencode(CONTEXT.policy, stdout);
 	}
@@ -481,21 +482,13 @@ COMMAND(log)
 	char *arg;
 
 	if (c->argc != 1) {
-		i = log_level();
+		i = cw_log_level(-1, NULL);
 		printf("log level is %s (%i)\n", levels[i], i);
 		return 0;
 	}
 	arg = slv(c->args, 0);
-	for (i = 1; i <= LOG_LEVEL_ALL; i++) {
-		if (strcasecmp(levels[i], arg) == 0) {
-			log_set(i);
-			if (interactive) {
-				printf("log level set to %s (%i)\n", arg, i);
-			}
-			return 0;
-		}
-	}
-	ERROR("Unknown log level: '%s'", arg);
+	cw_log_level(LOG_ERR, arg);
+	if (interactive) printf("log level set to %s\n", cw_log_level_name(-1));
 	return 0;
 }
 
@@ -525,12 +518,12 @@ static void load_facts_from_path(const char *path)
 	FILE* io = fopen(path, "r");
 
 	if (!io) {
-		ERROR("Load failed:%s: %s", path, strerror(errno));
+		cw_log(LOG_ERR, "Load failed:%s: %s", path, strerror(errno));
 		return;
 	}
 
 	if (!fact_read(io, FACTS)) {
-		ERROR("Load failed");
+		cw_log(LOG_ERR, "Load failed");
 	}
 	fclose(io);
 }
@@ -572,7 +565,7 @@ static void show_hash_keys(struct hash *h)
 
 	stringlist_sort(keys, STRINGLIST_SORT_ASC);
 	if (keys->num == 0) {
-		INFO("(none defined)");
+		cw_log(LOG_INFO, "(none defined)");
 	} else {
 		for_each_string(keys, i) {
 			printf("%s\n", slv(keys,i));
@@ -588,7 +581,7 @@ static void show_facts(const char *pattern)
 
 	struct stringlist *keys = hash_keys(FACTS);
 	if (keys->num == 0) {
-		INFO("(none defined)");
+		cw_log(LOG_INFO, "(none defined)");
 		return;
 	}
 
@@ -618,7 +611,7 @@ static void show_fact(const char *name)
 static void show_hosts(void)
 {
 	if (!MANIFEST) {
-		ERROR("No manifest loaded");
+		cw_log(LOG_ERR, "No manifest loaded");
 		return;
 	}
 	show_hash_keys(MANIFEST->hosts);
@@ -627,7 +620,7 @@ static void show_hosts(void)
 static void show_policies(void)
 {
 	if (!MANIFEST) {
-		ERROR("No manifest loaded");
+		cw_log(LOG_ERR, "No manifest loaded");
 		return;
 	}
 	show_hash_keys(MANIFEST->policies);
@@ -642,7 +635,7 @@ static void show_resources(void)
 
 	make_policy();
 	if (!CONTEXT.policy) {
-		ERROR("Failed to generate policy");
+		cw_log(LOG_ERR, "Failed to generate policy");
 		return;
 	}
 
@@ -651,7 +644,7 @@ static void show_resources(void)
 		stringlist_add(list, r->key);
 	}
 	if (list->num == 0) {
-		INFO("(none defined)");
+		cw_log(LOG_INFO, "(none defined)");
 		return;
 	}
 
@@ -680,12 +673,12 @@ static void show_resource(const char *type, const char *name)
 
 	make_policy();
 	if (!CONTEXT.policy) {
-		ERROR("Failed to generate policy");
+		cw_log(LOG_ERR, "Failed to generate policy");
 		return;
 	}
 
 	if (!(r = hash_get(CONTEXT.policy->index, target))) {
-		ERROR("!! No such %s resource: %s", type, name);
+		cw_log(LOG_ERR, "!! No such %s resource: %s", type, name);
 	} else {
 		attrs = resource_attrs(r);
 		keys = hash_keys(attrs);
@@ -730,7 +723,7 @@ static struct cwpol_opts* cwpol_options(int argc, char **argv, int interactive)
 		{ 0, 0, 0, 0 },
 	};
 
-	int v = (interactive ? LOG_LEVEL_INFO : LOG_LEVEL_ERROR);
+	int v = (interactive ? LOG_INFO : LOG_ERR);
 	int opt, idx = 0;
 
 	o = xmalloc(sizeof(struct cwpol_opts));
@@ -779,7 +772,7 @@ static struct cwpol_opts* cwpol_options(int argc, char **argv, int interactive)
 		o->command = strdup("help");
 	}
 
-	log_set(v);
+	cw_log_level(v, NULL);
 	return o;
 }
 
@@ -839,16 +832,16 @@ static int dispatch1(struct cwpol_opts *o, const char *c, int interactive)
 	command = parse_command(c);
 	if (!command) {
 		if (!interactive) {
-			ERROR("Failed to execute '%s'", c);
+			cw_log(LOG_ERR, "Failed to execute '%s'", c);
 		}
 		return 1;
 	}
 
-	DEBUG("dispatching '%s'", command->cmd);
+	cw_log(LOG_DEBUG, "dispatching '%s'", command->cmd);
 	if ((f = hash_get(DISPATCH, command->cmd))) {
 		rc = (*f)(o, command, interactive);
 	} else {
-		ERROR("Unknown command: %s", command->cmd);
+		cw_log(LOG_ERR, "Unknown command: %s", command->cmd);
 		rc = -1;
 	}
 	free_command(command);

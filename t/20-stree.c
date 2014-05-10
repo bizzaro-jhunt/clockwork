@@ -203,7 +203,7 @@ TESTS {
 		isnt_null(pol = policy_generate(root, NULL), "generated policy");
 		if (!pol) break;
 
-		ok(!list_empty(&pol->resources), "policy defined has resources");
+		ok(!cw_list_isempty(&pol->resources), "policy defined has resources");
 
 		user_count = group_count = file_count = 0;
 		for_each_resource(r, pol) {

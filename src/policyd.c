@@ -18,6 +18,7 @@
  */
 
 #include "clockwork.h"
+#include "cw.h"
 
 #include <getopt.h>
 #include <signal.h>
@@ -113,11 +114,11 @@ int main(int argc, char **argv)
 		exit(2);
 	}
 
-	s->log_level = log_set(s->log_level);
-	INFO("Log level is %s (%u)", log_level_name(s->log_level), s->log_level);
+	s->log_level = cw_log_level(s->log_level, NULL);
+	cw_log(LOG_INFO, "Log level is %s", cw_log_level_name(-1));
 
 	if (s->show_config == SERVER_OPT_TRUE) {
-		INFO("Dumping policyd configuration");
+		cw_log(LOG_INFO, "Dumping policyd configuration");
 		show_config(s);
 		exit(0);
 	}
@@ -141,9 +142,9 @@ int main(int argc, char **argv)
 		exit(0);
 	}
 
-	INFO("policyd starting up");
+	cw_log(LOG_INFO, "policyd starting up");
 	if (server_init(s) != 0) {
-		CRITICAL("Failed to initialize policyd server thread");
+		cw_log(LOG_CRIT, "Failed to initialize policyd server thread");
 		exit(2);
 	}
 
@@ -159,18 +160,18 @@ int main(int argc, char **argv)
 	sigaddset(&blocked_sigs, SIGUSR2);
 	sigaddset(&blocked_sigs, SIGALRM);
 
-	DEBUG("entering server_loop");
+	cw_log(LOG_DEBUG, "entering server_loop");
 	for (;;) {
 		w = spawn(s);
 		if (!w) {
-			WARNING("Failed to spawn worker for inbound connection");
+			cw_log(LOG_WARNING, "Failed to spawn worker for inbound connection");
 			continue;
 		}
 		THREAD_CREATE(w->tid, worker_thread, w);
 	}
 
 	SSL_CTX_free(s->ssl_ctx);
-	INFO("policyd shutting down");
+	cw_log(LOG_INFO, "policyd shutting down");
 	return 0;
 }
 
@@ -292,16 +293,16 @@ static void show_help(void)
 static struct worker* spawn(struct server *s)
 {
 	struct worker *w;
-	DEBUG("Spawning new worker");
+	cw_log(LOG_DEBUG, "Spawning new worker");
 
 unintr:
 	errno = 0;
 	if (BIO_do_accept(s->listener) <= 0) {
 		if (errno == EINTR) {
-			DEBUG("Catching interruption due to SIGHUP(?)");
+			cw_log(LOG_DEBUG, "Catching interruption due to SIGHUP(?)");
 			goto unintr;
 		}
-		WARNING("Couldn't accept inbound connection");
+		cw_log(LOG_WARNING, "Couldn't accept inbound connection");
 		protocol_ssl_backtrace();
 		return NULL;
 	}
@@ -321,7 +322,7 @@ unintr:
 
 	w->socket = BIO_pop(s->listener);
 	if (!(w->ssl = SSL_new(s->ssl_ctx))) {
-		WARNING("Couldn't create SSL handle for worker thread");
+		cw_log(LOG_WARNING, "Couldn't create SSL handle for worker thread");
 		protocol_ssl_backtrace();
 
 		hash_free_all(w->facts);
@@ -339,7 +340,7 @@ static int worker_prep(struct worker *w)
 
 	sigset_t blocked_signals;
 
-	DEBUG("Preparing new worker");
+	cw_log(LOG_DEBUG, "Preparing new worker");
 
 	/* block SIGPIPE for clients that close early. */
 	sigemptyset(&blocked_signals);
@@ -347,15 +348,15 @@ static int worker_prep(struct worker *w)
 	pthread_sigmask(SIG_BLOCK, &blocked_signals, NULL);
 
 	if (SSL_accept(w->ssl) <= 0) {
-		DEBUG("SSL_accept returned non-zero");
-		ERROR("Unable to accept inbound SSL connection");
+		cw_log(LOG_DEBUG, "SSL_accept returned non-zero");
+		cw_log(LOG_ERR, "Unable to accept inbound SSL connection");
 		protocol_ssl_backtrace();
 		return -1;
 	}
 
 	if (verify_peer(w) != 0) {
-		DEBUG("verify_peer returned non-zero");
-		ERROR("Unable to verify peer");
+		cw_log(LOG_DEBUG, "verify_peer returned non-zero");
+		cw_log(LOG_ERR, "Unable to verify peer");
 		return -1;
 	}
 
@@ -390,7 +391,7 @@ static int handle_GET_CERT(struct worker *w)
 	X509 *cert = NULL, *ca_cert;
 
 	if (pdu_decode_GET_CERT(RECV_PDU(&w->session), &csr) != 0) {
-		CRITICAL("Unable to decode GET_CERT PDU");
+		cw_log(LOG_CRIT, "Unable to decode GET_CERT PDU");
 		return 0;
 	}
 
@@ -400,28 +401,28 @@ static int handle_GET_CERT(struct worker *w)
 		unlink(cert_file);
 
 		if (w->autosign) {
-			INFO("Auto-signing inbound Certificate Request");
+			cw_log(LOG_INFO, "Auto-signing inbound Certificate Request");
 
 			key = cert_retrieve_key(w->key_file);
 			if (!key) {
-				CRITICAL("Failed to retrieve CA private key");
+				cw_log(LOG_CRIT, "Failed to retrieve CA private key");
 				return 0;
 			}
 
 			ca_cert = cert_retrieve_certificate(w->ca_cert_file);
 			cert = cert_sign_request(csr, ca_cert, key, 365*10);
 			if (!cert) {
-				CRITICAL("Failed to auto-sign certificate");
+				cw_log(LOG_CRIT, "Failed to auto-sign certificate");
 				return 0;
 			}
 
 			if (cert_store_certificate(cert, cert_file) != 0) {
-				CRITICAL("Failed to store signed client certificate");
+				cw_log(LOG_CRIT, "Failed to store signed client certificate");
 				return 0;
 			}
 
 		} else {
-			INFO("Storing inbound Certificate Request");
+			cw_log(LOG_INFO, "Storing inbound Certificate Request");
 			cert_store_request(csr, csr_file);
 		}
 	} else {
@@ -437,18 +438,18 @@ static int handle_GET_CERT(struct worker *w)
 static int handle_FACTS(struct worker *w)
 {
 	if (!w->peer_verified) {
-		WARNING("Unverified peer tried to FACTS");
+		cw_log(LOG_WARNING, "Unverified peer tried to FACTS");
 		pdu_send_ERROR(&w->session, 401, "Client Identity Unverified");
 		return 1;
 	}
 
 	if (pdu_decode_FACTS(RECV_PDU(&w->session), w->facts) != 0) {
-		CRITICAL("Unable to decode FACTS");
+		cw_log(LOG_CRIT, "Unable to decode FACTS");
 		return 0;
 	}
 
 	if (save_facts(w) != 0) {
-		WARNING("Failed to save facts to a local file");
+		cw_log(LOG_WARNING, "Failed to save facts to a local file");
 	}
 
 	if (!w->policy && w->pnode) {
@@ -456,7 +457,7 @@ static int handle_FACTS(struct worker *w)
 	}
 
 	if (!w->policy) {
-		CRITICAL("Unable to generate policy for host %s", w->peer);
+		cw_log(LOG_CRIT, "Unable to generate policy for host %s", w->peer);
 		return 0;
 	}
 
@@ -473,7 +474,7 @@ static int handle_FILE(struct worker *w)
 	struct res_file *file, *match;
 
 	if (!w->peer_verified) {
-		WARNING("Unverified peer tried to FILE");
+		cw_log(LOG_WARNING, "Unverified peer tried to FILE");
 		pdu_send_ERROR(&w->session, 401, "Client Identity Unverified");
 		return 1;
 	}
@@ -483,7 +484,7 @@ static int handle_FILE(struct worker *w)
 		return 1;
 	}
 
-	DEBUG("Received FILE request for %s", RECV_PDU(&w->session)->data);
+	cw_log(LOG_DEBUG, "Received FILE request for %s", RECV_PDU(&w->session)->data);
 
 	memcpy(hex, RECV_PDU(&w->session)->data, SHA1_HEXLEN);
 	sha1_init(&checksum, hex);
@@ -495,7 +496,7 @@ static int handle_FILE(struct worker *w)
 
 	/* Search for the res_file in the policy */
 	if (!w->policy) {
-		WARNING("FILE before FACTS");
+		cw_log(LOG_WARNING, "FILE before FACTS");
 		pdu_send_ERROR(&w->session, 405, "Called FILE before FACTS");
 		return 0;
 	}
@@ -504,7 +505,7 @@ static int handle_FILE(struct worker *w)
 	for_each_resource(res, w->policy) {
 		if (res->type == RES_FILE) {
 			match = (struct res_file*)(res->resource);
-			DEBUG("compare %s == %s", match->rf_rsha1.hex, checksum.hex);
+			cw_log(LOG_DEBUG, "compare %s == %s", match->rf_rsha1.hex, checksum.hex);
 			if (sha1_cmp(&match->rf_rsha1, &checksum) == 0) {
 				file = match;
 				break;
@@ -513,28 +514,28 @@ static int handle_FILE(struct worker *w)
 	}
 
 	if (file) {
-		DEBUG("Found file (%s):\n", file->key);
-		DEBUG("  checksum:    %s\n", checksum.hex);
-		DEBUG("  rf_rpath:    %s\n", file->rf_rpath);
-		DEBUG("  rf_template: %s\n", file->rf_template);
+		cw_log(LOG_DEBUG, "Found file (%s):\n", file->key);
+		cw_log(LOG_DEBUG, "  checksum:    %s\n", checksum.hex);
+		cw_log(LOG_DEBUG, "  rf_rpath:    %s\n", file->rf_rpath);
+		cw_log(LOG_DEBUG, "  rf_template: %s\n", file->rf_template);
 
 		if (file->rf_rpath) {
-			INFO("Matched %s to %s", checksum.hex, file->rf_rpath);
+			cw_log(LOG_INFO, "Matched %s to %s", checksum.hex, file->rf_rpath);
 			if (send_file(w, file->rf_rpath) != 0) {
-				DEBUG("Unable to send file");
+				cw_log(LOG_DEBUG, "Unable to send file");
 			}
 		} else if (file->rf_template) {
-			INFO("Matched %s to template %s", checksum.hex, file->rf_template);
+			cw_log(LOG_INFO, "Matched %s to template %s", checksum.hex, file->rf_template);
 			if (send_template(w, file->rf_template) != 0) {
-				DEBUG("Unable to send template contents");
+				cw_log(LOG_DEBUG, "Unable to send template contents");
 			}
 		} else {
-			DEBUG("Unknown file source type (not rpath / not template)");
-			INFO("File Not Found: %s", checksum.hex);
+			cw_log(LOG_DEBUG, "Unknown file source type (not rpath / not template)");
+			cw_log(LOG_INFO, "File Not Found: %s", checksum.hex);
 			pdu_send_ERROR(&w->session, 404, "File Not Found");
 		}
 	} else {
-		INFO("File Not Found: %s", checksum.hex);
+		cw_log(LOG_INFO, "File Not Found: %s", checksum.hex);
 		pdu_send_ERROR(&w->session, 404, "File Not Found");
 	}
 
@@ -547,7 +548,7 @@ static int handle_unknown(struct worker *w)
 	enum proto_op op = RECV_PDU(&w->session)->op;
 
 	message = string("Protocol Error: Unrecognized PDU op %s(%u)", protocol_op_name(op), op);
-	WARNING("%s", message);
+	cw_log(LOG_WARNING, "%s", message);
 	pdu_send_ERROR(&w->session, 405, message);
 	free(message);
 
@@ -564,18 +565,18 @@ static int verify_peer(struct worker *w)
 
 	sock = SSL_get_fd(w->ssl);
 	if (protocol_reverse_lookup_verify(sock, addr, 256) != 0) {
-		ERROR("FCrDNS lookup (ipv4) failed: %s",
+		cw_log(LOG_ERR, "FCrDNS lookup (ipv4) failed: %s",
 			(errno == 0 ? "unspecified error" : strerror(errno)));
 		return 0;
 	}
 	w->peer = strdup(addr);
-	INFO("Connection on socket %u from '%s'", sock, w->peer);
+	cw_log(LOG_INFO, "Connection on socket %u from '%s'", sock, w->peer);
 
 	w->peer_verified = 0;
 
 	if ((err = protocol_ssl_verify_peer(w->ssl, addr)) != X509_V_OK) {
 		if (err != X509_V_ERR_APPLICATION_VERIFICATION) {
-			ERROR("SSL: problem with peer certificate: %s", X509_verify_cert_error_string(err));
+			cw_log(LOG_ERR, "SSL: problem with peer certificate: %s", X509_verify_cert_error_string(err));
 			protocol_ssl_backtrace();
 		}
 	} else {
@@ -624,19 +625,19 @@ static void sighup_handler(int signum, siginfo_t *info, void *udata)
 
 	new_manifest = parse_file(manifest_file);
 	if (new_manifest) {
-		INFO("Updating server manifest");
+		cw_log(LOG_INFO, "Updating server manifest");
 		pthread_mutex_lock(&manifest_mutex);
 		manifest_free(manifest);
 		manifest = new_manifest;
 		pthread_mutex_unlock(&manifest_mutex);
 	} else {
-		WARNING("Unable to parse manifest; skipping");
+		cw_log(LOG_WARNING, "Unable to parse manifest; skipping");
 	}
 }
 
 static void sigterm_handler(int signum, siginfo_t *info, void *udata)
 {
-	INFO("Caught SIGTERM/SIGINT; requesting clean shutdown");
+	cw_log(LOG_INFO, "Caught SIGTERM/SIGINT; requesting clean shutdown");
 	pthread_mutex_lock(&manifest_mutex);
 	manifest_free(manifest);
 	exit(1);
@@ -674,7 +675,7 @@ static void daemonize(const char *lock_file, const char *pid_file)
 	/* first fork */
 	pid = fork();
 	if (pid < 0) {
-		ERROR("unable to fork: %s", strerror(errno));
+		cw_log(LOG_ERR, "unable to fork: %s", strerror(errno));
 		exit(2);
 	}
 	if (pid > 0) { /* parent process */
@@ -684,13 +685,13 @@ static void daemonize(const char *lock_file, const char *pid_file)
 	/* second fork */
 	sessid = setsid(); /* new process session / group */
 	if (sessid < 0) {
-		ERROR("unable to create new process group: %s", strerror(errno));
+		cw_log(LOG_ERR, "unable to create new process group: %s", strerror(errno));
 		exit(2);
 	}
 
 	pid = fork();
 	if (pid < 0) {
-		ERROR("unable to fork again: %s", strerror(errno));
+		cw_log(LOG_ERR, "unable to fork again: %s", strerror(errno));
 		exit(2);
 	}
 
@@ -700,7 +701,7 @@ static void daemonize(const char *lock_file, const char *pid_file)
 		     the fully daemonized process. */
 		pid_io = fopen(pid_file, "w");
 		if (!pid_io) {
-			ERROR("Failed to open PID file %s for writing: %s", pid_file, strerror(errno));
+			cw_log(LOG_ERR, "Failed to open PID file %s for writing: %s", pid_file, strerror(errno));
 			exit(2);
 		}
 		fprintf(pid_io, "%lu\n", (unsigned long)pid);
@@ -710,25 +711,25 @@ static void daemonize(const char *lock_file, const char *pid_file)
 
 	/* acquire lock */
 	if (!(lock_file && lock_file[0])) {
-		ERROR("NULL or empty lock file path given");
+		cw_log(LOG_ERR, "NULL or empty lock file path given");
 		exit(2);
 	}
 
 	lock_fd = open(lock_file, O_CREAT | O_RDWR, 0640);
 	if (lock_fd < 0) {
-		ERROR("Failed to open lock file %s: %s", lock_file, strerror(errno));
+		cw_log(LOG_ERR, "Failed to open lock file %s: %s", lock_file, strerror(errno));
 		exit(2);
 	}
 
 	if (lockf(lock_fd, F_TLOCK, 0) < 0) {
-		ERROR("Failed to lock %s; daemon already running?", lock_file);
+		cw_log(LOG_ERR, "Failed to lock %s; daemon already running?", lock_file);
 		exit(2);
 	}
 
 	/* settle */
 	umask(0777); /* reset the file umask */
 	if (chdir("/") < 0) {
-		ERROR("unable to chdir to /: %s", strerror(errno));
+		cw_log(LOG_ERR, "unable to chdir to /: %s", strerror(errno));
 		exit(2);
 	}
 
@@ -736,7 +737,7 @@ static void daemonize(const char *lock_file, const char *pid_file)
 	if (!freopen("/dev/null", "r", stdin)
 	 || !freopen("/dev/null", "w", stdout)
 	 || !freopen("/dev/null", "w", stderr)) {
-		NOTICE("Failed to redirect IO streams to /dev/null");
+		cw_log(LOG_NOTICE, "Failed to redirect IO streams to /dev/null");
 	}
 }
 
@@ -760,35 +761,35 @@ static void show_config(struct server *s)
 	printf("\n");
 	printf("listen        = %s\n", s->listen);
 	printf("\n");
-	printf("log_level     = %s\n", log_level_name(s->log_level));
+	printf("log_level     = %s\n", cw_log_level_name(s->log_level));
 	printf("\n");
 }
 
 static int check_dir_writable(const char *dir)
 {
 	struct stat st;
-	DEBUG("%s: stat %s", __func__, dir);
+	cw_log(LOG_DEBUG, "%s: stat %s", __func__, dir);
 	if (stat(dir, &st) != 0) {
-		DEBUG("%s:   failed; errno = %d", __func__, errno);
+		cw_log(LOG_DEBUG, "%s:   failed; errno = %d", __func__, errno);
 		return errno;
 	}
 
-	DEBUG("%s: generate tmp filename in %s", __func__, dir);
+	cw_log(LOG_DEBUG, "%s: generate tmp filename in %s", __func__, dir);
 	char tmp[PATH_MAX];
 	if (snprintf(tmp, sizeof(tmp), "%s/.policyd.check", dir) <= 0) {
-		DEBUG("%s:   failed; errno = %d", __func__, errno);
+		cw_log(LOG_DEBUG, "%s:   failed; errno = %d", __func__, errno);
 		return errno;
 	}
 
-	DEBUG("%s: creat %s", __func__, tmp);
+	cw_log(LOG_DEBUG, "%s: creat %s", __func__, tmp);
 	int fd = creat(tmp, O_WRONLY);
 	if (fd < 0) {
-		DEBUG("%s:   failed; errno = %d", __func__, errno);
+		cw_log(LOG_DEBUG, "%s:   failed; errno = %d", __func__, errno);
 		return errno;
 	}
 	close(fd);
 
-	DEBUG("%s: unlink %s", __func__, tmp);
+	cw_log(LOG_DEBUG, "%s: unlink %s", __func__, tmp);
 	unlink(tmp);
 	return 0;
 }
@@ -796,16 +797,16 @@ static int check_dir_writable(const char *dir)
 static int check_file_writable(const char *path)
 {
 	struct stat st;
-	DEBUG("%s: stat %s", __func__, path);
+	cw_log(LOG_DEBUG, "%s: stat %s", __func__, path);
 	if (stat(path, &st) != 0) {
-		DEBUG("%s:   failed; errno = %d", __func__, errno);
+		cw_log(LOG_DEBUG, "%s:   failed; errno = %d", __func__, errno);
 		return errno;
 	}
 
-	DEBUG("%s: open %s, O_APPEND", __func__, path);
+	cw_log(LOG_DEBUG, "%s: open %s, O_APPEND", __func__, path);
 	int fd = open(path, O_APPEND);
 	if (fd < 0) {
-		DEBUG("%s:   failed; errno = %d", __func__, errno);
+		cw_log(LOG_DEBUG, "%s:   failed; errno = %d", __func__, errno);
 		return errno;
 	}
 	close(fd);
@@ -816,16 +817,16 @@ static int check_file_writable(const char *path)
 static int check_file_readable(const char *path)
 {
 	struct stat st;
-	DEBUG("%s: stat %s", __func__, path);
+	cw_log(LOG_DEBUG, "%s: stat %s", __func__, path);
 	if (stat(path, &st) != 0) {
-		DEBUG("%s:   failed; errno = %d", __func__, errno);
+		cw_log(LOG_DEBUG, "%s:   failed; errno = %d", __func__, errno);
 		return errno;
 	}
 
-	DEBUG("%s: open %s, O_RDONLY", __func__, path);
+	cw_log(LOG_DEBUG, "%s: open %s, O_RDONLY", __func__, path);
 	int fd = open(path, O_RDONLY);
 	if (fd < 0) {
-		DEBUG("%s:   failed; errno = %d", __func__, errno);
+		cw_log(LOG_DEBUG, "%s:   failed; errno = %d", __func__, errno);
 		return errno;
 	}
 	close(fd);
@@ -907,15 +908,15 @@ static int server_init(struct server *s)
 
 	/* daemonize, if necessary */
 	if (s->daemonize == SERVER_OPT_TRUE) {
-		INFO("daemonizing");
+		cw_log(LOG_INFO, "daemonizing");
 		daemonize(s->lock_file, s->pid_file);
-		log_init("policyd");
+		cw_log_open("clockd", "daemon");
 	} else {
-		INFO("running in foreground");
+		cw_log(LOG_INFO, "running in foreground");
 	}
 
 	/* bind socket */
-	INFO("binding SSL socket on %s", s->listen);
+	cw_log(LOG_INFO, "binding SSL socket on %s", s->listen);
 	s->listener = BIO_new_accept(s->listen);
 	if (!s->listener || BIO_do_accept(s->listener) <= 0) {
 		return -1;
@@ -933,13 +934,13 @@ static int save_facts(struct worker *w)
 	out = fopen(path, "w");
 	free(path);
 	if (!out) {
-		DEBUG("save_facts: failed to fopen() facts file");
+		cw_log(LOG_DEBUG, "save_facts: failed to fopen() facts file");
 		return -2;
 	}
 
 	if (fact_write(out, w->facts) != 0) {
 		fclose(out);
-		DEBUG("save_facts: fact_write call failed");
+		cw_log(LOG_DEBUG, "save_facts: fact_write call failed");
 		return -3;
 	}
 
@@ -958,7 +959,7 @@ static void* worker_thread(void *arg)
 	/* dispatch */
 	while (!done) {
 		if (pdu_receive(&w->session) < 0) {
-			WARNING("Remote end hung up unexpectedly");
+			cw_log(LOG_WARNING, "Remote end hung up unexpectedly");
 			break;
 		}
 
@@ -991,7 +992,7 @@ static void* worker_thread(void *arg)
 		}
 	}
 
-	INFO("SSL connection closed");
+	cw_log(LOG_INFO, "SSL connection closed");
 
 die:
 	SSL_shutdown(w->ssl);
@@ -1012,12 +1013,12 @@ static void* signal_thread(void *arg)
 	struct sigaction sig;
 
 	/* SIGHUP: reload policy configuration */
-	INFO("setting up signal handlers");
+	cw_log(LOG_INFO, "setting up signal handlers");
 	sig.sa_sigaction = sighup_handler;
 	sig.sa_flags = SA_SIGINFO;
 	sigemptyset(&sig.sa_mask);
 	if (sigaction(SIGHUP, &sig, NULL) != 0) {
-		ERROR("Unable to set SIGHUP handler: %s", strerror(errno));
+		cw_log(LOG_ERR, "Unable to set SIGHUP handler: %s", strerror(errno));
 		exit(2);
 	}
 
@@ -1026,7 +1027,7 @@ static void* signal_thread(void *arg)
 	sig.sa_flags = SA_SIGINFO;
 	sigemptyset(&sig.sa_mask);
 	if (sigaction(SIGTERM, &sig, NULL) != 0) {
-		ERROR("Unable to set SIGTERM handler: %s", strerror(errno));
+		cw_log(LOG_ERR, "Unable to set SIGTERM handler: %s", strerror(errno));
 		exit(2);
 	}
 
@@ -1035,7 +1036,7 @@ static void* signal_thread(void *arg)
 	sig.sa_flags = SA_SIGINFO;
 	sigemptyset(&sig.sa_mask);
 	if (sigaction(SIGINT, &sig, NULL) != 0) {
-		ERROR("Unable to set SIGINT handler: %s", strerror(errno));
+		cw_log(LOG_ERR, "Unable to set SIGINT handler: %s", strerror(errno));
 		exit(2);
 	}
 
@@ -1055,38 +1056,38 @@ static int server_init_ssl(struct server *s)
 
 	protocol_ssl_init();
 
-	INFO("Setting up server SSL context");
+	cw_log(LOG_INFO, "Setting up server SSL context");
 	if (!(s->ssl_ctx = SSL_CTX_new(TLSv1_method()))) {
-		ERROR("Failed to set up new TLSv1 SSL context");
+		cw_log(LOG_ERR, "Failed to set up new TLSv1 SSL context");
 		protocol_ssl_backtrace();
 		return -1;
 	}
 
-	DEBUG(" - Loading CA certificate chain from %s", s->ca_cert_file);
+	cw_log(LOG_DEBUG, " - Loading CA certificate chain from %s", s->ca_cert_file);
 	if (!SSL_CTX_load_verify_locations(s->ssl_ctx, s->ca_cert_file, NULL)) {
-		ERROR("Failed to load CA certificate chain (%s)", s->ca_cert_file);
+		cw_log(LOG_ERR, "Failed to load CA certificate chain (%s)", s->ca_cert_file);
 		goto error;
 	}
 
-	DEBUG(" - Loading certificate from %s", s->cert_file);
+	cw_log(LOG_DEBUG, " - Loading certificate from %s", s->cert_file);
 	if (!SSL_CTX_use_certificate_file(s->ssl_ctx, s->cert_file, SSL_FILETYPE_PEM)) {
-		ERROR("Failed to load certificate from file (%s)", s->cert_file);
+		cw_log(LOG_ERR, "Failed to load certificate from file (%s)", s->cert_file);
 		goto error;
 	}
 
-	DEBUG(" - Loading private key from %s", s->key_file);
+	cw_log(LOG_DEBUG, " - Loading private key from %s", s->key_file);
 	if (!SSL_CTX_use_PrivateKey_file(s->ssl_ctx, s->key_file, SSL_FILETYPE_PEM)) {
-		ERROR("Failed to load private key (%s)", s->key_file);
+		cw_log(LOG_ERR, "Failed to load private key (%s)", s->key_file);
 		goto error;
 	}
 
-	DEBUG(" - Setting peer verification flags");
+	cw_log(LOG_DEBUG, " - Setting peer verification flags");
 	SSL_CTX_set_verify(s->ssl_ctx, SSL_VERIFY_PEER, NULL);
 	SSL_CTX_set_verify_depth(s->ssl_ctx, 4);
 
 	crl = cert_retrieve_crl(s->crl_file);
 	if (crl) {
-		DEBUG(" - Loading certificate revocation list from %s", s->crl_file);
+		cw_log(LOG_DEBUG, " - Loading certificate revocation list from %s", s->crl_file);
 		store = SSL_CTX_get_cert_store(s->ssl_ctx);
 		X509_STORE_add_crl(store, crl);
 

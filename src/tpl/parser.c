@@ -49,7 +49,7 @@ struct template* parse_template(const char *path)
 	fclose(ctx.io);
 
 	if (ctx.errors > 0) {
-		ERROR("Template parse errors encountered; aborting...");
+		cw_log(LOG_ERR, "Template parse errors encountered; aborting...");
 		return NULL;
 	}
 

@@ -23,6 +23,7 @@
 #include <errno.h>
 
 #include "mem.h"
+#include "cw.h"
 
 void __xfree(void **ptr2ptr)
 {
@@ -35,7 +36,7 @@ void* __xmalloc(size_t size, const char *func, const char *file, unsigned int li
 {
 	void *buf = calloc(1, size);
 	if (!buf) {
-		CRITICAL("%s, %s:%u - memory allocation failed: %s",
+		cw_log(LOG_CRIT, "%s, %s:%u - memory allocation failed: %s",
 		      func, file, line, strerror(errno));
 		/* If anyone wants to gripe about the exit call, please see:
 

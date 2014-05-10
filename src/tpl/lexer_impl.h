@@ -33,10 +33,10 @@ void template_parser_error(void *user, const char *fmt, ...)
 
 	va_start(args, fmt);
 	if (vsnprintf(buf, 256, fmt, args) < 0) {
-		CRITICAL("%s:%u: error: vsnprintf failed in template_parser_error",
+		cw_log(LOG_CRIT, "%s:%u: error: vsnprintf failed in template_parser_error",
 		                ctx->file, yytplget_lineno(ctx->scanner));
 	} else {
-		CRITICAL("%s:%u: error: %s", ctx->file, yytplget_lineno(ctx->scanner), buf);
+		cw_log(LOG_CRIT, "%s:%u: error: %s", ctx->file, yytplget_lineno(ctx->scanner), buf);
 	}
 	ctx->errors++;
 }
@@ -49,11 +49,11 @@ void template_parser_warning(void *user, const char *fmt, ...)
 
 	va_start(args, fmt);
 	if (vsnprintf(buf, 256, fmt, args) < 0) {
-		CRITICAL("%s:%u: error: vsnprintf failed in template_parser_warning",
+		cw_log(LOG_CRIT, "%s:%u: error: vsnprintf failed in template_parser_warning",
 		                ctx->file, yytplget_lineno(ctx->scanner));
 		ctx->errors++; /* treat this as an error */
 	} else {
-		CRITICAL("%s:%u: warning: %s", ctx->file, yytplget_lineno(ctx->scanner), buf);
+		cw_log(LOG_CRIT, "%s:%u: warning: %s", ctx->file, yytplget_lineno(ctx->scanner), buf);
 		ctx->warnings++; 
 	}
 }

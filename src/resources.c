@@ -218,7 +218,7 @@ static int _sysctl_write(const char *param, const char *value)
 	ssize_t n, nwritten;
 
 	path = _sysctl_path(param);
-	DEBUG("sysctl: Writing value to %s", path);
+	cw_log(LOG_DEBUG, "sysctl: Writing value to %s", path);
 	fd = open(path, O_WRONLY);
 	free(path);
 
@@ -230,7 +230,7 @@ static int _sysctl_write(const char *param, const char *value)
 	nwritten = 0;
 	do {
 		n = write(fd, value + nwritten, len - nwritten);
-		DEBUG("%i/%u bytes written; n = %i", nwritten, len, n);
+		cw_log(LOG_DEBUG, "%i/%u bytes written; n = %i", nwritten, len, n);
 		if (n <= 0) { return n; }
 		nwritten += n;
 	} while (nwritten < len);
@@ -252,11 +252,11 @@ static int _mkdir_p(const char *s)
 		if (stat(path(p), &st) == 0) { break; }
 		if (errno != ENOENT) { goto failed; }
 
-		DEBUG("mkdir: %s does not exist...", path(p));
+		cw_log(LOG_DEBUG, "mkdir: %s does not exist...", path(p));
 	} while (path_pop(p) != 0);
 
 	while (path_push(p) != 0) {
-		DEBUG("mkdir: creating %s", path(p));
+		cw_log(LOG_DEBUG, "mkdir: creating %s", path(p));
 		if (mkdir(path(p), 0755) != 0) { goto failed; }
 	}
 
@@ -274,7 +274,7 @@ static int _mkdir_c(const char *s)
 	char *dir = dirname(copy);
 	int rc;
 
-	DEBUG("mkdir_c: passing %s to _mkdir_p", dir);
+	cw_log(LOG_DEBUG, "mkdir_c: passing %s to _mkdir_p", dir);
 	rc =_mkdir_p(dir);
 
 	free(copy);
@@ -287,7 +287,7 @@ static int _setup_path_deps(const char *key, const char *spath, struct policy *p
 	struct dependency *dep;
 	struct resource *dir;
 
-	DEBUG("setup_path_deps: setting up for %s (%s)", spath, key);
+	cw_log(LOG_DEBUG, "setup_path_deps: setting up for %s (%s)", spath, key);
 	p = path_new(spath);
 	if (!p) {
 		return -1;
@@ -296,7 +296,7 @@ static int _setup_path_deps(const char *key, const char *spath, struct policy *p
 
 	while (path_pop(p) != 0) {
 		/* look for deps, and add them. */
-		DEBUG("setup_path_deps: looking for %s", path(p));
+		cw_log(LOG_DEBUG, "setup_path_deps: looking for %s", path(p));
 		dir = policy_find_resource(pol, RES_DIR, "path", path(p));
 		if (dir) {
 			dep = dependency_new(key, dir->key);
@@ -305,7 +305,7 @@ static int _setup_path_deps(const char *key, const char *spath, struct policy *p
 				goto failed;
 			}
 		} else {
-			DEBUG("setup_path_deps: no res_dir defined for '%s'", path(p));
+			cw_log(LOG_DEBUG, "setup_path_deps: no res_dir defined for '%s'", path(p));
 		}
 	}
 
@@ -313,7 +313,7 @@ static int _setup_path_deps(const char *key, const char *spath, struct policy *p
 	return 0;
 
 failed:
-	DEBUG("setup_path_deps: unspecified failure");
+	cw_log(LOG_DEBUG, "setup_path_deps: unspecified failure");
 	path_free(p);
 	return -1;
 }
@@ -2960,27 +2960,27 @@ int res_host_stat(void *res, const struct resource_env *env)
 
 	rh->different = 0;
 	xfree(rh->aug_root);
-	DEBUG("res_host: stat %p // %s", rh, rh->hostname);
+	cw_log(LOG_DEBUG, "res_host: stat %p // %s", rh, rh->hostname);
 
 	rc = aug_match(env->aug_context, "/files/etc/hosts/*", &results);
-	DEBUG("res_host: found %u entries under /files/etc/hosts", rc);
+	cw_log(LOG_DEBUG, "res_host: found %u entries under /files/etc/hosts", rc);
 	for (i = 0; i < rc; i++) {
 		tmp = string("%s/ipaddr", results[i]);
-		DEBUG("res_host: checking %s", tmp);
+		cw_log(LOG_DEBUG, "res_host: checking %s", tmp);
 		aug_get(env->aug_context, tmp, &value);
 		free(tmp);
 
-		DEBUG("res_host: eval found ip(%s) against res_host ip(%s)", value, rh->ip);
+		cw_log(LOG_DEBUG, "res_host: eval found ip(%s) against res_host ip(%s)", value, rh->ip);
 		if (value && strcmp(value, rh->ip) == 0) { // ip matched
 			tmp = string("%s/canonical", results[i]);
-			DEBUG("res_host: checking %s", tmp);
+			cw_log(LOG_DEBUG, "res_host: checking %s", tmp);
 			aug_get(env->aug_context, tmp, &value);
 			free(tmp);
 
-			DEBUG("res_host: eval found hostname(%s) against res_host hostname(%s)", value, rh->hostname);
+			cw_log(LOG_DEBUG, "res_host: eval found hostname(%s) against res_host hostname(%s)", value, rh->hostname);
 			if (value && strcmp(value, rh->hostname) == 0) {
 				rh->aug_root = strdup(results[i]);
-				DEBUG("res_host: found match at %s", rh->aug_root);
+				cw_log(LOG_DEBUG, "res_host: found match at %s", rh->aug_root);
 				break;
 			}
 		}
@@ -3054,8 +3054,8 @@ struct report* res_host_fixup(void *res, int dryrun, const struct resource_env *
 				tmp1 = string("%s/ipaddr",    rh->aug_root);
 				tmp2 = string("%s/canonical", rh->aug_root);
 
-				DEBUG("res_host: Setting %s to %s", tmp1, rh->ip);
-				DEBUG("res_host: Setting %s to %s", tmp2, rh->hostname);
+				cw_log(LOG_DEBUG, "res_host: Setting %s to %s", tmp1, rh->ip);
+				cw_log(LOG_DEBUG, "res_host: Setting %s to %s", tmp2, rh->hostname);
 
 				if (aug_set(env->aug_context, tmp1, rh->ip) < 0
 				 || aug_set(env->aug_context, tmp2, rh->hostname) < 0) {
@@ -3081,7 +3081,7 @@ struct report* res_host_fixup(void *res, int dryrun, const struct resource_env *
 			report_action(report, action, ACTION_SKIPPED);
 		} else {
 			tmp1 = string("%s/alias", rh->aug_root);
-			DEBUG("res_host: removing %s", tmp1);
+			cw_log(LOG_DEBUG, "res_host: removing %s", tmp1);
 			if (aug_rm(env->aug_context, tmp1) < 0) {
 				report_action(report, action, ACTION_FAILED);
 				action = NULL; // prevent future report for this action
@@ -3090,7 +3090,7 @@ struct report* res_host_fixup(void *res, int dryrun, const struct resource_env *
 
 			for (i = 0; i < rh->aliases->num; i++) {
 				tmp1 = string("%s/alias[%u]", rh->aug_root, i+1);
-				DEBUG("res_host: set %s to %s", tmp1, rh->aliases->strings[i]);
+				cw_log(LOG_DEBUG, "res_host: set %s to %s", tmp1, rh->aliases->strings[i]);
 				if (aug_set(env->aug_context, tmp1, rh->aliases->strings[i]) < 0
 				 && action) {
 					report_action(report, action, ACTION_FAILED);
@@ -3309,12 +3309,12 @@ int res_sysctl_stat(void *res, const struct resource_env *env)
 	rs->different = 0;
 	if (ENFORCED(rs, RES_SYSCTL_VALUE)) {
 		if (_sysctl_read(rs->param, &tmp) != 0) {
-			WARNING("res_sysctl: failed to get live value of %s", rs->param);
+			cw_log(LOG_WARNING, "res_sysctl: failed to get live value of %s", rs->param);
 			return -1;
 		}
 
 		if (!streq(rs->value, tmp)) {
-			DEBUG("'%s' != '%s'", rs->value, tmp);
+			cw_log(LOG_DEBUG, "'%s' != '%s'", rs->value, tmp);
 			DIFF(rs, RES_SYSCTL_VALUE);
 		}
 		xfree(tmp);
@@ -3999,17 +3999,17 @@ static int _res_exec_run(const char *command, struct res_exec *re)
 		/* set user and group is */
 		if (ENFORCED(re, RES_EXEC_UID)) {
 			if (setuid(re->uid) != 0) {
-				WARNING("res_exec child could not switch to user ID %u to run `%s'", re->uid, command);
+				cw_log(LOG_WARNING, "res_exec child could not switch to user ID %u to run `%s'", re->uid, command);
 			} else {
-				DEBUG("res_exec child set UID to %u", re->uid);
+				cw_log(LOG_DEBUG, "res_exec child set UID to %u", re->uid);
 			}
 		}
 
 		if (ENFORCED(re, RES_EXEC_GID)) {
 			if (setgid(re->gid) != 0) {
-				WARNING("res_exec child could not switch to group ID %u to run `%s'", re->gid, command);
+				cw_log(LOG_WARNING, "res_exec child could not switch to group ID %u to run `%s'", re->gid, command);
 			} else {
-				DEBUG("res_exec child set GID to %u", re->gid);
+				cw_log(LOG_DEBUG, "res_exec child set GID to %u", re->gid);
 			}
 		}
 
@@ -4018,27 +4018,27 @@ static int _res_exec_run(const char *command, struct res_exec *re)
 
 	default: /* parent */
 		if (ENFORCED(re, RES_EXEC_UID) && ENFORCED(re, RES_EXEC_GID)) {
-			DEBUG("res_exec: Running `%s' as %s:%s (%d:%d) in sub-process %u",
+			cw_log(LOG_DEBUG, "res_exec: Running `%s' as %s:%s (%d:%d) in sub-process %u",
 			      command, re->user, re->group, re->uid, re->gid, pid);
 		} else if (ENFORCED(re, RES_EXEC_UID)) {
-			DEBUG("res_exec: Running `%s' as user %s (%d) in sub-process %u",
+			cw_log(LOG_DEBUG, "res_exec: Running `%s' as user %s (%d) in sub-process %u",
 			      command, re->user, re->uid, pid);
 		} else if (ENFORCED(re, RES_EXEC_GID)) {
-			DEBUG("res_exec: Running `%s' as group %s (%d) in sub-process %u",
+			cw_log(LOG_DEBUG, "res_exec: Running `%s' as group %s (%d) in sub-process %u",
 			      command, re->group, re->gid, pid);
 		} else {
-			DEBUG("res_exec: Running `%s' in sub-process %u",
+			cw_log(LOG_DEBUG, "res_exec: Running `%s' in sub-process %u",
 			      command, pid);
 		}
 	}
 
 	waitpid(pid, &proc_stat, 0);
 	if (!WIFEXITED(proc_stat)) {
-		DEBUG("res_exec[%u]: terminated abnormally", pid);
+		cw_log(LOG_DEBUG, "res_exec[%u]: terminated abnormally", pid);
 		return -1;
 	}
 
-	DEBUG("res_exec[%u]: sub-process exited %u", pid, WEXITSTATUS(proc_stat));
+	cw_log(LOG_DEBUG, "res_exec[%u]: sub-process exited %u", pid, WEXITSTATUS(proc_stat));
 	return WEXITSTATUS(proc_stat);
 }
 

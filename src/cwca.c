@@ -87,7 +87,7 @@ int main(int argc, char **argv)
 	struct cwca_opts *args;
 
 	cert_init();
-	log_set(LOG_LEVEL_DEBUG);
+	cw_log_level(0, "debug");
 
 	args = cwca_options(argc, argv);
 	if (strcmp(args->command, "new") == 0) {
@@ -176,7 +176,7 @@ struct cwca_opts* cwca_options(int argc, char **argv)
 	cwca->fqdn    = NULL;
 	cwca->server  = xmalloc(sizeof(struct server));
 
-	cwca->log_level = LOG_LEVEL_ERROR;
+	cwca->log_level = LOG_ERR;
 	cwca->debug     = 0;
 
 	while ( (opt = getopt_long(argc, argv, short_opts, long_opts, &idx)) != -1 ) {
@@ -225,10 +225,10 @@ struct cwca_opts* cwca_options(int argc, char **argv)
 	}
 
 	if (cwca->debug == 1) {
-		cwca->log_level = LOG_LEVEL_DEBUG;
+		cwca->log_level = LOG_DEBUG;
 	}
 
-	cwca->log_level = log_set(cwca->log_level);
+	cwca->log_level = cw_log_level(cwca->log_level, NULL);
 
 	return cwca;
 }
@@ -301,23 +301,23 @@ static int cwca_new_main(const struct cwca_opts *args)
 	char fqdn[1024];
 	char *confirmation = NULL;
 
-	INFO("Creating new signing key");
+	cw_log(LOG_INFO, "Creating new signing key");
 	key = cert_generate_key(2048);
 	if (!key) {
-		CRITICAL("Unable to create new signing key");
+		cw_log(LOG_CRIT, "Unable to create new signing key");
 		return CWCA_SSL_ERROR;
 	}
 	if (cert_store_key(key, args->server->key_file) != 0) {
-		CRITICAL("Unable to store new signing key in %s", args->server->key_file);
+		cw_log(LOG_CRIT, "Unable to store new signing key in %s", args->server->key_file);
 		return CWCA_SSL_ERROR;
 	}
 
-	INFO("Creating new Certificate Authority certificate");
+	cw_log(LOG_INFO, "Creating new Certificate Authority certificate");
 	memset(&subject, 0, sizeof(subject));
 
 	subject.type = strdup("Policy Master");
 	if (cert_my_hostname(fqdn, 1024) != 0) {
-		ERROR("Failed to get local hostname!");
+		cw_log(LOG_ERR, "Failed to get local hostname!");
 		return CWCA_OTHER_ERR;
 	}
 	subject.fqdn = fqdn;
@@ -351,11 +351,11 @@ static int cwca_new_main(const struct cwca_opts *args)
 	if (!cert) { return CWCA_SSL_ERROR; }
 
 	if (cert_store_certificate(cert, args->server->cert_file) != 0) {
-		CRITICAL("Unable to store CA certificate in %s", args->server->cert_file);
+		cw_log(LOG_CRIT, "Unable to store CA certificate in %s", args->server->cert_file);
 		return CWCA_OTHER_ERR;
 	}
 	if (cert_store_certificate(cert, args->server->ca_cert_file) != 0) {
-		CRITICAL("Unable to store CA certificate in %s", args->server->ca_cert_file);
+		cw_log(LOG_CRIT, "Unable to store CA certificate in %s", args->server->ca_cert_file);
 		return CWCA_OTHER_ERR;
 	}
 
@@ -441,7 +441,7 @@ static int cwca_revoked_main(const struct cwca_opts *args)
 	free(files);
 
 	if (!(crl = cert_retrieve_crl(args->server->crl_file))) {
-		ERROR("Unable to retrieve CRL from %s", args->server->crl_file);
+		cw_log(LOG_ERR, "Unable to retrieve CRL from %s", args->server->crl_file);
 		return CWCA_SSL_ERROR;
 	}
 
@@ -601,27 +601,27 @@ static int cwca_revoke_main(const struct cwca_opts *args)
 
 	ca_key = cert_retrieve_key(args->server->key_file);
 	if (!ca_key) {
-		ERROR("Unable to retrieve CA signing key from %s",
+		cw_log(LOG_ERR, "Unable to retrieve CA signing key from %s",
 		      args->server->key_file);
 		return CWCA_SSL_ERROR;
 	}
 
 	ca_cert = cert_retrieve_certificate(args->server->ca_cert_file);
 	if (!ca_cert) {
-		ERROR("Unable to retrieve CA certificate from %s",
+		cw_log(LOG_ERR, "Unable to retrieve CA certificate from %s",
 		      args->server->ca_cert_file);
 		return CWCA_SSL_ERROR;
 	}
 
 	cert_file = string("%s/%s.pem", args->server->certs_dir, args->fqdn);
 	if (!cert_file) {
-		ERROR("Unable to determine path to certificate for %s", args->fqdn);
+		cw_log(LOG_ERR, "Unable to determine path to certificate for %s", args->fqdn);
 		return CWCA_OTHER_ERR;
 	}
 
 	cert = cert_retrieve_certificate(cert_file);
 	if (!cert) {
-		ERROR("Unable to retrieve certificate to revoke (%s)", cert_file);
+		cw_log(LOG_ERR, "Unable to retrieve certificate to revoke (%s)", cert_file);
 		return CWCA_SSL_ERROR;
 	}
 

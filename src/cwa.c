@@ -20,6 +20,7 @@
 #define CLIENT_SPACE
 
 #include "clockwork.h"
+#include "cw.h"
 
 #include <getopt.h>
 #include <sys/types.h>
@@ -56,14 +57,14 @@ int main(int argc, char **argv)
 		fprintf(stderr, "Unable to process client options");
 		exit(2);
 	}
-	c->log_level = log_set(c->log_level);
-	INFO("Log level is %s (%u)", log_level_name(c->log_level), c->log_level);
-	INFO("Running in mode %u", c->mode);
+	c->log_level = cw_log_level(c->log_level, NULL);
+	cw_log(LOG_INFO, "Log level is %s", cw_log_level_name(-1));
+	cw_log(LOG_INFO, "Running in mode %u", c->mode);
 
-	INFO("Gathering facts");
+	cw_log(LOG_INFO, "Gathering facts");
 	c->facts = hash_new();
 	if (fact_gather(c->gatherers, c->facts) != 0) {
-		CRITICAL("Unable to gather facts");
+		cw_log(LOG_CRIT, "Unable to gather facts");
 		exit(1);
 	}
 
@@ -77,7 +78,7 @@ int main(int argc, char **argv)
 	}
 
 	if (client_hello(c) != 0) {
-		ERROR("Server-side verification failed.");
+		cw_log(LOG_ERR, "Server-side verification failed.");
 		printf("Local certificate not found.  Run cwcert(1)\n");
 
 		client_bye(c);
@@ -235,25 +236,25 @@ static int get_policy(struct client *c)
 	if (pdu_send_FACTS(&c->session, c->facts) < 0) { goto disconnect; }
 
 	if (pdu_receive(&c->session) < 0) {
-		CRITICAL("Error: %u - %s", c->session.errnum, c->session.errstr);
+		cw_log(LOG_CRIT, "Error: %u - %s", c->session.errnum, c->session.errstr);
 		goto disconnect;
 	}
 
 	if (RECV_PDU(&c->session)->op != PROTOCOL_OP_POLICY) {
-		CRITICAL("Unexpected op from server: %u", RECV_PDU(&c->session)->op);
+		cw_log(LOG_CRIT, "Unexpected op from server: %u", RECV_PDU(&c->session)->op);
 		pdu_send_ERROR(&c->session, 505, "Protocol Error");
 		goto disconnect;
 	}
 
 	if (pdu_decode_POLICY(RECV_PDU(&c->session), &c->policy) != 0) {
-		CRITICAL("Unable to decode POLICY PDU");
+		cw_log(LOG_CRIT, "Unable to decode POLICY PDU");
 		goto disconnect;
 	}
 
 	return 0;
 
 disconnect:
-	DEBUG("get_policy forcing a disconnect");
+	cw_log(LOG_DEBUG, "get_policy forcing a disconnect");
 	client_disconnect(c);
 	exit(1);
 }
@@ -263,7 +264,7 @@ static int get_file(struct session *session, struct SHA1 *checksum, int fd)
 	size_t bytes = 0, n;
 	int error = 0;
 
-	INFO("Requesting file %s from policy master", checksum->hex);
+	cw_log(LOG_INFO, "Requesting file %s from policy master", checksum->hex);
 	if (pdu_send_FILE(session, checksum) != 0) { return -1; }
 
 	do {
@@ -296,19 +297,19 @@ static int enforce_policy(struct client *c, struct job *job)
 	ssize_t bytes = 0;
 
 	if (job_start(job) != 0) {
-		CRITICAL("Unable to start job timer");
+		cw_log(LOG_CRIT, "Unable to start job timer");
 		exit(2);
 	}
 
 	if (autodetect_managers(&env, c->facts) != 0) {
-		CRITICAL("Unable to auto-detect appropriate managers.");
+		cw_log(LOG_CRIT, "Unable to auto-detect appropriate managers.");
 		exit(2);
 	}
 
-	DEBUG("Initializing Augeas subsystem");
+	cw_log(LOG_DEBUG, "Initializing Augeas subsystem");
 	env.aug_context = augcw_init();
 	if (!env.aug_context) {
-		CRITICAL("Unable to initialize Augeas subsystem");
+		cw_log(LOG_CRIT, "Unable to initialize Augeas subsystem");
 		exit(2);
 	}
 
@@ -316,24 +317,24 @@ static int enforce_policy(struct client *c, struct job *job)
 	 || (env.user_spdb  = spdb_init(SYS_SHADOW)) == NULL
 	 || (env.group_grdb = grdb_init(SYS_GROUP))  == NULL
 	 || (env.group_sgdb = sgdb_init(SYS_GSHADOW)) == NULL) {
-		CRITICAL("Unable to initialize user / group database(s)");
+		cw_log(LOG_CRIT, "Unable to initialize user / group database(s)");
 		exit(2);
 	}
 
 	if (c->mode == CLIENT_MODE_TEST) {
-		INFO("Enforcement skipped (--dry-run specified)");
+		cw_log(LOG_INFO, "Enforcement skipped (--dry-run specified)");
 	} else {
-		INFO("Enforcing policy on local system");
+		cw_log(LOG_INFO, "Enforcing policy on local system");
 	}
 
 	/* Remediate all */
 	for_each_resource(res, c->policy) {
-		DEBUG("Fixing up %s", res->key);
+		cw_log(LOG_DEBUG, "Fixing up %s", res->key);
 
 		env.file_fd = -1;
 		env.file_len = 0;
 		if (resource_stat(res, &env) != 0) {
-			CRITICAL("Failed to stat %s", res->key);
+			cw_log(LOG_CRIT, "Failed to stat %s", res->key);
 			exit(2);
 		}
 
@@ -343,7 +344,7 @@ static int enforce_policy(struct client *c, struct job *job)
 				if (pipe(pipefd) != 0) {
 					pipefd[0] = -1;
 				} else {
-					DEBUG("Attempting to retrieve file contents for %s", rf->rf_lpath);
+					cw_log(LOG_DEBUG, "Attempting to retrieve file contents for %s", rf->rf_lpath);
 					bytes = get_file(&c->session, &rf->rf_rsha1, pipefd[1]);
 					if (bytes < 0) {
 						close(pipefd[0]);
@@ -365,7 +366,7 @@ static int enforce_policy(struct client *c, struct job *job)
 		if (res->type == RES_FILE) {
 			close(env.file_fd);
 		}
-		cw_list_push(&r->l, &job->reports);
+		cw_list_push(&job->reports, &r->l);
 	}
 
 	if (c->mode != CLIENT_MODE_TEST) {
@@ -375,7 +376,7 @@ static int enforce_policy(struct client *c, struct job *job)
 		sgdb_write(env.group_sgdb, SYS_GSHADOW);
 
 		if (aug_save(env.aug_context) != 0) {
-			CRITICAL("augeas save failed; sub-config resources not properly saved!");
+			cw_log(LOG_CRIT, "augeas save failed; sub-config resources not properly saved!");
 			augcw_errors(env.aug_context);
 			exit(2);
 		}
@@ -383,7 +384,7 @@ static int enforce_policy(struct client *c, struct job *job)
 	}
 
 	if (job_end(job) != 0) {
-		CRITICAL("Unable to stop job timer");
+		cw_log(LOG_CRIT, "Unable to stop job timer");
 		exit(2);
 	}
 
@@ -401,8 +402,8 @@ static int autodetect_managers(struct resource_env *env, const struct hash *fact
 
 	if (!env->service_manager || !env->package_manager) { return -1; }
 
-	INFO("Using '%s' service manager", env->service_manager);
-	INFO("Using '%s' package manager", env->package_manager);
+	cw_log(LOG_INFO, "Using '%s' service manager", env->service_manager);
+	cw_log(LOG_INFO, "Using '%s' package manager", env->package_manager);
 	return 0;
 }
 

@@ -71,7 +71,7 @@ static void pdu_dump(struct pdu *pdu)
 	assert(pdu); // LCOV_EXCL_LINE
 
 	/* no point in going any further if we aren't debugging... */
-	if (log_level() < LOG_LEVEL_DEBUG) { return; }
+	if (cw_log_level(-1, NULL) != LOG_DEBUG) { return; }
 
 /*
 Op:   XXX (xx)
@@ -88,8 +88,8 @@ Data: xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx
 
 	memset(data, '\0', 16*4);
 
-	DEBUG("Op:   %s (%04u)", protocol_op_name(pdu->op), pdu->op);
-	DEBUG("Len:  %u", pdu->len);
+	cw_log(LOG_DEBUG, "Op:   %s (%04u)", protocol_op_name(pdu->op), pdu->op);
+	cw_log(LOG_DEBUG, "Len:  %u", pdu->len);
 
 	n = 0;
 	for (i = 0; i < lines; i++) {
@@ -108,14 +108,14 @@ Data: xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx
 				}
 			}
 		}
-		DEBUG("%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s", prefix,
+		cw_log(LOG_DEBUG, "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s", prefix,
 		      data[0],  data[1],  data[2],  data[3],
 		      data[4],  data[5],  data[6],  data[7],
 		      data[8],  data[9],  data[10], data[11],
 		      data[12], data[13], data[14], data[15]);
 		memset(prefix, ' ', 5);
 	}
-	DEBUG("");
+	cw_log(LOG_DEBUG, "");
 }
 
 int pdu_send_simple(struct session *session, enum proto_op op)
@@ -126,7 +126,7 @@ int pdu_send_simple(struct session *session, enum proto_op op)
 		return -1;
 	}
 
-	DEBUG("SEND %s (op:%u) - (empty payload)", protocol_op_name(op), op);
+	cw_log(LOG_DEBUG, "SEND %s (op:%u) - (empty payload)", protocol_op_name(op), op);
 	return pdu_write(session->io, SEND_PDU(session));
 }
 
@@ -146,7 +146,7 @@ int pdu_send_ERROR(struct session *session, uint16_t err_code, const char *str)
 	struct pdu *pdu = SEND_PDU(session);
 
 
-	DEBUG("SEND ERROR (op:%u) - %u %s", PROTOCOL_OP_ERROR, err_code, str);
+	cw_log(LOG_DEBUG, "SEND ERROR (op:%u) - %u %s", PROTOCOL_OP_ERROR, err_code, str);
 
 	if (pdu_allocate(pdu, PROTOCOL_OP_ERROR, len + sizeof(err_code)) < 0) {
 		return -1;
@@ -186,7 +186,7 @@ int pdu_decode_ERROR(struct pdu *pdu, uint16_t *err_code, uint8_t **str, size_t 
 		*len = my_len;
 	}
 
-	DEBUG("RECV ERROR (op:%u) - %u %s", PROTOCOL_OP_ERROR, *err_code, *str);
+	cw_log(LOG_DEBUG, "RECV ERROR (op:%u) - %u %s", PROTOCOL_OP_ERROR, *err_code, *str);
 	return 0;
 }
 
@@ -219,7 +219,7 @@ int pdu_send_FACTS(struct session *session, const struct hash *facts)
 	}
 
 	buf = stringlist_join(list, "");
-	DEBUG("SEND FACTS (op:%u) - %u facts", pdu->op, list->num);
+	cw_log(LOG_DEBUG, "SEND FACTS (op:%u) - %u facts", pdu->op, list->num);
 	stringlist_free(list);
 	len = strlen(buf);
 
@@ -257,7 +257,7 @@ int pdu_decode_FACTS(struct pdu *pdu, struct hash *facts)
 
 	stringlist_free(lines);
 
-	DEBUG("RECV FACTS (op:%u) - %u facts", pdu->op, lines->num);
+	cw_log(LOG_DEBUG, "RECV FACTS (op:%u) - %u facts", pdu->op, lines->num);
 	return 0;
 }
 
@@ -293,7 +293,7 @@ int pdu_send_POLICY(struct session *session, const struct policy *policy)
 	memcpy(pdu->data, packed, len);
 	free(packed);
 
-	DEBUG("SEND POLICY (op:%u) - (policy data)", pdu->op);
+	cw_log(LOG_DEBUG, "SEND POLICY (op:%u) - (policy data)", pdu->op);
 	return pdu_write(session->io, pdu);
 }
 
@@ -600,7 +600,7 @@ int pdu_read(SSL *io, struct pdu *pdu)
 		}
 	}
 
-	DEBUG("pdu_read:  OP:%04u/%s; LEN:%04u", pdu->op, protocol_op_names[pdu->op], pdu->len);
+	cw_log(LOG_DEBUG, "pdu_read:  OP:%04u/%s; LEN:%04u", pdu->op, protocol_op_names[pdu->op], pdu->len);
 	pdu_dump(pdu);
 	return 0;
 }
@@ -623,25 +623,25 @@ int pdu_write(SSL *io, struct pdu *pdu)
 
 	nwritten = SSL_write(io, &op, sizeof(op));
 	if (nwritten != sizeof(op)) {
-		DEBUG("pdu_write: error writing header:op");
+		cw_log(LOG_DEBUG, "pdu_write: error writing header:op");
 		return -1; /* error writing header */
 	}
 
 	nwritten = SSL_write(io, &len, sizeof(len));
 	if (nwritten != sizeof(len)) {
-		DEBUG("pdu_write: error writing header:len");
+		cw_log(LOG_DEBUG, "pdu_write: error writing header:len");
 		return -1; /* error writing header */
 	}
 
 	if (pdu->len > 0) {
 		nwritten = SSL_write(io, pdu->data, pdu->len);
 		if (nwritten != pdu->len) {
-			DEBUG("pdu_write: error writing payload");
+			cw_log(LOG_DEBUG, "pdu_write: error writing payload");
 			return -3; /* error writing payload */
 		}
 	}
 
-	DEBUG("pdu_write: OP:%04u/%s; LEN:%04u", pdu->op, protocol_op_names[pdu->op], pdu->len);
+	cw_log(LOG_DEBUG, "pdu_write: OP:%04u/%s; LEN:%04u", pdu->op, protocol_op_names[pdu->op], pdu->len);
 	pdu_dump(pdu);
 	return 0;
 }
@@ -664,7 +664,7 @@ int pdu_receive(struct session *session)
 
 	rc = pdu_read(session->io, pdu);
 	if (rc < 0) {
-		DEBUG("pdu_receive: pdu_read returned %i", rc);
+		cw_log(LOG_DEBUG, "pdu_receive: pdu_read returned %i", rc);
 		return -1;
 	}
 
@@ -676,7 +676,7 @@ int pdu_receive(struct session *session)
 			return -1;
 		}
 
-		DEBUG(" -> ERROR (op:%u) - %u %s", PROTOCOL_OP_ERROR, session->errnum, session->errstr);
+		cw_log(LOG_DEBUG, " -> ERROR (op:%u) - %u %s", PROTOCOL_OP_ERROR, session->errnum, session->errstr);
 		return -1;
 	}
 
@@ -693,7 +693,7 @@ void protocol_ssl_init(void)
 	ssl_loaded = 1;
 
 	if (!SSL_library_init()) {
-		CRITICAL("protocol_ssl_init: Failed to initialize OpenSSL");
+		cw_log(LOG_CRIT, "protocol_ssl_init: Failed to initialize OpenSSL");
 		exit(1);
 	}
 	SSL_load_error_strings();
@@ -825,7 +825,7 @@ long protocol_ssl_verify_peer(SSL *ssl, const char *host)
 	    X509_NAME_get_text_by_NID(subj, NID_commonName, data, 256) > 0) {
 		data[255] = '\0';
 		if (strcasecmp(data, host) != 0) {
-			ERROR("Peer certificate FQDN did not match FCrDNS lookup");
+			cw_log(LOG_ERR, "Peer certificate FQDN did not match FCrDNS lookup");
 			goto err_occurred;
 		}
 	}
@@ -844,7 +844,7 @@ void protocol_ssl_backtrace(void)
 	unsigned long e;
 
 	while ( (e = ERR_get_error()) != 0 ) {
-		DEBUG("SSL(%u): %s", e, ERR_reason_error_string(e));
+		cw_log(LOG_DEBUG, "SSL(%u): %s", e, ERR_reason_error_string(e));
 	}
 }
 
@@ -875,19 +875,19 @@ int protocol_reverse_lookup_verify(int sockfd, char *buf, size_t len)
 	int rc;
 	rc = getpeername(sockfd, (struct sockaddr*)(&ipv4), &ipv4_len);
 	if (rc != 0) {
-		DEBUG("getpeername failed for socket %d", sockfd);
+		cw_log(LOG_DEBUG, "getpeername failed for socket %d", sockfd);
 		return -1;
 	}
 
 	char str[128];
 	if (inet_ntop(AF_INET, &ipv4.sin_addr, str, sizeof(str)) != NULL) {
-		DEBUG("getpeername returned %s", str);
+		cw_log(LOG_DEBUG, "getpeername returned %s", str);
 	}
 
 	rc = getnameinfo((struct sockaddr*)(&ipv4), ipv4_len, buf, len, NULL, 0, NI_NAMEREQD);
 	if (rc != 0) {
-		DEBUG("getnameinfo failed for socket %d", sockfd);
-		DEBUG("gai_error: %s", gai_strerror(rc));
+		cw_log(LOG_DEBUG, "getnameinfo failed for socket %d", sockfd);
+		cw_log(LOG_DEBUG, "gai_error: %s", gai_strerror(rc));
 		return -2;
 	}
 

@@ -21,6 +21,7 @@
 #define CERT_H
 
 #include "clockwork.h"
+#include "cw.h"
 
 #include <assert.h>
 

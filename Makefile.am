@@ -122,6 +122,7 @@ BUILT_TESTS    = $(CTAP_TESTS) $(TEST_HELPERS)
 check_PROGRAMS = $(CTAP_TESTS) $(TEST_HELPERS)
 
 test_source  = t/test.h
+test_source += src/cw.h src/cw.c
 test_source += src/mem.h        src/mem.c
 test_source += src/sha1.h       src/sha1.c
 test_source += src/userdb.h     src/userdb.c
@@ -152,7 +153,6 @@ test_source += src/tpl/private.h
 
 test_source += src/gear/gear.h
 test_source += src/gear/hash.c
-test_source += src/gear/log.c
 test_source += src/gear/pack.c
 test_source += src/gear/path.c
 test_source += src/gear/string.c
@@ -227,7 +227,7 @@ core_src    += src/mem.c src/sha1.c src/userdb.c src/cert.c src/prompt.c src/exe
 core_src    += src/mem.h src/sha1.h src/userdb.h src/cert.h src/prompt.h src/exec.h src/augcw.h
 core_src    += src/policy.c src/resource.c src/resources.c src/job.c src/template.c
 core_src    += src/policy.h src/resource.h src/resources.h src/job.h src/template.h
-core_src    += src/gear/hash.c src/gear/log.c src/gear/string.c src/gear/pack.c src/gear/path.c
+core_src    += src/gear/hash.c src/gear/string.c src/gear/pack.c src/gear/path.c
 core_src    += src/gear/gear.h
 core_src    += src/clockwork.h
 core_src    += src/service.c src/package.c

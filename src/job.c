@@ -95,7 +95,7 @@ int job_add_report(struct job *job, struct report *report)
 	assert(job); // LCOV_EXCL_LINE
 	assert(report); // LCOV_EXCL_LINE
 
-	cw_list_push(&report->l, &job->reports);
+	cw_list_push(&job->reports, &report->l);
 	return 0;
 }
 
@@ -157,7 +157,7 @@ int report_add_action(struct report *report, struct action *action)
 	assert(report); // LCOV_EXCL_LINE
 	assert(action); // LCOV_EXCL_LINE
 
-	cw_list_push(&action->l, &report->actions);
+	cw_list_push(&report->actions, &action->l);
 	if (action->result == ACTION_FAILED) {
 		report->compliant = 0;
 	} else {

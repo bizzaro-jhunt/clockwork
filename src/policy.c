@@ -54,7 +54,7 @@ static struct scope* push_scope(cw_list_t *list, int depth)
 	cw_list_init(&scope->res_defs);
 	scope->depth = depth;
 
-	cw_list_unshift(&scope->l, list);
+	cw_list_unshift(list, &scope->l);
 	return scope;
 }
 
@@ -99,25 +99,25 @@ static int _policy_normalize(struct policy *pol, struct hash *facts)
 	struct dependency *dep;
 
 	for_each_resource(r1, pol) {
-		DEBUG("Normalizing resource %s", r1->key);
+		cw_log(LOG_DEBUG, "Normalizing resource %s", r1->key);
 		if (resource_norm(r1, pol, facts) != 0) {
-			ERROR("Failed to normalize resource %s", r1->key);
+			cw_log(LOG_ERR, "Failed to normalize resource %s", r1->key);
 		}
 	}
 
 	/* expand defered dependencies */
 	for_each_dependency(dep, pol) {
-		DEBUG("Expanding dependency for %s on %s", dep->a, dep->b);
+		cw_log(LOG_DEBUG, "Expanding dependency for %s on %s", dep->a, dep->b);
 
 		r1 = hash_get(pol->index, dep->a);
 		r2 = hash_get(pol->index, dep->b);
 
 		if (!r1) {
-			ERROR("Failed dependency for unknown resource %s", dep->a);
+			cw_log(LOG_ERR, "Failed dependency for unknown resource %s", dep->a);
 			return -1;
 		}
 		if (!r2) {
-			ERROR("Failed dependency on unknown resource %s", dep->b);
+			cw_log(LOG_ERR, "Failed dependency on unknown resource %s", dep->b);
 			return -1;
 		}
 
@@ -127,8 +127,8 @@ static int _policy_normalize(struct policy *pol, struct hash *facts)
 	/* get the one with no deps */
 	for_each_resource_safe(r1, tmp, pol) {
 		if (r1->ndeps == 0) {
-			cw_list_delete(&deps);
-			cw_list_push(&r1->l, &deps);
+			cw_list_delete(&r1->l);
+			cw_list_push(&deps, &r1->l);
 		}
 	}
 
@@ -137,8 +137,8 @@ static int _policy_normalize(struct policy *pol, struct hash *facts)
 			if (resource_depends_on(r2, r1) == 0) {
 				resource_drop_dependency(r2, r1);
 				if (r2->ndeps == 0) {
-					cw_list_delete(&deps);
-					cw_list_push(&r1->l, &deps);
+					cw_list_delete(&r1->l);
+					cw_list_push(&deps, &r1->l);
 				}
 			}
 		}
@@ -343,7 +343,7 @@ int fact_exec_read(const char *script, struct hash *facts)
 	FILE *input;
 	char *path_copy, *arg0;
 
-	INFO("Processing script %s", script);
+	cw_log(LOG_INFO, "Processing script %s", script);
 
 	if (pipe(pipefd) != 0) {
 		perror("gather_facts");
@@ -548,7 +548,7 @@ static struct resource * _policy_make_resource(struct policy_generator *pgen, co
 	struct resource *res;
 	if (name == NULL) { /* default resource */
 		res = resource_new(type, NULL);
-		cw_list_unshift(&res->l, &pgen->scope->res_defs);
+		cw_list_unshift(&pgen->scope->res_defs, &res->l);
 		return res;
 	}
 
@@ -594,14 +594,14 @@ again:
 		}
 
 		if (!pgen->scope) {
-			ERROR("Resource %s/%s defined outside of policy!!",
+			cw_log(LOG_ERR, "Resource %s/%s defined outside of policy!!",
 					node->data1, (node->data2 ? node->data2 : "defaults"));
 			return -1;
 		}
 
 		pgen->res = _policy_make_resource(pgen, node->data1, node->data2);
 		if (!pgen->res) {
-			WARNING("Definition for unknown resource type '%s'", node->data1);
+			cw_log(LOG_WARNING, "Definition for unknown resource type '%s'", node->data1);
 		} else if (cw_list_isempty(&pgen->res->l)) {
 			policy_add_resource(pgen->policy, pgen->res);
 		}
@@ -611,11 +611,11 @@ again:
 	case ATTR:
 		if (pgen->res) {
 			if (resource_set(pgen->res, node->data1, node->data2) != 0) {
-				WARNING("Unknown Attribute %s = '%s'",
+				cw_log(LOG_WARNING, "Unknown Attribute %s = '%s'",
 					node->data1, node->data2);
 			}
 		} else {
-			WARNING("Attribute %s = '%s' defined for unknown type",
+			cw_log(LOG_WARNING, "Attribute %s = '%s' defined for unknown type",
 			        node->data1, node->data2);
 		}
 
@@ -623,7 +623,7 @@ again:
 
 	case DEPENDENCY:
 		if (node->size != 2) {
-			ERROR("Corrupt dependency: %u constituent(s)", node->size);
+			cw_log(LOG_ERR, "Corrupt dependency: %u constituent(s)", node->size);
 			return -1;
 		}
 
@@ -648,7 +648,7 @@ again:
 		break;
 
 	default:
-		WARNING("unexpected node in syntax tree: (%u %s/%s)", node->op, node->data1, node->data2);
+		cw_log(LOG_WARNING, "unexpected node in syntax tree: (%u %s/%s)", node->op, node->data1, node->data2);
 		break;
 
 	}
@@ -765,8 +765,8 @@ int policy_add_resource(struct policy *pol, struct resource *res)
 	assert(pol); // LCOV_EXCL_LINE
 	assert(res); // LCOV_EXCL_LINE
 
-	cw_list_push(&res->l, &pol->resources);
-	DEBUG("Adding resource %s to policy", res->key);
+	cw_list_push(&pol->resources, &res->l);
+	cw_log(LOG_DEBUG, "Adding resource %s to policy", res->key);
 	hash_set(pol->index, res->key, res);
 	return 0;
 }
@@ -795,13 +795,13 @@ struct resource* policy_find_resource(struct policy *pol, enum restype type, con
 {
 	struct resource *r;
 
-	DEBUG("Looking for resource %u matching %s => '%s'", type, attr, value);
+	cw_log(LOG_DEBUG, "Looking for resource %u matching %s => '%s'", type, attr, value);
 	for_each_resource(r, pol) {
 		if (r->type == type && resource_match(r, attr, value) == 0) {
 			return r;
 		}
 	}
-	DEBUG("  none found...");
+	cw_log(LOG_DEBUG, "  none found...");
 
 	return NULL;
 }
@@ -820,12 +820,12 @@ int policy_add_dependency(struct policy *pol, struct dependency *dep)
 	for_each_dependency(d, pol) {
 		if (strcmp(d->a, dep->a) == 0
 		 && strcmp(d->b, dep->b) == 0) {
-			DEBUG("Already have a dependency of %s -> %s", dep->a, dep->b);
+			cw_log(LOG_DEBUG, "Already have a dependency of %s -> %s", dep->a, dep->b);
 			return -1; /* duplicate */
 		}
 	}
-	DEBUG("Adding dependency of %s -> %s", dep->a, dep->b);
-	cw_list_push(&dep->l, &pol->dependencies);
+	cw_log(LOG_DEBUG, "Adding dependency of %s -> %s", dep->a, dep->b);
+	cw_list_push(&pol->dependencies, &dep->l);
 
 	return 0;
 }
@@ -854,10 +854,10 @@ int policy_notify(const struct policy *pol, const struct resource *cause)
 
 	struct dependency *d;
 
-	DEBUG("Notifying dependent resources on %s", cause->key);
+	cw_log(LOG_DEBUG, "Notifying dependent resources on %s", cause->key);
 	for_each_dependency(d, pol) {
 		if (d->resource_b == cause) {
-			DEBUG("  notifying resource %s (%p) of change in %s (%p)",
+			cw_log(LOG_DEBUG, "  notifying resource %s (%p) of change in %s (%p)",
 			      d->a, d->resource_a, cause->key, cause);
 
 			resource_notify(d->resource_a, cause);
@@ -988,18 +988,18 @@ struct policy* policy_unpack(const char *packed_policy)
 		if (strncmp(packed, "dependency::", 12) == 0) {
 			d = dependency_unpack(packed);
 			if (!d) {
-				DEBUG("Unable to unpack dependency: %s", packed);
+				cw_log(LOG_DEBUG, "Unable to unpack dependency: %s", packed);
 				goto policy_unpack_failed;
 			}
 
 			d->resource_a = hash_get(pol->index, d->a);
 			d->resource_b = hash_get(pol->index, d->b);
 			if (!d->resource_a) {
-				ERROR("Failed resolving dependency for %s", d->a);
+				cw_log(LOG_ERR, "Failed resolving dependency for %s", d->a);
 				goto policy_unpack_failed;
 			}
 			if (!d->resource_b) {
-				ERROR("Failed resolving dependency for %s", d->b);
+				cw_log(LOG_ERR, "Failed resolving dependency for %s", d->b);
 				goto policy_unpack_failed;
 			}
 			policy_add_dependency(pol, d);
@@ -1007,7 +1007,7 @@ struct policy* policy_unpack(const char *packed_policy)
 		} else {
 			r = resource_unpack(packed);
 			if (!r) {
-				DEBUG("Unable to unpack: %s", pack);
+				cw_log(LOG_DEBUG, "Unable to unpack: %s", pack);
 				goto policy_unpack_failed;
 			}
 			policy_add_resource(pol, r);

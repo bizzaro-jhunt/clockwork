@@ -18,6 +18,7 @@
  */
 
 #include "gear.h"
+#include "../cw.h"
 
 #include <assert.h>
 #include <stdlib.h>
@@ -67,7 +68,7 @@ static int _deref(char **buf, size_t *len, const char *start, const char *end, c
 	char *ref = _extract(start, end);
 	char *val = _lookup(ref, ctx);
 
-	DEBUG("string:deref ::%s:: -> '%s'\n", ref, val);
+	cw_log(LOG_DEBUG, "string:deref ::%s:: -> '%s'\n", ref, val);
 
 	strncat(*buf, val, *len);
 	for (; **buf; (*buf)++, (*len)--)

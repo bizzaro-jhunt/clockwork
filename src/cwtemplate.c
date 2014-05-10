@@ -60,30 +60,30 @@ int main(int argc, char **argv)
 		fprintf(stderr, "Unable to process client options");
 		exit(2);
 	}
-	c->log_level = log_set(c->log_level);
-	INFO("Log level is %s (%u)", log_level_name(c->log_level), c->log_level);
+	c->log_level = cw_log_level(c->log_level, NULL);
+	cw_log(LOG_INFO, "Log level is %s", cw_log_level_name(-1));
 
-	INFO("Gathering facts");
+	cw_log(LOG_INFO, "Gathering facts");
 	c->facts = hash_new();
 	if (cwt->facts_from) {
-		INFO("Reading cached facts from %s", cwt->facts_from);
+		cw_log(LOG_INFO, "Reading cached facts from %s", cwt->facts_from);
 		if (fact_cat_read(cwt->facts_from, c->facts) != 0) {
-			CRITICAL("Unable to read cached facts");
+			cw_log(LOG_CRIT, "Unable to read cached facts");
 			exit(1);
 		}
 	} else if (fact_gather(c->gatherers, c->facts) != 0) {
-		INFO("Gathering facts from %s", c->gatherers);
-		CRITICAL("Unable to gather facts");
+		cw_log(LOG_INFO, "Gathering facts from %s", c->gatherers);
+		cw_log(LOG_CRIT, "Unable to gather facts");
 		exit(1);
 	}
 	if (cwt->facts) {
-		INFO("Merging collected facts with command-line overrides");
+		cw_log(LOG_INFO, "Merging collected facts with command-line overrides");
 		hash_merge(c->facts, cwt->facts);
 	}
 
 	tpl = template_create(cwt->template, c->facts);
 	if (!tpl) {
-		CRITICAL("Failed to parse template");
+		cw_log(LOG_CRIT, "Failed to parse template");
 		exit(1);
 	}
 	if (cwt->check_only) {

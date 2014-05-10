@@ -27,7 +27,7 @@
 static struct server default_options = {
 	.daemonize     = SERVER_OPT_TRUE,
 	.debug         = SERVER_OPT_FALSE,
-	.log_level     = LOG_LEVEL_ERROR,
+	.log_level     = LOG_ERR,
 
 	.config_file   = DEFAULT_POLICYD_CONF,
 	.manifest_file = DEFAULT_MANIFEST_POL,
@@ -121,24 +121,25 @@ static struct server* configured_options(const char *path)
 		v = hash_get(config, "manifest_file");
 		if (v) { s->manifest_file = strdup(v); }
 
+		/* FIXME: cw_log_level can take a string... */
 		v = hash_get(config, "log_level");
 		if (v) {
 			if (strcasecmp(v, "critical") == 0) {
-				s->log_level = LOG_LEVEL_CRITICAL;
+				s->log_level = LOG_CRIT;
 			} else if (strcasecmp(v, "error") == 0) {
-				s->log_level = LOG_LEVEL_ERROR;
+				s->log_level = LOG_ERR;
 			} else if (strcasecmp(v, "warning") == 0) {
-				s->log_level = LOG_LEVEL_WARNING;
+				s->log_level = LOG_WARNING;
 			} else if (strcasecmp(v, "notice") == 0) {
-				s->log_level = LOG_LEVEL_NOTICE;
+				s->log_level = LOG_NOTICE;
 			} else if (strcasecmp(v, "info") == 0) {
-				s->log_level = LOG_LEVEL_INFO;
+				s->log_level = LOG_INFO;
 			} else if (strcasecmp(v, "debug") == 0) {
-				s->log_level = LOG_LEVEL_DEBUG;
+				s->log_level = LOG_DEBUG;
 			} else if (strcasecmp(v, "all") == 0) {
-				s->log_level = LOG_LEVEL_ALL;
+				s->log_level = LOG_DEBUG;
 			} else { // handle "none" implicitly
-				s->log_level = LOG_LEVEL_NONE;
+				s->log_level = LOG_EMERG;
 			}
 		}
 

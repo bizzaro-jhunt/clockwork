@@ -98,8 +98,8 @@ int exec_command(const char *cmd, char **std_out, char **std_err)
 		exit(42); /* Burma! */
 
 	default: /* in parent */
-		DEBUG("exec_command[%u]: Running `%s'", pid, cmd);
-		DEBUG("exec_command[%u]: spawned sub-process", pid);
+		cw_log(LOG_DEBUG, "exec_command[%u]: Running `%s'", pid, cmd);
+		cw_log(LOG_DEBUG, "exec_command[%u]: spawned sub-process", pid);
 
 		if (!read_stdout && !read_stderr) { break; }
 
@@ -109,22 +109,22 @@ int exec_command(const char *cmd, char **std_out, char **std_err)
 			close(err[1]);
 			FD_SET(err[0], &fds);
 			nfds = (nfds > err[0] ? nfds : err[0]);
-			DEBUG("exec_command[%u]: Capturing STDERR; nfds = %u", pid, nfds);
+			cw_log(LOG_DEBUG, "exec_command[%u]: Capturing STDERR; nfds = %u", pid, nfds);
 		}
 
 		if (read_stdout) {
 			close(out[1]);
 			FD_SET(out[0], &fds);
 			nfds = (nfds > out[0] ? nfds : out[0]);
-			DEBUG("exec_command[%u]: Capturing STDOUT; nfds = %u", pid, nfds);
+			cw_log(LOG_DEBUG, "exec_command[%u]: Capturing STDOUT; nfds = %u", pid, nfds);
 		}
 
 		nfds++;
 		while ((read_stdout || read_stderr) && select(nfds, &fds, NULL, NULL, NULL) > 0) {
-			DEBUG("exec_command[%u]: select() returned - something to read", pid);
+			cw_log(LOG_DEBUG, "exec_command[%u]: select() returned - something to read", pid);
 
 			if (read_stdout && FD_ISSET(out[0], &fds)) {
-				DEBUG("exec_command[%u]: reading STDOUT from child", pid);
+				cw_log(LOG_DEBUG, "exec_command[%u]: reading STDOUT from child", pid);
 				*std_out = xmalloc(EXEC_OUTPUT_MAX * sizeof(char));
 				n = read(out[0], *std_out, EXEC_OUTPUT_MAX);
 				(*std_out)[n] = '\0';
@@ -133,11 +133,11 @@ int exec_command(const char *cmd, char **std_out, char **std_err)
 				close(out[0]);
 				read_stdout = 0;
 
-				DEBUG(" > read %s' from STDOUT", *std_out);
+				cw_log(LOG_DEBUG, " > read %s' from STDOUT", *std_out);
 			}
 
 			if (read_stderr && FD_ISSET(err[0], &fds)) {
-				DEBUG("exec_command[%u]: reading STDERR from child", pid);
+				cw_log(LOG_DEBUG, "exec_command[%u]: reading STDERR from child", pid);
 				*std_err = xmalloc(EXEC_OUTPUT_MAX * sizeof(char));
 				n = read(err[0], *std_err, EXEC_OUTPUT_MAX);
 				(*std_err)[n] = '\0';
@@ -146,23 +146,23 @@ int exec_command(const char *cmd, char **std_out, char **std_err)
 				close(err[0]);
 				read_stderr = 0;
 
-				DEBUG(" > read %s' from STDERR", *std_err);
+				cw_log(LOG_DEBUG, " > read %s' from STDERR", *std_err);
 			}
 
 			if (read_stdout) { FD_SET(out[0], &fds); }
 			if (read_stderr) { FD_SET(err[0], &fds); }
 
-			DEBUG("exec_command[%u]: going to select() again", pid);
+			cw_log(LOG_DEBUG, "exec_command[%u]: going to select() again", pid);
 		}
 	}
 
 	waitpid(pid, &proc_stat, 0);
 	if (!WIFEXITED(proc_stat)) {
-		DEBUG("exec_command[%u]: terminated abnormally", pid);
+		cw_log(LOG_DEBUG, "exec_command[%u]: terminated abnormally", pid);
 		return -1;
 	}
 
-	DEBUG("exec_command[%u]: sub-process exited %u", pid, WEXITSTATUS(proc_stat));
+	cw_log(LOG_DEBUG, "exec_command[%u]: sub-process exited %u", pid, WEXITSTATUS(proc_stat));
 	return WEXITSTATUS(proc_stat);
 }
 

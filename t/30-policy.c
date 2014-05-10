@@ -31,7 +31,7 @@ TESTS {
 
 		isnt_null(pol = policy_new("policy name"), "initialized policy");
 		is_string(pol->name, "policy name", "Policy name initialized");
-		ok(list_empty(&pol->resources), "new policy has no resources");
+		ok(cw_list_isempty(&pol->resources), "new policy has no resources");
 
 		policy_free(pol);
 	}
@@ -130,13 +130,13 @@ TESTS {
 			"res_file::\"k3\"00000007\"\"\"cfm://etc/sudoers\"" "00000065" "000007d0" "00000180";
 
 		isnt_null(pol = policy_unpack("policy::\"empty\"00000309"), "unpacked empty policy");
-		ok(list_empty(&pol->resources), "resources of empty policy is empty list");
+		ok(cw_list_isempty(&pol->resources), "resources of empty policy is empty list");
 		policy_free_all(pol);
 
 		/* The George Thoroughgood test */
 		isnt_null(pol = policy_unpack(packed), "unpacked policy");
 		is_string(pol->name, "1 user, 1 group, and 1 file", "policy name unpacked");
-		ok(!list_empty(&pol->resources), "unpacked policy has resources");
+		ok(!cw_list_isempty(&pol->resources), "unpacked policy has resources");
 		is_int(num_res(pol, RES_USER),  1, "user resources");
 		is_int(num_res(pol, RES_GROUP), 1, "group resources");
 		is_int(num_res(pol, RES_FILE),  1, "fileresources");

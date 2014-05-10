@@ -21,6 +21,7 @@
 #define EXEC_H
 
 #include "clockwork.h"
+#include "cw.h"
 
 int exec_command(const char *cmd, char **std_out, char **std_err);
 

@@ -765,6 +765,22 @@ int cw_log_level(int level, const char *name)
 	return was;
 }
 
+const char* cw_log_level_name(int level)
+{
+	if (level < 0) level = CW_LOG.level;
+	switch (level) {
+	case LOG_EMERG:   return "emergency";
+	case LOG_ALERT:   return "alert";
+	case LOG_CRIT:    return "critical";
+	case LOG_ERR:     return "error";
+	case LOG_WARNING: return "warning";
+	case LOG_NOTICE:  return "notice";
+	case LOG_INFO:    return "info";
+	case LOG_DEBUG:   return "debug";
+	default:          return "UNKNOWN";
+	}
+}
+
 void cw_log(int level, const char *fmt, ...)
 {
 	if (level > CW_LOG.level)

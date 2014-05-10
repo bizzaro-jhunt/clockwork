@@ -62,7 +62,7 @@ struct manifest* parse_file(const char *path)
 	ctx.file = NULL;
 	ctx.warnings = ctx.errors = 0;
 	ctx.files = stringlist_new(NULL);
-	list_init(&ctx.fseen);
+	cw_list_init(&ctx.fseen);
 
 	yylex_init_extra(&ctx, &ctx.scanner);
 	lexer_include_file(path, &ctx);
@@ -72,7 +72,7 @@ struct manifest* parse_file(const char *path)
 
 	yylex_destroy(ctx.scanner);
 	stringlist_free(ctx.files);
-	for_each_node_safe(seen, tmp, &ctx.fseen, ls) {
+	for_each_object_safe(seen, tmp, &ctx.fseen, ls) {
 		free(seen);
 	}
 

@@ -100,7 +100,7 @@ typedef struct {
 	ino_t           st_ino;        /* File Inode number */
 	FILE           *io;            /* Open file handle */
 
-	struct list     ls;            /* For stacking parser_files */
+	cw_list_t       ls;            /* For stacking parser_files */
 } parser_file;
 
 /**
@@ -126,7 +126,7 @@ typedef struct {
 
 	const char        *file;     /* Name of the current file being parsed */
 	struct stringlist *files;    /* "Stack" of file names processed so far */
-	struct list        fseen;    /* List of device ID / inode pairs already include'd */
+	cw_list_t          fseen;    /* List of device ID / inode pairs already include'd */
 
 	struct manifest *root;
 } spec_parser_context;

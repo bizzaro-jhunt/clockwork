@@ -89,23 +89,23 @@ struct manifest {
 struct policy {
 	char *name;               /* policy name */
 
-	struct list resources;    /* resources defined for policy */
-	struct list dependencies; /* resource dependencies (implicit and explicit) */
+	cw_list_t resources;    /* resources defined for policy */
+	cw_list_t dependencies; /* resource dependencies (implicit and explicit) */
 
 	struct hash *index;       /* resources, keyed by "TYPE:pkey" */
 };
 
 /* Iterate over a policy's resources */
-#define for_each_resource(r,pol) for_each_node((r),&((pol)->resources), l)
+#define for_each_resource(r,pol) for_each_object((r),&((pol)->resources), l)
 
 /* Iterate (safely) over a policy's resources */
-#define for_each_resource_safe(r,t,pol) for_each_node_safe((r),(t),&((pol)->resources), l)
+#define for_each_resource_safe(r,t,pol) for_each_object_safe((r),(t),&((pol)->resources), l)
 
 /* Iterate over a policy's dependencies */
-#define for_each_dependency(d,pol) for_each_node((d),&((pol)->dependencies), l)
+#define for_each_dependency(d,pol) for_each_object((d),&((pol)->dependencies), l)
 
 /* Iterate (safely) over a policy's dependencies */
-#define for_each_dependency_safe(d,t,pol) for_each_node_safe((d),(t),&((pol)->dependencies), l)
+#define for_each_dependency_safe(d,t,pol) for_each_object_safe((d),(t),&((pol)->dependencies), l)
 
 struct manifest* manifest_new(void);
 void manifest_free(struct manifest *m);

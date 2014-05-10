@@ -31,8 +31,8 @@
 
 struct scope {
 	int depth;
-	struct list l;
-	struct list res_defs;
+	cw_list_t l;
+	cw_list_t res_defs;
 };
 
 struct policy_generator {
@@ -40,44 +40,44 @@ struct policy_generator {
 	struct hash   *facts;
 	enum restype   type;
 
-	struct list scopes;
+	cw_list_t scopes;
 	struct scope *scope;
 
 	struct resource *res;
 	struct dependency *dep;
 };
 
-static struct scope* push_scope(struct list *list, int depth)
+static struct scope* push_scope(cw_list_t *list, int depth)
 {
 	struct scope *scope = xmalloc(sizeof(struct scope));
 
-	list_init(&scope->res_defs);
+	cw_list_init(&scope->res_defs);
 	scope->depth = depth;
 
-	list_add_head(&scope->l, list);
+	cw_list_unshift(&scope->l, list);
 	return scope;
 }
 
-static struct scope* pop_scope(struct list *list)
+static struct scope* pop_scope(cw_list_t *list)
 {
 	struct scope *scope;
 
-	scope = list_node(list->next, struct scope, l);
+	scope = cw_list_object(list->next, struct scope, l);
 	if (!scope) {
 		return NULL;
 	}
-	list_del(&scope->l);
+	cw_list_delete(&scope->l);
 
 	struct resource *res_def, *tmp;
-	for_each_node_safe(res_def, tmp, &scope->res_defs, l) {
+	for_each_object_safe(res_def, tmp, &scope->res_defs, l) {
 		resource_free(res_def);
 	}
 	free(scope);
 
-	if (list_empty(list)) {
+	if (cw_list_isempty(list)) {
 		return NULL;
 	}
-	return list_node(list->next, struct scope, l);
+	return cw_list_object(list->next, struct scope, l);
 }
 
 static void stree_free(struct stree *n)
@@ -126,22 +126,26 @@ static int _policy_normalize(struct policy *pol, struct hash *facts)
 
 	/* get the one with no deps */
 	for_each_resource_safe(r1, tmp, pol) {
-		if (r1->ndeps == 0) { list_move_tail(&r1->l, &deps); }
+		if (r1->ndeps == 0) {
+			cw_list_delete(&deps);
+			cw_list_push(&r1->l, &deps);
+		}
 	}
 
-	for_each_node(r1, &deps, l) {
+	for_each_object(r1, &deps, l) {
 		for_each_resource_safe(r2, tmp, pol) {
 			if (resource_depends_on(r2, r1) == 0) {
 				resource_drop_dependency(r2, r1);
 				if (r2->ndeps == 0) {
-					list_move_tail(&r2->l, &deps);
+					cw_list_delete(&deps);
+					cw_list_push(&r1->l, &deps);
 				}
 			}
 		}
 	}
 
-	if (!list_empty(&pol->resources)) { return -1; }
-	list_replace(&deps, &pol->resources);
+	if (!cw_list_isempty(&pol->resources)) { return -1; }
+	cw_list_replace(&deps, &pol->resources);
 
 	return 0;
 }
@@ -544,7 +548,7 @@ static struct resource * _policy_make_resource(struct policy_generator *pgen, co
 	struct resource *res;
 	if (name == NULL) { /* default resource */
 		res = resource_new(type, NULL);
-		list_add_head(&res->l, &pgen->scope->res_defs);
+		cw_list_unshift(&res->l, &pgen->scope->res_defs);
 		return res;
 	}
 
@@ -552,7 +556,7 @@ static struct resource * _policy_make_resource(struct policy_generator *pgen, co
 	if (!res) { /* new resource; check defaults */
 		enum restype rtype = resource_type(type);
 		struct resource *defaults;
-		for_each_node(defaults, &pgen->scope->res_defs, l) {
+		for_each_object(defaults, &pgen->scope->res_defs, l) {
 			if (defaults->type == rtype) {
 				res = resource_clone(defaults, name);
 				break;
@@ -598,7 +602,7 @@ again:
 		pgen->res = _policy_make_resource(pgen, node->data1, node->data2);
 		if (!pgen->res) {
 			WARNING("Definition for unknown resource type '%s'", node->data1);
-		} else if (list_empty(&pgen->res->l)) {
+		} else if (cw_list_isempty(&pgen->res->l)) {
 			policy_add_resource(pgen->policy, pgen->res);
 		}
 
@@ -680,7 +684,7 @@ struct policy* policy_generate(struct stree *root, struct hash *facts)
 	pgen.policy = policy_new(root->data1);
 
 	/* set up scopes for default values */
-	list_init(&pgen.scopes);
+	cw_list_init(&pgen.scopes);
 	pgen.scope = NULL;
 
 	if (_policy_generate(root, &pgen, 0) != 0) {
@@ -714,8 +718,8 @@ struct policy* policy_new(const char *name)
 	pol = xmalloc(sizeof(struct policy));
 	pol->name = xstrdup(name);
 
-	list_init(&pol->resources);
-	list_init(&pol->dependencies);
+	cw_list_init(&pol->resources);
+	cw_list_init(&pol->dependencies);
 	pol->index = hash_new();
 
 	return pol;
@@ -761,7 +765,7 @@ int policy_add_resource(struct policy *pol, struct resource *res)
 	assert(pol); // LCOV_EXCL_LINE
 	assert(res); // LCOV_EXCL_LINE
 
-	list_add_tail(&res->l, &pol->resources);
+	cw_list_push(&res->l, &pol->resources);
 	DEBUG("Adding resource %s to policy", res->key);
 	hash_set(pol->index, res->key, res);
 	return 0;
@@ -821,7 +825,7 @@ int policy_add_dependency(struct policy *pol, struct dependency *dep)
 		}
 	}
 	DEBUG("Adding dependency of %s -> %s", dep->a, dep->b);
-	list_add_tail(&dep->l, &pol->dependencies);
+	cw_list_push(&dep->l, &pol->dependencies);
 
 	return 0;
 }

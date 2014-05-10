@@ -21,6 +21,7 @@
 #define RESOURCE_H
 
 #include "clockwork.h"
+#include "cw.h"
 
 #include <augeas.h>
 
@@ -93,7 +94,7 @@ struct resource {
 	struct resource **deps;  /* other resources this one depends on */
 	int ndeps;               /* how many dependencies are there? */
 
-	struct list l;
+	cw_list_t l;
 };
 
 /**
@@ -125,7 +126,7 @@ struct dependency {
 	struct resource *resource_a; /* dependent resource */
 	struct resource *resource_b; /* resource that $a depends on */
 
-	struct list l;
+	cw_list_t l;
 };
 
 /**

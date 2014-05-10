@@ -46,7 +46,7 @@ static FILE* lexer_open(const char *path, spec_parser_context *ctx)
 
 	/* Combination of st_dev and st_ino is guaranteed to be unique
 	   on any system conforming to the POSIX specifications... */
-	for_each_node(seen, &ctx->fseen, ls) {
+	for_each_object(seen, &ctx->fseen, ls) {
 		if (seen->st_dev == st.st_dev
 		 && seen->st_ino == st.st_ino) {
 			spec_parser_warning(ctx, "skipping %s (already seen)", path);
@@ -70,15 +70,15 @@ static FILE* lexer_open(const char *path, spec_parser_context *ctx)
 	seen->st_dev = st.st_dev;
 	seen->st_ino = st.st_ino;
 	seen->io     = io;
-	list_init(&(seen->ls));
-	list_add_tail(&seen->ls, &ctx->fseen);
+	cw_list_init(&(seen->ls));
+	cw_list_push(&seen->ls, &ctx->fseen);
 	return io;
 }
 
 static int lexer_close(spec_parser_context *ctx)
 {
 	parser_file *seen;
-	for_each_node_r(seen, &ctx->fseen, ls) {
+	for_each_object_r(seen, &ctx->fseen, ls) {
 		if (seen && seen->io) {
 			fclose(seen->io);
 			seen->io = NULL;

@@ -98,6 +98,21 @@ int cw_list_delete(cw_list_t *n)
 	    && cw_list_init(n)                  == 0 ? 0 : -1;
 }
 
+int cw_list_replace(cw_list_t *o, cw_list_t *n)
+{
+	assert(o);
+	assert(n);
+
+	n->next = o->next;
+	n->next->prev = n;
+
+	n->prev = o->prev;
+	n->prev->next = n;
+
+	cw_list_init(o);
+	return 0;
+}
+
 int cw_list_unshift(cw_list_t *l, cw_list_t *n)
 {
 	assert(l);

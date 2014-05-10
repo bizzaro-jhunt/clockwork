@@ -365,7 +365,7 @@ static int enforce_policy(struct client *c, struct job *job)
 		if (res->type == RES_FILE) {
 			close(env.file_fd);
 		}
-		list_add_tail(&r->l, &job->reports);
+		cw_list_push(&r->l, &job->reports);
 	}
 
 	if (c->mode != CLIENT_MODE_TEST) {

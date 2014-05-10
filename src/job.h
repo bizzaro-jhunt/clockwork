@@ -21,19 +21,20 @@
 #define JOB_H
 
 #include "clockwork.h"
+#include "cw.h"
 #include <sys/time.h>
 
 /* Iterate over job's reports */
-#define for_each_report(r,job) for_each_node((r), &((job)->reports), l)
+#define for_each_report(r,job) for_each_object((r), &((job)->reports), l)
 
 /* Iterate (safely) over a job's reports */
-#define for_each_report_safe(r,t,job) for_each_node_safe((r), (t), &((job)->reports), l)
+#define for_each_report_safe(r,t,job) for_each_object_safe((r), (t), &((job)->reports), l)
 
 /* Iterate over a report's actions */
-#define for_each_action(a,rpt) for_each_node((a), &((rpt)->actions), l)
+#define for_each_action(a,rpt) for_each_object((a), &((rpt)->actions), l)
 
 /* Iterate (safely) over a report's actions */
-#define for_each_action_safe(a,t,rpt) for_each_node_safe((a), (t), &((rpt)->actions), l)
+#define for_each_action_safe(a,t,rpt) for_each_object_safe((a), (t), &((rpt)->actions), l)
 
 /* Possible results of an action. */
 enum action_result {
@@ -54,7 +55,7 @@ struct job {
 	struct timeval end;      /* when the job ended */
 
 	unsigned long  duration; /* job duration, in microseconds */
-	struct list    reports;  /* Reports for each resource eval'd */
+	cw_list_t      reports;  /* Reports for each resource eval'd */
 };
 
 /**
@@ -71,8 +72,8 @@ struct report {
 	unsigned char compliant; /* is the resource compliant? */
 	unsigned char fixed;     /* did it have to be fixed? */
 
-	struct list actions; /* all actions carried out */
-	struct list l;       /* list member node, for struct job */
+	cw_list_t actions; /* all actions carried out */
+	cw_list_t l;       /* list member node, for struct job */
 };
 
 /**
@@ -82,7 +83,7 @@ struct action {
 	char              *summary; /* description of the action */
 	enum action_result result;  /* result of the action */
 
-	struct list l;  /* list member node, for struct report */
+	cw_list_t l;  /* list member node, for struct report */
 };
 
 struct job* job_new(void);

@@ -35,7 +35,7 @@ struct job* job_new(void)
 	struct job *job;
 	job = xmalloc(sizeof(struct job));
 	job->duration = 0;
-	list_init(&job->reports);
+	cw_list_init(&job->reports);
 	return job;
 }
 
@@ -95,7 +95,7 @@ int job_add_report(struct job *job, struct report *report)
 	assert(job); // LCOV_EXCL_LINE
 	assert(report); // LCOV_EXCL_LINE
 
-	list_add_tail(&report->l, &job->reports);
+	cw_list_push(&report->l, &job->reports);
 	return 0;
 }
 
@@ -122,8 +122,8 @@ struct report* report_new(const char *type, const char *key)
 	r->compliant = 1;
 	r->fixed     = 0;
 
-	list_init(&r->actions);
-	list_init(&r->l);
+	cw_list_init(&r->actions);
+	cw_list_init(&r->l);
 
 	return r;
 }
@@ -157,7 +157,7 @@ int report_add_action(struct report *report, struct action *action)
 	assert(report); // LCOV_EXCL_LINE
 	assert(action); // LCOV_EXCL_LINE
 
-	list_add_tail(&action->l, &report->actions);
+	cw_list_push(&action->l, &report->actions);
 	if (action->result == ACTION_FAILED) {
 		report->compliant = 0;
 	} else {
@@ -203,7 +203,7 @@ struct action* action_new(char *summary, enum action_result result)
 {
 	struct action *action;
 	action = xmalloc(sizeof(struct action));
-	list_init(&action->l);
+	cw_list_init(&action->l);
 
 	action->summary = summary;
 	action->result  = result;

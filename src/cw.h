@@ -42,20 +42,33 @@ struct cw_list {
 	for (pos = (head)->next; \
 	     pos != (head);      \
 	     pos = pos->next)
+#define for_each_r(pos, head) \
+	for (pos = (head)->prev; \
+	     pos != (head);      \
+	     pos = pos->prev)
 
 /** Iterate over a list (safely) */
 #define for_each_safe(pos, tmp, head) \
 	for (pos = (head)->next, tmp = pos->next; \
 	     pos != (head);                       \
 	     pos = tmp, tmp = pos->next)
+#define for_each_safe_r(pos, tmp, head) \
+	for (pos = (head)->prev, tmp = pos->prev; \
+	     pos != (head);                       \
+	     pos = tmp, tmp = pos->prev)
 
 #define cw_list_next(o,m) cw_list_object(o->m.next, typeof(*o), m)
+#define cw_list_prev(o,m) cw_list_object(o->m.prev, typeof(*o), m)
 
 /** Iterate over a list, accessing the objects */
 #define for_each_object(pos, head, memb) \
 	for (pos = cw_list_object((head)->next, typeof(*pos), memb); \
 	     &pos->memb != (head);                                 \
 	     pos = cw_list_object(pos->memb.next, typeof(*pos), memb))
+#define for_each_object_r(pos, head, memb) \
+	for (pos = cw_list_object((head)->prev, typeof(*pos), memb); \
+	     &pos->memb != (head);                                 \
+	     pos = cw_list_object(pos->memb.prev, typeof(*pos), memb))
 
 /** Iterate over a list (safely), accessing the objects */
 #define for_each_object_safe(pos, tmp, head, memb) \
@@ -63,6 +76,11 @@ struct cw_list {
 	     tmp = cw_list_object(pos->memb.next, typeof(*pos), memb); \
 	     &pos->memb != (head);                                   \
 	     pos = tmp, tmp = cw_list_object(tmp->memb.next, typeof(*tmp), memb))
+#define for_each_object_safe_r(pos, tmp, head, memb) \
+	for (pos = cw_list_object((head)->prev, typeof(*pos), memb),   \
+	     tmp = cw_list_object(pos->memb.prev, typeof(*pos), memb); \
+	     &pos->memb != (head);                                   \
+	     pos = tmp, tmp = cw_list_object(tmp->memb.prev, typeof(*tmp), memb))
 
 int cw_list_init(cw_list_t *l);
 
@@ -71,6 +89,7 @@ size_t cw_list_len(cw_list_t *l);
 
 int cw_list_splice(cw_list_t *prev, cw_list_t *next);
 int cw_list_delete(cw_list_t *n);
+int cw_list_replace(cw_list_t *o, cw_list_t *n);
 
 int cw_list_unshift(cw_list_t *l, cw_list_t *n);
 int cw_list_push   (cw_list_t *l, cw_list_t *n);

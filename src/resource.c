@@ -123,7 +123,7 @@ struct resource* resource_new(const char *type, const char *key)
 
 	struct resource *r = xmalloc(sizeof(struct resource));
 
-	list_init(&r->l);
+	cw_list_init(&r->l);
 	r->key = NULL;
 	r->type = resource_type(type);
 	if (r->type == RES_UNKNOWN) {
@@ -144,7 +144,7 @@ struct resource* resource_clone(const struct resource *orig, const char *key)
 	}
 
 	struct resource *r = xmalloc(sizeof(struct resource));
-	list_init(&r->l);
+	cw_list_init(&r->l);
 	r->type = orig->type;
 
 	r->resource = (*(resource_types[r->type].clone_callback))(orig->resource, key);
@@ -504,7 +504,7 @@ struct dependency* dependency_new(const char *a, const char *b)
 
 	if (a) { dep->a = strdup(a); }
 	if (b) { dep->b = strdup(b); }
-	list_init(&dep->l);
+	cw_list_init(&dep->l);
 
 	return dep;
 }
@@ -515,7 +515,7 @@ struct dependency* dependency_new(const char *a, const char *b)
 void dependency_free(struct dependency *dep)
 {
 	if (dep) {
-		list_del(&dep->l);
+		cw_list_delete(&dep->l);
 		free(dep->a);
 		free(dep->b);
 		free(dep);

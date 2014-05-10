@@ -19,7 +19,6 @@
 
 #include "test.h"
 #include "../src/policy.h"
-#include "../src/mem.h"
 
 TESTS {
 	struct hash *facts;

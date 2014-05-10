@@ -124,7 +124,7 @@ static void traverse(struct stree *node, unsigned int depth)
 	char *buf;
 	unsigned int i;
 
-	buf = xmalloc(2 * depth + 1);
+	buf = cw_alloc(2 * depth + 1);
 	memset(buf, ' ', 2 * depth);
 	buf[2 * depth] = '\0';
 

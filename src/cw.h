@@ -5,6 +5,25 @@
 #include <syslog.h> /* for LOG_* constants */
 
 /*
+
+    ##     ## ######## ##     ##
+    ###   ### ##       ###   ###
+    #### #### ##       #### ####
+    ## ### ## ######   ## ### ##
+    ##     ## ##       ##     ##
+    ##     ## ##       ##     ##
+    ##     ## ######## ##     ##
+
+ */
+
+#define cw_alloc(l) __cw_alloc((l), __func__, __FILE__, __LINE__)
+void * __cw_alloc(size_t size, const char *func, const char *file, unsigned int line);
+char * cw_strdup(const char *s);
+int cw_strcmp(const char *a, const char *b);
+char** cw_arrdup(char **a);
+void cw_arrfree(char **a);
+
+/*
      ######  ####  ######   ##    ##    ###    ##        ######
     ##    ##  ##  ##    ##  ###   ##   ## ##   ##       ##    ##
     ##        ##  ##        ####  ##  ##   ##  ##       ##

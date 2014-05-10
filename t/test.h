@@ -36,7 +36,7 @@ static int has_dep(const struct policy *pol, const char *a, const char *b)
 {
 	struct dependency *dep;
 	for_each_dependency(dep, pol) {
-		if (streq(dep->a, a) && streq(dep->b, b)) {
+		if (strcmp(dep->a, a) == 0 && strcmp(dep->b, b) == 0) {
 			return 1;
 		}
 	}

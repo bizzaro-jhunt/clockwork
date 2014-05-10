@@ -130,16 +130,16 @@ static struct pwdb* _pwdb_entry(struct passwd *passwd)
 	assert(passwd); // LCOV_EXCL_LINE
 
 	struct pwdb *ent;
-	ent = xmalloc(sizeof(struct pwdb));
-	ent->passwd = xmalloc(sizeof(struct passwd));
+	ent = cw_alloc(sizeof(struct pwdb));
+	ent->passwd = cw_alloc(sizeof(struct passwd));
 
-	ent->passwd->pw_name   = xstrdup(passwd->pw_name);
-	ent->passwd->pw_passwd = xstrdup(passwd->pw_passwd);
+	ent->passwd->pw_name   = cw_strdup(passwd->pw_name);
+	ent->passwd->pw_passwd = cw_strdup(passwd->pw_passwd);
 	ent->passwd->pw_uid    = passwd->pw_uid;
 	ent->passwd->pw_gid    = passwd->pw_gid;
-	ent->passwd->pw_gecos  = xstrdup(passwd->pw_gecos);
-	ent->passwd->pw_dir    = xstrdup(passwd->pw_dir);
-	ent->passwd->pw_shell  = xstrdup(passwd->pw_shell);
+	ent->passwd->pw_gecos  = cw_strdup(passwd->pw_gecos);
+	ent->passwd->pw_dir    = cw_strdup(passwd->pw_dir);
+	ent->passwd->pw_shell  = cw_strdup(passwd->pw_shell);
 
 	return ent;
 }
@@ -156,12 +156,12 @@ static struct pwdb* _pwdb_fgetpwent(FILE *input)
 static void _passwd_free(struct passwd *pw)
 {
 	if (!pw) { return; }
-	xfree(pw->pw_name);
-	xfree(pw->pw_passwd);
-	xfree(pw->pw_gecos);
-	xfree(pw->pw_dir);
-	xfree(pw->pw_shell);
-	xfree(pw);
+	free(pw->pw_name);
+	free(pw->pw_passwd);
+	free(pw->pw_gecos);
+	free(pw->pw_dir);
+	free(pw->pw_shell);
+	free(pw);
 }
 
 static void _pwdb_entry_free(struct pwdb *entry)
@@ -176,11 +176,11 @@ static struct spdb* _spdb_entry(struct spwd *spwd)
 	assert(spwd); // LCOV_EXCL_LINE
 
 	struct spdb *ent;
-	ent = xmalloc(sizeof(struct spdb));
-	ent->spwd = xmalloc(sizeof(struct spwd));
+	ent = cw_alloc(sizeof(struct spdb));
+	ent->spwd = cw_alloc(sizeof(struct spwd));
 
-	ent->spwd->sp_namp   = xstrdup(spwd->sp_namp);
-	ent->spwd->sp_pwdp   = xstrdup(spwd->sp_pwdp);
+	ent->spwd->sp_namp   = cw_strdup(spwd->sp_namp);
+	ent->spwd->sp_pwdp   = cw_strdup(spwd->sp_pwdp);
 	ent->spwd->sp_lstchg = spwd->sp_lstchg;
 	ent->spwd->sp_min    = spwd->sp_min;
 	ent->spwd->sp_max    = spwd->sp_max;
@@ -204,9 +204,9 @@ static struct spdb* _spdb_fgetspent(FILE *input)
 static void _shadow_free(struct spwd *spwd)
 {
 	if (!spwd) { return; }
-	xfree(spwd->sp_namp);
-	xfree(spwd->sp_pwdp);
-	xfree(spwd);
+	free(spwd->sp_namp);
+	free(spwd->sp_pwdp);
+	free(spwd);
 }
 
 static void _spdb_entry_free(struct spdb *entry) {
@@ -220,13 +220,13 @@ static struct grdb* _grdb_entry(struct group *group)
 	assert(group); // LCOV_EXCL_LINE
 
 	struct grdb *ent;
-	ent = xmalloc(sizeof(struct grdb));
-	ent->group = xmalloc(sizeof(struct group));
+	ent = cw_alloc(sizeof(struct grdb));
+	ent->group = cw_alloc(sizeof(struct group));
 
-	ent->group->gr_name   = xstrdup(group->gr_name);
+	ent->group->gr_name   = cw_strdup(group->gr_name);
 	ent->group->gr_gid    = group->gr_gid;
-	ent->group->gr_passwd = xstrdup(group->gr_passwd);
-	ent->group->gr_mem    = xarrdup(group->gr_mem);
+	ent->group->gr_passwd = cw_strdup(group->gr_passwd);
+	ent->group->gr_mem    = cw_arrdup(group->gr_mem);
 
 	return ent;
 }
@@ -245,14 +245,14 @@ static void _group_free(struct group *group)
 	char **a; /* pointer for gr_mem array traversal */
 
 	if (!group) { return; }
-	xfree(group->gr_name);
-	xfree(group->gr_passwd);
+	free(group->gr_name);
+	free(group->gr_passwd);
 
 	/* free the gr_mem array */
-	for (a = group->gr_mem; a && *a; a++) { xfree(*a); }
-	xfree(group->gr_mem);
+	for (a = group->gr_mem; a && *a; a++) { free(*a); }
+	free(group->gr_mem);
 
-	xfree(group);
+	free(group);
 }
 
 static void _grdb_entry_free(struct grdb *entry)
@@ -267,13 +267,13 @@ static struct sgdb* _sgdb_entry(struct sgrp *sgrp)
 	assert(sgrp); // LCOV_EXCL_LINE
 
 	struct sgdb *ent;
-	ent = xmalloc(sizeof(struct sgdb));
-	ent->sgrp = xmalloc(sizeof(struct sgrp));
+	ent = cw_alloc(sizeof(struct sgdb));
+	ent->sgrp = cw_alloc(sizeof(struct sgrp));
 
-	ent->sgrp->sg_namp   = xstrdup(sgrp->sg_namp);
-	ent->sgrp->sg_passwd = xstrdup(sgrp->sg_passwd);
-	ent->sgrp->sg_mem    = xarrdup(sgrp->sg_mem);
-	ent->sgrp->sg_adm    = xarrdup(sgrp->sg_adm);
+	ent->sgrp->sg_namp   = cw_strdup(sgrp->sg_namp);
+	ent->sgrp->sg_passwd = cw_strdup(sgrp->sg_passwd);
+	ent->sgrp->sg_mem    = cw_arrdup(sgrp->sg_mem);
+	ent->sgrp->sg_adm    = cw_arrdup(sgrp->sg_adm);
 
 	return ent;
 }
@@ -292,18 +292,18 @@ static void _gshadow_free(struct sgrp *sgrp)
 	char **a;  /* pointer for sg_mem and sg_adm array traversal */
 
 	if (!sgrp) { return; }
-	xfree(sgrp->sg_namp);
-	xfree(sgrp->sg_passwd);
+	free(sgrp->sg_namp);
+	free(sgrp->sg_passwd);
 
 	/* free the sg_mem array */
-	for (a = sgrp->sg_mem; a && *a; a++) { xfree(*a); }
-	xfree(sgrp->sg_mem);
+	for (a = sgrp->sg_mem; a && *a; a++) { free(*a); }
+	free(sgrp->sg_mem);
 
 	/* free the sg_adm array */
-	for (a = sgrp->sg_adm; a && *a; a++) { xfree(*a); }
-	xfree(sgrp->sg_adm);
+	for (a = sgrp->sg_adm; a && *a; a++) { free(*a); }
+	free(sgrp->sg_adm);
 
-	xfree(sgrp);
+	free(sgrp);
 }
 
 static void _sgdb_entry_free(struct sgdb *entry)
@@ -449,7 +449,7 @@ struct passwd* pwdb_new_entry(struct pwdb *db, const char *name, uid_t uid, gid_
 
 	if (!db) { return NULL; }
 
-	pw = xmalloc(sizeof(struct passwd));
+	pw = cw_alloc(sizeof(struct passwd));
 	/* shallow pointers are ok; _pwdb_entry strdup's them */
 	pw->pw_name = (char *)name;
 	pw->pw_passwd = "x";
@@ -641,7 +641,7 @@ struct spwd* spdb_new_entry(struct spdb *db, const char *name)
 
 	if (!db) { return NULL; }
 
-	sp = xmalloc(sizeof(struct spwd));
+	sp = cw_alloc(sizeof(struct spwd));
 	/* shallow pointers are ok; _spdb_entry strdup's them */
 	sp->sp_namp = (char *)name;
 	sp->sp_pwdp = "!";
@@ -872,7 +872,7 @@ struct group* grdb_new_entry(struct grdb *db, const char *name, gid_t gid)
 
 	if (!db) { return NULL; }
 
-	gr = xmalloc(sizeof(struct group));
+	gr = cw_alloc(sizeof(struct group));
 	/* shallow pointers are ok; _grdb_entry strdup's them */
 	gr->gr_name = (char *)name;
 	gr->gr_passwd = "x";
@@ -1058,16 +1058,16 @@ struct sgrp* sgdb_new_entry(struct sgdb *db, const char *name)
 
 	if (!db) { return NULL; }
 
-	sg = xmalloc(sizeof(struct sgrp));
+	sg = cw_alloc(sizeof(struct sgrp));
 	/* shallow pointers are ok; _sgdb_entry strdup's them */
-	sg->sg_namp = xstrdup(name);
+	sg->sg_namp = cw_strdup(name);
 	sg->sg_passwd = "!";
 
 	for (; db->next; db = db->next)
 		;
 
 	db->next = _sgdb_entry(sg);
-	xfree(sg->sg_namp);
+	free(sg->sg_namp);
 	free(sg);
 
 	return (db->next ? db->next->sgrp : NULL);

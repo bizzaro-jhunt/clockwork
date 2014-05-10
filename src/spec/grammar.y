@@ -169,12 +169,12 @@ resource: T_IDENTIFIER value optional_attributes
 	| T_KEYWORD_HOST value optional_attributes
 		{ $$ = $3;
 		  $$->op = RESOURCE;
-		  $$->data1 = xstrdup("host"); /* dynamic string for stree_free */
+		  $$->data1 = cw_strdup("host"); /* dynamic string for stree_free */
 		  $$->data2 = $2; }
 	| T_KEYWORD_HOST T_KEYWORD_DEFAULTS '{' attributes '}'
 		{ $$ = $4;
 		  $$->op = RESOURCE;
-		  $$->data1 = xstrdup("host"); /* dynamic string for stree_free */
+		  $$->data1 = cw_strdup("host"); /* dynamic string for stree_free */
 		  $$->data2 = NULL; }
 	;
 

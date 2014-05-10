@@ -62,6 +62,7 @@
 
 #define CACHED_FACTS_DIR            CW_CACHE_DIR "/facts"
 
+#include "cw.h"
 #include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -70,7 +71,6 @@
 #include <errno.h>
 
 #include "sha1.h"
-#include "mem.h"
 #include "gear/gear.h"
 
 #endif

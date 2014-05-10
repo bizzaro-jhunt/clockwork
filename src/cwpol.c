@@ -19,7 +19,6 @@
 
 
 #include "clockwork.h"
-#include "cw.h"
 #include "policy.h"
 #include "spec/parser.h"
 #include <getopt.h>
@@ -159,7 +158,7 @@ int main(int argc, char **argv)
 		}
 
 		have_output = 0;
-		xfree(rline);
+		free(rline);
 		rline = readline(ps1);
 		if (!rline) { break; }
 
@@ -184,7 +183,7 @@ static struct command* parse_command(const char *s)
 	struct command *c;
 	char *tmp, *tok, *ctx;
 
-	c = xmalloc(sizeof(struct command));
+	c = cw_alloc(sizeof(struct command));
 
 	tmp = strdup(s);
 	c->cmd = strtok_r(tmp, TOKEN_DELIM, &ctx);
@@ -381,7 +380,7 @@ COMMAND(fact)
 		for (; *a && isspace(*a); a++);
 		/* get fact */
 		for (b = a; *b && !isspace(*b) && *b != '='; b++);
-		k = xmalloc(b-a + 1);
+		k = cw_alloc(b-a + 1);
 		memcpy(k, a, b-a);
 
 		/* skip whitespace + '=' */
@@ -394,7 +393,7 @@ COMMAND(fact)
 		}
 
 		hash_set(FACTS, k, v);
-		xfree(k);
+		free(k);
 
 		o->no_clobber = 1;
 		if (interactive) {
@@ -494,8 +493,8 @@ COMMAND(log)
 
 static void set_context(int type, const char *name, struct stree *obj)
 {
-	xfree(CONTEXT.name);
-	CONTEXT.name = xstrdup(name);
+	free(CONTEXT.name);
+	CONTEXT.name = cw_strdup(name);
 	CONTEXT.type = type;
 	CONTEXT.root = obj;
 	clear_policy();
@@ -726,7 +725,7 @@ static struct cwpol_opts* cwpol_options(int argc, char **argv, int interactive)
 	int v = (interactive ? LOG_INFO : LOG_ERR);
 	int opt, idx = 0;
 
-	o = xmalloc(sizeof(struct cwpol_opts));
+	o = cw_alloc(sizeof(struct cwpol_opts));
 	o->cache = strdup(CACHED_FACTS_DIR);
 	o->no_clobber = 0;
 

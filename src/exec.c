@@ -125,7 +125,7 @@ int exec_command(const char *cmd, char **std_out, char **std_err)
 
 			if (read_stdout && FD_ISSET(out[0], &fds)) {
 				cw_log(LOG_DEBUG, "exec_command[%u]: reading STDOUT from child", pid);
-				*std_out = xmalloc(EXEC_OUTPUT_MAX * sizeof(char));
+				*std_out = cw_alloc(EXEC_OUTPUT_MAX * sizeof(char));
 				n = read(out[0], *std_out, EXEC_OUTPUT_MAX);
 				(*std_out)[n] = '\0';
 
@@ -138,7 +138,7 @@ int exec_command(const char *cmd, char **std_out, char **std_err)
 
 			if (read_stderr && FD_ISSET(err[0], &fds)) {
 				cw_log(LOG_DEBUG, "exec_command[%u]: reading STDERR from child", pid);
-				*std_err = xmalloc(EXEC_OUTPUT_MAX * sizeof(char));
+				*std_err = cw_alloc(EXEC_OUTPUT_MAX * sizeof(char));
 				n = read(err[0], *std_err, EXEC_OUTPUT_MAX);
 				(*std_err)[n] = '\0';
 

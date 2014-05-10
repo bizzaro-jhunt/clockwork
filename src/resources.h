@@ -21,7 +21,6 @@
 #define RESOURCES_H
 
 #include "clockwork.h"
-#include "cw.h"
 
 #include <stdlib.h>
 #include <sys/types.h>

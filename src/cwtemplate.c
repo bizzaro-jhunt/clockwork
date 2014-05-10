@@ -109,7 +109,7 @@ static struct cwt_client* cwt_options(int argc, char **argv)
 
 	int opt, idx = 0;
 
-	cwt = xmalloc(sizeof(struct cwt_client));
+	cwt = cw_alloc(sizeof(struct cwt_client));
 
 	while ( (opt = getopt_long(argc, argv, short_opts, long_opts, &idx)) != -1) {
 		switch(opt) {

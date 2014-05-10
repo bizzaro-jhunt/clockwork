@@ -45,7 +45,8 @@ struct template* parse_template(const char *path)
 	yytplparse(&ctx);
 
 	yytpllex_destroy(ctx.scanner);
-	xfree(ctx.file);
+	free(ctx.file);
+	ctx.file = NULL;
 	fclose(ctx.io);
 
 	if (ctx.errors > 0) {

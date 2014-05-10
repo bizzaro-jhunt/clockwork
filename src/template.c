@@ -65,11 +65,11 @@ again:
 		return 0;
 
 	case TNODE_IF_EQ:
-		n = (xstrcmp(n->d2, template_deref_var(t, n->d1)) == 0 ? n->nodes[0] : n->nodes[1]);
+		n = (cw_strcmp(n->d2, template_deref_var(t, n->d1)) == 0 ? n->nodes[0] : n->nodes[1]);
 		goto again;
 
 	case TNODE_IF_NE:
-		n = (xstrcmp(n->d2, template_deref_var(t, n->d1)) != 0 ? n->nodes[0] : n->nodes[1]);
+		n = (cw_strcmp(n->d2, template_deref_var(t, n->d1)) != 0 ? n->nodes[0] : n->nodes[1]);
 		goto again;
 
 	case TNODE_ASSIGN:
@@ -101,7 +101,7 @@ again:
  */
 struct template* template_new(void)
 {
-	struct template *t = xmalloc(sizeof(struct template));
+	struct template *t = cw_alloc(sizeof(struct template));
 
 	t->vars = hash_new();
 	t->nodes = NULL;
@@ -161,7 +161,7 @@ void template_free(struct template *t)
  */
 int template_add_var(struct template *t, const char *name, const char *value)
 {
-	hash_set(t->vars, name, xstrdup(value));
+	hash_set(t->vars, name, cw_strdup(value));
 	return 0;
 }
 
@@ -208,7 +208,7 @@ char* template_render(struct template *t)
 
 	_template_render(t, t->root, &ctx);
 
-	data = xstrdup(ctx.out->raw);
+	data = cw_strdup(ctx.out->raw);
 	string_free(ctx.out);
 	return data;
 }
@@ -232,7 +232,7 @@ struct tnode* template_new_tnode(struct template *t, enum tnode_type type, char 
 	struct tnode *node;
 	struct tnode **nodes;
 
-	node = xmalloc(sizeof(struct tnode));
+	node = cw_alloc(sizeof(struct tnode));
 	nodes = realloc(t->nodes, sizeof(struct node*) * (t->nodes_len + 1));
 
 	if (!node || !nodes) {

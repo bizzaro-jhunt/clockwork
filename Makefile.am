@@ -111,7 +111,6 @@ check_PROGRAMS = $(CTAP_TESTS) $(TEST_HELPERS)
 
 test_source  = t/test.h
 test_source += src/cw.h src/cw.c
-test_source += src/mem.h        src/mem.c
 test_source += src/sha1.h       src/sha1.c
 test_source += src/userdb.h     src/userdb.c
 test_source += src/exec.h       src/exec.c
@@ -190,8 +189,8 @@ dist_man_MANS   += man/res_user.5
 ############################################################
 
 core_src     = src/cw.h src/cw.c
-core_src    += src/mem.c src/sha1.c src/userdb.c src/exec.c
-core_src    += src/mem.h src/sha1.h src/userdb.h src/exec.h
+core_src    += src/sha1.c src/userdb.c src/exec.c
+core_src    += src/sha1.h src/userdb.h src/exec.h
 core_src    += src/policy.c src/resource.c src/resources.c src/template.c
 core_src    += src/policy.h src/resource.h src/resources.h src/template.h
 core_src    += src/gear/hash.c src/gear/string.c src/gear/path.c

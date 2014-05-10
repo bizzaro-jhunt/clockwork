@@ -18,7 +18,6 @@
  */
 
 #include "clockwork.h"
-#include "cw.h"
 
 #include <zmq.h>
 #include <sys/types.h>

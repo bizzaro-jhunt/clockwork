@@ -22,7 +22,6 @@
 #include "test.h"
 #include "../src/policy.h"
 #include "../src/resources.h"
-#include "../src/mem.h"
 #include "../src/spec/parser.h"
 
 TESTS {

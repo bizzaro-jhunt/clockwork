@@ -49,7 +49,7 @@ struct policy_generator {
 
 static struct scope* push_scope(cw_list_t *list, int depth)
 {
-	struct scope *scope = xmalloc(sizeof(struct scope));
+	struct scope *scope = cw_alloc(sizeof(struct scope));
 
 	cw_list_init(&scope->res_defs);
 	scope->depth = depth;
@@ -161,7 +161,7 @@ struct manifest* manifest_new(void)
 {
 	struct manifest *m;
 
-	m = xmalloc(sizeof(struct manifest));
+	m = cw_alloc(sizeof(struct manifest));
 	m->policies = hash_new();
 	m->hosts    = hash_new();
 
@@ -218,14 +218,15 @@ struct stree* manifest_new_stree(struct manifest *m, enum oper op, char *data1, 
 	struct stree *stree;
 	struct stree **list;
 
-	stree = xmalloc(sizeof(struct stree));
+	stree = cw_alloc(sizeof(struct stree));
 	if (!stree) {
 		return NULL;
 	}
 	list = realloc(m->nodes, sizeof(struct stree*) * (m->nodes_len + 1));
 	if (!list) {
 		free(stree);
-		xfree(m->nodes);
+		free(m->nodes);
+		m->nodes = NULL;
 		return NULL;
 	}
 
@@ -331,7 +332,7 @@ int fact_parse(const char *line, struct hash *h)
 		;
 	*stp = '\0';
 
-	hash_set(h, name, xstrdup(value));
+	hash_set(h, name, cw_strdup(value));
 	free(buf);
 	return 0;
 }
@@ -581,7 +582,7 @@ static int _policy_generate(struct stree *node, struct policy_generator *pgen, i
 again:
 	switch(node->op) {
 	case IF:
-		if (xstrcmp(hash_get(pgen->facts, node->data1), node->data2) == 0) {
+		if (cw_strcmp(hash_get(pgen->facts, node->data1), node->data2) == 0) {
 			node = node->nodes[0];
 		} else {
 			node = node->nodes[1];
@@ -715,8 +716,8 @@ struct policy* policy_new(const char *name)
 {
 	struct policy *pol;
 
-	pol = xmalloc(sizeof(struct policy));
-	pol->name = xstrdup(name);
+	pol = cw_alloc(sizeof(struct policy));
+	pol->name = cw_strdup(name);
 
 	cw_list_init(&pol->resources);
 	cw_list_init(&pol->dependencies);

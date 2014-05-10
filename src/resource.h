@@ -21,10 +21,7 @@
 #define RESOURCE_H
 
 #include "clockwork.h"
-#include "cw.h"
-
 #include <augeas.h>
-#include "userdb.h"
 
 /** Resource Type Identifiers */
 enum restype {

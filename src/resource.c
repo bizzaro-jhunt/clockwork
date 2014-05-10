@@ -107,7 +107,7 @@ struct resource* resource_new(const char *type, const char *key)
 {
 	assert(type); // LCOV_EXCL_LINE
 
-	struct resource *r = xmalloc(sizeof(struct resource));
+	struct resource *r = cw_alloc(sizeof(struct resource));
 
 	cw_list_init(&r->l);
 	r->key = NULL;
@@ -129,7 +129,7 @@ struct resource* resource_clone(const struct resource *orig, const char *key)
 		return NULL;
 	}
 
-	struct resource *r = xmalloc(sizeof(struct resource));
+	struct resource *r = cw_alloc(sizeof(struct resource));
 	cw_list_init(&r->l);
 	r->type = orig->type;
 
@@ -307,7 +307,8 @@ int resource_drop_dependency(struct resource *r, struct resource *dep)
 			}
 			r->ndeps--;
 			if (r->ndeps == 0) {
-				xfree(r->deps);
+				free(r->deps);
+				r->deps = NULL;
 			}
 			return 0;
 		}
@@ -374,8 +375,7 @@ int resource_gencode(const struct resource *r, FILE *io, unsigned int next)
 struct dependency* dependency_new(const char *a, const char *b)
 {
 	struct dependency *dep;
-
-	dep = xmalloc(sizeof(struct dependency));
+	dep = cw_alloc(sizeof(struct dependency));
 
 	if (a) { dep->a = strdup(a); }
 	if (b) { dep->b = strdup(b); }

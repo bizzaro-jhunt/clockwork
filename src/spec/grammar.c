@@ -1625,7 +1625,7 @@ yyreduce:
 #line 170 "src/spec/grammar.y"
     { (yyval.stree) = (yyvsp[(3) - (3)].stree);
 		  (yyval.stree)->op = RESOURCE;
-		  (yyval.stree)->data1 = xstrdup("host"); /* dynamic string for stree_free */
+		  (yyval.stree)->data1 = cw_strdup("host"); /* dynamic string for stree_free */
 		  (yyval.stree)->data2 = (yyvsp[(2) - (3)].string); }
     break;
 
@@ -1635,7 +1635,7 @@ yyreduce:
 #line 175 "src/spec/grammar.y"
     { (yyval.stree) = (yyvsp[(4) - (5)].stree);
 		  (yyval.stree)->op = RESOURCE;
-		  (yyval.stree)->data1 = xstrdup("host"); /* dynamic string for stree_free */
+		  (yyval.stree)->data1 = cw_strdup("host"); /* dynamic string for stree_free */
 		  (yyval.stree)->data2 = NULL; }
     break;
 

@@ -39,7 +39,7 @@ static int _setup_path_deps(const char *key, const char *path, struct policy *po
 static void _hash_attr(struct hash *attrs, const char *key, void *val);
 
 #define RES_DEFAULT(orig,field,dflt) ((orig) ? (orig)->field : (dflt))
-#define RES_DEFAULT_STR(orig,field,dflt) xstrdup(RES_DEFAULT((orig),field,(dflt)))
+#define RES_DEFAULT_STR(orig,field,dflt) cw_strdup(RES_DEFAULT((orig),field,(dflt)))
 
 /*****************************************************************/
 
@@ -220,7 +220,7 @@ void* res_user_new(const char *key)
 void* res_user_clone(const void *res, const char *key)
 {
 	struct res_user *orig = (struct res_user*)(res);
-	struct res_user *ru = ru = xmalloc(sizeof(struct res_user));
+	struct res_user *ru = ru = cw_alloc(sizeof(struct res_user));
 
 	ru->enforced  = RES_DEFAULT(orig, enforced, RES_NONE);
 	ru->different = RES_NONE;
@@ -381,7 +381,7 @@ int res_user_set(void *res, const char *name, const char *value)
 
 	} else if (strcmp(name, "skeleton") == 0 || strcmp(name, "makehome") == 0) {
 		ENFORCE(ru, RES_USER_MKHOME);
-		xfree(ru->ru_skel);
+		free(ru->ru_skel); ru->ru_skel = NULL;
 		ru->ru_mkhome = (strcmp(value, "no") ? 1 : 0);
 
 		if (!ru->ru_mkhome) { return 0; }
@@ -535,7 +535,7 @@ void* res_file_new(const char *key)
 void* res_file_clone(const void *res, const char *key)
 {
 	const struct res_file *orig = (const struct res_file*)(res);
-	struct res_file *rf = xmalloc(sizeof(struct res_file));
+	struct res_file *rf = cw_alloc(sizeof(struct res_file));
 
 	rf->enforced    = RES_DEFAULT(orig, enforced,  RES_NONE);
 	rf->different   = RES_NONE;
@@ -605,8 +605,8 @@ int res_file_attrs(const void *res, struct hash *attrs)
 	_hash_attr(attrs, "mode", ENFORCED(rf, RES_FILE_MODE) ? string("%04o", rf->rf_mode) : NULL);
 
 	if (ENFORCED(rf, RES_FILE_SHA1)) {
-		_hash_attr(attrs, "template", xstrdup(rf->rf_template));
-		_hash_attr(attrs, "source",   xstrdup(rf->rf_rpath));
+		_hash_attr(attrs, "template", cw_strdup(rf->rf_template));
+		_hash_attr(attrs, "source",   cw_strdup(rf->rf_rpath));
 	} else {
 		_hash_attr(attrs, "template", NULL);
 		_hash_attr(attrs, "source",   NULL);
@@ -682,13 +682,15 @@ int res_file_set(void *res, const char *name, const char *value)
 		ENFORCE(rf, RES_FILE_MODE);
 
 	} else if (strcmp(name, "source") == 0) {
-		xfree(rf->rf_template);
+		free(rf->rf_template);
+		rf->rf_template = NULL;
 		free(rf->rf_rpath);
 		rf->rf_rpath = strdup(value);
 		ENFORCE(rf, RES_FILE_SHA1);
 
 	} else if (strcmp(name, "template") == 0) {
-		xfree(rf->rf_rpath);
+		free(rf->rf_rpath);
+		rf->rf_rpath = NULL;
 		free(rf->rf_template);
 		rf->rf_template = strdup(value);
 		ENFORCE(rf, RES_FILE_SHA1);
@@ -814,7 +816,7 @@ void* res_group_new(const char *key)
 void* res_group_clone(const void *res, const char *key)
 {
 	const struct res_group *orig = (const struct res_group*)(res);
-	struct res_group *rg = xmalloc(sizeof(struct res_group));
+	struct res_group *rg = cw_alloc(sizeof(struct res_group));
 
 	rg->enforced  = RES_DEFAULT(orig, enforced, RES_NONE);
 	rg->different = RES_NONE;
@@ -895,15 +897,17 @@ static char* _res_group_roster_mv(struct stringlist *add, struct stringlist *rm)
 
 	if (added && removed) {
 		final = string("%s !%s", added, removed);
-		xfree(added);
-		xfree(removed);
+		free(added);
+		free(removed);
+		added = removed = NULL;
 
 	} else if (added) {
 		final = added;
 
 	} else if (removed) {
 		final = string("!%s", removed);
-		xfree(removed);
+		free(removed);
+		removed = NULL;
 
 	} else {
 		final = strdup("");
@@ -1209,7 +1213,7 @@ void* res_package_new(const char *key)
 void* res_package_clone(const void *res, const char *key)
 {
 	const struct res_package *orig = (const struct res_package*)(res);
-	struct res_package *rp = xmalloc(sizeof(struct res_package));
+	struct res_package *rp = cw_alloc(sizeof(struct res_package));
 
 	rp->enforced  = RES_DEFAULT(orig, enforced, RES_NONE);
 	rp->different = RES_NONE;
@@ -1255,8 +1259,8 @@ int res_package_attrs(const void *res, struct hash *attrs)
 	const struct res_package *rp = (const struct res_package*)(res);
 	assert(rp); // LCOV_EXCL_LINE
 
-	_hash_attr(attrs, "name", xstrdup(rp->name));
-	_hash_attr(attrs, "version", xstrdup(rp->version));
+	_hash_attr(attrs, "name", cw_strdup(rp->name));
+	_hash_attr(attrs, "version", cw_strdup(rp->version));
 	_hash_attr(attrs, "installed", strdup(ENFORCED(rp, RES_PACKAGE_ABSENT) ? "no" : "yes"));
 	return 0;
 }
@@ -1336,7 +1340,7 @@ void* res_service_new(const char *key)
 void* res_service_clone(const void *res, const char *key)
 {
 	const struct res_service *orig = (const struct res_service*)(res);
-	struct res_service *rs = xmalloc(sizeof(struct res_service));
+	struct res_service *rs = cw_alloc(sizeof(struct res_service));
 
 	rs->enforced  = RES_DEFAULT(orig, enforced, RES_NONE);
 	rs->different = RES_NONE;
@@ -1380,7 +1384,7 @@ int res_service_attrs(const void *res, struct hash *attrs)
 	const struct res_service *rs = (const struct res_service*)(res);
 	assert(rs); // LCOV_EXCL_LINE
 
-	_hash_attr(attrs, "name", xstrdup(rs->service));
+	_hash_attr(attrs, "name", cw_strdup(rs->service));
 	_hash_attr(attrs, "running", strdup(ENFORCED(rs, RES_SERVICE_RUNNING) ? "yes" : "no"));
 	_hash_attr(attrs, "enabled", strdup(ENFORCED(rs, RES_SERVICE_ENABLED) ? "yes" : "no"));
 	return 0;
@@ -1506,7 +1510,7 @@ void* res_host_new(const char *key)
 void* res_host_clone(const void *res, const char *key)
 {
 	const struct res_host *orig = (const struct res_host*)(res);
-	struct res_host *rh = xmalloc(sizeof(struct res_host));
+	struct res_host *rh = cw_alloc(sizeof(struct res_host));
 
 	rh->enforced  = RES_DEFAULT(orig, enforced, RES_NONE);
 	rh->different = RES_NONE;
@@ -1556,9 +1560,9 @@ int res_host_attrs(const void *res, struct hash *attrs)
 	const struct res_host *rh = (const struct res_host*)(res);
 	assert(rh); // LCOV_EXCL_LINE
 
-	_hash_attr(attrs, "hostname", xstrdup(rh->hostname));
+	_hash_attr(attrs, "hostname", cw_strdup(rh->hostname));
 	_hash_attr(attrs, "present",  strdup(ENFORCED(rh, RES_HOST_ABSENT) ? "no" : "yes"));
-	_hash_attr(attrs, "ip", xstrdup(rh->ip));
+	_hash_attr(attrs, "ip", cw_strdup(rh->ip));
 	if (ENFORCED(rh, RES_HOST_ALIASES)) {
 		_hash_attr(attrs, "aliases", stringlist_join(rh->aliases, " "));
 	} else {
@@ -1575,15 +1579,15 @@ int res_host_set(void *res, const char *name, const char *value)
 	assert(rh); // LCOV_EXCL_LINE
 	struct stringlist *alias_tmp;
 
-	if (streq(name, "hostname")) {
+	if (strcmp(name, "hostname") == 0) {
 		free(rh->hostname);
 		rh->hostname = strdup(value);
 
-	} else if (streq(name, "ip") || streq(name, "address")) {
+	} else if (strcmp(name, "ip") == 0 || strcmp(name, "address") == 0) {
 		free(rh->ip);
 		rh->ip = strdup(value);
 
-	} else if (streq(name, "aliases") || streq(name, "alias")) {
+	} else if (strcmp(name, "aliases") == 0 || strcmp(name, "alias") == 0) {
 		alias_tmp = stringlist_split(value, strlen(value), " ", SPLIT_GREEDY);
 		if (stringlist_add_all(rh->aliases, alias_tmp) != 0) {
 			stringlist_free(alias_tmp);
@@ -1593,8 +1597,8 @@ int res_host_set(void *res, const char *name, const char *value)
 
 		ENFORCE(rh, RES_HOST_ALIASES);
 
-	} else if (streq(name, "present")) {
-		if (streq(value, "no")) {
+	} else if (strcmp(name, "present") == 0) {
+		if (strcmp(value, "no") == 0) {
 			ENFORCE(rh, RES_HOST_ABSENT);
 		} else {
 			UNENFORCE(rh, RES_HOST_ABSENT);
@@ -1684,7 +1688,7 @@ void* res_sysctl_new(const char *key)
 void* res_sysctl_clone(const void *res, const char *key)
 {
 	const struct res_sysctl *orig = (const struct res_sysctl*)(res);
-	struct res_sysctl *rs = xmalloc(sizeof(struct res_sysctl));
+	struct res_sysctl *rs = cw_alloc(sizeof(struct res_sysctl));
 
 	rs->enforced  = RES_DEFAULT(orig, enforced, RES_NONE);
 	rs->different = RES_NONE;
@@ -1730,7 +1734,7 @@ int res_sysctl_attrs(const void *res, struct hash *attrs)
 	const struct res_sysctl *rs = (const struct res_sysctl*)(res);
 	assert(rs); // LCOV_EXCL_LINE
 
-	_hash_attr(attrs, "param", xstrdup(rs->param));
+	_hash_attr(attrs, "param", cw_strdup(rs->param));
 	_hash_attr(attrs, "value", ENFORCED(rs, RES_SYSCTL_VALUE) ? strdup(rs->value) : NULL);
 	_hash_attr(attrs, "persist", strdup(ENFORCED(rs, RES_SYSCTL_PERSIST) ? "yes" : "no"));
 	return 0;
@@ -1832,7 +1836,7 @@ void* res_dir_new(const char *key)
 void* res_dir_clone(const void *res, const char *key)
 {
 	const struct res_dir *orig = (const struct res_dir*)(res);
-	struct res_dir *rd = xmalloc(sizeof(struct res_dir));
+	struct res_dir *rd = cw_alloc(sizeof(struct res_dir));
 
 	rd->enforced  = RES_DEFAULT(orig, enforced, RES_NONE);
 	rd->different = RES_NONE;
@@ -1882,7 +1886,7 @@ int res_dir_attrs(const void *res, struct hash *attrs)
 	const struct res_dir *rd = (const struct res_dir*)(res);
 	assert(rd); // LCOV_EXCL_LINE
 
-	_hash_attr(attrs, "path", xstrdup(rd->path));
+	_hash_attr(attrs, "path", cw_strdup(rd->path));
 	_hash_attr(attrs, "owner", ENFORCED(rd, RES_DIR_UID) ? strdup(rd->owner) : NULL);
 	_hash_attr(attrs, "group", ENFORCED(rd, RES_DIR_GID) ? strdup(rd->group) : NULL);
 	_hash_attr(attrs, "mode", ENFORCED(rd, RES_DIR_MODE) ? string("%04o", rd->mode) : NULL);
@@ -2073,7 +2077,7 @@ void* res_exec_new(const char *key)
 void* res_exec_clone(const void *res, const char *key)
 {
 	const struct res_exec *orig = (const struct res_exec*)(res);
-	struct res_exec *re = xmalloc(sizeof(struct res_exec));
+	struct res_exec *re = cw_alloc(sizeof(struct res_exec));
 
 	re->enforced  = RES_DEFAULT(orig, enforced, RES_NONE);
 	re->different = RES_NONE;
@@ -2102,13 +2106,13 @@ void res_exec_free(void *res)
 {
 	struct res_exec *re = (struct res_exec*)(res);
 	if (re) {
-		xfree(re->command);
-		xfree(re->test);
-		xfree(re->user);
-		xfree(re->group);
-		xfree(re->key);
+		free(re->command);
+		free(re->test);
+		free(re->user);
+		free(re->group);
+		free(re->key);
 	}
-	xfree(re);
+	free(re);
 }
 
 char *res_exec_key(const void *res)
@@ -2124,8 +2128,8 @@ int res_exec_attrs(const void *res, struct hash *attrs)
 	const struct res_exec *re = (const struct res_exec*)(res);
 	assert(re); // LCOV_EXCL_LINE
 
-	_hash_attr(attrs, "command", xstrdup(re->command));
-	_hash_attr(attrs, "test",    xstrdup(re->test));
+	_hash_attr(attrs, "command", cw_strdup(re->command));
+	_hash_attr(attrs, "test",    cw_strdup(re->test));
 	_hash_attr(attrs, "user", ENFORCED(re, RES_EXEC_UID) ? strdup(re->user) : NULL);
 	_hash_attr(attrs, "group", ENFORCED(re, RES_EXEC_GID) ? strdup(re->group) : NULL);
 	_hash_attr(attrs, "ondemand", strdup(ENFORCED(re, RES_EXEC_ONDEMAND) ? "yes" : "no"));
@@ -2176,21 +2180,21 @@ int res_exec_set(void *res, const char *name, const char *value)
 	assert(re); // LCOV_EXCL_LINE
 
 	if (strcmp(name, "user") == 0) {
-		xfree(re->user);
+		free(re->user);
 		re->user = strdup(value);
 		ENFORCE(re, RES_EXEC_UID);
 
 	} else if (strcmp(name, "group") == 0) {
-		xfree(re->group);
+		free(re->group);
 		re->group = strdup(value);
 		ENFORCE(re, RES_EXEC_GID);
 
 	} else if (strcmp(name, "command") == 0) {
-		xfree(re->command);
+		free(re->command);
 		re->command = strdup(value);
 
 	} else if (strcmp(name, "test") == 0) {
-		xfree(re->test);
+		free(re->test);
 		re->test = strdup(value);
 		ENFORCE(re, RES_EXEC_TEST);
 

@@ -16,6 +16,60 @@
 #include <grp.h>
 
 /*
+
+    ##     ## ######## ##     ##
+    ###   ### ##       ###   ###
+    #### #### ##       #### ####
+    ## ### ## ######   ## ### ##
+    ##     ## ##       ##     ##
+    ##     ## ##       ##     ##
+    ##     ## ######## ##     ##
+
+ */
+
+void* __cw_alloc(size_t size, const char *func, const char *file, unsigned int line)
+{
+	void *buf = calloc(1, size);
+	if (buf) return buf;
+
+	cw_log(LOG_CRIT, "%s, %s:%u - malloc failed: %s",
+	      func, file, line, strerror(errno));
+	exit(42);
+}
+
+char* cw_strdup(const char *s)
+{
+	return (s ? strdup(s) : NULL);
+}
+int cw_strcmp(const char *a, const char *b)
+{
+	return ((!a || !b) ? -1 : strcmp(a,b));
+}
+
+char** cw_arrdup(char **a)
+{
+	char **n, **t;
+
+	if (!a) { return NULL; }
+	for (t = a; *t; t++)
+		;
+
+	n = cw_alloc((t -a + 1) * sizeof(char*));
+	for (t = n; *a; a++)
+		*t++ = cw_strdup(*a);
+
+	return n;
+}
+
+void cw_arrfree(char **a)
+{
+	char **s;
+	if (!a) { return; }
+	for (s = a; *s; free(*s++));
+	free(a);
+}
+
+/*
      ######  ####  ######   ##    ##    ###    ##        ######
     ##    ##  ##  ##    ##  ###   ##   ## ##   ##       ##    ##
     ##        ##  ##        ####  ##  ##   ##  ##       ##

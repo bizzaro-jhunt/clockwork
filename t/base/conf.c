@@ -1,6 +1,7 @@
 #include <ctap.h>
 #include <errno.h>
 #include "../../src/conffile.h"
+#include "../../src/gear/gear.h"
 
 TESTS {
 	struct hash *h = parse_config("t/data/config/good.conf");

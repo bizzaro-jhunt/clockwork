@@ -115,6 +115,7 @@ int stree_add(struct stree *parent, struct stree *child);
 int stree_compare(const struct stree *a, const struct stree *b);
 
 struct hash* fact_read(FILE *io, struct hash *facts);
+struct hash* fact_read_string(const char *s, struct hash *facts);
 int fact_write(FILE *io, struct hash *facts);
 int fact_parse(const char *line, struct hash *hash);
 int fact_exec_read(const char *script, struct hash *facts);

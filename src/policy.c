@@ -473,6 +473,23 @@ struct hash* fact_read(FILE *io, struct hash *facts)
 	return facts;
 }
 
+struct hash* fact_read_string(const char *s, struct hash *facts)
+{
+	assert(s); // LCOV_EXCL_LINE
+	assert(facts); // LCOV_EXCL_LINE
+
+	size_t i;
+	struct stringlist *lines = stringlist_split(s, strlen(s), "\n", SPLIT_GREEDY);
+	if (!lines) return NULL;
+
+	for (i = 0; i < lines->num; i++) {
+		fact_parse(lines->strings[i], facts);
+	}
+
+	stringlist_free(lines);
+	return facts;
+}
+
 /**
   Write $facts to $io.
 

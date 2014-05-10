@@ -25,6 +25,8 @@ stamp-h?
 /cwpol
 /cwspec
 /pn
+/clockd
+/cogd
 
 /debug/package-manager
 /debug/service-manager

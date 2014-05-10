@@ -23,7 +23,7 @@ AM_CFLAGS += @GCOV_CFLAGS@
 AM_LFLAGS = --header-file --yylineno
 AM_YFLAGS = -d
 
-LDADD = -lctap
+LDADD = -lctap -lzmq
 
 
 ############################################################
@@ -222,7 +222,8 @@ dist_man_MANS   += man/res_user.5
 
 ############################################################
 
-core_src     = src/mem.c src/sha1.c src/userdb.c src/cert.c src/prompt.c src/exec.c src/augcw.c
+core_src     = src/cw.h src/cw.c
+core_src    += src/mem.c src/sha1.c src/userdb.c src/cert.c src/prompt.c src/exec.c src/augcw.c
 core_src    += src/mem.h src/sha1.h src/userdb.h src/cert.h src/prompt.h src/exec.h src/augcw.h
 core_src    += src/policy.c src/resource.c src/resources.c src/job.c src/template.c
 core_src    += src/policy.h src/resource.h src/resources.h src/job.h src/template.h
@@ -251,7 +252,7 @@ parser_tpl_src  += src/tpl/grammar.y
 core_src += $(parser_tpl_src)
 
 sbindir = "$(prefix)/sbin"
-sbin_PROGRAMS = cwa cwcert policyd cwca cwpol cwtemplate pn cwspec
+sbin_PROGRAMS = cwa cwcert policyd cwca cwpol cwtemplate pn cwspec clockd cogd
 policyd_SOURCES = $(core_src) $(server_src) src/policyd.c $(parser_spec_src) $(parser_conf_src)
 cwca_SOURCES    = $(core_src) $(server_src) src/cwca.c $(parser_conf_src)
 cwa_SOURCES     = $(core_src) $(client_src) src/cwa.c $(parser_conf_src)
@@ -260,6 +261,8 @@ cwpol_SOURCES   = $(core_src) src/cwpol.c $(parser_spec_src)
 cwtemplate_SOURCES = $(core_src) $(client_src) src/cwtemplate.c $(parser_conf_src)
 pn_SOURCES      = src/pn.c src/pendulum_funcs.h src/pendulum_funcs.c src/pendulum.h src/pendulum.c
 cwspec_SOURCES  = src/cwspec.c $(core_src) $(parser_spec_src)
+clockd_SOURCES  = src/clockd.c $(core_src) $(parser_spec_src)
+cogd_SOURCES    = src/cogd.c $(core_src) $(parser_spec_src)
 
 ############################################################
 

@@ -3,6 +3,6 @@
 
 #include "pendulum.h"
 
-int clockwork_funcs(pn_machine *m);
+int pendulum_funcs(pn_machine *m);
 
 #endif

@@ -31,7 +31,6 @@
 #include <shadow.h>
 
 #include "resource.h"
-#include "job.h"
 #include "policy.h"
 #include "template.h"
 

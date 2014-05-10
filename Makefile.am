@@ -101,17 +101,14 @@ PERL_TESTS += t/policy/05-services.t
 PERL_TESTS += t/policy/06-packages.t
 PERL_TESTS += t/policy/07-hosts.t
 
-TEST_HELPERS  = t/helpers/executor
-
 TESTS          = $(CTAP_TESTS) $(PERL_TESTS)
-BUILT_TESTS    = $(CTAP_TESTS) $(TEST_HELPERS)
-check_PROGRAMS = $(CTAP_TESTS) $(TEST_HELPERS)
+BUILT_TESTS    = $(CTAP_TESTS)
+check_PROGRAMS = $(CTAP_TESTS)
 
 test_source  = t/test.h
 test_source += src/cw.h src/cw.c
 test_source += src/sha1.h       src/sha1.c
 test_source += src/userdb.h     src/userdb.c
-test_source += src/exec.h       src/exec.c
 test_source += src/policy.h     src/policy.c
 test_source += src/resource.h   src/resource.c
 test_source += src/resources.h  src/resources.c
@@ -157,8 +154,6 @@ t_67_res_service_SOURCES = t/67-res_service.c   $(test_source)
 t_68_res_package_SOURCES = t/68-res_package.c   $(test_source)
 t_69_res_exec_SOURCES    = t/69-res_exec.c      $(test_source)
 
-t_helpers_executor_SOURCES = t/helpers/executor.c $(test_source)
-
 CLEANFILES       = $(BUILT_SOURCES)
 CLEANFILES      += *.tmp
 CLEANFILES      += t/tmp/*
@@ -185,8 +180,8 @@ dist_man_MANS   += man/res_user.5
 ############################################################
 
 core_src     = src/cw.h src/cw.c
-core_src    += src/sha1.c src/userdb.c src/exec.c
-core_src    += src/sha1.h src/userdb.h src/exec.h
+core_src    += src/sha1.c src/userdb.c
+core_src    += src/sha1.h src/userdb.h
 core_src    += src/policy.c src/resource.c src/resources.c src/template.c
 core_src    += src/policy.h src/resource.h src/resources.h src/template.h
 core_src    += src/gear/hash.c src/gear/string.c src/gear/path.c

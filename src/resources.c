@@ -39,7 +39,6 @@ static int _res_file_gen_rsha1(struct res_file *rf, struct hash *facts);
 static int _res_file_fd2fd(int dest, int src, ssize_t bytes);
 static int _group_update(struct stringlist*, struct stringlist*, const char*);
 static char* _sysctl_path(const char *param);
-static int _sysctl_read(const char *param, char **value);
 static int _sysctl_write(const char *param, const char *value);
 static int _mkdir_p(const char *path);
 static int _mkdir_c(const char *path);
@@ -183,31 +182,6 @@ static char* _sysctl_path(const char *param)
 	}
 
 	return path;
-}
-
-static int _sysctl_read(const char *param, char **value)
-{
-	char *path;
-	char *p, buf[256] = {0};
-	int fd;
-
-	path = _sysctl_path(param);
-	fd = open(path, O_RDONLY);
-	free(path);
-
-	if (fd < 0 || read(fd, buf, 255) < 0) {
-		return -1;
-	}
-
-	if (value) {
-		for (p = buf; *p; p++) {
-			if (*p == '\t') { *p = ' '; }
-			if (*p == '\n') { *p = '\0'; }
-		}
-
-		*value = strdup(buf);
-	}
-	return 0;
 }
 
 static int _sysctl_write(const char *param, const char *value)
@@ -632,94 +606,6 @@ int res_user_gencode(const void *res, FILE *io, unsigned int next)
 			fprintf(io, "SET %%B %li\n", r->ru_expire);
 			fprintf(io, "CALL &USER.SET_EXPIRY\n");
 		}
-	}
-
-	return 0;
-}
-
-int res_user_stat(void *res, const struct resource_env *env)
-{
-	struct res_user *ru = (struct res_user*)(res);
-	unsigned char locked;
-	struct stat home;
-
-	assert(ru); // LCOV_EXCL_LINE
-	assert(env); // LCOV_EXCL_LINE
-	assert(env->user_pwdb); // LCOV_EXCL_LINE
-	assert(env->user_spdb); // LCOV_EXCL_LINE
-
-	ru->different = 0;
-	ru->ru_pw = pwdb_get_by_name(env->user_pwdb, ru->ru_name);
-	ru->ru_sp = spdb_get_by_name(env->user_spdb, ru->ru_name);
-	if (!ru->ru_pw || !ru->ru_sp) { /* new account */
-		ru->different = ru->enforced;
-		/* always provision with password */
-		DIFF(ru, RES_USER_PASSWD);
-		return 0;
-	}
-
-	locked = (ru->ru_sp->sp_pwdp && *(ru->ru_sp->sp_pwdp) == '!') ? 1 : 0;
-	ru->different = RES_NONE;
-
-	if (ENFORCED(ru, RES_USER_NAME) && strcmp(ru->ru_name, ru->ru_pw->pw_name) != 0) {
-		DIFF(ru, RES_USER_NAME);
-	}
-
-	if (! ru->ru_sp->sp_pwdp || strlen(ru->ru_sp->sp_pwdp) == 0 ) {
-		DIFF(ru, RES_USER_PASSWD);
-	}
-
-	if (ENFORCED(ru, RES_USER_PASSWD) && strcmp(ru->ru_passwd, ru->ru_sp->sp_pwdp) != 0) {
-		DIFF(ru, RES_USER_PASSWD);
-	}
-
-	if (ENFORCED(ru, RES_USER_UID) && ru->ru_uid != ru->ru_pw->pw_uid) {
-		DIFF(ru, RES_USER_UID);
-	}
-
-	if (ENFORCED(ru, RES_USER_GID) && ru->ru_gid != ru->ru_pw->pw_gid) {
-		DIFF(ru, RES_USER_GID);
-	}
-
-	if (ENFORCED(ru, RES_USER_GECOS) && strcmp(ru->ru_gecos, ru->ru_pw->pw_gecos) != 0) {
-		DIFF(ru, RES_USER_GECOS);
-	}
-
-	if (ENFORCED(ru, RES_USER_DIR) && strcmp(ru->ru_dir, ru->ru_pw->pw_dir) != 0) {
-		DIFF(ru, RES_USER_DIR);
-	}
-
-	if (ENFORCED(ru, RES_USER_SHELL) && strcmp(ru->ru_shell, ru->ru_pw->pw_shell) != 0) {
-		DIFF(ru, RES_USER_SHELL);
-	}
-
-	if (ru->ru_mkhome == 1 && ENFORCED(ru, RES_USER_MKHOME)
-	 && (stat(ru->ru_dir, &home) != 0 || !S_ISDIR(home.st_mode))) {
-		DIFF(ru, RES_USER_MKHOME);
-	}
-
-	if (ENFORCED(ru, RES_USER_PWMIN) && ru->ru_pwmin != ru->ru_sp->sp_min) {
-		DIFF(ru, RES_USER_PWMIN);
-	}
-
-	if (ENFORCED(ru, RES_USER_PWMAX) && ru->ru_pwmax != ru->ru_sp->sp_max) {
-		DIFF(ru, RES_USER_PWMAX);
-	}
-
-	if (ENFORCED(ru, RES_USER_PWWARN) && ru->ru_pwwarn != ru->ru_sp->sp_warn) {
-		DIFF(ru, RES_USER_PWWARN);
-	}
-
-	if (ENFORCED(ru, RES_USER_INACT) && ru->ru_inact != ru->ru_sp->sp_inact) {
-		DIFF(ru, RES_USER_INACT);
-	}
-
-	if (ENFORCED(ru, RES_USER_EXPIRE) && ru->ru_expire != ru->ru_sp->sp_expire) {
-		DIFF(ru, RES_USER_EXPIRE);
-	}
-
-	if (ENFORCED(ru, RES_USER_LOCK) && ru->ru_lock != locked) {
-		DIFF(ru, RES_USER_LOCK);
 	}
 
 	return 0;
@@ -1336,62 +1222,6 @@ int res_file_gencode(const void *res, FILE *io, unsigned int next)
 	return 0;
 }
 
-/*
- * Fill in the local details of res_file structure,
- * including invoking stat(2)
- */
-int res_file_stat(void *res, const struct resource_env *env)
-{
-	struct res_file *rf = (struct res_file*)(res);
-
-	assert(rf); // LCOV_EXCL_LINE
-	assert(rf->rf_lpath); // LCOV_EXCL_LINE
-
-	rf->different = 0;
-	if (!rf->rf_uid && rf->rf_owner) {
-		assert(env); // LCOV_EXCL_LINE
-		assert(env->user_pwdb); // LCOV_EXCL_LINE
-		pwdb_lookup_uid(env->user_pwdb, rf->rf_owner, &rf->rf_uid);
-	}
-	if (!rf->rf_gid && rf->rf_group) {
-		assert(env); // LCOV_EXCL_LINE
-		assert(env->group_grdb); // LCOV_EXCL_LINE
-		grdb_lookup_gid(env->group_grdb, rf->rf_group, &rf->rf_gid);
-	}
-
-	if (stat(rf->rf_lpath, &rf->rf_stat) == -1) { /* new file */
-		rf->different = rf->enforced;
-		rf->rf_exists = 0;
-		return 0;
-	}
-
-	rf->rf_exists = 1;
-
-	/* only generate sha1 checksums if necessary */
-	if (ENFORCED(rf, RES_FILE_SHA1)) {
-		if (sha1_file(rf->rf_lpath, &(rf->rf_lsha1)) == -1) {
-			return -1;
-		}
-	}
-
-	rf->different = RES_NONE;
-
-	if (ENFORCED(rf, RES_FILE_UID) && rf->rf_uid != rf->rf_stat.st_uid) {
-		DIFF(rf, RES_FILE_UID);
-	}
-	if (ENFORCED(rf, RES_FILE_GID) && rf->rf_gid != rf->rf_stat.st_gid) {
-		DIFF(rf, RES_FILE_GID);
-	}
-	if (ENFORCED(rf, RES_FILE_MODE) && (rf->rf_stat.st_mode & 07777) != rf->rf_mode) {
-		DIFF(rf, RES_FILE_MODE);
-	}
-	if (ENFORCED(rf, RES_FILE_SHA1) && memcmp(rf->rf_rsha1.raw, rf->rf_lsha1.raw, SHA1_DIGLEN) != 0) {
-		DIFF(rf, RES_FILE_SHA1);
-	}
-
-	return 0;
-}
-
 struct report* res_file_fixup(void *res, int dryrun, const struct resource_env *env)
 {
 	struct res_file *rf = (struct res_file*)(res);
@@ -1945,83 +1775,6 @@ int res_group_remove_admin(struct res_group *rg, const char *user)
 	return _group_update(rg->rg_adm_rm, rg->rg_adm_add, user);
 }
 
-int res_group_stat(void *res, const struct resource_env *env)
-{
-	struct res_group *rg = (struct res_group*)(res);
-	struct stringlist *list;
-
-	assert(rg); // LCOV_EXCL_LINE
-	assert(env); // LCOV_EXCL_LINE
-	assert(env->group_grdb); // LCOV_EXCL_LINE
-	assert(env->group_sgdb); // LCOV_EXCL_LINE
-
-	rg->different = 0;
-	rg->rg_grp = grdb_get_by_name(env->group_grdb, rg->rg_name);
-	rg->rg_sg = sgdb_get_by_name(env->group_sgdb, rg->rg_name);
-	if (!rg->rg_grp || !rg->rg_sg) { /* new group */
-		rg->different = rg->enforced;
-
-		rg->rg_mem = stringlist_new(NULL);
-		stringlist_add_all(rg->rg_mem, rg->rg_mem_add);
-
-		rg->rg_adm = stringlist_new(NULL);
-		stringlist_add_all(rg->rg_adm, rg->rg_adm_add);
-
-		if (rg->rg_passwd) {
-			/* always provision with password */
-			DIFF(rg, RES_GROUP_PASSWD);
-		}
-
-		return 0;
-	}
-
-	/* set up rg_mem as the list we want for gr_mem */
-	rg->rg_mem = stringlist_new(rg->rg_grp->gr_mem);
-	stringlist_add_all(rg->rg_mem, rg->rg_mem_add);
-	stringlist_remove_all(rg->rg_mem, rg->rg_mem_rm);
-	stringlist_uniq(rg->rg_mem);
-
-	/* set up rg_adm as the list we want for sg_adm */
-	rg->rg_adm = stringlist_new(rg->rg_sg->sg_adm);
-	stringlist_add_all(rg->rg_adm, rg->rg_adm_add);
-	stringlist_remove_all(rg->rg_adm, rg->rg_adm_rm);
-	stringlist_uniq(rg->rg_adm);
-
-	rg->different = RES_NONE;
-
-	if (ENFORCED(rg, RES_GROUP_NAME) && strcmp(rg->rg_name, rg->rg_grp->gr_name) != 0) {
-		DIFF(rg, RES_GROUP_NAME);
-	}
-
-	if (ENFORCED(rg, RES_GROUP_PASSWD) && strcmp(rg->rg_passwd, rg->rg_sg->sg_passwd) != 0) {
-		DIFF(rg, RES_GROUP_PASSWD);
-	}
-
-	if (ENFORCED(rg, RES_GROUP_GID) && rg->rg_gid != rg->rg_grp->gr_gid) {
-		DIFF(rg, RES_GROUP_GID);
-	}
-
-	if (ENFORCED(rg, RES_GROUP_MEMBERS)) {
-		/* use list as a stringlist of gr_mem */
-		list = stringlist_new(rg->rg_grp->gr_mem);
-		if (stringlist_diff(list, rg->rg_mem) == 0) {
-			DIFF(rg, RES_GROUP_MEMBERS);
-		}
-		stringlist_free(list);
-	}
-
-	if (ENFORCED(rg, RES_GROUP_ADMINS)) {
-		/* use list as a stringlist of sg_adm */
-		list = stringlist_new(rg->rg_sg->sg_adm);
-		if (stringlist_diff(list, rg->rg_adm) == 0) {
-			DIFF(rg, RES_GROUP_ADMINS);
-		}
-		stringlist_free(list);
-	}
-
-	return 0;
-}
-
 struct report* res_group_fixup(void *res, int dryrun, const struct resource_env *env)
 {
 	struct res_group *rg = (struct res_group*)(res);
@@ -2368,25 +2121,6 @@ int res_package_gencode(const void *res, FILE *io, unsigned int next)
 	return 0;
 }
 
-int res_package_stat(void *res, const struct resource_env *env)
-{
-	struct res_package *rp = (struct res_package*)(res);
-
-	assert(rp); // LCOV_EXCL_LINE
-	assert(env); // LCOV_EXCL_LINE
-	assert(env->package_manager); // LCOV_EXCL_LINE
-
-	free(rp->installed);
-	rp->installed = package_version(env->package_manager, rp->name);
-
-	if (xstrcmp(rp->version, "latest") == 0) {
-		free(rp->version);
-		rp->version = package_latest(env->package_manager, rp->name);
-	}
-
-	return 0;
-}
-
 static int vercmp(const char *have, const char *want)
 {
 	if (strcmp(have, want) == 0) return 0;
@@ -2645,20 +2379,6 @@ int res_service_gencode(const void *res, FILE *io, unsigned int next)
 		fprintf(io, "SET %%A \"cwtool service stop %s\"\n", r->service);
 		fprintf(io, "CALL &EXEC.CHECK\n");
 	}
-
-	return 0;
-}
-
-int res_service_stat(void *res, const struct resource_env *env)
-{
-	struct res_service *rs = (struct res_service*)(res);
-
-	assert(rs); // LCOV_EXCL_LINE
-	assert(env); // LCOV_EXCL_LINE
-	assert(env->service_manager); // LCOV_EXCL_LINE
-
-	rs->enabled = (service_enabled(env->service_manager, rs->service) == 0 ? 1 : 0);
-	rs->running = (service_running(env->service_manager, rs->service) == 0 ? 1 : 0);
 
 	return 0;
 }
@@ -2942,69 +2662,6 @@ int res_host_gencode(const void *res, FILE *io, unsigned int next)
 		}
 	}
 
-
-	return 0;
-}
-
-int res_host_stat(void *res, const struct resource_env *env)
-{
-	struct res_host *rh = (struct res_host*)(res);
-	assert(rh); // LCOV_EXCL_LINE
-	assert(env); // LCOV_EXCL_LINE
-	assert(env->aug_context); // LCOV_EXCL_LINE
-
-	char *tmp, **results;
-	const char *value;
-	int rc, i;
-	struct stringlist *real_aliases = NULL;
-
-	rh->different = 0;
-	xfree(rh->aug_root);
-	cw_log(LOG_DEBUG, "res_host: stat %p // %s", rh, rh->hostname);
-
-	rc = aug_match(env->aug_context, "/files/etc/hosts/*", &results);
-	cw_log(LOG_DEBUG, "res_host: found %u entries under /files/etc/hosts", rc);
-	for (i = 0; i < rc; i++) {
-		tmp = string("%s/ipaddr", results[i]);
-		cw_log(LOG_DEBUG, "res_host: checking %s", tmp);
-		aug_get(env->aug_context, tmp, &value);
-		free(tmp);
-
-		cw_log(LOG_DEBUG, "res_host: eval found ip(%s) against res_host ip(%s)", value, rh->ip);
-		if (value && strcmp(value, rh->ip) == 0) { // ip matched
-			tmp = string("%s/canonical", results[i]);
-			cw_log(LOG_DEBUG, "res_host: checking %s", tmp);
-			aug_get(env->aug_context, tmp, &value);
-			free(tmp);
-
-			cw_log(LOG_DEBUG, "res_host: eval found hostname(%s) against res_host hostname(%s)", value, rh->hostname);
-			if (value && strcmp(value, rh->hostname) == 0) {
-				rh->aug_root = strdup(results[i]);
-				cw_log(LOG_DEBUG, "res_host: found match at %s", rh->aug_root);
-				break;
-			}
-		}
-	}
-	while (rc--) free(results[rc]);
-	free(results);
-
-	if (ENFORCED(rh, RES_HOST_ALIASES)) {
-		if (rh->aug_root) {
-			tmp = string("%s/alias", rh->aug_root);
-			real_aliases = augcw_getm(env->aug_context, tmp);
-			free(tmp);
-
-			if (!real_aliases ||
-			    stringlist_diff(rh->aliases, real_aliases) == 0) {
-
-				DIFF(rh, RES_HOST_ALIASES);
-			}
-			stringlist_free(real_aliases);
-
-		} else {
-			DIFF(rh, RES_HOST_ALIASES);
-		}
-	}
 
 	return 0;
 }
@@ -3294,42 +2951,6 @@ int res_sysctl_gencode(const void *res, FILE *io, unsigned int next)
 	}
 
 	free(path);
-	return 0;
-}
-
-int res_sysctl_stat(void *res, const struct resource_env *env)
-{
-	struct res_sysctl *rs = (struct res_sysctl*)(res);
-	assert(rs); // LCOV_EXCL_LINE
-	assert(env); // LCOV_EXCL_LINE
-
-	char *tmp;
-	const char *aug_value;
-
-	rs->different = 0;
-	if (ENFORCED(rs, RES_SYSCTL_VALUE)) {
-		if (_sysctl_read(rs->param, &tmp) != 0) {
-			cw_log(LOG_WARNING, "res_sysctl: failed to get live value of %s", rs->param);
-			return -1;
-		}
-
-		if (!streq(rs->value, tmp)) {
-			cw_log(LOG_DEBUG, "'%s' != '%s'", rs->value, tmp);
-			DIFF(rs, RES_SYSCTL_VALUE);
-		}
-		xfree(tmp);
-
-		if (ENFORCED(rs, RES_SYSCTL_PERSIST)) {
-			tmp = string("/files/etc/sysctl.conf/%s", rs->param);
-			if (aug_get(env->aug_context, tmp, &aug_value) != 1
-			 || strcmp(aug_value, rs->value) != 0) {
-
-				DIFF(rs, RES_SYSCTL_PERSIST);
-			}
-			xfree(tmp);
-		}
-	}
-
 	return 0;
 }
 
@@ -3640,46 +3261,6 @@ int res_dir_gencode(const void *res, FILE *io, unsigned int next)
 	if (ENFORCED(r, RES_DIR_MODE)) {
 		fprintf(io, "SET %%B 0%o\n", r->mode);
 		fprintf(io, "CALL &FS.CHMOD\n");
-	}
-
-	return 0;
-}
-
-int res_dir_stat(void *res, const struct resource_env *env)
-{
-	struct res_dir *rd = (struct res_dir*)(res);
-	assert(rd); // LCOV_EXCL_LINE
-	assert(rd->path); // LCOV_EXCL_LINE
-
-	rd->different = 0;
-	if (!rd->uid && rd->owner) {
-		assert(env);            // LCOV_EXCL_LINE
-		assert(env->user_pwdb); // LCOV_EXCL_LINE
-		pwdb_lookup_uid(env->user_pwdb, rd->owner, &rd->uid);
-	}
-	if (!rd->gid && rd->group) {
-		assert(env);             // LCOV_EXCL_LINE
-		assert(env->group_grdb); // LCOV_EXCL_LINE
-		grdb_lookup_gid(env->group_grdb, rd->group, &rd->gid);
-	}
-
-	if (stat(rd->path, &rd->stat) == -1) { /* new directory */
-		rd->different = rd->enforced;
-		rd->exists = 0;
-		return 0;
-	}
-	rd->exists = 1;
-
-	rd->different = RES_NONE;
-
-	if (ENFORCED(rd, RES_DIR_UID) && rd->uid != rd->stat.st_uid) {
-		DIFF(rd, RES_DIR_UID);
-	}
-	if (ENFORCED(rd, RES_DIR_GID) && rd->gid != rd->stat.st_gid) {
-		DIFF(rd, RES_DIR_GID);
-	}
-	if (ENFORCED(rd, RES_DIR_MODE) && (rd->stat.st_mode & 07777) != rd->mode) {
-		DIFF(rd, RES_DIR_MODE);
 	}
 
 	return 0;
@@ -4042,6 +3623,7 @@ static int _res_exec_run(const char *command, struct res_exec *re)
 	return WEXITSTATUS(proc_stat);
 }
 
+/*
 int res_exec_stat(void *res, const struct resource_env *env)
 {
 	struct res_exec *re = (struct res_exec*)(res);
@@ -4071,7 +3653,7 @@ int res_exec_stat(void *res, const struct resource_env *env)
 
 	return 0;
 }
-
+*/
 struct report* res_exec_fixup(void *res, int dryrun, const struct resource_env *env)
 {
 	struct res_exec *re = (struct res_exec*)(res);

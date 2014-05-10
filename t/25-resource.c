@@ -62,42 +62,6 @@ TESTS {
 	}
 
 	subtest {
-		struct resource *res;
-		struct res_dir *rd;
-		struct resource_env env;
-		struct report *report;
-		struct stat st;
-
-		sys("rm -rf " TEST_TMP "/res_dir");
-		sys("mkdir -p " TEST_TMP "/res_dir");
-		sys("chmod 0755 " TEST_TMP "/res_dir");
-
-		if (stat(TEST_TMP "/res_dir", &st) != 0) {
-			BAIL_OUT("failed to stat dir for resource callback tests");
-		}
-		ok((st.st_mode & 0777) != 0705, "pre-stat mode not 0705");
-
-		isnt_null(res = resource_new("dir", TEST_TMP "/res_dir"),
-			"created res_dir resource");
-		resource_set(res, "mode", "0705");
-		ok(resource_stat(res, &env) == 0, "resource_stat succeeds");
-		isnt_null(rd = (struct res_dir *)(res->resource), "res->resource cast");
-		ok(rd->exists, "res_dir target dir exists");
-		ok(DIFFERENT(rd, RES_DIR_MODE), "post-stat, mode is out of compliance");
-
-		isnt_null(report = resource_fixup(res, 0, &env), "fixed up");
-		if (stat(TEST_TMP "/res_dir", &st) != 0) {
-			BAIL_OUT("failed to stat dir for resource callback tests");
-		}
-		is_int(st.st_mode & 07777, 0705, "post-fixup mode");
-		ok(report->fixed, "resource was fixed");
-		ok(report->compliant, "resource is now compliant");
-
-		resource_free(res);
-		report_free(report);
-	}
-
-	subtest {
 		struct resource *a, *b, *c;
 
 		isnt_null(a = resource_new("file",  "/path"), "a is a valid resource");

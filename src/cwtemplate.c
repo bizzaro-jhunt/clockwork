@@ -26,8 +26,8 @@
 #include <sys/wait.h>
 #include <sys/time.h>
 
-#include "client.h"
 #include "template.h"
+#include "policy.h"
 
 static struct cwt_client* cwt_options(int argc, char **argv);
 static void show_version(void);
@@ -48,40 +48,32 @@ struct cwt_client {
 int main(int argc, char **argv)
 {
 	struct cwt_client *cwt;
-	struct client *c;
 	struct template *tpl;
 
 	cwt = cwt_options(argc, argv);
-	c = xmalloc(sizeof(struct client));
-	c->log_level   = cwt->log_level;
-	c->config_file = cwt->config_file;
-
-	if (client_options(c) != 0) {
-		fprintf(stderr, "Unable to process client options");
-		exit(2);
-	}
-	c->log_level = cw_log_level(c->log_level, NULL);
+	cwt->log_level = cw_log_level(cwt->log_level, NULL);
 	cw_log(LOG_INFO, "Log level is %s", cw_log_level_name(-1));
 
 	cw_log(LOG_INFO, "Gathering facts");
-	c->facts = hash_new();
+	struct hash *facts = hash_new();
+	const char *gatherers = "/lib/clockwork/gather.d/*"; /* FIXME! */
 	if (cwt->facts_from) {
 		cw_log(LOG_INFO, "Reading cached facts from %s", cwt->facts_from);
-		if (fact_cat_read(cwt->facts_from, c->facts) != 0) {
+		if (fact_cat_read(cwt->facts_from, facts) != 0) {
 			cw_log(LOG_CRIT, "Unable to read cached facts");
 			exit(1);
 		}
-	} else if (fact_gather(c->gatherers, c->facts) != 0) {
-		cw_log(LOG_INFO, "Gathering facts from %s", c->gatherers);
+	} else if (fact_gather(gatherers, facts) != 0) {
+		cw_log(LOG_INFO, "Gathering facts from %s", gatherers);
 		cw_log(LOG_CRIT, "Unable to gather facts");
 		exit(1);
 	}
 	if (cwt->facts) {
 		cw_log(LOG_INFO, "Merging collected facts with command-line overrides");
-		hash_merge(c->facts, cwt->facts);
+		hash_merge(facts, cwt->facts);
 	}
 
-	tpl = template_create(cwt->template, c->facts);
+	tpl = template_create(cwt->template, facts);
 	if (!tpl) {
 		cw_log(LOG_CRIT, "Failed to parse template");
 		exit(1);

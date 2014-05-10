@@ -50,45 +50,6 @@ TESTS {
 	}
 
 	subtest {
-		struct res_host *r;
-		struct resource_env env;
-		struct report *report;
-
-		isnt_null(env.aug_context = augcw_init(), "Augeas initialized");
-
-		isnt_null(r = res_host_new("dne.niftylogic.net"), "created res_host");
-		res_host_set(r, "ip", "192.168.224.1");
-		res_host_set(r, "alias", "bad.cw.niftylogic.net");
-
-		ok(res_host_stat(r, &env) == 0, "res_host_stat succeeds");
-		isnt_null(report = res_host_fixup(r, 0, &env), "host fixed up");
-		report_free(report);
-
-		res_host_set(r, "present", "no");
-		ok(res_host_stat(r, &env) == 0, "res_host_stat succeeds");
-		isnt_null(r->aug_root, "aug_root (found match)");
-
-		isnt_null(report = res_host_fixup(r, 0, &env), "host fixed up");
-		is_int(report->fixed,     1, "resource is fixed");
-		is_int(report->compliant, 1, "resource is compliant");
-		report_free(report);
-
-		res_host_set(r, "present", "yes");
-		ok(res_host_stat(r, &env) == 0, "res_host_stat succeeds");
-		is_null(r->aug_root, "aug_root (no match found)");
-
-		isnt_null(report = res_host_fixup(r, 0, &env), "host fixed up");
-		is_int(report->fixed,     1, "resource is fixed");
-		is_int(report->compliant, 1, "resource is compliant");
-		report_free(report);
-
-		is_int(res_host_set(r, "what-does-the-fox-say", "ring-ding-ring-ding"),
-			-1, "res_host_set doesn't like nonsensical attributes");
-
-		res_host_free(r);
-	}
-
-	subtest {
 		struct res_host *rh;
 
 		rh = res_host_new("host1");

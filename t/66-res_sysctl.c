@@ -50,41 +50,6 @@ TESTS {
 	}
 
 	subtest {
-		struct res_sysctl *r;
-		struct resource_env env;
-
-		r = res_sysctl_new("martians");
-		res_sysctl_set(r, "param", "net.ipv4.conf.all.log_martians");
-		res_sysctl_set(r, "value", "1");
-		res_sysctl_set(r, "persist", "yes");
-
-		/* set up resource env with augeas stuff */
-		isnt_null(env.aug_context = augcw_init(), "Augeas initialized");
-
-		/* test setup ensures that log_martians is 0 in /proc/sys */
-		ok(res_sysctl_stat(r, &env) == 0, "res_sysctl_stat succeeds");
-#if TEST_AS_ROOT
-		ok(DIFFERENT(r, RES_SYSCTL_VALUE), "VALUE is out of compliance");
-#endif
-
-#if TEST_AS_ROOT
-		struct report *report;
-		isnt_null(report = res_sysctl_fixup(r, 0, &env), "res_sysctl fixed up");
-		is_int(report->fixed,     1, "sysctl is fixed");
-		is_int(report->compliant, 1, "sysctl is compliant");
-
-		ok(res_sysctl_stat(r, &env) == 0, "res_sysctl_stat succeeds");
-		ok(!DIFFERENT(r, RES_SYSCTL_VALUE), "VALUE is now in compliance");
-		report_free(report);
-#endif
-
-		is_int(res_sysctl_set(r, "what-does-the-fox-say", "ring-ding-ring-ding"),
-			-1, "res_sysctl_set doesn't like nonsensical attributes");
-
-		res_sysctl_free(r);
-	}
-
-	subtest {
 		struct res_sysctl *rs;
 
 		rs = res_sysctl_new("sys.ctl");

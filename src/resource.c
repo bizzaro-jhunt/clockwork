@@ -29,7 +29,6 @@ typedef int (*resource_norm_f)(void *res, struct policy *pol, struct hash *facts
 typedef int (*resource_set_f)(void *res, const char *attr, const char *value);
 typedef int (*resource_match_f)(const void *res, const char *attr, const char *value);
 typedef int (*resource_gencode_f)(const void *res, FILE *io, unsigned int next);
-typedef int (*resource_stat_f)(void *res, const struct resource_env *env);
 typedef struct report* (*resource_fixup_f)(void *res, int dryrun, const struct resource_env *env);
 typedef int (*resource_notify_f)(void *res, const struct resource *dep);
 typedef char* (*resource_pack_f)(const void *res);
@@ -47,7 +46,6 @@ typedef void* (*resource_unpack_f)(const char *packed);
 	     .set_callback = res_ ## t ## _set,     \
 	   .match_callback = res_ ## t ## _match,   \
 	 .gencode_callback = res_ ## t ## _gencode, \
-	    .stat_callback = res_ ## t ## _stat,    \
 	   .fixup_callback = res_ ## t ## _fixup,   \
 	  .notify_callback = res_ ## t ## _notify,  \
 	    .pack_callback = res_ ## t ## _pack,    \
@@ -66,7 +64,6 @@ typedef void* (*resource_unpack_f)(const char *packed);
 		resource_set_f      set_callback;
 		resource_match_f    match_callback;
 		resource_gencode_f  gencode_callback;
-		resource_stat_f     stat_callback;
 		resource_fixup_f    fixup_callback;
 		resource_notify_f   notify_callback;
 		resource_pack_f     pack_callback;
@@ -249,30 +246,6 @@ int resource_set(struct resource *r, const char *attr, const char *value)
 	assert(value); // LCOV_EXCL_LINE
 
 	return (*(resource_types[r->type].set_callback))(r->resource, attr, value);
-}
-
-/**
-  Query actual state of $r
-
-  The name comes from the world of filesystems, where you "stat"
-  a file to get its attributes.  Really, to "stat" a resource
-  means to figure out what its real state is, and also determine
-  what attributes are enforced but non-compliant.
-
-  This function calls the `res_*_stat` resource callback
-  appropriate to the type of resource $r.
-
-  On success, returns 0.  On failure, returns non-zero.  Specifically,
-  if a resource is found not to exist locally, that s not considered
-  a failure.
- */
-int resource_stat(struct resource *r, const struct resource_env *env)
-{
-	assert(r); // LCOV_EXCL_LINE
-	assert(r->type != RES_UNKNOWN); // LCOV_EXCL_LINE
-	assert(env); // LCOV_EXCL_LINE
-
-	return (*(resource_types[r->type].stat_callback))(r->resource, env);
 }
 
 /**

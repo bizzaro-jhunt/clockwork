@@ -240,6 +240,125 @@ char* cw_string(const char *fmt, ...)
 }
 
 /*
+    ##    ##     ###     ######   ##    ##  ########  ######
+    ##    ##    ## ##   ##    ##  ##    ##  ##       ##    ##
+    ##    ##   ##   ##  ##        ##    ##  ##       ##
+    ########  ##     ##  ######   ########  ######    ######
+    ##    ##  #########       ##  ##    ##  ##             ##
+    ##    ##  ##     ## ##    ##  ##    ##  ##       ##    ##
+    ##    ##  ##     ##  ######   ##    ##  ########  ######
+ */
+static uint8_t s_hash64(const char *s)
+{
+	unsigned int h = 81;
+	unsigned char c;
+
+	while ((c = *s++))
+		h = ((h << 5) + h) + c;
+
+	return h & ~0xc0;
+}
+
+static ssize_t s_hash_index(const struct cw_hash_bkt *b, const char *k)
+{
+	ssize_t i;
+	for (i = 0; i < b->len; i++)
+		if (strcmp(b->keys[i], k) == 0)
+			return i;
+	return (ssize_t)-1;
+}
+static int s_hash_insert(struct cw_hash_bkt *b, const char *k, void *v)
+{
+	char ** new_k = realloc(b->keys,   (b->len + 1) * sizeof(char*));
+	char ** new_v = realloc(b->values, (b->len + 1) * sizeof(void*));
+
+	/* FIXME check new_k / new_v for NULL */
+	new_k[b->len] = strdup(k);
+	new_v[b->len] = v;
+
+	b->keys   = new_k;
+	b->values = new_v;
+	b->len++;
+
+	return 0;
+}
+
+int cw_hash_done(cw_hash_t *h, uint8_t all)
+{
+	ssize_t i, j;
+	if (h) {
+		for (i = 0; i < 64; i++) {
+			for (j = 0; j < h->entries[i].len; j++) {
+				free(h->entries[i].keys[j]);
+				if (all) free(h->entries[i].values[j]);
+			}
+			free(h->entries[i].keys);
+			free(h->entries[i].values);
+		}
+	}
+	return 0;
+}
+
+void* cw_hash_get(const cw_hash_t *h, const char *k)
+{
+	if (!h || !k) return NULL;
+
+	const struct cw_hash_bkt *b = &h->entries[s_hash64(k)];
+	ssize_t i = s_hash_index(b, k);
+	return (i < 0 ? NULL : b->values[i]);
+}
+
+void* cw_hash_set(cw_hash_t *h, const char *k, void *v)
+{
+	if (!h || !k) return NULL;
+
+	struct cw_hash_bkt *b = &h->entries[s_hash64(k)];
+	ssize_t i = s_hash_index(b, k);
+
+	if (i < 0) {
+		s_hash_insert(b, k, v);
+		return v;
+	}
+
+	void *existing = b->values[i];
+	b->values[i] = v;
+	return existing;
+}
+
+void *cw_hash_next(cw_hash_t *h, char **k, void **v)
+{
+	assert(h); // LCOV_EXCL_LINE
+	assert(k); // LCOV_EXCL_LINE
+	assert(v); // LCOV_EXCL_LINE
+
+	*k = *v = NULL;
+	while (h->bucket < 64) {
+		struct cw_hash_bkt *b = h->entries + h->bucket;
+		if (h->offset >= b->len) {
+			h->bucket++;
+			h->offset = 0;
+			continue;
+		}
+		*k = b->keys[h->offset];
+		*v = b->values[h->offset];
+		h->offset++;
+		break;
+	}
+	return *k;
+}
+
+int cw_hash_merge(cw_hash_t *a, cw_hash_t *b)
+{
+	assert(a); // LCOV_EXCL_LINE;
+	assert(b); // LCOV_EXCL_LINE;
+
+	char *k; void *v;
+	for_each_key_value(b, k, v)
+		cw_hash_set(a, k, v);
+	return 0;
+}
+
+/*
     ######## #### ##     ## ########
        ##     ##  ###   ### ##
        ##     ##  #### #### ##

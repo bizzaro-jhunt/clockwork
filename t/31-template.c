@@ -52,14 +52,14 @@ static int cat(const char *path, const char *what)
 
 static char* render(const char *code)
 {
-	struct hash *v;
+	cw_hash_t *v;
 	struct template *t;
 	char *final;
 
-	v = hash_new();
+	v = cw_alloc(sizeof(cw_hash_t));
 	if (!v) return NULL;
-	hash_set(v, "local.v1", "regression...");
-	hash_set(v, "local.var1", "Var 1");
+	cw_hash_set(v, "local.v1", "regression...");
+	cw_hash_set(v, "local.var1", "Var 1");
 
 	if (!cat(TPL_FILE, code)) return NULL;
 
@@ -67,7 +67,7 @@ static char* render(const char *code)
 	if (!t) return NULL;
 
 	final = template_render(t);
-	hash_free(v);
+	cw_hash_done(v, 0);
 	template_free(t);
 	return final;
 }
@@ -89,13 +89,13 @@ TESTS {
 	}
 
 	subtest {
-		struct hash *v;
+		cw_hash_t *v;
 		struct template *t;
 		char *actual;
 
-		isnt_null(v = hash_new(), "created vars hash");
-		hash_set(v, "v.test1", "value1");
-		hash_set(v, "v.test2", "value2");
+		isnt_null(v = cw_alloc(sizeof(cw_hash_t)), "created vars hash");
+		cw_hash_set(v, "v.test1", "value1");
+		cw_hash_set(v, "v.test2", "value2");
 
 		ok(cat(TPL_FILE, "v.test1 = <\%= v.test1 \%> and v.test2 = <\%= v.test2 \%>\n"),
 				"created template file");
@@ -104,19 +104,19 @@ TESTS {
 		is_string(actual, "v.test1 = value1 and v.test2 = value2\n",
 				"template rendered correctly");
 
-		hash_free(v);
+		cw_hash_done(v, 0);
 		free(actual);
 		template_free(t);
 	}
 
 	subtest {
-		struct hash *v;
+		cw_hash_t *v;
 		struct template *t;
 		char *actual;
 
-		isnt_null(v = hash_new(), "created vars hash");
-		hash_set(v, "v.v1", "1");
-		hash_set(v, "v.v2", "42");
+		isnt_null(v = cw_alloc(sizeof(cw_hash_t)), "created vars hash");
+		cw_hash_set(v, "v.v1", "1");
+		cw_hash_set(v, "v.v2", "42");
 
 		ok(cat(TPL_FILE,
 				"v1: <\% if v.v1 is \"1\" \%>one<\% else \%>not one<\% end \%>\n"
@@ -126,18 +126,18 @@ TESTS {
 		isnt_null(actual = template_render(t), "template rendered");
 		is_string(actual, "v1: one\nv2: not two\n", "template rendered correctly");
 
-		hash_free(v);
+		cw_hash_done(v, 0);
 		free(actual);
 		template_free(t);
 
-		isnt_null(v = hash_new(), "created vars hash");
-		hash_set(v, "v.v1", "3");
-		hash_set(v, "v.v2", "2");
+		isnt_null(v = cw_alloc(sizeof(cw_hash_t)), "created vars hash");
+		cw_hash_set(v, "v.v1", "3");
+		cw_hash_set(v, "v.v2", "2");
 		isnt_null(t = template_create(TPL_FILE, v), "parsed template");
 		isnt_null(actual = template_render(t), "template rendered");
 		is_string(actual, "v1: not one\nv2: two\n", "template rendered correctly");
 
-		hash_free(v);
+		cw_hash_done(v, 0);
 		free(actual);
 		template_free(t);
 	}

@@ -34,7 +34,7 @@ static int _manifest_expand(struct manifest *manifest)
 		node = manifest->nodes[i];
 
 		if (node->op == INCLUDE) {
-			pol = hash_get(manifest->policies, node->data1);
+			pol = cw_hash_get(manifest->policies, node->data1);
 			if (pol) {
 				stree_add(node, pol);
 				pol = NULL;

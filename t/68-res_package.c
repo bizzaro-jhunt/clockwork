@@ -68,30 +68,30 @@ TESTS {
 
 	subtest {
 		struct res_package *r;
-		struct hash *h;
+		cw_hash_t *h;
 
-		h = hash_new();
+		h = cw_alloc(sizeof(cw_hash_t));
 		r = res_package_new("pkg");
 
 		ok(res_package_attrs(r, h) == 0, "got package attrs");
-		is_string(hash_get(h, "name"),      "pkg", "h.name");
-		is_string(hash_get(h, "installed"), "yes", "h.installed"); // default
-		is_null(hash_get(h, "version"), "h.version is unset");
+		is_string(cw_hash_get(h, "name"),      "pkg", "h.name");
+		is_string(cw_hash_get(h, "installed"), "yes", "h.installed"); // default
+		is_null(cw_hash_get(h, "version"), "h.version is unset");
 
 		res_package_set(r, "name", "extra-tools");
 		res_package_set(r, "version", "1.2.3-4.5.6");
 		res_package_set(r, "installed", "no");
 
 		ok(res_package_attrs(r, h) == 0, "got package attrs");
-		is_string(hash_get(h, "name"),      "extra-tools", "h.name");
-		is_string(hash_get(h, "version"),   "1.2.3-4.5.6", "h.version");
-		is_string(hash_get(h, "installed"), "no",          "h.installed");
+		is_string(cw_hash_get(h, "name"),      "extra-tools", "h.name");
+		is_string(cw_hash_get(h, "version"),   "1.2.3-4.5.6", "h.version");
+		is_string(cw_hash_get(h, "installed"), "no",          "h.installed");
 
 		ok(res_package_set(r, "xyzzy", "BAD") != 0, "xyzzy is a bad attr");
 		ok(res_package_attrs(r, h) == 0, "got package attrs");
-		is_null(hash_get(h, "xyzzy"), "h.xyzzy is unset (bad attr)");
+		is_null(cw_hash_get(h, "xyzzy"), "h.xyzzy is unset (bad attr)");
 
-		hash_free_all(h);
+		cw_hash_done(h, 1);
 		res_package_free(r);
 	}
 

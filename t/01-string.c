@@ -23,7 +23,7 @@
 TESTS {
 	subtest {
 		char buf[8192];
-		struct hash *context;
+		cw_hash_t *context;
 
 		const char *tests[][2] = {
 			{ "string with no references",
@@ -56,13 +56,13 @@ TESTS {
 			{ NULL, NULL }
 		};
 
-		isnt_null(context = hash_new(), "created a hash for vars");
+		isnt_null(context = cw_alloc(sizeof(cw_hash_t)), "created a hash for vars");
 		if (!context) break;
 
-		hash_set(context, "ref1", "this is a reference");
-		hash_set(context, "name", "Clockwork");
-		hash_set(context, "multi.level.fact", "MULTILEVEL");
-		hash_set(context, "kernel_version", "2.6");
+		cw_hash_set(context, "ref1", "this is a reference");
+		cw_hash_set(context, "name", "Clockwork");
+		cw_hash_set(context, "multi.level.fact", "MULTILEVEL");
+		cw_hash_set(context, "kernel_version", "2.6");
 
 		size_t i;
 		for (i = 0; tests[i][0]; i++) {
@@ -70,21 +70,21 @@ TESTS {
 			is_string(tests[i][1], buf, "string interpolation");
 		}
 
-		hash_free(context);
+		cw_hash_done(context, 0);
 	}
 
 	subtest {
 		char buf[512]; // extra-large
-		struct hash *context;
+		cw_hash_t *context;
 
-		context = hash_new();
-		hash_set(context, "ref", "1234567890abcdef");
+		context = cw_alloc(sizeof(cw_hash_t));
+		cw_hash_set(context, "ref", "1234567890abcdef");
 
 		// interpolation with a buffer that is too small
 		string_interpolate(buf, 8, "$ref is 16 characters long", context);
 		is_string(buf, "1234567", "interpolated value cut short");
 
-		hash_free(context);
+		cw_hash_done(context, 0);
 	}
 
 	subtest {

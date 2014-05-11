@@ -37,8 +37,8 @@
 #define EXPAND_LEN(x) (x / EXPAND_FACTOR + 1) * EXPAND_FACTOR
 
 static char*  _extract(const char *start, const char *end);
-static char*  _lookup(const char *ref, const struct hash *ctx);
-static int    _deref(char **buf, size_t *n, const char *start, const char *end, const struct hash *ctx);
+static char*  _lookup(const char *ref, const cw_hash_t *ctx);
+static int    _deref(char **buf, size_t *n, const char *start, const char *end, const cw_hash_t *ctx);
 static int    _sl_expand(struct stringlist*, size_t);
 static int    _sl_reduce(struct stringlist*);
 static size_t _sl_capacity(struct stringlist*);
@@ -57,13 +57,13 @@ static char* _extract(const char *start, const char *end)
 	return buf;
 }
 
-static char* _lookup(const char *ref, const struct hash *ctx)
+static char* _lookup(const char *ref, const cw_hash_t *ctx)
 {
-	const char *value = hash_get(ctx, ref);
+	const char *value = cw_hash_get(ctx, ref);
 	return strdup(value ? value : "");
 }
 
-static int _deref(char **buf, size_t *len, const char *start, const char *end, const struct hash *ctx)
+static int _deref(char **buf, size_t *len, const char *start, const char *end, const cw_hash_t *ctx)
 {
 	char *ref = _extract(start, end);
 	char *val = _lookup(ref, ctx);
@@ -271,7 +271,7 @@ int string_append1(struct string *s, char c)
 
   On success, returns 0.  On failure, returns non-zero.
  */
-int string_interpolate(char *buf, size_t len, const char *src, const struct hash *ctx)
+int string_interpolate(char *buf, size_t len, const char *src, const cw_hash_t *ctx)
 {
 	assert(buf); // LCOV_EXCL_LINE
 	assert(src); // LCOV_EXCL_LINE

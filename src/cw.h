@@ -129,6 +129,36 @@ cw_list_t* cw_list_pop  (cw_list_t *l);
 char* cw_string(const char *fmt, ...);
 
 /*
+    ##    ##     ###     ######   ##    ##  ########  ######
+    ##    ##    ## ##   ##    ##  ##    ##  ##       ##    ##
+    ##    ##   ##   ##  ##        ##    ##  ##       ##
+    ########  ##     ##  ######   ########  ######    ######
+    ##    ##  #########       ##  ##    ##  ##             ##
+    ##    ##  ##     ## ##    ##  ##    ##  ##       ##    ##
+    ##    ##  ##     ##  ######   ##    ##  ########  ######
+ */
+typedef struct cw_hash cw_hash_t;
+struct cw_hash_bkt {
+	size_t   len;
+	char   **keys;
+	char   **values;
+};
+struct cw_hash {
+	struct cw_hash_bkt entries[64];
+	ssize_t            bucket;
+	ssize_t            offset;
+};
+int cw_hash_done(cw_hash_t *h, uint8_t all);
+void* cw_hash_get(const cw_hash_t *h, const char *k);
+void* cw_hash_set(cw_hash_t *h, const char *k, void *v);
+void *cw_hash_next(cw_hash_t *h, char **k, void **v);
+int cw_hash_merge(cw_hash_t *a, cw_hash_t *b);
+
+#define for_each_key_value(h,k,v) \
+	for ((h)->offset = (h)->bucket = 0; \
+	     cw_hash_next((h), &(k), (void**)&(v)); )
+
+/*
     ######## #### ##     ## ########
        ##     ##  ###   ### ##
        ##     ##  #### #### ##

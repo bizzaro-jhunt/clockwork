@@ -31,10 +31,10 @@
 
 #define _FD2FD_CHUNKSIZE 16384
 
-static int _res_file_gen_rsha1(struct res_file *rf, struct hash *facts);
+static int _res_file_gen_rsha1(struct res_file *rf, cw_hash_t *facts);
 static int _group_update(struct stringlist*, struct stringlist*, const char*);
 static int _setup_path_deps(const char *key, const char *path, struct policy *pol);
-static void _hash_attr(struct hash *attrs, const char *key, void *val);
+static void _hash_attr(cw_hash_t *attrs, const char *key, void *val);
 
 #define RES_DEFAULT(orig,field,dflt) ((orig) ? (orig)->field : (dflt))
 #define RES_DEFAULT_STR(orig,field,dflt) cw_strdup(RES_DEFAULT((orig),field,(dflt)))
@@ -118,7 +118,7 @@ static int _res_file_fd2fd(int dest, int src, ssize_t bytes)
 }
 */
 
-static int _res_file_gen_rsha1(struct res_file *rf, struct hash *facts)
+static int _res_file_gen_rsha1(struct res_file *rf, cw_hash_t *facts)
 {
 	assert(rf); // LCOV_EXCL_LINE
 
@@ -200,11 +200,11 @@ failed:
 	return -1;
 }
 
-static void _hash_attr(struct hash *attrs, const char *key, void *val)
+static void _hash_attr(cw_hash_t *attrs, const char *key, void *val)
 {
-	void *prev = hash_get(attrs, key);
-	hash_set(attrs, key, val);
-	if (prev) { free(prev); }
+	void *prev = cw_hash_get(attrs, key);
+	cw_hash_set(attrs, key, val);
+	if (prev) free(prev);
 }
 
 
@@ -277,7 +277,7 @@ char* res_user_key(const void *res)
 	return cw_string("user:%s", ru->key);
 }
 
-int res_user_attrs(const void *res, struct hash *attrs)
+int res_user_attrs(const void *res, cw_hash_t *attrs)
 {
 	const struct res_user *ru = (const struct res_user*)(res);
 	assert(ru); // LCOV_EXCL_LINE
@@ -300,7 +300,7 @@ int res_user_attrs(const void *res, struct hash *attrs)
 	return 0;
 }
 
-int res_user_norm(void *res, struct policy *pol, struct hash *facts) { return 0; }
+int res_user_norm(void *res, struct policy *pol, cw_hash_t *facts) { return 0; }
 
 int res_user_set(void *res, const char *name, const char *value)
 {
@@ -590,7 +590,7 @@ char* res_file_key(const void *res)
 
 #define DUMP_UNSPEC(io,s) fprintf(io, "# %s unspecified\n", s)
 
-int res_file_attrs(const void *res, struct hash *attrs)
+int res_file_attrs(const void *res, cw_hash_t *attrs)
 {
 	const struct res_file *rf = (const struct res_file*)(res);
 	assert(rf); // LCOV_EXCL_LINE
@@ -613,7 +613,7 @@ int res_file_attrs(const void *res, struct hash *attrs)
 	return 0;
 }
 
-int res_file_norm(void *res, struct policy *pol, struct hash *facts)
+int res_file_norm(void *res, struct policy *pol, cw_hash_t *facts)
 {
 	struct res_file *rf = (struct res_file*)(res);
 	assert(rf); // LCOV_EXCL_LINE
@@ -914,7 +914,7 @@ static char* _res_group_roster_mv(struct stringlist *add, struct stringlist *rm)
 	return final;
 }
 
-int res_group_attrs(const void *res, struct hash *attrs)
+int res_group_attrs(const void *res, cw_hash_t *attrs)
 {
 	const struct res_group *rg = (const struct res_group*)(res);
 	assert(rg); // LCOV_EXCL_LINE
@@ -936,7 +936,7 @@ int res_group_attrs(const void *res, struct hash *attrs)
 	return 0;
 }
 
-int res_group_norm(void *res, struct policy *pol, struct hash *facts) { return 0; }
+int res_group_norm(void *res, struct policy *pol, cw_hash_t *facts) { return 0; }
 
 int res_group_set(void *res, const char *name, const char *value)
 {
@@ -1252,7 +1252,7 @@ char* res_package_key(const void *res)
 	return cw_string("package:%s", rp->key);
 }
 
-int res_package_attrs(const void *res, struct hash *attrs)
+int res_package_attrs(const void *res, cw_hash_t *attrs)
 {
 	const struct res_package *rp = (const struct res_package*)(res);
 	assert(rp); // LCOV_EXCL_LINE
@@ -1263,7 +1263,7 @@ int res_package_attrs(const void *res, struct hash *attrs)
 	return 0;
 }
 
-int res_package_norm(void *res, struct policy *pol, struct hash *facts) { return 0; }
+int res_package_norm(void *res, struct policy *pol, cw_hash_t *facts) { return 0; }
 
 int res_package_set(void *res, const char *name, const char *value)
 {
@@ -1377,7 +1377,7 @@ char* res_service_key(const void *res)
 	return cw_string("service:%s", rs->key);
 }
 
-int res_service_attrs(const void *res, struct hash *attrs)
+int res_service_attrs(const void *res, cw_hash_t *attrs)
 {
 	const struct res_service *rs = (const struct res_service*)(res);
 	assert(rs); // LCOV_EXCL_LINE
@@ -1388,7 +1388,7 @@ int res_service_attrs(const void *res, struct hash *attrs)
 	return 0;
 }
 
-int res_service_norm(void *res, struct policy *pol, struct hash *facts) { return 0; }
+int res_service_norm(void *res, struct policy *pol, cw_hash_t *facts) { return 0; }
 
 int res_service_set(void *res, const char *name, const char *value)
 {
@@ -1553,7 +1553,7 @@ char* res_host_key(const void *res)
 	return cw_string("host:%s", rh->key);
 }
 
-int res_host_attrs(const void *res, struct hash *attrs)
+int res_host_attrs(const void *res, cw_hash_t *attrs)
 {
 	const struct res_host *rh = (const struct res_host*)(res);
 	assert(rh); // LCOV_EXCL_LINE
@@ -1569,7 +1569,7 @@ int res_host_attrs(const void *res, struct hash *attrs)
 	return 0;
 }
 
-int res_host_norm(void *res, struct policy *pol, struct hash *facts) { return 0; }
+int res_host_norm(void *res, struct policy *pol, cw_hash_t *facts) { return 0; }
 
 int res_host_set(void *res, const char *name, const char *value)
 {
@@ -1727,7 +1727,7 @@ char* res_sysctl_key(const void *res)
 	return cw_string("sysctl:%s", rs->key);
 }
 
-int res_sysctl_attrs(const void *res, struct hash *attrs)
+int res_sysctl_attrs(const void *res, cw_hash_t *attrs)
 {
 	const struct res_sysctl *rs = (const struct res_sysctl*)(res);
 	assert(rs); // LCOV_EXCL_LINE
@@ -1738,7 +1738,7 @@ int res_sysctl_attrs(const void *res, struct hash *attrs)
 	return 0;
 }
 
-int res_sysctl_norm(void *res, struct policy *pol, struct hash *facts) { return 0; }
+int res_sysctl_norm(void *res, struct policy *pol, cw_hash_t *facts) { return 0; }
 
 int res_sysctl_set(void *res, const char *name, const char *value)
 {
@@ -1879,7 +1879,7 @@ char *res_dir_key(const void *res)
 	return cw_string("dir:%s", rd->key);
 }
 
-int res_dir_attrs(const void *res, struct hash *attrs)
+int res_dir_attrs(const void *res, cw_hash_t *attrs)
 {
 	const struct res_dir *rd = (const struct res_dir*)(res);
 	assert(rd); // LCOV_EXCL_LINE
@@ -1892,7 +1892,7 @@ int res_dir_attrs(const void *res, struct hash *attrs)
 	return 0;
 }
 
-int res_dir_norm(void *res, struct policy *pol, struct hash *facts)
+int res_dir_norm(void *res, struct policy *pol, cw_hash_t *facts)
 {
 	struct res_dir *rd = (struct res_dir*)(res);
 	assert(rd); // LCOV_EXCL_LINE
@@ -2121,7 +2121,7 @@ char *res_exec_key(const void *res)
 	return cw_string("exec:%s", re->key);
 }
 
-int res_exec_attrs(const void *res, struct hash *attrs)
+int res_exec_attrs(const void *res, cw_hash_t *attrs)
 {
 	const struct res_exec *re = (const struct res_exec*)(res);
 	assert(re); // LCOV_EXCL_LINE
@@ -2134,7 +2134,7 @@ int res_exec_attrs(const void *res, struct hash *attrs)
 	return 0;
 }
 
-int res_exec_norm(void *res, struct policy *pol, struct hash *facts)
+int res_exec_norm(void *res, struct policy *pol, cw_hash_t *facts)
 {
 	struct res_exec *re = (struct res_exec*)(res);
 	assert(re); // LCOV_EXCL_LINE

@@ -62,8 +62,8 @@ struct stree {
   can be easily located.
  */
 struct manifest {
-	struct hash *policies;  /* policy defs, hashed by name */
-	struct hash *hosts;     /* host defs, hashed by FQDN */
+	cw_hash_t *policies;    /* policy defs, hashed by name */
+	cw_hash_t *hosts;       /* host defs, hashed by FQDN */
 
 	struct stree *fallback; /* host def for implicit hosts */
 
@@ -87,12 +87,12 @@ struct manifest {
   the hash exists to ease searching.
  */
 struct policy {
-	char *name;               /* policy name */
+	char *name;             /* policy name */
 
 	cw_list_t resources;    /* resources defined for policy */
 	cw_list_t dependencies; /* resource dependencies (implicit and explicit) */
 
-	struct hash *index;       /* resources, keyed by "TYPE:pkey" */
+	cw_hash_t *index;       /* resources, keyed by "TYPE:pkey" */
 };
 
 /* Iterate over a policy's resources */
@@ -114,15 +114,15 @@ struct stree* manifest_new_stree(struct manifest *m, enum oper op, char *data1, 
 int stree_add(struct stree *parent, struct stree *child);
 int stree_compare(const struct stree *a, const struct stree *b);
 
-struct hash* fact_read(FILE *io, struct hash *facts);
-struct hash* fact_read_string(const char *s, struct hash *facts);
-int fact_write(FILE *io, struct hash *facts);
-int fact_parse(const char *line, struct hash *hash);
-int fact_exec_read(const char *script, struct hash *facts);
-int fact_cat_read(const char *file, struct hash *facts);
-int fact_gather(const char *paths, struct hash *facts);
+cw_hash_t* fact_read(FILE *io, cw_hash_t *facts);
+cw_hash_t* fact_read_string(const char *s, cw_hash_t *facts);
+int fact_write(FILE *io, cw_hash_t *facts);
+int fact_parse(const char *line, cw_hash_t *hash);
+int fact_exec_read(const char *script, cw_hash_t *facts);
+int fact_cat_read(const char *file, cw_hash_t *facts);
+int fact_gather(const char *paths, cw_hash_t *facts);
 
-struct policy* policy_generate(struct stree *root, struct hash *facts);
+struct policy* policy_generate(struct stree *root, cw_hash_t *facts);
 struct policy* policy_new(const char *name);
 void policy_free(struct policy *pol);
 void policy_free_all(struct policy *pol);

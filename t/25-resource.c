@@ -39,7 +39,7 @@ TESTS {
 		isnt_null(res->resource, "resource_new allocates a res_* member");
 
 		is_string(key = resource_key(res), "user:user1", "resource_key");
-		xfree(key);
+		free(key);
 
 		/* safe to call resource_notify on a res_user; it is a NOOP */
 		ok(resource_notify(res, NULL) == 0, "resource_notify");
@@ -48,16 +48,16 @@ TESTS {
 
 	subtest {
 		struct resource *res;
-		struct hash *h;
+		cw_hash_t *h;
 
 		isnt_null(res = resource_new("host", "localhost"), "created host resource");
 		resource_set(res, "ip", "127.0.0.1");
 		isnt_null(h = resource_attrs(res), "got raw host attrs");
-		is_string(hash_get(h, "hostname"), "localhost", "host name attr");
-		is_string(hash_get(h, "ip"),       "127.0.0.1", "host ip attr");
-		is_null(hash_get(h, "aliases"), "aliases attr is unset");
+		is_string(cw_hash_get(h, "hostname"), "localhost", "host name attr");
+		is_string(cw_hash_get(h, "ip"),       "127.0.0.1", "host ip attr");
+		is_null(cw_hash_get(h, "aliases"), "aliases attr is unset");
 
-		hash_free_all(h);
+		cw_hash_done(h, 1);
 		resource_free(res);
 	}
 

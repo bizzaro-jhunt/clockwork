@@ -49,10 +49,10 @@ int main(int argc, char **argv)
 			cw_log(LOG_INFO, "inbound policy request for %s", name);
 			cw_log(LOG_INFO, "facts are: %s", factstr);
 
-			struct hash *facts = hash_new();
+			cw_hash_t *facts = cw_alloc(sizeof(cw_hash_t));
 			fact_read_string(factstr, facts);
 
-			struct stree *pnode = hash_get(manifest->hosts, name);
+			struct stree *pnode = cw_hash_get(manifest->hosts, name);
 			if (!pnode)
 				pnode = manifest->fallback;
 			if (!pnode) {

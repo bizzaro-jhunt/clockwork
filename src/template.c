@@ -103,7 +103,7 @@ struct template* template_new(void)
 {
 	struct template *t = cw_alloc(sizeof(struct template));
 
-	t->vars = hash_new();
+	t->vars = cw_alloc(sizeof(cw_hash_t));
 	t->nodes = NULL;
 	t->nodes_len = 0;
 
@@ -125,7 +125,7 @@ struct template* template_new(void)
   On success, returns a pointer to a new template.
   On failure, returns NULL.
  */
-struct template* template_create(const char *path, struct hash *facts)
+struct template* template_create(const char *path, cw_hash_t *facts)
 {
 	struct template *t = parse_template(path);
 	if (t) {
@@ -148,7 +148,7 @@ void template_free(struct template *t)
 		for (i = 0; i < t->nodes_len; i++) { tnode_free(t->nodes[i]); }
 		free(t->nodes);
 		/* free variable store; including values */
-		hash_free_all(t->vars);
+		cw_hash_done(t->vars, 1);
 		/* don't free t->facts; it's not ours */
 	}
 	free(t);
@@ -161,7 +161,7 @@ void template_free(struct template *t)
  */
 int template_add_var(struct template *t, const char *name, const char *value)
 {
-	hash_set(t->vars, name, cw_strdup(value));
+	cw_hash_set(t->vars, name, cw_strdup(value));
 	return 0;
 }
 
@@ -180,8 +180,8 @@ int template_add_var(struct template *t, const char *name, const char *value)
 void* template_deref_var(struct template *t, const char *name)
 {
 	void *v;
-	v = hash_get(t->vars, name);
-	if (!v) { v = hash_get(t->facts, name); }
+	v = cw_hash_get(t->vars, name);
+	if (!v) { v = cw_hash_get(t->facts, name); }
 	return v;
 }
 

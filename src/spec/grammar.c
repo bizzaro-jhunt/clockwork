@@ -1523,7 +1523,7 @@ yyreduce:
 #line 113 "src/spec/grammar.y"
     { stree_add(MANIFEST(ctx)->root, (yyvsp[(2) - (2)].stree));
 		  if ((yyvsp[(2) - (2)].stree)->data1) {
-			hash_set(MANIFEST(ctx)->hosts, (yyvsp[(2) - (2)].stree)->data1, (yyvsp[(2) - (2)].stree));
+			cw_hash_set(MANIFEST(ctx)->hosts, (yyvsp[(2) - (2)].stree)->data1, (yyvsp[(2) - (2)].stree));
 		  } else {
 			MANIFEST(ctx)->fallback = (yyvsp[(2) - (2)].stree);
 		  } }
@@ -1534,7 +1534,7 @@ yyreduce:
 /* Line 1806 of yacc.c  */
 #line 120 "src/spec/grammar.y"
     { stree_add(MANIFEST(ctx)->root, (yyvsp[(2) - (2)].stree));
-		  hash_set(MANIFEST(ctx)->policies, (yyvsp[(2) - (2)].stree)->data1, (yyvsp[(2) - (2)].stree)); }
+		  cw_hash_set(MANIFEST(ctx)->policies, (yyvsp[(2) - (2)].stree)->data1, (yyvsp[(2) - (2)].stree)); }
     break;
 
   case 5:

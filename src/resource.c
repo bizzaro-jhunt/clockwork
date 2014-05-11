@@ -24,8 +24,8 @@ typedef void* (*resource_new_f)(const char *key);
 typedef void* (*resource_clone_f)(const void *res, const char *key);
 typedef void (*resource_free_f)(void *res);
 typedef char* (*resource_key_f)(const void *res);
-typedef int (*resource_attrs_f)(const void *res, struct hash *attrs);
-typedef int (*resource_norm_f)(void *res, struct policy *pol, struct hash *facts);
+typedef int (*resource_attrs_f)(const void *res, cw_hash_t *attrs);
+typedef int (*resource_norm_f)(void *res, struct policy *pol, cw_hash_t *facts);
 typedef int (*resource_set_f)(void *res, const char *attr, const char *value);
 typedef int (*resource_match_f)(const void *res, const char *attr, const char *value);
 typedef int (*resource_gencode_f)(const void *res, FILE *io, unsigned int next);
@@ -173,16 +173,16 @@ char *resource_key(const struct resource *r)
 	return (*(resource_types[r->type].key_callback))(r->resource);
 }
 
-struct hash* resource_attrs(const struct resource *r)
+cw_hash_t* resource_attrs(const struct resource *r)
 {
 	assert(r); // LCOV_EXCL_LINE
 	assert(r->type != RES_UNKNOWN); // LCOV_EXCL_LINE
 
-	struct hash *attrs = hash_new();
-	if (!attrs) { return NULL; }
+	cw_hash_t *attrs = cw_alloc(sizeof(cw_hash_t));
+	if (!attrs) return NULL;
 
 	if ((*(resource_types[r->type].attrs_callback))(r->resource, attrs) != 0) {
-		hash_free_all(attrs);
+		cw_hash_done(attrs, 1);
 		return NULL;
 	}
 
@@ -208,7 +208,7 @@ struct hash* resource_attrs(const struct resource *r)
 
   On success, returns 0.  On failure, returns non-zero.
  */
-int resource_norm(struct resource *r, struct policy *pol, struct hash *facts)
+int resource_norm(struct resource *r, struct policy *pol, cw_hash_t *facts)
 {
 	assert(r); // LCOV_EXCL_LINE
 	assert(r->type != RES_UNKNOWN); // LCOV_EXCL_LINE

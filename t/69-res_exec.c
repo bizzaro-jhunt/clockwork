@@ -80,32 +80,32 @@ TESTS {
 
 	subtest {
 		struct res_exec *r;
-		struct hash *h;
+		cw_hash_t *h;
 
-		h = hash_new();
+		h = cw_alloc(sizeof(cw_hash_t));
 		r = res_exec_new("do-it");
 
 		ok(res_exec_attrs(r, h) == 0, "got exec attrs");
-		is_string(hash_get(h, "command"),  "do-it", "h.command (uses key)");
-		is_null(hash_get(h, "test"),    "h.test");
-		is_null(hash_get(h, "user"),    "h.user");
-		is_null(hash_get(h, "group"),   "h.group");
-		is_string(hash_get(h, "ondemand"), "no", "h.ondemand");
+		is_string(cw_hash_get(h, "command"),  "do-it", "h.command (uses key)");
+		is_null(cw_hash_get(h, "test"),    "h.test");
+		is_null(cw_hash_get(h, "user"),    "h.user");
+		is_null(cw_hash_get(h, "group"),   "h.group");
+		is_string(cw_hash_get(h, "ondemand"), "no", "h.ondemand");
 
 		res_exec_set(r, "command",  "/bin/run");
 		res_exec_set(r, "test",     "/bin/tester");
 		res_exec_set(r, "ondemand", "yes");
 
 		ok(res_exec_attrs(r, h) == 0, "got exec attrs");
-		is_string(hash_get(h, "command"),  "/bin/run",    "h.command");
-		is_string(hash_get(h, "test"),     "/bin/tester", "h.test");
-		is_string(hash_get(h, "ondemand"), "yes",         "h.ondemand");
+		is_string(cw_hash_get(h, "command"),  "/bin/run",    "h.command");
+		is_string(cw_hash_get(h, "test"),     "/bin/tester", "h.test");
+		is_string(cw_hash_get(h, "ondemand"), "yes",         "h.ondemand");
 
 		ok(res_exec_set(r, "xyzzy", "BAD") != 0, "xyzzy is a bad attr");
 		ok(res_exec_attrs(r, h) == 0, "got exec attrs");
-		is_null(hash_get(h, "xyzzy"), "h.xyzzy is unset (bad attr)");
+		is_null(cw_hash_get(h, "xyzzy"), "h.xyzzy is unset (bad attr)");
 
-		hash_free_all(h);
+		cw_hash_done(h, 1);
 		res_exec_free(r);
 	}
 

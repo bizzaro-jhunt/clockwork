@@ -182,7 +182,7 @@ int main(int argc, char **argv)
 		struct stree *p;
 		for (i = 2; i < argc; i++) {
 			printf("Checking policy '%s': ", argv[i]);
-			p = hash_get(manifest->policies, argv[i]);
+			p = cw_hash_get(manifest->policies, argv[i]);
 			printf("%p\n", p);
 		}
 	}

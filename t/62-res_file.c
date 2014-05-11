@@ -95,19 +95,19 @@ TESTS {
 
 	subtest {
 		struct res_file *rf;
-		struct hash *h;
+		cw_hash_t *h;
 
-		isnt_null(h = hash_new(), "created hash");
+		isnt_null(h = cw_alloc(sizeof(cw_hash_t)), "created hash");
 		isnt_null(rf = res_file_new("/etc/sudoers"), "created file resource");
 
 		ok(res_file_attrs(rf, h) == 0, "got raw file attrs");
-		is_string(hash_get(h, "path"),    "/etc/sudoers", "h.path");
-		is_string(hash_get(h, "present"), "yes",          "h.present"); // default
-		is_null(hash_get(h, "owner"),    "h.owner is unset");
-		is_null(hash_get(h, "group"),    "h.group is unset");
-		is_null(hash_get(h, "mode"),     "h.mode is unset");
-		is_null(hash_get(h, "template"), "h.template is unset");
-		is_null(hash_get(h, "source"),   "h.source is unset");
+		is_string(cw_hash_get(h, "path"),    "/etc/sudoers", "h.path");
+		is_string(cw_hash_get(h, "present"), "yes",          "h.present"); // default
+		is_null(cw_hash_get(h, "owner"),    "h.owner is unset");
+		is_null(cw_hash_get(h, "group"),    "h.group is unset");
+		is_null(cw_hash_get(h, "mode"),     "h.mode is unset");
+		is_null(cw_hash_get(h, "template"), "h.template is unset");
+		is_null(cw_hash_get(h, "source"),   "h.source is unset");
 
 		res_file_set(rf, "owner",  "root");
 		res_file_set(rf, "group",  "sys");
@@ -115,25 +115,25 @@ TESTS {
 		res_file_set(rf, "source", "/srv/files/sudo");
 
 		ok(res_file_attrs(rf, h) == 0, "got raw file attrs");
-		is_string(hash_get(h, "owner"),  "root",            "h.owner");
-		is_string(hash_get(h, "group"),  "sys",             "h.group");
-		is_string(hash_get(h, "mode"),   "0644",            "h.mode");
-		is_string(hash_get(h, "source"), "/srv/files/sudo", "h.source");
-		is_null(hash_get(h, "template"), "h.template is unset");
+		is_string(cw_hash_get(h, "owner"),  "root",            "h.owner");
+		is_string(cw_hash_get(h, "group"),  "sys",             "h.group");
+		is_string(cw_hash_get(h, "mode"),   "0644",            "h.mode");
+		is_string(cw_hash_get(h, "source"), "/srv/files/sudo", "h.source");
+		is_null(cw_hash_get(h, "template"), "h.template is unset");
 
 		res_file_set(rf, "present", "no");
 		res_file_set(rf, "template", "/srv/tpl/sudo");
 
 		ok(res_file_attrs(rf, h) == 0, "got raw file attrs");
-		is_string(hash_get(h, "template"), "/srv/tpl/sudo", "h.template");
-		is_string(hash_get(h, "present"),  "no",            "h.present");
-		is_null(hash_get(h, "source"), "h.source is unset");
+		is_string(cw_hash_get(h, "template"), "/srv/tpl/sudo", "h.template");
+		is_string(cw_hash_get(h, "present"),  "no",            "h.present");
+		is_null(cw_hash_get(h, "source"), "h.source is unset");
 
 		ok(res_file_set(rf, "xyzzy", "bad") != 0, "xyzzy is not a valid attr");
 		ok(res_file_attrs(rf, h) == 0, "got raw file attrs");
-		is_null(hash_get(h, "xyzzy"), "h.xyzzy is unset");
+		is_null(cw_hash_get(h, "xyzzy"), "h.xyzzy is unset");
 
-		hash_free_all(h);
+		cw_hash_done(h, 1);
 		res_file_free(rf);
 	}
 

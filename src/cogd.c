@@ -108,15 +108,16 @@ int main(int argc, char **argv)
 		}
 
 		if (cw_time_ms() >= next_run) {
-			struct hash *facts = hash_new();
-			if (fact_gather("/lib/clockwork/gather.d/*", facts) != 0) {
+			cw_hash_t facts;
+			memset(&facts, 0, sizeof(cw_hash_t));
+			if (fact_gather("/lib/clockwork/gather.d/*", &facts) != 0) {
 				cw_log(LOG_CRIT, "Unable to gather facts");
 				goto maybe_next_time;
 			}
 
 			FILE *io = tmpfile();
 			assert(io);
-			rc = fact_write(io, facts);
+			rc = fact_write(io, &facts);
 			assert(rc == 0);
 			fprintf(io, "%c", '\0');
 			size_t len = ftell(io);

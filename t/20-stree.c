@@ -37,17 +37,17 @@ static struct stree* child_of(struct stree *parent, struct stree *new)
 	return new;
 }
 
-static struct hash* facts_for_prog1(void)
+static cw_hash_t* facts_for_prog1(void)
 {
-	struct hash *h = hash_new();
-	hash_set(h, "test.users", "1");
+	cw_hash_t *h = cw_alloc(sizeof(cw_hash_t));
+	cw_hash_set(h, "test.users", "1");
 	return h;
 }
 
-static struct hash* facts_for_prog2(void)
+static cw_hash_t* facts_for_prog2(void)
 {
-	struct hash *h = hash_new();
-	hash_set(h, "test.users", "2");
+	cw_hash_t *h = cw_alloc(sizeof(cw_hash_t));
+	cw_hash_set(h, "test.users", "2");
 	return h;
 }
 
@@ -148,19 +148,19 @@ static struct stree* prog_policy()
 	return root;
 }
 
-static struct hash* facts_for_lucid26(void)
+static cw_hash_t* facts_for_lucid26(void)
 {
-	struct hash *h = hash_new();
-	hash_set(h, "lsb.distro.codename", "lucid");
-	hash_set(h, "sys.kernel.major",    "2.6");
+	cw_hash_t *h = cw_alloc(sizeof(cw_hash_t));
+	cw_hash_set(h, "lsb.distro.codename", "lucid");
+	cw_hash_set(h, "sys.kernel.major",    "2.6");
 	return h;
 }
 
-static struct hash* facts_for_tikanga24(void)
+static cw_hash_t* facts_for_tikanga24(void)
 {
-	struct hash *h = hash_new();
-	hash_set(h, "sys.kernel.major",    "2.4");
-	hash_set(h, "lsb.distro.codename", "tikanga");
+	cw_hash_t *h = cw_alloc(sizeof(cw_hash_t));
+	cw_hash_set(h, "sys.kernel.major",    "2.4");
+	cw_hash_set(h, "lsb.distro.codename", "tikanga");
 	return h;
 }
 
@@ -256,7 +256,7 @@ TESTS {
 	subtest {
 		struct policy *pol;
 		struct stree *root;
-		struct hash *facts;
+		cw_hash_t *facts;
 
 		struct resource *r, *res;
 		struct res_user *user;
@@ -293,7 +293,7 @@ TESTS {
 		is_int(user->gid, 20051, "user GID");
 		is_string(user->dir, "/srv/oper/ubuntu", "user home");
 
-		hash_free(facts);
+		cw_hash_done(facts, 0);
 		policy_free_all(pol);
 
 
@@ -316,14 +316,14 @@ TESTS {
 		is_string(file->rpath, "std/2.4.conf", "file remote path");
 		is_string(file->lpath, "snmpd.conf", "file local path");
 
-		hash_free(facts);
+		cw_hash_done(facts, 0);
 		policy_free_all(pol);
 	}
 
 	subtest {
 		struct policy *pol;
 		struct stree *root;
-		struct hash *facts;
+		cw_hash_t *facts;
 		unsigned int i;
 
 		struct resource *res, *r;
@@ -345,7 +345,7 @@ TESTS {
 		if (!group) break;
 		is_int(group->gid, 101, "group GID");
 
-		hash_free(facts);
+		cw_hash_done(facts, 0);
 		policy_free_all(pol);
 
 		isnt_null(facts = facts_for_prog2(), "got facts");
@@ -375,7 +375,7 @@ TESTS {
 		}
 		is_int(i, 2, "tested both groups defined");
 
-		hash_free(facts);
+		cw_hash_done(facts, 0);
 		policy_free_all(pol);
 	}
 

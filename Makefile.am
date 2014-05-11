@@ -127,7 +127,6 @@ test_source += src/tpl/parser.c
 test_source += src/tpl/private.h
 
 test_source += src/gear/gear.h
-test_source += src/gear/hash.c
 test_source += src/gear/path.c
 test_source += src/gear/string.c
 
@@ -184,7 +183,7 @@ core_src    += src/sha1.c src/userdb.c
 core_src    += src/sha1.h src/userdb.h
 core_src    += src/policy.c src/resource.c src/resources.c src/template.c
 core_src    += src/policy.h src/resource.h src/resources.h src/template.h
-core_src    += src/gear/hash.c src/gear/string.c src/gear/path.c
+core_src    += src/gear/string.c src/gear/path.c
 core_src    += src/gear/gear.h
 core_src    += src/clockwork.h
 

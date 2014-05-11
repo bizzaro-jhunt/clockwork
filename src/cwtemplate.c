@@ -37,7 +37,7 @@ struct cwt_client {
 	int check_only;   /* don't render, just verify */
 	char *template;   /* file to render */
 	char *facts_from; /* where to read facts; NULL = standard */
-	struct hash *facts;
+	cw_hash_t *facts;
 
 	int log_level;
 	char *config_file;
@@ -55,7 +55,7 @@ int main(int argc, char **argv)
 	cw_log(LOG_INFO, "Log level is %s", cw_log_level_name(-1));
 
 	cw_log(LOG_INFO, "Gathering facts");
-	struct hash *facts = hash_new();
+	cw_hash_t *facts = cw_alloc(sizeof(cw_hash_t));
 	const char *gatherers = "/lib/clockwork/gather.d/*"; /* FIXME! */
 	if (cwt->facts_from) {
 		cw_log(LOG_INFO, "Reading cached facts from %s", cwt->facts_from);
@@ -70,7 +70,7 @@ int main(int argc, char **argv)
 	}
 	if (cwt->facts) {
 		cw_log(LOG_INFO, "Merging collected facts with command-line overrides");
-		hash_merge(facts, cwt->facts);
+		cw_hash_merge(facts, cwt->facts);
 	}
 
 	tpl = template_create(cwt->template, facts);
@@ -135,9 +135,7 @@ static struct cwt_client* cwt_options(int argc, char **argv)
 			cwt->facts_from = strdup(optarg);
 			break;
 		case 'f':
-			if (!cwt->facts) {
-				cwt->facts = hash_new();
-			}
+			if (!cwt->facts) cwt->facts = cw_alloc(sizeof(cw_hash_t));
 			if (fact_parse(optarg, cwt->facts) != 0) {
 				perror("fact_parse");
 				exit(1);

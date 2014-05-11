@@ -53,9 +53,9 @@ static void set_context(int type, const char *name, struct stree *obj);
 static void clear_policy(void);
 static void make_policy(void);
 static void load_facts_from_path(const char *path);
-static struct stringlist* hash_keys(struct hash*);
+static struct stringlist* hash_keys(cw_hash_t*);
 static int show_help_file(const char *path);
-static void show_hash_keys(struct hash *h);
+static void show_hash_keys(cw_hash_t *h);
 static void show_facts(const char *pattern);
 static void show_fact(const char *name);
 static void show_hosts(void);
@@ -89,8 +89,8 @@ static struct {
 	.root = NULL,
 	.policy = NULL
 };
-static struct hash     *DISPATCH = NULL;
-static struct hash     *FACTS    = NULL;
+static cw_hash_t       *DISPATCH = NULL;
+static cw_hash_t       *FACTS    = NULL;
 static struct manifest *MANIFEST = NULL;
 
 static void setup(void);
@@ -330,7 +330,7 @@ COMMAND(use)
 	}
 
 	if (strcmp(type, "host") == 0) {
-		if (!(root = hash_get(MANIFEST->hosts, target))) {
+		if (!(root = cw_hash_get(MANIFEST->hosts, target))) {
 			cw_log(LOG_WARNING, "Host '%s' not explicitly defined; falling back to default", target);
 			if (!(root = MANIFEST->fallback)) {
 				cw_log(LOG_ERR, "No default host defined", target);
@@ -354,7 +354,7 @@ COMMAND(use)
 			}
 		}
 	} else if (strcmp(type, "policy") == 0) {
-		if (!(root = hash_get(MANIFEST->policies, target))) {
+		if (!(root = cw_hash_get(MANIFEST->policies, target))) {
 			cw_log(LOG_ERR, "No such policy '%s'", target);
 		} else {
 			set_context(CONTEXT_POLICY, target, root);
@@ -392,7 +392,7 @@ COMMAND(fact)
 			return 0;
 		}
 
-		hash_set(FACTS, k, v);
+		cw_hash_set(FACTS, k, v);
 		free(k);
 
 		o->no_clobber = 1;
@@ -443,8 +443,8 @@ COMMAND(clear)
 {
 	if (c->argc == 1
 	 && strcmp(slv(c->args,0), "facts") == 0) {
-		hash_free_all(FACTS);
-		FACTS = hash_new();
+		cw_hash_done(FACTS, 1);
+		FACTS = cw_alloc(sizeof(cw_hash_t));
 		o->no_clobber = 0;
 		return 0;
 	}
@@ -527,16 +527,14 @@ static void load_facts_from_path(const char *path)
 	fclose(io);
 }
 
-static struct stringlist *hash_keys(struct hash *h)
+static struct stringlist *hash_keys(cw_hash_t *h)
 {
-	struct hash_cursor cur;
 	char *k, *v;
 	struct stringlist *l;
 
 	l = stringlist_new(NULL);
-	for_each_key_value(h, &cur, k, v) {
+	for_each_key_value(h, k, v)
 		stringlist_add(l, k);
-	}
 
 	return l;
 }
@@ -557,7 +555,7 @@ static int show_help_file(const char *path)
 	return 0;
 }
 
-static void show_hash_keys(struct hash *h)
+static void show_hash_keys(cw_hash_t *h)
 {
 	size_t i;
 	struct stringlist *keys = hash_keys(h);
@@ -587,7 +585,7 @@ static void show_facts(const char *pattern)
 	stringlist_sort(keys, STRINGLIST_SORT_ASC);
 	for_each_string(keys,i) {
 		k = slv(keys, i);
-		v = hash_get(FACTS, k);
+		v = cw_hash_get(FACTS, k);
 
 		if (!pattern || strncmp(pattern, k, cmpn) == 0) {
 			printf("%s = %s\n", k, v);
@@ -599,7 +597,7 @@ static void show_fact(const char *name)
 {
 	char *v;
 
-	v = hash_get(FACTS, name);
+	v = cw_hash_get(FACTS, name);
 	if (v) {
 		printf("%s = %s\n", name, v);
 	} else {
@@ -663,7 +661,7 @@ static void show_resource(const char *type, const char *name)
 {
 	struct resource *r;
 	char *target = cw_string("%s:%s", type, name);
-	struct hash *attrs;
+	cw_hash_t *attrs;
 	struct stringlist *keys;
 	size_t i;
 	char *value;
@@ -676,7 +674,7 @@ static void show_resource(const char *type, const char *name)
 		return;
 	}
 
-	if (!(r = hash_get(CONTEXT.policy->index, target))) {
+	if (!(r = cw_hash_get(CONTEXT.policy->index, target))) {
 		cw_log(LOG_ERR, "!! No such %s resource: %s", type, name);
 	} else {
 		attrs = resource_attrs(r);
@@ -694,7 +692,7 @@ static void show_resource(const char *type, const char *name)
 		printf("\n");
 		printf("%s \"%s\" {\n", type, name);
 		for_each_string(keys, i) {
-			if ((value = hash_get(attrs, slv(keys,i))) != NULL) {
+			if ((value = cw_hash_get(attrs, slv(keys,i))) != NULL) {
 				printf(fmt, slv(keys,i), value);
 			} else {
 				printf(" # %s not specified\n", slv(keys,i));
@@ -702,7 +700,7 @@ static void show_resource(const char *type, const char *name)
 		}
 		printf("}\n");
 
-		hash_free_all(attrs);
+		cw_hash_done(attrs, 1);
 	}
 
 	free(target);
@@ -777,27 +775,27 @@ static struct cwpol_opts* cwpol_options(int argc, char **argv, int interactive)
 
 static void setup(void)
 {
-	DISPATCH = hash_new();
-	hash_set(DISPATCH, "about",   command_about);
+	DISPATCH = cw_alloc(sizeof(cw_hash_t));
+	cw_hash_set(DISPATCH, "about",   command_about);
 
-	hash_set(DISPATCH, "help",    command_help);
-	hash_set(DISPATCH, "?",       command_help);
+	cw_hash_set(DISPATCH, "help",    command_help);
+	cw_hash_set(DISPATCH, "?",       command_help);
 
-	hash_set(DISPATCH, "q",       command_quit);
-	hash_set(DISPATCH, "quit",    command_quit);
-	hash_set(DISPATCH, "exit",    command_quit);
+	cw_hash_set(DISPATCH, "q",       command_quit);
+	cw_hash_set(DISPATCH, "quit",    command_quit);
+	cw_hash_set(DISPATCH, "exit",    command_quit);
 
-	hash_set(DISPATCH, "show",    command_show);
-	hash_set(DISPATCH, "use",     command_use);
-	hash_set(DISPATCH, "fact",    command_fact);
-	hash_set(DISPATCH, "load",    command_load);
-	hash_set(DISPATCH, "clear",   command_clear);
+	cw_hash_set(DISPATCH, "show",    command_show);
+	cw_hash_set(DISPATCH, "use",     command_use);
+	cw_hash_set(DISPATCH, "fact",    command_fact);
+	cw_hash_set(DISPATCH, "load",    command_load);
+	cw_hash_set(DISPATCH, "clear",   command_clear);
 
-	hash_set(DISPATCH, "gencode", command_gencode);
+	cw_hash_set(DISPATCH, "gencode", command_gencode);
 
-	hash_set(DISPATCH, "log",     command_log);
+	cw_hash_set(DISPATCH, "log",     command_log);
 
-	FACTS = hash_new();
+	FACTS = cw_alloc(sizeof(cw_hash_t));
 
 	MANIFEST = NULL;
 }
@@ -837,7 +835,7 @@ static int dispatch1(struct cwpol_opts *o, const char *c, int interactive)
 	}
 
 	cw_log(LOG_DEBUG, "dispatching '%s'", command->cmd);
-	if ((f = hash_get(DISPATCH, command->cmd))) {
+	if ((f = cw_hash_get(DISPATCH, command->cmd))) {
 		rc = (*f)(o, command, interactive);
 	} else {
 		cw_log(LOG_ERR, "Unknown command: %s", command->cmd);

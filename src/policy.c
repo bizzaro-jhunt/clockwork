@@ -37,7 +37,7 @@ struct scope {
 
 struct policy_generator {
 	struct policy *policy;
-	struct hash   *facts;
+	cw_hash_t     *facts;
 	enum restype   type;
 
 	cw_list_t scopes;
@@ -90,7 +90,7 @@ static void stree_free(struct stree *n)
 	free(n);
 }
 
-static int _policy_normalize(struct policy *pol, struct hash *facts)
+static int _policy_normalize(struct policy *pol, cw_hash_t *facts)
 {
 	assert(pol); // LCOV_EXCL_LINE
 
@@ -109,8 +109,8 @@ static int _policy_normalize(struct policy *pol, struct hash *facts)
 	for_each_dependency(dep, pol) {
 		cw_log(LOG_DEBUG, "Expanding dependency for %s on %s", dep->a, dep->b);
 
-		r1 = hash_get(pol->index, dep->a);
-		r2 = hash_get(pol->index, dep->b);
+		r1 = cw_hash_get(pol->index, dep->a);
+		r2 = cw_hash_get(pol->index, dep->b);
 
 		if (!r1) {
 			cw_log(LOG_ERR, "Failed dependency for unknown resource %s", dep->a);
@@ -162,8 +162,8 @@ struct manifest* manifest_new(void)
 	struct manifest *m;
 
 	m = cw_alloc(sizeof(struct manifest));
-	m->policies = hash_new();
-	m->hosts    = hash_new();
+	m->policies = cw_alloc(sizeof(cw_hash_t));
+	m->hosts    = cw_alloc(sizeof(cw_hash_t));
 
 	m->nodes = NULL;
 	m->nodes_len = 0;
@@ -184,8 +184,8 @@ void manifest_free(struct manifest *m)
 		for (i = 0; i < m->nodes_len; i++) { stree_free(m->nodes[i]); }
 		free(m->nodes);
 
-		hash_free(m->policies);
-		hash_free(m->hosts);
+		cw_hash_done(m->policies, 0);
+		cw_hash_done(m->hosts,    0);
 	}
 	free(m);
 }
@@ -314,7 +314,7 @@ int stree_compare(const struct stree *a, const struct stree *b)
 	return 0;
 }
 
-int fact_parse(const char *line, struct hash *h)
+int fact_parse(const char *line, cw_hash_t *h)
 {
 	assert(line); // LCOV_EXCL_LINE
 	assert(h); // LCOV_EXCL_LINE
@@ -332,12 +332,12 @@ int fact_parse(const char *line, struct hash *h)
 		;
 	*stp = '\0';
 
-	hash_set(h, name, cw_strdup(value));
+	cw_hash_set(h, name, cw_strdup(value));
 	free(buf);
 	return 0;
 }
 
-int fact_exec_read(const char *script, struct hash *facts)
+int fact_exec_read(const char *script, cw_hash_t *facts)
 {
 	pid_t pid;
 	int pipefd[2], rc;
@@ -385,7 +385,7 @@ int fact_exec_read(const char *script, struct hash *facts)
 	}
 }
 
-int fact_cat_read(const char *file, struct hash *facts)
+int fact_cat_read(const char *file, cw_hash_t *facts)
 {
 	assert(file); // LCOV_EXCL_LINE
 	assert(facts); // LCOV_EXCL_LINE
@@ -401,7 +401,7 @@ int fact_cat_read(const char *file, struct hash *facts)
 	return 0;
 }
 
-int fact_gather(const char *paths, struct hash *facts)
+int fact_gather(const char *paths, cw_hash_t *facts)
 {
 	glob_t scripts;
 	size_t i;
@@ -410,14 +410,14 @@ int fact_gather(const char *paths, struct hash *facts)
 	case GLOB_NOMATCH:
 		globfree(&scripts);
 		if (fact_exec_read(paths, facts) != 0) {
-			hash_free(facts);
+			cw_hash_done(facts, 0);
 			return -1;
 		}
 		return 0;
 
 	case GLOB_NOSPACE:
 	case GLOB_ABORTED:
-		hash_free(facts);
+		cw_hash_done(facts, 0);
 		return -1;
 
 	}
@@ -445,7 +445,7 @@ int fact_gather(const char *paths, struct hash *facts)
   On success, returns $facts.  On failure, returns NULL, and the
   contents of $facts is undefined.
  */
-struct hash* fact_read(FILE *io, struct hash *facts)
+cw_hash_t* fact_read(FILE *io, cw_hash_t *facts)
 {
 	assert(io); // LCOV_EXCL_LINE
 
@@ -453,7 +453,7 @@ struct hash* fact_read(FILE *io, struct hash *facts)
 	int allocated = 0;
 
 	if (!facts) {
-		facts = hash_new();
+		facts = cw_alloc(sizeof(cw_hash_t));
 		allocated = 1;
 	}
 
@@ -465,9 +465,7 @@ struct hash* fact_read(FILE *io, struct hash *facts)
 		errno = 0;
 		if (!fgets(buf, 8192, io)) {
 			if (errno != 0) {
-				if (allocated) {
-					hash_free(facts);
-				}
+				if (allocated) cw_hash_done(facts, 0);
 				facts = NULL;
 			}
 			break;
@@ -478,7 +476,7 @@ struct hash* fact_read(FILE *io, struct hash *facts)
 	return facts;
 }
 
-struct hash* fact_read_string(const char *s, struct hash *facts)
+cw_hash_t* fact_read_string(const char *s, cw_hash_t *facts)
 {
 	assert(s); // LCOV_EXCL_LINE
 	assert(facts); // LCOV_EXCL_LINE
@@ -503,7 +501,7 @@ struct hash* fact_read_string(const char *s, struct hash *facts)
 
   On success, returns 0.  On failure, returns non-zero.
  */
-int fact_write(FILE *io, struct hash *facts)
+int fact_write(FILE *io, cw_hash_t *facts)
 {
 	assert(io); // LCOV_EXCL_LINE
 	assert(facts); // LCOV_EXCL_LINE
@@ -511,11 +509,10 @@ int fact_write(FILE *io, struct hash *facts)
 	struct stringlist *lines;
 	char buf[8192] = {0};
 	char *k; void *v;
-	struct hash_cursor cursor;
 	size_t i;
 
 	lines = stringlist_new(NULL);
-	for_each_key_value(facts, &cursor, k, v) {
+	for_each_key_value(facts, k, v) {
 		snprintf(buf, 8192, "%s=%s\n", k, (const char*)v);
 		stringlist_add(lines, buf);
 	}
@@ -537,7 +534,7 @@ static struct resource * _policy_find_resource(struct policy_generator *pgen, co
 	struct resource *r = NULL;
 
 	if ((key = cw_string("%s:%s", type, id)) != NULL) {
-		r = hash_get(pgen->policy->index, key);
+		r = cw_hash_get(pgen->policy->index, key);
 		free(key);
 	}
 
@@ -582,7 +579,7 @@ static int _policy_generate(struct stree *node, struct policy_generator *pgen, i
 again:
 	switch(node->op) {
 	case IF:
-		if (cw_strcmp(hash_get(pgen->facts, node->data1), node->data2) == 0) {
+		if (cw_strcmp(cw_hash_get(pgen->facts, node->data1), node->data2) == 0) {
 			node = node->nodes[0];
 		} else {
 			node = node->nodes[1];
@@ -675,7 +672,7 @@ again:
 
   On success, returns a new policy object.  On failure, returns NULL.
  */
-struct policy* policy_generate(struct stree *root, struct hash *facts)
+struct policy* policy_generate(struct stree *root, cw_hash_t *facts)
 {
 	assert(root); // LCOV_EXCL_LINE
 
@@ -721,7 +718,7 @@ struct policy* policy_new(const char *name)
 
 	cw_list_init(&pol->resources);
 	cw_list_init(&pol->dependencies);
-	pol->index = hash_new();
+	pol->index = cw_alloc(sizeof(cw_hash_t));
 
 	return pol;
 }
@@ -735,7 +732,7 @@ struct policy* policy_new(const char *name)
 void policy_free(struct policy *pol)
 {
 	if (pol) {
-		hash_free(pol->index);
+		cw_hash_done(pol->index, 0);
 		free(pol->name);
 	}
 	free(pol);
@@ -768,7 +765,7 @@ int policy_add_resource(struct policy *pol, struct resource *res)
 
 	cw_list_push(&pol->resources, &res->l);
 	cw_log(LOG_DEBUG, "Adding resource %s to policy", res->key);
-	hash_set(pol->index, res->key, res);
+	cw_hash_set(pol->index, res->key, res);
 	return 0;
 }
 

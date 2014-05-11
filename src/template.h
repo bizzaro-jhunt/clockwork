@@ -56,17 +56,17 @@ struct tnode {
   A File Template
  */
 struct template {
-	struct tnode *root;   /* root of template syntax tree */
+	struct tnode  *root;  /* root of template syntax tree */
 
-	struct hash  *vars;   /* variables defined by the template */
-	struct hash  *facts;  /* host facts hash; unmanaged */
+	cw_hash_t     *vars;  /* variables defined by the template */
+	cw_hash_t     *facts; /* host facts hash; unmanaged */
 
 	struct tnode **nodes; /* all syntax nodes, for mem. management */
 	size_t nodes_len;     /* how many syntax nodes do we have? */
 };
 
 struct template* template_new(void);
-struct template* template_create(const char *path, struct hash *facts);
+struct template* template_create(const char *path, cw_hash_t *facts);
 void template_free(struct template *t);
 int template_add_var(struct template *t, const char *name, const char *value);
 void* template_deref_var(struct template *t, const char *name);

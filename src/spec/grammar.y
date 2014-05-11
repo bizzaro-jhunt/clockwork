@@ -112,13 +112,13 @@ manifest:
 	| manifest host
 		{ stree_add(MANIFEST(ctx)->root, $2);
 		  if ($2->data1) {
-			hash_set(MANIFEST(ctx)->hosts, $2->data1, $2);
+			cw_hash_set(MANIFEST(ctx)->hosts, $2->data1, $2);
 		  } else {
 			MANIFEST(ctx)->fallback = $2;
 		  } }
 	| manifest policy
 		{ stree_add(MANIFEST(ctx)->root, $2);
-		  hash_set(MANIFEST(ctx)->policies, $2->data1, $2); }
+		  cw_hash_set(MANIFEST(ctx)->policies, $2->data1, $2); }
 	;
 
 host: T_KEYWORD_HOST qstring '{' enforcing '}'

@@ -21,86 +21,79 @@
 #include "../src/gear/gear.h"
 
 TESTS {
-	ok(H64("test") == H64("test"),  "H64 equivalency");
-	ok(H64("test") != H64("other"), "H64 equivalency");
-
 	subtest {
-		struct hash *h;
+		cw_hash_t *h;
 		char *path = strdup("/some/path/some/where");
 		char *name = strdup("staff");
 
-		ok(H64("name") != H64("path"), "no H64 collision");
+		isnt_null(h = cw_alloc(sizeof(cw_hash_t)), "hash_new -> pointer");
 
-		isnt_null(h = hash_new(), "hash_new -> pointer");
+		is_null(cw_hash_get(h, "path"), "can't get 'path' prior to set");
+		is_null(cw_hash_get(h, "name"), "can't get 'name' prior to set");
 
-		is_null(hash_get(h, "path"), "can't get 'path' prior to set");
-		is_null(hash_get(h, "name"), "can't get 'name' prior to set");
+		ok(cw_hash_set(h, "path", path) == path, "set h.path");
+		ok(cw_hash_set(h, "name", name) == name, "set h.name");
 
-		ok(hash_set(h, "path", path) == path, "set h.path");
-		ok(hash_set(h, "name", name) == name, "set h.name");
+		is_string(cw_hash_get(h, "path"), path, "get h.path");
+		is_string(cw_hash_get(h, "name"), name, "get h.name");
 
-		is_string(hash_get(h, "path"), path, "get h.path");
-		is_string(hash_get(h, "name"), name, "get h.name");
-
-		hash_free(h);
+		cw_hash_done(h, 0);
 		free(path);
 		free(name);
 	}
 
 	subtest {
-		struct hash *h;
+		cw_hash_t *h;
 		char *path  = strdup("/some/path/some/where");
 		char *group = strdup("staff");
 
-		ok(H64("path") == H64("group"), "H64 collisions");
-		isnt_null(h = hash_new(), "hash_new -> pointer");
+		isnt_null(h = cw_alloc(sizeof(cw_hash_t)), "hash_new -> pointer");
 
-		is_null(hash_get(h, "path"),  "get h.path (initially null)");
-		is_null(hash_get(h, "group"), "get h.group (initially null)");
+		is_null(cw_hash_get(h, "path"),  "get h.path (initially null)");
+		is_null(cw_hash_get(h, "group"), "get h.group (initially null)");
 
-		ok(hash_set(h, "path",  path)  == path,  "set h.path");
-		ok(hash_set(h, "group", group) == group, "set h.group");
+		ok(cw_hash_set(h, "path",  path)  == path,  "set h.path");
+		ok(cw_hash_set(h, "group", group) == group, "set h.group");
 
-		is_string(hash_get(h, "path"),  path,  "get h.path");
-		is_string(hash_get(h, "group"), group, "get h.group");
+		is_string(cw_hash_get(h, "path"),  path,  "get h.path");
+		is_string(cw_hash_get(h, "group"), group, "get h.group");
 
-		hash_free(h);
+		cw_hash_done(h, 0);
 		free(path);
 		free(group);
 	}
 
 	subtest {
-		struct hash *h;
+		cw_hash_t *h;
 		char *value1 = strdup("value1");
 		char *value2 = strdup("value2");
 
-		isnt_null(h = hash_new(), "hash_new -> pointer");
+		isnt_null(h = cw_alloc(sizeof(cw_hash_t)), "hash_new -> pointer");
 
-		ok(hash_set(h, "key", value1) == value1, "first hash_set for overrides");
-		is_string(hash_get(h, "key"), value1, "hash_get of first value");
+		ok(cw_hash_set(h, "key", value1) == value1, "first hash_set for overrides");
+		is_string(cw_hash_get(h, "key"), value1, "cw_hash_get of first value");
 
-		// hash_set returns previous value on override
-		ok(hash_set(h, "key", value2) == value1, "second hash_set for overrides");
-		is_string(hash_get(h, "key"), value2, "hash_get of second value");
+		// cw_hash_set returns previous value on override
+		ok(cw_hash_set(h, "key", value2) == value1, "second hash_set for overrides");
+		is_string(cw_hash_get(h, "key"), value2, "cw_hash_get of second value");
 
-		hash_free_all(h);
+		cw_hash_done(h, 1);
 	}
 
 	subtest {
-		struct hash *h = NULL;
+		cw_hash_t *h = NULL;
 
-		is_null(hash_get(NULL, "test"), "hash_get NULL hash");
+		is_null(cw_hash_get(NULL, "test"), "cw_hash_get NULL hash");
 
-		isnt_null(h = hash_new(), "hash_new -> pointer");
-		hash_set(h, "test", "valid");
+		isnt_null(h = cw_alloc(sizeof(cw_hash_t)), "hash_new -> pointer");
+		cw_hash_set(h, "test", "valid");
 
-		is_null(hash_get(h, NULL), "hash_get NULL key");
-		hash_free(h);
+		is_null(cw_hash_get(h, NULL), "cw_hash_get NULL key");
+		cw_hash_done(h, 0);
 	}
 
 	subtest {
-		struct hash *h = hash_new();
-		struct hash_cursor c;
+		cw_hash_t *h = cw_alloc(sizeof(cw_hash_t));
 		char *key, *value;
 
 		int saw_promise = 0;
@@ -108,12 +101,12 @@ TESTS {
 		int saw_central = 0;
 		int saw_bridge  = 0;
 
-		hash_set(h, "promise", "esimorp");
-		hash_set(h, "snooze",  "ezoons");
-		hash_set(h, "central", "lartnec");
-		hash_set(h, "bridge",  "egdirb");
+		cw_hash_set(h, "promise", "esimorp");
+		cw_hash_set(h, "snooze",  "ezoons");
+		cw_hash_set(h, "central", "lartnec");
+		cw_hash_set(h, "bridge",  "egdirb");
 
-		for_each_key_value(h, &c, key, value) {
+		for_each_key_value(h, key, value) {
 			if (strcmp(key, "promise") == 0) {
 				saw_promise++;
 				is_string(value, "esimorp", "h.promise");
@@ -134,7 +127,7 @@ TESTS {
 				fail("Unexpected value found during for_each_key_value");
 			}
 		}
-		hash_free(h);
+		cw_hash_done(h, 0);
 
 		is_int(saw_promise, 1, "saw the promise key only once");
 		is_int(saw_snooze,  1, "saw the snooze key only once");

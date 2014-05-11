@@ -28,8 +28,6 @@
 
 #define ENFORCE(r,f)   (r)->enforced  |=  (f)
 #define UNENFORCE(r,f) (r)->enforced  &= ~(f)
-#define DIFF(r,f)      (r)->different |=  (f)
-#define UNDIFF(r,f)    (r)->different &= ~(f)
 
 #define _FD2FD_CHUNKSIZE 16384
 

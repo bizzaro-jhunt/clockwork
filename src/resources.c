@@ -18,7 +18,6 @@
  */
 
 #include "resources.h"
-#include "template.h"
 
 #include <fts.h>
 #include <fcntl.h>
@@ -31,7 +30,6 @@
 
 #define _FD2FD_CHUNKSIZE 16384
 
-static int _res_file_gen_rsha1(struct res_file *rf, cw_hash_t *facts);
 static int _group_update(struct stringlist*, struct stringlist*, const char*);
 static int _setup_path_deps(const char *key, const char *path, struct policy *pol);
 static void _hash_attr(cw_hash_t *attrs, const char *key, void *val);
@@ -117,36 +115,6 @@ static int _res_file_fd2fd(int dest, int src, ssize_t bytes)
 	return 0;
 }
 */
-
-static int _res_file_gen_rsha1(struct res_file *rf, cw_hash_t *facts)
-{
-	assert(rf); // LCOV_EXCL_LINE
-
-	int rc;
-	char *contents = NULL;
-	struct template *t = NULL;
-
-
-	if (rf->rpath) {
-		return sha1_file(rf->rpath, &rf->rsha1);
-
-	} else if (rf->template) {
-		t = template_create(rf->template, facts);
-		if (!t) {
-			return 0;
-		}
-
-		contents = template_render(t);
-
-		rc = sha1_data(contents, strlen(contents), &rf->rsha1);
-
-		template_free(t);
-		free(contents);
-		return rc;
-	}
-
-	return 0;
-}
 
 static int _group_update(struct stringlist *add, struct stringlist *rm, const char *user)
 {
@@ -655,8 +623,7 @@ int res_file_norm(void *res, struct policy *pol, cw_hash_t *facts)
 	}
 
 	free(key);
-
-	return _res_file_gen_rsha1(rf, facts);
+	return 0;
 }
 
 int res_file_set(void *res, const char *name, const char *value)

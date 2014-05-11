@@ -72,7 +72,6 @@ CTAP_TESTS += t/15-path
 CTAP_TESTS += t/20-stree
 CTAP_TESTS += t/25-resource
 CTAP_TESTS += t/30-policy
-CTAP_TESTS += t/31-template
 CTAP_TESTS += t/40-userdb
 CTAP_TESTS += t/61-res_user
 CTAP_TESTS += t/62-res_file
@@ -112,19 +111,12 @@ test_source += src/userdb.h     src/userdb.c
 test_source += src/policy.h     src/policy.c
 test_source += src/resource.h   src/resource.c
 test_source += src/resources.h  src/resources.c
-test_source += src/template.h   src/template.c
 
 test_source += src/spec/grammar.y
 test_source += src/spec/lexer.l
 test_source += src/spec/parser.h
 test_source += src/spec/parser.c
 test_source += src/spec/private.h
-
-test_source += src/tpl/grammar.y
-test_source += src/tpl/lexer.l
-test_source += src/tpl/parser.h
-test_source += src/tpl/parser.c
-test_source += src/tpl/private.h
 
 test_source += src/gear/gear.h
 test_source += src/gear/path.c
@@ -141,7 +133,6 @@ t_15_path_SOURCES        = t/15-path.c          $(test_source)
 t_20_stree_SOURCES       = t/20-stree.c         $(test_source)
 t_25_resource_SOURCES    = t/25-resource.c      $(test_source)
 t_30_policy_SOURCES      = t/30-policy.c        $(test_source)
-t_31_template_SOURCES    = t/31-template.c      $(test_source)
 t_40_userdb_SOURCES      = t/40-userdb.c        $(test_source)
 t_61_res_user_SOURCES    = t/61-res_user.c      $(test_source)
 t_62_res_file_SOURCES    = t/62-res_file.c      $(test_source)
@@ -165,7 +156,6 @@ EXTRA_DIST      += t/data
 
 dist_man_MANS    = man/clockwork.7
 dist_man_MANS   += man/cwpol.1
-dist_man_MANS   += man/cwtemplate.1
 dist_man_MANS   += man/res_dir.5
 dist_man_MANS   += man/res_exec.5
 dist_man_MANS   += man/res_file.5
@@ -181,8 +171,8 @@ dist_man_MANS   += man/res_user.5
 core_src     = src/cw.h src/cw.c
 core_src    += src/sha1.c src/userdb.c
 core_src    += src/sha1.h src/userdb.h
-core_src    += src/policy.c src/resource.c src/resources.c src/template.c
-core_src    += src/policy.h src/resource.h src/resources.h src/template.h
+core_src    += src/policy.c src/resource.c src/resources.c
+core_src    += src/policy.h src/resource.h src/resources.h
 core_src    += src/gear/string.c src/gear/path.c
 core_src    += src/gear/gear.h
 core_src    += src/clockwork.h
@@ -191,16 +181,9 @@ parser_spec_src  = src/spec/parser.c src/spec/parser.h src/spec/private.h
 parser_spec_src += src/spec/lexer.l src/spec/lexer_impl.h
 parser_spec_src += src/spec/grammar.y src/spec/grammar_impl.h
 
-parser_tpl_src   = src/tpl/parser.c src/tpl/parser.h src/tpl/private.h
-parser_tpl_src  += src/tpl/lexer.l src/tpl/lexer_impl.h
-parser_tpl_src  += src/tpl/grammar.y
-
-core_src += $(parser_tpl_src)
-
 sbindir = "$(prefix)/sbin"
-sbin_PROGRAMS = cwpol cwtemplate pn cwspec clockd cogd
+sbin_PROGRAMS = cwpol pn cwspec clockd cogd
 cwpol_SOURCES   = $(core_src) src/cwpol.c $(parser_spec_src)
-cwtemplate_SOURCES = $(core_src) src/cwtemplate.c
 pn_SOURCES      = src/pn.c src/pendulum_funcs.h src/pendulum_funcs.c src/pendulum.h src/pendulum.c
 cwspec_SOURCES  = src/cwspec.c $(core_src) $(parser_spec_src)
 clockd_SOURCES  = src/clockd.c $(core_src) $(parser_spec_src)
@@ -227,12 +210,6 @@ src/spec/lexer.c: src/spec/lexer.l src/spec/grammar.h src/spec/lexer_impl.h src/
 
 src/spec/grammar.c: src/spec/grammar.y src/spec/grammar_impl.h src/spec/parser.c src/spec/parser.h src/spec/private.h
 	$(YACCCOMPILE) --output-file=src/spec/grammar.c $<
-
-src/tpl/lexer.c: src/tpl/lexer.l src/tpl/grammar.h src/tpl/lexer_impl.h src/tpl/parser.h src/tpl/private.h
-	$(LEXCOMPILE) --outfile=$@ $<
-
-src/tpl/grammar.c: src/tpl/grammar.y src/tpl/parser.c src/tpl/parser.h src/tpl/private.h
-	$(YACCCOMPILE) -p yytpl --output-file=src/tpl/grammar.c $<
 
 if GCOV_ENABLED
 coverage-clean:

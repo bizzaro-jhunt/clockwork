@@ -31,7 +31,6 @@
 
 #include "resource.h"
 #include "policy.h"
-#include "template.h"
 
 #define NEW_RESOURCE(t) \
 void*          res_ ## t ## _new(const char *key); \

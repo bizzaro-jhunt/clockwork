@@ -1029,7 +1029,7 @@ void cw_log(int level, const char *fmt, ...)
 
 # define MAXARGS 100
 
-int cw_run(char *cmd, ...)
+int cw_run2(FILE *in, FILE *out, FILE *err, char *cmd, ...)
 {
 	pid_t pid = fork();
 	if (pid < 0)
@@ -1053,6 +1053,21 @@ int cw_run(char *cmd, ...)
 		va_start(argv, cmd);
 		while ((args[argno++] = va_arg(argv, char *)) != (char *)0)
 			;
+
+		if (in) {
+			int fd = fileno(in);
+			if (fd >= 0) dup2(0, fd);
+		}
+
+		if (out) {
+			int fd = fileno(out);
+			if (fd >= 0) dup2(1, fd);
+		}
+
+		if (err) {
+			int fd = fileno(err);
+			if (fd >= 0) dup2(2, fd);
+		}
 
 		execv(cmd, args);
 		exit(127); // exit if exec failed

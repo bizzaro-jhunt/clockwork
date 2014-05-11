@@ -20,7 +20,7 @@ SET %E 0
 SET %A 1
 SET %B "root"
 CALL &USER.FIND
-OK? @found.user.1
+NOTOK? @found.user.1
   COPY %B %A
   PRINT "Unable to find user '%s'\n"
   JUMP @userfind.done.1
@@ -31,7 +31,7 @@ userfind.done.1:
 SET %A 1
 SET %B "root"
 CALL &GROUP.FIND
-OK? @found.group.1
+NOTOK? @found.group.1
   COPY %B %A
   PRINT "Unable to find group '%s'\n"
   JUMP @groupfind.done.1

@@ -869,6 +869,27 @@ int policy_gencode(const struct policy *pol, FILE *io)
 {
 	struct resource *r;
 	unsigned int next = 0;
+	fprintf(io, ";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;\n");
+	fprintf(io, ";; PREAMBLE\n");
+	fprintf(io, "JUMP @init.userdb\n");
+	fprintf(io, "init.userdb.fail:\n");
+	fprintf(io, "  PRINT \"Failed to open %%s\\n\"\n");
+	fprintf(io, "  SYSERR\n");
+	fprintf(io, "  HALT\n");
+	fprintf(io, "init.userdb:\n");
+	fprintf(io, "SET %%A \"/etc/passwd\"\n");
+	fprintf(io, "CALL &PWDB.OPEN\n");
+	fprintf(io, "OK? @init.userdb.fail\n");
+	fprintf(io, "SET %%A \"/etc/shadow\"\n");
+	fprintf(io, "CALL &SPDB.OPEN\n");
+	fprintf(io, "OK? @init.userdb.fail\n");
+	fprintf(io, "SET %%A \"/etc/group\"\n");
+	fprintf(io, "CALL &GRDB.OPEN\n");
+	fprintf(io, "OK? @init.userdb.fail\n");
+	fprintf(io, "SET %%A \"/etc/gshadow\"\n");
+	fprintf(io, "CALL &SGDB.OPEN\n");
+	fprintf(io, "OK? @init.userdb.fail\n");
+	fprintf(io, ";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;\n");
 	for_each_resource(r, pol) {
 		next++;
 		resource_gencode(r, io, next);

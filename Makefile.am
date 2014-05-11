@@ -177,6 +177,9 @@ core_src    += src/gear/string.c src/gear/path.c
 core_src    += src/gear/gear.h
 core_src    += src/clockwork.h
 
+pendulum_src     = src/pendulum.h       src/pendulum.c
+pendulum_src    += src/pendulum_funcs.h src/pendulum_funcs.c
+
 parser_spec_src  = src/spec/parser.c src/spec/parser.h src/spec/private.h
 parser_spec_src += src/spec/lexer.l src/spec/lexer_impl.h
 parser_spec_src += src/spec/grammar.y src/spec/grammar_impl.h
@@ -184,10 +187,10 @@ parser_spec_src += src/spec/grammar.y src/spec/grammar_impl.h
 sbindir = "$(prefix)/sbin"
 sbin_PROGRAMS = cwpol pn cwspec clockd cogd
 cwpol_SOURCES   = $(core_src) src/cwpol.c $(parser_spec_src)
-pn_SOURCES      = src/pn.c src/pendulum_funcs.h src/pendulum_funcs.c src/pendulum.h src/pendulum.c
+pn_SOURCES      = src/pn.c $(pendulum_src)
 cwspec_SOURCES  = src/cwspec.c $(core_src) $(parser_spec_src)
 clockd_SOURCES  = src/clockd.c $(core_src) $(parser_spec_src)
-cogd_SOURCES    = src/cogd.c $(core_src) $(parser_spec_src)
+cogd_SOURCES    = src/cogd.c $(core_src) $(parser_spec_src) $(pendulum_src)
 
 ############################################################
 

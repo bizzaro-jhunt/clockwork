@@ -730,7 +730,7 @@ int res_file_gencode(const void *res, FILE *io, unsigned int next)
 			fprintf(io, "SET %%A 1\n");
 			fprintf(io, "SET %%B \"%s\"\n", r->owner);
 			fprintf(io, "CALL &USER.FIND\n");
-			fprintf(io, "OK? @found.user.%i\n", next);
+			fprintf(io, "NOTOK? @found.user.%i\n", next);
 			fprintf(io, "  COPY %%B %%A\n");
 			fprintf(io, "  PRINT \"Unable to find user '%%s'\\n\"\n");
 			fprintf(io, "  JUMP @userfind.done.%i\n", next);
@@ -744,7 +744,7 @@ int res_file_gencode(const void *res, FILE *io, unsigned int next)
 			fprintf(io, "SET %%A 1\n");
 			fprintf(io, "SET %%B \"%s\"\n", r->group);
 			fprintf(io, "CALL &GROUP.FIND\n");
-			fprintf(io, "OK? @found.group.%i\n", next);
+			fprintf(io, "NOTOK? @found.group.%i\n", next);
 			fprintf(io, "  COPY %%B %%A\n");
 			fprintf(io, "  PRINT \"Unable to find group '%%s'\\n\"\n");
 			fprintf(io, "  JUMP @groupfind.done.%i\n", next);
@@ -760,7 +760,7 @@ int res_file_gencode(const void *res, FILE *io, unsigned int next)
 	}
 
 	if (ENFORCED(r, RES_FILE_MODE)) {
-		fprintf(io, "SET %%B 0%o\n", r->mode);
+		fprintf(io, "SET %%D 0%o\n", r->mode);
 		fprintf(io, "CALL &FS.CHMOD\n");
 	}
 

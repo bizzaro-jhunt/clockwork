@@ -18,6 +18,7 @@
  */
 
 #include "clockwork.h"
+#include "pendulum.h"
 
 #include <zmq.h>
 #include <sys/types.h>
@@ -147,9 +148,22 @@ int main(int argc, char **argv)
 				cw_log(LOG_ERR, "failed: %s", zmq_strerror(errno));
 			} else {
 				char *code = cw_pdu_text(reply, 1);
+				/*
 				printf("Received PENDULUM code:\n"
 				       "-----------------------\n%s\n\n",
 				       code);
+				*/
+
+				pn_machine m;
+				pn_init(&m);
+				pendulum_funcs(&m);
+
+				FILE *io = tmpfile();
+				fprintf(io, "%s", code);
+				fseek(io, 0, SEEK_SET);
+
+				pn_parse(&m, io);
+				pn_run(&m);
 			}
 
 			cw_zmq_shutdown(client, 0);

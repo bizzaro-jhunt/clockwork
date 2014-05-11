@@ -66,6 +66,33 @@ sub gencode_ok
 		return 0;
 	}
 
+	# sneakily add the PREAMBLE
+	chomp($expect);
+	$expect = <<EOF;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; PREAMBLE
+JUMP \@init.userdb
+init.userdb.fail:
+  PRINT "Failed to open %s\\n"
+  SYSERR
+  HALT
+init.userdb:
+SET %A "/etc/passwd"
+CALL &PWDB.OPEN
+OK? \@init.userdb.fail
+SET %A "/etc/shadow"
+CALL &SPDB.OPEN
+OK? \@init.userdb.fail
+SET %A "/etc/group"
+CALL &GRDB.OPEN
+OK? \@init.userdb.fail
+SET %A "/etc/gshadow"
+CALL &SGDB.OPEN
+OK? \@init.userdb.fail
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+$expect
+EOF
+
 	my $diff = diff \$actual, \$expect, {
 		FILENAME_A => 'actual-output',    MTIME_A => time,
 		FILENAME_B => 'expected-output',  MTIME_B => time,

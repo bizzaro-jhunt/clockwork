@@ -27,9 +27,173 @@
 #include "spec/parser.h"
 #include "resources.h"
 
+#define BLOCK_SIZE 8192
+
+#if 0
+#define FILE_DIR "/tmp/clockd"
+struct file {
+	struct SHA1  sha1;
+	int32_t      last_seen;
+};
+struct file_cache {
+	size_t        len;
+	struct file  *files;
+};
+#endif
+static FILE* s_render(const char *source, cw_hash_t *facts)
+{
+	FILE *in  = tmpfile();
+	FILE *out = tmpfile();
+
+	if (!in || !out) {
+		fclose(in);
+		fclose(out);
+		return NULL;
+	}
+
+	char *k, *v;
+	for_each_key_value(facts, k, v)
+		fprintf(in, "%s=%s\n", k, v);
+	fseek(in, 0, SEEK_SET);
+
+	int rc = cw_run2(in, out, NULL, "./template-erb", source);
+	fclose(in);
+
+	if (rc == 0)
+		return out;
+
+	fclose(out);
+	return NULL;
+}
+#if 0
+static char* s_sha1path(struct SHA1 *sha1)
+{
+	char buf[4] = {0};
+	memcpy(buf, sha1->hex, 3);
+	return cw_string("%s/%s/%s", FILE_DIR, buf, sha1->hex);
+}
+static size_t s_fcache_next(struct file_cache *c)
+{
+	int32_t oldest = cw_time_s();
+	size_t i, j;
+	for (i = 0, j = 0; i < c->len; i++)
+		if (c->files[i].last_seen < oldest)
+			j = i, oldest = c->files[i].last_seen;
+
+	if (c->files[j].last_seen) {
+		/* purge */
+		c->files[j].last_seen = 0;
+		char *path = s_sha1path(c->files[j].sha1);
+		unlink(path);
+		free(path);
+	}
+	return j;
+}
+static int s_fcache_save(FILE *io, struct SHA1 *sha1, struct file_cache *c)
+{
+	/* store the file in the cache dir */
+	char *path = s_sha1path(sha1);
+	FILE *out = fopen(path, "w");
+	free(path);
+
+	if (!out)
+		return -1;
+
+	char buf[BLOCK_SIZE];
+	size_t n;
+	fseek(io, 0, SEEK_SET);
+	while ((n = fread(buf, BLOCK_SIZE, sizeof(char), io)) > 0)
+		fwrite(buf, BLOCK_SIZE, sizeof(char), out);
+	fclose(out);
+
+	/* update the file cache structure */
+	size_t i = s_fcacheslot(c);
+	c->files[i].last_seen = cw_time_s();
+	memcpy(&c->files[i].sha1, sha1, sizeof(struct SHA1));
+	return 0;
+}
+
+static size_t s_fcache_find(struct SHA1 *sha1, struct file_cache *c)
+{
+	size_t i;
+	for (i = 0; i < c->len; i++) {
+		if (c->files[i].last_seen == 0) continue;
+		if (memcmp(c->files[i].sha1.raw, sha1->raw, SHA1_DIGLEN) == 0) break;
+	}
+	return i;
+}
+#endif
+struct conn {
+	cw_frame_t *ident;
+	int32_t last_seen;
+	FILE *io;
+	long offset;
+};
+struct conn_cache {
+	size_t len;
+	int32_t min_life;
+	struct conn connections[];
+};
+
+struct conn_cache* s_ccache_init(size_t num_conns, int32_t min_life)
+{
+	struct conn_cache *cc = cw_alloc(
+			sizeof(struct conn_cache) +
+			(num_conns * sizeof(struct conn)));
+	cc->len      = num_conns;
+	cc->min_life = min_life;
+	return cc;
+}
+static void s_ccache_purge(struct conn_cache *c)
+{
+	int32_t now = cw_time_s();
+	size_t i;
+	for (i = 0; i < c->len; i++) {
+		if (c->connections[i].last_seen == 0
+		 || c->connections[i].last_seen >= now - c->min_life)
+			continue;
+
+		if (c->connections[i].io)
+			fclose(c->connections[i].io);
+		c->connections[i].io        = NULL;
+		c->connections[i].offset    = 0;
+		c->connections[i].last_seen = 0;
+	}
+}
+static size_t s_ccache_find(cw_frame_t *ident, struct conn_cache *c)
+{
+	size_t i;
+	for (i = 0; i < c->len; i++)
+		if (c->connections[i].ident
+		 && cw_frame_cmp(ident, c->connections[i].ident) == 0)
+			break;
+	return i;
+}
+static size_t s_ccache_next(struct conn_cache *c)
+{
+	size_t i;
+	for (i = 0; i < c->len; i++)
+		if (!c->connections[i].ident)
+			break;
+	return i;
+}
+static struct conn* s_ccache_conn(cw_frame_t *ident, struct conn_cache *c)
+{
+	size_t i = s_ccache_find(ident, c);
+	if (i >= c->len) {
+		i = s_ccache_next(c);
+		if (i >= c->len)
+			return NULL;
+		c->connections[i].ident = cw_frame_copy(ident);
+		c->connections[i].io = NULL;
+		c->connections[i].offset = 0;
+	}
+	return &c->connections[i];
+}
+
 int main(int argc, char **argv)
 {
-	struct manifest *manifest = parse_file("/cfm/etc/manifest.pol");
+	struct manifest *manifest = parse_file("test.pol");
 	if (!manifest) exit(1);
 
 	void *context  = zmq_ctx_new();
@@ -38,12 +202,21 @@ int main(int argc, char **argv)
 	cw_log_open("clockd", "stdout");
 	cw_log(LOG_INFO, "clockd starting up");
 
+	struct conn_cache *cc = s_ccache_init(2048, 600);
+
 	while (!cw_sig_interrupt()) {
 		cw_pdu_t *pdu, *reply;
 		pdu = cw_pdu_recv(listener);
 		assert(pdu);
 
-		if (strcmp(pdu->type, "POLICY") == 0) {
+		s_ccache_purge(cc);
+		struct conn *conn = s_ccache_conn(pdu->src, cc);
+		if (!conn) {
+			cw_log(LOG_CRIT, "max connections reached!");
+			reply = cw_pdu_make(pdu->src, 2, "ERROR", "Server busy; try again later\n");
+			cw_pdu_send(listener, reply);
+
+		} else if (strcmp(pdu->type, "POLICY") == 0) {
 			char *name    = cw_pdu_text(pdu, 1);
 			char *factstr = cw_pdu_text(pdu, 2);
 			cw_log(LOG_INFO, "inbound policy request for %s", name);
@@ -77,6 +250,48 @@ int main(int argc, char **argv)
 
 				munmap(code, len);
 				fclose(io);
+			}
+
+		} else if (strcmp(pdu->type, "FILE") == 0) {
+			char *name    = cw_pdu_text(pdu, 1);
+			char *factstr = cw_pdu_text(pdu, 2);
+			char *source  = cw_pdu_text(pdu, 3);
+			cw_log(LOG_INFO, "inbound file request for %s", name);
+			cw_log(LOG_INFO, "facts are: %s", factstr);
+
+			cw_hash_t *facts = cw_alloc(sizeof(cw_hash_t));
+			fact_read_string(factstr, facts);
+
+			FILE *io = s_render(source, facts);
+			if (!io) {
+				reply = cw_pdu_make(pdu->src, 2, "ERROR", "internal error");
+				cw_pdu_send(listener, reply);
+
+			} else {
+				fseek(io, 0, SEEK_SET);
+				if (conn->io) fclose(conn->io);
+				conn->io = io;
+				conn->offset = 0;
+
+				reply = cw_pdu_make(pdu->src, 1, "OK");
+				cw_pdu_send(listener, reply);
+			}
+
+		} else if (strcmp(pdu->type, "MORE") == 0) {
+
+			if (!conn->io) {
+				reply = cw_pdu_make(pdu->src, 2, "ERROR", "protocol violation");
+				cw_pdu_send(listener, reply);
+
+			} else {
+				fseek(conn->io, conn->offset, SEEK_SET);
+				char buf[BLOCK_SIZE+1];
+				size_t n = fread(buf, BLOCK_SIZE+1, sizeof(char), conn->io);
+				buf[n] = '\0';
+				conn->offset = ftell(conn->io);
+
+				reply = cw_pdu_make(pdu->src, 2, "DATA", buf);
+				cw_pdu_send(listener, reply);
 			}
 
 		} else {

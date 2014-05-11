@@ -297,7 +297,8 @@ void cw_log(int level, const char *fmt, ...);
     ##     ##  #######  ##    ##
 */
 
-int cw_run(char *cmd, ...);
+int cw_run2(FILE *in, FILE *out, FILE *err, char *cmd, ...);
+#define cw_run(cmd, ...) cw_run2(NULL, NULL, NULL, cmd, __VA_ARGS__)
 
 /*
     ########     ###    ######## ##     ##  #######  ##    ##

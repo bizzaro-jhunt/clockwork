@@ -69,27 +69,27 @@ int            res_ ## t ## _notify(void *res, const struct resource *dep)
 struct res_user {
 	char *key;       /* unique identifier, starts with "res_user:" */
 
-	char *ru_name;   /* username */
-	char *ru_passwd; /* encrypted password for /etc/shadow */
-	uid_t ru_uid;    /* numeric user ID */
-	gid_t ru_gid;    /* numeric group ID (primary) */
-	char *ru_gecos;  /* comment (GECOS) field */
-	char *ru_shell;  /* path to the user's login shell */
-	char *ru_dir;    /* path to user's home directory */
-	char *ru_skel;   /* path to home directory skeleton */
+	char *name;   /* username */
+	char *passwd; /* encrypted password for /etc/shadow */
+	uid_t uid;    /* numeric user ID */
+	gid_t gid;    /* numeric group ID (primary) */
+	char *gecos;  /* comment (GECOS) field */
+	char *shell;  /* path to the user's login shell */
+	char *dir;    /* path to user's home directory */
+	char *skel;   /* path to home directory skeleton */
 
-	unsigned char ru_mkhome; /* should we make the home directory? */
-	unsigned char ru_lock;   /* is the account locked? */
+	unsigned char mkhome; /* should we make the home directory? */
+	unsigned char lock;   /* is the account locked? */
 
 	/* These members match struct spwd; cf. getspnam(3) */
-	long ru_pwmin;  /* minimum number of days between password changes */
-	long ru_pwmax;  /* maximum password age (in days) */
-	long ru_pwwarn; /* number of days before password change to warn user */
-	long ru_inact;  /* disable expired accounts after X days */
-	long ru_expire; /* when account expires (days since 1/1/70) */
+	long pwmin;  /* minimum number of days between password changes */
+	long pwmax;  /* maximum password age (in days) */
+	long pwwarn; /* number of days before password change to warn user */
+	long inact;  /* disable expired accounts after X days */
+	long expire; /* when account expires (days since 1/1/70) */
 
-	struct passwd *ru_pw;   /* pointer to the /etc/passwd entry */
-	struct spwd *ru_sp;     /* pointer to the /etc/shadow entry */
+	struct passwd *pw;   /* pointer to the /etc/passwd entry */
+	struct spwd   *sp;   /* pointer to the /etc/shadow entry */
 
 	unsigned int enforced;  /* enforcements, see RES_USER_* constants */
 	unsigned int different; /* compliance, see RES_USER_* constants */
@@ -111,21 +111,21 @@ NEW_RESOURCE(user);
 struct res_group {
 	char *key;       /* unique identifier, starts with "res_group:" */
 
-	char *rg_name;   /* group name */
-	char *rg_passwd; /* encrypted group password */
-	gid_t rg_gid;    /* numeric group ID */
+	char *name;   /* group name */
+	char *passwd; /* encrypted group password */
+	gid_t gid;    /* numeric group ID */
 
-	struct stringlist *rg_mem_add;  /* users that should be in this group */
-	struct stringlist *rg_mem_rm;   /* users that should not be in this group */
+	struct stringlist *mem_add;  /* users that should be in this group */
+	struct stringlist *mem_rm;   /* users that should not be in this group */
 
-	struct stringlist *rg_adm_add;  /* users that should be admins */
-	struct stringlist *rg_adm_rm;   /* users that should not be admins */
+	struct stringlist *adm_add;  /* users that should be admins */
+	struct stringlist *adm_rm;   /* users that should not be admins */
 
-	struct stringlist *rg_mem;      /* copy of gr_mem (from stat) for fixup */
-	struct stringlist *rg_adm;      /* copy of sg_adm (from stat) for fixup */
+	struct stringlist *mem;      /* copy of gr_mem (from stat) for fixup */
+	struct stringlist *adm;      /* copy of sg_adm (from stat) for fixup */
 
-	struct group *rg_grp;    /* pointer to /etc/group entry */
-	struct sgrp *rg_sg;      /* pointer to /etc/gshadow entry */
+	struct group *grp;    /* pointer to /etc/group entry */
+	struct sgrp *sg;      /* pointer to /etc/gshadow entry */
 
 	unsigned int enforced;   /* enforcements; see RES_GROUP_* constants */
 	unsigned int different;  /* compliance; see RES_GROUP_* constants */
@@ -155,22 +155,22 @@ int res_group_remove_admin(struct res_group *rg, const char *user);
 struct res_file {
 	char *key;         /* unique identifier, starts with "res_file:" */
 
-	char       *rf_lpath;    /* path to the file */
-	struct SHA1 rf_lsha1;    /* checksum of actual file (client-side) */
+	char       *lpath;    /* path to the file */
+	struct SHA1 lsha1;    /* checksum of actual file (client-side) */
 
-	char       *rf_rpath;    /* source of file contents, as a static file */
-	char       *rf_template; /* source of file contents, as a template */
-	struct SHA1 rf_rsha1;    /* checksum of source file (server-side) */
+	char       *rpath;    /* source of file contents, as a static file */
+	char       *template; /* source of file contents, as a template */
+	struct SHA1 rsha1;    /* checksum of source file (server-side) */
 
-	char  *rf_owner;   /* name of the file's user owner */
-	uid_t  rf_uid;     /* UID of the file's user owner */
-	char  *rf_group;   /* name of the file's group owner */
-	gid_t  rf_gid;     /* GID of the file's group owner */
-	mode_t rf_mode;    /* permissions / mode */
+	char  *owner;   /* name of the file's user owner */
+	uid_t  uid;     /* UID of the file's user owner */
+	char  *group;   /* name of the file's group owner */
+	gid_t  gid;     /* GID of the file's group owner */
+	mode_t mode;    /* permissions / mode */
 
 
-	struct stat rf_stat;    /* stat of local file for fixup */
-	short rf_exists;        /* does the file exist? */
+	struct stat stat;    /* stat of local file for fixup */
+	short exists;        /* does the file exist? */
 
 	unsigned int enforced;  /* enforcements; see RES_FILE_* constants */
 	unsigned int different; /* compliance; see RES_FILE_* constants */

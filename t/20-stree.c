@@ -213,9 +213,9 @@ TESTS {
 				user = (struct res_user*)(r->resource);
 				isnt_null(user, "got the first res_user defined");
 				if (user) {
-					is_int(user->ru_uid, 411, "user UID");
-					is_int(user->ru_gid, 1089, "user GID");
-					is_string(user->ru_dir, "/srv/oper/info", "user home");
+					is_int(user->uid, 411, "user UID");
+					is_int(user->gid, 1089, "user GID");
+					is_string(user->dir, "/srv/oper/info", "user home");
 				}
 				break;
 
@@ -224,9 +224,9 @@ TESTS {
 				file = (struct res_file*)(r->resource);
 				isnt_null(file, "got the first res_file defined");
 				if (file) {
-					is_int(file->rf_mode, 0600, "file mode");
-					is_string(file->rf_rpath, "std/etc-sudoers", "file remote path");
-					is_string(file->rf_lpath, "/etc/sudoers", "file local path");
+					is_int(file->mode, 0600, "file mode");
+					is_string(file->rpath, "std/etc-sudoers", "file remote path");
+					is_string(file->lpath, "/etc/sudoers", "file local path");
 				}
 				break;
 
@@ -235,8 +235,8 @@ TESTS {
 				group = (struct res_group*)(r->resource);
 				isnt_null(group, "got the first res_group defined");
 				if (group) {
-					is_int(group->rg_gid, 5454, "group GID");
-					is_string(group->rg_name, "group54", "group name");
+					is_int(group->gid, 5454, "group GID");
+					is_string(group->name, "group54", "group name");
 				}
 				break;
 
@@ -279,9 +279,9 @@ TESTS {
 		if (!res) break;
 		isnt_null(file = (struct res_file*)(res->resource), "found first res_file");
 		if (!file) break;
-		is_int(file->rf_mode, 0644, "file mode");
-		is_string(file->rf_rpath, "std/2.6.conf", "file remote path");
-		is_string(file->rf_lpath, "snmpd.conf", "file local path");
+		is_int(file->mode, 0644, "file mode");
+		is_string(file->rpath, "std/2.6.conf", "file remote path");
+		is_string(file->lpath, "snmpd.conf", "file local path");
 
 		res = NULL;
 		for_each_resource(r, pol) { if (r->type == RES_USER) { res = r; break; } }
@@ -289,9 +289,9 @@ TESTS {
 		if (!res) break;
 		isnt_null(user = (struct res_user*)(res->resource), "found first res_user");
 		if (!user) break;
-		is_int(user->ru_uid, 20050, "user UID");
-		is_int(user->ru_gid, 20051, "user GID");
-		is_string(user->ru_dir, "/srv/oper/ubuntu", "user home");
+		is_int(user->uid, 20050, "user UID");
+		is_int(user->gid, 20051, "user GID");
+		is_string(user->dir, "/srv/oper/ubuntu", "user home");
 
 		hash_free(facts);
 		policy_free_all(pol);
@@ -312,9 +312,9 @@ TESTS {
 		isnt_null(file = (struct res_file*)(res->resource), "found first res_file");
 		file = (struct res_file*)(res->resource);
 		if (!file) break;
-		is_int(file->rf_mode, 0644, "file mode");
-		is_string(file->rf_rpath, "std/2.4.conf", "file remote path");
-		is_string(file->rf_lpath, "snmpd.conf", "file local path");
+		is_int(file->mode, 0644, "file mode");
+		is_string(file->rpath, "std/2.4.conf", "file remote path");
+		is_string(file->lpath, "snmpd.conf", "file local path");
 
 		hash_free(facts);
 		policy_free_all(pol);
@@ -343,7 +343,7 @@ TESTS {
 		if (!res) break;
 		isnt_null(group = (struct res_group*)(res->resource), "found first res_group");
 		if (!group) break;
-		is_int(group->rg_gid, 101, "group GID");
+		is_int(group->gid, 101, "group GID");
 
 		hash_free(facts);
 		policy_free_all(pol);
@@ -362,13 +362,13 @@ TESTS {
 			case 0:
 				isnt_null(group, "found first group");
 				if (group) {
-					is_int(group->rg_gid, 103, "first group GID");
+					is_int(group->gid, 103, "first group GID");
 				}
 				break;
 			case 1:
 				isnt_null(group, "found second group");
 				if (group) {
-					is_int(group->rg_gid, 104, "second group GID");
+					is_int(group->gid, 104, "second group GID");
 				}
 				break;
 			}

@@ -58,22 +58,22 @@ TESTS {
 
 		res_file_set(rf, "owner", "someone");
 		ok(ENFORCED(rf, RES_FILE_UID), "UID enforced");
-		is_string(rf->rf_owner, "someone", "owner to enforce");
+		is_string(rf->owner, "someone", "owner to enforce");
 
 		res_file_set(rf, "group", "somegroup");
 		ok(ENFORCED(rf, RES_FILE_GID), "GID enforced");
-		is_string(rf->rf_group, "somegroup", "group to enforce");
+		is_string(rf->group, "somegroup", "group to enforce");
 
 		res_file_set(rf,"mode", "0755");
 		ok(ENFORCED(rf, RES_FILE_MODE), "MODE enforced");
-		is_int(rf->rf_mode, 0755, "mode to enforce");
+		is_int(rf->mode, 0755, "mode to enforce");
 
 		res_file_set(rf, "source", "t/data/sha1/file");
 		ok(ENFORCED(rf, RES_FILE_SHA1), "SHA1 enforced");
-		is_string(rf->rf_rpath, "t/data/sha1/file", "source file to enforce");
+		is_string(rf->rpath, "t/data/sha1/file", "source file to enforce");
 
 		res_file_set(rf, "path", TEST_TMP "/file");
-		is_string(rf->rf_lpath, TEST_TMP "/file", "target file to enforce");
+		is_string(rf->lpath, TEST_TMP "/file", "target file to enforce");
 
 		res_file_free(rf);
 	}

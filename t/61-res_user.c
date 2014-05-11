@@ -66,66 +66,66 @@ TESTS {
 
 		res_user_set(ru, "username", "Name");
 		ok(ENFORCED(ru, RES_USER_NAME), "NAME enforced");
-		is_string(ru->ru_name, "Name", "username to enforce");
+		is_string(ru->name, "Name", "username to enforce");
 
 		res_user_set(ru, "pwhash", "!@#hash!@#");
 		res_user_set(ru, "changepw", "yes");
 		ok(ENFORCED(ru, RES_USER_PASSWD), "PASSWD enforced");
-		is_string(ru->ru_passwd, "!@#hash!@#", "passwd to enforce");
+		is_string(ru->passwd, "!@#hash!@#", "passwd to enforce");
 
 		res_user_set(ru, "uid", "4");
 		ok(ENFORCED(ru, RES_USER_UID), "UID enforced");
-		is_int(ru->ru_uid, 4, "UID to enforce");
+		is_int(ru->uid, 4, "UID to enforce");
 
 		res_user_set(ru, "gid", "5");
 		ok(ENFORCED(ru, RES_USER_GID), "GID enforced");
-		is_int(ru->ru_gid, 5, "GID to enforce");
+		is_int(ru->gid, 5, "GID to enforce");
 
 		res_user_set(ru, "comment", "GECOS comment");
 		ok(ENFORCED(ru, RES_USER_GECOS), "GECOS enforced");
-		is_string(ru->ru_gecos, "GECOS comment", "comment to enforce");
+		is_string(ru->gecos, "GECOS comment", "comment to enforce");
 
 		res_user_set(ru, "home", "/home/user");
 		ok(ENFORCED(ru, RES_USER_DIR), "DIR enforced");
-		is_string(ru->ru_dir, "/home/user", "home dir to enforce");
+		is_string(ru->dir, "/home/user", "home dir to enforce");
 
 		res_user_set(ru, "shell", "/bin/bash");
 		ok(ENFORCED(ru, RES_USER_SHELL), "SHELL enforced");
-		is_string(ru->ru_shell, "/bin/bash", "shell to enforce");
+		is_string(ru->shell, "/bin/bash", "shell to enforce");
 
 		res_user_set(ru, "makehome", "/etc/skel.admin");
 		ok(ENFORCED(ru, RES_USER_MKHOME), "MKHOME enforced");
-		is_string(ru->ru_skel, "/etc/skel.admin", "skeleton home to enforce");
-		is_int(ru->ru_mkhome, 1, "flag to prompt homedir creation");
+		is_string(ru->skel, "/etc/skel.admin", "skeleton home to enforce");
+		is_int(ru->mkhome, 1, "flag to prompt homedir creation");
 
 		res_user_set(ru, "makehome", "no");
 		ok(ENFORCED(ru, RES_USER_MKHOME), "MKHOME re-enforced");
-		is_int(ru->ru_mkhome, 0, "flag to prompt homedir creation");
-		is_null(ru->ru_skel, "skeleton directory");
+		is_int(ru->mkhome, 0, "flag to prompt homedir creation");
+		is_null(ru->skel, "skeleton directory");
 
 		res_user_set(ru, "pwmin", "7");
 		ok(ENFORCED(ru, RES_USER_PWMIN), "PWMIN enforced");
-		is_int(ru->ru_pwmin, 7, "min password age to enforce");
+		is_int(ru->pwmin, 7, "min password age to enforce");
 
 		res_user_set(ru, "pwmax", "45");
 		ok(ENFORCED(ru, RES_USER_PWMAX), "PWMAX enforced");
-		is_int(ru->ru_pwmax, 45, "max password age to enforce");
+		is_int(ru->pwmax, 45, "max password age to enforce");
 
 		res_user_set(ru, "pwwarn", "29");
 		ok(ENFORCED(ru, RES_USER_PWWARN), "PWWARN enforced");
-		is_int(ru->ru_pwwarn, 29, "password change warning to enforce");
+		is_int(ru->pwwarn, 29, "password change warning to enforce");
 
 		res_user_set(ru, "inact", "999");
 		ok(ENFORCED(ru, RES_USER_INACT), "INACT enforced");
-		is_int(ru->ru_inact, 999, "account inactivty deadline to enforce");
+		is_int(ru->inact, 999, "account inactivty deadline to enforce");
 
 		res_user_set(ru, "expiry", "100");
 		ok(ENFORCED(ru, RES_USER_EXPIRE), "EXPIRE enforced");
-		is_int(ru->ru_expire, 100, "account expiry to enforce");
+		is_int(ru->expire, 100, "account expiry to enforce");
 
 		res_user_set(ru, "locked", "yes");
 		ok(ENFORCED(ru, RES_USER_LOCK), "LOCK enforced");
-		is_int(ru->ru_lock, 1, "account-locked flag");
+		is_int(ru->lock, 1, "account-locked flag");
 
 		is_int(res_user_set(ru, "what-does-the-fox-say", "ring-ding-ring-ding"),
 			-1, "res_user_set doesn't like nonsensical attributes");

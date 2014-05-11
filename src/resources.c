@@ -129,18 +129,18 @@ static int _res_file_gen_rsha1(struct res_file *rf, struct hash *facts)
 	struct template *t = NULL;
 
 
-	if (rf->rf_rpath) {
-		return sha1_file(rf->rf_rpath, &rf->rf_rsha1);
+	if (rf->rpath) {
+		return sha1_file(rf->rpath, &rf->rsha1);
 
-	} else if (rf->rf_template) {
-		t = template_create(rf->rf_template, facts);
+	} else if (rf->template) {
+		t = template_create(rf->template, facts);
 		if (!t) {
 			return 0;
 		}
 
 		contents = template_render(t);
 
-		rc = sha1_data(contents, strlen(contents), &rf->rf_rsha1);
+		rc = sha1_data(contents, strlen(contents), &rf->rsha1);
 
 		template_free(t);
 		free(contents);
@@ -225,25 +225,25 @@ void* res_user_clone(const void *res, const char *key)
 	ru->enforced  = RES_DEFAULT(orig, enforced, RES_NONE);
 	ru->different = RES_NONE;
 
-	ru->ru_uid    = RES_DEFAULT(orig, ru_uid,    -1);
-	ru->ru_gid    = RES_DEFAULT(orig, ru_gid,    -1);
-	ru->ru_mkhome = RES_DEFAULT(orig, ru_mkhome,  0);
-	ru->ru_lock   = RES_DEFAULT(orig, ru_lock,    1);
-	ru->ru_pwmin  = RES_DEFAULT(orig, ru_pwmin,   0);
-	ru->ru_pwmax  = RES_DEFAULT(orig, ru_pwmax,   0);
-	ru->ru_pwwarn = RES_DEFAULT(orig, ru_pwwarn,  0);
-	ru->ru_inact  = RES_DEFAULT(orig, ru_inact,   0);
-	ru->ru_expire = RES_DEFAULT(orig, ru_expire, -1);
+	ru->uid    = RES_DEFAULT(orig, uid,    -1);
+	ru->gid    = RES_DEFAULT(orig, gid,    -1);
+	ru->mkhome = RES_DEFAULT(orig, mkhome,  0);
+	ru->lock   = RES_DEFAULT(orig, lock,    1);
+	ru->pwmin  = RES_DEFAULT(orig, pwmin,   0);
+	ru->pwmax  = RES_DEFAULT(orig, pwmax,   0);
+	ru->pwwarn = RES_DEFAULT(orig, pwwarn,  0);
+	ru->inact  = RES_DEFAULT(orig, inact,   0);
+	ru->expire = RES_DEFAULT(orig, expire, -1);
 
-	ru->ru_name   = RES_DEFAULT_STR(orig, ru_name,   NULL);
-	ru->ru_passwd = RES_DEFAULT_STR(orig, ru_passwd, "*");
-	ru->ru_gecos  = RES_DEFAULT_STR(orig, ru_gecos,  NULL);
-	ru->ru_shell  = RES_DEFAULT_STR(orig, ru_shell,  NULL);
-	ru->ru_dir    = RES_DEFAULT_STR(orig, ru_dir,    NULL);
-	ru->ru_skel   = RES_DEFAULT_STR(orig, ru_skel,   NULL);
+	ru->name   = RES_DEFAULT_STR(orig, name,   NULL);
+	ru->passwd = RES_DEFAULT_STR(orig, passwd, "*");
+	ru->gecos  = RES_DEFAULT_STR(orig, gecos,  NULL);
+	ru->shell  = RES_DEFAULT_STR(orig, shell,  NULL);
+	ru->dir    = RES_DEFAULT_STR(orig, dir,    NULL);
+	ru->skel   = RES_DEFAULT_STR(orig, skel,   NULL);
 
-	ru->ru_pw     = NULL;
-	ru->ru_sp     = NULL;
+	ru->pw     = NULL;
+	ru->sp     = NULL;
 
 	ru->key = NULL;
 	if (key) {
@@ -259,12 +259,12 @@ void res_user_free(void *res)
 	struct res_user *ru = (struct res_user*)(res);
 
 	if (ru) {
-		free(ru->ru_name);
-		free(ru->ru_passwd);
-		free(ru->ru_gecos);
-		free(ru->ru_dir);
-		free(ru->ru_shell);
-		free(ru->ru_skel);
+		free(ru->name);
+		free(ru->passwd);
+		free(ru->gecos);
+		free(ru->dir);
+		free(ru->shell);
+		free(ru->skel);
 
 		free(ru->key);
 	}
@@ -284,21 +284,21 @@ int res_user_attrs(const void *res, struct hash *attrs)
 	const struct res_user *ru = (const struct res_user*)(res);
 	assert(ru); // LCOV_EXCL_LINE
 
-	_hash_attr(attrs, "username", strdup(ru->ru_name));
-	_hash_attr(attrs, "uid", ENFORCED(ru, RES_USER_UID) ? cw_string("%u",ru->ru_uid) : NULL);
-	_hash_attr(attrs, "gid", ENFORCED(ru, RES_USER_GID) ? cw_string("%u",ru->ru_gid) : NULL);
-	_hash_attr(attrs, "home", ENFORCED(ru, RES_USER_DIR) ? strdup(ru->ru_dir) : NULL);
+	_hash_attr(attrs, "username", strdup(ru->name));
+	_hash_attr(attrs, "uid", ENFORCED(ru, RES_USER_UID) ? cw_string("%u",ru->uid) : NULL);
+	_hash_attr(attrs, "gid", ENFORCED(ru, RES_USER_GID) ? cw_string("%u",ru->gid) : NULL);
+	_hash_attr(attrs, "home", ENFORCED(ru, RES_USER_DIR) ? strdup(ru->dir) : NULL);
 	_hash_attr(attrs, "present", strdup(ENFORCED(ru, RES_USER_ABSENT) ? "no" : "yes"));
-	_hash_attr(attrs, "locked", ENFORCED(ru, RES_USER_LOCK) ? strdup(ru->ru_lock ? "yes" : "no") : NULL);
-	_hash_attr(attrs, "comment", ENFORCED(ru, RES_USER_GECOS) ? strdup(ru->ru_gecos) : NULL);
-	_hash_attr(attrs, "shell", ENFORCED(ru, RES_USER_SHELL) ? strdup(ru->ru_shell) : NULL);
-	_hash_attr(attrs, "password", ENFORCED(ru, RES_USER_PASSWD) ? strdup(ru->ru_passwd) : NULL);
-	_hash_attr(attrs, "pwmin", ENFORCED(ru, RES_USER_PWMIN) ? cw_string("%u", ru->ru_pwmin) : NULL);
-	_hash_attr(attrs, "pwmax", ENFORCED(ru, RES_USER_PWMAX) ? cw_string("%u", ru->ru_pwmax) : NULL);
-	_hash_attr(attrs, "pwwarn", ENFORCED(ru, RES_USER_PWWARN) ? cw_string("%u", ru->ru_pwwarn) : NULL);
-	_hash_attr(attrs, "inact", ENFORCED(ru, RES_USER_INACT) ? cw_string("%u", ru->ru_inact) : NULL);
-	_hash_attr(attrs, "expiration", ENFORCED(ru, RES_USER_EXPIRE) ? cw_string("%u", ru->ru_expire) : NULL);
-	_hash_attr(attrs, "skeleton", ENFORCED(ru, RES_USER_MKHOME) ? strdup(ru->ru_skel) : NULL);
+	_hash_attr(attrs, "locked", ENFORCED(ru, RES_USER_LOCK) ? strdup(ru->lock ? "yes" : "no") : NULL);
+	_hash_attr(attrs, "comment", ENFORCED(ru, RES_USER_GECOS) ? strdup(ru->gecos) : NULL);
+	_hash_attr(attrs, "shell", ENFORCED(ru, RES_USER_SHELL) ? strdup(ru->shell) : NULL);
+	_hash_attr(attrs, "password", ENFORCED(ru, RES_USER_PASSWD) ? strdup(ru->passwd) : NULL);
+	_hash_attr(attrs, "pwmin", ENFORCED(ru, RES_USER_PWMIN) ? cw_string("%u", ru->pwmin) : NULL);
+	_hash_attr(attrs, "pwmax", ENFORCED(ru, RES_USER_PWMAX) ? cw_string("%u", ru->pwmax) : NULL);
+	_hash_attr(attrs, "pwwarn", ENFORCED(ru, RES_USER_PWWARN) ? cw_string("%u", ru->pwwarn) : NULL);
+	_hash_attr(attrs, "inact", ENFORCED(ru, RES_USER_INACT) ? cw_string("%u", ru->inact) : NULL);
+	_hash_attr(attrs, "expiration", ENFORCED(ru, RES_USER_EXPIRE) ? cw_string("%u", ru->expire) : NULL);
+	_hash_attr(attrs, "skeleton", ENFORCED(ru, RES_USER_MKHOME) ? strdup(ru->skel) : NULL);
 	return 0;
 }
 
@@ -310,21 +310,21 @@ int res_user_set(void *res, const char *name, const char *value)
 	assert(ru); // LCOV_EXCL_LINE
 
 	if (strcmp(name, "uid") == 0) {
-		ru->ru_uid = strtoll(value, NULL, 10);
+		ru->uid = strtoll(value, NULL, 10);
 		ENFORCE(ru, RES_USER_UID);
 
 	} else if (strcmp(name, "gid") == 0) {
-		ru->ru_gid = strtoll(value, NULL, 10);
+		ru->gid = strtoll(value, NULL, 10);
 		ENFORCE(ru, RES_USER_GID);
 
 	} else if (strcmp(name, "username") == 0) {
-		free(ru->ru_name);
-		ru->ru_name = strdup(value);
+		free(ru->name);
+		ru->name = strdup(value);
 		ENFORCE(ru, RES_USER_NAME);
 
 	} else if (strcmp(name, "home") == 0) {
-		free(ru->ru_dir);
-		ru->ru_dir = strdup(value);
+		free(ru->dir);
+		ru->dir = strdup(value);
 		ENFORCE(ru, RES_USER_DIR);
 
 	} else if (strcmp(name, "present") == 0) {
@@ -335,22 +335,22 @@ int res_user_set(void *res, const char *name, const char *value)
 		}
 
 	} else if (strcmp(name, "locked") == 0) {
-		ru->ru_lock = strcmp(value, "no") ? 1 : 0;
+		ru->lock = strcmp(value, "no") ? 1 : 0;
 		ENFORCE(ru, RES_USER_LOCK);
 
 	} else if (strcmp(name, "gecos") == 0 || strcmp(name, "comment") == 0) {
-		free(ru->ru_gecos);
-		ru->ru_gecos = strdup(value);
+		free(ru->gecos);
+		ru->gecos = strdup(value);
 		ENFORCE(ru, RES_USER_GECOS);
 
 	} else if (strcmp(name, "shell") == 0) {
-		free(ru->ru_shell);
-		ru->ru_shell = strdup(value);
+		free(ru->shell);
+		ru->shell = strdup(value);
 		ENFORCE(ru, RES_USER_SHELL);
 
 	} else if (strcmp(name, "pwhash") == 0 || strcmp(name, "password") == 0) {
-		free(ru->ru_passwd);
-		ru->ru_passwd = strdup(value);
+		free(ru->passwd);
+		ru->passwd = strdup(value);
 
 	} else if (strcmp(name, "changepw") == 0) {
 		if (strcmp(value, "no") == 0) {
@@ -360,32 +360,32 @@ int res_user_set(void *res, const char *name, const char *value)
 		}
 
 	} else if (strcmp(name, "pwmin") == 0) {
-		ru->ru_pwmin = strtoll(value, NULL, 10);
+		ru->pwmin = strtoll(value, NULL, 10);
 		ENFORCE(ru, RES_USER_PWMIN);
 
 	} else if (strcmp(name, "pwmax") == 0) {
-		ru->ru_pwmax = strtoll(value, NULL, 10);
+		ru->pwmax = strtoll(value, NULL, 10);
 		ENFORCE(ru, RES_USER_PWMAX);
 
 	} else if (strcmp(name, "pwwarn") == 0) {
-		ru->ru_pwwarn = strtoll(value, NULL, 10);
+		ru->pwwarn = strtoll(value, NULL, 10);
 		ENFORCE(ru, RES_USER_PWWARN);
 
 	} else if (strcmp(name, "inact") == 0) {
-		ru->ru_inact = strtoll(value, NULL, 10);
+		ru->inact = strtoll(value, NULL, 10);
 		ENFORCE(ru, RES_USER_INACT);
 
 	} else if (strcmp(name, "expiry") == 0 || strcmp(name, "expiration") == 0) {
-		ru->ru_expire = strtoll(value, NULL, 10);
+		ru->expire = strtoll(value, NULL, 10);
 		ENFORCE(ru, RES_USER_EXPIRE);
 
 	} else if (strcmp(name, "skeleton") == 0 || strcmp(name, "makehome") == 0) {
 		ENFORCE(ru, RES_USER_MKHOME);
-		free(ru->ru_skel); ru->ru_skel = NULL;
-		ru->ru_mkhome = (strcmp(value, "no") ? 1 : 0);
+		free(ru->skel); ru->skel = NULL;
+		ru->mkhome = (strcmp(value, "no") ? 1 : 0);
 
-		if (!ru->ru_mkhome) { return 0; }
-		ru->ru_skel = strdup(strcmp(value, "yes") == 0 ? "/etc/skel" : value);
+		if (!ru->mkhome) { return 0; }
+		ru->skel = strdup(strcmp(value, "yes") == 0 ? "/etc/skel" : value);
 
 	} else {
 		/* unknown attribute. */
@@ -405,13 +405,13 @@ int res_user_match(const void *res, const char *name, const char *value)
 	int rc;
 
 	if (strcmp(name, "uid") == 0) {
-		test_value = cw_string("%u", ru->ru_uid);
+		test_value = cw_string("%u", ru->uid);
 	} else if (strcmp(name, "gid") == 0) {
-		test_value = cw_string("%u", ru->ru_gid);
+		test_value = cw_string("%u", ru->gid);
 	} else if (strcmp(name, "username") == 0) {
-		test_value = cw_string("%s", ru->ru_name);
+		test_value = cw_string("%s", ru->name);
 	} else if (strcmp(name, "home") == 0) {
-		test_value = cw_string("%s", ru->ru_dir);
+		test_value = cw_string("%s", ru->dir);
 	} else {
 		return 1;
 	}
@@ -428,7 +428,7 @@ int res_user_gencode(const void *res, FILE *io, unsigned int next)
 
 	fprintf(io, ";; res_user %s\n", r->key);
 	fprintf(io, "SET %%A 1\n");
-	fprintf(io, "SET %%B \"%s\"\n", r->ru_name);
+	fprintf(io, "SET %%B \"%s\"\n", r->name);
 	fprintf(io, "CALL &USER.FIND\n");
 
 	if (ENFORCED(r, RES_USER_ABSENT)) {
@@ -439,10 +439,10 @@ int res_user_gencode(const void *res, FILE *io, unsigned int next)
 		fprintf(io, "  JUMP @check.ids.%i\n", next);
 		fprintf(io, "create.%i:\n", next);
 		if (ENFORCED(r, RES_USER_GID)) {
-			fprintf(io, "SET %%C %i\n", r->ru_gid);
+			fprintf(io, "SET %%C %i\n", r->gid);
 		} else {
 			fprintf(io, "SET %%A 1\n");
-			fprintf(io, "SET %%B \"%s\"\n", r->ru_name);
+			fprintf(io, "SET %%B \"%s\"\n", r->name);
 			fprintf(io, "CALL &GROUP.FIND\n");
 			fprintf(io, "OK? @group.found.%i\n", next);
 			fprintf(io, "  COPY %%B %%A\n");
@@ -457,26 +457,26 @@ int res_user_gencode(const void *res, FILE *io, unsigned int next)
 			fprintf(io, "group.done.%i:\n", next);
 		}
 		if (ENFORCED(r, RES_USER_UID)) {
-			fprintf(io, "SET %%B %i\n", r->ru_uid);
+			fprintf(io, "SET %%B %i\n", r->uid);
 		} else {
 			fprintf(io, "CALL &USER.NEXT_UID\n");
 			fprintf(io, "COPY %%R %%B\n");
 		}
 		fprintf(io, "CALL &USER.CREATE\n");
-		if (r->ru_passwd && !ENFORCED(r, RES_USER_PASSWD)) {
+		if (r->passwd && !ENFORCED(r, RES_USER_PASSWD)) {
 			fprintf(io, "SET %%B \"x\"\n");
 			fprintf(io, "CALL &USER.SET_PASSWD\n");
-			fprintf(io, "SET %%B \"%s\"\n", r->ru_passwd);
+			fprintf(io, "SET %%B \"%s\"\n", r->passwd);
 			fprintf(io, "CALL &USER.SET_PWHASH\n");
 		}
 		fprintf(io, "JUMP @exists.%i\n", next);
 		fprintf(io, "check.ids.%i:\n", next);
 		if (ENFORCED(r, RES_USER_UID)) {
-			fprintf(io, "SET %%B %i\n", r->ru_uid);
+			fprintf(io, "SET %%B %i\n", r->uid);
 			fprintf(io, "CALL &USER.SET_UID\n");
 		}
 		if (ENFORCED(r, RES_USER_GID)) {
-			fprintf(io, "SET %%B %i\n", r->ru_gid);
+			fprintf(io, "SET %%B %i\n", r->gid);
 			fprintf(io, "CALL &USER.SET_GID\n");
 		}
 		fprintf(io, "exists.%i:\n", next);
@@ -484,36 +484,36 @@ int res_user_gencode(const void *res, FILE *io, unsigned int next)
 		if (ENFORCED(r, RES_USER_PASSWD)) {
 			fprintf(io, "SET %%B \"x\"\n");
 			fprintf(io, "CALL &USER.SET_PASSWD\n");
-			fprintf(io, "SET %%B \"%s\"\n", r->ru_passwd);
+			fprintf(io, "SET %%B \"%s\"\n", r->passwd);
 			fprintf(io, "CALL &USER.SET_PWHASH\n");
 		}
 
 		if (ENFORCED(r, RES_USER_GECOS)) {
-			fprintf(io, "SET %%B \"%s\"\n", r->ru_gecos);
+			fprintf(io, "SET %%B \"%s\"\n", r->gecos);
 			fprintf(io, "CALL &USER.SET_GECOS\n");
 		}
 		if (ENFORCED(r, RES_USER_SHELL)) {
-			fprintf(io, "SET %%B \"%s\"\n", r->ru_shell);
+			fprintf(io, "SET %%B \"%s\"\n", r->shell);
 			fprintf(io, "CALL &USER.SET_SHELL\n");
 		}
 		if (ENFORCED(r, RES_USER_PWMIN)) {
-			fprintf(io, "SET %%B %li\n", r->ru_pwmin);
+			fprintf(io, "SET %%B %li\n", r->pwmin);
 			fprintf(io, "CALL &USER.SET_PWMIN\n");
 		}
 		if (ENFORCED(r, RES_USER_PWMAX)) {
-			fprintf(io, "SET %%B %li\n", r->ru_pwmax);
+			fprintf(io, "SET %%B %li\n", r->pwmax);
 			fprintf(io, "CALL &USER.SET_PWMAX\n");
 		}
 		if (ENFORCED(r, RES_USER_PWWARN)) {
-			fprintf(io, "SET %%B %li\n", r->ru_pwwarn);
+			fprintf(io, "SET %%B %li\n", r->pwwarn);
 			fprintf(io, "CALL &USER.SET_PWWARN\n");
 		}
 		if (ENFORCED(r, RES_USER_INACT)) {
-			fprintf(io, "SET %%B %li\n", r->ru_inact);
+			fprintf(io, "SET %%B %li\n", r->inact);
 			fprintf(io, "CALL &USER.SET_INACT\n");
 		}
 		if (ENFORCED(r, RES_USER_EXPIRE)) {
-			fprintf(io, "SET %%B %li\n", r->ru_expire);
+			fprintf(io, "SET %%B %li\n", r->expire);
 			fprintf(io, "CALL &USER.SET_EXPIRY\n");
 		}
 	}
@@ -540,22 +540,22 @@ void* res_file_clone(const void *res, const char *key)
 	rf->enforced    = RES_DEFAULT(orig, enforced,  RES_NONE);
 	rf->different   = RES_NONE;
 
-	rf->rf_owner    = RES_DEFAULT_STR(orig, rf_owner, NULL);
-	rf->rf_group    = RES_DEFAULT_STR(orig, rf_group, NULL);
+	rf->owner    = RES_DEFAULT_STR(orig, owner, NULL);
+	rf->group    = RES_DEFAULT_STR(orig, group, NULL);
 
-	rf->rf_uid      = RES_DEFAULT(orig, rf_uid, 0);
-	rf->rf_gid      = RES_DEFAULT(orig, rf_gid, 0);
+	rf->uid      = RES_DEFAULT(orig, uid, 0);
+	rf->gid      = RES_DEFAULT(orig, gid, 0);
 
-	rf->rf_mode     = RES_DEFAULT(orig, rf_mode, 0600);
+	rf->mode     = RES_DEFAULT(orig, mode, 0600);
 
-	rf->rf_lpath    = RES_DEFAULT_STR(orig, rf_lpath, NULL);
-	rf->rf_rpath    = RES_DEFAULT_STR(orig, rf_rpath, NULL);
-	rf->rf_template = RES_DEFAULT_STR(orig, rf_template, NULL);
+	rf->lpath    = RES_DEFAULT_STR(orig, lpath, NULL);
+	rf->rpath    = RES_DEFAULT_STR(orig, rpath, NULL);
+	rf->template = RES_DEFAULT_STR(orig, template, NULL);
 
-	sha1_init(&(rf->rf_lsha1), NULL);
-	sha1_init(&(rf->rf_rsha1), NULL);
-	memset(&rf->rf_stat, 0, sizeof(struct stat));
-	rf->rf_exists   = 0;
+	sha1_init(&(rf->lsha1), NULL);
+	sha1_init(&(rf->rsha1), NULL);
+	memset(&rf->stat, 0, sizeof(struct stat));
+	rf->exists   = 0;
 
 
 	rf->key = NULL;
@@ -571,11 +571,11 @@ void res_file_free(void *res)
 {
 	struct res_file *rf = (struct res_file*)(res);
 	if (rf) {
-		free(rf->rf_rpath);
-		free(rf->rf_lpath);
-		free(rf->rf_template);
-		free(rf->rf_owner);
-		free(rf->rf_group);
+		free(rf->rpath);
+		free(rf->lpath);
+		free(rf->template);
+		free(rf->owner);
+		free(rf->group);
 		free(rf->key);
 	}
 
@@ -597,16 +597,16 @@ int res_file_attrs(const void *res, struct hash *attrs)
 	const struct res_file *rf = (const struct res_file*)(res);
 	assert(rf); // LCOV_EXCL_LINE
 
-	_hash_attr(attrs, "path", strdup(rf->rf_lpath));
+	_hash_attr(attrs, "path", strdup(rf->lpath));
 	_hash_attr(attrs, "present", strdup(ENFORCED(rf, RES_FILE_ABSENT) ? "no" : "yes"));
 
-	_hash_attr(attrs, "owner", ENFORCED(rf, RES_FILE_UID) ? strdup(rf->rf_owner) : NULL);
-	_hash_attr(attrs, "group", ENFORCED(rf, RES_FILE_GID) ? strdup(rf->rf_group) : NULL);
-	_hash_attr(attrs, "mode", ENFORCED(rf, RES_FILE_MODE) ? cw_string("%04o", rf->rf_mode) : NULL);
+	_hash_attr(attrs, "owner", ENFORCED(rf, RES_FILE_UID) ? strdup(rf->owner) : NULL);
+	_hash_attr(attrs, "group", ENFORCED(rf, RES_FILE_GID) ? strdup(rf->group) : NULL);
+	_hash_attr(attrs, "mode", ENFORCED(rf, RES_FILE_MODE) ? cw_string("%04o", rf->mode) : NULL);
 
 	if (ENFORCED(rf, RES_FILE_SHA1)) {
-		_hash_attr(attrs, "template", cw_strdup(rf->rf_template));
-		_hash_attr(attrs, "source",   cw_strdup(rf->rf_rpath));
+		_hash_attr(attrs, "template", cw_strdup(rf->template));
+		_hash_attr(attrs, "source",   cw_strdup(rf->rpath));
 	} else {
 		_hash_attr(attrs, "template", NULL);
 		_hash_attr(attrs, "source",   NULL);
@@ -626,7 +626,7 @@ int res_file_norm(void *res, struct policy *pol, struct hash *facts)
 
 	/* files depend on their owner and group */
 	if (ENFORCED(rf, RES_FILE_UID)) {
-		other = policy_find_resource(pol, RES_USER, "username", rf->rf_owner);
+		other = policy_find_resource(pol, RES_USER, "username", rf->owner);
 
 		if (other) {
 			dep = dependency_new(key, other->key);
@@ -639,7 +639,7 @@ int res_file_norm(void *res, struct policy *pol, struct hash *facts)
 	}
 
 	if (ENFORCED(rf, RES_FILE_GID)) {
-		other = policy_find_resource(pol, RES_GROUP, "name", rf->rf_group);
+		other = policy_find_resource(pol, RES_GROUP, "name", rf->group);
 		if (other) {
 			dep = dependency_new(key, other->key);
 			if (policy_add_dependency(pol, dep) != 0) {
@@ -651,7 +651,7 @@ int res_file_norm(void *res, struct policy *pol, struct hash *facts)
 	}
 
 	/* files depend on res_dir resources between them and / */
-	if (_setup_path_deps(key, rf->rf_lpath, pol) != 0) {
+	if (_setup_path_deps(key, rf->lpath, pol) != 0) {
 		free(key);
 		return -1;
 	}
@@ -667,37 +667,37 @@ int res_file_set(void *res, const char *name, const char *value)
 	assert(rf); // LCOV_EXCL_LINE
 
 	if (strcmp(name, "owner") == 0) {
-		free(rf->rf_owner);
-		rf->rf_owner = strdup(value);
+		free(rf->owner);
+		rf->owner = strdup(value);
 		ENFORCE(rf, RES_FILE_UID);
 
 	} else if (strcmp(name, "group") == 0) {
-		free(rf->rf_group);
-		rf->rf_group = strdup(value);
+		free(rf->group);
+		rf->group = strdup(value);
 		ENFORCE(rf, RES_FILE_GID);
 
 	} else if (strcmp(name, "mode") == 0) {
 		/* Mask off non-permission bits */
-		rf->rf_mode = strtoll(value, NULL, 0) & 07777;
+		rf->mode = strtoll(value, NULL, 0) & 07777;
 		ENFORCE(rf, RES_FILE_MODE);
 
 	} else if (strcmp(name, "source") == 0) {
-		free(rf->rf_template);
-		rf->rf_template = NULL;
-		free(rf->rf_rpath);
-		rf->rf_rpath = strdup(value);
+		free(rf->template);
+		rf->template = NULL;
+		free(rf->rpath);
+		rf->rpath = strdup(value);
 		ENFORCE(rf, RES_FILE_SHA1);
 
 	} else if (strcmp(name, "template") == 0) {
-		free(rf->rf_rpath);
-		rf->rf_rpath = NULL;
-		free(rf->rf_template);
-		rf->rf_template = strdup(value);
+		free(rf->rpath);
+		rf->rpath = NULL;
+		free(rf->template);
+		rf->template = strdup(value);
 		ENFORCE(rf, RES_FILE_SHA1);
 
 	} else if (strcmp(name, "path") == 0) {
-		free(rf->rf_lpath);
-		rf->rf_lpath = strdup(value);
+		free(rf->lpath);
+		rf->lpath = strdup(value);
 
 	} else if (strcmp(name, "present") == 0) {
 		if (strcmp(value, "no") != 0) {
@@ -723,7 +723,7 @@ int res_file_match(const void *res, const char *name, const char *value)
 	int rc;
 
 	if (strcmp(name, "path") == 0) {
-		test_value = cw_string("%s", rf->rf_lpath);
+		test_value = cw_string("%s", rf->lpath);
 	} else {
 		return 1;
 	}
@@ -739,7 +739,7 @@ int res_file_gencode(const void *res, FILE *io, unsigned int next)
 	assert(r); // LCOV_EXCL_LINE
 
 	fprintf(io, ";; res_file %s\n", r->key);
-	fprintf(io, "SET %%A \"%s\"\n", r->rf_lpath);
+	fprintf(io, "SET %%A \"%s\"\n", r->lpath);
 
 	if (ENFORCED(r, RES_FILE_ABSENT)) {
 		fprintf(io, "CALL &FS.EXISTS?\n");
@@ -763,7 +763,7 @@ int res_file_gencode(const void *res, FILE *io, unsigned int next)
 
 		if (ENFORCED(r, RES_FILE_UID)) {
 			fprintf(io, "SET %%A 1\n");
-			fprintf(io, "SET %%B \"%s\"\n", r->rf_owner);
+			fprintf(io, "SET %%B \"%s\"\n", r->owner);
 			fprintf(io, "CALL &USER.FIND\n");
 			fprintf(io, "OK? @found.user.%i\n", next);
 			fprintf(io, "  COPY %%B %%A\n");
@@ -777,7 +777,7 @@ int res_file_gencode(const void *res, FILE *io, unsigned int next)
 
 		if (ENFORCED(r, RES_FILE_GID)) {
 			fprintf(io, "SET %%A 1\n");
-			fprintf(io, "SET %%B \"%s\"\n", r->rf_group);
+			fprintf(io, "SET %%B \"%s\"\n", r->group);
 			fprintf(io, "CALL &GROUP.FIND\n");
 			fprintf(io, "OK? @found.group.%i\n", next);
 			fprintf(io, "  COPY %%B %%A\n");
@@ -795,7 +795,7 @@ int res_file_gencode(const void *res, FILE *io, unsigned int next)
 	}
 
 	if (ENFORCED(r, RES_FILE_MODE)) {
-		fprintf(io, "SET %%B 0%o\n", r->rf_mode);
+		fprintf(io, "SET %%B 0%o\n", r->mode);
 		fprintf(io, "CALL &FS.CHMOD\n");
 	}
 
@@ -821,24 +821,24 @@ void* res_group_clone(const void *res, const char *key)
 	rg->enforced  = RES_DEFAULT(orig, enforced, RES_NONE);
 	rg->different = RES_NONE;
 
-	rg->rg_name   = RES_DEFAULT_STR(orig, rg_name,   NULL);
-	rg->rg_passwd = RES_DEFAULT_STR(orig, rg_passwd, NULL);
+	rg->name   = RES_DEFAULT_STR(orig, name,   NULL);
+	rg->passwd = RES_DEFAULT_STR(orig, passwd, NULL);
 
-	rg->rg_gid    = RES_DEFAULT(orig, rg_gid, 0);
+	rg->gid    = RES_DEFAULT(orig, gid, 0);
 
 	/* FIXME: clone members of res_group */
-	rg->rg_mem_add = stringlist_new(NULL);
-	rg->rg_mem_rm  = stringlist_new(NULL);
+	rg->mem_add = stringlist_new(NULL);
+	rg->mem_rm  = stringlist_new(NULL);
 
 	/* FIXME: clone admins of res_group */
-	rg->rg_adm_add = stringlist_new(NULL);
-	rg->rg_adm_rm  = stringlist_new(NULL);
+	rg->adm_add = stringlist_new(NULL);
+	rg->adm_rm  = stringlist_new(NULL);
 
 	/* state variables are never cloned */
-	rg->rg_grp = NULL;
-	rg->rg_sg  = NULL;
-	rg->rg_mem = NULL;
-	rg->rg_adm = NULL;
+	rg->grp = NULL;
+	rg->sg  = NULL;
+	rg->mem = NULL;
+	rg->adm = NULL;
 
 	rg->key = NULL;
 	if (key) {
@@ -856,20 +856,20 @@ void res_group_free(void *res)
 	if (rg) {
 		free(rg->key);
 
-		free(rg->rg_name);
-		free(rg->rg_passwd);
+		free(rg->name);
+		free(rg->passwd);
 
-		if (rg->rg_mem) {
-			stringlist_free(rg->rg_mem);
+		if (rg->mem) {
+			stringlist_free(rg->mem);
 		}
-		stringlist_free(rg->rg_mem_add);
-		stringlist_free(rg->rg_mem_rm);
+		stringlist_free(rg->mem_add);
+		stringlist_free(rg->mem_rm);
 
-		if (rg->rg_adm) {
-			stringlist_free(rg->rg_adm);
+		if (rg->adm) {
+			stringlist_free(rg->adm);
 		}
-		stringlist_free(rg->rg_adm_add);
-		stringlist_free(rg->rg_adm_rm);
+		stringlist_free(rg->adm_add);
+		stringlist_free(rg->adm_rm);
 	}
 	free(rg);
 }
@@ -921,17 +921,17 @@ int res_group_attrs(const void *res, struct hash *attrs)
 	const struct res_group *rg = (const struct res_group*)(res);
 	assert(rg); // LCOV_EXCL_LINE
 
-	_hash_attr(attrs, "name", strdup(rg->rg_name));
-	_hash_attr(attrs, "gid", ENFORCED(rg, RES_GROUP_GID) ? cw_string("%u",rg->rg_gid) : NULL);
+	_hash_attr(attrs, "name", strdup(rg->name));
+	_hash_attr(attrs, "gid", ENFORCED(rg, RES_GROUP_GID) ? cw_string("%u",rg->gid) : NULL);
 	_hash_attr(attrs, "present", strdup(ENFORCED(rg, RES_GROUP_ABSENT) ? "no" : "yes"));
-	_hash_attr(attrs, "password", ENFORCED(rg, RES_GROUP_PASSWD) ? strdup(rg->rg_passwd) : NULL);
+	_hash_attr(attrs, "password", ENFORCED(rg, RES_GROUP_PASSWD) ? strdup(rg->passwd) : NULL);
 	if (ENFORCED(rg, RES_GROUP_MEMBERS)) {
-		_hash_attr(attrs, "members", _res_group_roster_mv(rg->rg_mem_add, rg->rg_mem_rm));
+		_hash_attr(attrs, "members", _res_group_roster_mv(rg->mem_add, rg->mem_rm));
 	} else {
 		_hash_attr(attrs, "members", NULL);
 	}
 	if (ENFORCED(rg, RES_GROUP_ADMINS)) {
-		_hash_attr(attrs, "admins", _res_group_roster_mv(rg->rg_adm_add, rg->rg_adm_rm));
+		_hash_attr(attrs, "admins", _res_group_roster_mv(rg->adm_add, rg->adm_rm));
 	} else {
 		_hash_attr(attrs, "admins", NULL);
 	}
@@ -951,12 +951,12 @@ int res_group_set(void *res, const char *name, const char *value)
 	assert(rg); // LCOV_EXCL_LINE
 
 	if (strcmp(name, "gid") == 0) {
-		rg->rg_gid = strtoll(value, NULL, 10);
+		rg->gid = strtoll(value, NULL, 10);
 		ENFORCE(rg, RES_GROUP_GID);
 
 	} else if (strcmp(name, "name") == 0) {
-		free(rg->rg_name);
-		rg->rg_name = strdup(value);
+		free(rg->name);
+		rg->name = strdup(value);
 		ENFORCE(rg, RES_GROUP_NAME);
 
 	} else if (strcmp(name, "present") == 0) {
@@ -995,8 +995,8 @@ int res_group_set(void *res, const char *name, const char *value)
 		stringlist_free(multi);
 
 	} else if (strcmp(name, "pwhash") == 0 || strcmp(name, "password") == 0) {
-		free(rg->rg_passwd);
-		rg->rg_passwd = strdup(value);
+		free(rg->passwd);
+		rg->passwd = strdup(value);
 
 	} else if (strcmp(name, "changepw") == 0) {
 		if (strcmp(value, "no") == 0) {
@@ -1021,9 +1021,9 @@ int res_group_match(const void *res, const char *name, const char *value)
 	int rc;
 
 	if (strcmp(name, "gid") == 0) {
-		test_value = cw_string("%u", rg->rg_gid);
+		test_value = cw_string("%u", rg->gid);
 	} else if (strcmp(name, "name") == 0) {
-		test_value = cw_string("%s", rg->rg_name);
+		test_value = cw_string("%s", rg->name);
 	} else {
 		return 1;
 	}
@@ -1040,7 +1040,7 @@ int res_group_gencode(const void *res, FILE *io, unsigned int next)
 
 	fprintf(io, ";; res_group %s\n", r->key);
 	fprintf(io, "SET %%A 1\n");
-	fprintf(io, "SET %%B \"%s\"\n", r->rg_name);
+	fprintf(io, "SET %%B \"%s\"\n", r->name);
 	fprintf(io, "CALL &GROUP.FIND\n");
 
 	if (ENFORCED(r, RES_GROUP_ABSENT)) {
@@ -1051,7 +1051,7 @@ int res_group_gencode(const void *res, FILE *io, unsigned int next)
 		fprintf(io, "  COPY %%B %%A\n");
 
 		if (ENFORCED(r, RES_GROUP_GID)) {
-			fprintf(io, "  SET %%B %i\n", r->rg_gid);
+			fprintf(io, "  SET %%B %i\n", r->gid);
 		} else {
 			fprintf(io, "  CALL &GROUP.NEXT_GID\n");
 			fprintf(io, "  COPY %%R %%B\n");
@@ -1062,7 +1062,7 @@ int res_group_gencode(const void *res, FILE *io, unsigned int next)
 		fprintf(io, "found.%i:\n", next);
 
 		if (ENFORCED(r, RES_GROUP_GID)) {
-			fprintf(io, "  SET %%B %i\n", r->rg_gid);
+			fprintf(io, "  SET %%B %i\n", r->gid);
 			fprintf(io, "  CALL &GROUP.SET_GID\n");
 		}
 
@@ -1071,21 +1071,21 @@ int res_group_gencode(const void *res, FILE *io, unsigned int next)
 		if (ENFORCED(r, RES_GROUP_PASSWD)) {
 			fprintf(io, "SET %%B \"x\"\n");
 			fprintf(io, "CALL &GROUP.SET_PASSWD\n");
-			fprintf(io, "SET %%B \"%s\"\n", r->rg_passwd);
+			fprintf(io, "SET %%B \"%s\"\n", r->passwd);
 			fprintf(io, "CALL &GROUP.SET_PWHASH\n");
 		}
 
 		if (ENFORCED(r, RES_GROUP_MEMBERS)) {
 			fprintf(io, ";; members\n");
 			char ** name;
-			for (name = r->rg_mem_add->strings; *name; name++) {
+			for (name = r->mem_add->strings; *name; name++) {
 				fprintf(io, "SET %%A \"%s\"\n", *name);
 				fprintf(io, "CALL &GROUP.HAS_MEMBER?\n");
 				fprintf(io, "OK? @member.%s.else.%i\n", *name, next);
 				fprintf(io, "  CALL &GROUP.ADD_MEMBER\n");
 				fprintf(io, "member.%s.else.%i:\n", *name, next);
 			}
-			for (name = r->rg_mem_rm->strings; *name; name++) {
+			for (name = r->mem_rm->strings; *name; name++) {
 				fprintf(io, "SET %%A \"%s\"\n", *name);
 				fprintf(io, "CALL &GROUP.HAS_MEMBER?\n");
 				fprintf(io, "NOTOK? @member.%s.else.%i\n", *name, next);
@@ -1097,14 +1097,14 @@ int res_group_gencode(const void *res, FILE *io, unsigned int next)
 		if (ENFORCED(r, RES_GROUP_ADMINS)) {
 			fprintf(io, ";; admins\n");
 			char ** name;
-			for (name = r->rg_adm_add->strings; *name; name++) {
+			for (name = r->adm_add->strings; *name; name++) {
 				fprintf(io, "SET %%A \"%s\"\n", *name);
 				fprintf(io, "CALL &GROUP.HAS_ADMIN?\n");
 				fprintf(io, "OK? @admin.%s.else.%i\n", *name, next);
 				fprintf(io, "  CALL &GROUP.ADD_ADMIN\n");
 				fprintf(io, "admin.%s.else.%i:\n", *name, next);
 			}
-			for (name = r->rg_adm_rm->strings; *name; name++) {
+			for (name = r->adm_rm->strings; *name; name++) {
 				fprintf(io, "SET %%A \"%s\"\n", *name);
 				fprintf(io, "CALL &GROUP.HAS_ADMIN?\n");
 				fprintf(io, "NOTOK? @admin.%s.else.%i\n", *name, next);
@@ -1140,8 +1140,8 @@ int res_group_add_member(struct res_group *rg, const char *user)
 	assert(user); // LCOV_EXCL_LINE
 
 	res_group_enforce_members(rg, 1);
-	/* add to rg_mem_add, remove from rg_mem_rm */
-	return _group_update(rg->rg_mem_add, rg->rg_mem_rm, user);
+	/* add to mem_add, remove from mem_rm */
+	return _group_update(rg->mem_add, rg->mem_rm, user);
 }
 
 /**
@@ -1155,8 +1155,8 @@ int res_group_remove_member(struct res_group *rg, const char *user)
 	assert(user); // LCOV_EXCL_LINE
 
 	res_group_enforce_members(rg, 1);
-	/* add to rg_mem_rm, remove from rg_mem_add */
-	return _group_update(rg->rg_mem_rm, rg->rg_mem_add, user);
+	/* add to mem_rm, remove from mem_add */
+	return _group_update(rg->mem_rm, rg->mem_add, user);
 }
 
 int res_group_enforce_admins(struct res_group *rg, int enforce)
@@ -1182,8 +1182,8 @@ int res_group_add_admin(struct res_group *rg, const char *user)
 	assert(user); // LCOV_EXCL_LINE
 
 	res_group_enforce_admins(rg, 1);
-	/* add to rg_adm_add, remove from rg_adm_rm */
-	return _group_update(rg->rg_adm_add, rg->rg_adm_rm, user);
+	/* add to adm_add, remove from adm_rm */
+	return _group_update(rg->adm_add, rg->adm_rm, user);
 }
 
 /**
@@ -1197,8 +1197,8 @@ int res_group_remove_admin(struct res_group *rg, const char *user)
 	assert(user); // LCOV_EXCL_LINE
 
 	res_group_enforce_admins(rg, 1);
-	/* add to rg_adm_rm, remove from rg_adm_add */
-	return _group_update(rg->rg_adm_rm, rg->rg_adm_add, user);
+	/* add to adm_rm, remove from adm_add */
+	return _group_update(rg->adm_rm, rg->adm_add, user);
 }
 
 int res_group_notify(void *res, const struct resource *dep) { return 0; }

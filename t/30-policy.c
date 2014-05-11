@@ -46,14 +46,14 @@ TESTS {
 
 		isnt_null(res1 = resource_new("user", "user1"), "created use resource");
 		is_string(
-			((struct res_user*)(res1->resource))->ru_name,
+			((struct res_user*)(res1->resource))->name,
 			"user1", 
 			"username for new resource");
 		policy_add_resource(pol, res1);
 
 		isnt_null(res2 = resource_new("group", "group1"), "created group resource");
 		is_string(
-			((struct res_group*)(res2->resource))->rg_name,
+			((struct res_group*)(res2->resource))->name,
 			"group1",
 			"group name for new resource");
 		policy_add_resource(pol, res2);

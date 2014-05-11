@@ -64,16 +64,16 @@ TESTS {
 
 		res_group_set(rg, "name", "name1");
 		ok(ENFORCED(rg, RES_GROUP_NAME), "NAME is enforced");
-		is_string(rg->rg_name, "name1", "name to enforce");
+		is_string(rg->name, "name1", "name to enforce");
 
 		res_group_set(rg, "password", "#$hash!@#$");
 		res_group_set(rg, "changepw", "yes");
 		ok(ENFORCED(rg, RES_GROUP_PASSWD), "PASSWD is enforced");
-		is_string(rg->rg_passwd, "#$hash!@#$", "password to enforce");
+		is_string(rg->passwd, "#$hash!@#$", "password to enforce");
 
 		res_group_set(rg, "gid", "15");
 		ok(ENFORCED(rg, RES_GROUP_GID), "GID is enforced");
-		is_int(rg->rg_gid, 15, "GID to enforce");
+		is_int(rg->gid, 15, "GID to enforce");
 
 		res_group_enforce_members(rg, 1);
 		ok(ENFORCED(rg, RES_GROUP_MEMBERS), "MEMBERS is enforced");
@@ -128,25 +128,25 @@ TESTS {
 		res_group_set(rg, "admin", "!admin4");
 		res_group_set(rg, "admin", "admin4"); /* should move from _rm to _add */
 
-		is_unsigned(rg->rg_mem_add->num, 2, "2 group members to add");
-		is_string(rg->rg_mem_add->strings[0], "user1", "rg_mem_add[0]");
-		is_string(rg->rg_mem_add->strings[1], "user3", "rg_mem_add[1]");
-		is_null(rg->rg_mem_add->strings[2], "rg_mem_add[2] is NULL");
+		is_unsigned(rg->mem_add->num, 2, "2 group members to add");
+		is_string(rg->mem_add->strings[0], "user1", "mem_add[0]");
+		is_string(rg->mem_add->strings[1], "user3", "mem_add[1]");
+		is_null(rg->mem_add->strings[2], "mem_add[2] is NULL");
 
-		is_unsigned(rg->rg_mem_rm->num, 2, "2 group members to remove");
-		is_string(rg->rg_mem_rm->strings[0], "user2", "rg_mem_rm[0]");
-		is_string(rg->rg_mem_rm->strings[1], "user4", "rg_mem_rm[1]");
-		is_null(rg->rg_mem_rm->strings[2], "rg_mem_rm[2] is NULL");
+		is_unsigned(rg->mem_rm->num, 2, "2 group members to remove");
+		is_string(rg->mem_rm->strings[0], "user2", "mem_rm[0]");
+		is_string(rg->mem_rm->strings[1], "user4", "mem_rm[1]");
+		is_null(rg->mem_rm->strings[2], "mem_rm[2] is NULL");
 
-		is_unsigned(rg->rg_adm_add->num, 2, "2 group admins to add");
-		is_string(rg->rg_adm_add->strings[0], "admin3", "rg_adm_add[0]");
-		is_string(rg->rg_adm_add->strings[1], "admin4", "rg_adm_add[1]");
-		is_null(rg->rg_adm_add->strings[2], "rg_adm_add[2] is NULL");
+		is_unsigned(rg->adm_add->num, 2, "2 group admins to add");
+		is_string(rg->adm_add->strings[0], "admin3", "adm_add[0]");
+		is_string(rg->adm_add->strings[1], "admin4", "adm_add[1]");
+		is_null(rg->adm_add->strings[2], "adm_add[2] is NULL");
 
-		is_unsigned(rg->rg_adm_rm->num, 2, "2 group admins to remove");
-		is_string(rg->rg_adm_rm->strings[0], "admin1", "rg_adm_rm[0]");
-		is_string(rg->rg_adm_rm->strings[1], "admin2", "rg_adm_rm[1]");
-		is_null(rg->rg_adm_rm->strings[2], "rg_adm_rm[2] is NULL");
+		is_unsigned(rg->adm_rm->num, 2, "2 group admins to remove");
+		is_string(rg->adm_rm->strings[0], "admin1", "adm_rm[0]");
+		is_string(rg->adm_rm->strings[1], "admin2", "adm_rm[1]");
+		is_null(rg->adm_rm->strings[2], "adm_rm[2] is NULL");
 
 		res_group_free(rg);
 	}

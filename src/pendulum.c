@@ -33,6 +33,9 @@
 #define  PN_OP_TRACE   0x0013
 #define  PN_OP_VCHECK  0x0014
 #define  PN_OP_SYSERR  0x0015
+#define  PN_OP_FLAGGED 0x0016
+#define  PN_OP_FLAG    0x0017
+#define  PN_OP_UNFLAG  0x0018
 #define  PN_OP_INVAL   0x00ff
 
 static const char *OP_NAMES[] = {
@@ -58,6 +61,10 @@ static const char *OP_NAMES[] = {
 	"TRACE",
 	"VCHECK",
 	"SYSERR",
+	"FLAG",
+	"FLAGGED?",
+	"FLAG!",
+	"UNFLAG!",
 	"(invalid)",
 	NULL,
 };
@@ -225,7 +232,7 @@ static pn_word s_resolve_arg(pn_machine *m, const char *arg)
 
 	case '&':
 		errno = ENOENT;
-		for (i = 0; i < MAX_FUNCTIONS; i++) {
+		for (i = 0; i < PN_MAX_FUNCS; i++) {
 			if (!m->func[i].call) break;
 			if (strcmp(m->func[i].name, arg+1)) continue;
 
@@ -301,7 +308,7 @@ int pn_func(pn_machine *m, const char *op, pn_function fn)
 	assert(fn);
 
 	int i;
-	for (i = 0; i < MAX_FUNCTIONS; i++) {
+	for (i = 0; i < PN_MAX_FUNCS; i++) {
 		if (m->func[i].call) continue;
 		strncpy(m->func[i].name, op, 31);
 		m->func[i].call = fn;
@@ -323,7 +330,7 @@ int pn_parse(pn_machine *m, FILE *io)
 	while (fgets(buf, 1024, io)) {
 		if (s_label(buf, &label) == 0) {
 			errno = ENOBUFS;
-			for (i = 0; i < 4096; i++) {
+			for (i = 0; i < PN_MAX_JUMPS; i++) {
 				if (*m->jumps[i].label) continue;
 
 				strncpy(m->jumps[i].label, label, 63);
@@ -337,6 +344,14 @@ int pn_parse(pn_machine *m, FILE *io)
 			free(label);
 			m->codesize++;
 			continue;
+		}
+
+		if (s_flag(buf, &label) == 0) {
+			errno = ENOBUFS;
+			for (i = 0; i < PN_MAX_FLAGS; i++) {
+				if (*m->jumps[i].label) continue;
+
+			}
 		}
 
 		if (s_parse(buf, NULL, &arg1, &arg2) != 0) continue;

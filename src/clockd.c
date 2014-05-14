@@ -29,17 +29,6 @@
 
 #define BLOCK_SIZE 8192
 
-#if 0
-#define FILE_DIR "/tmp/clockd"
-struct file {
-	struct SHA1  sha1;
-	int32_t      last_seen;
-};
-struct file_cache {
-	size_t        len;
-	struct file  *files;
-};
-#endif
 static FILE* s_render(const char *source, cw_hash_t *facts)
 {
 	FILE *in  = tmpfile();
@@ -65,64 +54,7 @@ static FILE* s_render(const char *source, cw_hash_t *facts)
 	fclose(out);
 	return NULL;
 }
-#if 0
-static char* s_sha1path(struct SHA1 *sha1)
-{
-	char buf[4] = {0};
-	memcpy(buf, sha1->hex, 3);
-	return cw_string("%s/%s/%s", FILE_DIR, buf, sha1->hex);
-}
-static size_t s_fcache_next(struct file_cache *c)
-{
-	int32_t oldest = cw_time_s();
-	size_t i, j;
-	for (i = 0, j = 0; i < c->len; i++)
-		if (c->files[i].last_seen < oldest)
-			j = i, oldest = c->files[i].last_seen;
 
-	if (c->files[j].last_seen) {
-		/* purge */
-		c->files[j].last_seen = 0;
-		char *path = s_sha1path(c->files[j].sha1);
-		unlink(path);
-		free(path);
-	}
-	return j;
-}
-static int s_fcache_save(FILE *io, struct SHA1 *sha1, struct file_cache *c)
-{
-	/* store the file in the cache dir */
-	char *path = s_sha1path(sha1);
-	FILE *out = fopen(path, "w");
-	free(path);
-
-	if (!out)
-		return -1;
-
-	char buf[BLOCK_SIZE];
-	size_t n;
-	fseek(io, 0, SEEK_SET);
-	while ((n = fread(buf, BLOCK_SIZE, sizeof(char), io)) > 0)
-		fwrite(buf, BLOCK_SIZE, sizeof(char), out);
-	fclose(out);
-
-	/* update the file cache structure */
-	size_t i = s_fcacheslot(c);
-	c->files[i].last_seen = cw_time_s();
-	memcpy(&c->files[i].sha1, sha1, sizeof(struct SHA1));
-	return 0;
-}
-
-static size_t s_fcache_find(struct SHA1 *sha1, struct file_cache *c)
-{
-	size_t i;
-	for (i = 0; i < c->len; i++) {
-		if (c->files[i].last_seen == 0) continue;
-		if (memcmp(c->files[i].sha1.raw, sha1->raw, SHA1_DIGLEN) == 0) break;
-	}
-	return i;
-}
-#endif
 struct conn {
 	cw_frame_t *ident;
 	int32_t last_seen;
@@ -253,11 +185,10 @@ int main(int argc, char **argv)
 			}
 
 		} else if (strcmp(pdu->type, "FILE") == 0) {
-			char *name    = cw_pdu_text(pdu, 1);
-			char *factstr = cw_pdu_text(pdu, 2);
-			char *source  = cw_pdu_text(pdu, 3);
+			char *name = cw_pdu_text(pdu, 1);
+			char *key  = cw_pdu_text(pdu, 2);
+			/* use cached facts for the connection */
 			cw_log(LOG_INFO, "inbound file request for %s", name);
-			cw_log(LOG_INFO, "facts are: %s", factstr);
 
 			cw_hash_t *facts = cw_alloc(sizeof(cw_hash_t));
 			fact_read_string(factstr, facts);

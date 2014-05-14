@@ -5,8 +5,9 @@
 
 #include <stdint.h>
 
-#define MAX_FUNCTIONS 8192
-#define MAX_JUMPS      512
+#define PN_MAX_FUNCS   512
+#define PN_MAX_JUMPS 16384
+#define PN_MAX_FLAGS  8192
 
 typedef uint8_t  pn_byte;
 typedef uint64_t pn_word;
@@ -36,12 +37,17 @@ struct pn_machine {
 	struct {
 		char        name[32];
 		pn_function call;
-	} func[MAX_FUNCTIONS];
+	} func[PN_MAX_FUNCS];
 
 	struct {
-		char label[64];
-		pn_word step;
-	} jumps[MAX_JUMPS];
+		char     label[64];
+		pn_word  step;
+	} jumps[PN_MAX_JUMPS];
+
+	struct {
+		char     label[64];
+		pn_byte  value;
+	} flags[PN_MAX_FLAGS];
 };
 
 

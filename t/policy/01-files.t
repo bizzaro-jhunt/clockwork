@@ -43,7 +43,7 @@ COPY %F %A
 COPY %D %B
 COPY %E %C
 CALL &FS.CHOWN
-SET %B 0400
+SET %D 0400
 CALL &FS.CHMOD
 next.1:
 EOF
@@ -67,7 +67,7 @@ OK? @create.1
 create.1:
   CALL &FS.MKFILE
 exists.1:
-SET %B 0644
+SET %D 0644
 CALL &FS.CHMOD
 next.1:
 EOF
@@ -87,7 +87,7 @@ SET %E 0
 SET %A 1
 SET %B "jrhunt"
 CALL &USER.FIND
-OK? @found.user.1
+NOTOK? @found.user.1
   COPY %B %A
   PRINT "Unable to find user '%s'\n"
   JUMP @userfind.done.1
@@ -98,7 +98,7 @@ userfind.done.1:
 SET %A 1
 SET %B "staff"
 CALL &GROUP.FIND
-OK? @found.group.1
+NOTOK? @found.group.1
   COPY %B %A
   PRINT "Unable to find group '%s'\n"
   JUMP @groupfind.done.1
@@ -110,7 +110,7 @@ COPY %F %A
 COPY %D %B
 COPY %E %C
 CALL &FS.CHOWN
-SET %B 0410
+SET %D 0410
 CALL &FS.CHMOD
 next.1:
 EOF

@@ -71,4 +71,11 @@ pendulum is at least v0
 pendulum is not yet v9999
 EOF
 
+pendulum_ok "$TESTS/flags.pn", <<EOF, "flags.pn";
+xyzzy is initially 0
+xyzzy is 1 after FLAG 1 call
+xyzzy is 0 after FLAG 0 call
+xyzzy is 1 after FLAG 425 call
+EOF
+
 done_testing;

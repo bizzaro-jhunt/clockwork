@@ -33,9 +33,8 @@
 #define  PN_OP_TRACE   0x0013
 #define  PN_OP_VCHECK  0x0014
 #define  PN_OP_SYSERR  0x0015
-#define  PN_OP_FLAGGED 0x0016
-#define  PN_OP_FLAG    0x0017
-#define  PN_OP_UNFLAG  0x0018
+#define  PN_OP_FLAG    0x0016
+#define  PN_OP_FLAGGED 0x0017
 #define  PN_OP_INVAL   0x00ff
 
 static const char *OP_NAMES[] = {
@@ -63,8 +62,6 @@ static const char *OP_NAMES[] = {
 	"SYSERR",
 	"FLAG",
 	"FLAGGED?",
-	"FLAG!",
-	"UNFLAG!",
 	"(invalid)",
 	NULL,
 };
@@ -150,28 +147,30 @@ if (n--) goto argument;
 
 static int s_resolve_op(const char *op)
 {
-	if (strcmp(op, "NOOP")   == 0) return PN_OP_NOOP;
-	if (strcmp(op, "EQ?")    == 0) return PN_OP_EQ;
-	if (strcmp(op, "NE?")    == 0) return PN_OP_NE;
-	if (strcmp(op, "CMP?")   == 0) return PN_OP_CMP;
-	if (strcmp(op, "GT?")    == 0) return PN_OP_GT;
-	if (strcmp(op, "GTE?")   == 0) return PN_OP_GTE;
-	if (strcmp(op, "LT?")    == 0) return PN_OP_LT;
-	if (strcmp(op, "LTE?")   == 0) return PN_OP_LTE;
-	if (strcmp(op, "OK?")    == 0) return PN_OP_OK;
-	if (strcmp(op, "NOTOK?") == 0) return PN_OP_NOTOK;
-	if (strcmp(op, "COPY")   == 0) return PN_OP_COPY;
-	if (strcmp(op, "SET")    == 0) return PN_OP_SET;
-	if (strcmp(op, "HALT")   == 0) return PN_OP_HALT;
-	if (strcmp(op, "ERROR")  == 0) return PN_OP_ERROR;
-	if (strcmp(op, "LOG")    == 0) return PN_OP_LOG;
-	if (strcmp(op, "CALL")   == 0) return PN_OP_CALL;
-	if (strcmp(op, "PRINT")  == 0) return PN_OP_PRINT;
-	if (strcmp(op, "JUMP")   == 0) return PN_OP_JUMP;
-	if (strcmp(op, "DUMP")   == 0) return PN_OP_DUMP;
-	if (strcmp(op, "TRACE")  == 0) return PN_OP_TRACE;
-	if (strcmp(op, "VCHECK") == 0) return PN_OP_VCHECK;
-	if (strcmp(op, "SYSERR") == 0) return PN_OP_SYSERR;
+	if (strcmp(op, "NOOP")     == 0) return PN_OP_NOOP;
+	if (strcmp(op, "EQ?")      == 0) return PN_OP_EQ;
+	if (strcmp(op, "NE?")      == 0) return PN_OP_NE;
+	if (strcmp(op, "CMP?")     == 0) return PN_OP_CMP;
+	if (strcmp(op, "GT?")      == 0) return PN_OP_GT;
+	if (strcmp(op, "GTE?")     == 0) return PN_OP_GTE;
+	if (strcmp(op, "LT?")      == 0) return PN_OP_LT;
+	if (strcmp(op, "LTE?")     == 0) return PN_OP_LTE;
+	if (strcmp(op, "OK?")      == 0) return PN_OP_OK;
+	if (strcmp(op, "NOTOK?")   == 0) return PN_OP_NOTOK;
+	if (strcmp(op, "COPY")     == 0) return PN_OP_COPY;
+	if (strcmp(op, "SET")      == 0) return PN_OP_SET;
+	if (strcmp(op, "HALT")     == 0) return PN_OP_HALT;
+	if (strcmp(op, "ERROR")    == 0) return PN_OP_ERROR;
+	if (strcmp(op, "LOG")      == 0) return PN_OP_LOG;
+	if (strcmp(op, "CALL")     == 0) return PN_OP_CALL;
+	if (strcmp(op, "PRINT")    == 0) return PN_OP_PRINT;
+	if (strcmp(op, "JUMP")     == 0) return PN_OP_JUMP;
+	if (strcmp(op, "DUMP")     == 0) return PN_OP_DUMP;
+	if (strcmp(op, "TRACE")    == 0) return PN_OP_TRACE;
+	if (strcmp(op, "VCHECK")   == 0) return PN_OP_VCHECK;
+	if (strcmp(op, "SYSERR")   == 0) return PN_OP_SYSERR;
+	if (strcmp(op, "FLAG")     == 0) return PN_OP_FLAG;
+	if (strcmp(op, "FLAGGED?") == 0) return PN_OP_FLAGGED;
 	fprintf(stderr, "Invalid op: '%s'\n", op);
 	return PN_OP_INVAL;
 }
@@ -207,6 +206,7 @@ static pn_word s_resolve_arg(pn_machine *m, const char *arg)
 {
 	int i;
 	pn_word val = 0;
+	char ebuf[1024];
 
 	switch (*arg) {
 	case '"':
@@ -228,7 +228,22 @@ static pn_word s_resolve_arg(pn_machine *m, const char *arg)
 			errno = 0;
 			return m->jumps[i].step;
 		}
-		return 0;
+		snprintf(ebuf, 1024, "Label '%s' not found\n", arg+1);
+		pn_die(m, ebuf);
+
+	case ':':
+		errno = ENOENT;
+		for (i = 0; i < PN_MAX_FLAGS; i++) {
+			if (!m->flags[i].label[0]) {
+				strncpy(m->flags[i].label, arg+1, 63);
+				return (pn_word)i;
+			}
+			if (strcmp(m->flags[i].label, arg+1) == 0)
+				return (pn_word)i;
+		}
+
+		snprintf(ebuf, 1024, "Cannot set flag '%s': insufficient space\n", arg+1);
+		pn_die(m, ebuf);
 
 	case '&':
 		errno = ENOENT;
@@ -239,7 +254,6 @@ static pn_word s_resolve_arg(pn_machine *m, const char *arg)
 			errno = 0;
 			return (pn_word)i;
 		}
-		char ebuf[1024];
 		snprintf(ebuf, 1024, "'%s' is not a defined function\n", arg+1);
 		pn_die(m, ebuf);
 
@@ -346,14 +360,6 @@ int pn_parse(pn_machine *m, FILE *io)
 			continue;
 		}
 
-		if (s_flag(buf, &label) == 0) {
-			errno = ENOBUFS;
-			for (i = 0; i < PN_MAX_FLAGS; i++) {
-				if (*m->jumps[i].label) continue;
-
-			}
-		}
-
 		if (s_parse(buf, NULL, &arg1, &arg2) != 0) continue;
 
 		m->codesize++;
@@ -439,6 +445,12 @@ int pn_run(pn_machine *m)
 			m->Ip = m->Tr ? m->Ip + 1 : PC.arg1;
 			break;
 
+		case PN_OP_FLAGGED:
+			pn_trace(m, TRACE_START " %s (%i)\n",
+					m->flags[PC.arg1].label, m->flags[PC.arg1].value);
+			m->Tr = m->flags[PC.arg1].value;
+			NEXT;
+
 		case PN_OP_EQ:    TEST(m->T1 == m->T2, m->T1, "==", m->T2);
 		case PN_OP_NE:    TEST(m->T1 != m->T2, m->T1, "!=", m->T2);
 		case PN_OP_GT:    TEST(m->T1 >  m->T2, m->T1, ">",  m->T2);
@@ -515,6 +527,12 @@ int pn_run(pn_machine *m)
 		case PN_OP_SYSERR:
 			pn_trace(m, TRACE_START " errno=%i\n", TRACE_ARGS, errno);
 			fprintf(m->dump_fd, "SYSTEM ERROR %i: %s\n", errno, strerror(errno));
+			NEXT;
+
+		case PN_OP_FLAG:
+			pn_trace(m, TRACE_START " %s = %i\n", TRACE_ARGS,
+					m->flags[PC.arg2].label, PC.arg1 == 0 ? 0 : 1);
+			m->flags[PC.arg2].value = (PC.arg1 ? 1 : 0);
 			NEXT;
 
 		default: pn_die(m, "Unknown / Invalid operand");

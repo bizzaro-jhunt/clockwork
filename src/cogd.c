@@ -19,6 +19,7 @@
 
 #include "clockwork.h"
 #include "pendulum.h"
+#include "pendulum_funcs.h"
 
 #include <zmq.h>
 #include <sys/types.h>
@@ -69,6 +70,7 @@ int main(int argc, char **argv)
 	void *listener = zmq_socket(context, ZMQ_ROUTER);
 	zmq_bind(listener, "tcp://*:2324");
 	cw_log_open("cogd", "stdout");
+	cw_log_level(0, "debug");
 	cw_log(LOG_INFO, "cogd starting up");
 
 	char *myfqdn = s_myfqdn();
@@ -83,6 +85,7 @@ int main(int argc, char **argv)
 
 		int time_left = (int)((next_run - cw_time_ms()));
 		if (time_left < 0) time_left = 0;
+		cw_log(LOG_DEBUG, "zmq_poll for %ims", time_left);
 
 		errno = 0;
 		rc = zmq_poll(socks, 1, time_left);
@@ -109,6 +112,8 @@ int main(int argc, char **argv)
 		}
 
 		if (cw_time_ms() >= next_run) {
+			cw_log(LOG_INFO, "Starting configuration run (%i > %i)", cw_time_ms(), next_run);
+
 			cw_hash_t facts;
 			memset(&facts, 0, sizeof(cw_hash_t));
 			if (fact_gather("/lib/clockwork/gather.d/*", &facts) != 0) {
@@ -122,10 +127,12 @@ int main(int argc, char **argv)
 			assert(rc == 0);
 			fprintf(io, "%c", '\0');
 			size_t len = ftell(io);
+			fseek(io, 0, SEEK_SET);
 
 			char *factstr = mmap(NULL, len, PROT_READ, MAP_SHARED, fileno(io), 0);
-			if (!factstr) {
+			if ((void *)factstr == MAP_FAILED) {
 				cw_log(LOG_CRIT, "Failed to mmap fact data");
+				goto maybe_next_time;
 			}
 
 			void *client = zmq_socket(context, ZMQ_DEALER);
@@ -136,6 +143,24 @@ int main(int argc, char **argv)
 			assert(rc == 0);
 
 			cw_pdu_t *pdu, *reply;
+
+			pdu = cw_pdu_make(NULL, 2, "HELLO", myfqdn);
+			rc = cw_pdu_send(client, pdu);
+			assert(rc == 0);
+
+			reply = cw_pdu_recv(client);
+			if (!reply) {
+				cw_log(LOG_ERR, "failed: %s", zmq_strerror(errno));
+				goto shut_it_down;
+			}
+			cw_log(LOG_INFO, "Received a '%s' PDU", pdu->type);
+			if (strcmp(reply->type, "ERROR") == 0) {
+				char *e = cw_pdu_text(reply, 1);
+				cw_log(LOG_ERR, "failed: %s", e);
+				free(e);
+				goto shut_it_down;
+			}
+
 			pdu = cw_pdu_make(NULL, 3, "POLICY", myfqdn, factstr);
 			rc = cw_pdu_send(client, pdu);
 
@@ -146,30 +171,54 @@ int main(int argc, char **argv)
 			reply = cw_pdu_recv(client);
 			if (!reply) {
 				cw_log(LOG_ERR, "failed: %s", zmq_strerror(errno));
-			} else {
-				char *code = cw_pdu_text(reply, 1);
-				/*
-				printf("Received PENDULUM code:\n"
-				       "-----------------------\n%s\n\n",
-				       code);
-				*/
-
-				pn_machine m;
-				pn_init(&m);
-				pendulum_funcs(&m);
-
-				FILE *io = tmpfile();
-				fprintf(io, "%s", code);
-				fseek(io, 0, SEEK_SET);
-
-				pn_parse(&m, io);
-				pn_run(&m);
+				goto shut_it_down;
+			}
+			cw_log(LOG_INFO, "Received a '%s' PDU", pdu->type);
+			if (strcmp(reply->type, "ERROR") == 0) {
+				char *e = cw_pdu_text(reply, 1);
+				cw_log(LOG_ERR, "failed: %s", e);
+				free(e);
+				goto shut_it_down;
 			}
 
+			char *code = cw_pdu_text(reply, 1);
+			cw_log(LOG_DEBUG, "PENDULUM:\n"
+			       "-----------------------\n%s\n\n",
+			       code);
+
+			pn_machine m;
+			pn_init(&m);
+			pendulum_funcs(&m, context);
+
+			io = tmpfile();
+			fprintf(io, "%s", code);
+			fseek(io, 0, SEEK_SET);
+
+			pn_parse(&m, io);
+			pn_run(&m);
+			fclose(io);
+
+			pdu = cw_pdu_make(NULL, 1, "BYE");
+			rc = cw_pdu_send(client, pdu);
+
+			reply = cw_pdu_recv(client);
+			if (!reply) {
+				cw_log(LOG_ERR, "failed: %s", zmq_strerror(errno));
+				goto shut_it_down;
+			}
+			cw_log(LOG_INFO, "Received a '%s' PDU", pdu->type);
+			if (strcmp(reply->type, "ERROR") == 0) {
+				char *e = cw_pdu_text(reply, 1);
+				cw_log(LOG_ERR, "failed: %s", e);
+				free(e);
+				goto shut_it_down;
+			}
+
+shut_it_down:
 			cw_zmq_shutdown(client, 0);
 			cw_log(LOG_INFO, "closed connection");
 
-	maybe_next_time:
+maybe_next_time:
 			next_run = cw_time_ms() + INTERVAL;
 		}
 	}

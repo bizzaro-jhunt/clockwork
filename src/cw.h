@@ -313,4 +313,16 @@ int cw_run2(FILE *in, FILE *out, FILE *err, char *cmd, ...);
 int cw_daemonize(const char *pidfile, const char *user, const char *group);
 int cw_cleanenv(int n, const char **keep);
 
+/*
+    ######## ########  ##
+       ##    ##     ## ##
+       ##    ##     ## ##
+       ##    ########  ##
+       ##    ##        ##
+       ##    ##        ##
+       ##    ##        ########
+ */
+
+FILE* cw_tpl_erb(const char *src, cw_hash_t *facts);
+
 #endif

@@ -334,6 +334,9 @@ struct sgdb {
 };
 
 typedef struct {
+	void          *zmq;
+	const char    *server; /*   tcp://ip.ad.dr.ess:port  */
+
 	struct pwdb   *pwdb;
 	struct passwd *pwent;
 
@@ -612,6 +615,40 @@ static pn_word cwa_exec_run1(pn_machine *m)
 	m->S2 = (pn_word)(UDATA(m)->exec_last = out);
 	return rc;
 }
+
+/*
+
+     ######  ######## ########  ##     ## ######## ########
+    ##    ## ##       ##     ## ##     ## ##       ##     ##
+    ##       ##       ##     ## ##     ## ##       ##     ##
+     ######  ######   ########  ##     ## ######   ########
+          ## ##       ##   ##    ##   ##  ##       ##   ##
+    ##    ## ##       ##    ##    ## ##   ##       ##    ##
+     ######  ######## ##     ##    ###    ######## ##     ##
+
+ */
+
+static pn_word cwa_server_sha1(pn_machine *m)
+{
+	/* FIXME - implement SERVER.SHA1:
+	     * connect to server endpoint via zmq
+	     * request a FILE
+	     * store nblocks in UDATA
+	     * store SHA1 in S2
+	 */
+	return 1;
+}
+
+static pn_word cwa_server_writefile(pn_machine *m)
+{
+	/* FIXME - implement SERVER.WRITEFILE:
+	     * connect to server endpoint via zmq
+	     * request DATA0...DATAn
+	     * open %A for writing and write to it
+	 */
+	return 1;
+}
+
 
 /*
 
@@ -1500,7 +1537,7 @@ static pn_word cwa_group_set_pwhash(pn_machine *m)
  */
 
 
-int pendulum_funcs(pn_machine *m)
+int pendulum_funcs(pn_machine *m, void *zmq_ctx)
 {
 	pn_func(m,  "FS.EXISTS?",         cwa_fs_exists);
 	pn_func(m,  "FS.FILE?",           cwa_fs_is_file);
@@ -1609,7 +1646,12 @@ int pendulum_funcs(pn_machine *m)
 	pn_func(m,  "EXEC.CHECK",         cwa_exec_check);
 	pn_func(m,  "EXEC.RUN1",          cwa_exec_run1);
 
+	pn_func(m,  "SERVER.SHA1",        cwa_server_sha1);
+	pn_func(m,  "SERVER.WRITEFILE",   cwa_server_writefile);
+
 	m->U = calloc(1, sizeof(udata));
+	UDATA(m)->server = strdup("tcp://localhost:2323");
+	UDATA(m)->zmq    = zmq_ctx;
 
 	return 0;
 }

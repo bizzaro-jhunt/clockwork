@@ -29,6 +29,7 @@ typedef int (*resource_norm_f)(void *res, struct policy *pol, cw_hash_t *facts);
 typedef int (*resource_set_f)(void *res, const char *attr, const char *value);
 typedef int (*resource_match_f)(const void *res, const char *attr, const char *value);
 typedef int (*resource_gencode_f)(const void *res, FILE *io, unsigned int next);
+typedef FILE* (*resource_content_f)(const void *res, cw_hash_t *facts);
 typedef int (*resource_notify_f)(void *res, const struct resource *dep);
 
 #define RESOURCE_TYPE(t) { \
@@ -42,6 +43,7 @@ typedef int (*resource_notify_f)(void *res, const struct resource *dep);
 	     .set_callback = res_ ## t ## _set,     \
 	   .match_callback = res_ ## t ## _match,   \
 	 .gencode_callback = res_ ## t ## _gencode, \
+	 .content_callback = res_ ## t ## _content, \
 	  .notify_callback = res_ ## t ## _notify,  }
 
 	const struct {
@@ -56,6 +58,7 @@ typedef int (*resource_notify_f)(void *res, const struct resource *dep);
 		resource_set_f      set_callback;
 		resource_match_f    match_callback;
 		resource_gencode_f  gencode_callback;
+		resource_content_f  content_callback;
 		resource_notify_f   notify_callback;
 
 	} resource_types[RES_UNKNOWN] = {
@@ -358,6 +361,14 @@ int resource_gencode(const struct resource *r, FILE *io, unsigned int next)
 	assert(r->type != RES_UNKNOWN); // LCOV_EXCL_LINE
 
 	return (*(resource_types[r->type].gencode_callback))(r->resource, io, next);
+}
+
+FILE * resource_content(const struct resource *r, cw_hash_t *facts)
+{
+	assert(r); // LCOV_EXCL_LINE
+	assert(r->type != RES_UNKNOWN); // LCOV_EXCL_LINE
+
+	return (*(resource_types[r->type].content_callback))(r->resource, facts);
 }
 
 /**

@@ -189,7 +189,6 @@ void* res_user_clone(const void *res, const char *key)
 	struct res_user *ru = ru = cw_alloc(sizeof(struct res_user));
 
 	ru->enforced  = RES_DEFAULT(orig, enforced, RES_NONE);
-	ru->different = RES_NONE;
 
 	ru->uid    = RES_DEFAULT(orig, uid,    -1);
 	ru->gid    = RES_DEFAULT(orig, gid,    -1);
@@ -487,6 +486,8 @@ int res_user_gencode(const void *res, FILE *io, unsigned int next)
 	return 0;
 }
 
+FILE * res_user_content(const void *res, cw_hash_t *facts) { return NULL; }
+
 int res_user_notify(void *res, const struct resource *dep) { return 0; }
 
 
@@ -504,7 +505,6 @@ void* res_file_clone(const void *res, const char *key)
 	struct res_file *rf = cw_alloc(sizeof(struct res_file));
 
 	rf->enforced    = RES_DEFAULT(orig, enforced,  RES_NONE);
-	rf->different   = RES_NONE;
 
 	rf->owner    = RES_DEFAULT_STR(orig, owner, NULL);
 	rf->group    = RES_DEFAULT_STR(orig, group, NULL);
@@ -514,15 +514,9 @@ void* res_file_clone(const void *res, const char *key)
 
 	rf->mode     = RES_DEFAULT(orig, mode, 0600);
 
-	rf->lpath    = RES_DEFAULT_STR(orig, lpath, NULL);
-	rf->rpath    = RES_DEFAULT_STR(orig, rpath, NULL);
+	rf->path     = RES_DEFAULT_STR(orig, path, NULL);
+	rf->source   = RES_DEFAULT_STR(orig, source, NULL);
 	rf->template = RES_DEFAULT_STR(orig, template, NULL);
-
-	sha1_init(&(rf->lsha1), NULL);
-	sha1_init(&(rf->rsha1), NULL);
-	memset(&rf->stat, 0, sizeof(struct stat));
-	rf->exists   = 0;
-
 
 	rf->key = NULL;
 	if (key) {
@@ -537,8 +531,8 @@ void res_file_free(void *res)
 {
 	struct res_file *rf = (struct res_file*)(res);
 	if (rf) {
-		free(rf->rpath);
-		free(rf->lpath);
+		free(rf->source);
+		free(rf->path);
 		free(rf->template);
 		free(rf->owner);
 		free(rf->group);
@@ -563,7 +557,7 @@ int res_file_attrs(const void *res, cw_hash_t *attrs)
 	const struct res_file *rf = (const struct res_file*)(res);
 	assert(rf); // LCOV_EXCL_LINE
 
-	_hash_attr(attrs, "path", strdup(rf->lpath));
+	_hash_attr(attrs, "path", strdup(rf->path));
 	_hash_attr(attrs, "present", strdup(ENFORCED(rf, RES_FILE_ABSENT) ? "no" : "yes"));
 
 	_hash_attr(attrs, "owner", ENFORCED(rf, RES_FILE_UID) ? strdup(rf->owner) : NULL);
@@ -572,7 +566,7 @@ int res_file_attrs(const void *res, cw_hash_t *attrs)
 
 	if (ENFORCED(rf, RES_FILE_SHA1)) {
 		_hash_attr(attrs, "template", cw_strdup(rf->template));
-		_hash_attr(attrs, "source",   cw_strdup(rf->rpath));
+		_hash_attr(attrs, "source",   cw_strdup(rf->source));
 	} else {
 		_hash_attr(attrs, "template", NULL);
 		_hash_attr(attrs, "source",   NULL);
@@ -617,7 +611,7 @@ int res_file_norm(void *res, struct policy *pol, cw_hash_t *facts)
 	}
 
 	/* files depend on res_dir resources between them and / */
-	if (_setup_path_deps(key, rf->lpath, pol) != 0) {
+	if (_setup_path_deps(key, rf->path, pol) != 0) {
 		free(key);
 		return -1;
 	}
@@ -649,20 +643,20 @@ int res_file_set(void *res, const char *name, const char *value)
 	} else if (strcmp(name, "source") == 0) {
 		free(rf->template);
 		rf->template = NULL;
-		free(rf->rpath);
-		rf->rpath = strdup(value);
+		free(rf->source);
+		rf->source = strdup(value);
 		ENFORCE(rf, RES_FILE_SHA1);
 
 	} else if (strcmp(name, "template") == 0) {
-		free(rf->rpath);
-		rf->rpath = NULL;
+		free(rf->source);
+		rf->source = NULL;
 		free(rf->template);
 		rf->template = strdup(value);
 		ENFORCE(rf, RES_FILE_SHA1);
 
 	} else if (strcmp(name, "path") == 0) {
-		free(rf->lpath);
-		rf->lpath = strdup(value);
+		free(rf->path);
+		rf->path = strdup(value);
 
 	} else if (strcmp(name, "present") == 0) {
 		if (strcmp(value, "no") != 0) {
@@ -688,7 +682,7 @@ int res_file_match(const void *res, const char *name, const char *value)
 	int rc;
 
 	if (strcmp(name, "path") == 0) {
-		test_value = cw_string("%s", rf->lpath);
+		test_value = cw_string("%s", rf->path);
 	} else {
 		return 1;
 	}
@@ -704,7 +698,7 @@ int res_file_gencode(const void *res, FILE *io, unsigned int next)
 	assert(r); // LCOV_EXCL_LINE
 
 	fprintf(io, ";; res_file %s\n", r->key);
-	fprintf(io, "SET %%A \"%s\"\n", r->lpath);
+	fprintf(io, "SET %%A \"%s\"\n", r->path);
 
 	if (ENFORCED(r, RES_FILE_ABSENT)) {
 		fprintf(io, "CALL &FS.EXISTS?\n");
@@ -769,6 +763,20 @@ int res_file_gencode(const void *res, FILE *io, unsigned int next)
 	return 0;
 }
 
+FILE * res_file_content(const void *res, cw_hash_t *facts)
+{
+	struct res_file *r = (struct res_file*)(res);
+	assert(r); // LCOV_EXCL_LINE
+
+	if (r->template) {
+		return cw_tpl_erb(r->template, facts);
+
+	} else if (r->source) {
+		return fopen(r->source, "r");
+	}
+	return NULL;
+}
+
 int res_file_notify(void *res, const struct resource *dep) { return 0; }
 
 /*****************************************************************/
@@ -784,7 +792,6 @@ void* res_group_clone(const void *res, const char *key)
 	struct res_group *rg = cw_alloc(sizeof(struct res_group));
 
 	rg->enforced  = RES_DEFAULT(orig, enforced, RES_NONE);
-	rg->different = RES_NONE;
 
 	rg->name   = RES_DEFAULT_STR(orig, name,   NULL);
 	rg->passwd = RES_DEFAULT_STR(orig, passwd, NULL);
@@ -1166,6 +1173,8 @@ int res_group_remove_admin(struct res_group *rg, const char *user)
 	return _group_update(rg->adm_rm, rg->adm_add, user);
 }
 
+FILE * res_group_content(const void *res, cw_hash_t *facts) { return NULL; }
+
 int res_group_notify(void *res, const struct resource *dep) { return 0; }
 
 /*****************************************************************/
@@ -1181,7 +1190,6 @@ void* res_package_clone(const void *res, const char *key)
 	struct res_package *rp = cw_alloc(sizeof(struct res_package));
 
 	rp->enforced  = RES_DEFAULT(orig, enforced, RES_NONE);
-	rp->different = RES_NONE;
 
 	rp->version   = RES_DEFAULT_STR(orig, version, NULL);
 
@@ -1293,6 +1301,8 @@ int res_package_gencode(const void *res, FILE *io, unsigned int next)
 	return 0;
 }
 
+FILE * res_package_content(const void *res, cw_hash_t *facts) { return NULL; }
+
 int res_package_notify(void *res, const struct resource *dep) { return 0; }
 
 /*****************************************************************/
@@ -1308,7 +1318,6 @@ void* res_service_clone(const void *res, const char *key)
 	struct res_service *rs = cw_alloc(sizeof(struct res_service));
 
 	rs->enforced  = RES_DEFAULT(orig, enforced, RES_NONE);
-	rs->different = RES_NONE;
 
 	/* state variables are never cloned */
 	rs->notified = 0;
@@ -1455,6 +1464,8 @@ int res_service_gencode(const void *res, FILE *io, unsigned int next)
 	return 0;
 }
 
+FILE * res_service_content(const void *res, cw_hash_t *facts) { return NULL; }
+
 int res_service_notify(void *res, const struct resource *dep)
 {
 	struct res_service *rs = (struct res_service*)(res);
@@ -1478,7 +1489,6 @@ void* res_host_clone(const void *res, const char *key)
 	struct res_host *rh = cw_alloc(sizeof(struct res_host));
 
 	rh->enforced  = RES_DEFAULT(orig, enforced, RES_NONE);
-	rh->different = RES_NONE;
 
 	/* FIXME: clone host aliases */
 	rh->aliases = stringlist_new(NULL);
@@ -1641,6 +1651,8 @@ int res_host_gencode(const void *res, FILE *io, unsigned int next)
 	return 0;
 }
 
+FILE * res_host_content(const void *res, cw_hash_t *facts) { return NULL; }
+
 int res_host_notify(void *res, const struct resource *dep) { return 0; }
 
 /*****************************************************************/
@@ -1656,7 +1668,6 @@ void* res_sysctl_clone(const void *res, const char *key)
 	struct res_sysctl *rs = cw_alloc(sizeof(struct res_sysctl));
 
 	rs->enforced  = RES_DEFAULT(orig, enforced, RES_NONE);
-	rs->different = RES_NONE;
 
 	/* persist sysctl changes, by default */
 	rs->persist = RES_DEFAULT(orig, persist, 1);
@@ -1789,6 +1800,8 @@ int res_sysctl_gencode(const void *res, FILE *io, unsigned int next)
 	return 0;
 }
 
+FILE * res_sysctl_content(const void *res, cw_hash_t *facts) { return NULL; }
+
 int res_sysctl_notify(void* res, const struct resource *dep) { return 0; }
 
 /*****************************************************************/
@@ -1804,7 +1817,6 @@ void* res_dir_clone(const void *res, const char *key)
 	struct res_dir *rd = cw_alloc(sizeof(struct res_dir));
 
 	rd->enforced  = RES_DEFAULT(orig, enforced, RES_NONE);
-	rd->different = RES_NONE;
 
 	rd->owner = RES_DEFAULT_STR(orig, owner, NULL);
 	rd->group = RES_DEFAULT_STR(orig, group, NULL);
@@ -1812,10 +1824,6 @@ void* res_dir_clone(const void *res, const char *key)
 	rd->uid   = RES_DEFAULT(orig, uid, 0);
 	rd->gid   = RES_DEFAULT(orig, gid, 0);
 	rd->mode  = RES_DEFAULT(orig, mode, 0700);
-
-	/* state variables are never cloned */
-	memset(&rd->stat, 0, sizeof(struct stat));
-	rd->exists = 0;
 
 	rd->key = NULL;
 	if (key) {
@@ -2030,6 +2038,8 @@ int res_dir_gencode(const void *res, FILE *io, unsigned int next)
 	return 0;
 }
 
+FILE * res_dir_content(const void *res, cw_hash_t *facts) { return NULL; }
+
 int res_dir_notify(void *res, const struct resource *dep) { return 0; }
 
 /********************************************************************/
@@ -2045,7 +2055,6 @@ void* res_exec_clone(const void *res, const char *key)
 	struct res_exec *re = cw_alloc(sizeof(struct res_exec));
 
 	re->enforced  = RES_DEFAULT(orig, enforced, RES_NONE);
-	re->different = RES_NONE;
 
 	re->user  = RES_DEFAULT_STR(orig, user,  NULL);
 	re->group = RES_DEFAULT_STR(orig, group, NULL);
@@ -2323,6 +2332,8 @@ struct report* res_exec_fixup(void *res, int dryrun, const struct resource_env *
 	return report;
 }
 #endif
+
+FILE * res_exec_content(const void *res, cw_hash_t *facts) { return NULL; }
 
 int res_exec_notify(void *res, const struct resource *dep)
 {

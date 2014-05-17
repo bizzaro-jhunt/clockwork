@@ -795,9 +795,9 @@ struct resource* policy_find_resource(struct policy *pol, enum restype type, con
 
 	cw_log(LOG_DEBUG, "Looking for resource %u matching %s => '%s'", type, attr, value);
 	for_each_resource(r, pol) {
-		if (r->type == type && resource_match(r, attr, value) == 0) {
+		if ((r->type == RES_NONE || r->type == type)
+		  && resource_match(r, attr, value) == 0)
 			return r;
-		}
 	}
 	cw_log(LOG_DEBUG, "  none found...");
 

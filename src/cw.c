@@ -739,6 +739,8 @@ cw_pdu_t *cw_pdu_make(cw_frame_t *dest, int n, ...)
 		cw_pdu_extend(pdu, cw_frame_new(va_arg(ap, char *)));
 	va_end(ap);
 
+	free(pdu->type); pdu->type = cw_pdu_text(pdu, 0);
+	if (!pdu->type)  pdu->type = strdup("NOOP");
 	return pdu;
 }
 
@@ -1250,4 +1252,43 @@ int cw_cleanenv(int n, const char **keep)
 		free(name);
 	}
 	return 0;
+}
+
+/*
+    ######## ########  ##
+       ##    ##     ## ##
+       ##    ##     ## ##
+       ##    ########  ##
+       ##    ##        ##
+       ##    ##        ##
+       ##    ##        ########
+ */
+
+FILE* cw_tpl_erb(const char *src, cw_hash_t *facts)
+{
+	FILE *in  = tmpfile();
+	FILE *out = tmpfile();
+
+	if (!in || !out) {
+		fclose(in);
+		fclose(out);
+		return NULL;
+	}
+
+	char *k, *v;
+	for_each_key_value(facts, k, v)
+		fprintf(in, "%s=%s\n", k, v);
+	fseek(in, 0, SEEK_SET);
+
+	/* FIXME: template-erb needs full path! */
+	int rc = cw_run2(in, out, NULL, "./template-erb", src);
+	fclose(in);
+
+	if (rc == 0) {
+		fseek(out, 0, SEEK_SET);
+		return out;
+	}
+
+	fclose(out);
+	return NULL;
 }

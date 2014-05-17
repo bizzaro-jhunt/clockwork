@@ -24,7 +24,6 @@
 
 #include <stdlib.h>
 #include <sys/types.h>
-#include <sys/stat.h>
 #include <pwd.h>
 #include <grp.h>
 #include <shadow.h>
@@ -42,6 +41,7 @@ int            res_ ## t ## _attrs(const void *res, cw_hash_t *attrs); \
 int            res_ ## t ## _norm(void *res, struct policy *pol, cw_hash_t *facts); \
 int            res_ ## t ## _set(void *res, const char *attr, const char *value); \
 int            res_ ## t ## _match(const void *res, const char *attr, const char *value); \
+FILE*          res_ ## t ## _content(const void *res, cw_hash_t *facts); \
 int            res_ ## t ## _notify(void *res, const struct resource *dep)
 
 #define RES_NONE 0x00
@@ -91,7 +91,6 @@ struct res_user {
 	struct spwd   *sp;   /* pointer to the /etc/shadow entry */
 
 	unsigned int enforced;  /* enforcements, see RES_USER_* constants */
-	unsigned int different; /* compliance, see RES_USER_* constants */
 };
 
 NEW_RESOURCE(user);
@@ -127,7 +126,6 @@ struct res_group {
 	struct sgrp *sg;      /* pointer to /etc/gshadow entry */
 
 	unsigned int enforced;   /* enforcements; see RES_GROUP_* constants */
-	unsigned int different;  /* compliance; see RES_GROUP_* constants */
 };
 
 NEW_RESOURCE(group);
@@ -154,12 +152,9 @@ int res_group_remove_admin(struct res_group *rg, const char *user);
 struct res_file {
 	char *key;         /* unique identifier, starts with "res_file:" */
 
-	char       *lpath;    /* path to the file */
-	struct SHA1 lsha1;    /* checksum of actual file (client-side) */
-
-	char       *rpath;    /* source of file contents, as a static file */
+	char       *path;     /* path to the file */
+	char       *source;   /* source of file contents, as a static file */
 	char       *template; /* source of file contents, as a template */
-	struct SHA1 rsha1;    /* checksum of source file (server-side) */
 
 	char  *owner;   /* name of the file's user owner */
 	uid_t  uid;     /* UID of the file's user owner */
@@ -167,12 +162,7 @@ struct res_file {
 	gid_t  gid;     /* GID of the file's group owner */
 	mode_t mode;    /* permissions / mode */
 
-
-	struct stat stat;    /* stat of local file for fixup */
-	short exists;        /* does the file exist? */
-
 	unsigned int enforced;  /* enforcements; see RES_FILE_* constants */
-	unsigned int different; /* compliance; see RES_FILE_* constants */
 };
 
 NEW_RESOURCE(file);
@@ -192,7 +182,6 @@ struct res_package {
 	char *installed;  /* actual version installed */
 
 	unsigned int enforced;  /* enforcements; see RES_PACKAGE_* constants */
-	unsigned int different; /* compliance; see RES_PACKAGE_* constants */
 };
 
 NEW_RESOURCE(package);
@@ -219,7 +208,6 @@ struct res_service {
 	unsigned int enabled;   /* is the service enabled to start at boot? */
 
 	unsigned int enforced;  /* enforcemnts; see RES_SERVICE_* constants */
-	unsigned int different; /* compliance; see RES_SERVICE_* constants */
 };
 
 NEW_RESOURCE(service);
@@ -235,7 +223,6 @@ struct res_host {
 	struct stringlist *aliases;
 
 	unsigned int enforced;
-	unsigned int different;
 
 	char *aug_root;
 };
@@ -255,7 +242,6 @@ struct res_sysctl {
 	int persist;
 
 	unsigned int enforced;
-	unsigned int different;
 };
 
 NEW_RESOURCE(sysctl);
@@ -278,11 +264,7 @@ struct res_dir {
 
 	mode_t mode;
 
-	short exists;
-	struct stat stat;
-
 	unsigned int enforced;
-	unsigned int different;
 };
 
 NEW_RESOURCE(dir);
@@ -309,7 +291,6 @@ struct res_exec {
 	int notified;
 
 	unsigned int enforced;
-	unsigned int different;
 };
 
 NEW_RESOURCE(exec);

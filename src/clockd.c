@@ -27,100 +27,417 @@
 #include "spec/parser.h"
 #include "resources.h"
 
-#define BLOCK_SIZE 8192
+#define BLOCK_SIZE      8192
+#define BLOCK_SIZE_STR "8192"
 
-static FILE* s_render(const char *source, cw_hash_t *facts)
+typedef enum {
+	STATE_INIT,
+	STATE_IDENTIFIED,
+	STATE_POLICY,
+	STATE_FILE,
+	STATE_REPORT,
+} state_t;
+
+static const char *FSM_STATES[] = {
+	"INIT",
+	"IDENTIFIED",
+	"POLICY",
+	"FILE",
+	"REPORT",
+	NULL,
+};
+
+typedef enum {
+	EVENT_UNKNOWN,
+	EVENT_HELLO,
+	EVENT_POLICY,
+	EVENT_FILE,
+	EVENT_DATA,
+	EVENT_REPORT,
+	EVENT_BYE,
+} event_t;
+
+static const char *FSM_EVENTS[] = {
+	"UNKNOWN",
+	"HELLO",
+	"POLICY",
+	"FILE",
+	"DATA",
+	"REPORT",
+	"BYE",
+	NULL,
+};
+
+static event_t s_pdu_event(cw_pdu_t *pdu)
 {
-	FILE *in  = tmpfile();
-	FILE *out = tmpfile();
-
-	if (!in || !out) {
-		fclose(in);
-		fclose(out);
-		return NULL;
-	}
-
-	char *k, *v;
-	for_each_key_value(facts, k, v)
-		fprintf(in, "%s=%s\n", k, v);
-	fseek(in, 0, SEEK_SET);
-
-	int rc = cw_run2(in, out, NULL, "./template-erb", source);
-	fclose(in);
-
-	if (rc == 0)
-		return out;
-
-	fclose(out);
-	return NULL;
+	int i;
+	for (i = 0; FSM_EVENTS[i]; i++)
+		if (strcmp(pdu->type, FSM_EVENTS[i]) == 0)
+			return (event_t)i;
+	return EVENT_UNKNOWN;
 }
 
-struct conn {
-	cw_frame_t *ident;
-	int32_t last_seen;
-	FILE *io;
-	long offset;
-};
-struct conn_cache {
-	size_t len;
-	int32_t min_life;
-	struct conn connections[];
+typedef enum {
+	FSM_ERR_SUCCESS,
+	FSM_ERR_INTERNAL,
+	FSM_ERR_NOT_IMPLEMENTED,
+	FSM_ERR_NO_POLICY_FOUND,
+	FSM_ERR_NO_RESOURCE_FOUND,
+	FSM_ERR_BADPROTO,
+} fsm_err_t;
+
+static const char *FSM_ERRORS[] = {
+	"Success",
+	"Internal Error",
+	"Not Implemented",
+	"Policy Not Found",
+	"Resource Not Found",
+	"Protocol Violation",
+	NULL,
 };
 
-struct conn_cache* s_ccache_init(size_t num_conns, int32_t min_life)
+typedef struct {
+	state_t           state;
+	event_t           event;
+	fsm_err_t         error;
+
+	cw_frame_t       *ident;
+	int32_t           last_seen;
+
+	char             *name;
+	struct manifest  *manifest;
+	struct stree     *pnode;
+	struct policy    *policy;
+	cw_hash_t        *facts;
+
+	FILE             *io;
+	unsigned long     offset;
+	struct SHA1       sha1;
+
+	void             *mapped;
+	size_t            maplen;
+} client_t;
+
+static int s_sha1(client_t *fsm)
 {
-	struct conn_cache *cc = cw_alloc(
-			sizeof(struct conn_cache) +
-			(num_conns * sizeof(struct conn)));
+	struct sha1_ctx ctx;
+	sha1_init(&fsm->sha1, NULL);
+	sha1_ctx_init(&ctx);
+
+	char data[BLOCK_SIZE];
+	size_t n;
+	int fd = fileno(fsm->io);
+	while ((n = read(fd, data, BLOCK_SIZE)) > 0)
+		sha1_ctx_update(&ctx, (uint8_t *)data, n);
+	sha1_ctx_final(&ctx, fsm->sha1.raw);
+	sha1_hexdigest(&fsm->sha1);
+	return 0;
+}
+
+static char * s_gencode(client_t *c)
+{
+	c->policy = policy_generate(c->pnode, c->facts);
+
+	FILE *io = tmpfile();
+	assert(io);
+
+	policy_gencode(c->policy, io);
+	fprintf(io, "%c", '\0');
+	c->maplen = ftell(io);
+	c->mapped = mmap(NULL, c->maplen, PROT_READ, MAP_SHARED, fileno(io), 0);
+	fclose(io);
+
+	if (c->mapped == MAP_FAILED)
+		c->mapped = NULL;
+
+	return (char *)c->mapped;
+}
+
+static int s_state_machine(client_t *fsm, cw_pdu_t *pdu, cw_pdu_t **reply)
+{
+
+	fsm->last_seen = cw_time_s();
+
+	cw_log(LOG_INFO, "fsm: transition %s [%i] -> %s [%i]",
+			FSM_STATES[fsm->state], fsm->state,
+			FSM_EVENTS[fsm->event], fsm->event);
+
+	switch (fsm->event) {
+	case EVENT_UNKNOWN:
+		fsm->error = FSM_ERR_BADPROTO;
+		return 1;
+
+	case EVENT_HELLO:
+		switch (fsm->state) {
+		case STATE_FILE:
+			fclose(fsm->io);
+			fsm->io = NULL;
+			fsm->offset = 0;
+
+		case STATE_POLICY:
+			cw_hash_done(fsm->facts, 0);
+			fsm->facts = NULL;
+			policy_free(fsm->policy);
+			fsm->policy = NULL;
+
+		case STATE_IDENTIFIED:
+			free(fsm->name);
+
+		case STATE_INIT:
+		case STATE_REPORT:
+			/* fall-through */
+			break;
+		}
+
+		/* FIXME: send back pendulum code for gatherer setup */
+		fsm->name = cw_pdu_text(pdu, 1);
+		*reply = cw_pdu_make(pdu->src, 1, "OK");
+
+		fsm->state = STATE_IDENTIFIED;
+		return 0;
+
+	case EVENT_POLICY:
+		switch (fsm->state) {
+		case STATE_INIT:
+			fsm->error = FSM_ERR_BADPROTO;
+			return 1;
+
+		case STATE_REPORT:
+		case STATE_FILE:
+			fclose(fsm->io);
+			fsm->io = NULL;
+			fsm->offset = 0;
+
+		case STATE_POLICY:
+			cw_hash_done(fsm->facts, 0);
+			fsm->facts = NULL;
+			policy_free(fsm->policy);
+			fsm->policy = NULL;
+
+		case STATE_IDENTIFIED:
+			/* fall-through */
+			break;
+		}
+
+		char *facts = cw_pdu_text(pdu, 2);
+		fsm->facts = cw_alloc(sizeof(cw_hash_t));
+		fact_read_string(facts, fsm->facts);
+		free(facts);
+
+		fsm->pnode = cw_hash_get(fsm->manifest->hosts, fsm->name);
+		if (!fsm->pnode) fsm->pnode = fsm->manifest->fallback;
+		if (!fsm->pnode) {
+			fsm->error = FSM_ERR_NO_POLICY_FOUND;
+			return 1;
+		}
+		fsm->policy = policy_generate(fsm->pnode, fsm->facts);
+
+		char *code = s_gencode(fsm);
+		*reply = cw_pdu_make(pdu->src, 2, "POLICY", code);
+		fsm->state = STATE_POLICY;
+		return 0;
+
+	case EVENT_FILE:
+		switch (fsm->state) {
+		case STATE_INIT:
+		case STATE_IDENTIFIED:
+		case STATE_REPORT:
+			fsm->error = FSM_ERR_BADPROTO;
+			return 1;
+
+		case STATE_FILE:
+			fclose(fsm->io);
+			fsm->io = NULL;
+			fsm->offset = 0;
+
+		case STATE_POLICY:
+			/* fall-through */
+			break;
+		}
+
+		/* open the file, calculate the SHA1 */
+		char *key = cw_pdu_text(pdu, 1);
+		struct resource *r = cw_hash_get(fsm->policy->index, key);
+		free(key);
+
+		if (!r) {
+			fsm->error = FSM_ERR_NO_RESOURCE_FOUND;
+			return 1;
+		}
+
+		fsm->io = resource_content(r, fsm->facts);
+		if (!fsm->io) {
+			fsm->error = FSM_ERR_INTERNAL;
+			return 1;
+		}
+
+		s_sha1(fsm);
+		*reply = cw_pdu_make(pdu->src, 3, "SHA1", fsm->sha1.hex, BLOCK_SIZE_STR);
+		fsm->state = STATE_FILE;
+		return 0;
+
+	case EVENT_DATA:
+		switch (fsm->state) {
+		case STATE_INIT:
+		case STATE_IDENTIFIED:
+		case STATE_POLICY:
+		case STATE_REPORT:
+			fsm->error = FSM_ERR_BADPROTO;
+			return 1;
+
+		case STATE_FILE:
+			/* fall-through */
+			break;
+		}
+
+		char *off = cw_pdu_text(pdu, 1);
+		fsm->offset = BLOCK_SIZE * atoi(off);
+		free(off);
+
+		char block[BLOCK_SIZE+1];
+		fseek(fsm->io, fsm->offset, SEEK_SET);
+		size_t n = fread(block, BLOCK_SIZE, sizeof(char), fsm->io);
+
+		if (n == 0) {
+			*reply = cw_pdu_make(pdu->src, 1, "EOF");
+		} else {
+			block[n] = '\0';
+			*reply = cw_pdu_make(pdu->src, 2, "BLOCK", block);
+		}
+		return 0;
+
+	case EVENT_REPORT:
+		switch (fsm->state) {
+		case STATE_INIT:
+		case STATE_IDENTIFIED:
+			fsm->error = FSM_ERR_BADPROTO;
+			return 1;
+
+		case STATE_FILE:
+			fclose(fsm->io);
+			fsm->io = NULL;
+			fsm->offset = 0;
+
+		case STATE_POLICY:
+		case STATE_REPORT:
+			/* fall-through */
+			break;
+		}
+		break;
+
+	case EVENT_BYE:
+		switch (fsm->state) {
+		case STATE_REPORT:
+		case STATE_FILE:
+			fclose(fsm->io);
+			fsm->io = NULL;
+			fsm->offset = 0;
+
+		case STATE_POLICY:
+			cw_hash_done(fsm->facts, 0);
+			fsm->facts = NULL;
+			policy_free(fsm->policy);
+			fsm->policy = NULL;
+
+		case STATE_IDENTIFIED:
+			free(fsm->name);
+			fsm->name = NULL;
+
+		case STATE_INIT:
+			/* fall-through */
+			break;
+		}
+
+		fsm->state = STATE_INIT;
+		fsm->last_seen = 1;
+		*reply = cw_pdu_make(pdu->src, 1, "BYE");
+		return 0;
+	}
+
+	fsm->error = FSM_ERR_INTERNAL;
+	return 1;
+}
+
+typedef struct {
+	size_t len;
+	int32_t min_life;
+	client_t clients[];
+} ccache_t;
+
+ccache_t* s_ccache_init(size_t num_conns, int32_t min_life)
+{
+	ccache_t *cc = cw_alloc(
+			sizeof(ccache_t) +
+			(num_conns * sizeof(client_t)));
 	cc->len      = num_conns;
 	cc->min_life = min_life;
 	return cc;
 }
-static void s_ccache_purge(struct conn_cache *c)
+static void s_ccache_purge(ccache_t *c)
 {
 	int32_t now = cw_time_s();
+	int n = 0;
 	size_t i;
 	for (i = 0; i < c->len; i++) {
-		if (c->connections[i].last_seen == 0
-		 || c->connections[i].last_seen >= now - c->min_life)
+		if (c->clients[i].last_seen == 0
+		 || c->clients[i].last_seen >= now - c->min_life)
 			continue;
 
-		if (c->connections[i].io)
-			fclose(c->connections[i].io);
-		c->connections[i].io        = NULL;
-		c->connections[i].offset    = 0;
-		c->connections[i].last_seen = 0;
+		cw_log(LOG_DEBUG, "purging %p, last_seen=%i, name=%s, %s facts, %s policy",
+			c->clients[i], c->clients[i].last_seen, c->clients[i].name,
+			(c->clients[i].facts  ? "has" : "no"),
+			(c->clients[i].policy ? "has" : "no"));
+		cw_log(LOG_INFO, "purging %p, last_seen=%i",
+			&c->clients[i], c->clients[i].last_seen);
+
+		free(c->clients[i].ident);
+		c->clients[i].ident = NULL;
+
+		free(c->clients[i].name);
+		c->clients[i].name = NULL;
+
+		if (c->clients[i].facts)
+			cw_hash_done(c->clients[i].facts, 0);
+
+		if (c->clients[i].io)
+			fclose(c->clients[i].io);
+		c->clients[i].io        = NULL;
+		c->clients[i].offset    = 0;
+		c->clients[i].last_seen = 0;
+		n++;
 	}
+	cw_log(LOG_INFO, "purged %i ccache entries", n);
 }
-static size_t s_ccache_find(cw_frame_t *ident, struct conn_cache *c)
+static size_t s_ccache_index(cw_frame_t *ident, ccache_t *c)
 {
 	size_t i;
 	for (i = 0; i < c->len; i++)
-		if (c->connections[i].ident
-		 && cw_frame_cmp(ident, c->connections[i].ident) == 0)
+		if (c->clients[i].ident
+		 && cw_frame_cmp(ident, c->clients[i].ident))
 			break;
 	return i;
 }
-static size_t s_ccache_next(struct conn_cache *c)
+static size_t s_ccache_next(ccache_t *c)
 {
 	size_t i;
 	for (i = 0; i < c->len; i++)
-		if (!c->connections[i].ident)
+		if (!c->clients[i].ident)
 			break;
 	return i;
 }
-static struct conn* s_ccache_conn(cw_frame_t *ident, struct conn_cache *c)
+static client_t* s_ccache_find(cw_frame_t *ident, ccache_t *c)
 {
-	size_t i = s_ccache_find(ident, c);
+	size_t i = s_ccache_index(ident, c);
 	if (i >= c->len) {
 		i = s_ccache_next(c);
 		if (i >= c->len)
 			return NULL;
-		c->connections[i].ident = cw_frame_copy(ident);
-		c->connections[i].io = NULL;
-		c->connections[i].offset = 0;
+		c->clients[i].ident = cw_frame_copy(ident);
+		c->clients[i].io = NULL;
+		c->clients[i].offset = 0;
 	}
-	return &c->connections[i];
+	c->clients[i].last_seen = cw_time_s();
+	return &c->clients[i];
 }
 
 int main(int argc, char **argv)
@@ -132,9 +449,10 @@ int main(int argc, char **argv)
 	void *listener = zmq_socket(context, ZMQ_ROUTER);
 	zmq_bind(listener, "tcp://*:2323");
 	cw_log_open("clockd", "stdout");
+	cw_log_level(0, "info");
 	cw_log(LOG_INFO, "clockd starting up");
 
-	struct conn_cache *cc = s_ccache_init(2048, 600);
+	ccache_t *cc = s_ccache_init(2048, 600);
 
 	while (!cw_sig_interrupt()) {
 		cw_pdu_t *pdu, *reply;
@@ -142,92 +460,32 @@ int main(int argc, char **argv)
 		assert(pdu);
 
 		s_ccache_purge(cc);
-		struct conn *conn = s_ccache_conn(pdu->src, cc);
-		if (!conn) {
+		client_t *c = s_ccache_find(pdu->src, cc);
+		if (!c) {
 			cw_log(LOG_CRIT, "max connections reached!");
 			reply = cw_pdu_make(pdu->src, 2, "ERROR", "Server busy; try again later\n");
 			cw_pdu_send(listener, reply);
+			continue;
+		}
 
-		} else if (strcmp(pdu->type, "POLICY") == 0) {
-			char *name    = cw_pdu_text(pdu, 1);
-			char *factstr = cw_pdu_text(pdu, 2);
-			cw_log(LOG_INFO, "inbound policy request for %s", name);
-			cw_log(LOG_INFO, "facts are: %s", factstr);
+		c->manifest = manifest;
+		c->event = s_pdu_event(pdu);
+		cw_log(LOG_INFO, "%p: incoming connection", c);
+		int rc = s_state_machine(c, pdu, &reply);
+		if (rc == 0) {
+			cw_log(LOG_INFO, "%p: fsm is now at %s [%i]", c, FSM_STATES[c->state], c->state);
+			cw_log(LOG_INFO, "%p: sending back a %s PDU", c, reply->type);
+			cw_pdu_send(listener, reply);
 
-			cw_hash_t *facts = cw_alloc(sizeof(cw_hash_t));
-			fact_read_string(factstr, facts);
-
-			struct stree *pnode = cw_hash_get(manifest->hosts, name);
-			if (!pnode)
-				pnode = manifest->fallback;
-			if (!pnode) {
-				cw_log(LOG_ERR, "no policy found for %s", name);
-				reply = cw_pdu_make(pdu->src, 2, "ERROR", "No suitable policy found\n");
-				cw_pdu_send(listener, reply);
-
-			} else {
-				struct policy *policy = policy_generate(pnode, facts);
-
-				FILE *io = tmpfile();
-				assert(io);
-				int rc = policy_gencode(policy, io);
-				assert(rc == 0);
-				fprintf(io, "%c", '\0');
-				size_t len = ftell(io);
-
-				char *code = mmap(NULL, len, PROT_READ, MAP_SHARED, fileno(io), 0);
-
-				reply = cw_pdu_make(pdu->src, 2, "OK", code);
-				cw_pdu_send(listener, reply);
-
-				munmap(code, len);
-				fclose(io);
-			}
-
-		} else if (strcmp(pdu->type, "FILE") == 0) {
-			char *name = cw_pdu_text(pdu, 1);
-			char *key  = cw_pdu_text(pdu, 2);
-			/* use cached facts for the connection */
-			cw_log(LOG_INFO, "inbound file request for %s", name);
-
-			cw_hash_t *facts = cw_alloc(sizeof(cw_hash_t));
-			fact_read_string(factstr, facts);
-
-			FILE *io = s_render(source, facts);
-			if (!io) {
-				reply = cw_pdu_make(pdu->src, 2, "ERROR", "internal error");
-				cw_pdu_send(listener, reply);
-
-			} else {
-				fseek(io, 0, SEEK_SET);
-				if (conn->io) fclose(conn->io);
-				conn->io = io;
-				conn->offset = 0;
-
-				reply = cw_pdu_make(pdu->src, 1, "OK");
-				cw_pdu_send(listener, reply);
-			}
-
-		} else if (strcmp(pdu->type, "MORE") == 0) {
-
-			if (!conn->io) {
-				reply = cw_pdu_make(pdu->src, 2, "ERROR", "protocol violation");
-				cw_pdu_send(listener, reply);
-
-			} else {
-				fseek(conn->io, conn->offset, SEEK_SET);
-				char buf[BLOCK_SIZE+1];
-				size_t n = fread(buf, BLOCK_SIZE+1, sizeof(char), conn->io);
-				buf[n] = '\0';
-				conn->offset = ftell(conn->io);
-
-				reply = cw_pdu_make(pdu->src, 2, "DATA", buf);
-				cw_pdu_send(listener, reply);
+			if (c->mapped) {
+				munmap(c->mapped, c->maplen);
+				c->mapped = NULL;
+				c->maplen = 0;
 			}
 
 		} else {
-			cw_log(LOG_INFO, "unrecognized PDU: '%s'", pdu->type);
-			reply = cw_pdu_make(pdu->src, 2, "ERROR", "Unrecognized PDU");
+			reply = cw_pdu_make(pdu->src, 2, "ERROR", FSM_ERRORS[c->error]);
+			cw_log(LOG_INFO, "%p: sending back an ERROR PDU: %s", c, FSM_ERRORS[c->error]);
 			cw_pdu_send(listener, reply);
 		}
 	}

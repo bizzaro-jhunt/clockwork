@@ -70,10 +70,10 @@ TESTS {
 
 		res_file_set(rf, "source", "t/data/sha1/file");
 		ok(ENFORCED(rf, RES_FILE_SHA1), "SHA1 enforced");
-		is_string(rf->rpath, "t/data/sha1/file", "source file to enforce");
+		is_string(rf->source, "t/data/sha1/file", "source file to enforce");
 
 		res_file_set(rf, "path", TEST_TMP "/file");
-		is_string(rf->lpath, TEST_TMP "/file", "target file to enforce");
+		is_string(rf->path, TEST_TMP "/file", "target file to enforce");
 
 		res_file_free(rf);
 	}

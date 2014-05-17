@@ -225,8 +225,8 @@ TESTS {
 				isnt_null(file, "got the first res_file defined");
 				if (file) {
 					is_int(file->mode, 0600, "file mode");
-					is_string(file->rpath, "std/etc-sudoers", "file remote path");
-					is_string(file->lpath, "/etc/sudoers", "file local path");
+					is_string(file->source, "std/etc-sudoers", "file remote path");
+					is_string(file->path, "/etc/sudoers", "file local path");
 				}
 				break;
 
@@ -280,8 +280,8 @@ TESTS {
 		isnt_null(file = (struct res_file*)(res->resource), "found first res_file");
 		if (!file) break;
 		is_int(file->mode, 0644, "file mode");
-		is_string(file->rpath, "std/2.6.conf", "file remote path");
-		is_string(file->lpath, "snmpd.conf", "file local path");
+		is_string(file->source, "std/2.6.conf", "file remote path");
+		is_string(file->path, "snmpd.conf", "file local path");
 
 		res = NULL;
 		for_each_resource(r, pol) { if (r->type == RES_USER) { res = r; break; } }
@@ -313,8 +313,8 @@ TESTS {
 		file = (struct res_file*)(res->resource);
 		if (!file) break;
 		is_int(file->mode, 0644, "file mode");
-		is_string(file->rpath, "std/2.4.conf", "file remote path");
-		is_string(file->lpath, "snmpd.conf", "file local path");
+		is_string(file->source, "std/2.4.conf", "file remote path");
+		is_string(file->path, "snmpd.conf", "file local path");
 
 		cw_hash_done(facts, 0);
 		policy_free_all(pol);

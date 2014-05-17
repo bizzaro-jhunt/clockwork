@@ -113,6 +113,7 @@ int resource_set(struct resource *r, const char *attr, const char *value);
 int resource_notify(struct resource *r, const struct resource *dep);
 int resource_match(const struct resource *r, const char *attr, const char *value);
 int resource_gencode(const struct resource *r, FILE *io, unsigned int next);
+FILE* resource_content(const struct resource *r, cw_hash_t *facts);
 
 int resource_add_dependency(struct resource *r, struct resource *dep);
 int resource_drop_dependency(struct resource *r, struct resource *dep);

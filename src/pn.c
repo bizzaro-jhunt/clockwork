@@ -26,7 +26,7 @@ int main(int argc, char **argv)
 	pn_init(&m);
 
 	/* register clockwork pendulum functions */
-	pendulum_funcs(&m);
+	pendulum_funcs(&m, NULL);
 
 	/* parse and run the input script */
 	pn_parse(&m, io);

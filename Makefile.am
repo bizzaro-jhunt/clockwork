@@ -186,11 +186,11 @@ parser_spec_src += src/spec/grammar.y src/spec/grammar_impl.h
 
 sbindir = "$(prefix)/sbin"
 sbin_PROGRAMS = cwpol pn cwspec clockd cogd
-cwpol_SOURCES   = $(core_src) src/cwpol.c $(parser_spec_src)
-pn_SOURCES      = src/pn.c $(pendulum_src)
+cwpol_SOURCES   = src/cwpol.c  $(core_src) $(parser_spec_src)
+pn_SOURCES      = src/pn.c     $(core_src)                    $(pendulum_src)
 cwspec_SOURCES  = src/cwspec.c $(core_src) $(parser_spec_src)
 clockd_SOURCES  = src/clockd.c $(core_src) $(parser_spec_src)
-cogd_SOURCES    = src/cogd.c $(core_src) $(parser_spec_src) $(pendulum_src)
+cogd_SOURCES    = src/cogd.c   $(core_src) $(parser_spec_src) $(pendulum_src)
 
 ############################################################
 

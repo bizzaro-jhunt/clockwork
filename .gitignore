@@ -8,7 +8,9 @@ callgrind.out.*
 *.swp
 .dirstamp
 stamp-h?
-
+*.log
+*.tors
+*.trs
 *.tar.gz
 *.deb
 *.rpm
@@ -105,3 +107,8 @@ debian/clockwork-server/
 debian/files
 debian/tmp/
 debian/vim-clockwork/
+
+aclocal.m4
+build/
+!build/as-compiler-flag.m4
+!build/coverage.m4

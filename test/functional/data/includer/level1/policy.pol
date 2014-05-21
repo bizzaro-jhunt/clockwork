@@ -1,4 +1,0 @@
-
-include "level2/policy.pol"
-
-policy "level1" { }

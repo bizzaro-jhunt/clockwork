@@ -1,8 +1,0 @@
-# base-ubuntu-prod Policy
-# Base for a Production Ubuntu host
-
-include "common.pol"
-
-policy "base-ubuntu-prod" {
-	# empty; the concept can be tested with empty policies
-}

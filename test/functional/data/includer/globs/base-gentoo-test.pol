@@ -1,8 +1,0 @@
-# base-gentoo-test Policy
-# Base for a Test Gentoo host
-
-include "common.pol"
-
-policy "base-gentoo-test" {
-	# empty; the concept can be tested with empty policies
-}

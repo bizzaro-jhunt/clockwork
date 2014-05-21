@@ -1,8 +1,0 @@
-# base-ubuntu-dev Policy
-# Base for a Development Ubuntu host
-
-include "common.pol"
-
-policy "base-ubuntu-dev" {
-	# empty; the concept can be tested with empty policies
-}

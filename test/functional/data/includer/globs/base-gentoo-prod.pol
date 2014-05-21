@@ -1,8 +1,0 @@
-# base-gentoo-prod Policy
-# Base for a Production Gentoo host
-
-include "common.pol"
-
-policy "base-gentoo-prod" {
-	# empty; the concept can be tested with empty policies
-}

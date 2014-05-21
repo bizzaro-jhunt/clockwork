@@ -1,8 +1,0 @@
-# base-gentoo-dev Policy
-# Base for a Development Gentoo host
-
-include "common.pol"
-
-policy "base-gentoo-dev" {
-	# empty; the concept can be tested with empty policies
-}

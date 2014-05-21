@@ -1,8 +1,0 @@
-# base-ubuntu-test Policy
-# Base for a Test Ubuntu host
-
-include "common.pol"
-
-policy "base-ubuntu-test" {
-	# empty; the concept can be tested with empty policies
-}

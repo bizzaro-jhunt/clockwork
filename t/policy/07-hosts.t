@@ -3,7 +3,7 @@ use strict;
 use warnings;
 
 use Test::More;
-use t::policy::common;
+use t::common;
 
 gencode_ok "use host host1.test", <<'EOF', "host resource";
 ;; res_host example.com

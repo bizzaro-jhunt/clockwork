@@ -4,10 +4,10 @@ use warnings;
 
 use Test::More;
 use File::Slurp qw/write_file/;
-use t::pendulum::common;
+use t::common;
 
 # NB: If these change, all the tests will need to change as well...
-my $TESTS = "t/data/pn/users";
+my $TESTS = "t/tmp/data/pn/users";
 my $TEMP  = "t/tmp/pn/users";
 
 my $PASSWD_DB = <<'EOF';

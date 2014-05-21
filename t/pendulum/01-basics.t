@@ -3,9 +3,9 @@ use strict;
 use warnings;
 
 use Test::More;
-use t::pendulum::common;
+use t::common;
 
-my $TESTS = "t/data/pn/basics";
+my $TESTS = "t/tmp/data/pn/basics";
 
 pendulum_ok "$TESTS/simple.pn", <<EOF, "simple.pn";
 Hello, World!

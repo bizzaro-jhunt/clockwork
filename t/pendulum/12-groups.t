@@ -4,10 +4,10 @@ use warnings;
 
 use Test::More;
 use File::Slurp qw/write_file/;
-use t::pendulum::common;
+use t::common;
 
 # NB: If these change, all the tests will need to change as well...
-my $TESTS = "t/data/pn/groups";
+my $TESTS = "t/tmp/data/pn/groups";
 my $TEMP  = "t/tmp/pn/groups";
 
 my $GROUP_DB = <<EOF;

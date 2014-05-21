@@ -3,7 +3,7 @@ use strict;
 use warnings;
 
 use Test::More;
-use t::policy::common;
+use t::common;
 
 gencode_ok "use host dir1.test", <<'EOF', "dir resource";
 ;; res_dir /etc/sudoers

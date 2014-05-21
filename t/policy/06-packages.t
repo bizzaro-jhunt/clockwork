@@ -3,7 +3,7 @@ use strict;
 use warnings;
 
 use Test::More;
-use t::policy::common;
+use t::common;
 
 gencode_ok "use host package1.test", <<'EOF', "package resource";
 ;; res_package binutils

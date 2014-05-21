@@ -4,7 +4,7 @@
 ;;
 
 SET %A "t/tmp/pn/augeas"
-SET %B "augeas/lenses"
+SET %B "t/tmp/augeas/lenses"
 CALL &AUGEAS.INIT
 NOTOK? @init.ok
   COPY %R %A

@@ -3,7 +3,7 @@
 ;; Pendulum Test Script
 ;;
 
-SET %A "./t/data/pn/exec/helper pass"
+SET %A "./t/tmp/data/pn/exec/helper pass"
 CALL &EXEC.RUN1
 NOTOK? @else.1
   PRINT "pass failed (non-zero exit)\n"
@@ -13,7 +13,7 @@ else.1:
   PRINT "pass said: \"%s\"\n";
 
 fail:
-SET %A "./t/data/pn/exec/helper fail"
+SET %A "./t/tmp/data/pn/exec/helper fail"
 CALL &EXEC.RUN1
 OK? @else.2
   PRINT "fail passed (zero exit)\n"
@@ -23,7 +23,7 @@ else.2:
   PRINT "fail said: \"%s\"\n"
 
 crash:
-SET %A "./t/data/pn/exec/helper crash"
+SET %A "./t/tmp/data/pn/exec/helper crash"
 CALL &EXEC.RUN1
 OK? @else.3
   PRINT "crash passed (zero exit)\n"

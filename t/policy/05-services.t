@@ -3,7 +3,7 @@ use strict;
 use warnings;
 
 use Test::More;
-use t::policy::common;
+use t::common;
 
 gencode_ok "use host service1.test", <<'EOF', "service resource";
 ;; res_service snmpd

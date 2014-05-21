@@ -1,6 +1,8 @@
 AUTOMAKE_OPTIONS = foreign subdir-objects
 ACLOCAL_AMFLAGS=-I build
 
+AM_TESTS_ENVIRONMENT = PERL5LIB='$(srcdir)'; export PERL5LIB;
+
 ############################################################
 
 pkgsysconfdir = $(sysconfdir)/$(PACKAGE)
@@ -70,7 +72,7 @@ CTAP_TESTS += t/67-res_service
 CTAP_TESTS += t/68-res_package
 CTAP_TESTS += t/69-res_exec
 
-PERL_TESTS = 
+PERL_TESTS  =
 PERL_TESTS += t/pendulum/01-basics.t
 PERL_TESTS += t/pendulum/10-fs.t
 PERL_TESTS += t/pendulum/11-users.t
@@ -90,6 +92,16 @@ PERL_TESTS += t/policy/07-hosts.t
 TESTS          = $(CTAP_TESTS) $(PERL_TESTS)
 BUILT_TESTS    = $(CTAP_TESTS)
 check_PROGRAMS = $(CTAP_TESTS)
+check_DATA     = check-data-install.stamp
+check-data-install.stamp:
+	mkdir -p t/tmp
+	cp -a $(srcdir)/t/data t/tmp
+	cp -a $(srcdir)/augeas t/tmp
+	find t/tmp -type d ! -perm -200 -exec chmod u+w {} ';'
+	touch $@
+
+TEST_EXTRAS  = t/data t/common.pm
+TEST_EXTRAS += $(PERL_TESTS)
 
 test_source  = t/test.h
 test_source += src/cw.h src/cw.c
@@ -133,13 +145,12 @@ t_69_res_exec_SOURCES    = t/69-res_exec.c      $(test_source)
 
 CLEANFILES       = $(BUILT_SOURCES)
 CLEANFILES      += *.tmp
-CLEANFILES      += t/tmp/*
 
 EXTRA_DIST       = HACKING autogen.sh
-EXTRA_DIST      += augeas gather.d scripts
+EXTRA_DIST      += augeas gather.d
 EXTRA_DIST      += examples extras
 EXTRA_DIST      += help man
-EXTRA_DIST      += t/data
+EXTRA_DIST      += $(TEST_EXTRAS)
 
 dist_man_MANS    = man/clockwork.7
 dist_man_MANS   += man/cwpol.1
@@ -201,6 +212,12 @@ src/spec/lexer.c: src/spec/lexer.l src/spec/grammar.h src/spec/lexer_impl.h src/
 src/spec/grammar.c: src/spec/grammar.y src/spec/grammar_impl.h src/spec/parser.c src/spec/parser.h src/spec/private.h
 	$(YACCCOMPILE) --output-file=src/spec/grammar.c $<
 
+.PHONY: coverage-clean coverage-report coverage clean-local-check clean-local-cov
+clean-local: clean-local-check
+clean-local-check:
+	rm -fr t/tmp/*
+	rm -f check-data-install.stamp
+
 if GCOV_ENABLED
 coverage-clean:
 	@rm -fr coverage
@@ -215,15 +232,14 @@ coverage-report:
 coverage:
 	@make coverage-report
 
-clean-local:
+clean-local-cov:
 	@make coverage-clean
 
 check:
 	@make coverage
 
-.PHONY: coverage-clean coverage-report coverage
 else
 coverage:
 	@echo >&2 "nothin doin"
-.PHONY: coverage
+clean-local-cov:
 endif

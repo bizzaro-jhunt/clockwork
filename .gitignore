@@ -7,6 +7,7 @@ gmon.out
 callgrind.out.*
 *.swp
 .dirstamp
+check-data-install.stamp
 stamp-h?
 *.log
 *.tors

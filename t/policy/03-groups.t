@@ -3,7 +3,7 @@ use strict;
 use warnings;
 
 use Test::More;
-use t::policy::common;
+use t::common;
 
 gencode_ok "use host group1.test", <<'EOF', "group removal";
 ;; res_group group1

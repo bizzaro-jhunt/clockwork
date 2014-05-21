@@ -3,10 +3,10 @@ use strict;
 use warnings;
 
 use Test::More;
-use t::pendulum::common;
+use t::common;
 
 # NB: If this changes, all the tests will need to change as well...
-my $TESTS = "t/data/pn/exec";
+my $TESTS = "t/tmp/data/pn/exec";
 
 pendulum_ok "$TESTS/check.pn", <<'EOF', "check.pn";
 pass exited 0

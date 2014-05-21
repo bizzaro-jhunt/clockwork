@@ -3,9 +3,9 @@ use strict;
 use warnings;
 
 use Test::More;
-use t::pendulum::common;
+use t::common;
 
-my $TESTS = "t/data/pn/fs";
+my $TESTS = "t/tmp/data/pn/fs";
 
 # NB: If this changes, all the tests will need to change as well...
 my $TEMP  = "t/tmp/pn/fs";

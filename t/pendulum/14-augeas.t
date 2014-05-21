@@ -4,10 +4,10 @@ use warnings;
 
 use Test::More;
 use File::Slurp qw/write_file/;
-use t::pendulum::common;
+use t::common;
 
 # NB: If these change, all the tests will need to change as well...
-my $TESTS = "t/data/pn/augeas";
+my $TESTS = "t/tmp/data/pn/augeas";
 my $TEMP  = "t/tmp/pn/augeas";
 
 my $HOSTS_FILE = <<EOF;

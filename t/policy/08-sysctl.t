@@ -3,7 +3,7 @@ use strict;
 use warnings;
 
 use Test::More;
-use t::policy::common;
+use t::common;
 
 gencode_ok "use host sysctl1.test", <<'EOF', "sysctl resource";
 ;; res_sysctl net.ipv6.icmp.ratelimit

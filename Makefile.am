@@ -41,19 +41,6 @@ augdir=$(pkglibdir)
 nobase_aug_DATA  = augeas/lenses/hosts.aug
 nobase_aug_DATA += augeas/lenses/util.aug
 
-scriptsdir=$(pkglibdir)
-debscriptsdir=$(scriptsdir)/bin/debian
-debscripts_SCRIPTS  = scripts/debian/cw-pkg
-debscripts_SCRIPTS += scripts/debian/cw-svc
-
-rhscriptsdir=$(scriptsdir)/bin/redhat
-rhscripts_SCRIPTS  = scripts/redhat/cw-pkg
-rhscripts_SCRIPTS += scripts/redhat/cw-svc
-
-defaultscriptsdir=$(scriptsdir)/bin/unspec
-defaultscripts_SCRIPTS  = scripts/unspec/cw-pkg
-defaultscripts_SCRIPTS += scripts/unspec/cw-svc
-
 gatherdir=$(pkglibdir)/gather.d
 gather_SCRIPTS  = gather.d/core
 gather_SCRIPTS += gather.d/time

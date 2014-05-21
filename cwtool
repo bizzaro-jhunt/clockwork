@@ -1,0 +1,229 @@
+#!/bin/sh
+
+#
+# cwtool - Portable Bourne Shell Package/Service Manager
+#
+# author:  James Hunt <james@niftylogic.com>
+# created: 2014-05-20
+#
+
+# USAGE: cwtool <flavor> <action> [arguments]
+#
+# <flavor> identifies the local system and its behaviors,
+# available utilities, conventions, etc.  It will *usually*
+# be set to the value of the `sys.favor` fact.
+#
+# Unrecognized values will be met with a swift and unapologetic
+# exit code of 126.
+#
+# <action> must be one of the following:
+#
+#   svc-run-status SVC    Determine whether or not the service is
+#                         running (per LSB semantics).
+#
+#                           exit 0    = service is running
+#                           otherwise = service is not running
+#                                       or has other init-script
+#                                       issues (dead locks, no
+#                                       PID file, etc.)
+#
+#   svc-boot-status SVC   Determine whether or not the service is
+#                         set to be started on boot (runlevel 3)
+#
+#                           exit 0    = service starts at boot
+#                           otherwise = service is off by default
+#
+#   svc-init SVC INIT     Run the init script action INIT.
+#
+#                           exit 0    = action succeeded (i.e. it
+#                                       started, stopped, etc.)
+#                           otherwise = action failed
+#
+#   svc-enable SVC        Set the service to start on boot (runevel 3)
+#
+#                           exit 0    = service enabled at boot
+#                           otherwise = failure
+#
+#   svc-disable SVC       Keep the service from starting at boot
+#
+#                           exit 0    = service won't start at boot
+#                           otherwise = failure
+#
+#   pkg-version PKG       Print out the installed version of
+#                         the named package, on a single line.
+#
+#                           exit 0    = package is installed
+#                           otherwise = package is not installed
+#
+#   pkg-latest PKG        Print out the latest available version
+#                         of the named package, on a single line,
+#                         and then exit 0.
+#
+#                           exit 0    = package is available
+#                           otherwise = package is not available
+#
+#   pkg-install PKG VER   Install the named package.  If VER is
+#                         the string "latest", the latest version
+#                         will be installed.
+#
+#                           exit 0    = installed successfully
+#                           otherwise = failure (any reason)
+#
+#   pkg-remove PKG        Uninstall the named package.
+#
+#                           exit 0    = removed successfully
+#                           otherwise = failure (any reason)
+#
+# Any unrecognized commands will be met with a ruthless and
+# merciless exit code of 125.
+#
+
+#################################################################
+
+FLAVOR=$1
+ACTION=$2
+
+#################################################################
+
+on_debian () {
+	case $ACTION in
+	pkg-version)
+		NAME=$3
+		/usr/bin/dpkg-query -W -f='${Version}' "$NAME"
+		exit $?
+		;;
+	pkg-latest)
+		NAME=$3
+		# FIXME: make this work under debian
+		exit 0
+		;;
+	pkg-install)
+		NAME=$3
+		VERSION=$4
+		if [ "x$VERSION" = "xlatest" ]; then
+			/usr/bin/apt-get install -qqy "$NAME"
+			exit $?
+		else
+			# specific version
+			echo "$VERSION" | grep -q '-' || VERSION="$VERSION-*"
+			/usr/bin/apt-get install -qqy "$NAME=$VERSION"
+			exit $?
+		fi
+		;;
+	pkg-remove)
+		NAME=$3
+		/usr/bin/apt-get purge -qqy "$NAME"
+		exit $?
+		;;
+
+	svc-run-status)
+		NAME=$3
+		/usr/sbin/service $NAME status 2>/dev/null >/dev/null
+		RC=$?
+		[ "x$RC" = "x7" ] && exit 1
+		exit $RC
+		;;
+	svc-boot-status)
+		NAME=$3
+		/usr/sbin/invoke-rc.d --quiet --query "$NAME" start
+		RC=$?
+		[ "x$RC" = "x104" ] && exit 0
+		exit $RC
+		;;
+	svc-init)
+		NAME=$3
+		VERB=$4
+		/usr/sbin/service $NAME $VERB 2>/dev/null >/dev/null
+		exit $?
+		;;
+	svc-enable)
+		NAME=$3
+		/usr/sbin/update-rc.d -f "$NAME" remove
+		/usr/sbin/update-rc.d    "$NAME" defaults
+		exit $?
+		;;
+	svc-disable)
+		NAME=$3
+		/usr/sbin/update-rc.d -f "$NAME" remove
+		exit $?
+		;;
+	esac
+}
+
+#################################################################
+
+on_redhat () {
+	case $ACTION in
+	pkg-version)
+		NAME=$3
+		/bin/rpm --qf='%{VERSION}' -q "$NAME" | /bin/grp -qv 'is not installed$'
+		exit $?
+		;;
+	pkg-latest)
+		NAME=$3
+		/usr/bin/repoquery --qf '%{VERSION}' -q "$NAME"
+		exit 0
+		;;
+	pkg-install)
+		NAME=$3
+		VERSION=$4
+		if [ "x$VERSION" = "xlatest" ]; then
+			/usr/bin/yum install -qy "$NAME"
+			exit $?
+		else
+			# specific version
+			/usr/bin/yum install -qy "$NAME-$VERSION"
+			exit $?
+		fi
+		;;
+	pkg-remove)
+		NAME=$3
+		/usr/bin/yum erase -qy "$NAME"
+		;;
+
+	svc-run-status)
+		NAME=$3
+		/usr/sbin/service $NAME status 2>/dev/null >/dev/null
+		exit $?
+		;;
+	svc-boot-status)
+		NAME=$3
+		/sbin/chkconfig --list "$NAME" | /bin/grep -q ':on'
+		exit $?
+		;;
+	svc-init)
+		NAME=$3
+		VERB=$4
+		/usr/sbin/service $NAME $VERB 2>/dev/null >/dev/null
+		exit $?
+		;;
+	svc-enable)
+		NAME=$3
+		/sbin/chkconfig "$NAME" on
+		exit $?
+		;;
+	svc-disable)
+		NAME=$3
+		/sbin/chkconfig "$NAME" on
+		exit $?
+		;;
+	esac
+}
+
+#################################################################
+
+case $FLAVOR in
+debian)
+	on_debian "$@"
+	;;
+redhat)
+	on_redhat "$@"
+	;;
+*)
+	# unknown flavor
+	exit 126
+	;;
+esac
+
+# unknown command, the on_* functions didn't exit
+exit 125

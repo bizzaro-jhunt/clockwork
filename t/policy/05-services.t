@@ -7,25 +7,25 @@ use t::policy::common;
 
 gencode_ok "use host service1.test", <<'EOF', "service resource";
 ;; res_service snmpd
-SET %A "cwtool service enable snmpd"
+SET %A "cwtool svc-enable snmpd"
 CALL &EXEC.CHECK
-SET %A "cwtool service start snmpd"
+SET %A "cwtool svc-init start snmpd"
 CALL &EXEC.CHECK
 next.1:
 EOF
 
 gencode_ok "use host service2.test", <<'EOF', "stopped service";
 ;; res_service microcode
-SET %A "cwtool service stop microcode"
+SET %A "cwtool svc-init stop microcode"
 CALL &EXEC.CHECK
 next.1:
 EOF
 
 gencode_ok "use host service3.test", <<'EOF', "service resource";
 ;; res_service neverwhere
-SET %A "cwtool service disable neverwhere"
+SET %A "cwtool svc-disable neverwhere"
 CALL &EXEC.CHECK
-SET %A "cwtool service stop neverwhere"
+SET %A "cwtool svc-init stop neverwhere"
 CALL &EXEC.CHECK
 next.1:
 EOF

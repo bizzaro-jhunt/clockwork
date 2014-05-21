@@ -1315,9 +1315,9 @@ int res_package_gencode(const void *res, FILE *io, unsigned int next)
 
 	fprintf(io, ";; res_package %s\n", r->key);
 	if (ENFORCED(r, RES_PACKAGE_ABSENT)) {
-		fprintf(io, "SET %%A \"cwtool package remove %s\"\n", r->name);
+		fprintf(io, "SET %%A \"cwtool pkg-remove %s\"\n", r->name);
 	} else {
-		fprintf(io, "SET %%A \"cwtool package install %s %s\"\n", r->name, r->version ? r->version : "latest");
+		fprintf(io, "SET %%A \"cwtool pkg-install %s %s\"\n", r->name, r->version ? r->version : "latest");
 	}
 	fprintf(io, "CALL &EXEC.CHECK\n");
 	return 0;
@@ -1466,20 +1466,20 @@ int res_service_gencode(const void *res, FILE *io, unsigned int next)
 
 	fprintf(io, ";; res_service %s\n", r->key);
 	if (ENFORCED(r, RES_SERVICE_ENABLED)) {
-		fprintf(io, "SET %%A \"cwtool service enable %s\"\n", r->service);
+		fprintf(io, "SET %%A \"cwtool svc-enable %s\"\n", r->service);
 		fprintf(io, "CALL &EXEC.CHECK\n");
 
 	} else if (ENFORCED(r, RES_SERVICE_DISABLED)) {
-		fprintf(io, "SET %%A \"cwtool service disable %s\"\n", r->service);
+		fprintf(io, "SET %%A \"cwtool svc-disable %s\"\n", r->service);
 		fprintf(io, "CALL &EXEC.CHECK\n");
 	}
 
 	if (ENFORCED(r, RES_SERVICE_RUNNING)) {
-		fprintf(io, "SET %%A \"cwtool service start %s\"\n", r->service);
+		fprintf(io, "SET %%A \"cwtool svc-init start %s\"\n", r->service);
 		fprintf(io, "CALL &EXEC.CHECK\n");
 
 	} else if (ENFORCED(r, RES_SERVICE_STOPPED)) {
-		fprintf(io, "SET %%A \"cwtool service stop %s\"\n", r->service);
+		fprintf(io, "SET %%A \"cwtool svc-init stop %s\"\n", r->service);
 		fprintf(io, "CALL &EXEC.CHECK\n");
 	}
 

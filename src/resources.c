@@ -2217,7 +2217,6 @@ int res_exec_match(const void *res, const char *name, const char *value)
 	char *test_value;
 	int rc;
 
-	/* FIXME: match on key? */
 	if (strcmp(name, "command") == 0) {
 		test_value = cw_string("%s", re->command);
 	} else {

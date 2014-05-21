@@ -269,10 +269,11 @@ static ssize_t s_hash_index(const struct cw_hash_bkt *b, const char *k)
 }
 static int s_hash_insert(struct cw_hash_bkt *b, const char *k, void *v)
 {
+	if (!k) return 1;
+
 	char ** new_k = realloc(b->keys,   (b->len + 1) * sizeof(char*));
 	char ** new_v = realloc(b->values, (b->len + 1) * sizeof(void*));
 
-	/* FIXME check new_k / new_v for NULL */
 	new_k[b->len] = strdup(k);
 	new_v[b->len] = v;
 

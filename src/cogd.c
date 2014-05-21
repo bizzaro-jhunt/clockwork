@@ -153,7 +153,7 @@ int main(int argc, char **argv)
 				cw_log(LOG_ERR, "failed: %s", zmq_strerror(errno));
 				goto shut_it_down;
 			}
-			cw_log(LOG_INFO, "Received a '%s' PDU", pdu->type);
+			cw_log(LOG_INFO, "Received a '%s' PDU", reply->type);
 			if (strcmp(reply->type, "ERROR") == 0) {
 				char *e = cw_pdu_text(reply, 1);
 				cw_log(LOG_ERR, "failed: %s", e);
@@ -188,7 +188,7 @@ int main(int argc, char **argv)
 
 			pn_machine m;
 			pn_init(&m);
-			pendulum_funcs(&m, context);
+			pendulum_funcs(&m, client);
 
 			io = tmpfile();
 			fprintf(io, "%s", code);

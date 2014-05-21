@@ -22,6 +22,8 @@
 #include <grp.h>
 
 #include "pendulum_funcs.h"
+#include "cw.h"
+#include "sha1.h"
 
 /*
 
@@ -334,7 +336,7 @@ struct sgdb {
 };
 
 typedef struct {
-	void          *zmq;
+	void          *zconn;
 	const char    *server; /*   tcp://ip.ad.dr.ess:port  */
 
 	struct pwdb   *pwdb;
@@ -349,10 +351,13 @@ typedef struct {
 	struct sgdb   *sgdb;
 	struct sgrp   *sgent;
 
-	char *exec_last;
+	char          *exec_last;
 
-	augeas *aug_ctx;
-	const char *aug_last;
+	augeas        *aug_ctx;
+	const char    *aug_last;
+
+	char          *rsha1;
+	struct SHA1    lsha1;
 } udata;
 
 #define UDATA(m) ((udata*)(m->U))
@@ -416,6 +421,13 @@ static pn_word cwa_fs_is_socket(pn_machine *m)
 	struct stat st;
 	if (lstat((const char *)m->A, &st) != 0) return 1;
 	return S_ISSOCK(st.st_mode) ? 0 : 1;
+}
+
+static pn_word cwa_fs_sha1(pn_machine *m)
+{
+	int rc = sha1_file((const char *)m->A, &(UDATA(m)->lsha1));
+	m->S2 = (pn_word)(UDATA(m)->lsha1.hex);
+	return rc;
 }
 
 static pn_word cwa_fs_exists(pn_machine *m)
@@ -630,23 +642,74 @@ static pn_word cwa_exec_run1(pn_machine *m)
 
 static pn_word cwa_server_sha1(pn_machine *m)
 {
-	/* FIXME - implement SERVER.SHA1:
-	     * connect to server endpoint via zmq
-	     * request a FILE
-	     * store nblocks in UDATA
-	     * store SHA1 in S2
-	 */
+	cw_pdu_t *pdu, *reply;
+	pdu = cw_pdu_make(NULL, 2, "FILE", (const char *)m->A);
+	int rc = cw_pdu_send(UDATA(m)->zconn, pdu);
+	assert(rc == 0);
+
+	reply = cw_pdu_recv(UDATA(m)->zconn);
+	if (!reply) {
+		cw_log(LOG_ERR, "failed: %s", zmq_strerror(errno));
+		return 1;
+	}
+	cw_log(LOG_INFO, "Received a '%s' PDU", reply->type);
+	if (strcmp(reply->type, "ERROR") == 0) {
+		char *e = cw_pdu_text(reply, 1);
+		cw_log(LOG_ERR, "failed: %s", e);
+		free(e);
+		return 1;
+	}
+
+	if (strcmp(reply->type, "SHA1") == 0) {
+		free(UDATA(m)->rsha1);
+		m->S2 = (pn_word)(UDATA(m)->rsha1 = cw_pdu_text(reply, 1));
+		return 0;
+	}
+
+	cw_log(LOG_ERR, "Unexpected PDU received.");
 	return 1;
 }
 
 static pn_word cwa_server_writefile(pn_machine *m)
 {
-	/* FIXME - implement SERVER.WRITEFILE:
-	     * connect to server endpoint via zmq
-	     * request DATA0...DATAn
-	     * open %A for writing and write to it
-	 */
-	return 1;
+	FILE *io = NULL;
+	int rc, n = 0;
+	char size[16];
+	cw_pdu_t *pdu, *reply;
+
+	for (;;) {
+		rc = snprintf(size, 15, "%i", n++);
+		assert(rc > 0);
+		pdu = cw_pdu_make(NULL, 2, "DATA", size);
+		rc = cw_pdu_send(UDATA(m)->zconn, pdu);
+		assert(rc == 0);
+
+		reply = cw_pdu_recv(UDATA(m)->zconn);
+		if (!reply) {
+			cw_log(LOG_ERR, "failed: %s", zmq_strerror(errno));
+			if (io) fclose(io);
+			return 1;
+		}
+		cw_log(LOG_INFO, "server.writefile: received a %s PDU", reply->type);
+
+		if (strcmp(reply->type, "EOF") == 0) {
+			if (io) fclose(io);
+			return 0;
+		}
+
+		if (!io) io = fopen((const char *)m->A, "w");
+		if (!io) {
+			cw_log(LOG_ERR, "failed: %s", strerror(errno));
+			return 1;
+		}
+
+		char *data = cw_pdu_text(reply, 1);
+		fprintf(io, "%s", data);
+		free(data);
+	}
+	if (io) fclose(io);
+
+	return 0;
 }
 
 
@@ -1537,7 +1600,7 @@ static pn_word cwa_group_set_pwhash(pn_machine *m)
  */
 
 
-int pendulum_funcs(pn_machine *m, void *zmq_ctx)
+int pendulum_funcs(pn_machine *m, void *zconn)
 {
 	pn_func(m,  "FS.EXISTS?",         cwa_fs_exists);
 	pn_func(m,  "FS.FILE?",           cwa_fs_is_file);
@@ -1547,6 +1610,7 @@ int pendulum_funcs(pn_machine *m, void *zmq_ctx)
 	pn_func(m,  "FS.FIFO?",           cwa_fs_is_fifo);
 	pn_func(m,  "FS.SYMLINK?",        cwa_fs_is_symlink);
 	pn_func(m,  "FS.SOCKET?",         cwa_fs_is_socket);
+	pn_func(m,  "FS.SHA1",            cwa_fs_sha1);
 
 	pn_func(m,  "FS.MKDIR",           cwa_fs_mkdir);
 	pn_func(m,  "FS.MKFILE",          cwa_fs_mkfile);
@@ -1650,8 +1714,7 @@ int pendulum_funcs(pn_machine *m, void *zmq_ctx)
 	pn_func(m,  "SERVER.WRITEFILE",   cwa_server_writefile);
 
 	m->U = calloc(1, sizeof(udata));
-	UDATA(m)->server = strdup("tcp://localhost:2323");
-	UDATA(m)->zmq    = zmq_ctx;
+	UDATA(m)->zconn = zconn;
 
 	return 0;
 }

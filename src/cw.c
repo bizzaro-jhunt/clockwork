@@ -1036,44 +1036,44 @@ int cw_run2(FILE *in, FILE *out, FILE *err, char *cmd, ...)
 	pid_t pid = fork();
 	if (pid < 0)
 		return -1;
-	else if (pid > 0) {
+
+	if (pid > 0) {
 		int status = 0;
 		waitpid(pid, &status, 0);
 		if (WIFEXITED(status))
 			return WEXITSTATUS(status);
 		else
 			return -2;
-	} else {
-		char *args[MAXARGS];
-		int argno = 1;
-
-		char *p = strrchr(cmd, '/');
-		if (p) { args[0] = p++; } else { p = cmd; }
-		args[0] = strdup(p);
-
-		va_list argv;
-		va_start(argv, cmd);
-		while ((args[argno++] = va_arg(argv, char *)) != (char *)0)
-			;
-
-		if (in) {
-			int fd = fileno(in);
-			if (fd >= 0) dup2(0, fd);
-		}
-
-		if (out) {
-			int fd = fileno(out);
-			if (fd >= 0) dup2(1, fd);
-		}
-
-		if (err) {
-			int fd = fileno(err);
-			if (fd >= 0) dup2(2, fd);
-		}
-
-		execv(cmd, args);
-		exit(127); // exit if exec failed
 	}
+
+	char *args[MAXARGS] = { 0 };
+	int argno = 1;
+
+	char *p = strrchr(cmd, '/');
+	args[0] = strdup(p ? ++p : cmd);
+
+	va_list argv;
+	va_start(argv, cmd);
+	while ((args[argno++] = va_arg(argv, char *)) != (char *)0)
+		;
+
+	if (in) {
+		int fd = fileno(in);
+		if (fd >= 0) dup2(fd, 0);
+	}
+
+	if (out) {
+		int fd = fileno(out);
+		if (fd >= 0) dup2(fd, 1);
+	}
+
+	if (err) {
+		int fd = fileno(err);
+		if (fd >= 0) dup2(fd, 2);
+	}
+
+	execv(cmd, args);
+	exit(127);
 }
 
 /*
@@ -1278,14 +1278,14 @@ FILE* cw_tpl_erb(const char *src, cw_hash_t *facts)
 	char *k, *v;
 	for_each_key_value(facts, k, v)
 		fprintf(in, "%s=%s\n", k, v);
-	fseek(in, 0, SEEK_SET);
+	rewind(in);
 
 	/* FIXME: template-erb needs full path! */
-	int rc = cw_run2(in, out, NULL, "./template-erb", src);
+	int rc = cw_run2(in, out, NULL, "./template-erb", src, NULL);
 	fclose(in);
 
 	if (rc == 0) {
-		fseek(out, 0, SEEK_SET);
+		rewind(out);
 		return out;
 	}
 

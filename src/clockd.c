@@ -27,8 +27,7 @@
 #include "spec/parser.h"
 #include "resources.h"
 
-#define BLOCK_SIZE      8192
-#define BLOCK_SIZE_STR "8192"
+#define BLOCK_SIZE 8192
 
 typedef enum {
 	STATE_INIT,
@@ -131,6 +130,8 @@ static int s_sha1(client_t *fsm)
 		sha1_ctx_update(&ctx, (uint8_t *)data, n);
 	sha1_ctx_final(&ctx, fsm->sha1.raw);
 	sha1_hexdigest(&fsm->sha1);
+
+	rewind(fsm->io);
 	return 0;
 }
 
@@ -170,7 +171,7 @@ static int s_state_machine(client_t *fsm, cw_pdu_t *pdu, cw_pdu_t **reply)
 	case EVENT_HELLO:
 		switch (fsm->state) {
 		case STATE_FILE:
-			fclose(fsm->io);
+			if (fsm->io) fclose(fsm->io);
 			fsm->io = NULL;
 			fsm->offset = 0;
 
@@ -204,7 +205,7 @@ static int s_state_machine(client_t *fsm, cw_pdu_t *pdu, cw_pdu_t **reply)
 
 		case STATE_REPORT:
 		case STATE_FILE:
-			fclose(fsm->io);
+			if (fsm->io) fclose(fsm->io);
 			fsm->io = NULL;
 			fsm->offset = 0;
 
@@ -246,7 +247,7 @@ static int s_state_machine(client_t *fsm, cw_pdu_t *pdu, cw_pdu_t **reply)
 			return 1;
 
 		case STATE_FILE:
-			fclose(fsm->io);
+			if (fsm->io) fclose(fsm->io);
 			fsm->io = NULL;
 			fsm->offset = 0;
 
@@ -272,7 +273,7 @@ static int s_state_machine(client_t *fsm, cw_pdu_t *pdu, cw_pdu_t **reply)
 		}
 
 		s_sha1(fsm);
-		*reply = cw_pdu_make(pdu->src, 3, "SHA1", fsm->sha1.hex, BLOCK_SIZE_STR);
+		*reply = cw_pdu_make(pdu->src, 2, "SHA1", fsm->sha1.hex);
 		fsm->state = STATE_FILE;
 		return 0;
 
@@ -294,14 +295,20 @@ static int s_state_machine(client_t *fsm, cw_pdu_t *pdu, cw_pdu_t **reply)
 		fsm->offset = BLOCK_SIZE * atoi(off);
 		free(off);
 
-		char block[BLOCK_SIZE+1];
+		char block[BLOCK_SIZE+1] = "";
 		fseek(fsm->io, fsm->offset, SEEK_SET);
-		size_t n = fread(block, BLOCK_SIZE, sizeof(char), fsm->io);
+		size_t n = fread(block, 1, BLOCK_SIZE, fsm->io);
+		block[n] = '\0';
 
 		if (n == 0) {
-			*reply = cw_pdu_make(pdu->src, 1, "EOF");
+			if (feof(fsm->io)) {
+				*reply = cw_pdu_make(pdu->src, 1, "EOF");
+			} else {
+				cw_log(LOG_ERR, "Failed to read from cached IO handled: %s", strerror(errno));
+				*reply = cw_pdu_make(pdu->src, 2, "ERROR", "read error");
+			}
+
 		} else {
-			block[n] = '\0';
 			*reply = cw_pdu_make(pdu->src, 2, "BLOCK", block);
 		}
 		return 0;
@@ -314,7 +321,7 @@ static int s_state_machine(client_t *fsm, cw_pdu_t *pdu, cw_pdu_t **reply)
 			return 1;
 
 		case STATE_FILE:
-			fclose(fsm->io);
+			if (fsm->io) fclose(fsm->io);
 			fsm->io = NULL;
 			fsm->offset = 0;
 
@@ -329,7 +336,7 @@ static int s_state_machine(client_t *fsm, cw_pdu_t *pdu, cw_pdu_t **reply)
 		switch (fsm->state) {
 		case STATE_REPORT:
 		case STATE_FILE:
-			fclose(fsm->io);
+			if (fsm->io) fclose(fsm->io);
 			fsm->io = NULL;
 			fsm->offset = 0;
 

@@ -80,7 +80,6 @@ static const char *REG_NAMES[] = {
 #define pn_DATA(m,off) ((m)->data[off])
 #define pn_ADDR(m,off) ((m)->data+(off))
 #define pn_CODE(m,off) ((m)->code[off])
-#define in_data(m,reg) ((pn_byte*)(m)->reg >= (m)->data && (pn_byte*)(m)->reg < (m)->data+(m)->datasize)
 
 static int s_label(char *buf, char **labelv)
 {
@@ -436,9 +435,6 @@ int pn_run(pn_machine *m)
 			NEXT;
 
 		case PN_OP_CMP:
-			if (!in_data(m, T1)) pn_die(m, "CMP: %T1 not a string");
-			if (!in_data(m, T2)) pn_die(m, "CMP: %T2 not a string");
-
 			m->Tr = (strcmp((const char *)m->T1, (const char *)m->T2) == 0);
 			pn_trace(m, TRACE_START " '%s' eq '%s'\n",
 				TRACE_ARGS, (const char *)m->T1, (const char *)m->T2);
@@ -478,7 +474,6 @@ int pn_run(pn_machine *m)
 
 		case PN_OP_ERROR:
 			m->S2 = (pn_word)PC.arg1;
-			if (!in_data(m, S2)) pn_die(m, "ERROR: arg1 not a string");
 			pn_trace(m, TRACE_START " %s\n", TRACE_ARGS, (const char *)m->S1);
 			fprintf(stderr, "E%i: ", (int)m->Er);
 			fprintf(stderr, (char *)m->S2, m->A, m->B, m->C, m->D, m->E, m->F);
@@ -499,7 +494,6 @@ int pn_run(pn_machine *m)
 
 		case PN_OP_PRINT:
 			m->S1 = (pn_word)PC.arg1;
-			if (!in_data(m, S1)) pn_die(m, "PRINT: arg1 not a string");
 			pn_trace(m, TRACE_START " %s\n", TRACE_ARGS, (const char *)m->S1);
 			printf((char *)(m->S1), m->A, m->B, m->C, m->D, m->E, m->F);
 			NEXT;

@@ -20,7 +20,7 @@ OK? @next.1
   CALL &USER.REMOVE
   FLAG 1 :changed
 FLAGGED? :changed
-OK? @done.1
+OK? @next.1
   CALL &USERDB.SAVE
 next.1:
 EOF
@@ -59,21 +59,21 @@ SET %B 1231
 COPY %B %T2
 CALL &USER.GET_UID
 COPY %R %T1
-EQ? uid.ok.1
+EQ? @uid.ok.1
   CALL &USER.SET_UID
   FLAG 1 :changed
-uid.ok.1
+uid.ok.1:
 SET %B 1818
 COPY %B %T2
 CALL &USER.GET_GID
 COPY %R %T1
-NE? gid.ok.1
+NE? @gid.ok.1
   CALL &USER.SET_GID
   FLAG 1 :changed
-gid.ok.1
+gid.ok.1:
 exists.1:
 FLAGGED? :changed
-OK? @done.1
+OK? @next.1
   CALL &USERDB.SAVE
 next.1:
 EOF
@@ -124,7 +124,7 @@ JUMP @exists.1
 check.ids.1:
 exists.1:
 FLAGGED? :changed
-OK? @done.1
+OK? @next.1
   CALL &USERDB.SAVE
 next.1:
 EOF
@@ -153,18 +153,18 @@ SET %B 1231
 COPY %B %T2
 CALL &USER.GET_UID
 COPY %R %T1
-EQ? uid.ok.1
+EQ? @uid.ok.1
   CALL &USER.SET_UID
   FLAG 1 :changed
-uid.ok.1
+uid.ok.1:
 SET %B 1818
 COPY %B %T2
 CALL &USER.GET_GID
 COPY %R %T1
-NE? gid.ok.1
+NE? @gid.ok.1
   CALL &USER.SET_GID
   FLAG 1 :changed
-gid.ok.1
+gid.ok.1:
 exists.1:
 SET %B "x"
 CALL &USER.SET_PASSWD
@@ -183,15 +183,15 @@ COPY %R %T1
 DIFF? @gecos.ok.1
   CALL &USER.SET_GECOS
   FLAG 1 :changed
-gecos.ok.1
+gecos.ok.1:
 SET %B "/bin/bash"
 COPY %B %T2
-CALL &USER.SET_SHELL
+CALL &USER.GET_SHELL
 COPY %R %T1
 DIFF? @shell.ok.1
   CALL &USER.SET_SHELL
   FLAG 1 :changed
-shell.ok.1
+shell.ok.1:
 SET %B 99
 COPY %B %T2
 CALL &USER.GET_PWMIN
@@ -199,7 +199,7 @@ COPY %R %T1
 NE? @pwmin.ok.1
   CALL &USER.SET_PWMIN
   FLAG 1 :changed
-pwmin.ok.1
+pwmin.ok.1:
 SET %B 305
 COPY %B %T2
 CALL &USER.GET_PWMAX
@@ -207,7 +207,7 @@ COPY %R %T1
 NE? @pwmax.ok.1
   CALL &USER.SET_PWMAX
   FLAG 1 :changed
-pwmax.ok.1
+pwmax.ok.1:
 SET %B 14
 COPY %B %T2
 CALL &USER.GET_PWWARN
@@ -215,7 +215,7 @@ COPY %R %T1
 NE? @pwwarn.ok.1
   CALL &USER.SET_PWWARN
   FLAG 1 :changed
-pwwarn.ok.1
+pwwarn.ok.1:
 SET %B 9998
 COPY %B %T2
 CALL &USER.GET_INACT
@@ -223,7 +223,7 @@ COPY %R %T1
 NE? @inact.ok.1
   CALL &USER.SET_INACT
   FLAG 1 :changed
-inact.ok.1
+inact.ok.1:
 SET %B 9999
 COPY %B %T2
 CALL &USER.GET_EXPIRY
@@ -231,9 +231,9 @@ COPY %R %T1
 NE? @expire.ok.1
   CALL &USER.SET_EXPIRY
   FLAG 1 :changed
-expire.ok.1
+expire.ok.1:
 FLAGGED? :changed
-OK? @done.1
+OK? @next.1
   CALL &USERDB.SAVE
 next.1:
 EOF

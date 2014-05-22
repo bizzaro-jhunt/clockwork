@@ -85,6 +85,32 @@ static const char *REG_NAMES[] = {
 #define pn_ADDR(m,off) ((m)->data+(off))
 #define pn_CODE(m,off) ((m)->code[off])
 
+/* tagged values
+
+   The most-significant (left-most) 4 bits
+   identify the type of value.  Remaining
+   bits encode the value.
+ */
+#define     TAG_MASK 0xf000000000000000UL
+#define   VALUE_MASK 0x0fffffffffffffffUL
+
+#define REGISTER_TAG 0x9000000000000000UL /* 1001 */
+#define    LABEL_TAG 0xa000000000000000UL /* 1010 */
+#define     FLAG_TAG 0xb000000000000000UL /* 1011 */
+#define FUNCTION_TAG 0xc000000000000000UL /* 1100 */
+
+#define IS_REGISTER(x) (((x) & TAG_MASK) == REGISTER_TAG)
+#define IS_LABEL(x)    (((x) & TAG_MASK) == LABEL_TAG)
+#define IS_FLAG(x)     (((x) & TAG_MASK) == FLAG_TAG)
+#define IS_FUNCTION(x) (((x) & TAG_MASK) == FUNCTION_TAG)
+
+#define TAGV(x) ((x) & VALUE_MASK)
+
+#define REGISTER(x) ((x) | REGISTER_TAG)
+#define LABEL(x)    ((x) | LABEL_TAG)
+#define FLAG(x)     ((x) | FLAG_TAG)
+#define FUNCTION(x) ((x) | FUNCTION_TAG)
+
 static int s_label(char *buf, char **labelv)
 {
 	assert(buf);
@@ -180,9 +206,9 @@ static int s_resolve_op(const char *op)
 	return PN_OP_INVAL;
 }
 
-static int s_resolve_reg(const char *reg)
+static pn_word s_resolve_reg(const char *reg)
 {
-#define reg_offset(M) ((offsetof(pn_machine, M) - offsetof(pn_machine, A))/sizeof(pn_word))
+#define reg_offset(M) REGISTER((offsetof(pn_machine, M) - offsetof(pn_machine, A))/sizeof(pn_word))
 	if (strcmp(reg, "\%A")  == 0) return reg_offset(A);
 	if (strcmp(reg, "\%B")  == 0) return reg_offset(B);
 	if (strcmp(reg, "\%C")  == 0) return reg_offset(C);
@@ -231,7 +257,7 @@ static pn_word s_resolve_arg(pn_machine *m, const char *arg)
 				continue;
 
 			errno = 0;
-			return m->jumps[i].step;
+			return LABEL(m->jumps[i].step);
 		}
 		snprintf(ebuf, 1024, "Label '%s' not found\n", arg+1);
 		pn_die(m, ebuf);
@@ -241,10 +267,10 @@ static pn_word s_resolve_arg(pn_machine *m, const char *arg)
 		for (i = 0; i < PN_MAX_FLAGS; i++) {
 			if (!m->flags[i].label[0]) {
 				strncpy(m->flags[i].label, arg+1, 63);
-				return (pn_word)i;
+				return FLAG((pn_word)i);
 			}
 			if (strcmp(m->flags[i].label, arg+1) == 0)
-				return (pn_word)i;
+				return FLAG((pn_word)i);
 		}
 
 		snprintf(ebuf, 1024, "Cannot set flag '%s': insufficient space\n", arg+1);
@@ -257,7 +283,7 @@ static pn_word s_resolve_arg(pn_machine *m, const char *arg)
 			if (strcmp(m->func[i].name, arg+1)) continue;
 
 			errno = 0;
-			return (pn_word)i;
+			return FUNCTION((pn_word)i);
 		}
 		snprintf(ebuf, 1024, "'%s' is not a defined function\n", arg+1);
 		pn_die(m, ebuf);
@@ -427,10 +453,12 @@ int pn_run(pn_machine *m)
 #   define PC      pn_CODE(m, m->Ip)
 #   define TRACE_START "TRACE :: %08lu [%02x] %s"
 #   define TRACE_ARGS  (unsigned long)m->Ip, (unsigned int)PC.op, OP_NAMES[PC.op]
-#   define TEST(x,t1,op,t2) \
+#   define TEST(n,x,t1,op,t2) \
+             if (!IS_LABEL(PC.arg1)) pn_die(m, "Invalid else-jump label for " n " operator"); \
              m->Tr = (x); \
-             pn_trace(m, TRACE_START " %lu " op " %lu\n", TRACE_ARGS, t1, t2); \
-             m->Ip = m->Tr ? m->Ip + 1 : PC.arg1; \
+             pn_trace(m, TRACE_START " %li " op " %li\n", TRACE_ARGS, t1, t2); \
+             m->Ip = m->Tr ? m->Ip + 1 : TAGV(PC.arg1); \
+             pn_trace(m, TRACE_START " branching to %p\n", TRACE_ARGS, m->Ip); \
                  break
 #   define NEXT    m->Ip++; break
 
@@ -449,44 +477,50 @@ int pn_run(pn_machine *m)
 			NEXT;
 
 		case PN_OP_CMP:
+			if (!IS_LABEL(PC.arg1)) pn_die(m, "Invalid else-jump label for CMP? operator"); \
 			m->Tr = (strcmp((const char *)m->T1, (const char *)m->T2) == 0);
 			pn_trace(m, TRACE_START " '%s' eq '%s'\n",
 				TRACE_ARGS, (const char *)m->T1, (const char *)m->T2);
-			m->Ip = m->Tr ? m->Ip + 1 : PC.arg1;
+			m->Ip = m->Tr ? m->Ip + 1 : TAGV(PC.arg1);
 			break;
 
 		case PN_OP_DIFF:
+			if (!IS_LABEL(PC.arg1)) pn_die(m, "Invalid else-jump label for DIFF? operator"); \
 			m->Tr = (strcmp((const char *)m->T1, (const char *)m->T2) != 0);
 			pn_trace(m, TRACE_START " '%s' ne '%s'\n",
 				TRACE_ARGS, (const char *)m->T1, (const char *)m->T2);
-			m->Ip = m->Tr ? m->Ip + 1 : PC.arg1;
+			m->Ip = m->Tr ? m->Ip + 1 : TAGV(PC.arg1);
 			break;
 
 		case PN_OP_FLAGGED:
-			pn_trace(m, TRACE_START " %s (%i)\n",
-					m->flags[PC.arg1].label, m->flags[PC.arg1].value);
-			m->Tr = m->flags[PC.arg1].value;
+			if (!IS_FLAG(PC.arg1)) pn_die(m, "Non-flag argument to FLAGGED? operator");
+			pn_trace(m, TRACE_START " %s (%i)\n", TRACE_ARGS,
+					m->flags[TAGV(PC.arg1)].label, m->flags[TAGV(PC.arg1)].value);
+			m->Tr = m->flags[TAGV(PC.arg1)].value;
 			NEXT;
 
-		case PN_OP_EQ:    TEST(m->T1 == m->T2, m->T1, "==", m->T2);
-		case PN_OP_NE:    TEST(m->T1 != m->T2, m->T1, "!=", m->T2);
-		case PN_OP_GT:    TEST(m->T1 >  m->T2, m->T1, ">",  m->T2);
-		case PN_OP_GTE:   TEST(m->T1 >= m->T2, m->T1, ">=", m->T2);
-		case PN_OP_LT:    TEST(m->T1 <  m->T2, m->T1, "<",  m->T2);
-		case PN_OP_LTE:   TEST(m->T1 <= m->T2, m->T1, "<=", m->T2);
-		case PN_OP_OK:    TEST(m->R  == 0,     m->R,  "==", 0);
-		case PN_OP_NOTOK: TEST(m->R  != 0,     m->R,  "!=", 0);
+		case PN_OP_EQ:    TEST("EQ?",    m->T1 == m->T2, m->T1, "==", m->T2);
+		case PN_OP_NE:    TEST("NE?",    m->T1 != m->T2, m->T1, "!=", m->T2);
+		case PN_OP_GT:    TEST("GT?",    m->T1 >  m->T2, m->T1, ">",  m->T2);
+		case PN_OP_GTE:   TEST("GTE?",   m->T1 >= m->T2, m->T1, ">=", m->T2);
+		case PN_OP_LT:    TEST("LT?",    m->T1 <  m->T2, m->T1, "<",  m->T2);
+		case PN_OP_LTE:   TEST("LTE?",   m->T1 <= m->T2, m->T1, "<=", m->T2);
+		case PN_OP_OK:    TEST("OK?",    m->R  == 0,     m->R,  "==", 0);
+		case PN_OP_NOTOK: TEST("NOTOK?", m->R  != 0,     m->R,  "!=", 0);
 
 		case PN_OP_COPY:
+			if (!IS_REGISTER(PC.arg1)) pn_die(m, "Non-register passed as source register to COPY operator");
+			if (!IS_REGISTER(PC.arg2)) pn_die(m, "Non-register passed as destination register to COPY operator");
 			pn_trace(m, TRACE_START " %%%s -> %%%s\n",
-					TRACE_ARGS, REG_NAMES[PC.arg1], REG_NAMES[PC.arg2]);
-			*(pn_word*)pn_REG(m, PC.arg2) = *(pn_word*)pn_REG(m, PC.arg1);
+					TRACE_ARGS, REG_NAMES[TAGV(PC.arg1)], REG_NAMES[TAGV(PC.arg2)]);
+			*(pn_word*)pn_REG(m, TAGV(PC.arg2)) = *(pn_word*)pn_REG(m, TAGV(PC.arg1));
 			NEXT;
 
 		case PN_OP_SET:
+			if (!IS_REGISTER(PC.arg1)) pn_die(m, "Non-register passed as destiation register to SET operator");
 			pn_trace(m, TRACE_START " %%%s\n",
-					TRACE_ARGS, REG_NAMES[PC.arg1]);
-			*(pn_word*)pn_REG(m, PC.arg1) = (pn_word)PC.arg2;
+					TRACE_ARGS, REG_NAMES[TAGV(PC.arg1)]);
+			*(pn_word*)pn_REG(m, TAGV(PC.arg1)) = TAGV((pn_word)PC.arg2);
 			NEXT;
 
 		case PN_OP_HALT:
@@ -508,9 +542,10 @@ int pn_run(pn_machine *m)
 			NEXT;
 
 		case PN_OP_CALL:
+			if (!IS_FUNCTION(PC.arg1)) pn_die(m, "Non-function argument passed to CALL operator");
 			pn_trace(m, TRACE_START " %s\n", TRACE_ARGS,
-					(const char *)m->func[PC.arg1].name);
-			m->R = (*m->func[PC.arg1].call)(m);
+					(const char *)m->func[TAGV(PC.arg1)].name);
+			m->R = (*m->func[TAGV(PC.arg1)].call)(m);
 			NEXT;
 
 		case PN_OP_PRINT:
@@ -520,8 +555,9 @@ int pn_run(pn_machine *m)
 			NEXT;
 
 		case PN_OP_JUMP:
-			pn_trace(m, TRACE_START " %08lu\n", TRACE_ARGS, PC.arg1);
-			m->Ip = PC.arg1;
+			if (!IS_LABEL(PC.arg1)) pn_die(m, "Non-label argument to JUMP operator");
+			pn_trace(m, TRACE_START " %08lu\n", TRACE_ARGS, TAGV(PC.arg1));
+			m->Ip = TAGV(PC.arg1);
 			break;
 
 		case PN_OP_DUMP:
@@ -545,9 +581,10 @@ int pn_run(pn_machine *m)
 			NEXT;
 
 		case PN_OP_FLAG:
+			if (!IS_FLAG(PC.arg2)) pn_die(m, "Non-flag passed as second argument to FLAG operator");
 			pn_trace(m, TRACE_START " %s = %i\n", TRACE_ARGS,
-					m->flags[PC.arg2].label, PC.arg1 == 0 ? 0 : 1);
-			m->flags[PC.arg2].value = (PC.arg1 ? 1 : 0);
+					m->flags[TAGV(PC.arg2)].label, PC.arg1 == 0 ? 0 : 1);
+			m->flags[TAGV(PC.arg2)].value = (PC.arg1 ? 1 : 0);
 			NEXT;
 
 		default: pn_die(m, "Unknown / Invalid operand");

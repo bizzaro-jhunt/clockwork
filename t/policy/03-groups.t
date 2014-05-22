@@ -7,16 +7,32 @@ use t::common;
 
 gencode_ok "use host group1.test", <<'EOF', "group removal";
 ;; res_group group1
+FLAG 0 :changed
+CALL &USERDB.OPEN
+NOTOK? @start.1
+  PRINT "Failed to open the user databases\n"
+  HALT
+start.1:
 SET %A 1
 SET %B "group1"
 CALL &GROUP.FIND
 OK? @next.1
   CALL &GROUP.REMOVE
+  FLAG 1 :changed
+FLAGGED? :changed
+OK? @next.1
+  CALL &USERDB.SAVE
 next.1:
 EOF
 
 gencode_ok "use host group2.test", <<'EOF', "group creation with explicit GID";
 ;; res_group group2
+FLAG 0 :changed
+CALL &USERDB.OPEN
+NOTOK? @start.1
+  PRINT "Failed to open the user databases\n"
+  HALT
+start.1:
 SET %A 1
 SET %B "group2"
 CALL &GROUP.FIND
@@ -24,16 +40,27 @@ OK? @found.1
   COPY %B %A
   SET %B 6766
   CALL &GROUP.CREATE
+  FLAG 1 :changed
   JUMP @update.1
 found.1:
   SET %B 6766
   CALL &GROUP.SET_GID
+  FLAG 1 :changed
 update.1:
+FLAGGED? :changed
+OK? @next.1
+  CALL &USERDB.SAVE
 next.1:
 EOF
 
 gencode_ok "use host group3.test", <<'EOF', "group creation without explicit GID";
 ;; res_group group3
+FLAG 0 :changed
+CALL &USERDB.OPEN
+NOTOK? @start.1
+  PRINT "Failed to open the user databases\n"
+  HALT
+start.1:
 SET %A 1
 SET %B "group3"
 CALL &GROUP.FIND
@@ -42,14 +69,24 @@ OK? @found.1
   CALL &GROUP.NEXT_GID
   COPY %R %B
   CALL &GROUP.CREATE
+  FLAG 1 :changed
   JUMP @update.1
 found.1:
 update.1:
+FLAGGED? :changed
+OK? @next.1
+  CALL &USERDB.SAVE
 next.1:
 EOF
 
 gencode_ok "use host group4.test", <<'EOF', "group with all attrs";
 ;; res_group group4
+FLAG 0 :changed
+CALL &USERDB.OPEN
+NOTOK? @start.1
+  PRINT "Failed to open the user databases\n"
+  HALT
+start.1:
 SET %A 1
 SET %B "group4"
 CALL &GROUP.FIND
@@ -57,42 +94,53 @@ OK? @found.1
   COPY %B %A
   SET %B 6778
   CALL &GROUP.CREATE
+  FLAG 1 :changed
   JUMP @update.1
 found.1:
   SET %B 6778
   CALL &GROUP.SET_GID
+  FLAG 1 :changed
 update.1:
 SET %B "x"
 CALL &GROUP.SET_PASSWD
 SET %B "$$crypt"
 CALL &GROUP.SET_PWHASH
+  FLAG 1 :changed
 ;; members
 SET %A "user1"
 CALL &GROUP.HAS_MEMBER?
-OK? @member.user1.else.1
+OK? @member-add.user1.else.1
   CALL &GROUP.ADD_MEMBER
-member.user1.else.1:
+  FLAG 1 :changed
+member-add.user1.else.1:
 SET %A "user2"
 CALL &GROUP.HAS_MEMBER?
-OK? @member.user2.else.1
+OK? @member-add.user2.else.1
   CALL &GROUP.ADD_MEMBER
-member.user2.else.1:
+  FLAG 1 :changed
+member-add.user2.else.1:
 SET %A "user3"
 CALL &GROUP.HAS_MEMBER?
-NOTOK? @member.user3.else.1
+NOTOK? @member-rm.user3.else.1
   CALL &GROUP.RM_MEMBER
-member.user3.else.1:
+  FLAG 1 :changed
+member-rm.user3.else.1:
 ;; admins
 SET %A "adm1"
 CALL &GROUP.HAS_ADMIN?
-OK? @admin.adm1.else.1
+OK? @admin-add.adm1.else.1
   CALL &GROUP.ADD_ADMIN
-admin.adm1.else.1:
+  FLAG 1 :changed
+admin-add.adm1.else.1:
 SET %A "root"
 CALL &GROUP.HAS_ADMIN?
-NOTOK? @admin.root.else.1
+NOTOK? @admin-rm.root.else.1
   CALL &GROUP.RM_ADMIN
-admin.root.else.1:
+  FLAG 1 :changed
+admin-rm.root.else.1:
+FLAGGED? :changed
+OK? @next.1
+  CALL &USERDB.SAVE
 next.1:
 EOF
 

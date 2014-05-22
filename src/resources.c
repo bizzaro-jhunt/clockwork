@@ -455,20 +455,20 @@ int res_user_gencode(const void *res, FILE *io, unsigned int next)
 			fprintf(io, "COPY %%B %%T2\n");
 			fprintf(io, "CALL &USER.GET_UID\n");
 			fprintf(io, "COPY %%R %%T1\n");
-			fprintf(io, "EQ? uid.ok.%i\n", next);
+			fprintf(io, "EQ? @uid.ok.%i\n", next);
 			fprintf(io, "  CALL &USER.SET_UID\n");
 			fprintf(io, "  FLAG 1 :changed\n");
-			fprintf(io, "uid.ok.%i\n", next);
+			fprintf(io, "uid.ok.%i:\n", next);
 		}
 		if (ENFORCED(r, RES_USER_GID)) {
 			fprintf(io, "SET %%B %i\n", r->gid);
 			fprintf(io, "COPY %%B %%T2\n");
 			fprintf(io, "CALL &USER.GET_GID\n");
 			fprintf(io, "COPY %%R %%T1\n");
-			fprintf(io, "NE? gid.ok.%i\n", next);
+			fprintf(io, "NE? @gid.ok.%i\n", next);
 			fprintf(io, "  CALL &USER.SET_GID\n");
 			fprintf(io, "  FLAG 1 :changed\n");
-			fprintf(io, "gid.ok.%i\n", next);
+			fprintf(io, "gid.ok.%i:\n", next);
 		}
 		fprintf(io, "exists.%i:\n", next);
 
@@ -493,17 +493,17 @@ int res_user_gencode(const void *res, FILE *io, unsigned int next)
 			fprintf(io, "DIFF? @gecos.ok.%i\n", next);
 			fprintf(io, "  CALL &USER.SET_GECOS\n");
 			fprintf(io, "  FLAG 1 :changed\n");
-			fprintf(io, "gecos.ok.%i\n", next);
+			fprintf(io, "gecos.ok.%i:\n", next);
 		}
 		if (ENFORCED(r, RES_USER_SHELL)) {
 			fprintf(io, "SET %%B \"%s\"\n", r->shell);
 			fprintf(io, "COPY %%B %%T2\n");
-			fprintf(io, "CALL &USER.SET_SHELL\n");
+			fprintf(io, "CALL &USER.GET_SHELL\n");
 			fprintf(io, "COPY %%R %%T1\n");
 			fprintf(io, "DIFF? @shell.ok.%i\n", next);
 			fprintf(io, "  CALL &USER.SET_SHELL\n");
 			fprintf(io, "  FLAG 1 :changed\n");
-			fprintf(io, "shell.ok.%i\n", next);
+			fprintf(io, "shell.ok.%i:\n", next);
 		}
 		if (ENFORCED(r, RES_USER_PWMIN)) {
 			fprintf(io, "SET %%B %li\n", r->pwmin);
@@ -513,7 +513,7 @@ int res_user_gencode(const void *res, FILE *io, unsigned int next)
 			fprintf(io, "NE? @pwmin.ok.%i\n", next);
 			fprintf(io, "  CALL &USER.SET_PWMIN\n");
 			fprintf(io, "  FLAG 1 :changed\n");
-			fprintf(io, "pwmin.ok.%i\n", next);
+			fprintf(io, "pwmin.ok.%i:\n", next);
 		}
 		if (ENFORCED(r, RES_USER_PWMAX)) {
 			fprintf(io, "SET %%B %li\n", r->pwmax);
@@ -523,7 +523,7 @@ int res_user_gencode(const void *res, FILE *io, unsigned int next)
 			fprintf(io, "NE? @pwmax.ok.%i\n", next);
 			fprintf(io, "  CALL &USER.SET_PWMAX\n");
 			fprintf(io, "  FLAG 1 :changed\n");
-			fprintf(io, "pwmax.ok.%i\n", next);
+			fprintf(io, "pwmax.ok.%i:\n", next);
 		}
 		if (ENFORCED(r, RES_USER_PWWARN)) {
 			fprintf(io, "SET %%B %li\n", r->pwwarn);
@@ -533,7 +533,7 @@ int res_user_gencode(const void *res, FILE *io, unsigned int next)
 			fprintf(io, "NE? @pwwarn.ok.%i\n", next);
 			fprintf(io, "  CALL &USER.SET_PWWARN\n");
 			fprintf(io, "  FLAG 1 :changed\n");
-			fprintf(io, "pwwarn.ok.%i\n", next);
+			fprintf(io, "pwwarn.ok.%i:\n", next);
 		}
 		if (ENFORCED(r, RES_USER_INACT)) {
 			fprintf(io, "SET %%B %li\n", r->inact);
@@ -543,7 +543,7 @@ int res_user_gencode(const void *res, FILE *io, unsigned int next)
 			fprintf(io, "NE? @inact.ok.%i\n", next);
 			fprintf(io, "  CALL &USER.SET_INACT\n");
 			fprintf(io, "  FLAG 1 :changed\n");
-			fprintf(io, "inact.ok.%i\n", next);
+			fprintf(io, "inact.ok.%i:\n", next);
 		}
 		if (ENFORCED(r, RES_USER_EXPIRE)) {
 			fprintf(io, "SET %%B %li\n", r->expire);
@@ -553,11 +553,11 @@ int res_user_gencode(const void *res, FILE *io, unsigned int next)
 			fprintf(io, "NE? @expire.ok.%i\n", next);
 			fprintf(io, "  CALL &USER.SET_EXPIRY\n");
 			fprintf(io, "  FLAG 1 :changed\n");
-			fprintf(io, "expire.ok.%i\n", next);
+			fprintf(io, "expire.ok.%i:\n", next);
 		}
 	}
 	fprintf(io, "FLAGGED? :changed\n");
-	fprintf(io, "OK? @done.%i\n", next);
+	fprintf(io, "OK? @next.%i\n", next);
 	fprintf(io, "  CALL &USERDB.SAVE\n");
 
 	return 0;
@@ -793,6 +793,11 @@ int res_file_gencode(const void *res, FILE *io, unsigned int next)
 	fprintf(io, "exists.%i:\n", next);
 
 	if (ENFORCED(r, RES_FILE_UID) || ENFORCED(r, RES_FILE_GID)) {
+		fprintf(io, "CALL &USERDB.OPEN\n");
+		fprintf(io, "NOTOK? @start.%i\n", next);
+		fprintf(io, "  PRINT \"Failed to open the user databases\\n\"\n");
+		fprintf(io, "  HALT\n");
+		fprintf(io, "start.%i:\n", next);
 		fprintf(io, "COPY %%A %%F\n");
 		fprintf(io, "SET %%D 0\n");
 		fprintf(io, "SET %%E 0\n");
@@ -824,6 +829,7 @@ int res_file_gencode(const void *res, FILE *io, unsigned int next)
 			fprintf(io, "COPY %%R %%E\n");
 			fprintf(io, "groupfind.done.%i:\n", next);
 		}
+		fprintf(io, "CALL &USERDB.CLOSE\n");
 		fprintf(io, "COPY %%F %%A\n");
 		fprintf(io, "COPY %%D %%B\n");
 		fprintf(io, "COPY %%E %%C\n");
@@ -1110,6 +1116,12 @@ int res_group_gencode(const void *res, FILE *io, unsigned int next)
 	assert(r); // LCOV_EXCL_LINE
 
 	fprintf(io, ";; res_group %s\n", r->key);
+	fprintf(io, "FLAG 0 :changed\n");
+	fprintf(io, "CALL &USERDB.OPEN\n");
+	fprintf(io, "NOTOK? @start.%i\n", next);
+	fprintf(io, "  PRINT \"Failed to open the user databases\\n\"\n");
+	fprintf(io, "  HALT\n");
+	fprintf(io, "start.%i:\n", next);
 	fprintf(io, "SET %%A 1\n");
 	fprintf(io, "SET %%B \"%s\"\n", r->name);
 	fprintf(io, "CALL &GROUP.FIND\n");
@@ -1117,6 +1129,7 @@ int res_group_gencode(const void *res, FILE *io, unsigned int next)
 	if (ENFORCED(r, RES_GROUP_ABSENT)) {
 		fprintf(io, "OK? @next.%i\n", next);
 		fprintf(io, "  CALL &GROUP.REMOVE\n");
+		fprintf(io, "  FLAG 1 :changed\n");
 	} else {
 		fprintf(io, "OK? @found.%i\n", next);
 		fprintf(io, "  COPY %%B %%A\n");
@@ -1129,21 +1142,23 @@ int res_group_gencode(const void *res, FILE *io, unsigned int next)
 		}
 
 		fprintf(io, "  CALL &GROUP.CREATE\n");
+		fprintf(io, "  FLAG 1 :changed\n");
 		fprintf(io, "  JUMP @update.%i\n", next);
 		fprintf(io, "found.%i:\n", next);
 
 		if (ENFORCED(r, RES_GROUP_GID)) {
 			fprintf(io, "  SET %%B %i\n", r->gid);
 			fprintf(io, "  CALL &GROUP.SET_GID\n");
+			fprintf(io, "  FLAG 1 :changed\n");
 		}
 
 		fprintf(io, "update.%i:\n", next);
-
 		if (ENFORCED(r, RES_GROUP_PASSWD)) {
 			fprintf(io, "SET %%B \"x\"\n");
 			fprintf(io, "CALL &GROUP.SET_PASSWD\n");
 			fprintf(io, "SET %%B \"%s\"\n", r->passwd);
 			fprintf(io, "CALL &GROUP.SET_PWHASH\n");
+			fprintf(io, "  FLAG 1 :changed\n");
 		}
 
 		if (ENFORCED(r, RES_GROUP_MEMBERS)) {
@@ -1152,16 +1167,18 @@ int res_group_gencode(const void *res, FILE *io, unsigned int next)
 			for (name = r->mem_add->strings; *name; name++) {
 				fprintf(io, "SET %%A \"%s\"\n", *name);
 				fprintf(io, "CALL &GROUP.HAS_MEMBER?\n");
-				fprintf(io, "OK? @member.%s.else.%i\n", *name, next);
+				fprintf(io, "OK? @member-add.%s.else.%i\n", *name, next);
 				fprintf(io, "  CALL &GROUP.ADD_MEMBER\n");
-				fprintf(io, "member.%s.else.%i:\n", *name, next);
+				fprintf(io, "  FLAG 1 :changed\n");
+				fprintf(io, "member-add.%s.else.%i:\n", *name, next);
 			}
 			for (name = r->mem_rm->strings; *name; name++) {
 				fprintf(io, "SET %%A \"%s\"\n", *name);
 				fprintf(io, "CALL &GROUP.HAS_MEMBER?\n");
-				fprintf(io, "NOTOK? @member.%s.else.%i\n", *name, next);
+				fprintf(io, "NOTOK? @member-rm.%s.else.%i\n", *name, next);
 				fprintf(io, "  CALL &GROUP.RM_MEMBER\n");
-				fprintf(io, "member.%s.else.%i:\n", *name, next);
+				fprintf(io, "  FLAG 1 :changed\n");
+				fprintf(io, "member-rm.%s.else.%i:\n", *name, next);
 			}
 		}
 
@@ -1171,19 +1188,24 @@ int res_group_gencode(const void *res, FILE *io, unsigned int next)
 			for (name = r->adm_add->strings; *name; name++) {
 				fprintf(io, "SET %%A \"%s\"\n", *name);
 				fprintf(io, "CALL &GROUP.HAS_ADMIN?\n");
-				fprintf(io, "OK? @admin.%s.else.%i\n", *name, next);
+				fprintf(io, "OK? @admin-add.%s.else.%i\n", *name, next);
 				fprintf(io, "  CALL &GROUP.ADD_ADMIN\n");
-				fprintf(io, "admin.%s.else.%i:\n", *name, next);
+				fprintf(io, "  FLAG 1 :changed\n");
+				fprintf(io, "admin-add.%s.else.%i:\n", *name, next);
 			}
 			for (name = r->adm_rm->strings; *name; name++) {
 				fprintf(io, "SET %%A \"%s\"\n", *name);
 				fprintf(io, "CALL &GROUP.HAS_ADMIN?\n");
-				fprintf(io, "NOTOK? @admin.%s.else.%i\n", *name, next);
+				fprintf(io, "NOTOK? @admin-rm.%s.else.%i\n", *name, next);
 				fprintf(io, "  CALL &GROUP.RM_ADMIN\n");
-				fprintf(io, "admin.%s.else.%i:\n", *name, next);
+				fprintf(io, "  FLAG 1 :changed\n");
+				fprintf(io, "admin-rm.%s.else.%i:\n", *name, next);
 			}
 		}
 	}
+	fprintf(io, "FLAGGED? :changed\n");
+	fprintf(io, "OK? @next.%i\n", next);
+	fprintf(io, "  CALL &USERDB.SAVE\n");
 
 	return 0;
 }

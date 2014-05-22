@@ -14,6 +14,11 @@ OK? @create.1
 create.1:
   CALL &FS.MKFILE
 exists.1:
+CALL &USERDB.OPEN
+NOTOK? @start.1
+  PRINT "Failed to open the user databases\n"
+  HALT
+start.1:
 COPY %A %F
 SET %D 0
 SET %E 0
@@ -39,6 +44,7 @@ found.group.1:
 CALL &GROUP.GET_GID
 COPY %R %E
 groupfind.done.1:
+CALL &USERDB.CLOSE
 COPY %F %A
 COPY %D %B
 COPY %E %C
@@ -81,6 +87,11 @@ OK? @create.1
 create.1:
   CALL &FS.MKFILE
 exists.1:
+CALL &USERDB.OPEN
+NOTOK? @start.1
+  PRINT "Failed to open the user databases\n"
+  HALT
+start.1:
 COPY %A %F
 SET %D 0
 SET %E 0
@@ -106,6 +117,7 @@ found.group.1:
 CALL &GROUP.GET_GID
 COPY %R %E
 groupfind.done.1:
+CALL &USERDB.CLOSE
 COPY %F %A
 COPY %D %B
 COPY %E %C

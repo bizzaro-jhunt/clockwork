@@ -3,13 +3,9 @@
 ;; Pendulum Test Script
 ;;
 
-SET %A "t/tmp/pn/groups/group"
-CALL &GRDB.OPEN
-OK? @grdb.open.fail
-
-SET %A "t/tmp/pn/groups/gshadow"
-CALL &SGDB.OPEN
-OK? @sgdb.open.fail
+PRAGMA "userdb.root" "t/tmp/pn/groups"
+CALL &USERDB.OPEN
+OK? @userdb.open.fail
 
 
 members:
@@ -107,16 +103,7 @@ HALT
 
 
 
-grdb.open.fail:
+userdb.open.fail:
   PRINT "Failed to open group file\n"
   SYSERR
   HALT
-
-sgdb.open.fail:
-  PRINT "Failed to open gshadow file\n"
-  SYSERR
-  HALT
-
-  PRINT "%s is NOT an admin\n"
-
-  PRINT "%s is NOT a member\n"

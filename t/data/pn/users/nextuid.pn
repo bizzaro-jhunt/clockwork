@@ -3,9 +3,8 @@
 ;; Pendulum Test Script
 ;;
 
-SET %F "t/tmp/pn/users/passwd"
-COPY %F %A
-CALL &PWDB.OPEN
+PRAGMA "userdb.root" "t/tmp/pn/users"
+CALL &USERDB.OPEN
 OK? @open.fail
 
 SET %A 0

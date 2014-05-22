@@ -93,8 +93,8 @@ PERL_TESTS += t/policy/07-hosts.t
 TESTS          = $(CTAP_TESTS) $(PERL_TESTS)
 BUILT_TESTS    = $(CTAP_TESTS)
 check_PROGRAMS = $(CTAP_TESTS)
-check_DATA     = check-data-install.stamp
-check-data-install.stamp:
+check_DATA     = t/tmp/check-data-install.stamp
+t/tmp/check-data-install.stamp:
 	mkdir -p t/tmp
 	cp -a $(srcdir)/t/data t/tmp
 	cp -a $(srcdir)/augeas t/tmp

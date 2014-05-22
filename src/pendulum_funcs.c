@@ -337,17 +337,21 @@ struct sgdb {
 
 typedef struct {
 	void          *zconn;
-	const char    *server; /*   tcp://ip.ad.dr.ess:port  */
+	const char    *fsroot;
 
+	char etc_passwd[1024];
 	struct pwdb   *pwdb;
 	struct passwd *pwent;
 
+	char etc_shadow[1024];
 	struct spdb   *spdb;
 	struct spwd   *spent;
 
+	char etc_group[1024];
 	struct grdb   *grdb;
 	struct group  *grent;
 
+	char etc_gshadow[1024];
 	struct sgdb   *sgdb;
 	struct sgrp   *sgent;
 
@@ -361,6 +365,39 @@ typedef struct {
 } udata;
 
 #define UDATA(m) ((udata*)(m->U))
+
+/*
+
+    ########  ########     ###     ######   ##     ##    ###
+    ##     ## ##     ##   ## ##   ##    ##  ###   ###   ## ##
+    ##     ## ##     ##  ##   ##  ##        #### ####  ##   ##
+    ########  ########  ##     ## ##   #### ## ### ## ##     ##
+    ##        ##   ##   ######### ##    ##  ##     ## #########
+    ##        ##    ##  ##     ## ##    ##  ##     ## ##     ##
+    ##        ##     ## ##     ##  ######   ##     ## ##     ##
+
+ */
+
+static pn_word cwa_pragma(pn_machine *m, const char *k, const char *v)
+{
+	if (strcmp(k, "userdb.root") == 0) {
+		size_t n;
+		n = snprintf(UDATA(m)->etc_passwd,  1023, "%s%s", v, "/etc/passwd");
+		UDATA(m)->etc_passwd[n] = '\0';
+
+		n = snprintf(UDATA(m)->etc_shadow,  1023, "%s%s", v, "/etc/shadow");
+		UDATA(m)->etc_shadow[n] = '\0';
+
+		n = snprintf(UDATA(m)->etc_group,   1023, "%s%s", v, "/etc/group");
+		UDATA(m)->etc_group[n] = '\0';
+
+		n = snprintf(UDATA(m)->etc_gshadow, 1023, "%s%s", v, "/etc/gshadow");
+		UDATA(m)->etc_gshadow[n] = '\0';
+		return 0;
+	}
+
+	return 1;
+}
 
 /*
 
@@ -715,26 +752,26 @@ static pn_word cwa_server_writefile(pn_machine *m)
 
 /*
 
-    ########  ##      ## ########  ########
-    ##     ## ##  ##  ## ##     ## ##     ##
-    ##     ## ##  ##  ## ##     ## ##     ##
-    ########  ##  ##  ## ##     ## ########
-    ##        ##  ##  ## ##     ## ##     ##
-    ##        ##  ##  ## ##     ## ##     ##
-    ##         ###  ###  ########  ########
+    ##     ##  ######  ######## ########  ########  ########
+    ##     ## ##    ## ##       ##     ## ##     ## ##     ##
+    ##     ## ##       ##       ##     ## ##     ## ##     ##
+    ##     ##  ######  ######   ########  ##     ## ########
+    ##     ##       ## ##       ##   ##   ##     ## ##     ##
+    ##     ## ##    ## ##       ##    ##  ##     ## ##     ##
+     #######   ######  ######## ##     ## ########  ########
 
  */
-
-static pn_word cwa_pwdb_open(pn_machine *m)
+static int _pwdb_open(pn_machine *m)
 {
 	struct pwdb *cur, *ent;
 	struct passwd *passwd;
 	FILE *input;
 
-	input = fopen((const char *)m->A, "r");
-	if (!input) return 1;
-
 	UDATA(m)->pwdb = cur = ent = NULL;
+
+	input = fopen(UDATA(m)->etc_passwd, "r");
+	if (!input) return 0;
+
 	errno = 0;
 	while ((passwd = fgetpwent(input)) != NULL) {
 		ent = calloc(1, sizeof(struct pwdb));
@@ -759,12 +796,11 @@ static pn_word cwa_pwdb_open(pn_machine *m)
 	fclose(input);
 	return 0;
 }
-
-static pn_word cwa_pwdb_write(pn_machine *m)
+static int _pwdb_write(pn_machine *m)
 {
 	FILE *output;
 
-	output = fopen((const char *)m->A, "w");
+	output = fopen(UDATA(m)->etc_passwd, "w");
 	if (!output) return 1;
 
 	struct pwdb *db;
@@ -775,10 +811,10 @@ static pn_word cwa_pwdb_write(pn_machine *m)
 		}
 	}
 	fclose(output);
+
 	return 0;
 }
-
-static pn_word cwa_pwdb_close(pn_machine *m)
+static pn_word _pwdb_close(pn_machine *m)
 {
 	struct pwdb *cur, *entry = UDATA(m)->pwdb;
 
@@ -796,29 +832,16 @@ static pn_word cwa_pwdb_close(pn_machine *m)
 	UDATA(m)->pwdb = NULL;
 	return 0;
 }
-
-/*
-
-     ######  ########  ########  ########
-    ##    ## ##     ## ##     ## ##     ##
-    ##       ##     ## ##     ## ##     ##
-     ######  ########  ##     ## ########
-          ## ##        ##     ## ##     ##
-    ##    ## ##        ##     ## ##     ##
-     ######  ##        ########  ########
-
- */
-
-static pn_word cwa_spdb_open(pn_machine *m)
+static int _spdb_open(pn_machine *m)
 {
 	struct spdb *cur, *ent;
 	struct spwd *spwd;
 	FILE *input;
-
-	input = fopen((const char *)m->A, "r");
-	if (!input) return 1;
-
 	UDATA(m)->spdb = cur = ent = NULL;
+
+	input = fopen(UDATA(m)->etc_shadow, "r");
+	if (!input) return 0;
+
 	errno = 0;
 	while ((spwd = fgetspent(input)) != NULL) {
 		ent = calloc(1, sizeof(struct spdb));
@@ -845,12 +868,11 @@ static pn_word cwa_spdb_open(pn_machine *m)
 	fclose(input);
 	return 0;
 }
-
-static pn_word cwa_spdb_write(pn_machine *m)
+static int _spdb_write(pn_machine *m)
 {
 	FILE *output;
 
-	output = fopen((const char *)m->A, "w");
+	output = fopen(UDATA(m)->etc_shadow, "w");
 	if (!output) return 1;
 
 	struct spdb *db;
@@ -863,8 +885,7 @@ static pn_word cwa_spdb_write(pn_machine *m)
 	fclose(output);
 	return 0;
 }
-
-static pn_word cwa_spdb_close(pn_machine *m)
+static int _spdb_close(pn_machine *m)
 {
 	struct spdb *cur, *entry = UDATA(m)->spdb;
 
@@ -879,29 +900,16 @@ static pn_word cwa_spdb_close(pn_machine *m)
 	UDATA(m)->spdb = NULL;
 	return 0;
 }
-
-/*
-
-     ######   ########  ########  ########
-    ##    ##  ##     ## ##     ## ##     ##
-    ##        ##     ## ##     ## ##     ##
-    ##   #### ########  ##     ## ########
-    ##    ##  ##   ##   ##     ## ##     ##
-    ##    ##  ##    ##  ##     ## ##     ##
-     ######   ##     ## ########  ########
-
- */
-
-static pn_word cwa_grdb_open(pn_machine *m)
+static int _grdb_open(pn_machine *m)
 {
 	struct grdb *cur, *ent;
 	struct group *group;
 	FILE *input;
-
-	input = fopen((const char *)m->A, "r");
-	if (!input) return 1;
-
 	UDATA(m)->grdb = cur = ent = NULL;
+
+	input = fopen(UDATA(m)->etc_group, "r");
+	if (!input) return 0;
+
 	errno = 0;
 
 	while ((group = fgetgrent(input)) != NULL) {
@@ -924,12 +932,11 @@ static pn_word cwa_grdb_open(pn_machine *m)
 	fclose(input);
 	return 0;
 }
-
-static pn_word cwa_grdb_write(pn_machine *m)
+static int _grdb_write(pn_machine *m)
 {
 	FILE *output;
 
-	output = fopen((const char *)m->A, "w");
+	output = fopen(UDATA(m)->etc_group, "w");
 	if (!output) return 1;
 
 	struct grdb *db;
@@ -942,8 +949,7 @@ static pn_word cwa_grdb_write(pn_machine *m)
 	fclose(output);
 	return 0;
 }
-
-static pn_word cwa_grdb_close(pn_machine *m)
+static int _grdb_close(pn_machine *m)
 {
 	struct grdb *cur;
 	struct grdb *ent = UDATA(m)->grdb;
@@ -959,29 +965,16 @@ static pn_word cwa_grdb_close(pn_machine *m)
 	}
 	return 0;
 }
-
-/*
-
-     ######   ######   ########  ########
-    ##    ## ##    ##  ##     ## ##     ##
-    ##       ##        ##     ## ##     ##
-     ######  ##   #### ##     ## ########
-          ## ##    ##  ##     ## ##     ##
-    ##    ## ##    ##  ##     ## ##     ##
-     ######   ######   ########  ########
-
- */
-
-static pn_word cwa_sgdb_open(pn_machine *m)
+static int _sgdb_open(pn_machine *m)
 {
 	struct sgdb *cur, *ent;
 	struct sgrp *sgrp;
 	FILE *input;
-
-	input = fopen((const char *)m->A, "r");
-	if (!input) return 1;
-
 	UDATA(m)->sgdb = cur = ent = NULL;
+
+	input = fopen(UDATA(m)->etc_gshadow, "r");
+	if (!input) return 0;
+
 	errno = 0;
 	while ((sgrp = fgetsgent(input)) != NULL) {
 		ent = calloc(1, sizeof(struct sgdb));
@@ -1003,12 +996,11 @@ static pn_word cwa_sgdb_open(pn_machine *m)
 	fclose(input);
 	return 0;
 }
-
-static pn_word cwa_sgdb_write(pn_machine *m)
+static int _sgdb_write(pn_machine *m)
 {
 	FILE *output;
 
-	output = fopen((const char *)m->A, "w");
+	output = fopen(UDATA(m)->etc_gshadow, "w");
 	if (!output) return 1;
 
 	struct sgdb *db;
@@ -1021,8 +1013,7 @@ static pn_word cwa_sgdb_write(pn_machine *m)
 	fclose(output);
 	return 0;
 }
-
-static pn_word cwa_sgdb_close(pn_machine *m)
+static int _sgdb_close(pn_machine *m)
 {
 	struct sgdb *cur;
 	struct sgdb *ent = UDATA(m)->sgdb;
@@ -1038,6 +1029,34 @@ static pn_word cwa_sgdb_close(pn_machine *m)
 		ent = cur;
 	}
 	return 0;
+}
+
+static pn_word cwa_userdb_open(pn_machine *m)
+{
+	if (_pwdb_open(m) == 0 && _spdb_open(m) == 0
+	 && _grdb_open(m) == 0 && _sgdb_open(m) == 0) return 0;
+
+	_sgdb_close(m); _grdb_close(m);
+	_spdb_close(m); _pwdb_close(m);
+	return 1;
+}
+
+static pn_word cwa_userdb_close(pn_machine *m)
+{
+	_sgdb_close(m); _grdb_close(m);
+	_spdb_close(m); _pwdb_close(m);
+	return 0;
+}
+
+static pn_word cwa_userdb_save(pn_machine *m)
+{
+	int rc = 1;
+	if (_pwdb_write(m) == 0 && _spdb_write(m) == 0
+	 && _grdb_write(m) == 0 && _sgdb_write(m) == 0) rc = 0;
+
+	_sgdb_close(m); _grdb_close(m);
+	_spdb_close(m); _pwdb_close(m);
+	return rc;
 }
 
 /*
@@ -1057,8 +1076,8 @@ static pn_word cwa_user_find(pn_machine *m)
 	struct pwdb *pw;
 	struct spdb *sp;
 
-	if (!UDATA(m)->pwdb) pn_die(m, "passwd database not opened (use PWDB.OPEN)");
-	if (!UDATA(m)->spdb) pn_die(m, "shadow database not opened (use SPDB.OPEN)");
+	if (!UDATA(m)->pwdb) pn_die(m, "passwd database not opened (use USERDB.OPEN)");
+	if (!UDATA(m)->spdb) pn_die(m, "shadow database not opened (use USERDB.OPEN)");
 
 	if (m->A) {
 		for (pw = UDATA(m)->pwdb; pw; pw = pw->next) {
@@ -1625,21 +1644,9 @@ int pendulum_funcs(pn_machine *m, void *zconn)
 	pn_func(m,  "FS.CHOWN",           cwa_fs_chown);
 	pn_func(m,  "FS.CHMOD",           cwa_fs_chmod);
 
-	pn_func(m,  "PWDB.OPEN",          cwa_pwdb_open);
-	pn_func(m,  "PWDB.WRITE",         cwa_pwdb_write);
-	pn_func(m,  "PWDB.CLOSE",         cwa_pwdb_close);
-
-	pn_func(m,  "SPDB.OPEN",          cwa_spdb_open);
-	pn_func(m,  "SPDB.WRITE",         cwa_spdb_write);
-	pn_func(m,  "SPDB.CLOSE",         cwa_spdb_close);
-
-	pn_func(m,  "GRDB.OPEN",          cwa_grdb_open);
-	pn_func(m,  "GRDB.WRITE",         cwa_grdb_write);
-	pn_func(m,  "GRDB.CLOSE",         cwa_grdb_close);
-
-	pn_func(m,  "SGDB.OPEN",          cwa_sgdb_open);
-	pn_func(m,  "SGDB.WRITE",         cwa_sgdb_write);
-	pn_func(m,  "SGDB.CLOSE",         cwa_sgdb_close);
+	pn_func(m,  "USERDB.OPEN",        cwa_userdb_open);
+	pn_func(m,  "USERDB.SAVE",        cwa_userdb_save);
+	pn_func(m,  "USERDB.CLOSE",       cwa_userdb_close);
 
 	pn_func(m,  "USER.FIND",          cwa_user_find);
 	pn_func(m,  "USER.NEXT_UID",      cwa_user_next_uid);
@@ -1714,7 +1721,9 @@ int pendulum_funcs(pn_machine *m, void *zconn)
 	pn_func(m,  "SERVER.WRITEFILE",   cwa_server_writefile);
 
 	m->U = calloc(1, sizeof(udata));
+	m->pragma = cwa_pragma;
 	UDATA(m)->zconn = zconn;
+	cwa_pragma(m, "userdb.root", "");
 
 	return 0;
 }

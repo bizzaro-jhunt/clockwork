@@ -3,15 +3,9 @@
 ;; Pendulum Test Script
 ;;
 
-SET %F "t/tmp/pn/users/passwd"
-COPY %F %A
-CALL &PWDB.OPEN
-OK? @pwdb.open.fail
-
-SET %E "t/tmp/pn/users/shadow"
-COPY %E %A
-CALL &SPDB.OPEN
-OK? @spdb.open.fail
+PRAGMA "userdb.root" "t/tmp/pn/users"
+CALL &USERDB.OPEN
+OK? @userdb.open.fail
 
 SET %A 1     ;; by username
 SET %B "new"
@@ -29,22 +23,11 @@ CALL &USER.CREATE
 OK? @create.fail
 
 COPY %F %A
-CALL &PWDB.WRITE
-OK? @create.fail
-CALL &PWDB.CLOSE
+CALL &USERDB.SAVE
 OK? @create.fail
 
-CALL &PWDB.OPEN
-OK? @pwdb.open.fail
-
-COPY %E %A
-CALL &SPDB.WRITE
-OK? @create.fail
-CALL &SPDB.CLOSE
-OK? @create.fail
-
-CALL &SPDB.OPEN
-OK? @spdb.open.fail
+CALL &USERDB.OPEN
+OK? @userdb.open.fail
 
 SET %A 1
 SET %B "new"
@@ -73,7 +56,7 @@ spdb.open.fail:
   SYSERR
   HALT
 
-pwdb.open.fail:
+userdb.open.fail:
   PRINT "failed to open passwd file\n"
   SYSERR
   HALT

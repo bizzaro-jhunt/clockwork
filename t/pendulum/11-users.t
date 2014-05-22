@@ -8,7 +8,7 @@ use t::common;
 
 # NB: If these change, all the tests will need to change as well...
 my $TESTS = "t/tmp/data/pn/users";
-my $TEMP  = "t/tmp/pn/users";
+my $TEMP  = "t/tmp/pn/users/etc";
 
 my $PASSWD_DB = <<'EOF';
 root:x:0:0:root:/root:/bin/bash
@@ -46,7 +46,6 @@ sub no_change
 revert;
 pendulum_ok "$TESTS/lookup.pn", <<'EOF', "lookup.pn";
 passwd opened
-shadow opened
 found root user
 root has UID/GID 0:0
 found sys user

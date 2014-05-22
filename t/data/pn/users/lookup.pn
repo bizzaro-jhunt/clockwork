@@ -3,26 +3,14 @@
 ;; Pendulum Test Script
 ;;
 
-SET %F "t/tmp/pn/users/passwd"
-COPY %F %A
-CALL &PWDB.OPEN
-OK? @pwdb.open.fail
+PRAGMA "userdb.root" "t/tmp/pn/users"
+CALL &USERDB.OPEN
+OK? @userdb.open.fail
   PRINT "passwd opened\n"
-
-SET %E "t/tmp/pn/users/shadow"
-COPY %E %A
-CALL &SPDB.OPEN
-OK? @spdb.open.fail
-  PRINT "shadow opened\n"
   JUMP @root
 
-pwdb.open.fail:
+userdb.open.fail:
   PRINT "Failed to open passwd file\n"
-  SYSERR
-  HALT
-
-spdb.open.fail:
-  PRINT "Failed to open shadow file\n"
   SYSERR
   HALT
 
@@ -98,5 +86,4 @@ ballyhoo:
     PRINT "ballyhoo user not found\n"
 
 done:
-CALL &PWDB.CLOSE
-CALL &SPDB.CLOSE
+CALL &USERDB.CLOSE

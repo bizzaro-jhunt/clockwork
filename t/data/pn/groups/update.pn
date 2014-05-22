@@ -3,15 +3,9 @@
 ;; Pendulum Test Script
 ;;
 
-SET %F "t/tmp/pn/groups/group"
-COPY %F %A
-CALL &GRDB.OPEN
-OK? @grdb.open.fail
-
-SET %E "t/tmp/pn/groups/gshadow"
-COPY %E %A
-CALL &SGDB.OPEN
-OK? @sgdb.open.fail
+PRAGMA "userdb.root" "t/tmp/pn/groups"
+CALL &USERDB.OPEN
+OK? @userdb.open.fail
 
 SET %A 1       ;; by name
 SET %B "service"
@@ -74,23 +68,11 @@ SET %A "admin1"
 CALL &GROUP.ADD_ADMIN
 OK? @update-failed
 
-COPY %F %A
-CALL &GRDB.WRITE
-OK? @update-failed
-CALL &GRDB.CLOSE
+CALL &USERDB.SAVE
 OK? @update-failed
 
-CALL &GRDB.OPEN
-OK? @grdb.open.fail
-
-COPY %E %A
-CALL &SGDB.WRITE
-OK? @update-failed
-CALL &SGDB.CLOSE
-OK? @update-failed
-
-CALL &SGDB.OPEN
-OK? @sgdb.open.fail
+CALL &USERDB.OPEN
+OK? @userdb.open.fail
 
 SET %A 1       ;; by name
 SET %B "renamed"
@@ -137,13 +119,8 @@ post.not.an.admin:
 done:
 HALT
 
-grdb.open.fail:
+userdb.open.fail:
   PRINT "Failed to open group file\n"
-  SYSERR
-  HALT
-
-sgdb.open.fail:
-  PRINT "Failed to open gshadow file\n"
   SYSERR
   HALT
 

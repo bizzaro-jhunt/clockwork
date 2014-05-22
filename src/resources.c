@@ -392,6 +392,12 @@ int res_user_gencode(const void *res, FILE *io, unsigned int next)
 	assert(r); // LCOV_EXCL_LINE
 
 	fprintf(io, ";; res_user %s\n", r->key);
+	fprintf(io, "FLAG 0 :changed\n");
+	fprintf(io, "CALL &USERDB.OPEN\n");
+	fprintf(io, "NOTOK? @start.%i\n", next);
+	fprintf(io, "  PRINT \"Failed to open the user databases\\n\"\n");
+	fprintf(io, "  HALT\n");
+	fprintf(io, "start.%i:\n", next);
 	fprintf(io, "SET %%A 1\n");
 	fprintf(io, "SET %%B \"%s\"\n", r->name);
 	fprintf(io, "CALL &USER.FIND\n");
@@ -399,6 +405,7 @@ int res_user_gencode(const void *res, FILE *io, unsigned int next)
 	if (ENFORCED(r, RES_USER_ABSENT)) {
 		fprintf(io, "OK? @next.%i\n", next);
 		fprintf(io, "  CALL &USER.REMOVE\n");
+		fprintf(io, "  FLAG 1 :changed\n");
 	} else {
 		fprintf(io, "OK? @create.%i\n", next);
 		fprintf(io, "  JUMP @check.ids.%i\n", next);
@@ -428,21 +435,40 @@ int res_user_gencode(const void *res, FILE *io, unsigned int next)
 			fprintf(io, "COPY %%R %%B\n");
 		}
 		fprintf(io, "CALL &USER.CREATE\n");
+		fprintf(io, "FLAG 1 :changed\n");
 		if (r->passwd && !ENFORCED(r, RES_USER_PASSWD)) {
 			fprintf(io, "SET %%B \"x\"\n");
 			fprintf(io, "CALL &USER.SET_PASSWD\n");
 			fprintf(io, "SET %%B \"%s\"\n", r->passwd);
-			fprintf(io, "CALL &USER.SET_PWHASH\n");
+			fprintf(io, "COPY %%B %%T2\n");
+			fprintf(io, "CALL &USER.GET_PWHASH\n");
+			fprintf(io, "COPY %%R %%T1\n");
+			fprintf(io, "DIFF? @pwhash.ok.%i\n", next);
+			fprintf(io, "  CALL &USER.SET_PWHASH\n");
+			fprintf(io, "  FLAG 1 :changed\n");
+			fprintf(io, "pwhash.ok.%i:\n", next);
 		}
 		fprintf(io, "JUMP @exists.%i\n", next);
 		fprintf(io, "check.ids.%i:\n", next);
 		if (ENFORCED(r, RES_USER_UID)) {
 			fprintf(io, "SET %%B %i\n", r->uid);
-			fprintf(io, "CALL &USER.SET_UID\n");
+			fprintf(io, "COPY %%B %%T2\n");
+			fprintf(io, "CALL &USER.GET_UID\n");
+			fprintf(io, "COPY %%R %%T1\n");
+			fprintf(io, "EQ? uid.ok.%i\n", next);
+			fprintf(io, "  CALL &USER.SET_UID\n");
+			fprintf(io, "  FLAG 1 :changed\n");
+			fprintf(io, "uid.ok.%i\n", next);
 		}
 		if (ENFORCED(r, RES_USER_GID)) {
 			fprintf(io, "SET %%B %i\n", r->gid);
-			fprintf(io, "CALL &USER.SET_GID\n");
+			fprintf(io, "COPY %%B %%T2\n");
+			fprintf(io, "CALL &USER.GET_GID\n");
+			fprintf(io, "COPY %%R %%T1\n");
+			fprintf(io, "NE? gid.ok.%i\n", next);
+			fprintf(io, "  CALL &USER.SET_GID\n");
+			fprintf(io, "  FLAG 1 :changed\n");
+			fprintf(io, "gid.ok.%i\n", next);
 		}
 		fprintf(io, "exists.%i:\n", next);
 
@@ -450,38 +476,89 @@ int res_user_gencode(const void *res, FILE *io, unsigned int next)
 			fprintf(io, "SET %%B \"x\"\n");
 			fprintf(io, "CALL &USER.SET_PASSWD\n");
 			fprintf(io, "SET %%B \"%s\"\n", r->passwd);
-			fprintf(io, "CALL &USER.SET_PWHASH\n");
+			fprintf(io, "COPY %%B %%T2\n");
+			fprintf(io, "CALL &USER.GET_PWHASH\n");
+			fprintf(io, "COPY %%R %%T1\n");
+			fprintf(io, "DIFF? @pwhash.ok.%i\n", next);
+			fprintf(io, "  CALL &USER.SET_PWHASH\n");
+			fprintf(io, "  FLAG 1 :changed\n");
+			fprintf(io, "pwhash.ok.%i:\n", next);
 		}
 
 		if (ENFORCED(r, RES_USER_GECOS)) {
 			fprintf(io, "SET %%B \"%s\"\n", r->gecos);
-			fprintf(io, "CALL &USER.SET_GECOS\n");
+			fprintf(io, "COPY %%B %%T2\n");
+			fprintf(io, "CALL &USER.GET_GECOS\n");
+			fprintf(io, "COPY %%R %%T1\n");
+			fprintf(io, "DIFF? @gecos.ok.%i\n", next);
+			fprintf(io, "  CALL &USER.SET_GECOS\n");
+			fprintf(io, "  FLAG 1 :changed\n");
+			fprintf(io, "gecos.ok.%i\n", next);
 		}
 		if (ENFORCED(r, RES_USER_SHELL)) {
 			fprintf(io, "SET %%B \"%s\"\n", r->shell);
+			fprintf(io, "COPY %%B %%T2\n");
 			fprintf(io, "CALL &USER.SET_SHELL\n");
+			fprintf(io, "COPY %%R %%T1\n");
+			fprintf(io, "DIFF? @shell.ok.%i\n", next);
+			fprintf(io, "  CALL &USER.SET_SHELL\n");
+			fprintf(io, "  FLAG 1 :changed\n");
+			fprintf(io, "shell.ok.%i\n", next);
 		}
 		if (ENFORCED(r, RES_USER_PWMIN)) {
 			fprintf(io, "SET %%B %li\n", r->pwmin);
-			fprintf(io, "CALL &USER.SET_PWMIN\n");
+			fprintf(io, "COPY %%B %%T2\n");
+			fprintf(io, "CALL &USER.GET_PWMIN\n");
+			fprintf(io, "COPY %%R %%T1\n");
+			fprintf(io, "NE? @pwmin.ok.%i\n", next);
+			fprintf(io, "  CALL &USER.SET_PWMIN\n");
+			fprintf(io, "  FLAG 1 :changed\n");
+			fprintf(io, "pwmin.ok.%i\n", next);
 		}
 		if (ENFORCED(r, RES_USER_PWMAX)) {
 			fprintf(io, "SET %%B %li\n", r->pwmax);
-			fprintf(io, "CALL &USER.SET_PWMAX\n");
+			fprintf(io, "COPY %%B %%T2\n");
+			fprintf(io, "CALL &USER.GET_PWMAX\n");
+			fprintf(io, "COPY %%R %%T1\n");
+			fprintf(io, "NE? @pwmax.ok.%i\n", next);
+			fprintf(io, "  CALL &USER.SET_PWMAX\n");
+			fprintf(io, "  FLAG 1 :changed\n");
+			fprintf(io, "pwmax.ok.%i\n", next);
 		}
 		if (ENFORCED(r, RES_USER_PWWARN)) {
 			fprintf(io, "SET %%B %li\n", r->pwwarn);
-			fprintf(io, "CALL &USER.SET_PWWARN\n");
+			fprintf(io, "COPY %%B %%T2\n");
+			fprintf(io, "CALL &USER.GET_PWWARN\n");
+			fprintf(io, "COPY %%R %%T1\n");
+			fprintf(io, "NE? @pwwarn.ok.%i\n", next);
+			fprintf(io, "  CALL &USER.SET_PWWARN\n");
+			fprintf(io, "  FLAG 1 :changed\n");
+			fprintf(io, "pwwarn.ok.%i\n", next);
 		}
 		if (ENFORCED(r, RES_USER_INACT)) {
 			fprintf(io, "SET %%B %li\n", r->inact);
-			fprintf(io, "CALL &USER.SET_INACT\n");
+			fprintf(io, "COPY %%B %%T2\n");
+			fprintf(io, "CALL &USER.GET_INACT\n");
+			fprintf(io, "COPY %%R %%T1\n");
+			fprintf(io, "NE? @inact.ok.%i\n", next);
+			fprintf(io, "  CALL &USER.SET_INACT\n");
+			fprintf(io, "  FLAG 1 :changed\n");
+			fprintf(io, "inact.ok.%i\n", next);
 		}
 		if (ENFORCED(r, RES_USER_EXPIRE)) {
 			fprintf(io, "SET %%B %li\n", r->expire);
-			fprintf(io, "CALL &USER.SET_EXPIRY\n");
+			fprintf(io, "COPY %%B %%T2\n");
+			fprintf(io, "CALL &USER.GET_EXPIRY\n");
+			fprintf(io, "COPY %%R %%T1\n");
+			fprintf(io, "NE? @expire.ok.%i\n", next);
+			fprintf(io, "  CALL &USER.SET_EXPIRY\n");
+			fprintf(io, "  FLAG 1 :changed\n");
+			fprintf(io, "expire.ok.%i\n", next);
 		}
 	}
+	fprintf(io, "FLAGGED? :changed\n");
+	fprintf(io, "OK? @done.%i\n", next);
+	fprintf(io, "  CALL &USERDB.SAVE\n");
 
 	return 0;
 }

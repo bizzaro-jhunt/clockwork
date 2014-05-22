@@ -3,24 +3,13 @@
 ;; Pendulum Test Script
 ;;
 
-SET %F "t/tmp/pn/groups/group"
-COPY %F %A
-CALL &GRDB.OPEN
-OK? @grdb.open.fail
-
-SET %E "t/tmp/pn/groups/gshadow"
-COPY %E %A
-CALL &SGDB.OPEN
-OK? @sgdb.open.fail
+PRAGMA "userdb.root" "t/tmp/pn/groups"
+CALL &USERDB.OPEN
+OK? @userdb.open.fail
 
 JUMP @start
 
-sgdb.open.fail:
-  PRINT "failed to open gshadow file\n"
-  SYSERR
-  HALT
-
-grdb.open.fail:
+userdb.open.fail:
   PRINT "failed to open group file\n"
   SYSERR
   HALT

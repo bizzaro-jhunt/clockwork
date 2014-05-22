@@ -13,6 +13,7 @@ typedef uint8_t  pn_byte;
 typedef uint64_t pn_word;
 typedef struct pn_machine pn_machine;
 typedef pn_word (*pn_function)(pn_machine*);
+typedef pn_word (*pn_pragma)(pn_machine*, const char*, const char*);
 
 typedef struct { pn_word op, arg1, arg2; } pn_opcode;
 struct pn_machine {
@@ -24,6 +25,7 @@ struct pn_machine {
 	pn_word Ip, Dp;
 
 	void *U;
+	pn_pragma pragma;
 
 	FILE *dump_fd;
 	int trace;

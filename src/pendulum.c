@@ -35,6 +35,8 @@
 #define  PN_OP_SYSERR  0x0015
 #define  PN_OP_FLAG    0x0016
 #define  PN_OP_FLAGGED 0x0017
+#define  PN_OP_DIFF    0x0018
+#define  PN_OP_PRAGMA  0x0019
 #define  PN_OP_INVAL   0x00ff
 
 static const char *OP_NAMES[] = {
@@ -62,6 +64,8 @@ static const char *OP_NAMES[] = {
 	"SYSERR",
 	"FLAG",
 	"FLAGGED?",
+	"DIFF?",
+	"PRAGMA",
 	"(invalid)",
 	NULL,
 };
@@ -147,9 +151,11 @@ if (n--) goto argument;
 static int s_resolve_op(const char *op)
 {
 	if (strcmp(op, "NOOP")     == 0) return PN_OP_NOOP;
+	if (strcmp(op, "PRAGMA")   == 0) return PN_OP_PRAGMA;
 	if (strcmp(op, "EQ?")      == 0) return PN_OP_EQ;
 	if (strcmp(op, "NE?")      == 0) return PN_OP_NE;
 	if (strcmp(op, "CMP?")     == 0) return PN_OP_CMP;
+	if (strcmp(op, "DIFF?")    == 0) return PN_OP_DIFF;
 	if (strcmp(op, "GT?")      == 0) return PN_OP_GT;
 	if (strcmp(op, "GTE?")     == 0) return PN_OP_GTE;
 	if (strcmp(op, "LT?")      == 0) return PN_OP_LT;
@@ -434,9 +440,24 @@ int pn_run(pn_machine *m)
 			pn_trace(m, TRACE_START "\n", TRACE_ARGS);
 			NEXT;
 
+		case PN_OP_PRAGMA:
+			pn_trace(m, TRACE_START " %s %s\n", TRACE_ARGS,
+					(const char *)PC.arg1, (const char *)PC.arg2);
+			m->R = m->pragma
+				? (*m->pragma)(m, (const char *)PC.arg1, (const char *)PC.arg2)
+				: 1;
+			NEXT;
+
 		case PN_OP_CMP:
 			m->Tr = (strcmp((const char *)m->T1, (const char *)m->T2) == 0);
 			pn_trace(m, TRACE_START " '%s' eq '%s'\n",
+				TRACE_ARGS, (const char *)m->T1, (const char *)m->T2);
+			m->Ip = m->Tr ? m->Ip + 1 : PC.arg1;
+			break;
+
+		case PN_OP_DIFF:
+			m->Tr = (strcmp((const char *)m->T1, (const char *)m->T2) != 0);
+			pn_trace(m, TRACE_START " '%s' ne '%s'\n",
 				TRACE_ARGS, (const char *)m->T1, (const char *)m->T2);
 			m->Ip = m->Tr ? m->Ip + 1 : PC.arg1;
 			break;

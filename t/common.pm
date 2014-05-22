@@ -34,7 +34,7 @@ sub gencode_ok
 			or die "Failed to reopen stdout: $!\n";
 		open STDERR, ">&", $stderr
 			or die "Failed to reopen stderr: $!\n";
-		exec $CWPOL, $MANIFEST, '-e', "$commands; gencode"
+		exec $CWPOL, '-q', $MANIFEST, '-e', "$commands; gencode"
 			or die "Failed to exec $CWPOL: $!\n";
 	}
 
@@ -68,33 +68,6 @@ sub gencode_ok
 		$T->diag("standard error output was:\n$errors") if $errors;
 		return 0;
 	}
-
-	# sneakily add the PREAMBLE
-	chomp($expect);
-	$expect = <<EOF;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; PREAMBLE
-JUMP \@init.userdb
-init.userdb.fail:
-  PRINT "Failed to open %s\\n"
-  SYSERR
-  HALT
-init.userdb:
-SET %A "/etc/passwd"
-CALL &PWDB.OPEN
-OK? \@init.userdb.fail
-SET %A "/etc/shadow"
-CALL &SPDB.OPEN
-OK? \@init.userdb.fail
-SET %A "/etc/group"
-CALL &GRDB.OPEN
-OK? \@init.userdb.fail
-SET %A "/etc/gshadow"
-CALL &SGDB.OPEN
-OK? \@init.userdb.fail
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-$expect
-EOF
 
 	my $diff = diff \$actual, \$expect, {
 		FILENAME_A => 'actual-output',    MTIME_A => time,

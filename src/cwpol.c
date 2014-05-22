@@ -101,6 +101,7 @@ static struct cwpol_opts* cwpol_options(int argc, char **argv, int interactive);
 /* Options
 
   -e, --execute 'some command'
+  -q, --quiet
   -v, --verbose
   -V, --version
   -h, --help
@@ -117,6 +118,7 @@ int main(int argc, char **argv)
 	interactive = isatty(0);
 	opts = cwpol_options(argc, argv, interactive);
 
+	cw_log_open("cwpol", "stdout");
 	setup();
 	if (opts->manifest) {
 		cw_log(LOG_DEBUG, "pre-loading manifest: %s", opts->manifest);
@@ -709,13 +711,14 @@ static void show_resource(const char *type, const char *name)
 static struct cwpol_opts* cwpol_options(int argc, char **argv, int interactive)
 {
 	struct cwpol_opts *o;
-	const char *short_opts = "h?e:f:vV";
+	const char *short_opts = "h?e:f:vqV";
 	struct option long_opts[] = {
 		{ "help",    no_argument,       NULL, 'h' },
 		{ "execute", required_argument, NULL, 'e' },
 		{ "facts",   required_argument, NULL, 'f' },
 		{ "cache",   required_argument, NULL, 'c' },
 		{ "verbose", no_argument,       NULL, 'v' },
+		{ "quiet",   no_argument,       NULL, 'q' },
 		{ "version", no_argument,       NULL, 'V' },
 		{ 0, 0, 0, 0 },
 	};
@@ -753,6 +756,11 @@ static struct cwpol_opts* cwpol_options(int argc, char **argv, int interactive)
 		case 'v':
 			v++;
 			break;
+
+		case 'q':
+			v = 0;
+			break;
+
 
 		case 'V':
 			free(o->command);

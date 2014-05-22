@@ -127,6 +127,7 @@ static int _policy_normalize(struct policy *pol, cw_hash_t *facts)
 	/* get the one with no deps */
 	for_each_resource_safe(r1, tmp, pol) {
 		if (r1->ndeps == 0) {
+			cw_log(LOG_DEBUG, "%s has no deps // appending", r1->key);
 			cw_list_delete(&r1->l);
 			cw_list_push(&deps, &r1->l);
 		}
@@ -137,8 +138,9 @@ static int _policy_normalize(struct policy *pol, cw_hash_t *facts)
 			if (resource_depends_on(r2, r1) == 0) {
 				resource_drop_dependency(r2, r1);
 				if (r2->ndeps == 0) {
-					cw_list_delete(&r1->l);
-					cw_list_push(&deps, &r1->l);
+					cw_log(LOG_DEBUG, "%s has no _outstanding_ deps // appending", r2->key);
+					cw_list_delete(&r2->l);
+					cw_list_push(&deps, &r2->l);
 				}
 			}
 		}
@@ -694,7 +696,8 @@ struct policy* policy_generate(struct stree *root, cw_hash_t *facts)
 	while (pop_scope(&pgen.scopes))
 		;
 
-	_policy_normalize(pgen.policy, facts);
+	int rc = _policy_normalize(pgen.policy, facts);
+	assert(rc == 0);
 
 	return pgen.policy;
 }
@@ -869,27 +872,6 @@ int policy_gencode(const struct policy *pol, FILE *io)
 {
 	struct resource *r;
 	unsigned int next = 0;
-	fprintf(io, ";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;\n");
-	fprintf(io, ";; PREAMBLE\n");
-	fprintf(io, "JUMP @init.userdb\n");
-	fprintf(io, "init.userdb.fail:\n");
-	fprintf(io, "  PRINT \"Failed to open %%s\\n\"\n");
-	fprintf(io, "  SYSERR\n");
-	fprintf(io, "  HALT\n");
-	fprintf(io, "init.userdb:\n");
-	fprintf(io, "SET %%A \"/etc/passwd\"\n");
-	fprintf(io, "CALL &PWDB.OPEN\n");
-	fprintf(io, "OK? @init.userdb.fail\n");
-	fprintf(io, "SET %%A \"/etc/shadow\"\n");
-	fprintf(io, "CALL &SPDB.OPEN\n");
-	fprintf(io, "OK? @init.userdb.fail\n");
-	fprintf(io, "SET %%A \"/etc/group\"\n");
-	fprintf(io, "CALL &GRDB.OPEN\n");
-	fprintf(io, "OK? @init.userdb.fail\n");
-	fprintf(io, "SET %%A \"/etc/gshadow\"\n");
-	fprintf(io, "CALL &SGDB.OPEN\n");
-	fprintf(io, "OK? @init.userdb.fail\n");
-	fprintf(io, ";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;\n");
 	for_each_resource(r, pol) {
 		next++;
 		resource_gencode(r, io, next);

@@ -3,15 +3,9 @@
 ;; Pendulum Test Script
 ;;
 
-SET %F "t/tmp/pn/users/passwd"
-COPY %F %A
-CALL &PWDB.OPEN
-OK? @pwdb.open.fail
-
-SET %E "t/tmp/pn/users/shadow"
-COPY %E %A
-CALL &SPDB.OPEN
-OK? @spdb.open.fail
+PRAGMA "userdb.root" "t/tmp/pn/users"
+CALL &USERDB.OPEN
+OK? @userdb.open.fail
 
 SET %A 1       ;; by username
 SET %B "svc"
@@ -67,22 +61,11 @@ CALL &USER.SET_EXPIRY
 OK? @update-failed
 
 COPY %F %A
-CALL &PWDB.WRITE
-OK? @update-failed
-CALL &PWDB.CLOSE
+CALL &USERDB.SAVE
 OK? @update-failed
 
-CALL &PWDB.OPEN
-OK? @pwdb.open.fail
-
-COPY %E %A
-CALL &SPDB.WRITE
-OK? @update-failed
-CALL &SPDB.CLOSE
-OK? @update-failed
-
-CALL &SPDB.OPEN
-OK? @spdb.open.fail
+CALL &USERDB.OPEN
+OK? @userdb.open.fail
 
 SET %A 1       ;; by username
 SET %B "svc2"
@@ -139,13 +122,8 @@ PRINT "expire: %i\n"
 
 HALT
 
-pwdb.open.fail:
+userdb.open.fail:
   PRINT "Failed to open passwd file\n"
-  SYSERR
-  HALT
-
-spdb.open.fail:
-  PRINT "Failed to open shadow file\n"
   SYSERR
   HALT
 

@@ -8,7 +8,7 @@ use t::common;
 
 # NB: If these change, all the tests will need to change as well...
 my $TESTS = "t/tmp/data/pn/groups";
-my $TEMP  = "t/tmp/pn/groups";
+my $TEMP  = "t/tmp/pn/groups/etc";
 
 my $GROUP_DB = <<EOF;
 root:x:0:
@@ -48,7 +48,6 @@ sub no_change
 revert;
 pendulum_ok "$TESTS/lookup.pn", <<'EOF', "lookup.pn";
 group opened
-gshadow opened
 found daemon group
 group daemon has GID 1
 found group members

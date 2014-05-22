@@ -5,6 +5,7 @@ if [ -f Makefile ]; then
 fi
 
 ./autogen.sh
+export CFLAGS=-g
 ./configure --prefix /cw
 make
 make DESTDIR=_nightly install

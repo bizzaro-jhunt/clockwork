@@ -16,6 +16,7 @@ AM_CFLAGS  = -Wall $(DEPS_CFLAGS)
 AM_CFLAGS += $(shell pkg-config --cflags augeas)
 AM_CFLAGS += -DTEST_DATA=\"$(srcdir)/t/data\"
 AM_CFLAGS += -DCW_CACHE_DIR=\"$(pkgcachedir)\"
+AM_CFLAGS += -DCW_GATHER_DIR=\"$(gatherdir)\"
 AM_CFLAGS += @GCOV_CFLAGS@
 
 AM_LFLAGS = --header-file --yylineno

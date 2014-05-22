@@ -116,7 +116,7 @@ int main(int argc, char **argv)
 
 			cw_hash_t facts;
 			memset(&facts, 0, sizeof(cw_hash_t));
-			if (fact_gather("/lib/clockwork/gather.d/*", &facts) != 0) {
+			if (fact_gather(CW_GATHER_DIR "/*", &facts) != 0) {
 				cw_log(LOG_CRIT, "Unable to gather facts");
 				goto maybe_next_time;
 			}

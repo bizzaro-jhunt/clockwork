@@ -89,6 +89,8 @@ PERL_TESTS += t/policy/04-dirs.t
 PERL_TESTS += t/policy/05-services.t
 PERL_TESTS += t/policy/06-packages.t
 PERL_TESTS += t/policy/07-hosts.t
+PERL_TESTS += t/policy/08-sysctl.t
+PERL_TESTS += t/policy/09-exec.t
 PERL_TESTS += t/policy/30-deps.t
 
 TESTS          = $(CTAP_TESTS) $(PERL_TESTS)

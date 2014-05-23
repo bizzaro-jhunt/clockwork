@@ -242,6 +242,39 @@ host "sysctl2.test" { enforce "sysctl2" }
 ####################################################
 ####################################################
 
+policy "exec1" {
+	exec "/bin/ls -l /tmp" { }
+}
+host "exec1.test" { enforce "exec1" }
+
+policy "exec2" {
+	exec "/bin/refresh-the-thing" {
+		ondemand: "yes"
+	}
+}
+host "exec2.test" { enforce "exec2" }
+
+policy "exec3" {
+	exec "CONDITIONAL" {
+		command: "/make-stuff"
+		test:    "/usr/bin/test ! -f /stuff"
+	}
+}
+host "exec3.test" { enforce "exec3" }
+
+policy "exec4" {
+	exec "catmans" {
+		user:  "librarian"
+		group: "booklovers"
+		test:  "/bin/find /usr/share/mans -mtime +1 | grep -q 'xx'"
+		ondemand: "no"
+	}
+}
+host "exec4.test" { enforce "exec4" }
+
+####################################################
+####################################################
+
 policy "deps1" {
 	dir "/tmp" { }
 	file "/tmp/inner/file" { }

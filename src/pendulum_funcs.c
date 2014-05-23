@@ -133,7 +133,7 @@ static char * s_strlist_join(char **l, const char *delim)
 }
 
 #define EXEC_OUTPUT_MAX 256
-static int s_exec(const char *cmd, char **out, char **err)
+static int s_exec(const char *cmd, char **out, char **err, uid_t uid, gid_t gid)
 {
 	int proc_stat;
 	int outfd[2], errfd[2];
@@ -166,6 +166,12 @@ static int s_exec(const char *cmd, char **out, char **err)
 		close(0);
 		dup2((read_stdout ? outfd[1] : nullfd), 1);
 		dup2((read_stderr ? errfd[1] : nullfd), 2);
+
+		if (gid && setgid(gid) != 0)
+			cw_log(LOG_WARNING, "EXEC.CHECK child could not switch to group ID %u to run `%s'", gid, cmd);
+
+		if (uid && setuid(uid) != 0)
+			cw_log(LOG_WARNING, "EXEC.CHECK child could not switch to user ID %u to run `%s'", uid, cmd);
 
 		execl("/bin/sh", "sh", "-c", cmd, (char*)NULL);
 		exit(1);
@@ -649,13 +655,15 @@ static pn_word cwa_aug_remove(pn_machine *m)
 
 static pn_word cwa_exec_check(pn_machine *m)
 {
-	return s_exec((const char *)m->A, NULL, NULL);
+	return s_exec((const char *)m->A, NULL, NULL,
+		(uid_t)m->B, (gid_t)m->C);
 }
 
 static pn_word cwa_exec_run1(pn_machine *m)
 {
 	char *out, *p;
-	int rc = s_exec((const char *)m->A, &out, NULL);
+	int rc = s_exec((const char *)m->A, &out, NULL,
+		(uid_t)m->B, (gid_t)m->C);
 
 	for (p = out; *p && *p != '\n'; p++);
 	*p = '\0';

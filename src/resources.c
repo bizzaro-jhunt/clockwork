@@ -623,8 +623,6 @@ char* res_file_key(const void *res)
 	return cw_string("file:%s", rf->key);
 }
 
-#define DUMP_UNSPEC(io,s) fprintf(io, "# %s unspecified\n", s)
-
 int res_file_attrs(const void *res, cw_hash_t *attrs)
 {
 	const struct res_file *rf = (const struct res_file*)(res);
@@ -2299,128 +2297,65 @@ int res_exec_match(const void *res, const char *name, const char *value)
 
 int res_exec_gencode(const void *res, FILE *io, unsigned int next)
 {
+	struct res_exec *r = (struct res_exec*)(res);
+	assert(r); // LCOV_EXCL_LINE
+
+	fprintf(io, ";; res_exec %s\n", r->key);
+	if (ENFORCED(r, RES_EXEC_UID) || ENFORCED(r, RES_EXEC_GID)) {
+		fprintf(io, "CALL &USERDB.OPEN\n");
+		fprintf(io, "NOTOK? @who.lookup.%i\n", next);
+		fprintf(io, "  PRINT \"Failed to open the user databases\\n\"\n");
+		fprintf(io, "  HALT\n");
+		fprintf(io, "who.lookup.%i:\n", next);
+		fprintf(io, "SET %%D 0\n");
+		fprintf(io, "SET %%E 0\n");
+		if (ENFORCED(r, RES_EXEC_UID)) {
+			fprintf(io, "SET %%A 1\n");
+			fprintf(io, "SET %%B \"%s\"\n", r->user);
+			fprintf(io, "CALL &USER.FIND\n");
+			fprintf(io, "NOTOK? @user.found.%i\n", next);
+			fprintf(io, "  PRINT \"Failed to find user '%s'\\n\"\n", r->user);
+			fprintf(io, "  HALT\n");
+			fprintf(io, "user.found.%i:\n", next);
+			fprintf(io, "CALL &USER.GET_UID\n");
+			fprintf(io, "COPY %%R %%D\n");
+		}
+		if (ENFORCED(r, RES_EXEC_GID)) {
+			fprintf(io, "SET %%A 1\n");
+			fprintf(io, "SET %%B \"%s\"\n", r->group);
+			fprintf(io, "CALL &GROUP.FIND\n");
+			fprintf(io, "NOTOK? @group.found.%i\n", next);
+			fprintf(io, "  PRINT \"Failed to find group '%s'\\n\"\n", r->group);
+			fprintf(io, "  HALT\n");
+			fprintf(io, "group.found.%i:\n", next);
+			fprintf(io, "CALL &GROUP.GET_GID\n");
+			fprintf(io, "COPY %%R %%E\n");
+		}
+		fprintf(io, "COPY %%D %%B\n");
+		fprintf(io, "COPY %%E %%C\n");
+	} else {
+		fprintf(io, "SET %%B 0\n");
+		fprintf(io, "SET %%C 0\n");
+	}
+	if (ENFORCED(r, RES_EXEC_TEST)) {
+		fprintf(io, "SET %%A \"%s\"\n", r->test);
+		fprintf(io, "CALL &EXEC.CHECK\n");
+		fprintf(io, "NOTOK? @run.%i\n", next);
+	}
+	if (ENFORCED(r, RES_EXEC_ONDEMAND)) {
+		fprintf(io, "FLAGGED? :res%i\n",
+			((const struct resource*)res)->serial);
+		fprintf(io, "NOTOK? @run.%i\n", next);
+	}
+	if (ENFORCED(r, RES_EXEC_TEST) || ENFORCED(r, RES_EXEC_ONDEMAND)) {
+		fprintf(io, "JUMP @next.%i\n", next);
+	}
+	fprintf(io, "run.%i:\n", next);
+	fprintf(io, "SET %%A \"%s\"\n", r->command);
+	fprintf(io, "CALL &EXEC.CHECK\n");
+	fprintf(io, "OK? @next.%i\n", next);
+	fprintf(io, "  FLAG 1 :changed\n");
 	return 0;
 }
-
-#if 0
-static int _res_exec_run(const char *command, struct res_exec *re)
-{
-	int proc_stat;
-	int null_in, null_out;
-	pid_t pid;
-
-
-	switch (pid = fork()) {
-	case -1:
-		/* fork failed */
-		return -1;
-
-	case 0: /* child */
-		null_in  = open("/dev/null", O_RDONLY);
-		null_out = open("/dev/null", O_WRONLY);
-
-		dup2(null_in,  0);
-		dup2(null_out, 1);
-		dup2(null_out, 2);
-
-		/* set user and group is */
-		if (ENFORCED(re, RES_EXEC_UID)) {
-			if (setuid(re->uid) != 0) {
-				cw_log(LOG_WARNING, "res_exec child could not switch to user ID %u to run `%s'", re->uid, command);
-			} else {
-				cw_log(LOG_DEBUG, "res_exec child set UID to %u", re->uid);
-			}
-		}
-
-		if (ENFORCED(re, RES_EXEC_GID)) {
-			if (setgid(re->gid) != 0) {
-				cw_log(LOG_WARNING, "res_exec child could not switch to group ID %u to run `%s'", re->gid, command);
-			} else {
-				cw_log(LOG_DEBUG, "res_exec child set GID to %u", re->gid);
-			}
-		}
-
-		execl("/bin/sh", "sh", "-c", command, (char*)NULL);
-		exit(42); /* Oops... exec failed */
-
-	default: /* parent */
-		if (ENFORCED(re, RES_EXEC_UID) && ENFORCED(re, RES_EXEC_GID)) {
-			cw_log(LOG_DEBUG, "res_exec: Running `%s' as %s:%s (%d:%d) in sub-process %u",
-			      command, re->user, re->group, re->uid, re->gid, pid);
-		} else if (ENFORCED(re, RES_EXEC_UID)) {
-			cw_log(LOG_DEBUG, "res_exec: Running `%s' as user %s (%d) in sub-process %u",
-			      command, re->user, re->uid, pid);
-		} else if (ENFORCED(re, RES_EXEC_GID)) {
-			cw_log(LOG_DEBUG, "res_exec: Running `%s' as group %s (%d) in sub-process %u",
-			      command, re->group, re->gid, pid);
-		} else {
-			cw_log(LOG_DEBUG, "res_exec: Running `%s' in sub-process %u",
-			      command, pid);
-		}
-	}
-
-	waitpid(pid, &proc_stat, 0);
-	if (!WIFEXITED(proc_stat)) {
-		cw_log(LOG_DEBUG, "res_exec[%u]: terminated abnormally", pid);
-		return -1;
-	}
-
-	cw_log(LOG_DEBUG, "res_exec[%u]: sub-process exited %u", pid, WEXITSTATUS(proc_stat));
-	return WEXITSTATUS(proc_stat);
-}
-
-int res_exec_stat(void *res, const struct resource_env *env)
-{
-	struct res_exec *re = (struct res_exec*)(res);
-	assert(re); // LCOV_EXCL_LINE
-	assert(re->command); // LCOV_EXCL_LINE
-
-	if (re->user) {
-		assert(env);            // LCOV_EXCL_LINE
-		assert(env->user_pwdb); // LCOV_EXCL_LINE
-		pwdb_lookup_uid(env->user_pwdb, re->user, &re->uid);
-	}
-	if (re->group) {
-		assert(env);             // LCOV_EXCL_LINE
-		assert(env->group_grdb); // LCOV_EXCL_LINE
-		grdb_lookup_gid(env->group_grdb, re->group, &re->gid);
-	}
-
-	if (ENFORCED(re, RES_EXEC_TEST)) {
-		if (_res_exec_run(re->test, re) == 0) {
-			ENFORCE(re, RES_EXEC_NEEDSRUN);
-		} else {
-			UNENFORCE(re, RES_EXEC_NEEDSRUN);
-		}
-	} else if (!ENFORCED(re, RES_EXEC_ONDEMAND)) {
-		ENFORCE(re, RES_EXEC_NEEDSRUN);
-	}
-
-	return 0;
-}
-
-struct report* res_exec_fixup(void *res, int dryrun, const struct resource_env *env)
-{
-	struct res_exec *re = (struct res_exec*)(res);
-	assert(re); // LCOV_EXCL_LINE
-	assert(env); // LCOV_EXCL_LINE
-
-	struct report *report = report_new("Run", re->command);
-	char *action;
-
-	if (ENFORCED(re, RES_EXEC_NEEDSRUN)) {
-		action = cw_string("execute command");
-		if (dryrun) {
-			report_action(report, action, ACTION_SKIPPED);
-		} else if (_res_exec_run(re->command, re) == 0) {
-			report_action(report, action, ACTION_SUCCEEDED);
-		} else {
-			report_action(report, action, ACTION_FAILED);
-		}
-	}
-
-	return report;
-}
-#endif
 
 FILE * res_exec_content(const void *res, cw_hash_t *facts) { return NULL; }

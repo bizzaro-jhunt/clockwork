@@ -109,8 +109,8 @@ static int _policy_normalize(struct policy *pol, cw_hash_t *facts)
 	for_each_dependency(dep, pol) {
 		cw_log(LOG_DEBUG, "Expanding dependency for %s on %s", dep->a, dep->b);
 
-		r1 = cw_hash_get(pol->index, dep->a);
-		r2 = cw_hash_get(pol->index, dep->b);
+		dep->resource_a = r1 = cw_hash_get(pol->index, dep->a);
+		dep->resource_b = r2 = cw_hash_get(pol->index, dep->b);
 
 		if (!r1) {
 			cw_log(LOG_ERR, "Failed dependency for unknown resource %s", dep->a);
@@ -837,8 +837,19 @@ int policy_gencode(const struct policy *pol, FILE *io)
 	unsigned int next = 0;
 	for_each_resource(r, pol) {
 		next++;
+		fprintf(io, "FLAG 0 :changed\n");
 		resource_gencode(r, io, next);
 		fprintf(io, "next.%i:\n", next);
+
+		/* notifications */
+		fprintf(io, "FLAGGED? :changed\n");
+		fprintf(io, "OK? @final.%i\n", next);
+		struct dependency *d;
+		for_each_dependency(d, pol) {
+			if (r == d->resource_b)
+				fprintf(io, "  FLAG 1 :res%i\n", d->resource_a->serial);
+		}
+		fprintf(io, "final.%i:\n", next);
 	}
 	return 0;
 }

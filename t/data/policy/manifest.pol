@@ -238,3 +238,13 @@ policy "sysctl2" {
 	}
 }
 host "sysctl2.test" { enforce "sysctl2" }
+
+####################################################
+####################################################
+
+policy "deps1" {
+	dir "/tmp" { }
+	file "/tmp/inner/file" { }
+	dir "/tmp/inner" { }
+}
+host "deps1.test" { enforce "deps1" }

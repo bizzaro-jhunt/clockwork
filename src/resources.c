@@ -392,7 +392,6 @@ int res_user_gencode(const void *res, FILE *io, unsigned int next)
 	assert(r); // LCOV_EXCL_LINE
 
 	fprintf(io, ";; res_user %s\n", r->key);
-	fprintf(io, "FLAG 0 :changed\n");
 	fprintf(io, "CALL &USERDB.OPEN\n");
 	fprintf(io, "NOTOK? @start.%i\n", next);
 	fprintf(io, "  PRINT \"Failed to open the user databases\\n\"\n");
@@ -560,7 +559,7 @@ int res_user_gencode(const void *res, FILE *io, unsigned int next)
 	fprintf(io, "OK? @next.%i\n", next);
 	fprintf(io, "  CALL &USERDB.SAVE\n");
 
-	return 0;
+return 0;
 }
 
 FILE * res_user_content(const void *res, cw_hash_t *facts) { return NULL; }
@@ -1111,7 +1110,6 @@ int res_group_gencode(const void *res, FILE *io, unsigned int next)
 	assert(r); // LCOV_EXCL_LINE
 
 	fprintf(io, ";; res_group %s\n", r->key);
-	fprintf(io, "FLAG 0 :changed\n");
 	fprintf(io, "CALL &USERDB.OPEN\n");
 	fprintf(io, "NOTOK? @start.%i\n", next);
 	fprintf(io, "  PRINT \"Failed to open the user databases\\n\"\n");

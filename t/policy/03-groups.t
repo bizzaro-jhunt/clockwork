@@ -6,8 +6,8 @@ use Test::More;
 use t::common;
 
 gencode_ok "use host group1.test", <<'EOF', "group removal";
-;; res_group group1
 FLAG 0 :changed
+;; res_group group1
 CALL &USERDB.OPEN
 NOTOK? @start.1
   PRINT "Failed to open the user databases\n"
@@ -23,11 +23,14 @@ FLAGGED? :changed
 OK? @next.1
   CALL &USERDB.SAVE
 next.1:
+FLAGGED? :changed
+OK? @final.1
+final.1:
 EOF
 
 gencode_ok "use host group2.test", <<'EOF', "group creation with explicit GID";
-;; res_group group2
 FLAG 0 :changed
+;; res_group group2
 CALL &USERDB.OPEN
 NOTOK? @start.1
   PRINT "Failed to open the user databases\n"
@@ -51,11 +54,14 @@ FLAGGED? :changed
 OK? @next.1
   CALL &USERDB.SAVE
 next.1:
+FLAGGED? :changed
+OK? @final.1
+final.1:
 EOF
 
 gencode_ok "use host group3.test", <<'EOF', "group creation without explicit GID";
-;; res_group group3
 FLAG 0 :changed
+;; res_group group3
 CALL &USERDB.OPEN
 NOTOK? @start.1
   PRINT "Failed to open the user databases\n"
@@ -77,11 +83,14 @@ FLAGGED? :changed
 OK? @next.1
   CALL &USERDB.SAVE
 next.1:
+FLAGGED? :changed
+OK? @final.1
+final.1:
 EOF
 
 gencode_ok "use host group4.test", <<'EOF', "group with all attrs";
-;; res_group group4
 FLAG 0 :changed
+;; res_group group4
 CALL &USERDB.OPEN
 NOTOK? @start.1
   PRINT "Failed to open the user databases\n"
@@ -142,6 +151,9 @@ FLAGGED? :changed
 OK? @next.1
   CALL &USERDB.SAVE
 next.1:
+FLAGGED? :changed
+OK? @final.1
+final.1:
 EOF
 
 done_testing;

@@ -6,6 +6,7 @@ use Test::More;
 use t::common;
 
 gencode_ok "use host file1.test", <<'EOF', "file resource";
+FLAG 0 :changed
 ;; res_file /etc/sudoers
 SET %A "/etc/sudoers"
 CALL &FS.EXISTS?
@@ -52,9 +53,13 @@ CALL &FS.CHOWN
 SET %D 0400
 CALL &FS.CHMOD
 next.1:
+FLAGGED? :changed
+OK? @final.1
+final.1:
 EOF
 
 gencode_ok "use host file2.test", <<'EOF', "file removal";
+FLAG 0 :changed
 ;; res_file /path/to/delete
 SET %A "/path/to/delete"
 CALL &FS.EXISTS?
@@ -62,9 +67,13 @@ OK? @next.1
   CALL &FS.UNLINK
   JUMP @next.1
 next.1:
+FLAGGED? :changed
+OK? @final.1
+final.1:
 EOF
 
 gencode_ok "use host file3.test", <<'EOF', "file without chown";
+FLAG 0 :changed
 ;; res_file /chmod-me
 SET %A "/chmod-me"
 CALL &FS.EXISTS?
@@ -76,9 +85,13 @@ exists.1:
 SET %D 0644
 CALL &FS.CHMOD
 next.1:
+FLAGGED? :changed
+OK? @final.1
+final.1:
 EOF
 
 gencode_ok "use host file4.test", <<'EOF', "file with non-root owner";
+FLAG 0 :changed
 ;; res_file /home/jrhunt/stuff
 SET %A "/home/jrhunt/stuff"
 CALL &FS.EXISTS?
@@ -125,6 +138,9 @@ CALL &FS.CHOWN
 SET %D 0410
 CALL &FS.CHMOD
 next.1:
+FLAGGED? :changed
+OK? @final.1
+final.1:
 EOF
 
 done_testing;

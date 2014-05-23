@@ -20,6 +20,8 @@
 #include "resource.h"
 #include "resources.h"
 
+static int NEXT_SERIAL = 1;
+
 typedef void* (*resource_new_f)(const char *key);
 typedef void* (*resource_clone_f)(const void *res, const char *key);
 typedef void (*resource_free_f)(void *res);
@@ -120,6 +122,7 @@ struct resource* resource_new(const char *type, const char *key)
 	r->key = (*(resource_types[r->type].key_callback))(r->resource);
 	r->ndeps = 0;
 	r->deps = NULL;
+	r->serial = NEXT_SERIAL++;
 	return r;
 }
 
@@ -137,6 +140,7 @@ struct resource* resource_clone(const struct resource *orig, const char *key)
 	r->key = (*(resource_types[r->type].key_callback))(r->resource);
 	r->ndeps = 0;
 	r->deps = NULL;
+	r->serial = NEXT_SERIAL++;
 	return r;
 }
 

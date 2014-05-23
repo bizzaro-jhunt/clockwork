@@ -6,8 +6,8 @@ use Test::More;
 use t::common;
 
 gencode_ok "use host user1.test", <<'EOF', "user removal";
-;; res_user t1user
 FLAG 0 :changed
+;; res_user t1user
 CALL &USERDB.OPEN
 NOTOK? @start.1
   PRINT "Failed to open the user databases\n"
@@ -23,11 +23,14 @@ FLAGGED? :changed
 OK? @next.1
   CALL &USERDB.SAVE
 next.1:
+FLAGGED? :changed
+OK? @final.1
+final.1:
 EOF
 
 gencode_ok "use host user2.test", <<'EOF', "user creation with explicit UID/GID";
-;; res_user t2user
 FLAG 0 :changed
+;; res_user t2user
 CALL &USERDB.OPEN
 NOTOK? @start.1
   PRINT "Failed to open the user databases\n"
@@ -76,11 +79,14 @@ FLAGGED? :changed
 OK? @next.1
   CALL &USERDB.SAVE
 next.1:
+FLAGGED? :changed
+OK? @final.1
+final.1:
 EOF
 
 gencode_ok "use host user3.test", <<'EOF', "user creation without UID/GID";
-;; res_user t3user
 FLAG 0 :changed
+;; res_user t3user
 CALL &USERDB.OPEN
 NOTOK? @start.1
   PRINT "Failed to open the user databases\n"
@@ -127,11 +133,14 @@ FLAGGED? :changed
 OK? @next.1
   CALL &USERDB.SAVE
 next.1:
+FLAGGED? :changed
+OK? @final.1
+final.1:
 EOF
 
 gencode_ok "use host user4.test", <<'EOF', "user with all attrs";
-;; res_user t4user
 FLAG 0 :changed
+;; res_user t4user
 CALL &USERDB.OPEN
 NOTOK? @start.1
   PRINT "Failed to open the user databases\n"
@@ -236,6 +245,9 @@ FLAGGED? :changed
 OK? @next.1
   CALL &USERDB.SAVE
 next.1:
+FLAGGED? :changed
+OK? @final.1
+final.1:
 EOF
 
 done_testing;

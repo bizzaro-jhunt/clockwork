@@ -6,6 +6,7 @@ use Test::More;
 use t::common;
 
 gencode_ok "use host host1.test", <<'EOF', "host resource";
+FLAG 0 :changed
 ;; res_host example.com
 SET %A "/files/etc/hosts/*[ipaddr = \"1.2.3.4\" and canonical = \"example.com\"]"
 CALL &AUGEAS.FIND
@@ -28,9 +29,13 @@ SET %C "/alias[1]"
 SET %B "example.org"
 CALL &AUGEAS.SET
 next.1:
+FLAGGED? :changed
+OK? @final.1
+final.1:
 EOF
 
 gencode_ok "use host host2.test", <<'EOF', "host resource";
+FLAG 0 :changed
 ;; res_host remove.me
 SET %A "/files/etc/hosts/*[ipaddr = \"2.4.6.8\" and canonical = \"remove.me\"]"
 CALL &AUGEAS.FIND
@@ -39,6 +44,9 @@ OK @not.found.1
   CALL &AUGEAS.REMOVE
 not.found.1:
 next.1:
+FLAGGED? :changed
+OK? @final.1
+final.1:
 EOF
 
 

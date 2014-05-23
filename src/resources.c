@@ -565,9 +565,6 @@ int res_user_gencode(const void *res, FILE *io, unsigned int next)
 
 FILE * res_user_content(const void *res, cw_hash_t *facts) { return NULL; }
 
-int res_user_notify(void *res, const struct resource *dep) { return 0; }
-
-
 
 /*****************************************************************/
 
@@ -881,8 +878,6 @@ FILE * res_file_content(const void *res, cw_hash_t *facts)
 	}
 	return NULL;
 }
-
-int res_file_notify(void *res, const struct resource *dep) { return 0; }
 
 /*****************************************************************/
 
@@ -1296,8 +1291,6 @@ int res_group_remove_admin(struct res_group *rg, const char *user)
 
 FILE * res_group_content(const void *res, cw_hash_t *facts) { return NULL; }
 
-int res_group_notify(void *res, const struct resource *dep) { return 0; }
-
 /*****************************************************************/
 
 void* res_package_new(const char *key)
@@ -1424,8 +1417,6 @@ int res_package_gencode(const void *res, FILE *io, unsigned int next)
 
 FILE * res_package_content(const void *res, cw_hash_t *facts) { return NULL; }
 
-int res_package_notify(void *res, const struct resource *dep) { return 0; }
-
 /*****************************************************************/
 
 void* res_service_new(const char *key)
@@ -1441,7 +1432,6 @@ void* res_service_clone(const void *res, const char *key)
 	rs->enforced  = RES_DEFAULT(orig, enforced, RES_NONE);
 
 	/* state variables are never cloned */
-	rs->notified = 0;
 	rs->running = 0;
 	rs->enabled = 0;
 
@@ -1586,16 +1576,6 @@ int res_service_gencode(const void *res, FILE *io, unsigned int next)
 }
 
 FILE * res_service_content(const void *res, cw_hash_t *facts) { return NULL; }
-
-int res_service_notify(void *res, const struct resource *dep)
-{
-	struct res_service *rs = (struct res_service*)(res);
-	assert(rs); // LCOV_EXCL_LINE
-
-	rs->notified = 1;
-
-	return 0;
-}
 
 /*****************************************************************/
 
@@ -1774,8 +1754,6 @@ int res_host_gencode(const void *res, FILE *io, unsigned int next)
 
 FILE * res_host_content(const void *res, cw_hash_t *facts) { return NULL; }
 
-int res_host_notify(void *res, const struct resource *dep) { return 0; }
-
 /*****************************************************************/
 
 void* res_sysctl_new(const char *key)
@@ -1922,8 +1900,6 @@ int res_sysctl_gencode(const void *res, FILE *io, unsigned int next)
 }
 
 FILE * res_sysctl_content(const void *res, cw_hash_t *facts) { return NULL; }
-
-int res_sysctl_notify(void* res, const struct resource *dep) { return 0; }
 
 /*****************************************************************/
 
@@ -2161,8 +2137,6 @@ int res_dir_gencode(const void *res, FILE *io, unsigned int next)
 
 FILE * res_dir_content(const void *res, cw_hash_t *facts) { return NULL; }
 
-int res_dir_notify(void *res, const struct resource *dep) { return 0; }
-
 /********************************************************************/
 
 void* res_exec_new(const char *key)
@@ -2185,8 +2159,6 @@ void* res_exec_clone(const void *res, const char *key)
 
 	re->command = RES_DEFAULT_STR(orig, command, NULL);
 	re->test    = RES_DEFAULT_STR(orig, test,    NULL);
-
-	re->notified = 0;
 
 	re->key = NULL;
 	if (key) {
@@ -2438,7 +2410,7 @@ struct report* res_exec_fixup(void *res, int dryrun, const struct resource_env *
 	struct report *report = report_new("Run", re->command);
 	char *action;
 
-	if (ENFORCED(re, RES_EXEC_NEEDSRUN) || re->notified) {
+	if (ENFORCED(re, RES_EXEC_NEEDSRUN)) {
 		action = cw_string("execute command");
 		if (dryrun) {
 			report_action(report, action, ACTION_SKIPPED);
@@ -2454,13 +2426,3 @@ struct report* res_exec_fixup(void *res, int dryrun, const struct resource_env *
 #endif
 
 FILE * res_exec_content(const void *res, cw_hash_t *facts) { return NULL; }
-
-int res_exec_notify(void *res, const struct resource *dep)
-{
-	struct res_exec *re = (struct res_exec*)(res);
-	assert(re); // LCOV_EXCL_LINE
-
-	re->notified = 1;
-
-	return 0;
-}

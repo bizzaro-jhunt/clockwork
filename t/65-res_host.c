@@ -39,7 +39,6 @@ TESTS {
 	}
 
 	subtest {
-		ok(res_host_notify(NULL, NULL)     == 0, "res_host_notify is a NOOP");
 		ok(res_host_norm(NULL, NULL, NULL) == 0, "res_host_norm is a NOOP");
 	}
 

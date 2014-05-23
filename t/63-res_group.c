@@ -45,7 +45,6 @@ TESTS {
 	}
 
 	subtest {
-		ok(res_group_notify(NULL, NULL) == 0, "res_group_notify is a NOOP");
 		ok(res_group_norm(NULL, NULL, NULL) == 0, "res_group_norm is a NOOP");
 	}
 

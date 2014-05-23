@@ -35,10 +35,6 @@ TESTS {
 		key = res_exec_key(exec);
 		is_string(key, "exec:exec-key", "exec key");
 
-		ok(exec->notified == 0, "exec hasn't been notified yet");
-		ok(res_exec_notify(exec, NULL) == 0, "res_exec_notify succeeded");
-		ok(exec->notified != 0, "exec has now been notified");
-
 		free(key);
 		res_exec_free(exec);
 	}

@@ -207,16 +207,5 @@ TESTS {
 		res_service_free(r);
 	}
 
-	subtest {
-		struct res_service *r;
-
-		r = res_service_new("svc");
-		isnt_int(r->notified, 1, "not notified by default");
-		ok(res_service_notify(r, NULL) == 0, "notify succeeded");
-		is_int(r->notified, 1, "now notified");
-
-		res_service_free(r);
-	}
-
 	done_testing();
 }

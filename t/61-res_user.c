@@ -45,7 +45,6 @@ TESTS {
 	}
 
 	subtest {
-		ok(res_user_notify(NULL, NULL) == 0, "res_user_notify is a NOOP");
 		ok(res_user_norm(NULL, NULL, NULL) == 0, "res_user_norm is a NOOP");
 	}
 

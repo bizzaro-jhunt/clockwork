@@ -41,8 +41,6 @@ TESTS {
 		is_string(key = resource_key(res), "user:user1", "resource_key");
 		free(key);
 
-		/* safe to call resource_notify on a res_user; it is a NOOP */
-		ok(resource_notify(res, NULL) == 0, "resource_notify");
 		resource_free(res);
 	}
 

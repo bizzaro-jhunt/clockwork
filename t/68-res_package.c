@@ -39,7 +39,6 @@ TESTS {
 	}
 
 	subtest {
-		ok(res_package_notify(NULL, NULL)     == 0, "res_package_notify is a NOOP");
 		ok(res_package_norm(NULL, NULL, NULL) == 0, "res_package_norm is a NOOP");
 	}
 

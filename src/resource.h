@@ -110,7 +110,6 @@ char *resource_key(const struct resource *r);
 cw_hash_t* resource_attrs(const struct resource *r);
 int resource_norm(struct resource *r, struct policy *pol, cw_hash_t *facts);
 int resource_set(struct resource *r, const char *attr, const char *value);
-int resource_notify(struct resource *r, const struct resource *dep);
 int resource_match(const struct resource *r, const char *attr, const char *value);
 int resource_gencode(const struct resource *r, FILE *io, unsigned int next);
 FILE* resource_content(const struct resource *r, cw_hash_t *facts);

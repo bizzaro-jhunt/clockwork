@@ -129,7 +129,6 @@ void policy_free_all(struct policy *pol);
 int policy_add_resource(struct policy *pol, struct resource *res);
 struct resource* policy_find_resource(struct policy *pol, enum restype type, const char *attr, const char *value);
 int policy_add_dependency(struct policy *pol, struct dependency *dep);
-int policy_notify(const struct policy *pol, const struct resource *cause);
 
 int policy_gencode(const struct policy *pol, FILE *io);
 

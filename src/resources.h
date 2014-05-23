@@ -41,8 +41,7 @@ int            res_ ## t ## _attrs(const void *res, cw_hash_t *attrs); \
 int            res_ ## t ## _norm(void *res, struct policy *pol, cw_hash_t *facts); \
 int            res_ ## t ## _set(void *res, const char *attr, const char *value); \
 int            res_ ## t ## _match(const void *res, const char *attr, const char *value); \
-FILE*          res_ ## t ## _content(const void *res, cw_hash_t *facts); \
-int            res_ ## t ## _notify(void *res, const struct resource *dep)
+FILE*          res_ ## t ## _content(const void *res, cw_hash_t *facts)
 
 #define RES_NONE 0x00
 
@@ -200,10 +199,6 @@ struct res_service {
 
 	char *service; /* name of the script in /etc/init.d */
 
-	unsigned int notified;  /* has this service been notified by a dependency?
-	                           Services need to be reloaded / restarted when
-	                           dependencies (i.e. config files) change */
-
 	unsigned int running;   /* is the service currently running? */
 	unsigned int enabled;   /* is the service enabled to start at boot? */
 
@@ -287,8 +282,6 @@ struct res_exec {
 	/* run `command' as this group/GID */
 	char *group;
 	gid_t gid;
-
-	int notified;
 
 	unsigned int enforced;
 };

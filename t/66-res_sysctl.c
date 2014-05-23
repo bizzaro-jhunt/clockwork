@@ -39,7 +39,6 @@ TESTS {
 	}
 
 	subtest {
-		ok(res_sysctl_notify(NULL, NULL)     == 0, "res_sysctl_notify is a NOOP");
 		ok(res_sysctl_norm(NULL, NULL, NULL) == 0, "res_sysctl_norm is a NOOP");
 	}
 

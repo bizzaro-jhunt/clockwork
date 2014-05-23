@@ -30,7 +30,6 @@ typedef int (*resource_set_f)(void *res, const char *attr, const char *value);
 typedef int (*resource_match_f)(const void *res, const char *attr, const char *value);
 typedef int (*resource_gencode_f)(const void *res, FILE *io, unsigned int next);
 typedef FILE* (*resource_content_f)(const void *res, cw_hash_t *facts);
-typedef int (*resource_notify_f)(void *res, const struct resource *dep);
 
 #define RESOURCE_TYPE(t) { \
 	             .name = #t,                    \
@@ -43,8 +42,7 @@ typedef int (*resource_notify_f)(void *res, const struct resource *dep);
 	     .set_callback = res_ ## t ## _set,     \
 	   .match_callback = res_ ## t ## _match,   \
 	 .gencode_callback = res_ ## t ## _gencode, \
-	 .content_callback = res_ ## t ## _content, \
-	  .notify_callback = res_ ## t ## _notify,  }
+	 .content_callback = res_ ## t ## _content, }
 
 	const struct {
 		const char         *name;
@@ -59,7 +57,6 @@ typedef int (*resource_notify_f)(void *res, const struct resource *dep);
 		resource_match_f    match_callback;
 		resource_gencode_f  gencode_callback;
 		resource_content_f  content_callback;
-		resource_notify_f   notify_callback;
 
 	} resource_types[RES_UNKNOWN] = {
 		RESOURCE_TYPE(user),
@@ -238,29 +235,6 @@ int resource_set(struct resource *r, const char *attr, const char *value)
 	assert(value); // LCOV_EXCL_LINE
 
 	return (*(resource_types[r->type].set_callback))(r->resource, attr, value);
-}
-
-/**
-  Notify $r of a Dependency Change
-
-  If resource a depends on resource b, and resource b changes
-  (for compliance reasons), `resource_notify` us used to let
-  resource a know that something has changed.
-
-  $dep is the causal resource (the one that $r depends on) that
-  changed.
-
-  This function calls the res_*_notify resource callback
-  appropriate to the type of resource $r.
-
-  On success, returns 0.  On failure, returns non-zero.
- */
-int resource_notify(struct resource *r, const struct resource *dep)
-{
-	assert(r); // LCOV_EXCL_LINE
-	assert(r->type != RES_UNKNOWN); // LCOV_EXCL_LINE
-
-	return (*(resource_types[r->type].notify_callback))(r->resource, dep);
 }
 
 /**

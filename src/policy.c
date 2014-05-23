@@ -831,43 +831,6 @@ int policy_add_dependency(struct policy *pol, struct dependency *dep)
 	return 0;
 }
 
-/**
-  Notify dependent resources of a change.
-
-  Each dependency is evaluated to determine if $cause is
-  the "b" resource (remembering that "a depends on b").
-  For each matching dependency, resource_notify is called on the
-  dependent resource, so that it knows it may still need to do something
-  even if it is compliant.
-
-  The simplest example is a service (i.e. OpenLDAP) and its configuration
-  file.  If the config file changes, the service needs to be reloaded,
-  even if it is already running.  In this example, $cause would be
-  the configuration file.
-
-  On success, returns 0.  On failure, returns non-zero.
-  Not finding any resources affected by $cause is *not* a failure.
- */
-int policy_notify(const struct policy *pol, const struct resource *cause)
-{
-	assert(pol); // LCOV_EXCL_LINE
-	assert(cause); // LCOV_EXCL_LINE
-
-	struct dependency *d;
-
-	cw_log(LOG_DEBUG, "Notifying dependent resources on %s", cause->key);
-	for_each_dependency(d, pol) {
-		if (d->resource_b == cause) {
-			cw_log(LOG_DEBUG, "  notifying resource %s (%p) of change in %s (%p)",
-			      d->a, d->resource_a, cause->key, cause);
-
-			resource_notify(d->resource_a, cause);
-		}
-	}
-
-	return 0;
-}
-
 int policy_gencode(const struct policy *pol, FILE *io)
 {
 	struct resource *r;

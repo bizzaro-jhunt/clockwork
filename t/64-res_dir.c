@@ -39,10 +39,6 @@ TESTS {
 	}
 
 	subtest {
-		ok(res_dir_notify(NULL, NULL) == 0, "res_dir_notify is a NOOP");
-	}
-
-	subtest {
 		res_dir_free(NULL);
 		pass("res_dir_free(NULL) doesn't segfault");
 	}

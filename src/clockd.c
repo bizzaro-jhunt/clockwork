@@ -23,9 +23,11 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <libgen.h>
+#include <getopt.h>
 
 #include "spec/parser.h"
 #include "resources.h"
+#include "pendulum.h"
 
 #define BLOCK_SIZE 8192
 #define PROTOCOL_VERSION         1
@@ -455,44 +457,216 @@ static client_t* s_ccache_find(cw_frame_t *ident, ccache_t *c)
 	return &c->clients[i];
 }
 
-int main(int argc, char **argv)
-{
-	struct manifest *manifest = parse_file("test.pol");
-	if (!manifest) exit(1);
+#define MODE_RUN  0
+#define MODE_DUMP 1
+typedef struct {
+	void *zmq;
+	void *listener;
 
-	cw_log_open("clockd", "stdout");
-	cw_log_level(0, "info");
+	int mode;
+	int daemonize;
+
+	ccache_t *ccache;
+	struct manifest *manifest;
+} server_t;
+
+static inline server_t *s_server_new(int argc, char **argv)
+{
+	char *t;
+	server_t *s = cw_alloc(sizeof(server_t));
+	s->daemonize = 1;
+
+	LIST(config);
+	cw_cfg_set(&config, "listen",              "*:2314");
+	cw_cfg_set(&config, "ccache.connections",  "2048");
+	cw_cfg_set(&config, "ccache.expiration",   "600");
+	cw_cfg_set(&config, "manifest",            "/etc/clockwork/manifest.pol");
+	cw_cfg_set(&config, "syslog.ident",        "clockd");
+	cw_cfg_set(&config, "syslog.facility",     "daemon");
+	cw_cfg_set(&config, "syslog.level",        "error");
+	cw_cfg_set(&config, "pidfile",             "/var/run/clockd.pid");
+
+	cw_log_open(cw_cfg_get(&config, "syslog.ident"), "stderr");
+	cw_log_level(0, (getenv("CLOCKD_DEBUG") ? "debug" : "error"));
+	cw_log(LOG_DEBUG, "default configuration:");
+	cw_log(LOG_DEBUG, "  listen              %s", cw_cfg_get(&config, "listen"));
+	cw_log(LOG_DEBUG, "  ccache.connections  %s", cw_cfg_get(&config, "ccache.connections"));
+	cw_log(LOG_DEBUG, "  ccache.expiration   %s", cw_cfg_get(&config, "ccache.expiration"));
+	cw_log(LOG_DEBUG, "  manifest            %s", cw_cfg_get(&config, "manifest"));
+	cw_log(LOG_DEBUG, "  syslog.ident        %s", cw_cfg_get(&config, "syslog.ident"));
+	cw_log(LOG_DEBUG, "  syslog.facility     %s", cw_cfg_get(&config, "syslog.facility"));
+	cw_log(LOG_DEBUG, "  syslog.level        %s", cw_cfg_get(&config, "syslog.level"));
+	cw_log(LOG_DEBUG, "  pidfile             %s", cw_cfg_get(&config, "pidfile"));
+
+
+	cw_log(LOG_DEBUG, "processing command-line options");
+	const char *short_opts = "h?vqVcFd";
+	struct option long_opts[] = {
+		{ "help",       no_argument,       NULL, 'h' },
+		{ "verbose",    no_argument,       NULL, 'v' },
+		{ "quiet",      no_argument,       NULL, 'q' },
+		{ "version",    no_argument,       NULL, 'V' },
+		{ "config",     required_argument, NULL, 'c' },
+		{ "foreground", no_argument,       NULL, 'F' },
+		{ "dump",       no_argument,       NULL, 'd' },
+		{ 0, 0, 0, 0 },
+	};
+	int verbose = -1;
+	const char *config_file = "/etc/clockwork/clockd.conf";
+	int opt, idx = 0;
+	while ( (opt = getopt_long(argc, argv, short_opts, long_opts, &idx)) != -1) {
+		switch (opt) {
+		case 'h':
+		case '?':
+			cw_log(LOG_DEBUG, "handling -h/-?/--help");
+			break;
+
+		case 'v':
+			if (verbose < 0) verbose = 0;
+			verbose++;
+			cw_log(LOG_DEBUG, "handling -v/--verbose (modifier = %i)", verbose);
+			break;
+
+		case 'q':
+			verbose = 0;
+			cw_log(LOG_DEBUG, "handling -q/--quiet (modifier = %i)", verbose);
+			break;
+
+		case 'V':
+			cw_log(LOG_DEBUG, "handling -V/--version");
+			printf("clockd (Clockwork) %s runtime v%04x\n"
+			       "Copyright (C) 2014 James Hunt\n",
+			       PACKAGE_VERSION, PENDULUM_VERSION);
+			exit(0);
+			break;
+
+		case 'c':
+			cw_log(LOG_DEBUG, "handling -c/--config; replacing '%s' with '%s'",
+				config_file, argv[optind]);
+			config_file = argv[optind];
+			break;
+
+		case 'F':
+			cw_log(LOG_DEBUG, "handling -F/--foreground; turning off daemonize behavior");
+			s->daemonize = 0;
+			break;
+
+		case 'd':
+			cw_log(LOG_DEBUG, "handling -d/--dump; switching to <dump-config> mode");
+			s->mode = MODE_DUMP;
+			break;
+		}
+	}
+	cw_log(LOG_DEBUG, "option processing complete");
+
+
+	cw_log(LOG_DEBUG, "parsing cogd configuration file '%s'", config_file);
+	FILE *io = fopen(config_file, "r");
+	if (!io) {
+		cw_log(LOG_WARNING, "Failed to read configuration from %s: %s",
+			config_file, strerror(errno));
+		cw_log(LOG_WARNING, "Using default configuration");
+
+	} else {
+		if (cw_cfg_read(&config, io) != 0) {
+			cw_log(LOG_ERR, "Unable to parse %s");
+			exit(1);
+		}
+		fclose(io);
+		io = NULL;
+	}
+
+
+	cw_log(LOG_DEBUG, "determining adjusted log level/facility");
+	if (verbose < 0) verbose = 0;
+	t = cw_cfg_get(&config, "syslog.level");
+	cw_log(LOG_DEBUG, "configured log level is '%s', verbose modifier is %+i", t, verbose);
+	int level = cw_log_level_number(t);
+	if (level < 0) {
+		cw_log(LOG_WARNING, "'%s' is not a recognized log level, falling back to 'error'", t);
+		level = LOG_ERR;
+	}
+	level += verbose;
+	cw_log(LOG_DEBUG, "adjusted log level is %s (%i)",
+		cw_log_level_name(level), level);
+	if (!s->daemonize) {
+		cw_log(LOG_DEBUG, "Running in --foreground mode; forcing all logging to stdout");
+		cw_cfg_set(&config, "syslog.facility", "stdout");
+	}
+	if (s->mode == MODE_DUMP) {
+		cw_log(LOG_DEBUG, "Running in --dump mode; forcing all logging to stderr");
+		cw_cfg_set(&config, "syslog.facility", "stderr");
+	}
+	cw_log(LOG_DEBUG, "redirecting to %s log as %s",
+		cw_cfg_get(&config, "syslog.facility"),
+		cw_cfg_get(&config, "syslog.ident"));
+
+	cw_log_open(cw_cfg_get(&config, "syslog.ident"),
+	            cw_cfg_get(&config, "syslog.facility"));
+	cw_log_level(level, NULL);
+
 
 	cw_log(LOG_INFO, "clockd starting up");
-	void *context  = zmq_ctx_new();
-	void *listener = zmq_socket(context, ZMQ_ROUTER);
-	cw_log(LOG_INFO, "binding to tcp://*:2323");
-	zmq_bind(listener, "tcp://*:2323");
 
-	ccache_t *cc = s_ccache_init(2048, 600);
 
+	if (s->mode == MODE_DUMP) {
+		printf("listen              %s\n", cw_cfg_get(&config, "listen"));
+		printf("ccache.connections  %s\n", cw_cfg_get(&config, "ccache.connections"));
+		printf("ccache.expiration   %s\n", cw_cfg_get(&config, "ccache.expiration"));
+		printf("manifest            %s\n", cw_cfg_get(&config, "manifest"));
+		printf("syslog.ident        %s\n", cw_cfg_get(&config, "syslog.ident"));
+		printf("syslog.facility     %s\n", cw_cfg_get(&config, "syslog.facility"));
+		printf("syslog.level        %s\n", cw_cfg_get(&config, "syslog.level"));
+		printf("pidfile             %s\n", cw_cfg_get(&config, "pidfile"));
+		exit(0);
+	}
+
+
+	s->manifest = parse_file(cw_cfg_get(&config, "manifest"));
+	if (!s->manifest) {
+		cw_log(LOG_CRIT, "Failed to parse %s: %s",
+			cw_cfg_get(&config, "manifest"), strerror(errno));
+		exit(1);
+	}
+
+	s->ccache = s_ccache_init(atoi(cw_cfg_get(&config, "ccache.connections")),
+	                          atoi(cw_cfg_get(&config, "ccache.expiration")));
+
+	t = cw_string("tcp://%s", cw_cfg_get(&config, "listen"));
+	cw_log(LOG_DEBUG, "binding to %s", s);
+	s->zmq = zmq_ctx_new();
+	s->listener = zmq_socket(s->zmq, ZMQ_ROUTER);
+	zmq_bind(s->listener, t);
+	free(t);
+
+	return s;
+}
+
+int main(int argc, char **argv)
+{
+	server_t *s = s_server_new(argc, argv);
 	while (!cw_sig_interrupt()) {
 		cw_pdu_t *pdu, *reply;
-		pdu = cw_pdu_recv(listener);
+		pdu = cw_pdu_recv(s->listener);
 		assert(pdu);
 
-		s_ccache_purge(cc);
-		client_t *c = s_ccache_find(pdu->src, cc);
+		s_ccache_purge(s->ccache);
+		client_t *c = s_ccache_find(pdu->src, s->ccache);
 		if (!c) {
 			cw_log(LOG_CRIT, "max connections reached!");
 			reply = cw_pdu_make(pdu->src, 2, "ERROR", "Server busy; try again later\n");
-			cw_pdu_send(listener, reply);
+			cw_pdu_send(s->listener, reply);
 			continue;
 		}
 
-		c->manifest = manifest;
+		c->manifest = s->manifest;
 		c->event = s_pdu_event(pdu);
 		cw_log(LOG_INFO, "%p: incoming connection", c);
 		int rc = s_state_machine(c, pdu, &reply);
 		if (rc == 0) {
 			cw_log(LOG_INFO, "%p: fsm is now at %s [%i]", c, FSM_STATES[c->state], c->state);
 			cw_log(LOG_INFO, "%p: sending back a %s PDU", c, reply->type);
-			cw_pdu_send(listener, reply);
+			cw_pdu_send(s->listener, reply);
 
 			if (c->mapped) {
 				munmap(c->mapped, c->maplen);
@@ -503,12 +677,12 @@ int main(int argc, char **argv)
 		} else {
 			reply = cw_pdu_make(pdu->src, 2, "ERROR", FSM_ERRORS[c->error]);
 			cw_log(LOG_INFO, "%p: sending back an ERROR PDU: %s", c, FSM_ERRORS[c->error]);
-			cw_pdu_send(listener, reply);
+			cw_pdu_send(s->listener, reply);
 		}
 	}
 	cw_log(LOG_INFO, "shutting down");
 
-	cw_zmq_shutdown(listener, 500);
-	zmq_ctx_destroy(context);
+	cw_zmq_shutdown(s->listener, 500);
+	zmq_ctx_destroy(s->zmq);
 	return 0;
 }

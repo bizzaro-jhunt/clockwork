@@ -30,8 +30,11 @@
 #include "pendulum.h"
 
 #define BLOCK_SIZE 8192
+
 #define PROTOCOL_VERSION         1
 #define PROTOCOL_VERSION_STRING "1"
+
+#define DEFAULT_CONFIG_FILE "/etc/clockwork/clockd.conf"
 
 typedef enum {
 	STATE_INIT,
@@ -500,7 +503,7 @@ static inline server_t *s_server_new(int argc, char **argv)
 
 
 	cw_log(LOG_DEBUG, "processing command-line options");
-	const char *short_opts = "h?vqVcFd";
+	const char *short_opts = "h?vqVc:Fd";
 	struct option long_opts[] = {
 		{ "help",       no_argument,       NULL, 'h' },
 		{ "verbose",    no_argument,       NULL, 'v' },
@@ -512,14 +515,25 @@ static inline server_t *s_server_new(int argc, char **argv)
 		{ 0, 0, 0, 0 },
 	};
 	int verbose = -1;
-	const char *config_file = "/etc/clockwork/clockd.conf";
+	const char *config_file = DEFAULT_CONFIG_FILE;
 	int opt, idx = 0;
 	while ( (opt = getopt_long(argc, argv, short_opts, long_opts, &idx)) != -1) {
 		switch (opt) {
 		case 'h':
 		case '?':
 			cw_log(LOG_DEBUG, "handling -h/-?/--help");
-			break;
+			printf("clockd, part of clockwork v%s runtime %i protocol %i\n",
+				PACKAGE_VERSION, PENDULUM_VERSION, PROTOCOL_VERSION);
+			printf("Usage: clockd [-?hvVqFd] [-c filename]\n\n");
+			printf("Options:\n");
+			printf("  -?, -h               show this help screen\n");
+			printf("  -V, --version        show version information and exit\n");
+			printf("  -v, --verbose        increase logging verbosity\n");
+			printf("  -q, --quiet          disable logging\n");
+			printf("  -F, --foreground     don't daemonize, run in the foreground\n");
+			printf("  -d, --dump           dump configuration and exit\n");
+			printf("  -c filename          set configuration file (default: " DEFAULT_CONFIG_FILE ")\n");
+			exit(0);
 
 		case 'v':
 			if (verbose < 0) verbose = 0;

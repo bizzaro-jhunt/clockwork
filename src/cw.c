@@ -949,19 +949,8 @@ int cw_log_level(int level, const char *name)
 {
 	int was = CW_LOG.level;
 	if (name) {
-		level = strcmp(name, "emerg")     == 0 ? LOG_EMERG
-		      : strcmp(name, "emergency") == 0 ? LOG_EMERG
-		      : strcmp(name, "alert")     == 0 ? LOG_ALERT
-		      : strcmp(name, "crit")      == 0 ? LOG_CRIT
-		      : strcmp(name, "critical")  == 0 ? LOG_CRIT
-		      : strcmp(name, "err")       == 0 ? LOG_ERR
-		      : strcmp(name, "error")     == 0 ? LOG_ERR
-		      : strcmp(name, "warn")      == 0 ? LOG_WARNING
-		      : strcmp(name, "warning")   == 0 ? LOG_WARNING
-		      : strcmp(name, "notice")    == 0 ? LOG_NOTICE
-		      : strcmp(name, "info")      == 0 ? LOG_INFO
-		      : strcmp(name, "debug")     == 0 ? LOG_DEBUG
-		      : CW_LOG.level;
+		level = cw_log_level_number(name);
+		if (level < 0) level = CW_LOG.level;
 	}
 	if (level >= 0) {
 		if (level > LOG_DEBUG)
@@ -985,6 +974,24 @@ const char* cw_log_level_name(int level)
 	case LOG_DEBUG:   return "debug";
 	default:          return "UNKNOWN";
 	}
+}
+
+int cw_log_level_number(const char *name)
+{
+	if (!name) return -1;
+	return   strcmp(name, "emerg")     == 0 ? LOG_EMERG
+	       : strcmp(name, "emergency") == 0 ? LOG_EMERG
+	       : strcmp(name, "alert")     == 0 ? LOG_ALERT
+	       : strcmp(name, "crit")      == 0 ? LOG_CRIT
+	       : strcmp(name, "critical")  == 0 ? LOG_CRIT
+	       : strcmp(name, "err")       == 0 ? LOG_ERR
+	       : strcmp(name, "error")     == 0 ? LOG_ERR
+	       : strcmp(name, "warn")      == 0 ? LOG_WARNING
+	       : strcmp(name, "warning")   == 0 ? LOG_WARNING
+	       : strcmp(name, "notice")    == 0 ? LOG_NOTICE
+	       : strcmp(name, "info")      == 0 ? LOG_INFO
+	       : strcmp(name, "debug")     == 0 ? LOG_DEBUG
+	       : -1;
 }
 
 void cw_log(int level, const char *fmt, ...)

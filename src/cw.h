@@ -285,6 +285,7 @@ void cw_log_open(const char *ident, const char *facility);
 void cw_log_close(void);
 int cw_log_level(int level, const char *name);
 const char* cw_log_level_name(int level);
+int cw_log_level_number(const char *name);
 void cw_log(int level, const char *fmt, ...);
 
 /*

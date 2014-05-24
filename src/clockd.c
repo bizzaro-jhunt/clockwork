@@ -28,6 +28,8 @@
 #include "resources.h"
 
 #define BLOCK_SIZE 8192
+#define PROTOCOL_VERSION         1
+#define PROTOCOL_VERSION_STRING "1"
 
 typedef enum {
 	STATE_INIT,
@@ -48,6 +50,7 @@ static const char *FSM_STATES[] = {
 
 typedef enum {
 	EVENT_UNKNOWN,
+	EVENT_PING,
 	EVENT_HELLO,
 	EVENT_POLICY,
 	EVENT_FILE,
@@ -58,6 +61,7 @@ typedef enum {
 
 static const char *FSM_EVENTS[] = {
 	"UNKNOWN",
+	"PING",
 	"HELLO",
 	"POLICY",
 	"FILE",
@@ -167,6 +171,10 @@ static int s_state_machine(client_t *fsm, cw_pdu_t *pdu, cw_pdu_t **reply)
 	case EVENT_UNKNOWN:
 		fsm->error = FSM_ERR_BADPROTO;
 		return 1;
+
+	case EVENT_PING:
+		*reply = cw_pdu_make(pdu->src, 2, "PONG", PROTOCOL_VERSION_STRING);
+		return 0;
 
 	case EVENT_HELLO:
 		switch (fsm->state) {
@@ -452,12 +460,14 @@ int main(int argc, char **argv)
 	struct manifest *manifest = parse_file("test.pol");
 	if (!manifest) exit(1);
 
-	void *context  = zmq_ctx_new();
-	void *listener = zmq_socket(context, ZMQ_ROUTER);
-	zmq_bind(listener, "tcp://*:2323");
 	cw_log_open("clockd", "stdout");
 	cw_log_level(0, "info");
+
 	cw_log(LOG_INFO, "clockd starting up");
+	void *context  = zmq_ctx_new();
+	void *listener = zmq_socket(context, ZMQ_ROUTER);
+	cw_log(LOG_INFO, "binding to tcp://*:2323");
+	zmq_bind(listener, "tcp://*:2323");
 
 	ccache_t *cc = s_ccache_init(2048, 600);
 

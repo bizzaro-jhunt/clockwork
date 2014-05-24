@@ -60,6 +60,7 @@ int pn_set(pn_machine *m, int attr, void *value);
 int pn_func(pn_machine *m, const char *op, pn_function fn);
 int pn_parse(pn_machine *m, FILE *io);
 int pn_run(pn_machine *m);
+int pn_run_safe(pn_machine *m);
 int pn_die(pn_machine *m, const char *e);
 
 #endif

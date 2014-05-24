@@ -3,11 +3,14 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdarg.h>
+#include <unistd.h>
 #include <string.h>
 #include <ctype.h>
 #include <errno.h>
 #include <assert.h>
 #include <syslog.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 #include "pendulum.h"
 
@@ -595,6 +598,20 @@ int pn_run(pn_machine *m)
 #   undef NEXT
 done:
 	return 0;
+}
+
+int pn_run_safe(pn_machine *m)
+{
+	pid_t pid = fork();
+	if (pid < 0)
+		return -1;
+
+	if (pid == 0)
+		exit(pn_run(m));
+
+	int rc;
+	waitpid(pid, &rc, 0);
+	return WIFEXITED(rc) ? WEXITSTATUS(rc) : -2;
 }
 
 int pn_die(pn_machine *m, const char *e)

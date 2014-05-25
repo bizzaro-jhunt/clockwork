@@ -556,8 +556,8 @@ static inline server_t *s_server_new(int argc, char **argv)
 
 		case 'c':
 			cw_log(LOG_DEBUG, "handling -c/--config; replacing '%s' with '%s'",
-				config_file, argv[optind]);
-			config_file = argv[optind];
+				config_file, optarg);
+			config_file = optarg;
 			break;
 
 		case 'F':
@@ -574,7 +574,7 @@ static inline server_t *s_server_new(int argc, char **argv)
 	cw_log(LOG_DEBUG, "option processing complete");
 
 
-	cw_log(LOG_DEBUG, "parsing cogd configuration file '%s'", config_file);
+	cw_log(LOG_DEBUG, "parsing clockd configuration file '%s'", config_file);
 	FILE *io = fopen(config_file, "r");
 	if (!io) {
 		cw_log(LOG_WARNING, "Failed to read configuration from %s: %s",
@@ -643,6 +643,8 @@ static inline server_t *s_server_new(int argc, char **argv)
 		exit(1);
 	}
 
+	if (s->daemonize)
+		cw_daemonize(cw_cfg_get(&config, "pidfile"), "root", "root");
 	s->ccache = s_ccache_init(atoi(cw_cfg_get(&config, "ccache.connections")),
 	                          atoi(cw_cfg_get(&config, "ccache.expiration")));
 

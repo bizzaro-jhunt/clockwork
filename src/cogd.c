@@ -367,8 +367,8 @@ static inline client_t* s_client_new(int argc, char **argv)
 
 		case 'c':
 			cw_log(LOG_DEBUG, "handling -c/--config; replacing '%s' with '%s'",
-				config_file, argv[optind]);
-			config_file = argv[optind];
+				config_file, optarg);
+			config_file = optarg;
 			break;
 
 		case 'F':
@@ -484,6 +484,9 @@ static inline client_t* s_client_new(int argc, char **argv)
 	c->gatherers = cw_cfg_get(&config, "gatherers");
 	c->schedule.interval  = 1000 * atoi(cw_cfg_get(&config, "interval"));
 	c->timeout            = 1000 * atoi(cw_cfg_get(&config, "timeout"));
+
+	if (c->daemonize)
+		cw_daemonize(cw_cfg_get(&config, "pidfile"), "root", "root");
 
 	s = cw_string("tcp://%s", cw_cfg_get(&config, "listen"));
 	cw_log(LOG_DEBUG, "binding to %s", s);

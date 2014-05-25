@@ -1,0 +1,180 @@
+\"
+\"  Copyright 2011-2014 James Hunt <james@jameshunt.us>
+\"
+\"  This file is part of Clockwork.
+\"
+\"  Clockwork is free software: you can redistribute it and/or modify
+\"  it under the terms of the GNU General Public License as published by
+\"  the Free Software Foundation, either version 3 of the License, or
+\"  (at your option) any later version.
+\"
+\"  Clockwork is distributed in the hope that it will be useful,
+\"  but WITHOUT ANY WARRANTY; without even the implied warranty of
+\"  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+\"  GNU General Public License for more details.
+\"
+\"  You should have received a copy of the GNU General Public License
+\"  along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
+\"
+
+.TH cogd.conf "5" "May 2014" "Clockwork" "Clockwork File Formats"
+.SH NAME
+.PP
+cogd.conf \- Clockwork Agent configuration file
+
+.SH SYNOPSIS
+.PP
+.B /etc/clockwork/cogd.conf
+
+.SH DESCRIPTION
+.PP
+\fBcogd\fR(1) reads its configuration from
+\fI/etc/clockwork/cogd.conf\fR (unless a different file is
+specified with the \-c option).
+.PP
+
+Valid configuration directives, and their meanings, are as follows:
+
+\".PP
+\"\fBlisten\fR \- Remote execution endpoint
+\".PP
+\".RS 4
+\".RE
+
+.PP
+\fBmaster.\fIN\fR \- Master Servers
+.PP
+.RS 4
+Master Servers are the fixed points in the Clockwork architecture.
+They maintain the global manifest and are solely responsible for
+handing out policy to managed hosts.
+.PP
+Each master server must be specified by its endpoint IP address
+and TCP port number.  The standard Clockwork port for master
+servers is TCP/2314.
+.PP
+\fBcogd\fR can be configured with up to 8 master servers,
+\fBmaster.1\fR, \fBmaster.2\fR ... \fBmaster.8\fR.  It will
+round-robin between these master servers until it finds one it can
+connect to.  This can be leveraged to provide more resiliency into
+core of your configuration management layer.
+.PP
+At least one master server (\fBmaster.1\fR) must be specified, or
+\fBcogd\fR will exit with an error.
+.RE
+
+.PP
+\fBtimeout\fR \- Timeout for Master Server communication
+.PP
+.RS 4
+When communicating with master server(s), there is a chance that
+the remote peer is not up or accepting connections.  Due to the
+asynchronous nature of the Clockwork protocol, \fBcogd\fR must
+enforce timeouts on replies from each master that it talks to.
+.PP
+This configuration directive specifies that timeout, in seconds.
+.PP
+Defaults to \fI5\fR.
+.RE
+
+.PP
+\fBinterval\fR \- How often to run configuration management
+.PP
+.RS 4
+.PP
+Defaults to \fI300\fR (5 minutes).
+.RE
+
+.PP
+\fBgatherers\fR \- Path or shell glob to gatherer script(s)
+.PP
+.RS 4
+Gatherers allow this host to collect as much information about
+itself as possible, and communicate that to the policy master.
+This data includes stuff like kernel version, number of
+interfaces, distribution name, etc., and allows the policy master
+to tailor a policy specific to this host.
+.PP
+To specify more than one script (the most common case), use a
+shell glob.  For example, if you keep multiple gatherers in
+/opt/clockwork, set \fBgatherers\fR to "/opt/clockwork/*".
+.PP
+Only files with the executable bit set will be seen as valid
+gatherer scripts.
+.PP
+Defaults to \fI/etc/clockwork/gather.d/*\fR.
+.RE
+
+.PP
+\fBpidfile\fR \- PID file for storing the daemon process ID
+.PP
+.RS 4
+.PP
+Defaults to \fI/var/run/cogd.conf\fR.
+.RE
+
+.PP
+\fBsyslog.ident\fR \- Syslog identity string
+.PP
+.RS 4
+.PP
+Defaults to \fIcogd\fR.
+.RE
+
+.PP
+\fBsyslog.facility\fR \- Syslog facility for logging
+.PP
+.RS 4
+.PP
+Defaults to \fIdaemon\fR.
+.RE
+
+.PP
+\fBsyslog.level\fR \- Log level
+.PP
+.RS 4
+.PP
+Defaults to \fIerror\fR.
+.RE
+
+.SH
+EXAMPLES
+
+This is the default configuration, plus a single master server at
+10.0.0.5:2314:
+
+.nf
+    listen *:2304
+
+    master.1   10.0.0.5:2314
+    timeout    5
+    interval   300
+    gatherers  /etc/clockwork/gather.d/*
+
+    pidfile          /var/run/cogd.pid
+
+    syslog.ident     cogd
+    syslog.facility  daemon
+    syslog.level     error
+.fi
+
+Here's a bare-bones configuration that can talk to three different
+master servers, in three different 10/8 subnets:
+
+.nf
+    master.1   10.100.0.5:2314  # Chicago, IL
+    master.2   10.120.0.5:2314  # New York, NY
+    master.3   10.140.0.5:2314  # San Jose, CA
+    timeout 15
+.fi
+
+.SH
+SEE ALSO
+.PP
+\fBclockwork\fR(7), \fBclockd\fR(1), \fBcogd\fR(1) and
+\fBclockd.conf\fR(5)
+
+.SH
+AUTHOR
+.PP
+Clockwork was designed and written by James Hunt.

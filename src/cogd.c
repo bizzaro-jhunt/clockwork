@@ -312,14 +312,14 @@ static inline client_t* s_client_new(int argc, char **argv)
 	cw_log(LOG_DEBUG, "processing command-line options");
 	const char *short_opts = "h?vqVc:FdT";
 	struct option long_opts[] = {
-		{ "help",       no_argument,       NULL, 'h' },
-		{ "verbose",    no_argument,       NULL, 'v' },
-		{ "quiet",      no_argument,       NULL, 'q' },
-		{ "version",    no_argument,       NULL, 'V' },
-		{ "config",     required_argument, NULL, 'c' },
-		{ "foreground", no_argument,       NULL, 'F' },
-		{ "dump",       no_argument,       NULL, 'd' },
-		{ "trace",      no_argument,       NULL, 'T' },
+		{ "help",        no_argument,       NULL, 'h' },
+		{ "verbose",     no_argument,       NULL, 'v' },
+		{ "quiet",       no_argument,       NULL, 'q' },
+		{ "version",     no_argument,       NULL, 'V' },
+		{ "config",      required_argument, NULL, 'c' },
+		{ "foreground",  no_argument,       NULL, 'F' },
+		{ "show-config", no_argument,       NULL, 'd' },
+		{ "trace",       no_argument,       NULL, 'T' },
 		{ 0, 0, 0, 0 },
 	};
 	int verbose = -1;
@@ -340,7 +340,7 @@ static inline client_t* s_client_new(int argc, char **argv)
 			printf("  -v, --verbose        increase logging verbosity\n");
 			printf("  -q, --quiet          disable logging\n");
 			printf("  -F, --foreground     don't daemonize, run in the foreground\n");
-			printf("  -d, --dump           dump configuration and exit\n");
+			printf("  -S, --show-config    print configuration and exit\n");
 			printf("  -T, --trace          enable TRACE mode on the pendulum runtime\n");
 			printf("  -c filename          set configuration file (default: " DEFAULT_CONFIG_FILE ")\n");
 			exit(0);
@@ -377,7 +377,7 @@ static inline client_t* s_client_new(int argc, char **argv)
 			break;
 
 		case 'd':
-			cw_log(LOG_DEBUG, "handling -d/--dump; switching to <dump-config> mode");
+			cw_log(LOG_DEBUG, "handling -S/--show-config");
 			c->mode = MODE_DUMP;
 			break;
 
@@ -425,7 +425,7 @@ static inline client_t* s_client_new(int argc, char **argv)
 		cw_cfg_set(&config, "syslog.facility", "stdout");
 	}
 	if (c->mode == MODE_DUMP) {
-		cw_log(LOG_DEBUG, "Running in --dump mode; forcing all logging to stderr");
+		cw_log(LOG_DEBUG, "Running in --show-config mode; forcing all logging to stderr");
 		cw_cfg_set(&config, "syslog.facility", "stderr");
 	}
 	cw_log(LOG_DEBUG, "redirecting to %s log as %s",

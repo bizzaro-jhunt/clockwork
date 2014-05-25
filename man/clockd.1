@@ -1,0 +1,122 @@
+\"
+\"  Copyright 2011-2014 James Hunt <james@jameshunt.us>
+\"
+\"  This file is part of Clockwork.
+\"
+\"  Clockwork is free software: you can redistribute it and/or modify
+\"  it under the terms of the GNU General Public License as published by
+\"  the Free Software Foundation, either version 3 of the License, or
+\"  (at your option) any later version.
+\"
+\"  Clockwork is distributed in the hope that it will be useful,
+\"  but WITHOUT ANY WARRANTY; without even the implied warranty of
+\"  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+\"  GNU General Public License for more details.
+\"
+\"  You should have received a copy of the GNU General Public License
+\"  along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
+\"
+
+.TH clockd "1" "March 2013" "Clockwork" "Clockwork Master"
+.SH NAME
+.PP
+clockd \- Clockwork Master
+
+.SH SYNOPSIS
+.PP
+\fBclockd\fR [options]
+.PP
+\fBclockd\fR -c /path/to/clockd.conf
+.PP
+\fBclockd\fR -Fvvv
+
+.SH DESCRIPTION
+.PP
+\fBClockwork\fR is a configuration management system designed to
+securely and correctly enforce configuration policies on lots of
+hosts.
+.PP
+It can ensure that files have the right attributes (owner,
+group, permissions, etc.) and content.  It can maintain a specific
+set of installed packages, and even make sure that system user
+accounts exist.
+.PP
+\fBclockd\fR is the Policy Master component of Clockwork.  It
+holds all of the policies for all managed systems, and gives them
+out to the \fBclockd\fR agents when they connect.
+.PP
+\fBclockd\fR is also responsible for hosting and serving file
+contents to clients that need to update file resources.
+
+.SH OPTIONS
+.PP
+.PP
+\fB\-V, \-\-version\fR
+.RS 8
+Print version and copyright information.
+.RE
+
+.PP
+\fB\-c, \-\-config\fR \fI/path/to/clockd.conf\fR
+.RS 8
+Specify the path to an alternate configuration file.  If not
+given, the default configuration file (/etc/clockwork/clockd.conf)
+is used instead.
+.RE
+
+.PP
+\fB\-q\fR, \fB\-\-quiet\fR
+.RS 8
+Disable logging.
+.RE
+
+.PP
+\fB\-v\fR, \fB\-\-verbose\fR
+.RS 8
+Increase verbosity by one level.  Can be used more than once.
+.RE
+
+.PP
+\fB\-t\fR, \fB\-\-test\fR
+.RS 8
+Test clockd configuration and environment.  Not only does this
+check config file and manifest syntax, it also checks the system
+filesystem to ensure that configured files and directories exist,
+and are readable or writable.
+.PP
+Administrators are strongly encouraged to run \fBclockd -t\fR
+whenever changing configuration.
+.RE
+
+.PP
+\fB\-S\fR, \fB\-\-show-config\fR
+.RS 8
+Once \fBclockd\fR has determined its running configuration, have
+it print that to standard output and exit.
+.RE
+
+.PP
+\fB\-F\fR, \fB\-\-foreground\fR
+.RS 8
+Normally, \fBclockd\fR forks into the background and detaches from
+the controlling terminal, so that it can run as a system service.
+This flag disabled that behavior.  As a side effect, all logging
+will be forced to go to standard output, regardless of what syslog
+facility is specified in the configuration file.
+.RE
+
+.SH FILES
+.PP
+.TP 8
+.B /etc/clockwork/clockd.conf
+Default configuration file that \fBclockd\fR reads on start up.
+See \fBclockd.conf\fR(5) for details.
+
+.SH SEE ALSO
+.PP
+\fBclockwork\fR(7), \fBcwa\fR(1), \fBclockd.conf\fR(5) and
+\fBcwa.conf\fR(5)
+
+.SH AUTHOR
+.PP
+Clockwork was designed and written by James Hunt.

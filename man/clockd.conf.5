@@ -1,0 +1,170 @@
+\"
+\"  Copyright 2011-2014 James Hunt <james@jameshunt.us>
+\"
+\"  This file is part of Clockwork.
+\"
+\"  Clockwork is free software: you can redistribute it and/or modify
+\"  it under the terms of the GNU General Public License as published by
+\"  the Free Software Foundation, either version 3 of the License, or
+\"  (at your option) any later version.
+\"
+\"  Clockwork is distributed in the hope that it will be useful,
+\"  but WITHOUT ANY WARRANTY; without even the implied warranty of
+\"  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+\"  GNU General Public License for more details.
+\"
+\"  You should have received a copy of the GNU General Public License
+\"  along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
+\"
+
+.TH clockd.conf "5" "May 2014" "Clockwork" "Clockwork File Formats"
+.SH NAME
+.PP
+clockd.conf \- Clockwork Master configuration file
+
+.SH SYNOPSIS
+.PP
+.B /etc/clockwork/clockd.conf
+
+.SH DESCRIPTION
+.PP
+\fBclockd\fR(1) reads its configuration from
+\fI/etc/clockwork/clockd.conf\fR (unless a different file is
+specified with the \-c option).
+.PP
+
+Valid configuration directives, and their meanings, are as follows:
+
+.PP
+\fBlisten\fR \- Listen directive
+.PP
+.RS 4
+This specifies what interfaces/addresses \fBclockd\fR should bind
+to, for inbound connections from \fBcogd\fR agents.  The default
+port is \fI2314\fR, and most of the time you'll want to listen on
+any available interface.  This is the default, \fI*:2314\fB.
+.RE
+
+.PP
+\fBmanifest\fR \- Policy Manifest File
+.PP
+.RS 4
+The manifest contains all of the policy definitions, and what
+clients they should be given to.
+.RE
+
+.PP
+\fBlog_level\fR \- Logging threshold
+.PP
+.RS 4
+Valid values are:
+.RS 4
+.IP \fBcritical\fR 1i
+Fatal issues that cause immediate termination.
+.IP \fBerror\fR
+Non-fatal issues that prevent proper system operation.
+.IP \fBwarning\fR
+Minor problems that do not hinder system operation.
+.IP \fBnotice\fR
+Informational messages that assist in system diagnostics.
+.IP \fBinfo\fR
+More in-depth informational messages, for troublsehooting.
+.IP \fBdebug\fR
+Messages for chasing down bugs.
+.RE
+.PP
+Each level includes all "more important" levels.  'warning'
+will log 'critical' and 'error' messages.  'notice' is everything
+but debugging messages, etc.
+.PP
+A good starting point is 'warning'; default is 'error'.
+.RE
+
+.PP
+\fBccache.connections\fR \- Connection Cache Entries
+.PP
+.RS 4
+This configuration option lets you size the connection cache to
+the infrastructure.  For each client that connects, \fBclockd\fR
+keeps an entry in the connection cache to keep track of the
+generated policy, known facts, etc.  Cache entries are purged
+regularly, pursuant to \fBccache.expiration\fR, to make room for
+new client connections.
+.PP
+The value chosen for the connection cache size depends on the
+number of concurrent clients you expect \fBclockd\fR to service.
+For most environments the default size of \fI2048\fR entries
+should be sufficient.
+.RE
+
+.PP
+\fBccache.expiration\fR \- Connection Cache Expiration
+.PP
+.RS 4
+\fBclockd\fR keeps track of each client that connects, by storing
+their state information in an entry in the connection cache.  This
+configuration option lets you adjust how soon \fBclockd\fR will
+try to reclaim stale entries for use in new client connections.
+.PP
+This value is specified in seconds.
+.RE
+
+.PP
+\fBpidfile\fR \- PID file for storing the daemon process ID
+.PP
+.RS 4
+.PP
+Defaults to \fI/var/run/clockd.conf\fR.
+.RE
+
+.PP
+\fBsyslog.ident\fR \- Syslog identity string
+.PP
+.RS 4
+.PP
+Defaults to \fIclockd\fR.
+.RE
+
+.PP
+\fBsyslog.facility\fR \- Syslog facility for logging
+.PP
+.RS 4
+.PP
+Defaults to \fIdaemon\fR.
+.RE
+
+.PP
+\fBsyslog.level\fR \- Log level
+.PP
+.RS 4
+.PP
+Defaults to \fIerror\fR.
+.RE
+
+.SH
+EXAMPLES
+
+Here is the default configuration, made explicit:
+
+.nf
+    listen              *:2314
+    pidfile             /var/run/clockd.pid
+    manifest            /etc/clockwork/manifest.pol
+
+    ccache.connections  2048
+    ccache.expiration   600
+
+    syslog.ident        clockd
+    syslog.facility     daemon
+    syslog.level        error
+.fi
+
+.SH
+SEE ALSO
+.PP
+\fBclockwork\fR(7), \fBclockd\fR(1), \fBcogd\fR(1) and
+\fBcogd.conf\fR(5)
+
+.SH AUTHOR
+.PP
+Clockwork was designed and written by James Hunt.

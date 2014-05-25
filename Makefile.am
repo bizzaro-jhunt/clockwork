@@ -158,6 +158,8 @@ EXTRA_DIST      += $(TEST_EXTRAS)
 
 dist_man_MANS    = man/clockwork.7
 dist_man_MANS   += man/cwpol.1
+dist_man_MANS   += man/cogd.1 man/cogd.conf.5
+dist_man_MANS   += man/clockd.1 man/clockd.conf.5
 dist_man_MANS   += man/res_dir.5
 dist_man_MANS   += man/res_exec.5
 dist_man_MANS   += man/res_file.5

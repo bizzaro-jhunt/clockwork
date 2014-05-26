@@ -11,9 +11,12 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <sys/time.h>
+#include <sys/mman.h>
 #include <fcntl.h>
 #include <pwd.h>
 #include <grp.h>
+#include <fts.h>
+#include <utime.h>
 
 /*
 
@@ -1299,4 +1302,225 @@ FILE* cw_tpl_erb(const char *src, cw_hash_t *facts)
 
 	fclose(out);
 	return NULL;
+}
+
+/*
+
+    ########  ########  ########    ###
+    ##     ## ##     ## ##         ## ##
+    ##     ## ##     ## ##        ##   ##
+    ########  ##     ## ######   ##     ##
+    ##     ## ##     ## ##       #########
+    ##     ## ##     ## ##       ##     ##
+    ########  ########  ##       ##     ##
+
+ */
+
+struct bdfa_hdr {
+	char    magic[4];           /* "BDFA" */
+	char    flags[4];           /* flags */
+	char    mode[8];            /* mode (perms, setuid, etc.) */
+	char    uid[8];             /* UID of the file owner */
+	char    gid[8];             /* GID of the file group */
+	char    mtime[8];           /* modification time */
+	char    filesize[8];        /* size of the file */
+	char    namesize[8];        /* size of the path + '\0' */
+};
+
+static char HEX[16] = "0123456789abcdef";
+static uint8_t hexval(char h)
+{
+	if (h >= '0' && h <= '9') return h - '0';
+	if (h >= 'a' && h <= 'f') return h - 'a' + 10;
+	if (h >= 'A' && h <= 'F') return h - 'A' + 10;
+	return 0;
+}
+
+static inline void s_i2c4(char *c4, uint32_t i)
+{
+	c4[0] = HEX[(i & 0x0000f000) >> 12];
+	c4[1] = HEX[(i & 0x00000f00) >>  8];
+	c4[2] = HEX[(i & 0x000000f0) >>  4];
+	c4[3] = HEX[(i & 0x0000000f) >>  0];
+}
+
+static inline void s_c42i(void *i, const char *c4)
+{
+	*(uint32_t*)i = (hexval(c4[0]) << 12)
+	              + (hexval(c4[1]) <<  8)
+	              + (hexval(c4[2]) <<  4)
+	              + (hexval(c4[3]) <<  0);
+}
+
+static inline void s_i2c8(char *c8, uint32_t i)
+{
+	c8[0] = HEX[(i & 0xf0000000) >> 28];
+	c8[1] = HEX[(i & 0x0f000000) >> 24];
+	c8[2] = HEX[(i & 0x00f00000) >> 20];
+	c8[3] = HEX[(i & 0x000f0000) >> 16];
+	c8[4] = HEX[(i & 0x0000f000) >> 12];
+	c8[5] = HEX[(i & 0x00000f00) >>  8];
+	c8[6] = HEX[(i & 0x000000f0) >>  4];
+	c8[7] = HEX[(i & 0x0000000f) >>  0];
+}
+
+static inline void s_c82i(void *i, const char *c8)
+{
+	*(uint32_t*)i = (hexval(c8[0]) << 28)
+	              + (hexval(c8[1]) << 24)
+	              + (hexval(c8[2]) << 20)
+	              + (hexval(c8[3]) << 16)
+	              + (hexval(c8[4]) << 12)
+	              + (hexval(c8[5]) <<  8)
+	              + (hexval(c8[6]) <<  4)
+	              + (hexval(c8[7]) <<  0);
+}
+
+int cw_bdfa_pack(int out, const char *root)
+{
+	FTS *fts;
+	FTSENT *ent;
+	chdir(root);
+	char *paths[2] = { ".", NULL };
+
+	fts = fts_open(paths, FTS_LOGICAL, NULL);
+	if (!fts) return -1;
+
+	struct bdfa_hdr h;
+	while ( (ent = fts_read(fts)) != NULL ) {
+		if (ent->fts_info == FTS_DP) continue;
+		if (ent->fts_info == FTS_NS) continue;
+		if (strcmp(ent->fts_path, ".") == 0) continue;
+		if (!S_ISREG(ent->fts_statp->st_mode)
+		 && !S_ISDIR(ent->fts_statp->st_mode)) continue;
+
+		uint32_t filelen = 0;
+		uint32_t namelen = strlen(ent->fts_path)-2+1;
+		namelen += (4 - (namelen % 4)); /* pad */
+
+		int fd = -1;
+		unsigned char *contents = NULL;
+		if (S_ISREG(ent->fts_statp->st_mode)) {
+			fd = open(ent->fts_accpath, O_RDONLY);
+			if (!fd) continue;
+
+			filelen = lseek(fd, 0L, SEEK_END);
+			lseek(fd, 0L, SEEK_SET);
+
+			contents = mmap(NULL, namelen, PROT_READ, MAP_SHARED, fd, 0);
+			close(fd);
+			if (!contents) {
+				close(fd);
+				continue;
+			}
+		}
+
+		memset(&h, '0', sizeof(h));
+		memcpy(h.magic, "BDFA", 4);
+		s_i2c8(h.flags,    0);
+		s_i2c8(h.mode,     (uint32_t)ent->fts_statp->st_mode);
+		s_i2c8(h.uid,      (uint32_t)ent->fts_statp->st_uid);
+		s_i2c8(h.gid,      (uint32_t)ent->fts_statp->st_gid);
+		s_i2c8(h.mtime,    (uint32_t)ent->fts_statp->st_mtime);
+		s_i2c8(h.filesize, filelen);
+		s_i2c8(h.namesize, namelen);
+		write(out, &h, sizeof(h));
+
+		char *path = cw_alloc(namelen);
+		strncpy(path, ent->fts_path+2, namelen);
+		write(out, path, namelen);
+
+		if (contents && filelen >= 0) {
+			write(out, contents, filelen);
+			munmap(contents, filelen);
+		}
+	}
+
+	memset(&h, '0', sizeof(h));
+	memcpy(h.magic, "BDFA", 4);
+	memcpy(h.flags, "0001", 4);
+	write(out, &h, sizeof(h));
+
+	return 0;
+}
+
+int cw_bdfa_unpack(int in, const char *root)
+{
+	struct bdfa_hdr h;
+	size_t n, len;
+
+	uid_t uid;
+	gid_t gid;
+	mode_t mode, umsk;
+	char *filename;
+
+	int rc = 0;
+	umsk = umask(0);
+	while ((n = read(in, &h, sizeof(h))) > 0) {
+		if (n < sizeof(h)) {
+			fprintf(stderr, "Partial read error (only read %lu/%lu bytes)\n",
+				n, sizeof(h));
+			rc = 4;
+			break;
+		}
+
+		if (memcmp(h.flags, "0001", 4) == 0)
+			break;
+
+		s_c82i(&mode, h.mode);
+		s_c82i(&uid,  h.uid);
+		s_c82i(&gid,  h.gid);
+		s_c82i(&len,  h.namesize);
+
+		filename = cw_alloc(len);
+		n = read(in, filename, len);
+
+		if (S_ISDIR(mode)) {
+			if (mkdir(filename, mode) != 0) {
+				perror(filename);
+				rc = 1;
+				continue;
+			}
+			if (chown(filename, uid, gid) != 0) {
+				if (errno != EPERM) {
+					perror(filename);
+					rc = 1;
+					continue;
+				}
+			}
+
+			struct utimbuf ut;
+			s_c82i(&ut.actime,  h.mtime);
+			s_c82i(&ut.modtime, h.mtime);
+			if (utime(filename, &ut) != 0) {
+				perror(filename);
+				rc = 1;
+				continue;
+			}
+			continue;
+		}
+
+		if (S_ISREG(mode)) {
+			FILE* out = fopen(filename, "w");
+			if (!out) {
+				perror(filename);
+				continue;
+			}
+			fchmod(fileno(out), mode);
+			fchown(fileno(out), uid, gid);
+
+			s_c82i(&len, h.filesize);
+			char buf[8192];
+			while (len > 0 && (n = read(in, buf, len > 8192 ? 8192: len)) > 0) {
+				len -= n;
+				fwrite(buf, n, 1, out);
+			}
+			fclose(out);
+		} else {
+			fprintf(stderr, "%s - unrecognized mode %08x\n",
+				filename, mode);
+		}
+	}
+	umask(umsk);
+	return rc;
 }

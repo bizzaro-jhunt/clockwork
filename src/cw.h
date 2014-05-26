@@ -326,4 +326,19 @@ int cw_cleanenv(int n, const char **keep);
 
 FILE* cw_tpl_erb(const char *src, cw_hash_t *facts);
 
+/*
+
+    ########  ########  ########    ###
+    ##     ## ##     ## ##         ## ##
+    ##     ## ##     ## ##        ##   ##
+    ########  ##     ## ######   ##     ##
+    ##     ## ##     ## ##       #########
+    ##     ## ##     ## ##       ##     ##
+    ########  ########  ##       ##     ##
+
+ */
+
+int cw_bdfa_pack(int out, const char *root);
+int cw_bdfa_unpack(int in, const char *root);
+
 #endif

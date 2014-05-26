@@ -30,6 +30,7 @@ stamp-h?
 /pn
 /clockd
 /cogd
+/bdfa
 
 /debug/package-manager
 /debug/service-manager

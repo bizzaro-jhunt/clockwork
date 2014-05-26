@@ -93,6 +93,8 @@ PERL_TESTS += t/policy/08-sysctl.t
 PERL_TESTS += t/policy/09-exec.t
 PERL_TESTS += t/policy/30-deps.t
 
+PERL_TESTS += t/bdfa/01-basics.t
+
 TESTS          = $(CTAP_TESTS) $(PERL_TESTS)
 BUILT_TESTS    = $(CTAP_TESTS)
 check_PROGRAMS = $(CTAP_TESTS)
@@ -195,6 +197,9 @@ pn_SOURCES      = src/pn.c     $(core_src)                    $(pendulum_src)
 cwspec_SOURCES  = src/cwspec.c $(core_src) $(parser_spec_src)
 clockd_SOURCES  = src/clockd.c $(core_src) $(parser_spec_src)
 cogd_SOURCES    = src/cogd.c   $(core_src) $(parser_spec_src) $(pendulum_src)
+
+bin_PROGRAMS = bdfa
+bdfa_SOURCES = src/bdfa.c src/cw.h src/cw.c
 
 ############################################################
 

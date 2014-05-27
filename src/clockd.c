@@ -39,6 +39,7 @@
 typedef enum {
 	STATE_INIT,
 	STATE_IDENTIFIED,
+	STATE_COPYDOWN,
 	STATE_POLICY,
 	STATE_FILE,
 	STATE_REPORT,
@@ -47,6 +48,7 @@ typedef enum {
 static const char *FSM_STATES[] = {
 	"INIT",
 	"IDENTIFIED",
+	"COPYDOWN",
 	"POLICY",
 	"FILE",
 	"REPORT",
@@ -57,6 +59,7 @@ typedef enum {
 	EVENT_UNKNOWN,
 	EVENT_PING,
 	EVENT_HELLO,
+	EVENT_COPYDOWN,
 	EVENT_POLICY,
 	EVENT_FILE,
 	EVENT_DATA,
@@ -68,6 +71,7 @@ static const char *FSM_EVENTS[] = {
 	"UNKNOWN",
 	"PING",
 	"HELLO",
+	"COPYDOWN",
 	"POLICY",
 	"FILE",
 	"DATA",
@@ -104,16 +108,23 @@ static const char *FSM_ERRORS[] = {
 	NULL,
 };
 
-typedef struct {
+#define MODE_RUN  0
+#define MODE_DUMP 1
+
+typedef struct __client_t client_t;
+typedef struct __server_t server_t;
+typedef struct __ccache_t ccache_t;
+
+struct __client_t {
 	state_t           state;
 	event_t           event;
 	fsm_err_t         error;
+	server_t         *server;
 
 	cw_frame_t       *ident;
 	int32_t           last_seen;
 
 	char             *name;
-	struct manifest  *manifest;
 	struct stree     *pnode;
 	struct policy    *policy;
 	cw_hash_t        *facts;
@@ -124,7 +135,25 @@ typedef struct {
 
 	void             *mapped;
 	size_t            maplen;
-} client_t;
+};
+
+struct __ccache_t {
+	size_t len;
+	int32_t min_life;
+	client_t clients[];
+};
+
+struct __server_t {
+	void *zmq;
+	void *listener;
+
+	int mode;
+	int daemonize;
+
+	ccache_t *ccache;
+	struct manifest  *manifest;
+	char             *copydown;
+};
 
 static int s_sha1(client_t *fsm)
 {
@@ -165,7 +194,6 @@ static char * s_gencode(client_t *c)
 
 static int s_state_machine(client_t *fsm, cw_pdu_t *pdu, cw_pdu_t **reply)
 {
-
 	fsm->last_seen = cw_time_s();
 
 	cw_log(LOG_INFO, "fsm: transition %s [%i] -> %s [%i]",
@@ -184,6 +212,7 @@ static int s_state_machine(client_t *fsm, cw_pdu_t *pdu, cw_pdu_t **reply)
 	case EVENT_HELLO:
 		switch (fsm->state) {
 		case STATE_FILE:
+		case STATE_COPYDOWN:
 			if (fsm->io) fclose(fsm->io);
 			fsm->io = NULL;
 			fsm->offset = 0;
@@ -210,6 +239,37 @@ static int s_state_machine(client_t *fsm, cw_pdu_t *pdu, cw_pdu_t **reply)
 		fsm->state = STATE_IDENTIFIED;
 		return 0;
 
+	case EVENT_COPYDOWN:
+		switch (fsm->state) {
+		case STATE_INIT:
+		case STATE_REPORT:
+		case STATE_FILE:
+		case STATE_COPYDOWN:
+		case STATE_POLICY:
+			fsm->error = FSM_ERR_BADPROTO;
+			return 1;
+
+		case STATE_IDENTIFIED:
+			fsm->io = tmpfile();
+			if (!fsm->io) {
+				fsm->error = FSM_ERR_INTERNAL;
+				return 1;
+			}
+
+			if (cw_bdfa_pack(fileno(fsm->io), fsm->server->copydown) != 0) {
+				fsm->error = FSM_ERR_INTERNAL;
+				return 1;
+			}
+			rewind(fsm->io);
+			fsm->offset = 0;
+
+			*reply = cw_pdu_make(pdu->src, 1, "OK");
+			break;
+		}
+
+		fsm->state = STATE_COPYDOWN;
+		return 0;
+
 	case EVENT_POLICY:
 		switch (fsm->state) {
 		case STATE_INIT:
@@ -218,6 +278,7 @@ static int s_state_machine(client_t *fsm, cw_pdu_t *pdu, cw_pdu_t **reply)
 
 		case STATE_REPORT:
 		case STATE_FILE:
+		case STATE_COPYDOWN:
 			if (fsm->io) fclose(fsm->io);
 			fsm->io = NULL;
 			fsm->offset = 0;
@@ -238,8 +299,8 @@ static int s_state_machine(client_t *fsm, cw_pdu_t *pdu, cw_pdu_t **reply)
 		fact_read_string(facts, fsm->facts);
 		free(facts);
 
-		fsm->pnode = cw_hash_get(fsm->manifest->hosts, fsm->name);
-		if (!fsm->pnode) fsm->pnode = fsm->manifest->fallback;
+		fsm->pnode = cw_hash_get(fsm->server->manifest->hosts, fsm->name);
+		if (!fsm->pnode) fsm->pnode = fsm->server->manifest->fallback;
 		if (!fsm->pnode) {
 			fsm->error = FSM_ERR_NO_POLICY_FOUND;
 			return 1;
@@ -255,6 +316,7 @@ static int s_state_machine(client_t *fsm, cw_pdu_t *pdu, cw_pdu_t **reply)
 		switch (fsm->state) {
 		case STATE_INIT:
 		case STATE_IDENTIFIED:
+		case STATE_COPYDOWN:
 		case STATE_REPORT:
 			fsm->error = FSM_ERR_BADPROTO;
 			return 1;
@@ -300,6 +362,7 @@ static int s_state_machine(client_t *fsm, cw_pdu_t *pdu, cw_pdu_t **reply)
 			return 1;
 
 		case STATE_FILE:
+		case STATE_COPYDOWN:
 			/* fall-through */
 			break;
 		}
@@ -334,6 +397,7 @@ static int s_state_machine(client_t *fsm, cw_pdu_t *pdu, cw_pdu_t **reply)
 			return 1;
 
 		case STATE_FILE:
+		case STATE_COPYDOWN:
 			if (fsm->io) fclose(fsm->io);
 			fsm->io = NULL;
 			fsm->offset = 0;
@@ -349,6 +413,7 @@ static int s_state_machine(client_t *fsm, cw_pdu_t *pdu, cw_pdu_t **reply)
 		switch (fsm->state) {
 		case STATE_REPORT:
 		case STATE_FILE:
+		case STATE_COPYDOWN:
 			if (fsm->io) fclose(fsm->io);
 			fsm->io = NULL;
 			fsm->offset = 0;
@@ -377,12 +442,6 @@ static int s_state_machine(client_t *fsm, cw_pdu_t *pdu, cw_pdu_t **reply)
 	fsm->error = FSM_ERR_INTERNAL;
 	return 1;
 }
-
-typedef struct {
-	size_t len;
-	int32_t min_life;
-	client_t clients[];
-} ccache_t;
 
 ccache_t* s_ccache_init(size_t num_conns, int32_t min_life)
 {
@@ -459,19 +518,6 @@ static client_t* s_ccache_find(cw_frame_t *ident, ccache_t *c)
 	c->clients[i].last_seen = cw_time_s();
 	return &c->clients[i];
 }
-
-#define MODE_RUN  0
-#define MODE_DUMP 1
-typedef struct {
-	void *zmq;
-	void *listener;
-
-	int mode;
-	int daemonize;
-
-	ccache_t *ccache;
-	struct manifest *manifest;
-} server_t;
 
 static inline server_t *s_server_new(int argc, char **argv)
 {
@@ -675,7 +721,7 @@ int main(int argc, char **argv)
 			continue;
 		}
 
-		c->manifest = s->manifest;
+		c->server = s;
 		c->event = s_pdu_event(pdu);
 		cw_log(LOG_INFO, "%p: incoming connection", c);
 		int rc = s_state_machine(c, pdu, &reply);

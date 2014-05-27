@@ -106,6 +106,22 @@ Defaults to \fI/etc/clockwork/gather.d/*\fR.
 .RE
 
 .PP
+\fBcopydown\fR \- Root directory for copydown
+.PP
+.RS 4
+When \fBcogd\fR starts up, the first thing it does after
+contacting a master server is perform a \fBCOPYDOWN\fR.  During
+the step, static files (usually gatherer scripts) will be copied
+down from the master to the local node.  This ensures that the
+policy generated is correct, and that local fact gatherers are not
+tampered with.
+.PP
+This setting lets you choose where the copydown files are stored.
+.PP
+Defaults to \fI/etc/clockwork/gather.d\fR.
+.RE
+
+.PP
 \fBpidfile\fR \- PID file for storing the daemon process ID
 .PP
 .RS 4

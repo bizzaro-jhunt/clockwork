@@ -54,6 +54,21 @@ clients they should be given to.
 .RE
 
 .PP
+\fBcopydown\fR \- Copydown Source Directory
+.PP
+.RS 4
+Clients conneting to \fBclockd\fR start their configuration runs
+by performing a \fBCOPYDOWN\fR, in which they copy static files
+(usually gatherer scripts) locally.
+.PP
+This setting determines what files are included in the copydown
+archive.  Paths will be relative to the client's \fBcopydown\fR
+setting.
+.PP
+Defaults to \fI/etc/clockwork/gather.d\fR.
+.RE
+
+.PP
 \fBlog_level\fR \- Logging threshold
 .PP
 .RS 4

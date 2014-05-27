@@ -44,6 +44,7 @@ typedef struct {
 	void *listener;
 	const char *fqdn;
 	const char *gatherers;
+	const char *copydown;
 
 	int   mode;
 	int   trace;
@@ -180,29 +181,6 @@ static void s_cfm_run(client_t *c)
 		cw_time_ms(), c->schedule.next_run);
 	c->schedule.next_run = cw_time_ms() + c->schedule.interval;
 
-	cw_hash_t facts;
-	memset(&facts, 0, sizeof(cw_hash_t));
-	if (fact_gather(c->gatherers, &facts) != 0) {
-		cw_log(LOG_CRIT, "Unable to gather facts frm %s", c->gatherers);
-		goto maybe_next_time;
-	}
-
-	FILE *io = tmpfile();
-	assert(io);
-
-	int rc = fact_write(io, &facts);
-	assert(rc == 0);
-
-	fprintf(io, "%c", '\0');
-	size_t len = ftell(io);
-	fseek(io, 0, SEEK_SET);
-
-	char *factstr = mmap(NULL, len, PROT_READ, MAP_SHARED, fileno(io), 0);
-	if ((void *)factstr == MAP_FAILED) {
-		cw_log(LOG_CRIT, "Failed to mmap fact data");
-		goto maybe_next_time;
-	}
-
 	cw_log(LOG_DEBUG, "connecting to one of the masters");
 	void *client = s_connect(c);
 	if (!client)
@@ -223,6 +201,67 @@ static void s_cfm_run(client_t *c)
 		cw_log(LOG_ERR, "failed: %s", e);
 		free(e);
 		goto shut_it_down;
+	}
+
+	pdu = cw_pdu_make(NULL, 1, "COPYDOWN");
+	reply = s_sendto(client, pdu, c->timeout);
+	if (!reply) {
+		cw_log(LOG_ERR, "failed: %s", zmq_strerror(errno));
+		goto shut_it_down;
+	}
+	FILE *bdfa = tmpfile();
+	int rc, n = 0;
+	char size[16];
+	for (;;) {
+		rc = snprintf(size, 15, "%i", n++);
+		assert(rc > 0);
+		pdu = cw_pdu_make(NULL, 2, "DATA", size);
+		rc = cw_pdu_send(client, pdu);
+		assert(rc == 0);
+
+		reply = cw_pdu_recv(client);
+		if (!reply) {
+			cw_log(LOG_ERR, "failed: %s", zmq_strerror(errno));
+			break;
+		}
+		cw_log(LOG_INFO, "received a %s PDU", reply->type);
+
+		if (strcmp(reply->type, "EOF") == 0)
+			break;
+
+		char *data = cw_pdu_text(reply, 1);
+		fprintf(bdfa, "%s", data);
+		free(data);
+	}
+	rewind(bdfa);
+	if (cw_bdfa_unpack(fileno(bdfa), c->copydown) != 0) {
+		cw_log(LOG_CRIT, "Unable to perform copydown to %s", c->copydown);
+		fclose(bdfa);
+		goto maybe_next_time;
+	}
+	fclose(bdfa);
+
+	cw_hash_t facts;
+	memset(&facts, 0, sizeof(cw_hash_t));
+	if (fact_gather(c->gatherers, &facts) != 0) {
+		cw_log(LOG_CRIT, "Unable to gather facts frm %s", c->gatherers);
+		goto maybe_next_time;
+	}
+
+	FILE *io = tmpfile();
+	assert(io);
+
+	rc = fact_write(io, &facts);
+	assert(rc == 0);
+
+	fprintf(io, "%c", '\0');
+	size_t len = ftell(io);
+	fseek(io, 0, SEEK_SET);
+
+	char *factstr = mmap(NULL, len, PROT_READ, MAP_SHARED, fileno(io), 0);
+	if ((void *)factstr == MAP_FAILED) {
+		cw_log(LOG_CRIT, "Failed to mmap fact data");
+		goto maybe_next_time;
 	}
 
 	pdu = cw_pdu_make(NULL, 3, "POLICY", c->fqdn, factstr);
@@ -290,6 +329,7 @@ static inline client_t* s_client_new(int argc, char **argv)
 	cw_cfg_set(&config, "listen",          "*:2304");
 	cw_cfg_set(&config, "timeout",         "5");
 	cw_cfg_set(&config, "gatherers",       CW_GATHER_DIR "/*");
+	cw_cfg_set(&config, "copydown",        CW_GATHER_DIR);
 	cw_cfg_set(&config, "interval",        "300");
 	cw_cfg_set(&config, "syslog.ident",    "cogd");
 	cw_cfg_set(&config, "syslog.facility", "daemon");
@@ -302,6 +342,7 @@ static inline client_t* s_client_new(int argc, char **argv)
 	cw_log(LOG_DEBUG, "  listen          %s", cw_cfg_get(&config, "listen"));
 	cw_log(LOG_DEBUG, "  timeout         %s", cw_cfg_get(&config, "timeout"));
 	cw_log(LOG_DEBUG, "  gatherers       %s", cw_cfg_get(&config, "gatherers"));
+	cw_log(LOG_DEBUG, "  copydown        %s", cw_cfg_get(&config, "copydown"));
 	cw_log(LOG_DEBUG, "  interval        %s", cw_cfg_get(&config, "interval"));
 	cw_log(LOG_DEBUG, "  syslog.ident    %s", cw_cfg_get(&config, "syslog.ident"));
 	cw_log(LOG_DEBUG, "  syslog.facility %s", cw_cfg_get(&config, "syslog.facility"));
@@ -467,6 +508,7 @@ static inline client_t* s_client_new(int argc, char **argv)
 			printf("master.%i        %s\n", i+1, c->masters[i]);
 		printf("timeout         %s\n", cw_cfg_get(&config, "timeout"));
 		printf("gatherers       %s\n", cw_cfg_get(&config, "gatherers"));
+		printf("copydown        %s\n", cw_cfg_get(&config, "copydown"));
 		printf("interval        %s\n", cw_cfg_get(&config, "interval"));
 		printf("syslog.ident    %s\n", cw_cfg_get(&config, "syslog.ident"));
 		printf("syslog.facility %s\n", cw_cfg_get(&config, "syslog.facility"));
@@ -482,6 +524,7 @@ static inline client_t* s_client_new(int argc, char **argv)
 	}
 
 	c->gatherers = cw_cfg_get(&config, "gatherers");
+	c->copydown  = cw_cfg_get(&config, "copydown");
 	c->schedule.interval  = 1000 * atoi(cw_cfg_get(&config, "interval"));
 	c->timeout            = 1000 * atoi(cw_cfg_get(&config, "timeout"));
 

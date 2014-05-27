@@ -19,7 +19,6 @@
 
 #include "resources.h"
 
-#include <fts.h>
 #include <fcntl.h>
 #include <libgen.h>
 #include <sys/wait.h>
@@ -27,8 +26,6 @@
 
 #define ENFORCE(r,f)   (r)->enforced  |=  (f)
 #define UNENFORCE(r,f) (r)->enforced  &= ~(f)
-
-#define _FD2FD_CHUNKSIZE 16384
 
 static int _group_update(struct stringlist*, struct stringlist*, const char*);
 static int _setup_path_deps(const char *key, const char *path, struct policy *pol);
@@ -38,83 +35,6 @@ static void _hash_attr(cw_hash_t *attrs, const char *key, void *val);
 #define RES_DEFAULT_STR(orig,field,dflt) cw_strdup(RES_DEFAULT((orig),field,(dflt)))
 
 /*****************************************************************/
-
-/* FIXME: need to manage home in PENDULUM code !!!
-static int _res_user_populate_home(const char *home, const char *skel, uid_t uid, gid_t gid)
-{
-	FTS *fts;
-	FTSENT *ent;
-	char *path_argv[2] = { strdup(skel), NULL };
-	char *skel_path, *home_path;
-	int skel_fd, home_fd;
-	mode_t mode;
-	char buf[8192];
-	size_t nread;
-
-	fts = fts_open(path_argv, FTS_PHYSICAL, NULL);
-	if (!fts) {
-		free(path_argv[0]);
-		return -1;
-	}
-
-	while ( (ent = fts_read(fts)) != NULL ) {
-		if (strcmp(ent->fts_accpath, ent->fts_path) != 0) {
-			home_path = cw_string("%s/%s", home, ent->fts_accpath);
-			skel_path = cw_string("%s/%s", skel, ent->fts_accpath);
-			mode = ent->fts_statp->st_mode & 0777;
-
-			if (S_ISREG(ent->fts_statp->st_mode)) {
-				skel_fd = open(skel_path, O_RDONLY);
-				home_fd = creat(home_path, mode);
-
-				if (chown(home_path, uid, gid) != 0) {
-					_res_file_fd2fd(home_fd, skel_fd, -1);
-				}
-				if (skel_fd >= 0 && home_fd >= 0
-				 && chown(home_path, uid, gid) == 0) {
-					ssize_t n = 0;
-					while (n >= 0 && (nread = read(skel_fd, buf, 8192)) > 0) {
-						n = write(home_fd, buf, nread);
-						// FIXME: handle write errors here
-					}
-				}
-
-			} else if (S_ISDIR(ent->fts_statp->st_mode)) {
-				if (mkdir(home_path, mode) == 0
-				 && chown(home_path, uid, gid) == 0) {
-					chmod(home_path, 0755);
-				}
-			}
-
-			free(home_path);
-			free(skel_path);
-		}
-	}
-
-	free(path_argv[0]);
-	fts_close(fts);
-	return 0;
-}
-
-static int _res_file_fd2fd(int dest, int src, ssize_t bytes)
-{
-	char buf[_FD2FD_CHUNKSIZE];
-	ssize_t nread = 0;
-
-	while (bytes > 0) {
-		nread = (_FD2FD_CHUNKSIZE > bytes ? bytes : _FD2FD_CHUNKSIZE);
-
-		if ((nread = read(src, buf, nread)) <= 0
-		 || write(dest, buf, nread) != nread) {
-			return -1;
-		}
-
-		bytes -= nread;
-	}
-
-	return 0;
-}
-*/
 
 static int _group_update(struct stringlist *add, struct stringlist *rm, const char *user)
 {
@@ -468,6 +388,38 @@ int res_user_gencode(const void *res, FILE *io, unsigned int next)
 			fprintf(io, "  CALL &USER.SET_GID\n");
 			fprintf(io, "  FLAG 1 :changed\n");
 			fprintf(io, "gid.ok.%i:\n", next);
+		}
+		if (ENFORCED(r, RES_USER_DIR)) {
+			fprintf(io, "SET %%B \"%s\"\n", r->dir);
+			fprintf(io, "COPY %%B %%T1\n");
+			fprintf(io, "CALL &USER.GET_HOME\n");
+			fprintf(io, "COPY %%R %%T2\n");
+			fprintf(io, "DIFF? @home.ok.%i\n", next);
+			fprintf(io, "  CALL &USER.SET_HOME\n");
+			fprintf(io, "  FLAG 1 :changed\n");
+			fprintf(io, "home.ok.%i:\n", next);
+		}
+		if (ENFORCED(r, RES_USER_MKHOME)) {
+			fprintf(io, "CALL &USER.GET_UID\n");
+			fprintf(io, "COPY %%R %%B\n");
+			fprintf(io, "CALL &USER.GET_GID\n");
+			fprintf(io, "COPY %%R %%C\n");
+			fprintf(io, "CALL &USER.GET_HOME\n");
+			fprintf(io, "COPY %%R %%A\n");
+			fprintf(io, "CALL &FS.EXISTS?\n");
+			fprintf(io, "NOTOK? @home.exists.%i\n", next);
+			fprintf(io, "  CALL &FS.MKDIR\n");
+			fprintf(io, "  CALL &FS.CHOWN\n");
+			fprintf(io, "  SET %%D %i\n", 0700);
+			fprintf(io, "  CALL &FS.CHMOD\n");
+			if (r->skel) {
+				fprintf(io, "  COPY %%C %%D\n");
+				fprintf(io, "  COPY %%B %%C\n");
+				fprintf(io, "  COPY %%A %%B\n");
+				fprintf(io, "  SET %%A \"%s\"\n", r->skel);
+				fprintf(io, "  CALL &FS.COPY_R\n");
+			}
+			fprintf(io, "home.exists.%i:\n", next);
 		}
 		fprintf(io, "exists.%i:\n", next);
 

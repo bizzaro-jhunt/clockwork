@@ -74,6 +74,14 @@ NE? @gid.ok.1
   CALL &USER.SET_GID
   FLAG 1 :changed
 gid.ok.1:
+SET %B "/home/t2user"
+COPY %B %T1
+CALL &USER.GET_HOME
+COPY %R %T2
+DIFF? @home.ok.1
+  CALL &USER.SET_HOME
+  FLAG 1 :changed
+home.ok.1:
 exists.1:
 FLAGGED? :changed
 OK? @next.1
@@ -128,6 +136,32 @@ DIFF? @pwhash.ok.1
 pwhash.ok.1:
 JUMP @exists.1
 check.ids.1:
+SET %B "/home/t3user"
+COPY %B %T1
+CALL &USER.GET_HOME
+COPY %R %T2
+DIFF? @home.ok.1
+  CALL &USER.SET_HOME
+  FLAG 1 :changed
+home.ok.1:
+CALL &USER.GET_UID
+COPY %R %B
+CALL &USER.GET_GID
+COPY %R %C
+CALL &USER.GET_HOME
+COPY %R %A
+CALL &FS.EXISTS?
+NOTOK? @home.exists.1
+  CALL &FS.MKDIR
+  CALL &FS.CHOWN
+  SET %D 448
+  CALL &FS.CHMOD
+  COPY %C %D
+  COPY %B %C
+  COPY %A %B
+  SET %A "/etc/skel"
+  CALL &FS.COPY_R
+home.exists.1:
 exists.1:
 FLAGGED? :changed
 OK? @next.1
@@ -174,6 +208,14 @@ NE? @gid.ok.1
   CALL &USER.SET_GID
   FLAG 1 :changed
 gid.ok.1:
+SET %B "/home/t4user"
+COPY %B %T1
+CALL &USER.GET_HOME
+COPY %R %T2
+DIFF? @home.ok.1
+  CALL &USER.SET_HOME
+  FLAG 1 :changed
+home.ok.1:
 exists.1:
 SET %B "x"
 CALL &USER.SET_PASSWD

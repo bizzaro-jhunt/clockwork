@@ -58,6 +58,7 @@ policy "user3" {
 	user "t3user" {
 		home:   "/home/t3user"
 		password: "$$crypto"
+		makehome: "yes"
 	}
 }
 host "user3.test" { enforce "user3" }

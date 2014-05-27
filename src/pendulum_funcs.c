@@ -20,6 +20,7 @@
 #include <pwd.h>
 #include <shadow.h>
 #include <grp.h>
+#include <fts.h>
 
 #include "pendulum_funcs.h"
 #include "cw.h"
@@ -500,6 +501,65 @@ static pn_word cwa_fs_symlink(pn_machine *m)
 static pn_word cwa_fs_link(pn_machine *m)
 {
 	return link((const char *)m->A, (const char *)m->B) == 0 ? 0 : 1;
+}
+
+static int s_copy_r(const char *dst, const char *src, uid_t uid, gid_t gid)
+{
+	FTS *fts;
+	FTSENT *ent;
+	char *path_argv[2] = { strdup(src), NULL };
+	char *src_path, *dst_path;
+	int src_fd, dst_fd;
+	mode_t mode;
+
+	fts = fts_open(path_argv, FTS_PHYSICAL, NULL);
+	if (!fts) {
+		free(path_argv[0]);
+		return -1;
+	}
+
+	while ( (ent = fts_read(fts)) != NULL ) {
+		if (strcmp(ent->fts_accpath, ent->fts_path) != 0) {
+			dst_path = cw_string("%s/%s", dst, ent->fts_accpath);
+			src_path = cw_string("%s/%s", src, ent->fts_accpath);
+			mode = ent->fts_statp->st_mode & 0777;
+
+			if (S_ISREG(ent->fts_statp->st_mode)) {
+				src_fd = open(src_path, O_RDONLY);
+				dst_fd = creat(dst_path, mode);
+
+				if (src_fd >= 0 && dst_fd >= 0
+				 && fchown(dst_fd, uid, gid) == 0) {
+					char buf[8192];
+					ssize_t n = 0;
+
+					for (;;) {
+						if ((n = read(src_fd, buf, 8192)) <= 0)
+							break;
+						if (write(dst_fd, buf, n) != n)
+							break;
+					}
+				}
+			} else if (S_ISDIR(ent->fts_statp->st_mode)) {
+				if (mkdir(dst_path, mode) == 0
+				 && chown(dst_path, uid, gid) == 0) {
+					chmod(dst_path, 0755);
+				}
+			}
+
+			free(dst_path);
+			free(src_path);
+		}
+	}
+
+	free(path_argv[0]);
+	fts_close(fts);
+	return 0;
+}
+static pn_word cwa_fs_copy_r(pn_machine *m)
+{
+	return s_copy_r((const char *)m->A, (const char *)m->B,
+		(uid_t)m->C, (gid_t)m->D);
 }
 
 static pn_word cwa_fs_chown(pn_machine *m)
@@ -1645,6 +1705,7 @@ int pendulum_funcs(pn_machine *m, void *zconn)
 	pn_func(m,  "FS.GET",             cwa_fs_get);
 	pn_func(m,  "FS.SYMLINK",         cwa_fs_symlink);
 	pn_func(m,  "FS.HARDLINK",        cwa_fs_link);
+	pn_func(m,  "FS.COPY_R",          cwa_fs_copy_r);
 
 	pn_func(m,  "FS.UNLINK",          cwa_fs_unlink);
 	pn_func(m,  "FS.RMDIR",           cwa_fs_rmdir);

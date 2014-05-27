@@ -16,6 +16,9 @@ qx(find $ROOT -name '*.keep' | xargs rm -f);
 qx(rm -f $ROOT/src/special/fifo; mkfifo $ROOT/src/special/fifo);
 qx(cd $ROOT/src/special && ln -fs file symlink);
 qx(cd $ROOT/src/special && ln -f  file hardlink);
+qx(cd $ROOT/src/full && mkdir this-is-a-really-long-directory-name-for-testing-limits-of-the-bdfa-format);
+qx(find $ROOT -type f | xargs chmod 0644);
+qx(find $ROOT -type d | xargs chmod 0755);
 
 if (!$>) {
 	qx(rm -f $ROOT/src/special/*dev);
@@ -63,7 +66,7 @@ EOF
 
 bdfa_ok [@create, "$ROOT/src/1dir"], "1dir archive";
 bdfa_file_is "$TEMP/archive.bdf", bdfa(<<EOF), "1dir archive contents";
-BDFA0000000041fd${UIDhx}${GIDhx}340668a80000000000000008test\0\0\0\0
+BDFA0000000041ed${UIDhx}${GIDhx}340668a80000000000000008test\0\0\0\0
 --------------------------------------------------------
 BDFA0001000000000000000000000000000000000000000000000000
 EOF
@@ -73,7 +76,7 @@ bdfa_ok [@extract], "1dir extraction";
 ok -d "$TEMP/dest/test", "1dir - created 'test/' directory"
 	or diag qx(ls -lR $TEMP/dest);
 @stat = stat "$TEMP/dest/test";
-is $stat[2], 040775, "test/ directory mode is correct";
+is $stat[2], 040755, "test/ directory mode is correct";
 is $stat[4], $UID, "test/ UID is correct";
 is $stat[5], $GID, "test/ GID is correct";
 if (!$>) {
@@ -84,7 +87,7 @@ if (!$>) {
 
 bdfa_ok [@create, "$ROOT/src/1file"], "1file archive";
 bdfa_file_is "$TEMP/archive.bdf", bdfa(<<EOF), "1file archive contents";
-BDFA0000000081b4${UIDhx}${GIDhx}340668a80000000000000008test\0\0\0\0
+BDFA0000000081a4${UIDhx}${GIDhx}340668a80000000000000008test\0\0\0\0
 --------------------------------------------------------
 BDFA0001000000000000000000000000000000000000000000000000
 EOF
@@ -94,7 +97,7 @@ bdfa_ok [@extract], "1file extraction";
 ok -f "$TEMP/dest/test", "1file - created 'test' file"
 	or diag qx(ls -lR $TEMP/dest);
 @stat = stat "$TEMP/dest/test";
-is $stat[2], 0100664, "test file mode is correct";
+is $stat[2], 0100644, "test file mode is correct";
 is $stat[4], $UID, "test file UID is correct";
 is $stat[5], $GID, "test file GID is correct";
 is $stat[7], 0, "test file is blank";
@@ -105,13 +108,13 @@ is read_file("$TEMP/dest/test"), "", "test file is really blank";
 bdfa_ok [@create, "$ROOT/src/special"], "special archive";
 # fifo should be ignored as !file && !dir
 bdfa_file_is "$TEMP/archive.bdf", bdfa(<<EOF), "special archive contents";
-BDFA0000000041fd${UIDhx}${GIDhx}340668a80000000000000008dir\0\0\0\0\0
+BDFA0000000041ed${UIDhx}${GIDhx}340668a80000000000000008dir\0\0\0\0\0
 --------------------------------------------------------
-BDFA0000000081b4${UIDhx}${GIDhx}340668a80000000800000008file\0\0\0\0MY FILE
+BDFA0000000081a4${UIDhx}${GIDhx}340668a80000000800000008file\0\0\0\0MY FILE
 --------------------------------------------------------
-BDFA0000000081b4${UIDhx}${GIDhx}340668a8000000080000000csymlink\0\0\0\0\0MY FILE
+BDFA0000000081a4${UIDhx}${GIDhx}340668a8000000080000000csymlink\0\0\0\0\0MY FILE
 --------------------------------------------------------
-BDFA0000000081b4${UIDhx}${GIDhx}340668a8000000080000000chardlink\0\0\0\0MY FILE
+BDFA0000000081a4${UIDhx}${GIDhx}340668a8000000080000000chardlink\0\0\0\0MY FILE
 --------------------------------------------------------
 BDFA0001000000000000000000000000000000000000000000000000
 EOF
@@ -134,23 +137,23 @@ is read_file("$TEMP/dest/hardlink"), "MY FILE\n", "contents of 'hardlink' file";
 
 bdfa_ok [@create, "$ROOT/src/full"], "full archive";
 bdfa_file_is "$TEMP/archive.bdf", bdfa(<<EOF), "full archive contents";
-BDFA0000000041fd${UIDhx}${GIDhx}340668a80000000000000008dat\0\0\0\0\0
+BDFA0000000041ed${UIDhx}${GIDhx}340668a80000000000000008dat\0\0\0\0\0
 --------------------------------------------------------
-BDFA0000000081b4${UIDhx}${GIDhx}340668a80000002a00000008file\0\0\0\0this file is exactly 42 (0x2a) bytes long
+BDFA0000000081a4${UIDhx}${GIDhx}340668a80000002a00000008file\0\0\0\0this file is exactly 42 (0x2a) bytes long
 --------------------------------------------------------
-BDFA0000000041fd${UIDhx}${GIDhx}340668a80000000000000004a\0\0\0
+BDFA0000000041ed${UIDhx}${GIDhx}340668a80000000000000004a\0\0\0
 --------------------------------------------------------
-BDFA0000000041fd${UIDhx}${GIDhx}340668a80000000000000008a/b\0\0\0\0\0
+BDFA0000000041ed${UIDhx}${GIDhx}340668a80000000000000008a/b\0\0\0\0\0
 --------------------------------------------------------
-BDFA0000000041fd${UIDhx}${GIDhx}340668a80000000000000008a/b/c\0\0\0
+BDFA0000000041ed${UIDhx}${GIDhx}340668a80000000000000008a/b/c\0\0\0
 --------------------------------------------------------
-BDFA0000000041fd${UIDhx}${GIDhx}340668a8000000000000000ca/b/c/d\0\0\0\0\0
+BDFA0000000041ed${UIDhx}${GIDhx}340668a8000000000000000ca/b/c/d\0\0\0\0\0
 --------------------------------------------------------
-BDFA0000000081b4${UIDhx}${GIDhx}340668a80000002700000018a/b/c/d/deepfile.txt\0\0\0\0this file is several directories deep!
+BDFA0000000081a4${UIDhx}${GIDhx}340668a80000002700000018a/b/c/d/deepfile.txt\0\0\0\0this file is several directories deep!
 --------------------------------------------------------
-BDFA0000000041fd${UIDhx}${GIDhx}340668a8000000000000004cthis-is-a-really-long-directory-name-for-testing-limits-of-the-bdfa-format\0\0
+BDFA0000000041ed${UIDhx}${GIDhx}340668a8000000000000004cthis-is-a-really-long-directory-name-for-testing-limits-of-the-bdfa-format\0\0
 --------------------------------------------------------
-BDFA0000000081b4${UIDhx}${GIDhx}340668a80000003400000010multiline.txt\0\0\0this is a multiline file
+BDFA0000000081a4${UIDhx}${GIDhx}340668a80000003400000010multiline.txt\0\0\0this is a multiline file
 it has newlines and stuff!
 --------------------------------------------------------
 BDFA0001000000000000000000000000000000000000000000000000

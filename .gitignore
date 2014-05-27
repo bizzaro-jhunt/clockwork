@@ -16,15 +16,6 @@ stamp-h?
 *.deb
 *.rpm
 
-/policyd
-/cwa
-/cwcert
-/cwca
-/cwtemplate
-/sha1sum
-/polspec
-/tplspec
-/confdump
 /cwpol
 /cwspec
 /pn
@@ -32,29 +23,7 @@ stamp-h?
 /cogd
 /bdfa
 
-/debug/package-manager
-/debug/service-manager
-
-/doc/*.png
-/doc/api
-
-/certs
-
 config.h
-
-t/tmp
-t/*.t
-/t/helpers/proto
-/t/helpers/prompter
-/t/helpers/executor
-/test/chroot/*.chroot
-/test/augeas
-
-/ext/build
-/ext/openssl
-
-/config
-/Makefile.deps
 
 local
 .commit
@@ -67,11 +36,14 @@ config.h.in
 Makefile
 configure
 autom4te.cache
+aclocal.m4
+build/
+!build/as-compiler-flag.m4
+!build/coverage.m4
 
 dev/
 
-t/base/conf
-
+t/tmp
 t/00-bits
 t/01-string
 t/04-hash
@@ -109,8 +81,3 @@ debian/clockwork-server/
 debian/files
 debian/tmp/
 debian/vim-clockwork/
-
-aclocal.m4
-build/
-!build/as-compiler-flag.m4
-!build/coverage.m4

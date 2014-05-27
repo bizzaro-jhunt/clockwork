@@ -73,7 +73,7 @@ TESTS {
 		cw_hash_t *facts;
 
 		facts = cw_alloc(sizeof(cw_hash_t));
-		isnt_null(m = parse_file(TEST_DATA "/policy/norm/policy.pol"),
+		isnt_null(m = parse_file(TEST_DATA "/policy/parse.pol"),
 				"manifest parsed");
 		isnt_null(pol = policy_generate(cw_hash_get(m->policies, "base"), facts),
 				"policy 'base' found");
@@ -107,7 +107,7 @@ TESTS {
 		cw_hash_t *facts;
 
 		facts = cw_alloc(sizeof(cw_hash_t));
-		isnt_null(m = parse_file(TEST_DATA "/policy/fail/unknown-attr.pol"),
+		isnt_null(m = parse_file(TEST_DATA "/policy/fail-unknown-attr.pol"),
 				"manifest parsed");
 		isnt_null(pol = policy_generate(cw_hash_get(m->policies, "base"), facts),
 				"policy 'base' found");

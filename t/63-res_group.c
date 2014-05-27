@@ -26,12 +26,6 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#define GROUP_DB   TEST_DATA "/userdb/group"
-#define GSHADOW_DB TEST_DATA "/userdb/gshadow"
-
-#define NEW_GROUP_DB   TEST_TMP "/group"
-#define NEW_GSHADOW_DB TEST_TMP "/gshadow"
-
 TESTS {
 	subtest {
 		struct res_group *group;

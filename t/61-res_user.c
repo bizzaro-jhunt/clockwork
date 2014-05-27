@@ -26,12 +26,6 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#define PASSWD_DB  TEST_DATA "/userdb/passwd"
-#define SHADOW_DB  TEST_DATA "/userdb/shadow"
-
-#define NEW_PASSWD_DB  TEST_TMP "/passwd"
-#define NEW_SHADOW_DB  TEST_TMP "/shadow"
-
 TESTS {
 	subtest {
 		struct res_user *user;

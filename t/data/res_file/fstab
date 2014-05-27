@@ -1,8 +1,0 @@
-#
-# /etc/fstab: file system information.
-#
-# <file system> <mount point>   <type>  <options>       <dump>  <pass>
-proc            /proc           proc    defaults        0       0
-LABEL=/         /               ext3    defaults        0       1
-LABEL=swap      none            swap    sw              0       0
-/dev/hda        /media/cdrom0   udf     user,noauto     0       0

@@ -520,6 +520,7 @@ cw_frame_t *cw_frame_copy(cw_frame_t *f)
 void cw_frame_close(cw_frame_t *f)
 {
 	f->size = 0;
+	free(f->data);
 	f->data = NULL;
 	f->binary = 0;
 	zmq_msg_close(&f->msg);
@@ -647,6 +648,8 @@ void cw_pdu_destroy(cw_pdu_t *pdu)
 		cw_frame_close(f);
 		free(f);
 	}
+
+	free(pdu);
 }
 
 void cw_pdu_dump(FILE *io, cw_pdu_t *pdu)
@@ -774,6 +777,8 @@ int cw_pdu_send(void *zocket, cw_pdu_t *pdu)
 	f->more = 1;
 	rc = cw_frame_send(zocket, f);
 	assert(rc >= 0);
+	nft_frame_close(f);
+	free(f);
 
 	for_each_object(f, &pdu->frames, l) {
 		f->more = (f->l.next == &pdu->frames ? 0 : 1);

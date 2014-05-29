@@ -16,9 +16,7 @@ start.1:
 SET %A 1
 SET %B "group1"
 CALL &GROUP.FIND
-NOTOK? @next.1
-  CALL &GROUP.REMOVE
-  FLAG 1 :changed
+CALL &GROUP.REMOVE
 !FLAGGED? :changed @next.1
   CALL &USERDB.SAVE
 next.1:
@@ -41,12 +39,10 @@ OK? @found.1
   COPY %B %A
   SET %B 6766
   CALL &GROUP.CREATE
-  FLAG 1 :changed
   JUMP @update.1
 found.1:
   SET %B 6766
   CALL &GROUP.SET_GID
-  FLAG 1 :changed
 update.1:
 !FLAGGED? :changed @next.1
   CALL &USERDB.SAVE
@@ -71,7 +67,6 @@ OK? @found.1
   CALL &GROUP.NEXT_GID
   COPY %R %B
   CALL &GROUP.CREATE
-  FLAG 1 :changed
   JUMP @update.1
 found.1:
 update.1:
@@ -97,18 +92,15 @@ OK? @found.1
   COPY %B %A
   SET %B 6778
   CALL &GROUP.CREATE
-  FLAG 1 :changed
   JUMP @update.1
 found.1:
   SET %B 6778
   CALL &GROUP.SET_GID
-  FLAG 1 :changed
 update.1:
 SET %B "x"
 CALL &GROUP.SET_PASSWD
 SET %B "$$crypt"
 CALL &GROUP.SET_PWHASH
-  FLAG 1 :changed
 ;; members
 SET %A "user1"
 CALL &GROUP.HAS_MEMBER?

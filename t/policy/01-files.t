@@ -9,11 +9,7 @@ gencode_ok "use host file1.test", <<'EOF', "file resource";
 FLAG 0 :changed
 ;; res_file /etc/sudoers
 SET %A "/etc/sudoers"
-CALL &FS.EXISTS?
-OK? @exists.1
-  CALL &FS.MKFILE
-  FLAG 1 :changed
-exists.1:
+CALL &FS.MKFILE
 CALL &USERDB.OPEN
 OK? @start.1
   PRINT "Failed to open the user databases\n"
@@ -58,11 +54,8 @@ gencode_ok "use host file2.test", <<'EOF', "file removal";
 FLAG 0 :changed
 ;; res_file /path/to/delete
 SET %A "/path/to/delete"
-CALL &FS.EXISTS?
-NOTOK? @next.1
-  CALL &FS.UNLINK
-  FLAG 1 :changed
-  JUMP @next.1
+CALL &FS.UNLINK
+JUMP @next.1
 next.1:
 !FLAGGED? :changed @final.1
 final.1:
@@ -72,11 +65,7 @@ gencode_ok "use host file3.test", <<'EOF', "file without chown";
 FLAG 0 :changed
 ;; res_file /chmod-me
 SET %A "/chmod-me"
-CALL &FS.EXISTS?
-OK? @exists.1
-  CALL &FS.MKFILE
-  FLAG 1 :changed
-exists.1:
+CALL &FS.MKFILE
 SET %D 0644
 CALL &FS.CHMOD
 next.1:
@@ -88,11 +77,7 @@ gencode_ok "use host file4.test", <<'EOF', "file with non-root owner";
 FLAG 0 :changed
 ;; res_file /home/jrhunt/stuff
 SET %A "/home/jrhunt/stuff"
-CALL &FS.EXISTS?
-OK? @exists.1
-  CALL &FS.MKFILE
-  FLAG 1 :changed
-exists.1:
+CALL &FS.MKFILE
 CALL &USERDB.OPEN
 OK? @start.1
   PRINT "Failed to open the user databases\n"

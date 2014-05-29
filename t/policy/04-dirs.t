@@ -9,11 +9,7 @@ gencode_ok "use host dir1.test", <<'EOF', "dir resource";
 FLAG 0 :changed
 ;; res_dir /etc/sudoers
 SET %A "/etc/sudoers"
-CALL &FS.EXISTS?
-OK? @exists.1
-  CALL &FS.MKDIR
-  FLAG 1 :changed
-exists.1:
+CALL &FS.MKDIR
 COPY %A %F
 SET %D 0
 SET %E 0
@@ -65,11 +61,7 @@ gencode_ok "use host dir3.test", <<'EOF', "dir without chown";
 FLAG 0 :changed
 ;; res_dir /chmod-me
 SET %A "/chmod-me"
-CALL &FS.EXISTS?
-OK? @exists.1
-  CALL &FS.MKDIR
-  FLAG 1 :changed
-exists.1:
+CALL &FS.MKDIR
 SET %B 0755
 CALL &FS.CHMOD
 next.1:
@@ -81,11 +73,7 @@ gencode_ok "use host dir4.test", <<'EOF', "dir with non-root owner";
 FLAG 0 :changed
 ;; res_dir /home/jrhunt/bin
 SET %A "/home/jrhunt/bin"
-CALL &FS.EXISTS?
-OK? @exists.1
-  CALL &FS.MKDIR
-  FLAG 1 :changed
-exists.1:
+CALL &FS.MKDIR
 COPY %A %F
 SET %D 0
 SET %E 0

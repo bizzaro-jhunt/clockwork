@@ -482,11 +482,15 @@ static pn_word cwa_fs_exists(pn_machine *m)
 
 static pn_word cwa_fs_mkdir(pn_machine *m)
 {
+	if (cwa_fs_exists(m) == 0) return 1;
+	pn_flag(m, ":changed", 1);
 	return mkdir((const char *)m->A, 0777) == 0 ? 0 : 1;
 }
 
 static pn_word cwa_fs_mkfile(pn_machine *m)
 {
+	if (cwa_fs_exists(m) == 0) return 1;
+	pn_flag(m, ":changed", 1);
 	int fd = open((const char *)m->A, O_WRONLY|O_CREAT, 0644);
 	if (fd < 0) return 1;
 	close(fd);
@@ -495,12 +499,16 @@ static pn_word cwa_fs_mkfile(pn_machine *m)
 
 static pn_word cwa_fs_symlink(pn_machine *m)
 {
-	return symlink((const char *)m->A, (const char *)m->B) == 0 ? 0 : 1;
+	if (cwa_fs_exists(m) == 0) return 1;
+	pn_flag(m, ":changed", 1);
+	return symlink((const char *)m->B, (const char *)m->A) == 0 ? 0 : 1;
 }
 
 static pn_word cwa_fs_link(pn_machine *m)
 {
-	return link((const char *)m->A, (const char *)m->B) == 0 ? 0 : 1;
+	if (cwa_fs_exists(m) == 0) return 1;
+	pn_flag(m, ":changed", 1);
+	return link((const char *)m->B, (const char *)m->A) == 0 ? 0 : 1;
 }
 
 static int s_copy_r(const char *dst, const char *src, uid_t uid, gid_t gid)
@@ -564,21 +572,35 @@ static pn_word cwa_fs_copy_r(pn_machine *m)
 
 static pn_word cwa_fs_chown(pn_machine *m)
 {
+	struct stat st;
+	if (lstat((const char *)m->A, &st) != 0) return 1;
+	if (st.st_uid == (uid_t)m->B && st.st_gid == (gid_t)m->C) return 0;
+	pn_flag(m, ":changed", 1);
 	return chown((const char *)m->A, m->B, m->C) == 0 ? 0 : 1;
 }
 
 static pn_word cwa_fs_chmod(pn_machine *m)
 {
+	struct stat st;
+	if (lstat((const char *)m->A, &st) != 0) return 1;
+	if ((st.st_mode & 0x4777) == (m->D & 0x4777)) return 0;
+	pn_flag(m, ":changed", 1);
 	return chmod((const char *)m->A, m->D) == 0 ? 0 : 1;
 }
 
 static pn_word cwa_fs_unlink(pn_machine *m)
 {
+	struct stat st;
+	if (lstat((const char *)m->A, &st) != 0) return 0;
+	pn_flag(m, ":changed", 1);
 	return unlink((const char *)m->A) == 0 ? 0 : 1;
 }
 
 static pn_word cwa_fs_rmdir(pn_machine *m)
 {
+	struct stat st;
+	if (lstat((const char *)m->A, &st) != 0) return 0;
+	pn_flag(m, ":changed", 1);
 	return rmdir((const char *)m->A) == 0 ? 0 : 1;
 }
 
@@ -1247,89 +1269,119 @@ static pn_word cwa_user_get_expiry(pn_machine *m)
 
 static pn_word cwa_user_set_uid(pn_machine *m)
 {
+	if (UDATA(m)->pwent->pw_uid == (uid_t)m->B) return 0;
+	pn_flag(m, ":changed", 1);
 	UDATA(m)->pwent->pw_uid = (uid_t)m->B;
 	return 0;
 }
 
 static pn_word cwa_user_set_gid(pn_machine *m)
 {
+	if (UDATA(m)->pwent->pw_gid == (gid_t)m->B) return 0;
+	pn_flag(m, ":changed", 1);
 	UDATA(m)->pwent->pw_gid = (gid_t)m->B;
 	return 0;
 }
 
 static pn_word cwa_user_set_name(pn_machine *m)
 {
-	free(UDATA(m)->pwent->pw_name);
-	UDATA(m)->pwent->pw_name = strdup((const char *)m->B);
+	if (strcmp(UDATA(m)->pwent->pw_name, (const char *)m->B) != 0) {
+		free(UDATA(m)->pwent->pw_name);
+		UDATA(m)->pwent->pw_name = strdup((const char *)m->B);
+		pn_flag(m, ":changed", 1);
+	}
 
-	free(UDATA(m)->spent->sp_namp);
-	UDATA(m)->spent->sp_namp = strdup((const char *)m->B);
+	if (strcmp(UDATA(m)->spent->sp_namp, (const char *)m->B) != 0) {
+		free(UDATA(m)->spent->sp_namp);
+		UDATA(m)->spent->sp_namp = strdup((const char *)m->B);
+		pn_flag(m, ":changed", 1);
+	}
 
 	return 0;
 }
 
 static pn_word cwa_user_set_passwd(pn_machine *m)
 {
+	if (strcmp(UDATA(m)->pwent->pw_passwd, (const char *)m->B) == 0) return 0;
 	free(UDATA(m)->pwent->pw_passwd);
 	UDATA(m)->pwent->pw_passwd = strdup((const char *)m->B);
+	pn_flag(m, ":changed", 1);
 	return 0;
 }
 
 static pn_word cwa_user_set_gecos(pn_machine *m)
 {
+	if (strcmp(UDATA(m)->pwent->pw_gecos, (const char *)m->B) == 0) return 0;
 	free(UDATA(m)->pwent->pw_gecos);
 	UDATA(m)->pwent->pw_gecos = strdup((const char *)m->B);
+	pn_flag(m, ":changed", 1);
 	return 0;
 }
 
 static pn_word cwa_user_set_home(pn_machine *m)
 {
+	if (strcmp(UDATA(m)->pwent->pw_dir, (const char *)m->B) == 0) return 0;
 	free(UDATA(m)->pwent->pw_dir);
 	UDATA(m)->pwent->pw_dir = strdup((const char *)m->B);
+	pn_flag(m, ":changed", 1);
 	return 0;
 }
 
 static pn_word cwa_user_set_shell(pn_machine *m)
 {
+	if (strcmp(UDATA(m)->pwent->pw_shell, (const char *)m->B) == 0) return 0;
 	free(UDATA(m)->pwent->pw_shell);
 	UDATA(m)->pwent->pw_shell = strdup((const char *)m->B);
+	pn_flag(m, ":changed", 1);
 	return 0;
 }
 
 static pn_word cwa_user_set_pwhash(pn_machine *m)
 {
+	if (strcmp(UDATA(m)->spent->sp_pwdp, (const char *)m->B) == 0) return 0;
 	free(UDATA(m)->spent->sp_pwdp);
 	UDATA(m)->spent->sp_pwdp = strdup((const char *)m->B);
+	pn_flag(m, ":changed", 1);
 	return 0;
 }
 
 static pn_word cwa_user_set_pwmin(pn_machine *m)
 {
+	if (UDATA(m)->spent->sp_min == (signed long)(m->B)) return 0;
 	UDATA(m)->spent->sp_min = (signed long)(m->B);
+	pn_flag(m, ":changed", 1);
 	return 0;
 }
 
 static pn_word cwa_user_set_pwmax(pn_machine *m)
 {
+	if (UDATA(m)->spent->sp_max == (signed long)(m->B)) return 0;
 	UDATA(m)->spent->sp_max = (signed long)(m->B);
+	pn_flag(m, ":changed", 1);
 	return 0;
 }
 
 static pn_word cwa_user_set_pwwarn(pn_machine *m)
 {
+	if (UDATA(m)->spent->sp_warn == (signed long)(m->B)) return 0;
 	UDATA(m)->spent->sp_warn = (signed long)(m->B);
+	pn_flag(m, ":changed", 1);
 	return 0;
 }
 
 static pn_word cwa_user_set_inact(pn_machine *m)
 {
+	if (UDATA(m)->spent->sp_inact == (signed long)(m->B)) return 0;
 	UDATA(m)->spent->sp_inact = (signed long)(m->B);
+	pn_flag(m, ":changed", 1);
 	return 0;
 }
 
 static pn_word cwa_user_set_expiry(pn_machine *m)
 {
+	if (UDATA(m)->spent->sp_expire == (signed long)(m->B)) return 0;
 	UDATA(m)->spent->sp_expire = (signed long)(m->B);
+	pn_flag(m, ":changed", 1);
 	return 0;
 }
 
@@ -1367,6 +1419,7 @@ static pn_word cwa_user_create(pn_machine *m)
 	sp->next->spwd->sp_expire = 0;
 	UDATA(m)->spent = sp->next->spwd;
 
+	pn_flag(m, ":changed", 1);
 	return 0;
 }
 
@@ -1394,6 +1447,7 @@ static pn_word cwa_user_remove(pn_machine *m)
 	struct pwdb *pw, *pwent = NULL;
 	for (pw = UDATA(m)->pwdb; pw; pwent = pw, pw = pw->next) {
 		if (pw->passwd == UDATA(m)->pwent) {
+			pn_flag(m, ":changed", 1);
 			free(pw->passwd->pw_name);
 			free(pw->passwd->pw_passwd);
 			free(pw->passwd->pw_gecos);
@@ -1413,6 +1467,7 @@ static pn_word cwa_user_remove(pn_machine *m)
 	struct spdb *sp, *spent = NULL;
 	for (sp = UDATA(m)->spdb; sp; spent = sp, sp = sp->next) {
 		if (sp->spwd == UDATA(m)->spent) {
+			pn_flag(m, ":changed", 1);
 			free(sp->spwd->sp_namp);
 			free(sp->spwd->sp_pwdp);
 			free(sp->spwd);
@@ -1520,6 +1575,7 @@ static pn_word cwa_group_create(pn_machine *m)
 	sg->next->sgrp->sg_adm    = calloc(1, sizeof(char *));
 	UDATA(m)->sgent = sg->next->sgrp;
 
+	pn_flag(m, ":changed", 1);
 	return 0;
 }
 
@@ -1531,6 +1587,7 @@ static pn_word cwa_group_remove(pn_machine *m)
 	struct grdb *gr, *grent = NULL;
 	for (gr = UDATA(m)->grdb; gr; grent = gr, gr = gr->next) {
 		if (gr->group == UDATA(m)->grent) {
+			pn_flag(m, ":changed", 1);
 			free(gr->group->gr_name);
 			free(gr->group->gr_passwd);
 			s_strlist_free(gr->group->gr_mem);
@@ -1548,6 +1605,7 @@ static pn_word cwa_group_remove(pn_machine *m)
 	struct sgdb *sg, *sgent = NULL;
 	for (sg = UDATA(m)->sgdb; sg; sgent = sg, sg = sg->next) {
 		if (sg->sgrp == UDATA(m)->sgent) {
+			pn_flag(m, ":changed", 1);
 			free(sg->sgrp->sg_namp);
 			free(sg->sgrp->sg_passwd);
 			s_strlist_free(sg->sgrp->sg_mem);
@@ -1651,17 +1709,24 @@ static pn_word cwa_group_set_gid(pn_machine *m)
 
 static pn_word cwa_group_set_name(pn_machine *m)
 {
-	free(UDATA(m)->grent->gr_name);
-	UDATA(m)->grent->gr_name = strdup((const char *)m->B);
+	if (strcmp(UDATA(m)->grent->gr_name, (const char *)m->B) != 0) {
+		free(UDATA(m)->grent->gr_name);
+		UDATA(m)->grent->gr_name = strdup((const char *)m->B);
+		pn_flag(m, ":changed", 1);
+	}
 
-	free(UDATA(m)->sgent->sg_namp);
-	UDATA(m)->sgent->sg_namp = strdup((const char *)m->B);
+	if (strcmp(UDATA(m)->sgent->sg_namp, (const char *)m->B) != 0) {
+		free(UDATA(m)->sgent->sg_namp);
+		UDATA(m)->sgent->sg_namp = strdup((const char *)m->B);
+		pn_flag(m, ":changed", 1);
+	}
 
 	return 0;
 }
 
 static pn_word cwa_group_set_passwd(pn_machine *m)
 {
+	if (strcmp(UDATA(m)->grent->gr_passwd, (const char *)m->B) == 0) return 0;
 	free(UDATA(m)->grent->gr_passwd);
 	UDATA(m)->grent->gr_passwd = strdup((const char *)m->B);
 	return 0;
@@ -1669,6 +1734,7 @@ static pn_word cwa_group_set_passwd(pn_machine *m)
 
 static pn_word cwa_group_set_pwhash(pn_machine *m)
 {
+	if (strcmp(UDATA(m)->sgent->sg_passwd, (const char *)m->B) == 0) return 0;
 	free(UDATA(m)->sgent->sg_passwd);
 	UDATA(m)->sgent->sg_passwd = strdup((const char *)m->B);
 	return 0;

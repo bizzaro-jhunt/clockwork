@@ -18,7 +18,6 @@ SET %B "t1user"
 CALL &USER.FIND
 NOTOK? @next.1
   CALL &USER.REMOVE
-  FLAG 1 :changed
 !FLAGGED? :changed @next.1
   CALL &USERDB.SAVE
 next.1:
@@ -46,33 +45,14 @@ OK? @check.ids.1
   CALL &USER.SET_PASSWD
   SET %B "$$crypto"
   CALL &USER.SET_PWHASH
-  FLAG 1 :changed
   JUMP @exists.1
 check.ids.1:
 SET %B 1231
-COPY %B %T2
-CALL &USER.GET_UID
-COPY %R %T1
-EQ? @uid.ok.1
-  CALL &USER.SET_UID
-  FLAG 1 :changed
-uid.ok.1:
+CALL &USER.SET_UID
 SET %B 1818
-COPY %B %T2
-CALL &USER.GET_GID
-COPY %R %T1
-EQ? @gid.ok.1
-  CALL &USER.SET_GID
-  FLAG 1 :changed
-gid.ok.1:
+CALL &USER.SET_GID
 SET %B "/home/t2user"
-COPY %B %T1
-CALL &USER.GET_HOME
-COPY %R %T2
-CMP? @home.ok.1
-  CALL &USER.SET_HOME
-  FLAG 1 :changed
-home.ok.1:
+CALL &USER.SET_HOME
 exists.1:
 !FLAGGED? :changed @next.1
   CALL &USERDB.SAVE
@@ -112,17 +92,10 @@ group.done.1:
   CALL &USER.SET_PASSWD
   SET %B "$$crypto"
   CALL &USER.SET_PWHASH
-  FLAG 1 :changed
   JUMP @exists.1
 check.ids.1:
 SET %B "/home/t3user"
-COPY %B %T1
-CALL &USER.GET_HOME
-COPY %R %T2
-CMP? @home.ok.1
-  CALL &USER.SET_HOME
-  FLAG 1 :changed
-home.ok.1:
+CALL &USER.SET_HOME
 CALL &USER.GET_UID
 COPY %R %B
 CALL &USER.GET_GID
@@ -165,100 +138,33 @@ OK? @check.ids.1
   SET %B 1231
   SET %A "t4user"
   CALL &USER.CREATE
-  FLAG 1 :changed
   JUMP @exists.1
 check.ids.1:
 SET %B 1231
-COPY %B %T2
-CALL &USER.GET_UID
-COPY %R %T1
-EQ? @uid.ok.1
-  CALL &USER.SET_UID
-  FLAG 1 :changed
-uid.ok.1:
+CALL &USER.SET_UID
 SET %B 1818
-COPY %B %T2
-CALL &USER.GET_GID
-COPY %R %T1
-EQ? @gid.ok.1
-  CALL &USER.SET_GID
-  FLAG 1 :changed
-gid.ok.1:
+CALL &USER.SET_GID
 SET %B "/home/t4user"
-COPY %B %T1
-CALL &USER.GET_HOME
-COPY %R %T2
-CMP? @home.ok.1
-  CALL &USER.SET_HOME
-  FLAG 1 :changed
-home.ok.1:
+CALL &USER.SET_HOME
 exists.1:
 SET %B "x"
 CALL &USER.SET_PASSWD
 SET %B "$$crypto"
-COPY %B %T2
-CALL &USER.GET_PWHASH
-COPY %R %T1
-DIFF? @pwhash.ok.1
-  CALL &USER.SET_PWHASH
-  FLAG 1 :changed
-pwhash.ok.1:
+CALL &USER.SET_PWHASH
 SET %B "Name,,,,"
-COPY %B %T2
-CALL &USER.GET_GECOS
-COPY %R %T1
-DIFF? @gecos.ok.1
-  CALL &USER.SET_GECOS
-  FLAG 1 :changed
-gecos.ok.1:
+CALL &USER.SET_GECOS
 SET %B "/bin/bash"
-COPY %B %T2
-CALL &USER.GET_SHELL
-COPY %R %T1
-DIFF? @shell.ok.1
-  CALL &USER.SET_SHELL
-  FLAG 1 :changed
-shell.ok.1:
+CALL &USER.SET_SHELL
 SET %B 99
-COPY %B %T2
-CALL &USER.GET_PWMIN
-COPY %R %T1
-EQ? @pwmin.ok.1
-  CALL &USER.SET_PWMIN
-  FLAG 1 :changed
-pwmin.ok.1:
+CALL &USER.SET_PWMIN
 SET %B 305
-COPY %B %T2
-CALL &USER.GET_PWMAX
-COPY %R %T1
-EQ? @pwmax.ok.1
-  CALL &USER.SET_PWMAX
-  FLAG 1 :changed
-pwmax.ok.1:
+CALL &USER.SET_PWMAX
 SET %B 14
-COPY %B %T2
-CALL &USER.GET_PWWARN
-COPY %R %T1
-EQ? @pwwarn.ok.1
-  CALL &USER.SET_PWWARN
-  FLAG 1 :changed
-pwwarn.ok.1:
+CALL &USER.SET_PWWARN
 SET %B 9998
-COPY %B %T2
-CALL &USER.GET_INACT
-COPY %R %T1
-EQ? @inact.ok.1
-  CALL &USER.SET_INACT
-  FLAG 1 :changed
-inact.ok.1:
+CALL &USER.SET_INACT
 SET %B 9999
-COPY %B %T2
-CALL &USER.GET_EXPIRY
-COPY %R %T1
-EQ? @expire.ok.1
-  CALL &USER.SET_EXPIRY
-  FLAG 1 :changed
-expire.ok.1:
+CALL &USER.SET_EXPIRY
 !FLAGGED? :changed @next.1
   CALL &USERDB.SAVE
 next.1:

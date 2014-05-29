@@ -507,6 +507,15 @@ int pn_run(pn_machine *m)
 			m->Ip = m->Tr ? TAGV(PC.arg2) : m->Ip + 1;
 			break;
 
+		case PN_OP_NFLAGGED:
+			if (!IS_FLAG(PC.arg1)) pn_die(m, "Non-flag argument to FLAGGED? operator");
+			if (!IS_LABEL(PC.arg2)) pn_die(m, "Invalid if-jump label for FLAGGED? operator"); \
+			pn_trace(m, TRACE_START " %s (%i)\n", TRACE_ARGS,
+					m->flags[TAGV(PC.arg1)].label, m->flags[TAGV(PC.arg1)].value);
+			m->Tr = !m->flags[TAGV(PC.arg1)].value;
+			m->Ip = m->Tr ? TAGV(PC.arg2) : m->Ip + 1;
+			break;
+
 		case PN_OP_EQ:    TEST("EQ?",    m->T1 == m->T2, m->T1, "==", m->T2);
 		case PN_OP_NE:    TEST("NE?",    m->T1 != m->T2, m->T1, "!=", m->T2);
 		case PN_OP_GT:    TEST("GT?",    m->T1 >  m->T2, m->T1, ">",  m->T2);

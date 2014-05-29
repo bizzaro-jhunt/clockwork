@@ -1,3 +1,8 @@
+;;
+;; t/data/pn/flags.pn
+;; Pendulum Test Script
+;;
+
 FLAGGED? :XYZZY @next.1
 next.1:
 COPY %Tr %A

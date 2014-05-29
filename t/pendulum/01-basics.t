@@ -78,4 +78,11 @@ xyzzy is 0 after FLAG 0 call
 xyzzy is 1 after FLAG 425 call
 EOF
 
+pendulum_ok "$TESTS/flagged.pn", <<EOF, "flagged.pn";
+f1 is flagged
+f2 is not flagged
+undef-flag is not flagged
+fin
+EOF
+
 done_testing;

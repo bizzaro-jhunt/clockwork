@@ -57,8 +57,11 @@ struct pn_machine {
 
 int pn_init(pn_machine *m);
 int pn_set(pn_machine *m, int attr, void *value);
+int pn_flag(pn_machine *m, const char *label, int value);
+int pn_flagged(pn_machine *m, const char *label);
 int pn_func(pn_machine *m, const char *op, pn_function fn);
 int pn_parse(pn_machine *m, FILE *io);
+int pn_trace(pn_machine *m, const char *fmt, ...);
 int pn_run(pn_machine *m);
 int pn_run_safe(pn_machine *m);
 int pn_die(pn_machine *m, const char *e);

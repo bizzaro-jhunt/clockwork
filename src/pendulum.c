@@ -44,6 +44,10 @@
 #define  PN_OP_NFLAGGED 0x001a
 #define  PN_OP_INVAL    0x00ff
 
+#define PC      pn_CODE(m, m->Ip)
+#define TRACE_START "TRACE :: %08lx [%02x] %s"
+#define TRACE_ARGS  (unsigned long)m->Ip, (unsigned int)PC.op, OP_NAMES[PC.op]
+
 static const char *OP_NAMES[] = {
 	"NOOP",
 	"OK?",
@@ -353,6 +357,24 @@ int pn_set(pn_machine *m, int attr, void *value)
 	}
 }
 
+int pn_flag(pn_machine *m, const char *label, int value)
+{
+	pn_word flag = s_resolve_arg(m, label);
+	if (!IS_FLAG(flag)) return 1;
+	pn_trace(m, TRACE_START " set flag %s = %i\n", TRACE_ARGS,
+		m->flags[TAGV(flag)].label, value == 0 ? 0 : 1);
+	return 0;
+}
+
+int pn_flagged(pn_machine *m, const char *label)
+{
+	pn_word flag = s_resolve_arg(m, label);
+	if (!IS_FLAG(flag)) return 1;
+	pn_trace(m, TRACE_START " flagged? %s (%i)\n", TRACE_ARGS,
+		m->flags[TAGV(flag)].label, m->flags[TAGV(flag)].value);
+	return !!(m->flags[TAGV(flag)].value);
+}
+
 int pn_func(pn_machine *m, const char *op, pn_function fn)
 {
 	assert(m);
@@ -457,9 +479,6 @@ int pn_run(pn_machine *m)
 	assert(m);
 
 	m->Ip = 0;
-#   define PC      pn_CODE(m, m->Ip)
-#   define TRACE_START "TRACE :: %08lx [%02x] %s"
-#   define TRACE_ARGS  (unsigned long)m->Ip, (unsigned int)PC.op, OP_NAMES[PC.op]
 #   define TEST(n,x,t1,op,t2) \
              if (!IS_LABEL(PC.arg1)) pn_die(m, "Invalid if-jump label for " n " operator"); \
              m->Tr = (x); \
@@ -604,9 +623,6 @@ int pn_run(pn_machine *m)
 		default: pn_die(m, "Unknown / Invalid operand");
 		}
 	}
-#   undef PC
-#   undef TEST
-#   undef NEXT
 done:
 	return 0;
 }
@@ -622,9 +638,10 @@ int pn_run_safe(pn_machine *m)
 
 	int rc;
 	waitpid(pid, &rc, 0);
-	cw_log(LOG_INFO, "pn_run %s, with rc %04x (%d)",
-		WIFEXITED(rc) ? "exited" : "terminated abnormaly",
-		rc, rc);
+	if (rc != 0)
+		cw_log(LOG_INFO, "pn_run %s, with rc %04x (%d)",
+			WIFEXITED(rc) ? "exited" : "terminated abnormaly",
+			rc, rc);
 	return WIFEXITED(rc) ? WEXITSTATUS(rc) : -2;
 }
 

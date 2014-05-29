@@ -40,6 +40,7 @@ CALL &USER.FIND
 OK? @check.ids.1
   SET %C 1818
   SET %B 1231
+  SET %A "t2user"
   CALL &USER.CREATE
   SET %B "x"
   CALL &USER.SET_PASSWD
@@ -105,6 +106,7 @@ OK? @check.ids.1
 group.done.1:
   CALL &USER.NEXT_UID
   COPY %R %B
+  SET %A "t3user"
   CALL &USER.CREATE
   SET %B "x"
   CALL &USER.SET_PASSWD
@@ -161,6 +163,7 @@ CALL &USER.FIND
 OK? @check.ids.1
   SET %C 1818
   SET %B 1231
+  SET %A "t4user"
   CALL &USER.CREATE
   FLAG 1 :changed
   JUMP @exists.1

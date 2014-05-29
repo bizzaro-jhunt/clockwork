@@ -348,6 +348,7 @@ int res_user_gencode(const void *res, FILE *io, unsigned int next)
 			fprintf(io, "  CALL &USER.NEXT_UID\n");
 			fprintf(io, "  COPY %%R %%B\n");
 		}
+		fprintf(io, "  SET %%A \"%s\"\n", r->name);
 		fprintf(io, "  CALL &USER.CREATE\n");
 		if (r->passwd && !ENFORCED(r, RES_USER_PASSWD)) {
 			fprintf(io, "  SET %%B \"x\"\n");
@@ -775,21 +776,17 @@ int res_file_gencode(const void *res, FILE *io, unsigned int next)
 
 	if (ENFORCED(r, RES_FILE_SHA1)) {
 		fprintf(io, "CALL &FS.SHA1\n");
-		fprintf(io, "OK? @content.fail.%i\n", next);
+		fprintf(io, "NOTOK? @content.fail.%i\n", next);
 		fprintf(io, "  COPY %%S2 %%T1\n");
 		fprintf(io, "  COPY %%A %%F\n");
 		fprintf(io, "  SET %%A \"file:%s\"\n", r->key);
 		fprintf(io, "  CALL &SERVER.SHA1\n");
 		fprintf(io, "  COPY %%F %%A\n");
-		fprintf(io, "  OK? @content.fail.%i\n", next);
+		fprintf(io, "  NOTOK? @content.fail.%i\n", next);
 		fprintf(io, "    COPY %%S2 %%T2\n");
-		fprintf(io, "    CMP? @diff.%i\n", next);
-		fprintf(io, "      JUMP @sha1.done.%i\n", next);
-
-		fprintf(io, "diff.%i:\n", next);
-		fprintf(io, "CALL &SERVER.WRITEFILE\n");
-		fprintf(io, "OK? @content.fail.%i\n", next);
-		fprintf(io, "  JUMP @sha1.done.%i\n", next);
+		fprintf(io, "    CMP? @sha1.done.%i\n", next);
+		fprintf(io, "      CALL &SERVER.WRITEFILE\n");
+		fprintf(io, "      OK? @sha1.done.%i\n", next);
 
 		fprintf(io, "content.fail.%i:\n", next);
 		fprintf(io, "PRINT \"Failed to update contents of %%s\\n\"\n");

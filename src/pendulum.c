@@ -13,6 +13,7 @@
 #include <sys/wait.h>
 
 #include "pendulum.h"
+#include "cw.h"
 
 #define  PN_OP_NOOP     0x0000
 #define  PN_OP_OK       0x0001
@@ -457,15 +458,37 @@ int pn_run(pn_machine *m)
 
 	m->Ip = 0;
 #   define PC      pn_CODE(m, m->Ip)
-#   define TRACE_START "TRACE :: %08lu [%02x] %s"
+#   define TRACE_START "TRACE :: %08lx [%02x] %s"
 #   define TRACE_ARGS  (unsigned long)m->Ip, (unsigned int)PC.op, OP_NAMES[PC.op]
 #   define TEST(n,x,t1,op,t2) \
              if (!IS_LABEL(PC.arg1)) pn_die(m, "Invalid if-jump label for " n " operator"); \
              m->Tr = (x); \
              pn_trace(m, TRACE_START " %li " op " %li\n", TRACE_ARGS, t1, t2); \
-             m->Ip = m->Tr ? TAGV(PC.arg1) : m->Ip + 1; \
-             pn_trace(m, TRACE_START " branching to %p\n", TRACE_ARGS, m->Ip); \
+             m->Dp = m->Tr ? TAGV(PC.arg1) : m->Ip + 1; \
+             if (m->Tr) pn_trace(m, TRACE_START " branching to %p\n", TRACE_ARGS, m->Dp); \
+             m->Ip = m->Dp; \
                  break
+
+#   define TEST_S(n,mod,t1,op,t2) \
+             if (!IS_LABEL(PC.arg1)) pn_die(m, "Invalid if-jump label for " n " operator"); \
+             m->Tr = mod(strcmp((const char *)(t1), (const char *)(t2))); \
+             pn_trace(m, TRACE_START " %s " op " %s\n", TRACE_ARGS, (const char *)(t1), (const char *)(t2)); \
+             m->Dp = m->Tr ? TAGV(PC.arg1) : m->Ip + 1; \
+             if (m->Tr) pn_trace(m, TRACE_START " branching to %p\n", TRACE_ARGS, m->Dp); \
+             m->Ip = m->Dp; \
+                 break
+
+#   define TEST_F(n,mod) \
+             if (!IS_FLAG(PC.arg1)) pn_die(m, "Non-flag argument to " n " operator"); \
+             if (!IS_LABEL(PC.arg2)) pn_die(m, "Invalid if-jump label for " n "operator"); \
+             pn_trace(m, TRACE_START " %s (%i)\n", TRACE_ARGS, \
+                    m->flags[TAGV(PC.arg1)].label, m->flags[TAGV(PC.arg1)].value); \
+             m->Tr = mod(m->flags[TAGV(PC.arg1)].value); \
+             m->Dp = m->Tr ? TAGV(PC.arg2) : m->Ip + 1; \
+             if (m->Tr) pn_trace(m, TRACE_START " branching to %p\n", TRACE_ARGS, m->Dp); \
+             m->Ip = m->Dp; \
+                 break
+
 #   define NEXT    m->Ip++; break
 
 	while (m->Ip < m->codesize) {
@@ -482,48 +505,18 @@ int pn_run(pn_machine *m)
 				: 1;
 			NEXT;
 
-		case PN_OP_CMP:
-			if (!IS_LABEL(PC.arg1)) pn_die(m, "Invalid if-jump label for CMP? operator"); \
-			m->Tr = (strcmp((const char *)m->T1, (const char *)m->T2) == 0);
-			pn_trace(m, TRACE_START " '%s' eq '%s'\n",
-				TRACE_ARGS, (const char *)m->T1, (const char *)m->T2);
-			m->Ip = m->Tr ? TAGV(PC.arg1) : m->Ip + 1;
-			break;
-
-		case PN_OP_DIFF:
-			if (!IS_LABEL(PC.arg1)) pn_die(m, "Invalid if-jump label for DIFF? operator"); \
-			m->Tr = (strcmp((const char *)m->T1, (const char *)m->T2) != 0);
-			pn_trace(m, TRACE_START " '%s' ne '%s'\n",
-				TRACE_ARGS, (const char *)m->T1, (const char *)m->T2);
-			m->Ip = m->Tr ? TAGV(PC.arg1) : m->Ip + 1;
-			break;
-
-		case PN_OP_FLAGGED:
-			if (!IS_FLAG(PC.arg1)) pn_die(m, "Non-flag argument to FLAGGED? operator");
-			if (!IS_LABEL(PC.arg2)) pn_die(m, "Invalid if-jump label for FLAGGED? operator"); \
-			pn_trace(m, TRACE_START " %s (%i)\n", TRACE_ARGS,
-					m->flags[TAGV(PC.arg1)].label, m->flags[TAGV(PC.arg1)].value);
-			m->Tr = m->flags[TAGV(PC.arg1)].value;
-			m->Ip = m->Tr ? TAGV(PC.arg2) : m->Ip + 1;
-			break;
-
-		case PN_OP_NFLAGGED:
-			if (!IS_FLAG(PC.arg1)) pn_die(m, "Non-flag argument to FLAGGED? operator");
-			if (!IS_LABEL(PC.arg2)) pn_die(m, "Invalid if-jump label for FLAGGED? operator"); \
-			pn_trace(m, TRACE_START " %s (%i)\n", TRACE_ARGS,
-					m->flags[TAGV(PC.arg1)].label, m->flags[TAGV(PC.arg1)].value);
-			m->Tr = !m->flags[TAGV(PC.arg1)].value;
-			m->Ip = m->Tr ? TAGV(PC.arg2) : m->Ip + 1;
-			break;
-
-		case PN_OP_EQ:    TEST("EQ?",    m->T1 == m->T2, m->T1, "==", m->T2);
-		case PN_OP_NE:    TEST("NE?",    m->T1 != m->T2, m->T1, "!=", m->T2);
-		case PN_OP_GT:    TEST("GT?",    m->T1 >  m->T2, m->T1, ">",  m->T2);
-		case PN_OP_GTE:   TEST("GTE?",   m->T1 >= m->T2, m->T1, ">=", m->T2);
-		case PN_OP_LT:    TEST("LT?",    m->T1 <  m->T2, m->T1, "<",  m->T2);
-		case PN_OP_LTE:   TEST("LTE?",   m->T1 <= m->T2, m->T1, "<=", m->T2);
-		case PN_OP_OK:    TEST("OK?",    m->R  == 0,     m->R,  "==", 0);
-		case PN_OP_NOTOK: TEST("NOTOK?", m->R  != 0,     m->R,  "!=", 0);
+		case PN_OP_CMP:      TEST_S("CMP?",  !, m->T1, "eq", m->T2);
+		case PN_OP_DIFF:     TEST_S("DIFF?", !!, m->T1, "ne", m->T2);
+		case PN_OP_FLAGGED:  TEST_F("FLAGGED?", !!);
+		case PN_OP_NFLAGGED: TEST_F("FLAGGED?", !);
+		case PN_OP_EQ:       TEST("EQ?",    m->T1 == m->T2, m->T1, "==", m->T2);
+		case PN_OP_NE:       TEST("NE?",    m->T1 != m->T2, m->T1, "!=", m->T2);
+		case PN_OP_GT:       TEST("GT?",    m->T1 >  m->T2, m->T1, ">",  m->T2);
+		case PN_OP_GTE:      TEST("GTE?",   m->T1 >= m->T2, m->T1, ">=", m->T2);
+		case PN_OP_LT:       TEST("LT?",    m->T1 <  m->T2, m->T1, "<",  m->T2);
+		case PN_OP_LTE:      TEST("LTE?",   m->T1 <= m->T2, m->T1, "<=", m->T2);
+		case PN_OP_OK:       TEST("OK?",    m->R  == 0,     m->R,  "==", 0);
+		case PN_OP_NOTOK:    TEST("NOTOK?", m->R  != 0,     m->R,  "!=", 0);
 
 		case PN_OP_COPY:
 			if (!IS_REGISTER(PC.arg1)) pn_die(m, "Non-register passed as source register to COPY operator");
@@ -591,7 +584,9 @@ int pn_run(pn_machine *m)
 			if (!IS_LABEL(PC.arg2)) pn_die(m, "Invalid if-jump label for VCHECK operator"); \
 			pn_trace(m, TRACE_START " v%i >= v%i\n", TRACE_ARGS, PENDULUM_VERSION, PC.arg1);
 			m->Tr = (PENDULUM_VERSION >= PC.arg1);
-			m->Ip = m->Tr ? TAGV(PC.arg2) : m->Ip + 1;
+			m->Dp = m->Tr ? TAGV(PC.arg2) : m->Ip + 1;
+			if (m->Tr) pn_trace(m, TRACE_START " branching to %p\n", TRACE_ARGS, m->Dp);
+			m->Ip = m->Dp;
 			break;
 
 		case PN_OP_SYSERR:
@@ -627,6 +622,9 @@ int pn_run_safe(pn_machine *m)
 
 	int rc;
 	waitpid(pid, &rc, 0);
+	cw_log(LOG_INFO, "pn_run %s, with rc %04x (%d)",
+		WIFEXITED(rc) ? "exited" : "terminated abnormaly",
+		rc, rc);
 	return WIFEXITED(rc) ? WEXITSTATUS(rc) : -2;
 }
 

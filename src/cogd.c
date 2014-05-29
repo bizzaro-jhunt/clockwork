@@ -234,6 +234,7 @@ static void s_cfm_run(client_t *c)
 		free(data);
 	}
 	rewind(bdfa);
+	mkdir(c->copydown, 0777);
 	if (cw_bdfa_unpack(fileno(bdfa), c->copydown) != 0) {
 		cw_log(LOG_CRIT, "Unable to perform copydown to %s", c->copydown);
 		fclose(bdfa);

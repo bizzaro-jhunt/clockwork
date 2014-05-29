@@ -10,10 +10,9 @@ FLAG 0 :changed
 ;; res_dir /etc/sudoers
 SET %A "/etc/sudoers"
 CALL &FS.EXISTS?
-OK? @create.1
-  JUMP @exists.1
-create.1:
+OK? @exists.1
   CALL &FS.MKDIR
+  FLAG 1 :changed
 exists.1:
 COPY %A %F
 SET %D 0
@@ -24,22 +23,20 @@ CALL &USER.FIND
 OK? @found.user.1
   COPY %B %A
   PRINT "Unable to find user '%s'\n"
-  JUMP @userfind.done.1
+  JUMP @next.1
 found.user.1:
 CALL &USER.GET_UID
 COPY %R %D
-userfind.done.1:
 SET %A 1
 SET %B "root"
 CALL &GROUP.FIND
 OK? @found.group.1
   COPY %B %A
   PRINT "Unable to find group '%s'\n"
-  JUMP @groupfind.done.1
+  JUMP @next.1
 found.group.1:
 CALL &GROUP.GET_GID
 COPY %R %E
-groupfind.done.1:
 COPY %F %A
 COPY %D %B
 COPY %E %C
@@ -56,7 +53,7 @@ FLAG 0 :changed
 ;; res_dir /path/to/delete
 SET %A "/path/to/delete"
 CALL &FS.EXISTS?
-OK? @next.1
+NOTOK? @next.1
   CALL &FS.RMDIR
   JUMP @next.1
 next.1:
@@ -69,10 +66,9 @@ FLAG 0 :changed
 ;; res_dir /chmod-me
 SET %A "/chmod-me"
 CALL &FS.EXISTS?
-OK? @create.1
-  JUMP @exists.1
-create.1:
+OK? @exists.1
   CALL &FS.MKDIR
+  FLAG 1 :changed
 exists.1:
 SET %B 0755
 CALL &FS.CHMOD
@@ -86,10 +82,9 @@ FLAG 0 :changed
 ;; res_dir /home/jrhunt/bin
 SET %A "/home/jrhunt/bin"
 CALL &FS.EXISTS?
-OK? @create.1
-  JUMP @exists.1
-create.1:
+OK? @exists.1
   CALL &FS.MKDIR
+  FLAG 1 :changed
 exists.1:
 COPY %A %F
 SET %D 0
@@ -100,22 +95,20 @@ CALL &USER.FIND
 OK? @found.user.1
   COPY %B %A
   PRINT "Unable to find user '%s'\n"
-  JUMP @userfind.done.1
+  JUMP @next.1
 found.user.1:
 CALL &USER.GET_UID
 COPY %R %D
-userfind.done.1:
 SET %A 1
 SET %B "staff"
 CALL &GROUP.FIND
 OK? @found.group.1
   COPY %B %A
   PRINT "Unable to find group '%s'\n"
-  JUMP @groupfind.done.1
+  JUMP @next.1
 found.group.1:
 CALL &GROUP.GET_GID
 COPY %R %E
-groupfind.done.1:
 COPY %F %A
 COPY %D %B
 COPY %E %C

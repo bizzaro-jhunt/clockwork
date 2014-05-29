@@ -12,9 +12,7 @@ SET %A "/proc/sys/net/ipv6/icmp/ratelimit"
 CALL &FS.GET
 COPY %S2 %T1
 SET %T2 "1005"
-CMP? @diff.1
-  JUMP @done.1
-diff.1:
+CMP? @done.1
   COPY %T2 %B
   CALL &FS.PUT
 done.1:
@@ -30,9 +28,7 @@ SET %A "/proc/sys/net/ipv6/icmp/ratelimit"
 CALL &FS.GET
 COPY %S2 %T1
 SET %T2 "0"
-CMP? @diff.1
-  JUMP @done.1
-diff.1:
+CMP? @done.1
   COPY %T2 %B
   CALL &FS.PUT
 done.1:

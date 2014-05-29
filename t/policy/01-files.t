@@ -10,13 +10,12 @@ FLAG 0 :changed
 ;; res_file /etc/sudoers
 SET %A "/etc/sudoers"
 CALL &FS.EXISTS?
-OK? @create.1
-  JUMP @exists.1
-create.1:
+OK? @exists.1
   CALL &FS.MKFILE
+  FLAG 1 :changed
 exists.1:
 CALL &USERDB.OPEN
-NOTOK? @start.1
+OK? @start.1
   PRINT "Failed to open the user databases\n"
   HALT
 start.1:
@@ -26,25 +25,23 @@ SET %E 0
 SET %A 1
 SET %B "root"
 CALL &USER.FIND
-NOTOK? @found.user.1
+OK? @found.user.1
   COPY %B %A
   PRINT "Unable to find user '%s'\n"
-  JUMP @userfind.done.1
+  JUMP @next.1
 found.user.1:
 CALL &USER.GET_UID
 COPY %R %D
-userfind.done.1:
 SET %A 1
 SET %B "root"
 CALL &GROUP.FIND
-NOTOK? @found.group.1
+OK? @found.group.1
   COPY %B %A
   PRINT "Unable to find group '%s'\n"
-  JUMP @groupfind.done.1
+  JUMP @next.1
 found.group.1:
 CALL &GROUP.GET_GID
 COPY %R %E
-groupfind.done.1:
 CALL &USERDB.CLOSE
 COPY %F %A
 COPY %D %B
@@ -62,8 +59,9 @@ FLAG 0 :changed
 ;; res_file /path/to/delete
 SET %A "/path/to/delete"
 CALL &FS.EXISTS?
-OK? @next.1
+NOTOK? @next.1
   CALL &FS.UNLINK
+  FLAG 1 :changed
   JUMP @next.1
 next.1:
 !FLAGGED? :changed @final.1
@@ -75,10 +73,9 @@ FLAG 0 :changed
 ;; res_file /chmod-me
 SET %A "/chmod-me"
 CALL &FS.EXISTS?
-OK? @create.1
-  JUMP @exists.1
-create.1:
+OK? @exists.1
   CALL &FS.MKFILE
+  FLAG 1 :changed
 exists.1:
 SET %D 0644
 CALL &FS.CHMOD
@@ -92,13 +89,12 @@ FLAG 0 :changed
 ;; res_file /home/jrhunt/stuff
 SET %A "/home/jrhunt/stuff"
 CALL &FS.EXISTS?
-OK? @create.1
-  JUMP @exists.1
-create.1:
+OK? @exists.1
   CALL &FS.MKFILE
+  FLAG 1 :changed
 exists.1:
 CALL &USERDB.OPEN
-NOTOK? @start.1
+OK? @start.1
   PRINT "Failed to open the user databases\n"
   HALT
 start.1:
@@ -108,25 +104,23 @@ SET %E 0
 SET %A 1
 SET %B "jrhunt"
 CALL &USER.FIND
-NOTOK? @found.user.1
+OK? @found.user.1
   COPY %B %A
   PRINT "Unable to find user '%s'\n"
-  JUMP @userfind.done.1
+  JUMP @next.1
 found.user.1:
 CALL &USER.GET_UID
 COPY %R %D
-userfind.done.1:
 SET %A 1
 SET %B "staff"
 CALL &GROUP.FIND
-NOTOK? @found.group.1
+OK? @found.group.1
   COPY %B %A
   PRINT "Unable to find group '%s'\n"
-  JUMP @groupfind.done.1
+  JUMP @next.1
 found.group.1:
 CALL &GROUP.GET_GID
 COPY %R %E
-groupfind.done.1:
 CALL &USERDB.CLOSE
 COPY %F %A
 COPY %D %B

@@ -9,14 +9,14 @@ gencode_ok "use host group1.test", <<'EOF', "group removal";
 FLAG 0 :changed
 ;; res_group group1
 CALL &USERDB.OPEN
-NOTOK? @start.1
+OK? @start.1
   PRINT "Failed to open the user databases\n"
   HALT
 start.1:
 SET %A 1
 SET %B "group1"
 CALL &GROUP.FIND
-OK? @next.1
+NOTOK? @next.1
   CALL &GROUP.REMOVE
   FLAG 1 :changed
 !FLAGGED? :changed @next.1
@@ -30,7 +30,7 @@ gencode_ok "use host group2.test", <<'EOF', "group creation with explicit GID";
 FLAG 0 :changed
 ;; res_group group2
 CALL &USERDB.OPEN
-NOTOK? @start.1
+OK? @start.1
   PRINT "Failed to open the user databases\n"
   HALT
 start.1:
@@ -59,7 +59,7 @@ gencode_ok "use host group3.test", <<'EOF', "group creation without explicit GID
 FLAG 0 :changed
 ;; res_group group3
 CALL &USERDB.OPEN
-NOTOK? @start.1
+OK? @start.1
   PRINT "Failed to open the user databases\n"
   HALT
 start.1:
@@ -86,7 +86,7 @@ gencode_ok "use host group4.test", <<'EOF', "group with all attrs";
 FLAG 0 :changed
 ;; res_group group4
 CALL &USERDB.OPEN
-NOTOK? @start.1
+OK? @start.1
   PRINT "Failed to open the user databases\n"
   HALT
 start.1:
@@ -112,35 +112,35 @@ CALL &GROUP.SET_PWHASH
 ;; members
 SET %A "user1"
 CALL &GROUP.HAS_MEMBER?
-OK? @member-add.user1.else.1
+OK? @has-member.user1.1
   CALL &GROUP.ADD_MEMBER
   FLAG 1 :changed
-member-add.user1.else.1:
+has-member.user1.1:
 SET %A "user2"
 CALL &GROUP.HAS_MEMBER?
-OK? @member-add.user2.else.1
+OK? @has-member.user2.1
   CALL &GROUP.ADD_MEMBER
   FLAG 1 :changed
-member-add.user2.else.1:
+has-member.user2.1:
 SET %A "user3"
 CALL &GROUP.HAS_MEMBER?
-NOTOK? @member-rm.user3.else.1
+NOTOK? @no-member.user3.1
   CALL &GROUP.RM_MEMBER
   FLAG 1 :changed
-member-rm.user3.else.1:
+no-member.user3.1:
 ;; admins
 SET %A "adm1"
 CALL &GROUP.HAS_ADMIN?
-OK? @admin-add.adm1.else.1
+OK? @has-admin.adm1.1
   CALL &GROUP.ADD_ADMIN
   FLAG 1 :changed
-admin-add.adm1.else.1:
+has-admin.adm1.1:
 SET %A "root"
 CALL &GROUP.HAS_ADMIN?
-NOTOK? @admin-rm.root.else.1
+NOTOK? @no-admin.root.1
   CALL &GROUP.RM_ADMIN
   FLAG 1 :changed
-admin-rm.root.else.1:
+no-admin.root.1:
 !FLAGGED? :changed @next.1
   CALL &USERDB.SAVE
 next.1:

@@ -10,7 +10,7 @@ FLAG 0 :changed
 ;; res_host example.com
 SET %A "/files/etc/hosts/*[ipaddr = \"1.2.3.4\" and canonical = \"example.com\"]"
 CALL &AUGEAS.FIND
-NOTOK @found.1
+OK @found.1
   SET %A "/files/etc/hosts/100000/ipaddr"
   SET %B "1.2.3.4"
   CALL &AUGEAS.SET
@@ -20,6 +20,7 @@ NOTOK @found.1
   JUMP @aliases.1
 found.1:
   COPY %S2 %A
+aliases.1:
 SET %C "/alias"
 CALL &AUGEAS.REMOVE
 SET %C "/alias[0]"
@@ -38,7 +39,7 @@ FLAG 0 :changed
 ;; res_host remove.me
 SET %A "/files/etc/hosts/*[ipaddr = \"2.4.6.8\" and canonical = \"remove.me\"]"
 CALL &AUGEAS.FIND
-OK @not.found.1
+NOTOK @not.found.1
   COPY %R %A
   CALL &AUGEAS.REMOVE
 not.found.1:

@@ -10,10 +10,9 @@ FLAG 0 :changed
 ;; res_dir /tmp
 SET %A "/tmp"
 CALL &FS.EXISTS?
-OK? @create.1
-  JUMP @exists.1
-create.1:
+OK? @exists.1
   CALL &FS.MKDIR
+  FLAG 1 :changed
 exists.1:
 next.1:
 !FLAGGED? :changed @final.1
@@ -24,10 +23,9 @@ FLAG 0 :changed
 ;; res_dir /tmp/inner
 SET %A "/tmp/inner"
 CALL &FS.EXISTS?
-OK? @create.2
-  JUMP @exists.2
-create.2:
+OK? @exists.2
   CALL &FS.MKDIR
+  FLAG 1 :changed
 exists.2:
 next.2:
 !FLAGGED? :changed @final.2
@@ -37,10 +35,9 @@ FLAG 0 :changed
 ;; res_file /tmp/inner/file
 SET %A "/tmp/inner/file"
 CALL &FS.EXISTS?
-OK? @create.3
-  JUMP @exists.3
-create.3:
+OK? @exists.3
   CALL &FS.MKFILE
+  FLAG 1 :changed
 exists.3:
 next.3:
 !FLAGGED? :changed @final.3

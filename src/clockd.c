@@ -537,6 +537,7 @@ static inline server_t *s_server_new(int argc, char **argv)
 	cw_cfg_set(&config, "ccache.connections",  "2048");
 	cw_cfg_set(&config, "ccache.expiration",   "600");
 	cw_cfg_set(&config, "manifest",            "/etc/clockwork/manifest.pol");
+	cw_cfg_set(&config, "copydown",            CW_GATHER_DIR);
 	cw_cfg_set(&config, "syslog.ident",        "clockd");
 	cw_cfg_set(&config, "syslog.facility",     "daemon");
 	cw_cfg_set(&config, "syslog.level",        "error");
@@ -549,6 +550,7 @@ static inline server_t *s_server_new(int argc, char **argv)
 	cw_log(LOG_DEBUG, "  ccache.connections  %s", cw_cfg_get(&config, "ccache.connections"));
 	cw_log(LOG_DEBUG, "  ccache.expiration   %s", cw_cfg_get(&config, "ccache.expiration"));
 	cw_log(LOG_DEBUG, "  manifest            %s", cw_cfg_get(&config, "manifest"));
+	cw_log(LOG_DEBUG, "  copydown            %s", cw_cfg_get(&config, "copydown"));
 	cw_log(LOG_DEBUG, "  syslog.ident        %s", cw_cfg_get(&config, "syslog.ident"));
 	cw_log(LOG_DEBUG, "  syslog.facility     %s", cw_cfg_get(&config, "syslog.facility"));
 	cw_log(LOG_DEBUG, "  syslog.level        %s", cw_cfg_get(&config, "syslog.level"));
@@ -681,6 +683,7 @@ static inline server_t *s_server_new(int argc, char **argv)
 		printf("ccache.connections  %s\n", cw_cfg_get(&config, "ccache.connections"));
 		printf("ccache.expiration   %s\n", cw_cfg_get(&config, "ccache.expiration"));
 		printf("manifest            %s\n", cw_cfg_get(&config, "manifest"));
+		printf("copydown            %s\n", cw_cfg_get(&config, "copydown"));
 		printf("syslog.ident        %s\n", cw_cfg_get(&config, "syslog.ident"));
 		printf("syslog.facility     %s\n", cw_cfg_get(&config, "syslog.facility"));
 		printf("syslog.level        %s\n", cw_cfg_get(&config, "syslog.level"));
@@ -689,6 +692,7 @@ static inline server_t *s_server_new(int argc, char **argv)
 	}
 
 
+	s->copydown = cw_cfg_get(&config, "copydown");
 	s->manifest = parse_file(cw_cfg_get(&config, "manifest"));
 	if (!s->manifest) {
 		cw_log(LOG_CRIT, "Failed to parse %s: %s",

@@ -5,16 +5,16 @@
 
 PRAGMA "userdb.root" "t/tmp/pn/groups"
 CALL &USERDB.OPEN
-OK? @userdb.open.fail
+NOTOK? @userdb.open.fail
 
 SET %A 1       ;; by name
 SET %B "service"
 CALL &GROUP.FIND
-OK? @not-found
+NOTOK? @not-found
 
 SET %A "account1"
 CALL &GROUP.HAS_MEMBER?
-OK? @pre.not.a.member
+NOTOK? @pre.not.a.member
   PRINT "%s is a member\n"
   JUMP @pre.check.admin1
 
@@ -25,7 +25,7 @@ pre.not.a.member:
 pre.check.admin1:
 SET %A "admin1"
 CALL &GROUP.HAS_ADMIN?
-OK? @pre.not.an.admin
+NOTOK? @pre.not.an.admin
   PRINT "%s is an admin\n"
   JUMP @update
 
@@ -38,46 +38,46 @@ update:
 
 SET %B "renamed"
 CALL &GROUP.SET_NAME
-OK? @update-failed
+NOTOK? @update-failed
 
 SET %B 919
 CALL &GROUP.SET_GID
-OK? @update-failed
+NOTOK? @update-failed
 
 SET %B "*"
 CALL &GROUP.SET_PASSWD
-OK? @update-failed
+NOTOK? @update-failed
 
 SET %B "crypted.hash"
 CALL &GROUP.SET_PWHASH
-OK? @update-failed
+NOTOK? @update-failed
 
 SET %A "account1"
 CALL &GROUP.RM_MEMBER
-OK? @update-failed
+NOTOK? @update-failed
 
 SET %A "admin2"
 CALL &GROUP.RM_ADMIN
-OK? @update-failed
+NOTOK? @update-failed
 
 SET %A "account3"
 CALL &GROUP.ADD_MEMBER
-OK? @update-failed
+NOTOK? @update-failed
 
 SET %A "admin1"
 CALL &GROUP.ADD_ADMIN
-OK? @update-failed
+NOTOK? @update-failed
 
 CALL &USERDB.SAVE
-OK? @update-failed
+NOTOK? @update-failed
 
 CALL &USERDB.OPEN
-OK? @userdb.open.fail
+NOTOK? @userdb.open.fail
 
 SET %A 1       ;; by name
 SET %B "renamed"
 CALL &GROUP.FIND
-OK? @not-found
+NOTOK? @not-found
 
 CALL &GROUP.GET_NAME
 COPY %R %A
@@ -97,7 +97,7 @@ PRINT "pwhash: '%s'\n"
 
 SET %A "account1"
 CALL &GROUP.HAS_MEMBER?
-OK? @post.not.a.member
+NOTOK? @post.not.a.member
   PRINT "%s is a member\n"
   JUMP @post.check.admin1
 
@@ -108,7 +108,7 @@ post.not.a.member:
 post.check.admin1:
 SET %A "admin1"
 CALL &GROUP.HAS_ADMIN?
-OK? @post.not.an.admin
+NOTOK? @post.not.an.admin
   PRINT "%s is an admin\n"
   JUMP @done
 

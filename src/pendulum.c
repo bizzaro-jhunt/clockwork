@@ -14,33 +14,34 @@
 
 #include "pendulum.h"
 
-#define  PN_OP_NOOP    0x0000
-#define  PN_OP_OK      0x0001
-#define  PN_OP_NOTOK   0x0002
-#define  PN_OP_EQ      0x0003
-#define  PN_OP_NE      0x0004
-#define  PN_OP_CMP     0x0005
-#define  PN_OP_GT      0x0006
-#define  PN_OP_GTE     0x0007
-#define  PN_OP_LT      0x0008
-#define  PN_OP_LTE     0x0009
-#define  PN_OP_COPY    0x000a
-#define  PN_OP_SET     0x000b
-#define  PN_OP_HALT    0x000c
-#define  PN_OP_ERROR   0x000d
-#define  PN_OP_LOG     0x000e
-#define  PN_OP_CALL    0x000f
-#define  PN_OP_PRINT   0x0010
-#define  PN_OP_JUMP    0x0011
-#define  PN_OP_DUMP    0x0012
-#define  PN_OP_TRACE   0x0013
-#define  PN_OP_VCHECK  0x0014
-#define  PN_OP_SYSERR  0x0015
-#define  PN_OP_FLAG    0x0016
-#define  PN_OP_FLAGGED 0x0017
-#define  PN_OP_DIFF    0x0018
-#define  PN_OP_PRAGMA  0x0019
-#define  PN_OP_INVAL   0x00ff
+#define  PN_OP_NOOP     0x0000
+#define  PN_OP_OK       0x0001
+#define  PN_OP_NOTOK    0x0002
+#define  PN_OP_EQ       0x0003
+#define  PN_OP_NE       0x0004
+#define  PN_OP_CMP      0x0005
+#define  PN_OP_GT       0x0006
+#define  PN_OP_GTE      0x0007
+#define  PN_OP_LT       0x0008
+#define  PN_OP_LTE      0x0009
+#define  PN_OP_COPY     0x000a
+#define  PN_OP_SET      0x000b
+#define  PN_OP_HALT     0x000c
+#define  PN_OP_ERROR    0x000d
+#define  PN_OP_LOG      0x000e
+#define  PN_OP_CALL     0x000f
+#define  PN_OP_PRINT    0x0010
+#define  PN_OP_JUMP     0x0011
+#define  PN_OP_DUMP     0x0012
+#define  PN_OP_TRACE    0x0013
+#define  PN_OP_VCHECK   0x0014
+#define  PN_OP_SYSERR   0x0015
+#define  PN_OP_FLAG     0x0016
+#define  PN_OP_FLAGGED  0x0017
+#define  PN_OP_DIFF     0x0018
+#define  PN_OP_PRAGMA   0x0019
+#define  PN_OP_NFLAGGED 0x001a
+#define  PN_OP_INVAL    0x00ff
 
 static const char *OP_NAMES[] = {
 	"NOOP",
@@ -69,6 +70,7 @@ static const char *OP_NAMES[] = {
 	"FLAGGED?",
 	"DIFF?",
 	"PRAGMA",
+	"!FLAGGED?",
 	"(invalid)",
 	NULL,
 };
@@ -205,6 +207,7 @@ static int s_resolve_op(const char *op)
 	if (strcmp(op, "SYSERR")   == 0) return PN_OP_SYSERR;
 	if (strcmp(op, "FLAG")     == 0) return PN_OP_FLAG;
 	if (strcmp(op, "FLAGGED?") == 0) return PN_OP_FLAGGED;
+	if (strcmp(op, "!FLAGGED?") == 0) return PN_OP_NFLAGGED;
 	fprintf(stderr, "Invalid op: '%s'\n", op);
 	return PN_OP_INVAL;
 }
@@ -457,10 +460,10 @@ int pn_run(pn_machine *m)
 #   define TRACE_START "TRACE :: %08lu [%02x] %s"
 #   define TRACE_ARGS  (unsigned long)m->Ip, (unsigned int)PC.op, OP_NAMES[PC.op]
 #   define TEST(n,x,t1,op,t2) \
-             if (!IS_LABEL(PC.arg1)) pn_die(m, "Invalid else-jump label for " n " operator"); \
+             if (!IS_LABEL(PC.arg1)) pn_die(m, "Invalid if-jump label for " n " operator"); \
              m->Tr = (x); \
              pn_trace(m, TRACE_START " %li " op " %li\n", TRACE_ARGS, t1, t2); \
-             m->Ip = m->Tr ? m->Ip + 1 : TAGV(PC.arg1); \
+             m->Ip = m->Tr ? TAGV(PC.arg1) : m->Ip + 1; \
              pn_trace(m, TRACE_START " branching to %p\n", TRACE_ARGS, m->Ip); \
                  break
 #   define NEXT    m->Ip++; break
@@ -480,27 +483,29 @@ int pn_run(pn_machine *m)
 			NEXT;
 
 		case PN_OP_CMP:
-			if (!IS_LABEL(PC.arg1)) pn_die(m, "Invalid else-jump label for CMP? operator"); \
+			if (!IS_LABEL(PC.arg1)) pn_die(m, "Invalid if-jump label for CMP? operator"); \
 			m->Tr = (strcmp((const char *)m->T1, (const char *)m->T2) == 0);
 			pn_trace(m, TRACE_START " '%s' eq '%s'\n",
 				TRACE_ARGS, (const char *)m->T1, (const char *)m->T2);
-			m->Ip = m->Tr ? m->Ip + 1 : TAGV(PC.arg1);
+			m->Ip = m->Tr ? TAGV(PC.arg1) : m->Ip + 1;
 			break;
 
 		case PN_OP_DIFF:
-			if (!IS_LABEL(PC.arg1)) pn_die(m, "Invalid else-jump label for DIFF? operator"); \
+			if (!IS_LABEL(PC.arg1)) pn_die(m, "Invalid if-jump label for DIFF? operator"); \
 			m->Tr = (strcmp((const char *)m->T1, (const char *)m->T2) != 0);
 			pn_trace(m, TRACE_START " '%s' ne '%s'\n",
 				TRACE_ARGS, (const char *)m->T1, (const char *)m->T2);
-			m->Ip = m->Tr ? m->Ip + 1 : TAGV(PC.arg1);
+			m->Ip = m->Tr ? TAGV(PC.arg1) : m->Ip + 1;
 			break;
 
 		case PN_OP_FLAGGED:
 			if (!IS_FLAG(PC.arg1)) pn_die(m, "Non-flag argument to FLAGGED? operator");
+			if (!IS_LABEL(PC.arg2)) pn_die(m, "Invalid if-jump label for FLAGGED? operator"); \
 			pn_trace(m, TRACE_START " %s (%i)\n", TRACE_ARGS,
 					m->flags[TAGV(PC.arg1)].label, m->flags[TAGV(PC.arg1)].value);
 			m->Tr = m->flags[TAGV(PC.arg1)].value;
-			NEXT;
+			m->Ip = m->Tr ? TAGV(PC.arg2) : m->Ip + 1;
+			break;
 
 		case PN_OP_EQ:    TEST("EQ?",    m->T1 == m->T2, m->T1, "==", m->T2);
 		case PN_OP_NE:    TEST("NE?",    m->T1 != m->T2, m->T1, "!=", m->T2);
@@ -574,9 +579,11 @@ int pn_run(pn_machine *m)
 			NEXT;
 
 		case PN_OP_VCHECK:
+			if (!IS_LABEL(PC.arg2)) pn_die(m, "Invalid if-jump label for VCHECK operator"); \
 			pn_trace(m, TRACE_START " v%i >= v%i\n", TRACE_ARGS, PENDULUM_VERSION, PC.arg1);
-			m->R = (PENDULUM_VERSION >= PC.arg1) ? 0 : 1;
-			NEXT;
+			m->Tr = (PENDULUM_VERSION >= PC.arg1);
+			m->Ip = m->Tr ? TAGV(PC.arg2) : m->Ip + 1;
+			break;
 
 		case PN_OP_SYSERR:
 			pn_trace(m, TRACE_START " errno=%i\n", TRACE_ARGS, errno);

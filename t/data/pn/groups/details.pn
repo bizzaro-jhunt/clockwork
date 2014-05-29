@@ -5,7 +5,7 @@
 
 PRAGMA "userdb.root" "t/tmp/pn/groups"
 CALL &USERDB.OPEN
-OK? @userdb.open.fail
+NOTOK? @userdb.open.fail
 
 JUMP @start
 
@@ -18,7 +18,7 @@ start:
   SET %A 1       ;; by name
   SET %B "service"
   CALL &GROUP.FIND
-  OK? @not-found
+  NOTOK? @not-found
     CALL &GROUP.GET_NAME
     COPY %R %A
     PRINT "name: %s\n"

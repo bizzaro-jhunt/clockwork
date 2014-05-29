@@ -5,12 +5,12 @@
 
 PRAGMA "userdb.root" "t/tmp/pn/users"
 CALL &USERDB.OPEN
-OK? @userdb.open.fail
+NOTOK? @userdb.open.fail
 
 SET %A 1       ;; by username
 SET %B "svc"
 CALL &USER.FIND
-OK? @not-found
+NOTOK? @not-found
 CALL &USER.GET_NAME
 COPY %R %A
 PRINT "username: %s\n"

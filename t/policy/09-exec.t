@@ -16,8 +16,7 @@ CALL &EXEC.CHECK
 OK? @next.1
   FLAG 1 :changed
 next.1:
-FLAGGED? :changed
-OK? @final.1
+!FLAGGED? :changed @final.1
 final.1:
 EOF
 
@@ -26,8 +25,7 @@ FLAG 0 :changed
 ;; res_exec /bin/refresh-the-thing
 SET %B 0
 SET %C 0
-FLAGGED? :res0
-NOTOK? @run.1
+FLAGGED? :res0 @run.1
 JUMP @next.1
 run.1:
 SET %A "/bin/refresh-the-thing"
@@ -35,8 +33,7 @@ CALL &EXEC.CHECK
 OK? @next.1
   FLAG 1 :changed
 next.1:
-FLAGGED? :changed
-OK? @final.1
+!FLAGGED? :changed @final.1
 final.1:
 EOF
 
@@ -55,8 +52,7 @@ CALL &EXEC.CHECK
 OK? @next.1
   FLAG 1 :changed
 next.1:
-FLAGGED? :changed
-OK? @final.1
+!FLAGGED? :changed @final.1
 final.1:
 EOF
 
@@ -100,8 +96,7 @@ CALL &EXEC.CHECK
 OK? @next.1
   FLAG 1 :changed
 next.1:
-FLAGGED? :changed
-OK? @final.1
+!FLAGGED? :changed @final.1
 final.1:
 EOF
 

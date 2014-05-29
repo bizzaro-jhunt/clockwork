@@ -5,7 +5,7 @@
 
 PRAGMA "userdb.root" "t/tmp/pn/users"
 CALL &USERDB.OPEN
-OK? @userdb.open.fail
+NOTOK? @userdb.open.fail
   PRINT "passwd opened\n"
   JUMP @root
 
@@ -18,7 +18,7 @@ root:
   SET %A 1       ;; by username
   SET %B "root"
   CALL &USER.FIND
-  OK? @root.not-found
+  NOTOK? @root.not-found
     PRINT "found root user\n"
     CALL &USER.GET_GID
     COPY %R %B
@@ -33,7 +33,7 @@ sys:
   SET %A 1
   SET %B "sys"
   CALL &USER.FIND
-  OK? @sys.not-found
+  NOTOK? @sys.not-found
     PRINT "found sys user\n"
     CALL &USER.GET_GID
     COPY %R %B
@@ -49,7 +49,7 @@ svc:
   SET %A 1
   SET %B "svc"
   CALL &USER.FIND
-  OK? @svc.not-found
+  NOTOK? @svc.not-found
     PRINT "found svc user\n"
     CALL &USER.GET_GID
     COPY %R %B
@@ -65,7 +65,7 @@ uid100:
   SET %A 0    ;; by UID
   SET %B 100
   CALL &USER.FIND
-  OK? @uid100.not-found
+  NOTOK? @uid100.not-found
     PRINT "found UID 100\n"
     CALL &USER.GET_NAME
     COPY %R %A
@@ -79,7 +79,7 @@ ballyhoo:
   SET %A 1
   SET %B "ballyhoo"
   CALL &USER.FIND
-  OK? @ballyhoo.not-found
+  NOTOK? @ballyhoo.not-found
     PRINT "found ballyhoo user\n"
     JUMP @done
   ballyhoo.not-found:

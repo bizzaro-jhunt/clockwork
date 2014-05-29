@@ -29,8 +29,7 @@ SET %C "/alias[1]"
 SET %B "example.org"
 CALL &AUGEAS.SET
 next.1:
-FLAGGED? :changed
-OK? @final.1
+!FLAGGED? :changed @final.1
 final.1:
 EOF
 
@@ -44,8 +43,7 @@ OK @not.found.1
   CALL &AUGEAS.REMOVE
 not.found.1:
 next.1:
-FLAGGED? :changed
-OK? @final.1
+!FLAGGED? :changed @final.1
 final.1:
 EOF
 

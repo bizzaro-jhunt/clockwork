@@ -5,14 +5,14 @@
 
 PRAGMA "userdb.root" "t/tmp/pn/groups"
 CALL &USERDB.OPEN
-OK? @userdb.open.fail
+NOTOK? @userdb.open.fail
   PRINT "group opened\n"
 
 daemon:
   SET %A 1 ;; by group name
   SET %B "daemon"
   CALL &GROUP.FIND
-  OK? @daemon.not.found
+  NOTOK? @daemon.not.found
     PRINT "found daemon group\n"
     CALL &GROUP.GET_GID
     COPY %R %A
@@ -25,7 +25,7 @@ members:
   SET %A 1 ;; by group name
   SET %B "members"
   CALL &GROUP.FIND
-  OK? @members.not.found
+  NOTOK? @members.not.found
     PRINT "found group members\n"
     CALL &GROUP.GET_GID
     COPY %R %A
@@ -38,7 +38,7 @@ gid909:
   SET %A 0 ;; by GID
   SET %B 909
   CALL &GROUP.FIND
-  OK? @gid909.not.found
+  NOTOK? @gid909.not.found
     PRINT "found GID 909\n"
     CALL &GROUP.GET_NAME
     COPY %R %A
@@ -51,7 +51,7 @@ ballyhoo:
   SET %A 1
   SET %B "ballyhoo"
   CALL &GROUP.FIND
-  OK? @ballyhoo.not.found
+  NOTOK? @ballyhoo.not.found
     PRINT "found ballyhoo group\n"
     JUMP @done
   ballyhoo.not.found:

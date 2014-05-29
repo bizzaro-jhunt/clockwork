@@ -5,12 +5,12 @@
 
 PRAGMA "userdb.root" "t/tmp/pn/users"
 CALL &USERDB.OPEN
-OK? @userdb.open.fail
+NOTOK? @userdb.open.fail
 
 SET %A 1     ;; by username
 SET %B "new"
 CALL &USER.FIND
-OK? @start
+NOTOK? @start
   PRINT "found user 'new' before we created it...\n"
   HALT
 
@@ -20,19 +20,19 @@ SET %A "new" ;; username
 SET %B 9001  ;; UID
 SET %C 9002  ;; GID
 CALL &USER.CREATE
-OK? @create.fail
+NOTOK? @create.fail
 
 COPY %F %A
 CALL &USERDB.SAVE
-OK? @create.fail
+NOTOK? @create.fail
 
 CALL &USERDB.OPEN
-OK? @userdb.open.fail
+NOTOK? @userdb.open.fail
 
 SET %A 1
 SET %B "new"
 CALL &USER.FIND
-OK? @missing
+NOTOK? @missing
 
 PRINT "user 'new' found, post-create\n"
 

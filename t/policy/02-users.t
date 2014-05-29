@@ -19,12 +19,10 @@ CALL &USER.FIND
 OK? @next.1
   CALL &USER.REMOVE
   FLAG 1 :changed
-FLAGGED? :changed
-OK? @next.1
+!FLAGGED? :changed @next.1
   CALL &USERDB.SAVE
 next.1:
-FLAGGED? :changed
-OK? @final.1
+!FLAGGED? :changed @final.1
 final.1:
 EOF
 
@@ -83,12 +81,10 @@ DIFF? @home.ok.1
   FLAG 1 :changed
 home.ok.1:
 exists.1:
-FLAGGED? :changed
-OK? @next.1
+!FLAGGED? :changed @next.1
   CALL &USERDB.SAVE
 next.1:
-FLAGGED? :changed
-OK? @final.1
+!FLAGGED? :changed @final.1
 final.1:
 EOF
 
@@ -163,12 +159,10 @@ NOTOK? @home.exists.1
   CALL &FS.COPY_R
 home.exists.1:
 exists.1:
-FLAGGED? :changed
-OK? @next.1
+!FLAGGED? :changed @next.1
   CALL &USERDB.SAVE
 next.1:
-FLAGGED? :changed
-OK? @final.1
+!FLAGGED? :changed @final.1
 final.1:
 EOF
 
@@ -283,12 +277,10 @@ NE? @expire.ok.1
   CALL &USER.SET_EXPIRY
   FLAG 1 :changed
 expire.ok.1:
-FLAGGED? :changed
-OK? @next.1
+!FLAGGED? :changed @next.1
   CALL &USERDB.SAVE
 next.1:
-FLAGGED? :changed
-OK? @final.1
+!FLAGGED? :changed @final.1
 final.1:
 EOF
 

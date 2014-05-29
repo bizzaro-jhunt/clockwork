@@ -5,45 +5,42 @@
 
 SET %A "t/tmp/pn/fs/new.dir"
 CALL &FS.EXISTS?
-OK? @else.1
-  PRINT "%s already exists!"
-  HALT
+OK? @exists
 
-else.1:
-  CALL &FS.MKDIR
-  OK? @else.2
-    CALL &FS.DIR?
-    OK? @else.3
-      PRINT "%s created\n"
-      JUMP @remove
+CALL &FS.MKDIR
+NOTOK? @mkdir.failed
 
-    else.3:
-      PRINT "%s not created!\n"
-      HALT
+CALL &FS.DIR?
+NOTOK? @create.failed
+PRINT "%s created\n"
 
-  else.2:
-    PRINT "mkdir(%s) call failed\n"
-    SYSERR
-    HALT
+CALL &FS.RMDIR
+NOTOK? @rmdir.failed
 
-remove:
-  CALL &FS.RMDIR
-  OK? @else.3
-    CALL &FS.DIR?
-    OK? @else.4
-      PRINT "%s not removed\n"
-      SYSERR
-      HALT
+CALL &FS.DIR?
+OK? @not.removed
 
-    else.4:
-      PRINT "%s removed\n"
-      JUMP @done
-
-  else.3:
-    PRINT "rmdir(%s) call failed\n"
-    SYSERR
-    HALT
-
-done:
+PRINT "%s removed\n"
 PRINT "fin\n"
 HALT
+
+
+
+exists:
+  PRINT "%s already exists!"
+  HALT
+mkdir.failed:
+  PRINT "mkdir(%s) call failed\n"
+  SYSERR
+  HALT
+rmdir.failed:
+  PRINT "rmdir(%s) call failed\n"
+  SYSERR
+  HALT
+create.failed:
+  PRINT "%s not created!\n"
+  HALT
+not.removed:
+  PRINT "%s not removed\n"
+  SYSERR
+  HALT

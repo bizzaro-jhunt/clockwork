@@ -5,20 +5,20 @@
 
 PRAGMA "userdb.root" "t/tmp/pn/groups"
 CALL &USERDB.OPEN
-OK? @userdb.open.fail
+NOTOK? @userdb.open.fail
 
 
 members:
 SET %A 1
 SET %B "members"
 CALL &GROUP.FIND
-OK? @members.not.found
+NOTOK? @members.not.found
   PRINT "checking group 'members'\n"
 
   members.admin1:
     SET %A "admin1"
     CALL &GROUP.HAS_ADMIN?
-    OK? @members.admin1.not
+    NOTOK? @members.admin1.not
       PRINT "%s is an admin\n"
       JUMP @members.admin2
     members.admin1.not:
@@ -27,7 +27,7 @@ OK? @members.not.found
   members.admin2:
     SET %A "admin2"
     CALL &GROUP.HAS_ADMIN?
-    OK? @members.admin2.not
+    NOTOK? @members.admin2.not
       PRINT "%s is an admin\n"
       JUMP @members.admin3
     members.admin2.not:
@@ -36,7 +36,7 @@ OK? @members.not.found
   members.admin3:
     SET %A "admin3"
     CALL &GROUP.HAS_ADMIN?
-    OK? @members.admin3.not
+    NOTOK? @members.admin3.not
       PRINT "%s is an admin\n"
       JUMP @members.account1
     members.admin3.not:
@@ -45,7 +45,7 @@ OK? @members.not.found
   members.account1:
     SET %A "account1"
     CALL &GROUP.HAS_MEMBER?
-    OK? @members.account1.not
+    NOTOK? @members.account1.not
       PRINT "%s is a member\n"
       JUMP @members.root
     members.account1.not:
@@ -54,7 +54,7 @@ OK? @members.not.found
   members.root:
     SET %A "root"
     CALL &GROUP.HAS_MEMBER?
-    OK? @members.root.not
+    NOTOK? @members.root.not
       PRINT "%s is a member\n"
       JUMP @next
     members.root.not:
@@ -71,13 +71,13 @@ bin:
 SET %A 1
 SET %B "bin"
 CALL &GROUP.FIND
-OK? @bin.not.found
+NOTOK? @bin.not.found
   PRINT "checking group 'bin'\n"
 
   bin.admin:
     SET %A "root"
     CALL &GROUP.HAS_ADMIN?
-    OK? @bin.admin.not
+    NOTOK? @bin.admin.not
       PRINT "%s is an admin\n"
       JUMP @bin.member
     bin.admin.not:
@@ -86,7 +86,7 @@ OK? @bin.not.found
   bin.member:
     SET %A "root"
     CALL &GROUP.HAS_MEMBER?
-    OK? @bin.member.not
+    NOTOK? @bin.member.not
       PRINT "%s is a member\n"
       JUMP @done
     bin.member.not:

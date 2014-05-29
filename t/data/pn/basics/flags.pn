@@ -1,18 +1,22 @@
-FLAGGED? :XYZZY
+FLAGGED? :XYZZY @next.1
+next.1:
 COPY %Tr %A
 PRINT "xyzzy is initially %i\n"
 
 FLAG 1 :XYZZY
-FLAGGED? :XYZZY
+FLAGGED? :XYZZY @next.2
+next.2:
 COPY %Tr %A
 PRINT "xyzzy is %i after FLAG 1 call\n"
 
 FLAG 0 :XYZZY
-FLAGGED? :XYZZY
+FLAGGED? :XYZZY @next.3
+next.3:
 COPY %Tr %A
 PRINT "xyzzy is %i after FLAG 0 call\n"
 
 FLAG 425 :XYZZY
-FLAGGED? :XYZZY
+FLAGGED? :XYZZY @next.4
+next.4:
 COPY %Tr %A
 PRINT "xyzzy is %i after FLAG 425 call\n"

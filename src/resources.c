@@ -507,8 +507,7 @@ int res_user_gencode(const void *res, FILE *io, unsigned int next)
 			fprintf(io, "expire.ok.%i:\n", next);
 		}
 	}
-	fprintf(io, "FLAGGED? :changed\n");
-	fprintf(io, "OK? @next.%i\n", next);
+	fprintf(io, "!FLAGGED? :changed @next.%i\n", next);
 	fprintf(io, "  CALL &USERDB.SAVE\n");
 
 return 0;
@@ -1146,8 +1145,7 @@ int res_group_gencode(const void *res, FILE *io, unsigned int next)
 			}
 		}
 	}
-	fprintf(io, "FLAGGED? :changed\n");
-	fprintf(io, "OK? @next.%i\n", next);
+	fprintf(io, "!FLAGGED? :changed @next.%i\n", next);
 	fprintf(io, "  CALL &USERDB.SAVE\n");
 
 	return 0;
@@ -2295,9 +2293,8 @@ int res_exec_gencode(const void *res, FILE *io, unsigned int next)
 		fprintf(io, "NOTOK? @run.%i\n", next);
 	}
 	if (ENFORCED(r, RES_EXEC_ONDEMAND)) {
-		fprintf(io, "FLAGGED? :res%i\n",
-			((const struct resource*)res)->serial);
-		fprintf(io, "NOTOK? @run.%i\n", next);
+		fprintf(io, "FLAGGED? :res%i @run.%i\n",
+			((const struct resource*)res)->serial, next);
 	}
 	if (ENFORCED(r, RES_EXEC_TEST) || ENFORCED(r, RES_EXEC_ONDEMAND)) {
 		fprintf(io, "JUMP @next.%i\n", next);

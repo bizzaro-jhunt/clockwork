@@ -53,8 +53,7 @@ CALL &FS.CHOWN
 SET %D 0400
 CALL &FS.CHMOD
 next.1:
-FLAGGED? :changed
-OK? @final.1
+!FLAGGED? :changed @final.1
 final.1:
 EOF
 
@@ -67,8 +66,7 @@ OK? @next.1
   CALL &FS.UNLINK
   JUMP @next.1
 next.1:
-FLAGGED? :changed
-OK? @final.1
+!FLAGGED? :changed @final.1
 final.1:
 EOF
 
@@ -85,8 +83,7 @@ exists.1:
 SET %D 0644
 CALL &FS.CHMOD
 next.1:
-FLAGGED? :changed
-OK? @final.1
+!FLAGGED? :changed @final.1
 final.1:
 EOF
 
@@ -138,8 +135,7 @@ CALL &FS.CHOWN
 SET %D 0410
 CALL &FS.CHMOD
 next.1:
-FLAGGED? :changed
-OK? @final.1
+!FLAGGED? :changed @final.1
 final.1:
 EOF
 

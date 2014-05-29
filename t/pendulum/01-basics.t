@@ -31,8 +31,8 @@ fin
 EOF
 
 pendulum_ok "$TESTS/ok.pn", <<EOF, "ok.pn";
-OK? jumps if R register is non-zero
-OK? continues if R register is zero
+OK? continues if R register is non-zero
+OK? jumps if R register is zero
 EOF
 
 pendulum_ok "$TESTS/equality.pn", <<EOF, "equality.pn";

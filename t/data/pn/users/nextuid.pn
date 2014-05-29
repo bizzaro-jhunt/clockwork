@@ -5,31 +5,31 @@
 
 PRAGMA "userdb.root" "t/tmp/pn/users"
 CALL &USERDB.OPEN
-OK? @open.fail
+NOTOK? @open.fail
 
 SET %A 0
 CALL &USER.NEXT_UID
-OK? @fail
+NOTOK? @fail
 PRINT "next UID >= %i is %i\n"
 
 SET %A 2
 CALL &USER.NEXT_UID
-OK? @fail
+NOTOK? @fail
 PRINT "next UID >= %i is %i\n"
 
 SET %A 500
 CALL &USER.NEXT_UID
-OK? @fail
+NOTOK? @fail
 PRINT "next UID >= %i is %i\n"
 
 SET %A 999
 CALL &USER.NEXT_UID
-OK? @fail
+NOTOK? @fail
 PRINT "next UID >= %i is %i\n"
 
 SET %A 6500
 CALL &USER.NEXT_UID
-OK? @fail
+NOTOK? @fail
 PRINT "next UID >= %i is %i\n"
 
 HALT

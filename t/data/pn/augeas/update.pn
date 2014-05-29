@@ -6,7 +6,7 @@
 SET %A "t/tmp/pn/augeas"
 SET %B "t/tmp/augeas/lenses"
 CALL &AUGEAS.INIT
-NOTOK? @init.ok
+OK? @init.ok
   COPY %R %A
   PRINT "init failed: %i\n"
   CALL &AUGEAS.SYSERR
@@ -20,7 +20,7 @@ init.ok:
 SET %A "/files/etc/hosts/9999/ipaddr"
 SET %B "10.8.7.9"
 CALL &AUGEAS.SET
-NOTOK? @next.1
+OK? @next.1
   PRINT "aug_set failed\n"
   CALL &AUGEAS.SYSERR
   HALT
@@ -29,7 +29,7 @@ next.1:
 SET %A "/files/etc/hosts/9999/canonical"
 SET %B "new.host.example"
 CALL &AUGEAS.SET
-NOTOK? @next.2
+OK? @next.2
   PRINT "aug_set failed\n"
   CALL &AUGEAS.SYSERR
   HALT
@@ -37,7 +37,7 @@ NOTOK? @next.2
 next.2:
 SET %A "/files/etc/hosts/7"
 CALL &AUGEAS.REMOVE
-NOTOK? @next.3
+OK? @next.3
   PRINT "aug_rm failed\n"
   CALL &AUGEAS.SYSERR
   HALT
@@ -47,7 +47,7 @@ next.3:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 CALL &AUGEAS.SAVE
-NOTOK? @save.ok
+OK? @save.ok
   COPY %R %A
   PRINT "save failed: %i\n"
   CALL &AUGEAS.SYSERR
@@ -55,7 +55,7 @@ NOTOK? @save.ok
 
 save.ok:
 CALL &AUGEAS.CLOSE
-NOTOK? @close.ok
+OK? @close.ok
   COPY %R %A
   PRINT "close failed: %i\n"
   CALL &AUGEAS.SYSERR

@@ -5,27 +5,27 @@
 
 PRAGMA "userdb.root" "t/tmp/pn/users"
 CALL &USERDB.OPEN
-OK? @userdb.open.fail
+NOTOK? @userdb.open.fail
 
 SET %A 1       ;; by username
 SET %B "user"
 CALL &USER.FIND
-OK? @missing
+NOTOK? @missing
 
 PRINT "found user 'user'\n"
 CALL &USER.REMOVE
-OK? @remove-failed
+NOTOK? @remove-failed
 
 CALL &USERDB.SAVE
-OK? @save-failed
+NOTOK? @save-failed
 
 CALL &USERDB.OPEN
-OK? @userdb.open.fail
+NOTOK? @userdb.open.fail
 
 SET %A 1       ;; by username
 SET %B "user"
 CALL &USER.FIND
-OK? @deleted
+NOTOK? @deleted
 PRINT "found user 'user', post-delete\n"
 HALT
 

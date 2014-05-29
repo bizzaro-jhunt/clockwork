@@ -47,8 +47,7 @@ CALL &FS.CHOWN
 SET %B 0400
 CALL &FS.CHMOD
 next.1:
-FLAGGED? :changed
-OK? @final.1
+!FLAGGED? :changed @final.1
 final.1:
 EOF
 
@@ -61,8 +60,7 @@ OK? @next.1
   CALL &FS.RMDIR
   JUMP @next.1
 next.1:
-FLAGGED? :changed
-OK? @final.1
+!FLAGGED? :changed @final.1
 final.1:
 EOF
 
@@ -79,8 +77,7 @@ exists.1:
 SET %B 0755
 CALL &FS.CHMOD
 next.1:
-FLAGGED? :changed
-OK? @final.1
+!FLAGGED? :changed @final.1
 final.1:
 EOF
 
@@ -126,8 +123,7 @@ CALL &FS.CHOWN
 SET %B 0710
 CALL &FS.CHMOD
 next.1:
-FLAGGED? :changed
-OK? @final.1
+!FLAGGED? :changed @final.1
 final.1:
 EOF
 

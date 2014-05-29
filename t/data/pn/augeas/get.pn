@@ -6,7 +6,7 @@
 SET %A "t/tmp/pn/augeas"
 SET %B "t/tmp/augeas/lenses"
 CALL &AUGEAS.INIT
-NOTOK? @init.ok
+OK? @init.ok
   COPY %R %A
   PRINT "init failed: %i\n"
   HALT
@@ -15,7 +15,7 @@ init.ok:
 
 SET %A "/files/etc/hosts/3/canonical"
 CALL &AUGEAS.GET
-NOTOK? @get.1.ok
+OK? @get.1.ok
   PRINT "failed to get host #3 entry\n"
   CALL &AUGEAS.SYSERR
   HALT
@@ -26,7 +26,7 @@ PRINT "hosts/3/canonical is %s\n"
 
 SET %A "/files/etc/hosts/3/ipaddr"
 CALL &AUGEAS.GET
-NOTOK? @get.2.ok
+OK? @get.2.ok
   PRINT "failed to get host #3 entry\n"
   CALL &AUGEAS.SYSERR
   HALT
@@ -37,7 +37,7 @@ PRINT "hosts/3/ipaddr is %s\n"
 
 SET %A "/files/etc/hosts/*[ipaddr = \"127.0.0.1\" and canonical = \"localhost\"]"
 CALL &AUGEAS.FIND
-NOTOK? @get.3.ok
+OK? @get.3.ok
   PRINT "failed to do advanced search\n"
   CALL &AUGEAS.SYSERR
   HALT
@@ -47,7 +47,7 @@ COPY %S2 %A
 PRINT "found host at %s\n"
 
 CALL &AUGEAS.CLOSE
-NOTOK? @close.ok
+OK? @close.ok
   COPY %R %A
   PRINT "close failed: %i\n"
   HALT

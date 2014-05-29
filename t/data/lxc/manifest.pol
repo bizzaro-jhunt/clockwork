@@ -1,0 +1,98 @@
+policy "tests" {
+	group "editors" {
+		gid: 1011
+	}
+	group "copyedit" {
+		gid: 1022
+	}
+
+	user defaults {
+		gid:      1011
+		skeleton: "/etc/skel"
+		shell:    "/bin/bash"
+	}
+	user "rjoseph" {
+		uid:      2021
+		comment:  "Robin Joseph"
+		home:     "/home/rjoseph"
+		password: "*"
+		changepw: "yes"
+	}
+	user "lmiller" {
+		uid:      2022
+		comment:  "Lila Miller"
+		home:     "/home/lmiller"
+	}
+	user "smoss" {
+		uid:      2144
+		comment:  "Sharon Moss"
+		gid:      1022
+		home:     "/home/copy/smoss"
+		password: "$5$4UFPbrsGjk$BJgFQVRifj4ZbmXLcMgPUqgwisN/setiuQYirjAKYo9"
+	}
+
+##################################################################
+
+	file defaults {
+		owner: "rjoseph"
+		group: "editors"
+		mode:  0644
+	}
+	dir  "/home/rjoseph/.ssh" { mode: 0700 }
+	file "/home/rjoseph/.vimrc" {
+		source: "/cw/cfm/files/rjoseph/vimrc"
+	}
+	dir  "/home/rjoseph/env" { }
+	file "/home/rjoseph/env/gitprompt" {
+		mode:   0755
+		source: "/cw/cfm/files/rjoseph/gitprompt"
+	}
+	file "/home/rjoseph/env/git.bashrc" {
+		mode:   0644
+		source: "/cw/cfm/files/rjoseph/git.bashrc"
+	}
+
+##################################################################
+
+	file defaults {
+		owner: "root"
+		group: "root"
+		mode:  "0644"
+	}
+
+	exec "rm-motd-symlink" {
+		test:    "/usr/bin/test -h /etc/motd"
+		command: "/bin/rm /etc/motd"
+	}
+	file "/etc/motd" {
+		source: "/cw/cfm/files/etc/motd"
+	}
+
+	package "ntp"     { }
+	package "ntpdate" { }
+	service "ntp" {
+		enabled: "no"
+		running: "no"
+	}
+	file "/etc/ntp.conf" {
+		source: "/cw/cfm/files/etc/ntp.conf"
+	}
+	service("ntp") depends on file("/etc/ntp.conf")
+	service("ntp") depends on package("ntp")
+
+	# Patch openssl vulnerabilities
+	if (lsb.distro.release is "12.04") {
+		package "libssl1.0.0" { version: "1.0.1-4ubuntu5.12" }
+		package "openssl"     { version: "1.0.1-4ubuntu5.12" }
+	} else if (lsb.distro.release is "13.10") {
+		package "libssl1.0.0" { version: "1.0.1e-3ubuntu1.2" }
+		package "openssl"     { version: "1.0.1e-3ubuntu1.2" }
+	} else if (lsb.distro.release is "14.14") {
+		package "libssl1.0.0" { version: "1.0.1f-1ubuntu2" }
+		package "openssl"     { version: "1.0.1f-1ubuntu2" }
+	}
+}
+
+host fallback {
+	enforce "tests"
+}

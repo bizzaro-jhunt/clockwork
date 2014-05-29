@@ -4,17 +4,17 @@
 ;;
 
 SET %R 1
-OK? @else.1
+OK? @true.1
   PRINT "OK? continues if R register is non-zero\n"
   JUMP @next
-else.1:
+true.1:
   PRINT "OK? jumps if R register is non-zero\n"
 
 next:
 SET %R 0
-OK? @else.2
+OK? @true.2
   PRINT "OK? continues if R register is zero\n"
   HALT
-else.2:
+true.2:
   PRINT "OK? jumps if R register is zero\n"
   HALT

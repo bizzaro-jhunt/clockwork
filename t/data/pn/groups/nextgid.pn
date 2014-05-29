@@ -5,31 +5,31 @@
 
 PRAGMA "userdb.root" "t/tmp/pn/groups"
 CALL &USERDB.OPEN
-OK? @open.fail
+NOTOK? @open.fail
 
 SET %A 0
 CALL &GROUP.NEXT_GID
-OK? @fail
+NOTOK? @fail
 PRINT "next GID >= %i is %i\n"
 
 SET %A 2
 CALL &GROUP.NEXT_GID
-OK? @fail
+NOTOK? @fail
 PRINT "next GID >= %i is %i\n"
 
 SET %A 500
 CALL &GROUP.NEXT_GID
-OK? @fail
+NOTOK? @fail
 PRINT "next GID >= %i is %i\n"
 
 SET %A 909
 CALL &GROUP.NEXT_GID
-OK? @fail
+NOTOK? @fail
 PRINT "next GID >= %i is %i\n"
 
 SET %A 6500
 CALL &GROUP.NEXT_GID
-OK? @fail
+NOTOK? @fail
 PRINT "next GID >= %i is %i\n"
 
 HALT

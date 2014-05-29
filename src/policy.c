@@ -842,8 +842,7 @@ int policy_gencode(const struct policy *pol, FILE *io)
 		fprintf(io, "next.%i:\n", next);
 
 		/* notifications */
-		fprintf(io, "FLAGGED? :changed\n");
-		fprintf(io, "OK? @final.%i\n", next);
+		fprintf(io, "!FLAGGED? :changed @final.%i\n", next);
 		struct dependency *d;
 		for_each_dependency(d, pol) {
 			if (r == d->resource_b)

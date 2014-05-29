@@ -19,12 +19,10 @@ CALL &GROUP.FIND
 OK? @next.1
   CALL &GROUP.REMOVE
   FLAG 1 :changed
-FLAGGED? :changed
-OK? @next.1
+!FLAGGED? :changed @next.1
   CALL &USERDB.SAVE
 next.1:
-FLAGGED? :changed
-OK? @final.1
+!FLAGGED? :changed @final.1
 final.1:
 EOF
 
@@ -50,12 +48,10 @@ found.1:
   CALL &GROUP.SET_GID
   FLAG 1 :changed
 update.1:
-FLAGGED? :changed
-OK? @next.1
+!FLAGGED? :changed @next.1
   CALL &USERDB.SAVE
 next.1:
-FLAGGED? :changed
-OK? @final.1
+!FLAGGED? :changed @final.1
 final.1:
 EOF
 
@@ -79,12 +75,10 @@ OK? @found.1
   JUMP @update.1
 found.1:
 update.1:
-FLAGGED? :changed
-OK? @next.1
+!FLAGGED? :changed @next.1
   CALL &USERDB.SAVE
 next.1:
-FLAGGED? :changed
-OK? @final.1
+!FLAGGED? :changed @final.1
 final.1:
 EOF
 
@@ -147,12 +141,10 @@ NOTOK? @admin-rm.root.else.1
   CALL &GROUP.RM_ADMIN
   FLAG 1 :changed
 admin-rm.root.else.1:
-FLAGGED? :changed
-OK? @next.1
+!FLAGGED? :changed @next.1
   CALL &USERDB.SAVE
 next.1:
-FLAGGED? :changed
-OK? @final.1
+!FLAGGED? :changed @final.1
 final.1:
 EOF
 

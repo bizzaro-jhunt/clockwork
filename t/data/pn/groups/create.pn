@@ -5,12 +5,12 @@
 
 PRAGMA "userdb.root" "t/tmp/pn/groups"
 CALL &USERDB.OPEN
-OK? @userdb.open.fail
+NOTOK? @userdb.open.fail
 
 SET %A 1     ;; by name
 SET %B "new"
 CALL &GROUP.FIND
-OK? @start
+NOTOK? @start
   PRINT "found group 'new' before we created it...\n"
   HALT
 
@@ -19,25 +19,25 @@ PRINT "group 'new' does not exist\n"
 SET %A "new" ;; name
 SET %B 9002  ;; GID
 CALL &GROUP.CREATE
-OK? @create.fail
+NOTOK? @create.fail
 
 CALL &USERDB.SAVE
-OK? @create.fail
+NOTOK? @create.fail
 
 CALL &USERDB.OPEN
-OK? @userdb.open.fail
+NOTOK? @userdb.open.fail
 
 COPY %E %A
 CALL &USERDB.SAVE
-OK? @create.fail
+NOTOK? @create.fail
 
 CALL &USERDB.OPEN
-OK? @userdb.open.fail
+NOTOK? @userdb.open.fail
 
 SET %A 1
 SET %B "new"
 CALL &GROUP.FIND
-OK? @missing
+NOTOK? @missing
 
 PRINT "group 'new' found, post-create\n"
 

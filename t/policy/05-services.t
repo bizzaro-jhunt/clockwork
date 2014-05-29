@@ -13,8 +13,7 @@ CALL &EXEC.CHECK
 SET %A "cwtool svc-init start snmpd"
 CALL &EXEC.CHECK
 next.1:
-FLAGGED? :changed
-OK? @final.1
+!FLAGGED? :changed @final.1
 final.1:
 EOF
 
@@ -24,8 +23,7 @@ FLAG 0 :changed
 SET %A "cwtool svc-init stop microcode"
 CALL &EXEC.CHECK
 next.1:
-FLAGGED? :changed
-OK? @final.1
+!FLAGGED? :changed @final.1
 final.1:
 EOF
 
@@ -37,8 +35,7 @@ CALL &EXEC.CHECK
 SET %A "cwtool svc-init stop neverwhere"
 CALL &EXEC.CHECK
 next.1:
-FLAGGED? :changed
-OK? @final.1
+!FLAGGED? :changed @final.1
 final.1:
 EOF
 

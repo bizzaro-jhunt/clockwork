@@ -5,28 +5,28 @@
 
 PRAGMA "userdb.root" "t/tmp/pn/groups"
 CALL &USERDB.OPEN
-OK? @userdb.open.fail
+NOTOK? @userdb.open.fail
 
 SET %A 1       ;; by name
 SET %B "users"
 CALL &GROUP.FIND
-OK? @missing
+NOTOK? @missing
 
 PRINT "found group 'users'\n"
 CALL &GROUP.REMOVE
-OK? @remove-failed
+NOTOK? @remove-failed
 
 COPY %F %A
 CALL &USERDB.SAVE
-OK? @update-failed
+NOTOK? @update-failed
 
 CALL &USERDB.OPEN
-OK? @userdb.open.fail
+NOTOK? @userdb.open.fail
 
 SET %A 1       ;; by name
 SET %B "users"
 CALL &GROUP.FIND
-OK? @deleted
+NOTOK? @deleted
 PRINT "found group 'group', post-delete\n"
 HALT
 

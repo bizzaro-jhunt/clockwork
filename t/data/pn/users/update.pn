@@ -5,72 +5,72 @@
 
 PRAGMA "userdb.root" "t/tmp/pn/users"
 CALL &USERDB.OPEN
-OK? @userdb.open.fail
+NOTOK? @userdb.open.fail
 
 SET %A 1       ;; by username
 SET %B "svc"
 CALL &USER.FIND
-OK? @not-found
+NOTOK? @not-found
 
 SET %B "svc2"
 CALL &USER.SET_NAME
-OK? @update-failed
+NOTOK? @update-failed
 
 SET %B 1999
 CALL &USER.SET_UID
-OK? @update-failed
+NOTOK? @update-failed
 
 SET %B 1909
 CALL &USER.SET_GID
-OK? @update-failed
+NOTOK? @update-failed
 
 SET %B "lol"
 CALL &USER.SET_PASSWD
-OK? @update-failed
+NOTOK? @update-failed
 
 SET %B "A New Service Account"
 CALL &USER.SET_GECOS
-OK? @update-failed
+NOTOK? @update-failed
 
 SET %B "/var/lib/nowhere"
 CALL &USER.SET_HOME
-OK? @update-failed
+NOTOK? @update-failed
 
 SET %B "/bin/false"
 CALL &USER.SET_SHELL
-OK? @update-failed
+NOTOK? @update-failed
 
 SET %B 90
 CALL &USER.SET_PWMIN
-OK? @update-failed
+NOTOK? @update-failed
 
 SET %B 104
 CALL &USER.SET_PWMAX
-OK? @update-failed
+NOTOK? @update-failed
 
 SET %B 14
 CALL &USER.SET_PWWARN
-OK? @update-failed
+NOTOK? @update-failed
 
 SET %B 12345
 CALL &USER.SET_INACT
-OK? @update-failed
+NOTOK? @update-failed
 
 SET %B 2468
 CALL &USER.SET_EXPIRY
-OK? @update-failed
+NOTOK? @update-failed
 
 COPY %F %A
 CALL &USERDB.SAVE
-OK? @update-failed
+NOTOK? @update-failed
 
 CALL &USERDB.OPEN
-OK? @userdb.open.fail
+NOTOK? @userdb.open.fail
 
 SET %A 1       ;; by username
 SET %B "svc2"
 CALL &USER.FIND
-OK? @not-found
+NOTOK? @not-found
 
 CALL &USER.GET_NAME
 COPY %R %A

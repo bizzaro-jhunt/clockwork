@@ -11,8 +11,7 @@ FLAG 0 :changed
 SET %A "cwtool pkg-install binutils latest"
 CALL &EXEC.CHECK
 next.1:
-FLAGGED? :changed
-OK? @final.1
+!FLAGGED? :changed @final.1
 final.1:
 EOF
 
@@ -22,8 +21,7 @@ FLAG 0 :changed
 SET %A "cwtool pkg-remove binutils"
 CALL &EXEC.CHECK
 next.1:
-FLAGGED? :changed
-OK? @final.1
+!FLAGGED? :changed @final.1
 final.1:
 EOF
 
@@ -33,8 +31,7 @@ FLAG 0 :changed
 SET %A "cwtool pkg-install binutils 1.2.3"
 CALL &EXEC.CHECK
 next.1:
-FLAGGED? :changed
-OK? @final.1
+!FLAGGED? :changed @final.1
 final.1:
 EOF
 

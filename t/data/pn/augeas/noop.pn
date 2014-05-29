@@ -6,7 +6,7 @@
 SET %A "t/tmp/pn/augeas"
 SET %B "t/data/aug/includes"
 CALL &AUGEAS.INIT
-NOTOK? @init.ok
+OK? @init.ok
   COPY %R %A
   PRINT "init failed: %i\n"
   HALT
@@ -15,7 +15,7 @@ init.ok:
   PRINT "initialized\n"
 
 CALL &AUGEAS.CLOSE
-NOTOK? @close.ok
+OK? @close.ok
   COPY %R %A
   PRINT "close failed: %i\n"
   HALT

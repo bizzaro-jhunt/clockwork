@@ -19,8 +19,7 @@ diff.1:
   CALL &FS.PUT
 done.1:
 next.1:
-FLAGGED? :changed
-OK? @final.1
+!FLAGGED? :changed @final.1
 final.1:
 EOF
 
@@ -42,8 +41,7 @@ SET %B "0"
 SET %C "net.ipv6.icmp.ratelimit"
 CALL &AUGEAS.SET
 next.1:
-FLAGGED? :changed
-OK? @final.1
+!FLAGGED? :changed @final.1
 final.1:
 EOF
 

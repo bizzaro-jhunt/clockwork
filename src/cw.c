@@ -777,7 +777,7 @@ int cw_pdu_send(void *zocket, cw_pdu_t *pdu)
 	f->more = 1;
 	rc = cw_frame_send(zocket, f);
 	assert(rc >= 0);
-	nft_frame_close(f);
+	cw_frame_close(f);
 	free(f);
 
 	for_each_object(f, &pdu->frames, l) {

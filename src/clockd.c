@@ -706,7 +706,7 @@ static inline server_t *s_server_new(int argc, char **argv)
 	                          atoi(cw_cfg_get(&config, "ccache.expiration")));
 
 	t = cw_string("tcp://%s", cw_cfg_get(&config, "listen"));
-	cw_log(LOG_DEBUG, "binding to %s", s);
+	cw_log(LOG_DEBUG, "binding to %s", t);
 	s->zmq = zmq_ctx_new();
 	s->listener = zmq_socket(s->zmq, ZMQ_ROUTER);
 	zmq_bind(s->listener, t);

@@ -385,7 +385,14 @@ static int s_state_machine(client_t *fsm, cw_pdu_t *pdu, cw_pdu_t **reply)
 			}
 
 		} else {
-			*reply = cw_pdu_make(pdu->src, 2, "BLOCK", block);
+			*reply = cw_pdu_make(pdu->src, 1, "BLOCK");
+			assert(*reply);
+
+			/* because block may have embedded NULLs, we have
+			   to manufacture our frame the old fashioned way */
+			cw_frame_t *dframe = cw_frame_newbuf(block, n);
+			assert(dframe);
+			cw_pdu_extend(*reply, dframe);
 		}
 		return 0;
 

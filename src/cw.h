@@ -210,6 +210,7 @@ void * cw_zmq_ident(void *zocket, void *id);
 cw_frame_t *cw_frame_recv(void *zocket);
 int cw_frame_send(void *zocket, cw_frame_t *f);
 cw_frame_t *cw_frame_new(const char *s);
+cw_frame_t *cw_frame_newbuf(const char *buf, size_t len);
 cw_frame_t *cw_frame_copy(cw_frame_t *f);
 void cw_frame_close(cw_frame_t *f);
 char *cw_frame_text(cw_frame_t *f);
@@ -238,6 +239,7 @@ void cw_pdu_destroy(cw_pdu_t *pdu);
 void cw_pdu_dump(FILE *io, cw_pdu_t *pdu);
 
 cw_frame_t * cw_pdu_frame(cw_pdu_t *pdu, size_t n);
+size_t cw_pdu_framelen(cw_pdu_t *pdu, size_t n);
 #define cw_pdu_text(pdu,n) cw_frame_text(cw_pdu_frame(pdu,n))
 
 cw_pdu_t *cw_pdu_recv(void *zocket);

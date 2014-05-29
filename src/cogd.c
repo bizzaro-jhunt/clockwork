@@ -230,7 +230,7 @@ static void s_cfm_run(client_t *c)
 			break;
 
 		char *data = cw_pdu_text(reply, 1);
-		fprintf(bdfa, "%s", data);
+		fwrite(data, 1, cw_pdu_framelen(reply, 1), bdfa);
 		free(data);
 	}
 	rewind(bdfa);

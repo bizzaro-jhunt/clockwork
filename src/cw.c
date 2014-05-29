@@ -507,6 +507,21 @@ cw_frame_t *cw_frame_new(const char *s)
 	return s_cw_frame_build(f);
 }
 
+cw_frame_t *cw_frame_newbuf(const char *buf, size_t len)
+{
+	assert(buf);
+
+	cw_frame_t *f = calloc(1, sizeof(cw_frame_t));
+	assert(f);
+
+	int rc = zmq_msg_init_size(&f->msg, len);
+	assert(rc == 0);
+
+	memcpy(zmq_msg_data(&f->msg), buf, len);
+
+	return s_cw_frame_build(f);
+}
+
 cw_frame_t *cw_frame_copy(cw_frame_t *f)
 {
 	cw_frame_t *new = calloc(1, sizeof(cw_frame_t));
@@ -680,6 +695,12 @@ cw_frame_t *cw_pdu_frame(cw_pdu_t *pdu, size_t n)
 	while (n-- > 0)
 		f = cw_list_next(f, l);
 	return f;
+}
+
+size_t cw_pdu_framelen(cw_pdu_t *pdu, size_t n)
+{
+	cw_frame_t *f = cw_pdu_frame(pdu, n);
+	return f ? f->size : 0;
 }
 
 static cw_pdu_t * s_cw_pdu_new(void)
@@ -1383,13 +1404,21 @@ static inline void s_c82i(void *i, const char *c8)
 
 int cw_bdfa_pack(int out, const char *root)
 {
+	char cwd[819];
+	if (!getcwd(cwd, 8192))
+		return -1;
+	if (chdir(root) != 0)
+		return -1;
+
 	FTS *fts;
 	FTSENT *ent;
-	chdir(root);
 	char *paths[2] = { ".", NULL };
 
-	fts = fts_open(paths, FTS_LOGICAL, NULL);
-	if (!fts) return -1;
+	fts = fts_open(paths, FTS_LOGICAL|FTS_XDEV, NULL);
+	if (!fts) {
+		chdir(cwd);
+		return -1;
+	}
 
 	struct bdfa_hdr h;
 	while ( (ent = fts_read(fts)) != NULL ) {
@@ -1446,11 +1475,18 @@ int cw_bdfa_pack(int out, const char *root)
 	memcpy(h.flags, "0001", 4);
 	write(out, &h, sizeof(h));
 
+	chdir(cwd);
 	return 0;
 }
 
 int cw_bdfa_unpack(int in, const char *root)
 {
+	char cwd[819];
+	if (!getcwd(cwd, 8192))
+		return -1;
+	if (root && chdir(root) != 0)
+		return -1;
+
 	struct bdfa_hdr h;
 	size_t n, len;
 
@@ -1481,6 +1517,9 @@ int cw_bdfa_unpack(int in, const char *root)
 		n = read(in, filename, len);
 
 		if (S_ISDIR(mode)) {
+			cw_log(LOG_INFO, "BDFA: unpacking directory %s %06o %d:%d",
+				filename, mode, uid, gid);
+
 			if (mkdir(filename, mode) != 0) {
 				perror(filename);
 				rc = 1;
@@ -1494,18 +1533,11 @@ int cw_bdfa_unpack(int in, const char *root)
 				}
 			}
 
-			struct utimbuf ut;
-			s_c82i(&ut.actime,  h.mtime);
-			s_c82i(&ut.modtime, h.mtime);
-			if (utime(filename, &ut) != 0) {
-				perror(filename);
-				rc = 1;
-				continue;
-			}
-			continue;
-		}
+		} else if (S_ISREG(mode)) {
+			s_c82i(&len, h.filesize);
 
-		if (S_ISREG(mode)) {
+			cw_log(LOG_INFO, "BDFA: unpacking file %s %06o %d:%d (%d bytes)",
+					filename, mode, uid, gid, len);
 			FILE* out = fopen(filename, "w");
 			if (!out) {
 				perror(filename);
@@ -1514,18 +1546,30 @@ int cw_bdfa_unpack(int in, const char *root)
 			fchmod(fileno(out), mode);
 			fchown(fileno(out), uid, gid);
 
-			s_c82i(&len, h.filesize);
 			char buf[8192];
 			while (len > 0 && (n = read(in, buf, len > 8192 ? 8192: len)) > 0) {
 				len -= n;
 				fwrite(buf, n, 1, out);
 			}
 			fclose(out);
+
 		} else {
 			fprintf(stderr, "%s - unrecognized mode %08x\n",
 				filename, mode);
+			continue;
+		}
+
+		struct utimbuf ut;
+		s_c82i(&ut.actime,  h.mtime);
+		s_c82i(&ut.modtime, h.mtime);
+
+		cw_log(LOG_INFO, "BDFA: setting atime/mtime to %d", ut.modtime);
+		if (utime(filename, &ut) != 0) {
+			perror(filename);
+			rc = 1;
 		}
 	}
 	umask(umsk);
+	chdir(cwd);
 	return rc;
 }

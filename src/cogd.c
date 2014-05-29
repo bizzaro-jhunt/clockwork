@@ -33,6 +33,8 @@
 
 #define MODE_RUN  0
 #define MODE_DUMP 1
+#define MODE_CODE 2
+#define MODE_ONCE 3
 
 #define PROTOCOL_VERSION         1
 #define PROTOCOL_VERSION_STRING "1"
@@ -283,19 +285,25 @@ static void s_cfm_run(client_t *c)
 		goto shut_it_down;
 	}
 
-	pn_machine m;
-	pn_init(&m);
-	pendulum_funcs(&m, client);
-
 	char *code = cw_pdu_text(reply, 1);
-	io = tmpfile();
-	fprintf(io, "%s", code);
-	fseek(io, 0, SEEK_SET);
+	if (c->mode == MODE_CODE) {
+		cw_log(LOG_DEBUG, "dumping pendulum code to standard output");
+		printf("%s\n", code);
 
-	pn_parse(&m, io);
-	m.trace = c->trace;
-	pn_run(&m);
-	fclose(io);
+	} else {
+		pn_machine m;
+		pn_init(&m);
+		pendulum_funcs(&m, client);
+
+		io = tmpfile();
+		fprintf(io, "%s", code);
+		fseek(io, 0, SEEK_SET);
+
+		pn_parse(&m, io);
+		m.trace = c->trace;
+		pn_run(&m);
+		fclose(io);
+	}
 
 	pdu = cw_pdu_make(NULL, 1, "BYE");
 	reply = s_sendto(client, pdu, c->timeout);
@@ -316,6 +324,8 @@ shut_it_down:
 	cw_log(LOG_INFO, "closed connection");
 
 maybe_next_time:
+	if (c->mode == MODE_ONCE || c->mode == MODE_CODE)
+		return;
 	cw_log(LOG_INFO, "Scheduled next configuration run at %i (in %i ms)",
 		c->schedule.next_run, c->schedule.next_run - cw_time_ms());
 }
@@ -352,7 +362,7 @@ static inline client_t* s_client_new(int argc, char **argv)
 
 
 	cw_log(LOG_DEBUG, "processing command-line options");
-	const char *short_opts = "h?vqVc:FdT";
+	const char *short_opts = "h?vqVc:FdTX1";
 	struct option long_opts[] = {
 		{ "help",        no_argument,       NULL, 'h' },
 		{ "verbose",     no_argument,       NULL, 'v' },
@@ -362,6 +372,8 @@ static inline client_t* s_client_new(int argc, char **argv)
 		{ "foreground",  no_argument,       NULL, 'F' },
 		{ "show-config", no_argument,       NULL, 'd' },
 		{ "trace",       no_argument,       NULL, 'T' },
+		{ "code",        no_argument,       NULL, 'X' },
+		{ "once",        no_argument,       NULL, '1' },
 		{ 0, 0, 0, 0 },
 	};
 	int verbose = -1;
@@ -385,6 +397,8 @@ static inline client_t* s_client_new(int argc, char **argv)
 			printf("  -S, --show-config    print configuration and exit\n");
 			printf("  -T, --trace          enable TRACE mode on the pendulum runtime\n");
 			printf("  -c filename          set configuration file (default: " DEFAULT_CONFIG_FILE ")\n");
+			printf("  -X, --code           retrieve Pendulum code, dump it and exit\n");
+			printf("  -1, --once           only run once (implies -F)\n");
 			exit(0);
 			break;
 
@@ -428,9 +442,24 @@ static inline client_t* s_client_new(int argc, char **argv)
 			cw_log(LOG_DEBUG, "TRACE option will be set on all Pendulum runs");
 			c->trace = 1;
 			break;
+
+		case '1':
+			cw_log(LOG_DEBUG, "handling -1/--once");
+			cw_log(LOG_DEBUG, "Setting implied -F/--foreground for -X/--code");
+			c->mode = MODE_ONCE;
+			c->daemonize = 0;
+			break;
+
+		case 'X':
+			cw_log(LOG_DEBUG, "handling -X/--code");
+			cw_log(LOG_DEBUG, "Setting implied -F/--foreground for -X/--code");
+			c->mode = MODE_CODE;
+			c->daemonize = 0;
+			break;
 		}
 	}
 	cw_log(LOG_DEBUG, "option processing complete");
+	cw_log(LOG_DEBUG, "running in mode %i\n", c->mode);
 
 
 	cw_log(LOG_DEBUG, "parsing cogd configuration file '%s'", config_file);
@@ -532,12 +561,17 @@ static inline client_t* s_client_new(int argc, char **argv)
 	if (c->daemonize)
 		cw_daemonize(cw_cfg_get(&config, "pidfile"), "root", "root");
 
-	s = cw_string("tcp://%s", cw_cfg_get(&config, "listen"));
-	cw_log(LOG_DEBUG, "binding to %s", s);
+
 	c->zmq = zmq_ctx_new();
-	c->listener = zmq_socket(c->zmq, ZMQ_ROUTER);
-	zmq_bind(c->listener, s);
-	free(s);
+	if (c->mode == MODE_ONCE || c->mode == MODE_CODE) {
+		cw_log(LOG_DEBUG, "Running under -X/--code or -1/--once; skipping bind");
+	} else {
+		s = cw_string("tcp://%s", cw_cfg_get(&config, "listen"));
+		cw_log(LOG_DEBUG, "binding to %s", s);
+		c->listener = zmq_socket(c->zmq, ZMQ_ROUTER);
+		zmq_bind(c->listener, s);
+		free(s);
+	}
 
 	return c;
 }
@@ -549,6 +583,11 @@ int main(int argc, char **argv)
 	if (getuid() != 0 || geteuid() != 0) {
 		fprintf(stderr, "%s must be run as root!\n", argv[0]);
 		exit(9);
+	}
+
+	if (c->mode == MODE_ONCE || c->mode == MODE_CODE) {
+		s_cfm_run(c);
+		exit(0);
 	}
 
 	while (!cw_sig_interrupt()) {

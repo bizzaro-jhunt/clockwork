@@ -294,7 +294,7 @@ static void s_cfm_run(client_t *c)
 
 	pn_parse(&m, io);
 	m.trace = c->trace;
-	pn_run_safe(&m);
+	pn_run(&m);
 	fclose(io);
 
 	pdu = cw_pdu_make(NULL, 1, "BYE");

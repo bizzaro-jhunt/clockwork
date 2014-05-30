@@ -7,31 +7,6 @@ sub fact($$)
 	print "$name=$value\n";
 }
 
-
-##
-## clockwork.* - Internal Clockwork Stuff
-##
-
-## clockwork.manager.service - Service Manager Implementation
-my $SM = "unspecified";
-if (-x "/usr/sbin/invoke-rc.d" && -x "/usr/sbin/update-rc.d") {
-	$SM = "/lib/clockwork/bin/debian/cw-svc";
-} elsif (-x "/sbin/chkconfig") {
-	$SM = "/lib/clockwork/bin/redhat/cw-svc";
-}
-$SM = "/lib/clockwork/bin/unspec/cw-svc" if !-x $SM;
-fact("clockwork.manager.service", $SM);
-
-## clockwork.manager.package - Package Manager Implementation
-my $PM = "unspecified";
-if (-x "/usr/bin/dpkg-query" && -x "/usr/bin/apt-get") {
-	$PM = "/lib/clockwork/bin/debian/cw-pkg";
-} elsif (-x "/bin/rpm" && -x "/usr/bin/yum") {
-	$PM = "/lib/clockwork/bin/redhat/cw-pkg";
-}
-$PM = "/lib/clockwork/bin/unspec/cw-pkg" if !-x $PM;
-fact("clockwork.manager.package", $PM);
-
 ##
 ## sys.* - System Properties
 ##

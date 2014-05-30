@@ -65,7 +65,7 @@ function dir_should_exist() {
 
 function package_should_be_installed() {
 	local pkg=$1
-	/usr/bin/dpkg-query -W -f='${Version}' "$NAME" >/dev/null
+	/usr/bin/dpkg-query -W -f='${Version}' "$pkg" &>/dev/null
 	if [[ $? != 0 ]]; then
 		echo >&2 "Package $pkg is not installed"
 		RC=2
@@ -74,7 +74,7 @@ function package_should_be_installed() {
 
 function package_should_not_be_installed() {
 	local pkg=$1
-	/usr/bin/dpkg-query -W -f='${Version}' "$NAME" >/dev/null
+	/usr/bin/dpkg-query -W -f='${Version}' "$pkg" &>/dev/null
 	if [[ $? == 0 ]]; then
 		echo >&2 "Package $pkg is installed"
 		RC=2

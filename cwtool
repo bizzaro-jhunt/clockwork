@@ -7,16 +7,12 @@
 # created: 2014-05-20
 #
 
-# USAGE: cwtool <flavor> <action> [arguments]
-#
-# <flavor> identifies the local system and its behaviors,
-# available utilities, conventions, etc.  It will *usually*
-# be set to the value of the `sys.favor` fact.
-#
-# Unrecognized values will be met with a swift and unapologetic
-# exit code of 126.
+# USAGE: cwtool <action> [arguments]
 #
 # <action> must be one of the following:
+#
+#   identify              Identify the current cwtool environment
+#                         (including the detect system type)
 #
 #   svc-run-status SVC    Determine whether or not the service is
 #                         running (per LSB semantics).
@@ -79,27 +75,62 @@
 #
 
 #################################################################
+# AUTO-DETECTION
+#
 
-FLAVOR=$1
-ACTION=$2
+AUTO_PKG=undetermined
+if test -x "/usr/bin/dpkg-query" \
+&& test -x "/usr/bin/apt-get"; then
+	AUTO_PKG=debian
+
+elif test -x "/bin/rpm" \
+  && test -x "/usr/bin/yum"; then
+	AUTO_PKG=redhat
+fi
+
+AUTO_SVC=undetermined
+if test -x "/usr/sbin/invoke-rc.d" \
+&& test -x "/usr/sbin/update-rc.d"; then
+	AUTO_SVC=debian
+
+elif test -x "/sbin/chkconfig"; then
+	AUTO_SVC=redhat
+fi
+
+#################################################################
+
+ACTION=$1
+test -z "$ACTION" || shift
+
+test "x$SYSTYPE" = "x" && SYSTYPE="auto"
+if [ "x$SYSTYPE" = "xauto" ]; then
+	SYSTYPE=undetermined
+	case $ACTION in
+	pkg-*) SYSTYPE=$AUTO_PKG ;;
+	svc-*) SYSTYPE=$AUTO_SVC ;;
+	esac
+fi
 
 #################################################################
 
 on_debian () {
 	case $ACTION in
 	pkg-version)
-		NAME=$3
+		NAME=$1
 		/usr/bin/dpkg-query -W -f='${Version}' "$NAME"
 		exit $?
 		;;
 	pkg-latest)
-		NAME=$3
-		# FIXME: make this work under debian
+		NAME=$1
+		if test -x /usr/bin/apt-cache; then
+			/usr/bin/apt-cache policy $NAME | grep Candidate | sed -e 's/.*: *//' | tr -d '\n'
+			exit $?
+		fi
 		exit 0
 		;;
 	pkg-install)
-		NAME=$3
-		VERSION=$4
+		NAME=$1
+		VERSION=$2
 		if [ "x$VERSION" = "xlatest" ]; then
 			/usr/bin/apt-get install -qqy "$NAME"
 			exit $?
@@ -111,39 +142,39 @@ on_debian () {
 		fi
 		;;
 	pkg-remove)
-		NAME=$3
+		NAME=$1
 		/usr/bin/apt-get purge -qqy "$NAME"
 		exit $?
 		;;
 
 	svc-run-status)
-		NAME=$3
+		NAME=$1
 		/usr/sbin/service $NAME status 2>/dev/null >/dev/null
 		RC=$?
 		[ "x$RC" = "x7" ] && exit 1
 		exit $RC
 		;;
 	svc-boot-status)
-		NAME=$3
+		NAME=$1
 		/usr/sbin/invoke-rc.d --quiet --query "$NAME" start
 		RC=$?
 		[ "x$RC" = "x104" ] && exit 0
 		exit $RC
 		;;
 	svc-init)
-		NAME=$3
-		VERB=$4
+		NAME=$1
+		VERB=$2
 		/usr/sbin/service $NAME $VERB 2>/dev/null >/dev/null
 		exit $?
 		;;
 	svc-enable)
-		NAME=$3
+		NAME=$1
 		/usr/sbin/update-rc.d -f "$NAME" remove
 		/usr/sbin/update-rc.d    "$NAME" defaults
 		exit $?
 		;;
 	svc-disable)
-		NAME=$3
+		NAME=$1
 		/usr/sbin/update-rc.d -f "$NAME" remove
 		exit $?
 		;;
@@ -155,18 +186,18 @@ on_debian () {
 on_redhat () {
 	case $ACTION in
 	pkg-version)
-		NAME=$3
+		NAME=$1
 		/bin/rpm --qf='%{VERSION}' -q "$NAME" | /bin/grp -qv 'is not installed$'
 		exit $?
 		;;
 	pkg-latest)
-		NAME=$3
+		NAME=$1
 		/usr/bin/repoquery --qf '%{VERSION}' -q "$NAME"
 		exit 0
 		;;
 	pkg-install)
-		NAME=$3
-		VERSION=$4
+		NAME=$1
+		VERSION=$2
 		if [ "x$VERSION" = "xlatest" ]; then
 			/usr/bin/yum install -qy "$NAME"
 			exit $?
@@ -177,33 +208,33 @@ on_redhat () {
 		fi
 		;;
 	pkg-remove)
-		NAME=$3
+		NAME=$1
 		/usr/bin/yum erase -qy "$NAME"
 		;;
 
 	svc-run-status)
-		NAME=$3
+		NAME=$1
 		/usr/sbin/service $NAME status 2>/dev/null >/dev/null
 		exit $?
 		;;
 	svc-boot-status)
-		NAME=$3
+		NAME=$1
 		/sbin/chkconfig --list "$NAME" | /bin/grep -q ':on'
 		exit $?
 		;;
 	svc-init)
-		NAME=$3
-		VERB=$4
+		NAME=$1
+		VERB=$2
 		/usr/sbin/service $NAME $VERB 2>/dev/null >/dev/null
 		exit $?
 		;;
 	svc-enable)
-		NAME=$3
+		NAME=$1
 		/sbin/chkconfig "$NAME" on
 		exit $?
 		;;
 	svc-disable)
-		NAME=$3
+		NAME=$1
 		/sbin/chkconfig "$NAME" on
 		exit $?
 		;;
@@ -212,7 +243,13 @@ on_redhat () {
 
 #################################################################
 
-case $FLAVOR in
+if [ "x$ACTION" = "xidentify" ]; then
+	echo "$AUTO_SVC (services)"
+	echo "$AUTO_PKG (packaging)"
+	exit 0
+fi
+
+case $SYSTYPE in
 debian)
 	on_debian "$@"
 	;;

@@ -150,9 +150,11 @@ static int s_exec(const char *cmd, char **out, char **err, uid_t uid, gid_t gid)
 	if (read_stdout && pipe(outfd) != 0) { return 254; }
 	if (read_stderr && pipe(errfd) != 0) { return 254; }
 
+	cw_log(LOG_INFO, "EXEC.CHECK: running %s", cmd);
 	switch (pid = fork()) {
 
 	case -1: /* failed to fork */
+		cw_log(LOG_ERR, "failed to fork for EXEC run: %s", strerror(errno));
 		if (read_stdout) {
 			close(outfd[0]);
 			close(outfd[1]);
@@ -169,10 +171,10 @@ static int s_exec(const char *cmd, char **out, char **err, uid_t uid, gid_t gid)
 		dup2((read_stderr ? errfd[1] : nullfd), 2);
 
 		if (gid && setgid(gid) != 0)
-			cw_log(LOG_WARNING, "EXEC.CHECK child could not switch to group ID %u to run `%s'", gid, cmd);
+			cw_log(LOG_WARNING, "EXEC child could not switch to group ID %u to run `%s'", gid, cmd);
 
 		if (uid && setuid(uid) != 0)
-			cw_log(LOG_WARNING, "EXEC.CHECK child could not switch to user ID %u to run `%s'", uid, cmd);
+			cw_log(LOG_WARNING, "EXEC child could not switch to user ID %u to run `%s'", uid, cmd);
 
 		execl("/bin/sh", "sh", "-c", cmd, (char*)NULL);
 		exit(1);

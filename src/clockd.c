@@ -470,7 +470,7 @@ static void s_ccache_purge(ccache_t *c)
 			continue;
 
 		cw_log(LOG_DEBUG, "purging %p, last_seen=%i, name=%s, %s facts, %s policy",
-			c->clients[i], c->clients[i].last_seen, c->clients[i].name,
+			&c->clients[i], c->clients[i].last_seen, c->clients[i].name,
 			(c->clients[i].facts  ? "has" : "no"),
 			(c->clients[i].policy ? "has" : "no"));
 		cw_log(LOG_INFO, "purging %p, last_seen=%i",

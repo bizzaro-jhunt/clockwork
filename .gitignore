@@ -21,6 +21,7 @@ stamp-h?
 /pn
 /clockd
 /cogd
+/fact
 /bdfa
 
 config.h

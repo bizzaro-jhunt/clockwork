@@ -1404,8 +1404,8 @@ static inline void s_c82i(void *i, const char *c8)
 
 int cw_bdfa_pack(int out, const char *root)
 {
-	char cwd[819];
-	if (!getcwd(cwd, 8192))
+	int cwd = open(".", O_RDONLY);
+	if (cwd < 0)
 		return -1;
 	if (chdir(root) != 0)
 		return -1;
@@ -1416,7 +1416,7 @@ int cw_bdfa_pack(int out, const char *root)
 
 	fts = fts_open(paths, FTS_LOGICAL|FTS_XDEV, NULL);
 	if (!fts) {
-		chdir(cwd);
+		fchdir(cwd);
 		return -1;
 	}
 
@@ -1475,14 +1475,14 @@ int cw_bdfa_pack(int out, const char *root)
 	memcpy(h.flags, "0001", 4);
 	write(out, &h, sizeof(h));
 
-	chdir(cwd);
+	fchdir(cwd);
 	return 0;
 }
 
 int cw_bdfa_unpack(int in, const char *root)
 {
-	char cwd[819];
-	if (!getcwd(cwd, 8192))
+	int cwd = open(".", O_RDONLY);
+	if (cwd < 0)
 		return -1;
 	if (root && chdir(root) != 0)
 		return -1;
@@ -1570,6 +1570,6 @@ int cw_bdfa_unpack(int in, const char *root)
 		}
 	}
 	umask(umsk);
-	chdir(cwd);
+	fchdir(cwd);
 	return rc;
 }

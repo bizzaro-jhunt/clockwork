@@ -1265,12 +1265,27 @@ int res_package_gencode(const void *res, FILE *io, unsigned int next)
 	assert(r); // LCOV_EXCL_LINE
 
 	fprintf(io, ";; res_package %s\n", r->key);
+	fprintf(io, "SET %%A \"cwtool pkg-version %s\"\n", r->name);
+	fprintf(io, "CALL &EXEC.RUN1\n");
 	if (ENFORCED(r, RES_PACKAGE_ABSENT)) {
-		fprintf(io, "SET %%A \"cwtool pkg-remove %s\"\n", r->name);
+		fprintf(io, "NOTOK? @next.%i\n", next);
+		fprintf(io, "  SET %%A \"cwtool pkg-remove %s\"\n", r->name);
+		fprintf(io, "  CALL &EXEC.CHECK\n");
 	} else {
+		fprintf(io, "  COPY %%R %%T1\n");
+		if (r->version) {
+			fprintf(io, "  SET %%T2 \"%s\"\n", r->version);
+		} else {
+			fprintf(io, "  SET %%A \"cwtool pkg-latest %s\"\n", r->name);
+			fprintf(io, "  CALL &EXEC.RUN1\n");
+			fprintf(io, "  OK? @got.latest.%i\n", next);
+			fprintf(io, "    PRINT \"Failed to detect latest version of '%s'\\n\"\n", r->name);
+			fprintf(io, "    JUMP @next.%i\n", next);
+			fprintf(io, "  got.latest.%i:\n", next);
+			fpritnf(io, "  COPY %%R %%T2\n");
+		}
 		fprintf(io, "SET %%A \"cwtool pkg-install %s %s\"\n", r->name, r->version ? r->version : "latest");
 	}
-	fprintf(io, "CALL &EXEC.CHECK\n");
 	return 0;
 }
 

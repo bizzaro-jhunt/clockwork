@@ -837,7 +837,7 @@ int policy_gencode(const struct policy *pol, FILE *io)
 	unsigned int next = 0;
 	for_each_resource(r, pol) {
 		next++;
-		fprintf(io, "FLAG 0 :changed\n");
+		fprintf(io, "RESET\n");
 		resource_gencode(r, io, next);
 		fprintf(io, "next.%i:\n", next);
 

@@ -42,6 +42,7 @@
 #define  PN_OP_DIFF     0x0018
 #define  PN_OP_PRAGMA   0x0019
 #define  PN_OP_NFLAGGED 0x001a
+#define  PN_OP_RESET    0x001b
 #define  PN_OP_INVAL    0x00ff
 
 #define PC      pn_CODE(m, m->Ip)
@@ -76,6 +77,7 @@ static const char *OP_NAMES[] = {
 	"DIFF?",
 	"PRAGMA",
 	"!FLAGGED?",
+	"RESET",
 	"(invalid)",
 	NULL,
 };
@@ -213,6 +215,7 @@ static int s_resolve_op(const char *op)
 	if (strcmp(op, "FLAG")     == 0) return PN_OP_FLAG;
 	if (strcmp(op, "FLAGGED?") == 0) return PN_OP_FLAGGED;
 	if (strcmp(op, "!FLAGGED?") == 0) return PN_OP_NFLAGGED;
+	if (strcmp(op, "RESET")     == 0) return PN_OP_RESET;
 	fprintf(stderr, "Invalid op: '%s'\n", op);
 	return PN_OP_INVAL;
 }
@@ -621,6 +624,12 @@ int pn_run(pn_machine *m)
 			pn_trace(m, TRACE_START " %s = %i\n", TRACE_ARGS,
 					m->flags[TAGV(PC.arg2)].label, PC.arg1 == 0 ? 0 : 1);
 			m->flags[TAGV(PC.arg2)].value = (PC.arg1 ? 1 : 0);
+			NEXT;
+
+		case PN_OP_RESET:
+			m->A = m->B = m->C = m->D = m->E = m->F = 0;
+			m->T1 = m->T2 = m->R = 0;
+			pn_flag(m, ":changed", 0);
 			NEXT;
 
 		default: pn_die(m, "Unknown / Invalid operand");

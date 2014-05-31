@@ -6,7 +6,7 @@ use Test::More;
 use t::common;
 
 gencode_ok "use host sysctl1.test", <<'EOF', "sysctl resource";
-FLAG 0 :changed
+RESET
 ;; res_sysctl net.ipv6.icmp.ratelimit
 SET %A "/proc/sys/net/ipv6/icmp/ratelimit"
 CALL &FS.GET
@@ -22,7 +22,7 @@ final.1:
 EOF
 
 gencode_ok "use host sysctl2.test", <<'EOF', "persistent sysctl resource";
-FLAG 0 :changed
+RESET
 ;; res_sysctl net.ipv6.icmp.ratelimit
 SET %A "/proc/sys/net/ipv6/icmp/ratelimit"
 CALL &FS.GET

@@ -6,7 +6,7 @@ use Test::More;
 use t::common;
 
 gencode_ok "use host group1.test", <<'EOF', "group removal";
-FLAG 0 :changed
+RESET
 ;; res_group group1
 CALL &USERDB.OPEN
 OK? @start.1
@@ -25,7 +25,7 @@ final.1:
 EOF
 
 gencode_ok "use host group2.test", <<'EOF', "group creation with explicit GID";
-FLAG 0 :changed
+RESET
 ;; res_group group2
 CALL &USERDB.OPEN
 OK? @start.1
@@ -52,7 +52,7 @@ final.1:
 EOF
 
 gencode_ok "use host group3.test", <<'EOF', "group creation without explicit GID";
-FLAG 0 :changed
+RESET
 ;; res_group group3
 CALL &USERDB.OPEN
 OK? @start.1
@@ -78,7 +78,7 @@ final.1:
 EOF
 
 gencode_ok "use host group4.test", <<'EOF', "group with all attrs";
-FLAG 0 :changed
+RESET
 ;; res_group group4
 CALL &USERDB.OPEN
 OK? @start.1

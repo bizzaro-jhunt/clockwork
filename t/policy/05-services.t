@@ -6,7 +6,7 @@ use Test::More;
 use t::common;
 
 gencode_ok "use host service1.test", <<'EOF', "service resource";
-FLAG 0 :changed
+RESET
 ;; res_service snmpd
 SET %A "cwtool svc-enable snmpd"
 CALL &EXEC.CHECK
@@ -18,7 +18,7 @@ final.1:
 EOF
 
 gencode_ok "use host service2.test", <<'EOF', "stopped service";
-FLAG 0 :changed
+RESET
 ;; res_service microcode
 SET %A "cwtool svc-init stop microcode"
 CALL &EXEC.CHECK
@@ -28,7 +28,7 @@ final.1:
 EOF
 
 gencode_ok "use host service3.test", <<'EOF', "service resource";
-FLAG 0 :changed
+RESET
 ;; res_service neverwhere
 SET %A "cwtool svc-disable neverwhere"
 CALL &EXEC.CHECK

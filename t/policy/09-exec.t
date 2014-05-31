@@ -6,7 +6,7 @@ use Test::More;
 use t::common;
 
 gencode_ok "use host exec1.test", <<'EOF', "exec resource";
-FLAG 0 :changed
+RESET
 ;; res_exec /bin/ls -l /tmp
 SET %B 0
 SET %C 0
@@ -20,7 +20,7 @@ final.1:
 EOF
 
 gencode_ok "use host exec2.test", <<'EOF', "ondemand exec";
-FLAG 0 :changed
+RESET
 ;; res_exec /bin/refresh-the-thing
 SET %B 0
 SET %C 0
@@ -35,7 +35,7 @@ final.1:
 EOF
 
 gencode_ok "use host exec3.test", <<'EOF', "conditional exec";
-FLAG 0 :changed
+RESET
 ;; res_exec CONDITIONAL
 SET %B 0
 SET %C 0
@@ -52,7 +52,7 @@ final.1:
 EOF
 
 gencode_ok "use host exec4.test", <<'EOF', "all attrs";
-FLAG 0 :changed
+RESET
 ;; res_exec catmans
 CALL &USERDB.OPEN
 OK? @who.lookup.1

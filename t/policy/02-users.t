@@ -6,7 +6,7 @@ use Test::More;
 use t::common;
 
 gencode_ok "use host user1.test", <<'EOF', "user removal";
-FLAG 0 :changed
+RESET
 ;; res_user t1user
 CALL &USERDB.OPEN
 OK? @start.1
@@ -26,7 +26,7 @@ final.1:
 EOF
 
 gencode_ok "use host user2.test", <<'EOF', "user creation with explicit UID/GID";
-FLAG 0 :changed
+RESET
 ;; res_user t2user
 CALL &USERDB.OPEN
 OK? @start.1
@@ -62,7 +62,7 @@ final.1:
 EOF
 
 gencode_ok "use host user3.test", <<'EOF', "user creation without UID/GID";
-FLAG 0 :changed
+RESET
 ;; res_user t3user
 CALL &USERDB.OPEN
 OK? @start.1
@@ -123,7 +123,7 @@ final.1:
 EOF
 
 gencode_ok "use host user4.test", <<'EOF', "user with all attrs";
-FLAG 0 :changed
+RESET
 ;; res_user t4user
 CALL &USERDB.OPEN
 OK? @start.1

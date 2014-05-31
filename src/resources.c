@@ -1414,40 +1414,56 @@ int res_service_gencode(const void *res, FILE *io, unsigned int next)
 
 	fprintf(io, ";; res_service %s\n", r->key);
 	if (ENFORCED(r, RES_SERVICE_ENABLED)) {
-		fprintf(io, "SET %%A \"cwtool svc-enable %s\"\n", r->service);
+		fprintf(io, "SET %%A \"cwtool svc-boot-status %s\"\n", r->service);
 		fprintf(io, "CALL &EXEC.CHECK\n");
+		fprintf(io, "OK? @enabled.%i\n", next);
+		fprintf(io, "  SET %%A \"cwtool svc-enable %s\"\n", r->service);
+		fprintf(io, "  CALL &EXEC.CHECK\n");
+		fprintf(io, "enabled.%i:\n", next);
 
 	} else if (ENFORCED(r, RES_SERVICE_DISABLED)) {
-		fprintf(io, "SET %%A \"cwtool svc-disable %s\"\n", r->service);
+		fprintf(io, "SET %%A \"cwtool svc-boot-status %s\"\n", r->service);
 		fprintf(io, "CALL &EXEC.CHECK\n");
+		fprintf(io, "NOTOK? @disabled.%i\n", next);
+		fprintf(io, "  SET %%A \"cwtool svc-disable %s\"\n", r->service);
+		fprintf(io, "  CALL &EXEC.CHECK\n");
+		fprintf(io, "disabled.%i:\n", next);
 	}
 
 	if (ENFORCED(r, RES_SERVICE_RUNNING)) {
-		fprintf(io, "SET %%A \"cwtool svc-init %s start\"\n", r->service);
+		fprintf(io, "SET %%A \"cwtool svc-run-status %s\"\n", r->service);
 		fprintf(io, "CALL &EXEC.CHECK\n");
-		fprintf(io, "FLAG 0 :res%i\n",
-			((const struct resource*)res)->serial);
+		fprintf(io, "OK? @running.%i\n", next);
+		fprintf(io, "  SET %%A \"cwtool svc-init %s start\"\n", r->service);
+		fprintf(io, "  CALL &EXEC.CHECK\n");
+		fprintf(io, "  FLAG 1 :changed\n");
+		fprintf(io, "  FLAG 0 :res%i\n", ((const struct resource*)res)->serial);
+		fprintf(io, "running.%i:\n", next);
 
 	} else if (ENFORCED(r, RES_SERVICE_STOPPED)) {
-		fprintf(io, "SET %%A \"cwtool svc-init %s stop\"\n", r->service);
+		fprintf(io, "SET %%A \"cwtool svc-run-status %s\"\n", r->service);
 		fprintf(io, "CALL &EXEC.CHECK\n");
-		fprintf(io, "FLAG 0 :res%i\n",
-			((const struct resource*)res)->serial);
+		fprintf(io, "NOTOK? @stopped.%i\n", next);
+		fprintf(io, "  SET %%A \"cwtool svc-init %s stop\"\n", r->service);
+		fprintf(io, "  CALL &EXEC.CHECK\n");
+		fprintf(io, "  FLAG 1 :changed\n");
+		fprintf(io, "  FLAG 0 :res%i\n", ((const struct resource*)res)->serial);
+		fprintf(io, "stopped.%i:\n", next);
 	}
 
 	fprintf(io, "!FLAGGED? :res%i @next.%i\n",
 			((const struct resource*)res)->serial, next);
 
 	if (ENFORCED(r, RES_SERVICE_RUNNING)) {
-		fprintf(io, "SET %%A \"cwtool svc-init %s restart\"\n", r->service);
-		fprintf(io, "CALL &EXEC.CHECK\n");
-		fprintf(io, "FLAG 0 :res%i\n",
+		fprintf(io, "  SET %%A \"cwtool svc-init %s restart\"\n", r->service);
+		fprintf(io, "  CALL &EXEC.CHECK\n");
+		fprintf(io, "  FLAG 0 :res%i\n",
 			((const struct resource*)res)->serial);
 
 	} else if (ENFORCED(r, RES_SERVICE_STOPPED)) {
-		fprintf(io, "SET %%A \"cwtool svc-init %s stop\"\n", r->service);
-		fprintf(io, "CALL &EXEC.CHECK\n");
-		fprintf(io, "FLAG 0 :res%i\n",
+		fprintf(io, "  SET %%A \"cwtool svc-init %s stop\"\n", r->service);
+		fprintf(io, "  CALL &EXEC.CHECK\n");
+		fprintf(io, "  FLAG 0 :res%i\n",
 			((const struct resource*)res)->serial);
 	}
 

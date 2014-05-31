@@ -349,37 +349,17 @@ int res_user_gencode(const void *res, FILE *io, unsigned int next)
 		}
 		fprintf(io, "  SET %%A \"%s\"\n", r->name);
 		fprintf(io, "  CALL &USER.CREATE\n");
-		if (r->passwd && ENFORCED(r, RES_USER_PASSWD)) {
-			fprintf(io, "  SET %%B \"x\"\n");
-			fprintf(io, "  CALL &USER.SET_PASSWD\n");
+		fprintf(io, "  SET %%B \"x\"\n");
+		fprintf(io, "  CALL &USER.SET_PASSWD\n");
+		if (r->passwd && !ENFORCED(r, RES_USER_PASSWD)) {
 			fprintf(io, "  SET %%B \"%s\"\n", r->passwd);
-			fprintf(io, "  CALL &USER.SET_PWHASH\n");
+		} else {
+			fprintf(io, "  SET %%B \"*\"\n");
 		}
-		if (ENFORCED(r, RES_USER_DIR)) {
-			fprintf(io, "SET %%B \"%s\"\n", r->dir);
-			fprintf(io, "CALL &USER.SET_HOME\n");
-		}
+		fprintf(io, "  CALL &USER.SET_PWHASH\n");
 		if (ENFORCED(r, RES_USER_MKHOME)) {
-			fprintf(io, "CALL &USER.GET_UID\n");
-			fprintf(io, "COPY %%R %%B\n");
-			fprintf(io, "CALL &USER.GET_GID\n");
-			fprintf(io, "COPY %%R %%C\n");
-			fprintf(io, "CALL &USER.GET_HOME\n");
-			fprintf(io, "COPY %%R %%A\n");
-			fprintf(io, "CALL &FS.EXISTS?\n");
-			fprintf(io, "OK? @home.exists.%i\n", next);
-			fprintf(io, "  CALL &FS.MKDIR\n");
-			fprintf(io, "  CALL &FS.CHOWN\n");
-			fprintf(io, "  SET %%D %i\n", 0700);
-			fprintf(io, "  CALL &FS.CHMOD\n");
-			if (r->skel) {
-				fprintf(io, "  COPY %%C %%D\n");
-				fprintf(io, "  COPY %%B %%C\n");
-				fprintf(io, "  COPY %%A %%B\n");
-				fprintf(io, "  SET %%A \"%s\"\n", r->skel);
-				fprintf(io, "  CALL &FS.COPY_R\n");
-			}
-			fprintf(io, "home.exists.%i:\n", next);
+			fprintf(io, "  FLAG 1 :mkhome.%i\n",
+				((const struct resource*)res)->serial);
 		}
 		fprintf(io, "  JUMP @exists.%i\n", next);
 		fprintf(io, "check.ids.%i:\n", next);
@@ -400,6 +380,10 @@ int res_user_gencode(const void *res, FILE *io, unsigned int next)
 			fprintf(io, "CALL &USER.SET_PWHASH\n");
 		}
 
+		if (ENFORCED(r, RES_USER_DIR)) {
+			fprintf(io, "SET %%B \"%s\"\n", r->dir);
+			fprintf(io, "CALL &USER.SET_HOME\n");
+		}
 		if (ENFORCED(r, RES_USER_GECOS)) {
 			fprintf(io, "SET %%B \"%s\"\n", r->gecos);
 			fprintf(io, "CALL &USER.SET_GECOS\n");
@@ -427,6 +411,31 @@ int res_user_gencode(const void *res, FILE *io, unsigned int next)
 		if (ENFORCED(r, RES_USER_EXPIRE)) {
 			fprintf(io, "SET %%B %li\n", r->expire);
 			fprintf(io, "CALL &USER.SET_EXPIRY\n");
+		}
+
+		if (ENFORCED(r, RES_USER_MKHOME)) {
+			fprintf(io, "!FLAGGED? :mkhome.%i @home.exists.%i\n",
+					((const struct resource*)res)->serial, next);
+			fprintf(io, "  CALL &USER.GET_UID\n");
+			fprintf(io, "  COPY %%R %%B\n");
+			fprintf(io, "  CALL &USER.GET_GID\n");
+			fprintf(io, "  COPY %%R %%C\n");
+			fprintf(io, "  CALL &USER.GET_HOME\n");
+			fprintf(io, "  COPY %%R %%A\n");
+			fprintf(io, "  CALL &FS.EXISTS?\n");
+			fprintf(io, "  OK? @home.exists.%i\n", next);
+			fprintf(io, "    CALL &FS.MKDIR\n");
+			fprintf(io, "    CALL &FS.CHOWN\n");
+			fprintf(io, "    SET %%D %i\n", 0700);
+			fprintf(io, "    CALL &FS.CHMOD\n");
+			if (r->skel) {
+				fprintf(io, "    COPY %%C %%D\n");
+				fprintf(io, "    COPY %%B %%C\n");
+				fprintf(io, "    COPY %%A %%B\n");
+				fprintf(io, "    SET %%A \"%s\"\n", r->skel);
+				fprintf(io, "    CALL &FS.COPY_R\n");
+			}
+			fprintf(io, "home.exists.%i:\n", next);
 		}
 	}
 	fprintf(io, "!FLAGGED? :changed @next.%i\n", next);
@@ -1414,13 +1423,34 @@ int res_service_gencode(const void *res, FILE *io, unsigned int next)
 	}
 
 	if (ENFORCED(r, RES_SERVICE_RUNNING)) {
-		fprintf(io, "SET %%A \"cwtool svc-init start %s\"\n", r->service);
+		fprintf(io, "SET %%A \"cwtool svc-init %s start\"\n", r->service);
 		fprintf(io, "CALL &EXEC.CHECK\n");
+		fprintf(io, "FLAG 0 :res%i\n",
+			((const struct resource*)res)->serial);
 
 	} else if (ENFORCED(r, RES_SERVICE_STOPPED)) {
-		fprintf(io, "SET %%A \"cwtool svc-init stop %s\"\n", r->service);
+		fprintf(io, "SET %%A \"cwtool svc-init %s stop\"\n", r->service);
 		fprintf(io, "CALL &EXEC.CHECK\n");
+		fprintf(io, "FLAG 0 :res%i\n",
+			((const struct resource*)res)->serial);
 	}
+
+	fprintf(io, "!FLAGGED? :res%i @next.%i\n",
+			((const struct resource*)res)->serial, next);
+
+	if (ENFORCED(r, RES_SERVICE_RUNNING)) {
+		fprintf(io, "SET %%A \"cwtool svc-init %s restart\"\n", r->service);
+		fprintf(io, "CALL &EXEC.CHECK\n");
+		fprintf(io, "FLAG 0 :res%i\n",
+			((const struct resource*)res)->serial);
+
+	} else if (ENFORCED(r, RES_SERVICE_STOPPED)) {
+		fprintf(io, "SET %%A \"cwtool svc-init %s stop\"\n", r->service);
+		fprintf(io, "CALL &EXEC.CHECK\n");
+		fprintf(io, "FLAG 0 :res%i\n",
+			((const struct resource*)res)->serial);
+	}
+
 
 	return 0;
 }

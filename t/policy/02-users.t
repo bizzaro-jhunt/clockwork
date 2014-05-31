@@ -51,9 +51,9 @@ SET %B 1231
 CALL &USER.SET_UID
 SET %B 1818
 CALL &USER.SET_GID
+exists.1:
 SET %B "/home/t2user"
 CALL &USER.SET_HOME
-exists.1:
 !FLAGGED? :changed @next.1
   CALL &USERDB.SAVE
 next.1:
@@ -92,29 +92,31 @@ group.done.1:
   CALL &USER.SET_PASSWD
   SET %B "$$crypto"
   CALL &USER.SET_PWHASH
+  FLAG 1 :mkhome.0
   JUMP @exists.1
 check.ids.1:
+exists.1:
 SET %B "/home/t3user"
 CALL &USER.SET_HOME
-CALL &USER.GET_UID
-COPY %R %B
-CALL &USER.GET_GID
-COPY %R %C
-CALL &USER.GET_HOME
-COPY %R %A
-CALL &FS.EXISTS?
-OK? @home.exists.1
-  CALL &FS.MKDIR
-  CALL &FS.CHOWN
-  SET %D 448
-  CALL &FS.CHMOD
-  COPY %C %D
-  COPY %B %C
-  COPY %A %B
-  SET %A "/etc/skel"
-  CALL &FS.COPY_R
+!FLAGGED? :mkhome.0 @home.exists.1
+  CALL &USER.GET_UID
+  COPY %R %B
+  CALL &USER.GET_GID
+  COPY %R %C
+  CALL &USER.GET_HOME
+  COPY %R %A
+  CALL &FS.EXISTS?
+  OK? @home.exists.1
+    CALL &FS.MKDIR
+    CALL &FS.CHOWN
+    SET %D 448
+    CALL &FS.CHMOD
+    COPY %C %D
+    COPY %B %C
+    COPY %A %B
+    SET %A "/etc/skel"
+    CALL &FS.COPY_R
 home.exists.1:
-exists.1:
 !FLAGGED? :changed @next.1
   CALL &USERDB.SAVE
 next.1:
@@ -138,19 +140,23 @@ OK? @check.ids.1
   SET %B 1231
   SET %A "t4user"
   CALL &USER.CREATE
+  SET %B "x"
+  CALL &USER.SET_PASSWD
+  SET %B "*"
+  CALL &USER.SET_PWHASH
   JUMP @exists.1
 check.ids.1:
 SET %B 1231
 CALL &USER.SET_UID
 SET %B 1818
 CALL &USER.SET_GID
-SET %B "/home/t4user"
-CALL &USER.SET_HOME
 exists.1:
 SET %B "x"
 CALL &USER.SET_PASSWD
 SET %B "$$crypto"
 CALL &USER.SET_PWHASH
+SET %B "/home/t4user"
+CALL &USER.SET_HOME
 SET %B "Name,,,,"
 CALL &USER.SET_GECOS
 SET %B "/bin/bash"

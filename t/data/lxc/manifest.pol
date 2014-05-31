@@ -23,11 +23,11 @@ policy "tests" {
 		comment:  "Lila Miller"
 		home:     "/home/lmiller"
 	}
-	user "smoss" {
+	user "kharding" {
 		uid:      2144
-		comment:  "Sharon Moss"
+		comment:  "Kevin Harding"
 		gid:      1022
-		home:     "/home/copy/smoss"
+		home:     "/home/copy/kharding"
 		password: "$5$4UFPbrsGjk$BJgFQVRifj4ZbmXLcMgPUqgwisN/setiuQYirjAKYo9"
 	}
 
@@ -69,7 +69,7 @@ policy "tests" {
 	}
 
 	package "ntp"     { }
-	package "ntpdate" { }
+	package "ntpdate" { installed: "no" }
 	service "ntp" {
 		enabled: "no"
 		running: "no"

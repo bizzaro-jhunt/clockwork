@@ -10,7 +10,7 @@ RC=0
 function group_should_exist() {
 	local group=$1
 	for DB in "group" "gshadow"; do
-		getent $DB $group >/dev/null 2>&1
+		grep -q "^$group:" /etc/$DB >/dev/null 2>&1
 		if [[ $? != 0 ]]; then
 			echo >&2 "Group '$group' not found in $DB database:"
 			RC=2

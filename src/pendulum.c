@@ -361,8 +361,9 @@ int pn_flag(pn_machine *m, const char *label, int value)
 {
 	pn_word flag = s_resolve_arg(m, label);
 	if (!IS_FLAG(flag)) return 1;
+	m->flags[TAGV(flag)].value = (value == 0 ? 0 : 1);
 	pn_trace(m, TRACE_START " set flag %s = %i\n", TRACE_ARGS,
-		m->flags[TAGV(flag)].label, value == 0 ? 0 : 1);
+		m->flags[TAGV(flag)].label, m->flags[TAGV(flag)].value);
 	return 0;
 }
 
@@ -526,8 +527,8 @@ int pn_run(pn_machine *m)
 
 		case PN_OP_CMP:      TEST_S("CMP?",  !, m->T1, "eq", m->T2);
 		case PN_OP_DIFF:     TEST_S("DIFF?", !!, m->T1, "ne", m->T2);
-		case PN_OP_FLAGGED:  TEST_F("FLAGGED?", !!);
-		case PN_OP_NFLAGGED: TEST_F("FLAGGED?", !);
+		case PN_OP_FLAGGED:  TEST_F("FLAGGED?",  !!);
+		case PN_OP_NFLAGGED: TEST_F("!FLAGGED?", !);
 		case PN_OP_EQ:       TEST("EQ?",    m->T1 == m->T2, m->T1, "==", m->T2);
 		case PN_OP_NE:       TEST("NE?",    m->T1 != m->T2, m->T1, "!=", m->T2);
 		case PN_OP_GT:       TEST("GT?",    m->T1 >  m->T2, m->T1, ">",  m->T2);
@@ -575,6 +576,8 @@ int pn_run(pn_machine *m)
 			pn_trace(m, TRACE_START " %s\n", TRACE_ARGS,
 					(const char *)m->func[TAGV(PC.arg1)].name);
 			m->R = (*m->func[TAGV(PC.arg1)].call)(m);
+			pn_trace(m, TRACE_START " returned %#x\n", TRACE_ARGS,
+					m->R);
 			NEXT;
 
 		case PN_OP_PRINT:

@@ -26,6 +26,8 @@
 #include "cw.h"
 #include "sha1.h"
 
+#define CHANGE_FLAG ":changed"
+
 /*
 
     ##     ## ######## ##       ########  ######## ########   ######
@@ -389,19 +391,24 @@ typedef struct {
 
 static pn_word cwa_pragma(pn_machine *m, const char *k, const char *v)
 {
+	pn_trace(m, "PRAGMA '%s'\n", k);
 	if (strcmp(k, "userdb.root") == 0) {
 		size_t n;
 		n = snprintf(UDATA(m)->etc_passwd,  1023, "%s%s", v, "/etc/passwd");
 		UDATA(m)->etc_passwd[n] = '\0';
+		pn_trace(m, " - setting passwd db path to %s\n", UDATA(m)->etc_passwd);
 
 		n = snprintf(UDATA(m)->etc_shadow,  1023, "%s%s", v, "/etc/shadow");
 		UDATA(m)->etc_shadow[n] = '\0';
+		pn_trace(m, " - setting shadow db path to %s\n", UDATA(m)->etc_shadow);
 
 		n = snprintf(UDATA(m)->etc_group,   1023, "%s%s", v, "/etc/group");
 		UDATA(m)->etc_group[n] = '\0';
+		pn_trace(m, " - setting group db path to %s\n", UDATA(m)->etc_group);
 
 		n = snprintf(UDATA(m)->etc_gshadow, 1023, "%s%s", v, "/etc/gshadow");
 		UDATA(m)->etc_gshadow[n] = '\0';
+		pn_trace(m, " - setting gshadow db path to %s\n", UDATA(m)->etc_gshadow);
 		return 0;
 	}
 
@@ -423,6 +430,7 @@ static pn_word cwa_pragma(pn_machine *m, const char *k, const char *v)
 static pn_word cwa_fs_is_file(pn_machine *m)
 {
 	struct stat st;
+	pn_trace(m, "FS.IS_FILE? '%s'\n", (const char *)m->A);
 	if (lstat((const char *)m->A, &st) != 0) return 1;
 	return S_ISREG(st.st_mode) ? 0 : 1;
 }
@@ -430,6 +438,7 @@ static pn_word cwa_fs_is_file(pn_machine *m)
 static pn_word cwa_fs_is_dir(pn_machine *m)
 {
 	struct stat st;
+	pn_trace(m, "FS.IS_DIR? '%s'\n", (const char *)m->A);
 	if (lstat((const char *)m->A, &st) != 0) return 1;
 	return S_ISDIR(st.st_mode) ? 0 : 1;
 }
@@ -437,6 +446,7 @@ static pn_word cwa_fs_is_dir(pn_machine *m)
 static pn_word cwa_fs_is_chardev(pn_machine *m)
 {
 	struct stat st;
+	pn_trace(m, "FS.IS_CHARDEV? '%s'\n", (const char *)m->A);
 	if (lstat((const char *)m->A, &st) != 0) return 1;
 	return S_ISCHR(st.st_mode) ? 0 : 1;
 }
@@ -444,6 +454,7 @@ static pn_word cwa_fs_is_chardev(pn_machine *m)
 static pn_word cwa_fs_is_blockdev(pn_machine *m)
 {
 	struct stat st;
+	pn_trace(m, "FS.IS_BLOCKDEV? '%s'\n", (const char *)m->A);
 	if (lstat((const char *)m->A, &st) != 0) return 1;
 	return S_ISBLK(st.st_mode) ? 0 : 1;
 }
@@ -451,6 +462,7 @@ static pn_word cwa_fs_is_blockdev(pn_machine *m)
 static pn_word cwa_fs_is_fifo(pn_machine *m)
 {
 	struct stat st;
+	pn_trace(m, "FS.IS_FIFO? '%s'\n", (const char *)m->A);
 	if (lstat((const char *)m->A, &st) != 0) return 1;
 	return S_ISFIFO(st.st_mode) ? 0 : 1;
 }
@@ -458,6 +470,7 @@ static pn_word cwa_fs_is_fifo(pn_machine *m)
 static pn_word cwa_fs_is_symlink(pn_machine *m)
 {
 	struct stat st;
+	pn_trace(m, "FS.IS_SYMLINK? '%s'\n", (const char *)m->A);
 	if (lstat((const char *)m->A, &st) != 0) return 1;
 	return S_ISLNK(st.st_mode) ? 0 : 1;
 }
@@ -465,12 +478,14 @@ static pn_word cwa_fs_is_symlink(pn_machine *m)
 static pn_word cwa_fs_is_socket(pn_machine *m)
 {
 	struct stat st;
+	pn_trace(m, "FS.IS_SOCKET? '%s'\n", (const char *)m->A);
 	if (lstat((const char *)m->A, &st) != 0) return 1;
 	return S_ISSOCK(st.st_mode) ? 0 : 1;
 }
 
 static pn_word cwa_fs_sha1(pn_machine *m)
 {
+	pn_trace(m, "FS.SHA1 '%s'\n", (const char *)m->A);
 	int rc = sha1_file((const char *)m->A, &(UDATA(m)->lsha1));
 	m->S2 = (pn_word)(UDATA(m)->lsha1.hex);
 	return rc;
@@ -479,21 +494,24 @@ static pn_word cwa_fs_sha1(pn_machine *m)
 static pn_word cwa_fs_exists(pn_machine *m)
 {
 	struct stat st;
+	pn_trace(m, "&FS.EXISTS? '%s'\n", (const char *)m->A);
 	return lstat((const char *)m->A, &st) == 0 ? 0 : 1;
 }
 
 static pn_word cwa_fs_mkdir(pn_machine *m)
 {
+	pn_trace(m, "FS.MKDIR '%s' <0777>\n", (const char *)m->A);
 	if (cwa_fs_exists(m) == 0) return 1;
-	pn_flag(m, ":changed", 1);
+	pn_flag(m, CHANGE_FLAG, 1);
 	return mkdir((const char *)m->A, 0777) == 0 ? 0 : 1;
 }
 
 static pn_word cwa_fs_mkfile(pn_machine *m)
 {
+	pn_trace(m, "FS.MKFILE '%s' <0666>\n", (const char *)m->A);
 	if (cwa_fs_exists(m) == 0) return 1;
-	pn_flag(m, ":changed", 1);
-	int fd = open((const char *)m->A, O_WRONLY|O_CREAT, 0644);
+	pn_flag(m, CHANGE_FLAG, 1);
+	int fd = open((const char *)m->A, O_WRONLY|O_CREAT, 0666);
 	if (fd < 0) return 1;
 	close(fd);
 	return 0;
@@ -501,15 +519,17 @@ static pn_word cwa_fs_mkfile(pn_machine *m)
 
 static pn_word cwa_fs_symlink(pn_machine *m)
 {
+	pn_trace(m, "FS.SYMLINK %s -> %s\n", (const char *)m->A, (const char *)m->B);
 	if (cwa_fs_exists(m) == 0) return 1;
-	pn_flag(m, ":changed", 1);
+	pn_flag(m, CHANGE_FLAG, 1);
 	return symlink((const char *)m->B, (const char *)m->A) == 0 ? 0 : 1;
 }
 
 static pn_word cwa_fs_link(pn_machine *m)
 {
 	if (cwa_fs_exists(m) == 0) return 1;
-	pn_flag(m, ":changed", 1);
+	pn_trace(m, "FS.HARDLINK %s -> %s\n", (const char *)m->A, (const char *)m->B);
+	pn_flag(m, CHANGE_FLAG, 1);
 	return link((const char *)m->B, (const char *)m->A) == 0 ? 0 : 1;
 }
 
@@ -568,6 +588,8 @@ static int s_copy_r(const char *dst, const char *src, uid_t uid, gid_t gid)
 }
 static pn_word cwa_fs_copy_r(pn_machine *m)
 {
+	pn_trace(m, "FS.COPY_R %s -> %s %i:%i\n",
+			(const char *)m->A, (const char *)m->B, m->C, m->D);
 	return s_copy_r((const char *)m->A, (const char *)m->B,
 		(uid_t)m->C, (gid_t)m->D);
 }
@@ -575,39 +597,45 @@ static pn_word cwa_fs_copy_r(pn_machine *m)
 static pn_word cwa_fs_chown(pn_machine *m)
 {
 	struct stat st;
+	pn_trace(m, "FS.CHOWN '%s' %i:%i\n", (const char *)m->A, m->B, m->C);
 	if (lstat((const char *)m->A, &st) != 0) return 1;
 	if (st.st_uid == (uid_t)m->B && st.st_gid == (gid_t)m->C) return 0;
-	pn_flag(m, ":changed", 1);
+	pn_flag(m, CHANGE_FLAG, 1);
 	return chown((const char *)m->A, m->B, m->C) == 0 ? 0 : 1;
 }
 
 static pn_word cwa_fs_chmod(pn_machine *m)
 {
 	struct stat st;
+	pn_trace(m, "FS.CHMOD '%s' %#4o\n", (const char *)m->A, m->D & 0x4777);
 	if (lstat((const char *)m->A, &st) != 0) return 1;
 	if ((st.st_mode & 0x4777) == (m->D & 0x4777)) return 0;
-	pn_flag(m, ":changed", 1);
-	return chmod((const char *)m->A, m->D) == 0 ? 0 : 1;
+	pn_flag(m, CHANGE_FLAG, 1);
+	return chmod((const char *)m->A, (m->D & 0x4777)) == 0 ? 0 : 1;
 }
 
 static pn_word cwa_fs_unlink(pn_machine *m)
 {
 	struct stat st;
+	pn_trace(m, "FS.UNLINK %s\n", (const char *)m->A);
 	if (lstat((const char *)m->A, &st) != 0) return 0;
-	pn_flag(m, ":changed", 1);
+	pn_flag(m, CHANGE_FLAG, 1);
 	return unlink((const char *)m->A) == 0 ? 0 : 1;
 }
 
 static pn_word cwa_fs_rmdir(pn_machine *m)
 {
 	struct stat st;
+	pn_trace(m, "FS.RMDIR %s\n", (const char *)m->A);
 	if (lstat((const char *)m->A, &st) != 0) return 0;
-	pn_flag(m, ":changed", 1);
+	pn_flag(m, CHANGE_FLAG, 1);
 	return rmdir((const char *)m->A) == 0 ? 0 : 1;
 }
 
 static pn_word cwa_fs_put(pn_machine *m)
 {
+	pn_trace(m, "FS.PUT '%s' -> %s\n", (const char *)m->B, (const char *)m->A);
+
 	FILE *output = fopen((const char *)m->A, "w");
 	if (!output) return 1;
 
@@ -618,6 +646,8 @@ static pn_word cwa_fs_put(pn_machine *m)
 
 static pn_word cwa_fs_get(pn_machine *m)
 {
+	pn_trace(m, "FS.GET %s\n", (const char *)m->A);
+
 	FILE *input = fopen((const char *)m->A, "r");
 	if (!input) return 1;
 
@@ -645,6 +675,7 @@ static pn_word cwa_fs_get(pn_machine *m)
 
 static pn_word cwa_aug_init(pn_machine *m)
 {
+	pn_trace(m, "AUGEAS.INIT '%s' '%s'\n", (const char *)m->A, (const char *)m->B);
 	UDATA(m)->aug_ctx = aug_init(
 		(const char *)m->A, (const char *)m->B,
 		AUG_NO_STDINC|AUG_NO_LOAD|AUG_NO_MODL_AUTOLOAD);
@@ -689,6 +720,7 @@ static pn_word cwa_aug_close(pn_machine *m)
 static pn_word cwa_aug_set(pn_machine *m)
 {
 	char *path = s_format((const char *)m->A, m->C, m->D, m->E, m->F);
+	pn_trace(m, "AUGEAS.SET %s = '%s'\n", path, (const char *)m->B);
 	int rc = aug_set(UDATA(m)->aug_ctx, path, (const char *)m->B);
 	free(path);
 	return rc;
@@ -697,6 +729,7 @@ static pn_word cwa_aug_set(pn_machine *m)
 static pn_word cwa_aug_get(pn_machine *m)
 {
 	char *path = s_format((const char *)m->A, m->C, m->D, m->E, m->F);
+	pn_trace(m, "AUGEAS.GET %s\n", path);
 	int rc = aug_get(UDATA(m)->aug_ctx, path, &(UDATA(m)->aug_last));
 	m->S2 = (pn_word)(UDATA(m)->aug_last);
 	free(path);
@@ -707,6 +740,7 @@ static pn_word cwa_aug_find(pn_machine *m)
 {
 	char **r = NULL;
 	char *path = s_format((const char *)m->A, m->C, m->D, m->E, m->F);
+	pn_trace(m, "AUGEAS.FIND %s\n", path);
 	int rc = aug_match(UDATA(m)->aug_ctx, path, &r);
 	free(path);
 	if (rc != 1) return 1;
@@ -720,7 +754,8 @@ static pn_word cwa_aug_find(pn_machine *m)
 static pn_word cwa_aug_remove(pn_machine *m)
 {
 	char *path = s_format((const char *)m->A, m->C, m->D, m->E, m->F);
-	int rc = aug_rm(UDATA(m)->aug_ctx, (const char *)m->A) > 1 ? 0 : 1;
+	pn_trace(m, "AUGEAS.REMOVE %s\n", path);
+	int rc = aug_rm(UDATA(m)->aug_ctx, path) > 1 ? 0 : 1;
 	free(path);
 	return rc;
 }
@@ -739,12 +774,14 @@ static pn_word cwa_aug_remove(pn_machine *m)
 
 static pn_word cwa_exec_check(pn_machine *m)
 {
+	pn_trace(m, "EXEC.CHECK (as %i:%i) `%s`\n", m->B, m->C, (const char *)m->A);
 	return s_exec((const char *)m->A, NULL, NULL,
 		(uid_t)m->B, (gid_t)m->C);
 }
 
 static pn_word cwa_exec_run1(pn_machine *m)
 {
+	pn_trace(m, "EXEC.RUN1 (as %i:%i) `%s`\n", (const char *)m->A, m->B, m->C);
 	char *out, *p;
 	int rc = s_exec((const char *)m->A, &out, NULL,
 		(uid_t)m->B, (gid_t)m->C);
@@ -771,6 +808,8 @@ static pn_word cwa_exec_run1(pn_machine *m)
 
 static pn_word cwa_server_sha1(pn_machine *m)
 {
+	pn_trace(m, "SERVER.SHA1 %s\n", (const char *)m->A);
+
 	cw_pdu_t *pdu, *reply;
 	pdu = cw_pdu_make(NULL, 2, "FILE", (const char *)m->A);
 	int rc = cw_pdu_send(UDATA(m)->zconn, pdu);
@@ -1172,6 +1211,7 @@ static pn_word cwa_user_find(pn_machine *m)
 	if (!UDATA(m)->spdb) pn_die(m, "shadow database not opened (use USERDB.OPEN)");
 
 	if (m->A) {
+		pn_trace(m, "USER.FIND (by name) %s\n", (const char *)m->B);
 		for (pw = UDATA(m)->pwdb; pw; pw = pw->next) {
 			if (pw->passwd && strcmp(pw->passwd->pw_name, (const char *)m->B) == 0) {
 				UDATA(m)->pwent = pw->passwd;
@@ -1179,6 +1219,7 @@ static pn_word cwa_user_find(pn_machine *m)
 			}
 		}
 	} else {
+		pn_trace(m, "USER.FIND (by UID) %i\n", m->B);
 		for (pw = UDATA(m)->pwdb; pw; pw = pw->next) {
 			if (pw->passwd && pw->passwd->pw_uid == (uid_t)m->B) {
 				UDATA(m)->pwent = pw->passwd;
@@ -1201,102 +1242,123 @@ found:
 
 static pn_word cwa_user_is_locked(pn_machine *m)
 {
+	/* FIXME: implement &USER.LOCKED? */
 	return 1;
 }
 
 static pn_word cwa_user_get_uid(pn_machine *m)
 {
+	if (!UDATA(m)->pwent) return 0;
 	return (pn_word)(UDATA(m)->pwent->pw_uid);
 }
 
 static pn_word cwa_user_get_gid(pn_machine *m)
 {
+	if (!UDATA(m)->pwent) return 0;
 	return (pn_word)(UDATA(m)->pwent->pw_gid);
 }
 
 static pn_word cwa_user_get_name(pn_machine *m)
 {
+	if (!UDATA(m)->pwent) return 0;
 	return (pn_word)(UDATA(m)->pwent->pw_name);
 }
 
 static pn_word cwa_user_get_passwd(pn_machine *m)
 {
+	if (!UDATA(m)->pwent) return 0;
 	return (pn_word)(UDATA(m)->pwent->pw_passwd);
 }
 
 static pn_word cwa_user_get_gecos(pn_machine *m)
 {
+	if (!UDATA(m)->pwent) return 0;
 	return (pn_word)(UDATA(m)->pwent->pw_gecos);
 }
 
 static pn_word cwa_user_get_home(pn_machine *m)
 {
+	if (!UDATA(m)->pwent) return 0;
 	return (pn_word)(UDATA(m)->pwent->pw_dir);
 }
 
 static pn_word cwa_user_get_shell(pn_machine *m)
 {
+	if (!UDATA(m)->pwent) return 0;
 	return (pn_word)(UDATA(m)->pwent->pw_shell);
 }
 
 static pn_word cwa_user_get_pwhash(pn_machine *m)
 {
+	if (!UDATA(m)->spent) return 0;
 	return (pn_word)(UDATA(m)->spent->sp_pwdp);
 }
 
 static pn_word cwa_user_get_pwmin(pn_machine *m)
 {
+	if (!UDATA(m)->spent) return 0;
 	return (pn_word)(UDATA(m)->spent->sp_min);
 }
 
 static pn_word cwa_user_get_pwmax(pn_machine *m)
 {
+	if (!UDATA(m)->spent) return 0;
 	return (pn_word)(UDATA(m)->spent->sp_max);
 }
 
 static pn_word cwa_user_get_pwwarn(pn_machine *m)
 {
+	if (!UDATA(m)->spent) return 0;
 	return (pn_word)(UDATA(m)->spent->sp_warn);
 }
 
 static pn_word cwa_user_get_inact(pn_machine *m)
 {
+	if (!UDATA(m)->spent) return 0;
 	return (pn_word)(UDATA(m)->spent->sp_inact);
 }
 
 static pn_word cwa_user_get_expiry(pn_machine *m)
 {
+	if (!UDATA(m)->spent) return 0;
 	return (pn_word)(UDATA(m)->spent->sp_expire);
 }
 
 static pn_word cwa_user_set_uid(pn_machine *m)
 {
+	if (!UDATA(m)->pwent) return 1;
 	if (UDATA(m)->pwent->pw_uid == (uid_t)m->B) return 0;
-	pn_flag(m, ":changed", 1);
+	pn_flag(m, CHANGE_FLAG, 1);
 	UDATA(m)->pwent->pw_uid = (uid_t)m->B;
 	return 0;
 }
 
 static pn_word cwa_user_set_gid(pn_machine *m)
 {
+	if (!UDATA(m)->pwent) return 1;
+	pn_trace(m, "USER.SET_GID %i\n", m->B);
 	if (UDATA(m)->pwent->pw_gid == (gid_t)m->B) return 0;
-	pn_flag(m, ":changed", 1);
+	pn_flag(m, CHANGE_FLAG, 1);
 	UDATA(m)->pwent->pw_gid = (gid_t)m->B;
 	return 0;
 }
 
 static pn_word cwa_user_set_name(pn_machine *m)
 {
-	if (strcmp(UDATA(m)->pwent->pw_name, (const char *)m->B) != 0) {
+	if (!UDATA(m)->pwent) return 1;
+	if (!UDATA(m)->spent) return 1;
+
+	pn_trace(m, "USER.SET_NAME '%s'\n", (const char *)m->B);
+	if (cw_strcmp(UDATA(m)->pwent->pw_name, (const char *)m->B) != 0) {
 		free(UDATA(m)->pwent->pw_name);
 		UDATA(m)->pwent->pw_name = strdup((const char *)m->B);
-		pn_flag(m, ":changed", 1);
+		pn_flag(m, CHANGE_FLAG, 1);
 	}
 
-	if (strcmp(UDATA(m)->spent->sp_namp, (const char *)m->B) != 0) {
+	if (cw_strcmp(UDATA(m)->spent->sp_namp, (const char *)m->B) != 0) {
 		free(UDATA(m)->spent->sp_namp);
 		UDATA(m)->spent->sp_namp = strdup((const char *)m->B);
-		pn_flag(m, ":changed", 1);
+		pn_flag(m, CHANGE_FLAG, 1);
 	}
 
 	return 0;
@@ -1304,92 +1366,114 @@ static pn_word cwa_user_set_name(pn_machine *m)
 
 static pn_word cwa_user_set_passwd(pn_machine *m)
 {
-	if (strcmp(UDATA(m)->pwent->pw_passwd, (const char *)m->B) == 0) return 0;
+	if (!UDATA(m)->pwent) return 1;
+	pn_trace(m, "USER.SET_PASSWD '%s'\n", (const char *)m->B);
+	if (cw_strcmp(UDATA(m)->pwent->pw_passwd, (const char *)m->B) == 0) return 0;
 	free(UDATA(m)->pwent->pw_passwd);
 	UDATA(m)->pwent->pw_passwd = strdup((const char *)m->B);
-	pn_flag(m, ":changed", 1);
+	pn_flag(m, CHANGE_FLAG, 1);
 	return 0;
 }
 
 static pn_word cwa_user_set_gecos(pn_machine *m)
 {
-	if (strcmp(UDATA(m)->pwent->pw_gecos, (const char *)m->B) == 0) return 0;
+	if (!UDATA(m)->pwent) return 1;
+	pn_trace(m, "USER.SET_GECOS '%s'\n", (const char *)m->B);
+	if (cw_strcmp(UDATA(m)->pwent->pw_gecos, (const char *)m->B) == 0) return 0;
 	free(UDATA(m)->pwent->pw_gecos);
 	UDATA(m)->pwent->pw_gecos = strdup((const char *)m->B);
-	pn_flag(m, ":changed", 1);
+	pn_flag(m, CHANGE_FLAG, 1);
 	return 0;
 }
 
 static pn_word cwa_user_set_home(pn_machine *m)
 {
-	if (strcmp(UDATA(m)->pwent->pw_dir, (const char *)m->B) == 0) return 0;
+	if (!UDATA(m)->pwent) return 1;
+	pn_trace(m, "USER.SET_HOME '%s'\n", (const char *)m->B);
+	if (cw_strcmp(UDATA(m)->pwent->pw_dir, (const char *)m->B) == 0) return 0;
 	free(UDATA(m)->pwent->pw_dir);
 	UDATA(m)->pwent->pw_dir = strdup((const char *)m->B);
-	pn_flag(m, ":changed", 1);
+	pn_flag(m, CHANGE_FLAG, 1);
 	return 0;
 }
 
 static pn_word cwa_user_set_shell(pn_machine *m)
 {
-	if (strcmp(UDATA(m)->pwent->pw_shell, (const char *)m->B) == 0) return 0;
+	if (!UDATA(m)->pwent) return 1;
+	pn_trace(m, "USER.SET_SHELL '%s'\n", (const char *)m->B);
+	if (cw_strcmp(UDATA(m)->pwent->pw_shell, (const char *)m->B) == 0) return 0;
 	free(UDATA(m)->pwent->pw_shell);
 	UDATA(m)->pwent->pw_shell = strdup((const char *)m->B);
-	pn_flag(m, ":changed", 1);
+	pn_flag(m, CHANGE_FLAG, 1);
 	return 0;
 }
 
 static pn_word cwa_user_set_pwhash(pn_machine *m)
 {
-	if (strcmp(UDATA(m)->spent->sp_pwdp, (const char *)m->B) == 0) return 0;
+	if (!UDATA(m)->spent) return 1;
+	pn_trace(m, "USER.SET_PWHASH '%s'\n", (const char *)m->B);
+	if (cw_strcmp(UDATA(m)->spent->sp_pwdp, (const char *)m->B) == 0) return 0;
 	free(UDATA(m)->spent->sp_pwdp);
 	UDATA(m)->spent->sp_pwdp = strdup((const char *)m->B);
-	pn_flag(m, ":changed", 1);
+	pn_flag(m, CHANGE_FLAG, 1);
 	return 0;
 }
 
 static pn_word cwa_user_set_pwmin(pn_machine *m)
 {
+	if (!UDATA(m)->spent) return 1;
+	pn_trace(m, "USER.SET_PWMIN %li\n", (signed long)m->B);
 	if (UDATA(m)->spent->sp_min == (signed long)(m->B)) return 0;
 	UDATA(m)->spent->sp_min = (signed long)(m->B);
-	pn_flag(m, ":changed", 1);
+	pn_flag(m, CHANGE_FLAG, 1);
 	return 0;
 }
 
 static pn_word cwa_user_set_pwmax(pn_machine *m)
 {
+	if (!UDATA(m)->spent) return 1;
+	pn_trace(m, "USER.SET_PWMAX %li\n", (signed long)m->B);
 	if (UDATA(m)->spent->sp_max == (signed long)(m->B)) return 0;
 	UDATA(m)->spent->sp_max = (signed long)(m->B);
-	pn_flag(m, ":changed", 1);
+	pn_flag(m, CHANGE_FLAG, 1);
 	return 0;
 }
 
 static pn_word cwa_user_set_pwwarn(pn_machine *m)
 {
+	if (!UDATA(m)->spent) return 1;
+	pn_trace(m, "USER.SET_PWWARN %li\n", (signed long)m->B);
 	if (UDATA(m)->spent->sp_warn == (signed long)(m->B)) return 0;
 	UDATA(m)->spent->sp_warn = (signed long)(m->B);
-	pn_flag(m, ":changed", 1);
+	pn_flag(m, CHANGE_FLAG, 1);
 	return 0;
 }
 
 static pn_word cwa_user_set_inact(pn_machine *m)
 {
+	if (!UDATA(m)->spent) return 1;
+	pn_trace(m, "USER.SET_INACT %li\n", (signed long)m->B);
 	if (UDATA(m)->spent->sp_inact == (signed long)(m->B)) return 0;
 	UDATA(m)->spent->sp_inact = (signed long)(m->B);
-	pn_flag(m, ":changed", 1);
+	pn_flag(m, CHANGE_FLAG, 1);
 	return 0;
 }
 
 static pn_word cwa_user_set_expiry(pn_machine *m)
 {
+	if (!UDATA(m)->spent) return 1;
+	pn_trace(m, "USER.SET_EXPIRY %li\n", (signed long)m->B);
 	if (UDATA(m)->spent->sp_expire == (signed long)(m->B)) return 0;
 	UDATA(m)->spent->sp_expire = (signed long)(m->B);
-	pn_flag(m, ":changed", 1);
+	pn_flag(m, CHANGE_FLAG, 1);
 	return 0;
 }
 
 static pn_word cwa_user_create(pn_machine *m)
 {
 	if (!UDATA(m)->pwdb) return 1;
+
+	pn_trace(m, "USER.CREATE '%s' uid=%i gid=%i\n", (const char *)m->A, m->B, m->C);
 
 	struct pwdb *pw;
 	for (pw = UDATA(m)->pwdb; pw->next; pw = pw->next)
@@ -1421,7 +1505,7 @@ static pn_word cwa_user_create(pn_machine *m)
 	sp->next->spwd->sp_expire = 0;
 	UDATA(m)->spent = sp->next->spwd;
 
-	pn_flag(m, ":changed", 1);
+	pn_flag(m, CHANGE_FLAG, 1);
 	return 0;
 }
 
@@ -1449,7 +1533,7 @@ static pn_word cwa_user_remove(pn_machine *m)
 	struct pwdb *pw, *pwent = NULL;
 	for (pw = UDATA(m)->pwdb; pw; pwent = pw, pw = pw->next) {
 		if (pw->passwd == UDATA(m)->pwent) {
-			pn_flag(m, ":changed", 1);
+			pn_flag(m, CHANGE_FLAG, 1);
 			free(pw->passwd->pw_name);
 			free(pw->passwd->pw_passwd);
 			free(pw->passwd->pw_gecos);
@@ -1469,7 +1553,7 @@ static pn_word cwa_user_remove(pn_machine *m)
 	struct spdb *sp, *spent = NULL;
 	for (sp = UDATA(m)->spdb; sp; spent = sp, sp = sp->next) {
 		if (sp->spwd == UDATA(m)->spent) {
-			pn_flag(m, ":changed", 1);
+			pn_flag(m, CHANGE_FLAG, 1);
 			free(sp->spwd->sp_namp);
 			free(sp->spwd->sp_pwdp);
 			free(sp->spwd);
@@ -1506,6 +1590,7 @@ static pn_word cwa_group_find(pn_machine *m)
 	if (!UDATA(m)->sgdb) pn_die(m, "gshadow database not opened (use SGDB.OPEN)");
 
 	if (m->A) {
+		pn_trace(m, "GROUP.FIND (by name) '%s'\n", (const char *)m->B);
 		for (gr = UDATA(m)->grdb; gr; gr = gr->next) {
 			if (gr->group && strcmp(gr->group->gr_name, (const char *)m->B) == 0) {
 				UDATA(m)->grent = gr->group;
@@ -1513,6 +1598,7 @@ static pn_word cwa_group_find(pn_machine *m)
 			}
 		}
 	} else {
+		pn_trace(m, "GROUP.FIND (by GID) %i\n", m->B);
 		for (gr = UDATA(m)->grdb; gr; gr = gr->next) {
 			if (gr->group && gr->group->gr_gid == (gid_t)m->B) {
 				UDATA(m)->grent = gr->group;
@@ -1554,6 +1640,8 @@ static pn_word cwa_group_create(pn_machine *m)
 {
 	if (!UDATA(m)->grdb) return 1;
 
+	pn_trace(m, "GROUP.CREATE '%s' gid=%i\n", (const char *)m->A, m->B);
+
 	struct grdb *gr;
 	for (gr = UDATA(m)->grdb; gr->next; gr = gr->next)
 		;
@@ -1577,7 +1665,7 @@ static pn_word cwa_group_create(pn_machine *m)
 	sg->next->sgrp->sg_adm    = calloc(1, sizeof(char *));
 	UDATA(m)->sgent = sg->next->sgrp;
 
-	pn_flag(m, ":changed", 1);
+	pn_flag(m, CHANGE_FLAG, 1);
 	return 0;
 }
 
@@ -1589,7 +1677,7 @@ static pn_word cwa_group_remove(pn_machine *m)
 	struct grdb *gr, *grent = NULL;
 	for (gr = UDATA(m)->grdb; gr; grent = gr, gr = gr->next) {
 		if (gr->group == UDATA(m)->grent) {
-			pn_flag(m, ":changed", 1);
+			pn_flag(m, CHANGE_FLAG, 1);
 			free(gr->group->gr_name);
 			free(gr->group->gr_passwd);
 			s_strlist_free(gr->group->gr_mem);
@@ -1607,7 +1695,7 @@ static pn_word cwa_group_remove(pn_machine *m)
 	struct sgdb *sg, *sgent = NULL;
 	for (sg = UDATA(m)->sgdb; sg; sgent = sg, sg = sg->next) {
 		if (sg->sgrp == UDATA(m)->sgent) {
-			pn_flag(m, ":changed", 1);
+			pn_flag(m, CHANGE_FLAG, 1);
 			free(sg->sgrp->sg_namp);
 			free(sg->sgrp->sg_passwd);
 			s_strlist_free(sg->sgrp->sg_mem);
@@ -1628,6 +1716,7 @@ static pn_word cwa_group_remove(pn_machine *m)
 static pn_word cwa_group_has_member(pn_machine *m)
 {
 	if (!UDATA(m)->grent) return 1;
+	pn_trace(m, "GROUP.HAS_MEMBER? '%s'\n", (const char *)m->A);
 
 	char **l;
 	for (l = UDATA(m)->grent->gr_mem; *l; l++) {
@@ -1639,6 +1728,7 @@ static pn_word cwa_group_has_member(pn_machine *m)
 static pn_word cwa_group_has_admin(pn_machine *m)
 {
 	if (!UDATA(m)->sgent) return 1;
+	pn_trace(m, "GROUP.HAS_ADMIN? '%s'\n", (const char *)m->A);
 
 	char **l;
 	for (l = UDATA(m)->sgent->sg_adm; *l; l++) {
@@ -1650,6 +1740,7 @@ static pn_word cwa_group_has_admin(pn_machine *m)
 static pn_word cwa_group_rm_member(pn_machine *m)
 {
 	if (!UDATA(m)->sgent) return 1;
+	pn_trace(m, "GROUP.RM_MEMBER '%s'\n", (const char *)m->A);
 	UDATA(m)->grent->gr_mem = s_strlist_remove(
 		UDATA(m)->grent->gr_mem, (const char *)m->A);
 	UDATA(m)->sgent->sg_mem = s_strlist_remove(
@@ -1660,6 +1751,7 @@ static pn_word cwa_group_rm_member(pn_machine *m)
 static pn_word cwa_group_rm_admin(pn_machine *m)
 {
 	if (!UDATA(m)->sgent) return 1;
+	pn_trace(m, "GROUP.RM_ADMIN '%s'\n", (const char *)m->A);
 	UDATA(m)->sgent->sg_adm = s_strlist_remove(
 		UDATA(m)->sgent->sg_adm, (const char *)m->A);
 	return 0;
@@ -1668,6 +1760,7 @@ static pn_word cwa_group_rm_admin(pn_machine *m)
 static pn_word cwa_group_add_member(pn_machine *m)
 {
 	if (!UDATA(m)->sgent) return 1;
+	pn_trace(m, "GROUP.ADD_MEMBER '%s'\n", (const char *)m->A);
 	UDATA(m)->grent->gr_mem = s_strlist_add(
 		UDATA(m)->grent->gr_mem, (const char *)m->A);
 	UDATA(m)->sgent->sg_mem = s_strlist_add(
@@ -1678,6 +1771,7 @@ static pn_word cwa_group_add_member(pn_machine *m)
 static pn_word cwa_group_add_admin(pn_machine *m)
 {
 	if (!UDATA(m)->sgent) return 1;
+	pn_trace(m, "GROUP.ADD_ADMIN '%s'\n", (const char *)m->A);
 	UDATA(m)->sgent->sg_adm = s_strlist_add(
 		UDATA(m)->sgent->sg_adm, (const char *)m->A);
 	return 0;
@@ -1685,42 +1779,52 @@ static pn_word cwa_group_add_admin(pn_machine *m)
 
 static pn_word cwa_group_get_gid(pn_machine *m)
 {
+	if (!UDATA(m)->grent) return 1;
 	return (pn_word)(UDATA(m)->grent->gr_gid);
 }
 
 static pn_word cwa_group_get_name(pn_machine *m)
 {
+	if (!UDATA(m)->grent) return 1;
 	return (pn_word)(UDATA(m)->grent->gr_name);
 }
 
 static pn_word cwa_group_get_passwd(pn_machine *m)
 {
+	if (!UDATA(m)->grent) return 1;
 	return (pn_word)(UDATA(m)->grent->gr_passwd);
 }
 
 static pn_word cwa_group_get_pwhash(pn_machine *m)
 {
+	if (!UDATA(m)->sgent) return 1;
 	return (pn_word)(UDATA(m)->sgent->sg_passwd);
 }
 
 static pn_word cwa_group_set_gid(pn_machine *m)
 {
+	if (!UDATA(m)->grent) return 1;
 	UDATA(m)->grent->gr_gid = (gid_t)m->B;
 	return 0;
 }
 
 static pn_word cwa_group_set_name(pn_machine *m)
 {
-	if (strcmp(UDATA(m)->grent->gr_name, (const char *)m->B) != 0) {
+	if (!UDATA(m)->grent) return 1;
+	if (!UDATA(m)->sgent) return 1;
+
+	pn_trace(m, "GROUP.SET_NAME '%s'\n", (const char *)m->B);
+
+	if (cw_strcmp(UDATA(m)->grent->gr_name, (const char *)m->B) != 0) {
 		free(UDATA(m)->grent->gr_name);
 		UDATA(m)->grent->gr_name = strdup((const char *)m->B);
-		pn_flag(m, ":changed", 1);
+		pn_flag(m, CHANGE_FLAG, 1);
 	}
 
-	if (strcmp(UDATA(m)->sgent->sg_namp, (const char *)m->B) != 0) {
+	if (cw_strcmp(UDATA(m)->sgent->sg_namp, (const char *)m->B) != 0) {
 		free(UDATA(m)->sgent->sg_namp);
 		UDATA(m)->sgent->sg_namp = strdup((const char *)m->B);
-		pn_flag(m, ":changed", 1);
+		pn_flag(m, CHANGE_FLAG, 1);
 	}
 
 	return 0;
@@ -1728,7 +1832,9 @@ static pn_word cwa_group_set_name(pn_machine *m)
 
 static pn_word cwa_group_set_passwd(pn_machine *m)
 {
-	if (strcmp(UDATA(m)->grent->gr_passwd, (const char *)m->B) == 0) return 0;
+	if (!UDATA(m)->grent) return 1;
+	pn_trace(m, "GROUP.SET_PASSWD '%s'\n", (const char *)m->B);
+	if (cw_strcmp(UDATA(m)->grent->gr_passwd, (const char *)m->B) == 0) return 0;
 	free(UDATA(m)->grent->gr_passwd);
 	UDATA(m)->grent->gr_passwd = strdup((const char *)m->B);
 	return 0;
@@ -1736,7 +1842,9 @@ static pn_word cwa_group_set_passwd(pn_machine *m)
 
 static pn_word cwa_group_set_pwhash(pn_machine *m)
 {
-	if (strcmp(UDATA(m)->sgent->sg_passwd, (const char *)m->B) == 0) return 0;
+	if (!UDATA(m)->grent) return 1;
+	pn_trace(m, "GROUP.SET_PWHASH '%s'\n", (const char *)m->B);
+	if (cw_strcmp(UDATA(m)->sgent->sg_passwd, (const char *)m->B) == 0) return 0;
 	free(UDATA(m)->sgent->sg_passwd);
 	UDATA(m)->sgent->sg_passwd = strdup((const char *)m->B);
 	return 0;

@@ -107,7 +107,7 @@ sub pendulum_ok
 			or die "Failed to reopen stdout: $!\n";
 		open STDERR, ">&", $stderr
 			or die "Failed to reopen stderr: $!\n";
-		exec $PN, $script or die "Failed to exec $PN: $!\n";
+		exec $PN, '-q', $script or die "Failed to exec $PN: $!\n";
 	}
 
 	local $SIG{ALRM} = sub { die "timed out\n" };

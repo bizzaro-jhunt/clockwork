@@ -1271,20 +1271,31 @@ int res_package_gencode(const void *res, FILE *io, unsigned int next)
 		fprintf(io, "NOTOK? @next.%i\n", next);
 		fprintf(io, "  SET %%A \"cwtool pkg-remove %s\"\n", r->name);
 		fprintf(io, "  CALL &EXEC.CHECK\n");
+		fprintf(io, "  FLAG 1 :changed\n");
 	} else {
-		fprintf(io, "  COPY %%R %%T1\n");
+		fprintf(io, "OK? @installed.%i\n", next);
+		fprintf(io, "  SET %%A \"cwtool pkg-install %s %s\"\n", r->name, r->version ? r->version : "latest");
+		fprintf(io, "  CALL &EXEC.CHECK\n");
+		fprintf(io, "  FLAG 1 :changed\n");
+		fprintf(io, "  JUMP @next.%i\n", next);
+		fprintf(io, "installed.%i:\n", next);
+		fprintf(io, "COPY %%R %%T1\n");
 		if (r->version) {
-			fprintf(io, "  SET %%T2 \"%s\"\n", r->version);
+			fprintf(io, "SET %%T2 \"%s\"\n", r->version);
 		} else {
-			fprintf(io, "  SET %%A \"cwtool pkg-latest %s\"\n", r->name);
-			fprintf(io, "  CALL &EXEC.RUN1\n");
-			fprintf(io, "  OK? @got.latest.%i\n", next);
-			fprintf(io, "    PRINT \"Failed to detect latest version of '%s'\\n\"\n", r->name);
-			fprintf(io, "    JUMP @next.%i\n", next);
-			fprintf(io, "  got.latest.%i:\n", next);
-			fpritnf(io, "  COPY %%R %%T2\n");
+			fprintf(io, "SET %%A \"cwtool pkg-latest %s\"\n", r->name);
+			fprintf(io, "CALL &EXEC.RUN1\n");
+			fprintf(io, "OK? @got.latest.%i\n", next);
+			fprintf(io, "  PRINT \"Failed to detect latest version of '%s'\\n\"\n", r->name);
+			fprintf(io, "  JUMP @next.%i\n", next);
+			fprintf(io, "got.latest.%i:\n", next);
+			fprintf(io, "COPY %%R %%T2\n");
 		}
-		fprintf(io, "SET %%A \"cwtool pkg-install %s %s\"\n", r->name, r->version ? r->version : "latest");
+		fprintf(io, "CALL &UTIL.VERCMP\n");
+		fprintf(io, "OK? @next.%i\n", next);
+		fprintf(io, "  SET %%A \"cwtool pkg-install %s %s\"\n", r->name, r->version ? r->version : "latest");
+		fprintf(io, "  CALL &EXEC.CHECK\n");
+		fprintf(io, "  FLAG 1 :changed\n");
 	}
 	return 0;
 }

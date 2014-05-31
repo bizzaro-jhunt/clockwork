@@ -762,6 +762,29 @@ static pn_word cwa_aug_remove(pn_machine *m)
 
 /*
 
+    ##     ## ######## #### ##
+    ##     ##    ##     ##  ##
+    ##     ##    ##     ##  ##
+    ##     ##    ##     ##  ##
+    ##     ##    ##     ##  ##
+    ##     ##    ##     ##  ##
+     #######     ##    #### ########
+
+*/
+
+static pn_word cwa_util_vercmp(pn_machine *m)
+{
+	const char *have = (const char *)m->T1;
+	const char *want = (const char *)m->T2;
+	if (strcmp(have, want) == 0) return 0;
+	if (strchr(want, '-')) return 1;
+	if (strchr(have, '-') && strncmp(have, want, strchr(have, '-')-have) == 0)
+		return 0;
+	return 1;
+}
+
+/*
+
     ######## ##     ## ########  ######
     ##        ##   ##  ##       ##    ##
     ##         ## ##   ##       ##
@@ -1993,6 +2016,8 @@ int pendulum_funcs(pn_machine *m, void *zconn)
 	pn_func(m,  "AUGEAS.GET",         cwa_aug_get);
 	pn_func(m,  "AUGEAS.FIND",        cwa_aug_find);
 	pn_func(m,  "AUGEAS.REMOVE",      cwa_aug_remove);
+
+	pn_func(m,  "UTIL.VERCMP",        cwa_util_vercmp);
 
 	pn_func(m,  "EXEC.CHECK",         cwa_exec_check);
 	pn_func(m,  "EXEC.RUN1",          cwa_exec_run1);

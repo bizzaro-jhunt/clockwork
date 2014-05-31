@@ -8,8 +8,27 @@ use t::common;
 gencode_ok "use host package1.test", <<'EOF', "package resource";
 RESET
 ;; res_package binutils
-SET %A "cwtool pkg-install binutils latest"
-CALL &EXEC.CHECK
+SET %A "cwtool pkg-version binutils"
+CALL &EXEC.RUN1
+OK? @installed.1
+  SET %A "cwtool pkg-install binutils latest"
+  CALL &EXEC.CHECK
+  FLAG 1 :changed
+  JUMP @next.1
+installed.1:
+COPY %R %T1
+SET %A "cwtool pkg-latest binutils"
+CALL &EXEC.RUN1
+OK? @got.latest.1
+  PRINT "Failed to detect latest version of 'binutils'\n"
+  JUMP @next.1
+got.latest.1:
+COPY %R %T2
+CALL &UTIL.VERCMP
+OK? @next.1
+  SET %A "cwtool pkg-install binutils latest"
+  CALL &EXEC.CHECK
+  FLAG 1 :changed
 next.1:
 !FLAGGED? :changed @final.1
 final.1:
@@ -18,8 +37,12 @@ EOF
 gencode_ok "use host package2.test", <<'EOF', "package uninstall";
 RESET
 ;; res_package binutils
-SET %A "cwtool pkg-remove binutils"
-CALL &EXEC.CHECK
+SET %A "cwtool pkg-version binutils"
+CALL &EXEC.RUN1
+NOTOK? @next.1
+  SET %A "cwtool pkg-remove binutils"
+  CALL &EXEC.CHECK
+  FLAG 1 :changed
 next.1:
 !FLAGGED? :changed @final.1
 final.1:
@@ -28,8 +51,21 @@ EOF
 gencode_ok "use host package3.test", <<'EOF', "package versioned install";
 RESET
 ;; res_package binutils
-SET %A "cwtool pkg-install binutils 1.2.3"
-CALL &EXEC.CHECK
+SET %A "cwtool pkg-version binutils"
+CALL &EXEC.RUN1
+OK? @installed.1
+  SET %A "cwtool pkg-install binutils 1.2.3"
+  CALL &EXEC.CHECK
+  FLAG 1 :changed
+  JUMP @next.1
+installed.1:
+COPY %R %T1
+SET %T2 "1.2.3"
+CALL &UTIL.VERCMP
+OK? @next.1
+  SET %A "cwtool pkg-install binutils 1.2.3"
+  CALL &EXEC.CHECK
+  FLAG 1 :changed
 next.1:
 !FLAGGED? :changed @final.1
 final.1:

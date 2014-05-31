@@ -198,7 +198,7 @@ cwspec_SOURCES  = src/cwspec.c $(core_src) $(parser_spec_src)
 clockd_SOURCES  = src/clockd.c $(core_src) $(parser_spec_src)
 cogd_SOURCES    = src/cogd.c   $(core_src) $(parser_spec_src) $(pendulum_src)
 
-sbin_SCRIPTS = cwtool
+dist_bin_SCRIPTS = cwtool
 
 bin_PROGRAMS = bdfa fact
 bdfa_SOURCES = src/bdfa.c src/cw.h src/cw.c

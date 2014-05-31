@@ -429,7 +429,7 @@ int res_user_gencode(const void *res, FILE *io, unsigned int next)
 			fprintf(io, "CALL &USER.SET_EXPIRY\n");
 		}
 	}
-	fprintf(io, "FLAGGED? :changed @next.%i\n", next);
+	fprintf(io, "!FLAGGED? :changed @next.%i\n", next);
 	fprintf(io, "  CALL &USERDB.SAVE\n");
 
 return 0;
@@ -1049,7 +1049,7 @@ int res_group_gencode(const void *res, FILE *io, unsigned int next)
 			}
 		}
 	}
-	fprintf(io, "FLAGGED? :changed @next.%i\n", next);
+	fprintf(io, "!FLAGGED? :changed @next.%i\n", next);
 	fprintf(io, "  CALL &USERDB.SAVE\n");
 
 	return 0;

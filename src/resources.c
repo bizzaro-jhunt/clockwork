@@ -349,21 +349,11 @@ int res_user_gencode(const void *res, FILE *io, unsigned int next)
 		}
 		fprintf(io, "  SET %%A \"%s\"\n", r->name);
 		fprintf(io, "  CALL &USER.CREATE\n");
-		if (r->passwd && !ENFORCED(r, RES_USER_PASSWD)) {
+		if (r->passwd && ENFORCED(r, RES_USER_PASSWD)) {
 			fprintf(io, "  SET %%B \"x\"\n");
 			fprintf(io, "  CALL &USER.SET_PASSWD\n");
 			fprintf(io, "  SET %%B \"%s\"\n", r->passwd);
 			fprintf(io, "  CALL &USER.SET_PWHASH\n");
-		}
-		fprintf(io, "  JUMP @exists.%i\n", next);
-		fprintf(io, "check.ids.%i:\n", next);
-		if (ENFORCED(r, RES_USER_UID)) {
-			fprintf(io, "SET %%B %i\n", r->uid);
-			fprintf(io, "CALL &USER.SET_UID\n");
-		}
-		if (ENFORCED(r, RES_USER_GID)) {
-			fprintf(io, "SET %%B %i\n", r->gid);
-			fprintf(io, "CALL &USER.SET_GID\n");
 		}
 		if (ENFORCED(r, RES_USER_DIR)) {
 			fprintf(io, "SET %%B \"%s\"\n", r->dir);
@@ -390,6 +380,16 @@ int res_user_gencode(const void *res, FILE *io, unsigned int next)
 				fprintf(io, "  CALL &FS.COPY_R\n");
 			}
 			fprintf(io, "home.exists.%i:\n", next);
+		}
+		fprintf(io, "  JUMP @exists.%i\n", next);
+		fprintf(io, "check.ids.%i:\n", next);
+		if (ENFORCED(r, RES_USER_UID)) {
+			fprintf(io, "SET %%B %i\n", r->uid);
+			fprintf(io, "CALL &USER.SET_UID\n");
+		}
+		if (ENFORCED(r, RES_USER_GID)) {
+			fprintf(io, "SET %%B %i\n", r->gid);
+			fprintf(io, "CALL &USER.SET_GID\n");
 		}
 		fprintf(io, "exists.%i:\n", next);
 

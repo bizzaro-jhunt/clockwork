@@ -69,8 +69,8 @@ function symlink_should_exist() {
 
 function package_should_be_installed() {
 	local pkg=$1
-	/usr/bin/dpkg-query -W -f='${Version}' "$pkg" >/dev/null 2>&1
-	if [[ $? != 0 ]]; then
+	V=$(/usr/bin/dpkg-query -W -f='${Version}' "$pkg" 2>/dev/null)
+	if [[ $V == "" ]]; then
 		echo >&2 "Package $pkg is not installed"
 		RC=2
 	else
@@ -80,8 +80,8 @@ function package_should_be_installed() {
 
 function package_should_not_be_installed() {
 	local pkg=$1
-	/usr/bin/dpkg-query -W -f='${Version}' "$pkg" >/dev/null 2>&1
-	if [[ $? == 0 ]]; then
+	V=$(/usr/bin/dpkg-query -W -f='${Version}' "$pkg" 2>/dev/null)
+	if [[ $V != "" ]]; then
 		echo >&2 "Package $pkg is installed"
 		RC=2
 	else
@@ -91,11 +91,9 @@ function package_should_not_be_installed() {
 
 #####################################
 
-(
-apt-get install -y libzmq3 libaugeas0
+apt-get install -y libzmq3 libaugeas0 fortune-mod
 rm -f /etc/motd
 ln -sf /etc/issue /etc/motd
-) >/dev/null 2>&1
 
 #####################################
 
@@ -116,4 +114,4 @@ file_should_not_exist /home/rjoseph/env/git.bashrc
 symlink_should_exist /etc/motd
 
 package_should_not_be_installed ntp
-package_should_be_installed ntpdate
+package_should_be_installed fortune-mod

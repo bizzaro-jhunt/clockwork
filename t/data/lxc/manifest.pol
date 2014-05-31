@@ -68,8 +68,9 @@ policy "tests" {
 		source: "/cw/cfm/files/etc/motd"
 	}
 
-	package "ntp"     { }
-	package "ntpdate" { installed: "no" }
+	package "fortune-mod" { installed: "no" }
+
+	package "ntp" { }
 	service "ntp" {
 		enabled: "no"
 		running: "no"

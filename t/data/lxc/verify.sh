@@ -65,8 +65,8 @@ function dir_should_exist() {
 
 function package_should_be_installed() {
 	local pkg=$1
-	/usr/bin/dpkg-query -W -f='${Version}' "$pkg" &>/dev/null
-	if [[ $? != 0 ]]; then
+	V=$(/usr/bin/dpkg-query -W -f='${Version}' "$pkg" 2>/dev/null)
+	if [[ $V == "" ]]; then
 		echo >&2 "Package $pkg is not installed"
 		RC=2
 	fi
@@ -74,8 +74,8 @@ function package_should_be_installed() {
 
 function package_should_not_be_installed() {
 	local pkg=$1
-	/usr/bin/dpkg-query -W -f='${Version}' "$pkg" &>/dev/null
-	if [[ $? == 0 ]]; then
+	V=$(/usr/bin/dpkg-query -W -f='${Version}' "$pkg" 2>/dev/null)
+	if [[ $V != "" ]]; then
 		echo >&2 "Package $pkg is installed"
 		RC=2
 	fi
@@ -86,7 +86,7 @@ group_should_exist copyedit
 
 user_should_exist rjoseph
 user_should_exist lmiller
-user_should_exist smoss
+user_should_exist kharding
 
 dir_should_exist /home/rjoseph
 dir_should_exist /home/rjoseph/.ssh
@@ -102,4 +102,4 @@ file_should_exist /etc/motd
 file_sha1_should_be /etc/motd 2920d4dc6ca787b79e214baeff72e1a4d3d71067
 
 package_should_be_installed     ntp
-package_should_not_be_installed ntpdate
+package_should_not_be_installed fortune-mod

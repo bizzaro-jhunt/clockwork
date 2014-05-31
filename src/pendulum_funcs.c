@@ -838,13 +838,50 @@ static pn_word cwa_server_sha1(pn_machine *m)
 	return 1;
 }
 
+static int s_copyfile(FILE *src, const char *path)
+{
+	FILE *dst = fopen(path, "w");
+	if (!dst) {
+		cw_log(LOG_ERR, "failed: %s", strerror(errno));
+		fclose(src);
+		return 1;
+	}
+
+	rewind(src);
+	char buf[8192];
+	for (;;) {
+		size_t nread = fread(buf, 1, 8192, src);
+		if (nread == 0) {
+			if (feof(src)) break;
+			cw_log(LOG_ERR, "read error: %s", strerror(errno));
+			fclose(dst);
+			return 1;
+		}
+
+		size_t nwritten = fwrite(buf, 1, nread, dst);
+		if (nwritten != nread) {
+			cw_log(LOG_ERR, "read error: %s", strerror(errno));
+			fclose(dst);
+			return 1;
+		}
+	}
+
+	fclose(dst);
+	return 0;
+}
+
 static pn_word cwa_server_writefile(pn_machine *m)
 {
-	FILE *io = NULL;
 	int rc, n = 0;
 	char size[16];
 	cw_pdu_t *pdu, *reply;
 
+	FILE *tmpf = tmpfile();
+	if (!tmpf) {
+		cw_log(LOG_ERR, "SERVER.WRITEFILE failed to create temporary file: %s",
+				strerror(errno));
+		return 1;
+	}
 	for (;;) {
 		rc = snprintf(size, 15, "%i", n++);
 		assert(rc > 0);
@@ -855,29 +892,27 @@ static pn_word cwa_server_writefile(pn_machine *m)
 		reply = cw_pdu_recv(UDATA(m)->zconn);
 		if (!reply) {
 			cw_log(LOG_ERR, "failed: %s", zmq_strerror(errno));
-			if (io) fclose(io);
+			if (tmpf) fclose(tmpf);
 			return 1;
 		}
 		cw_log(LOG_INFO, "server.writefile: received a %s PDU", reply->type);
 
-		if (strcmp(reply->type, "EOF") == 0) {
-			if (io) fclose(io);
-			return 0;
-		}
-
-		if (!io) io = fopen((const char *)m->A, "w");
-		if (!io) {
-			cw_log(LOG_ERR, "failed: %s", strerror(errno));
+		if (strcmp(reply->type, "EOF") == 0)
+			break;
+		if (strcmp(reply->type, "BLOCK") != 0) {
+			cw_log(LOG_ERR, "protocol violation: received a %s PDU (expected a BLOCK)", reply->type);
+			if (tmpf) fclose(tmpf);
 			return 1;
 		}
 
 		char *data = cw_pdu_text(reply, 1);
-		fprintf(io, "%s", data);
+		fprintf(tmpf, "%s", data);
 		free(data);
 	}
-	if (io) fclose(io);
 
-	return 0;
+	rc = s_copyfile(tmpf, (const char *)m->A);
+	fclose(tmpf);
+	return rc == 0 ? 0 : 1;
 }
 
 

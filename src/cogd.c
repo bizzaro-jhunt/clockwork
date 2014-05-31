@@ -230,6 +230,10 @@ static void s_cfm_run(client_t *c)
 
 		if (strcmp(reply->type, "EOF") == 0)
 			break;
+		if (strcmp(reply->type, "BLOCK") != 0) {
+			cw_log(LOG_ERR, "protocol violation: received a %s PDU (expected a BLOCK)", reply->type);
+			goto maybe_next_time;
+		}
 
 		char *data = cw_pdu_text(reply, 1);
 		fwrite(data, 1, cw_pdu_framelen(reply, 1), bdfa);

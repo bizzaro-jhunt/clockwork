@@ -1163,11 +1163,7 @@ void* res_package_clone(const void *res, const char *key)
 	struct res_package *rp = cw_alloc(sizeof(struct res_package));
 
 	rp->enforced  = RES_DEFAULT(orig, enforced, RES_NONE);
-
 	rp->version   = RES_DEFAULT_STR(orig, version, NULL);
-
-	/* state variables are never cloned */
-	rp->installed = NULL;
 
 	rp->key = NULL;
 	if (key) {
@@ -1184,7 +1180,6 @@ void res_package_free(void *res)
 	if (rp) {
 		free(rp->name);
 		free(rp->version);
-		free(rp->installed);
 
 		free(rp->key);
 	}
@@ -1315,10 +1310,7 @@ void* res_service_clone(const void *res, const char *key)
 	struct res_service *rs = cw_alloc(sizeof(struct res_service));
 
 	rs->enforced  = RES_DEFAULT(orig, enforced, RES_NONE);
-
-	/* state variables are never cloned */
-	rs->running = 0;
-	rs->enabled = 0;
+	rs->notify    = RES_DEFAULT_STR(orig, notify,  NULL);
 
 	rs->key = NULL;
 	if (key) {
@@ -1334,6 +1326,7 @@ void res_service_free(void *res)
 	struct res_service *rs = (struct res_service*)(res);
 	if (rs) {
 		free(rs->service);
+		free(rs->notify);
 
 		free(rs->key);
 	}
@@ -1357,6 +1350,7 @@ int res_service_attrs(const void *res, cw_hash_t *attrs)
 	_hash_attr(attrs, "name", cw_strdup(rs->service));
 	_hash_attr(attrs, "running", strdup(ENFORCED(rs, RES_SERVICE_RUNNING) ? "yes" : "no"));
 	_hash_attr(attrs, "enabled", strdup(ENFORCED(rs, RES_SERVICE_ENABLED) ? "yes" : "no"));
+	_hash_attr(attrs, "notify", cw_strdup(rs->notify));
 	return 0;
 }
 
@@ -1406,6 +1400,10 @@ int res_service_set(void *res, const char *name, const char *value)
 			UNENFORCE(rs, RES_SERVICE_DISABLED);
 			ENFORCE(rs, RES_SERVICE_ENABLED);
 		}
+
+	} else if (strcmp(name, "notify") == 0) {
+		free(rs->notify);
+		rs->notify = strdup(value);
 
 	} else {
 		return -1;
@@ -1481,7 +1479,8 @@ int res_service_gencode(const void *res, FILE *io, unsigned int next)
 			((const struct resource*)res)->serial, next);
 
 	if (ENFORCED(r, RES_SERVICE_RUNNING)) {
-		fprintf(io, "  SET %%A \"cwtool svc-init %s restart\"\n", r->service);
+		fprintf(io, "  SET %%A \"cwtool svc-init %s %s\"\n",
+				r->service, r->notify ? r->notify : "restart");
 		fprintf(io, "  CALL &EXEC.CHECK\n");
 		fprintf(io, "  FLAG 0 :res%i\n",
 			((const struct resource*)res)->serial);

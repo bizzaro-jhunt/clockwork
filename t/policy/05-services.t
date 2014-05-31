@@ -77,5 +77,30 @@ next.1:
 final.1:
 EOF
 
+gencode_ok "use host service4.test", <<'EOF', "service reload";
+RESET
+;; res_service snmpd
+SET %A "cwtool svc-boot-status snmpd"
+CALL &EXEC.CHECK
+OK? @enabled.1
+  SET %A "cwtool svc-enable snmpd"
+  CALL &EXEC.CHECK
+enabled.1:
+SET %A "cwtool svc-run-status snmpd"
+CALL &EXEC.CHECK
+OK? @running.1
+  SET %A "cwtool svc-init snmpd start"
+  CALL &EXEC.CHECK
+  FLAG 1 :changed
+  FLAG 0 :res0
+running.1:
+!FLAGGED? :res0 @next.1
+  SET %A "cwtool svc-init snmpd reload"
+  CALL &EXEC.CHECK
+  FLAG 0 :res0
+next.1:
+!FLAGGED? :changed @final.1
+final.1:
+EOF
 
 done_testing;

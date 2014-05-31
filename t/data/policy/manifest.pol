@@ -180,6 +180,15 @@ policy "service3" {
 }
 host "service3.test" { enforce "service3" }
 
+policy "service4" {
+	service "snmpd" {
+		running: "yes"
+		enabled: "yes"
+		notify:  "reload"
+	}
+}
+host "service4.test" { enforce "service4" }
+
 ####################################################
 ####################################################
 

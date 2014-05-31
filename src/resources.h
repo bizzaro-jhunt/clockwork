@@ -178,7 +178,6 @@ struct res_package {
 
 	char *name;       /* name of the package */
 	char *version;    /* version to be installed */
-	char *installed;  /* actual version installed */
 
 	unsigned int enforced;  /* enforcements; see RES_PACKAGE_* constants */
 };
@@ -198,9 +197,7 @@ struct res_service {
 	char *key;     /* unique identifier; starts with "res_service:" */
 
 	char *service; /* name of the script in /etc/init.d */
-
-	unsigned int running;   /* is the service currently running? */
-	unsigned int enabled;   /* is the service enabled to start at boot? */
+	char *notify;     /* init script action to use for notify */
 
 	unsigned int enforced;  /* enforcemnts; see RES_SERVICE_* constants */
 };

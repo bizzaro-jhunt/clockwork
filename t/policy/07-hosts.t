@@ -10,7 +10,7 @@ RESET
 ;; res_host example.com
 SET %A "/files/etc/hosts/*[ipaddr = \"1.2.3.4\" and canonical = \"example.com\"]"
 CALL &AUGEAS.FIND
-OK @found.1
+OK? @found.1
   SET %A "/files/etc/hosts/100000/ipaddr"
   SET %B "1.2.3.4"
   CALL &AUGEAS.SET
@@ -39,7 +39,7 @@ RESET
 ;; res_host remove.me
 SET %A "/files/etc/hosts/*[ipaddr = \"2.4.6.8\" and canonical = \"remove.me\"]"
 CALL &AUGEAS.FIND
-NOTOK @not.found.1
+NOTOK? @not.found.1
   COPY %R %A
   CALL &AUGEAS.REMOVE
 not.found.1:

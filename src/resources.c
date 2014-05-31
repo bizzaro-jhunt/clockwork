@@ -1640,13 +1640,13 @@ int res_host_gencode(const void *res, FILE *io, unsigned int next)
 	fprintf(io, "CALL &AUGEAS.FIND\n");
 
 	if (ENFORCED(r, RES_HOST_ABSENT)) {
-		fprintf(io, "NOTOK @not.found.%i\n", next);
+		fprintf(io, "NOTOK? @not.found.%i\n", next);
 		fprintf(io, "  COPY %%R %%A\n");
 		fprintf(io, "  CALL &AUGEAS.REMOVE\n");
 		fprintf(io, "not.found.%i:\n", next);
 
 	} else {
-		fprintf(io, "OK @found.%i\n", next);
+		fprintf(io, "OK? @found.%i\n", next);
 		fprintf(io, "  SET %%A \"/files/etc/hosts/%i/ipaddr\"\n", 99999+next);
 		fprintf(io, "  SET %%B \"%s\"\n", r->ip);
 		fprintf(io, "  CALL &AUGEAS.SET\n");

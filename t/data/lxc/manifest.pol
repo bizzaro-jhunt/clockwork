@@ -72,8 +72,8 @@ policy "tests" {
 
 	package "ntp" { }
 	service "ntp" {
-		enabled: "no"
-		running: "no"
+		enabled: "yes"
+		running: "yes"
 	}
 	file "/etc/ntp.conf" {
 		source: "/cw/cfm/files/etc/ntp.conf"

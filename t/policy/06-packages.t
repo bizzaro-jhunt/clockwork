@@ -16,14 +16,14 @@ OK? @installed.1
   FLAG 1 :changed
   JUMP @next.1
 installed.1:
-COPY %R %T1
+COPY %S2 %T1
 SET %A "cwtool pkg-latest binutils"
 CALL &EXEC.RUN1
 OK? @got.latest.1
   PRINT "Failed to detect latest version of 'binutils'\n"
   JUMP @next.1
 got.latest.1:
-COPY %R %T2
+COPY %S2 %T2
 CALL &UTIL.VERCMP
 OK? @next.1
   SET %A "cwtool pkg-install binutils latest"
@@ -59,7 +59,7 @@ OK? @installed.1
   FLAG 1 :changed
   JUMP @next.1
 installed.1:
-COPY %R %T1
+COPY %S2 %T1
 SET %T2 "1.2.3"
 CALL &UTIL.VERCMP
 OK? @next.1

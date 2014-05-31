@@ -804,13 +804,14 @@ static pn_word cwa_exec_check(pn_machine *m)
 
 static pn_word cwa_exec_run1(pn_machine *m)
 {
-	pn_trace(m, "EXEC.RUN1 (as %i:%i) `%s`\n", (const char *)m->A, m->B, m->C);
+	pn_trace(m, "EXEC.RUN1 (as %i:%i) `%s`\n", m->B, m->C, (const char *)m->A);
 	char *out, *p;
 	int rc = s_exec((const char *)m->A, &out, NULL,
 		(uid_t)m->B, (gid_t)m->C);
 
 	for (p = out; *p && *p != '\n'; p++);
 	*p = '\0';
+	pn_trace(m, "first line of output was '%s'", out);
 
 	free(UDATA(m)->exec_last);
 	m->S2 = (pn_word)(UDATA(m)->exec_last = out);

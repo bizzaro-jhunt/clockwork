@@ -1274,7 +1274,7 @@ int res_package_gencode(const void *res, FILE *io, unsigned int next)
 		fprintf(io, "  FLAG 1 :changed\n");
 		fprintf(io, "  JUMP @next.%i\n", next);
 		fprintf(io, "installed.%i:\n", next);
-		fprintf(io, "COPY %%R %%T1\n");
+		fprintf(io, "COPY %%S2 %%T1\n");
 		if (r->version) {
 			fprintf(io, "SET %%T2 \"%s\"\n", r->version);
 		} else {
@@ -1284,7 +1284,7 @@ int res_package_gencode(const void *res, FILE *io, unsigned int next)
 			fprintf(io, "  PRINT \"Failed to detect latest version of '%s'\\n\"\n", r->name);
 			fprintf(io, "  JUMP @next.%i\n", next);
 			fprintf(io, "got.latest.%i:\n", next);
-			fprintf(io, "COPY %%R %%T2\n");
+			fprintf(io, "COPY %%S2 %%T2\n");
 		}
 		fprintf(io, "CALL &UTIL.VERCMP\n");
 		fprintf(io, "OK? @next.%i\n", next);

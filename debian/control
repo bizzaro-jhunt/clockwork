@@ -13,6 +13,7 @@ Build-Depends: bison,
                libreadline6-dev,
                libtest-deep-perl,
                libtest-simple-perl,
+               libtext-diff-perl,
                libzmq3-dev,
                pkg-config
 Standards-Version: 3.9.3

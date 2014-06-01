@@ -37,6 +37,10 @@ fact("sys.kernel.minor", $minor);
 $_ = qx($UNAME -n); chomp;
 fact("sys.hostname", $_);
 
+## sys.domain - Domain name of the node (relies on /etc/hosts)
+$_ = qx(hostname -d); chomp;
+fact("sys.domain", $_);
+
 ## sys.fqdn - Fully Qualified Domain Name (relies on /etc/hosts)
 $_ = qx(hostname -f); chomp;
 fact("sys.fqdn", $_);

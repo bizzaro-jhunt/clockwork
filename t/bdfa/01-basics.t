@@ -25,9 +25,13 @@ mkfifo $ROOT/src/special/fifo
 mkdir $ROOT/src/full/dat
 mkdir $ROOT/src/full/this-is-a-really-long-directory-name-for-testing-limits-of-the-bdfa-format
 
-ln -fs file $ROOT/src/special/symlink;
-ln -f  file $ROOT/src/special/hardlink;
+};qx{
+exec 2>/dev/null
+cd $ROOT/src/special
+ln -fs file symlink;
+ln -f  file hardlink;
 
+};qx{
 find $ROOT -type f | xargs -r chmod 0644;
 find $ROOT -type d | xargs -r chmod 0755;
 };

@@ -11,14 +11,26 @@ my ($UID, $GID) = (2345, 5432);
 
 my $ROOT = "t/tmp/data/bdfa";
 my $TEMP = "t/tmp/bdfa";
-qx(rm -rf $TEMP; mkdir -p $TEMP);
-qx(find $ROOT -name '*.keep' | xargs rm -f);
-qx(rm -f $ROOT/src/special/fifo; mkfifo $ROOT/src/special/fifo);
-qx(cd $ROOT/src/special && ln -fs file symlink);
-qx(cd $ROOT/src/special && ln -f  file hardlink);
-qx(cd $ROOT/src/full && mkdir this-is-a-really-long-directory-name-for-testing-limits-of-the-bdfa-format);
-qx(find $ROOT -type f | xargs chmod 0644);
-qx(find $ROOT -type d | xargs chmod 0755);
+qx{
+exec 2>/dev/null
+
+rm -rf $TEMP
+mkdir -p $TEMP
+find $ROOT -name '*.keep' | xargs rm -f
+
+mkdir  $ROOT/src/special/dir
+rm -f  $ROOT/src/special/fifo
+mkfifo $ROOT/src/special/fifo
+
+mkdir $ROOT/src/full/dat
+mkdir $ROOT/src/full/this-is-a-really-long-directory-name-for-testing-limits-of-the-bdfa-format
+
+ln -fs file $ROOT/src/special/symlink;
+ln -f  file $ROOT/src/special/hardlink;
+
+find $ROOT -type f | xargs -r chmod 0644;
+find $ROOT -type d | xargs -r chmod 0755;
+};
 
 if (!$>) {
 	qx(rm -f $ROOT/src/special/*dev);

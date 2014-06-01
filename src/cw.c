@@ -1416,10 +1416,12 @@ int cw_bdfa_pack(int out, const char *root)
 
 	fts = fts_open(paths, FTS_LOGICAL|FTS_XDEV, NULL);
 	if (!fts) {
-		fchdir(cwd);
+		if (fchdir(cwd) != 0)
+			cw_log(LOG_ERR, "Failed to chdir back to starting directory");
 		return -1;
 	}
 
+	size_t n;
 	struct bdfa_hdr h;
 	while ( (ent = fts_read(fts)) != NULL ) {
 		if (ent->fts_info == FTS_DP) continue;
@@ -1458,14 +1460,20 @@ int cw_bdfa_pack(int out, const char *root)
 		s_i2c8(h.mtime,    (uint32_t)ent->fts_statp->st_mtime);
 		s_i2c8(h.filesize, filelen);
 		s_i2c8(h.namesize, namelen);
-		write(out, &h, sizeof(h));
+		n = write(out, &h, sizeof(h));
+		if (n < sizeof(h))
+			cw_log(LOG_ERR, "short write: %s", strerror(errno));
 
 		char *path = cw_alloc(namelen);
 		strncpy(path, ent->fts_path+2, namelen);
-		write(out, path, namelen);
+		n = write(out, path, namelen);
+		if (n < namelen)
+			cw_log(LOG_ERR, "short write: %s", strerror(errno));
 
 		if (contents && filelen >= 0) {
-			write(out, contents, filelen);
+			n = write(out, contents, filelen);
+			if (n < filelen)
+				cw_log(LOG_ERR, "short write: %s", strerror(errno));
 			munmap(contents, filelen);
 		}
 	}
@@ -1473,9 +1481,12 @@ int cw_bdfa_pack(int out, const char *root)
 	memset(&h, '0', sizeof(h));
 	memcpy(h.magic, "BDFA", 4);
 	memcpy(h.flags, "0001", 4);
-	write(out, &h, sizeof(h));
+	n = write(out, &h, sizeof(h));
+	if (n < sizeof(h))
+		cw_log(LOG_ERR, "short write: %s", strerror(errno));
 
-	fchdir(cwd);
+	if (fchdir(cwd) != 0)
+		cw_log(LOG_ERR, "Failed to chdir back to starting directory");
 	return 0;
 }
 
@@ -1543,8 +1554,10 @@ int cw_bdfa_unpack(int in, const char *root)
 				perror(filename);
 				continue;
 			}
-			fchmod(fileno(out), mode);
-			fchown(fileno(out), uid, gid);
+			if (fchmod(fileno(out), mode) != 0)
+				cw_log(LOG_ERR, "chmod failed: %s", strerror(errno));
+			if (fchown(fileno(out), uid, gid) != 0)
+				cw_log(LOG_ERR, "chown failed: %s", strerror(errno));
 
 			char buf[8192];
 			while (len > 0 && (n = read(in, buf, len > 8192 ? 8192: len)) > 0) {
@@ -1570,6 +1583,7 @@ int cw_bdfa_unpack(int in, const char *root)
 		}
 	}
 	umask(umsk);
-	fchdir(cwd);
+	if (fchdir(cwd) != 0)
+		cw_log(LOG_ERR, "Failed to chdir back to starting directory");
 	return rc;
 }

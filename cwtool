@@ -65,11 +65,23 @@ fi
 #################################################################
 
 on_debian () {
+	export DEBIAN_FRONTEND=noninteractive
+
 	case $ACTION in
 	pkg-version)
 		NAME=$1
-		/usr/bin/dpkg-query -W -f='${Version}' "$NAME"
-		exit $?
+		out=$(/usr/bin/dpkg-query -W -f='${db:status-abbrev} ${Version}' "$NAME")
+		rc=$?
+		status=$(echo $out | cut -d " " -f1)
+		version=$(echo $out | cut -d " " -f2)
+		if [ "$status" = "rc" -o "$status" = "un" -o $rc -ne 0 ]; then
+			exit 1 # treat as not installed
+		elif [ "$status" = "ii" ]; then
+			echo $version
+			exit 0 # treat as installed
+		else
+			exit 2 # treat as broken
+		fi
 		;;
 	pkg-latest)
 		NAME=$1

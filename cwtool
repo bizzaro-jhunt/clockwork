@@ -95,12 +95,12 @@ on_debian () {
 		NAME=$1
 		VERSION=$2
 		if [ "x$VERSION" = "xlatest" ]; then
-			/usr/bin/apt-get install -qqy "$NAME"
+			/usr/bin/apt-get install -qq --assume-no "$NAME"
 			exit $?
 		else
 			# specific version
 			echo "$VERSION" | grep -q '-' || VERSION="$VERSION-*"
-			/usr/bin/apt-get install -qqy "$NAME=$VERSION"
+			/usr/bin/apt-get install -qq --assume-no "$NAME=$VERSION"
 			exit $?
 		fi
 		;;

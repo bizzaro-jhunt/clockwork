@@ -277,6 +277,9 @@ sub bdfa_file_is
 	$actual =~ s/(.)BDFA/$1\nBDFA/g;
 	$expect =~ s/(.)BDFA/$1\nBDFA/g;
 
+	$actual = join('', map { "$_\n" } sort split('\n', $actual));
+	$expect = join('', map { "$_\n" } sort split('\n', $expect));
+
 	my $diff = diff \$actual, \$expect, {
 		FILENAME_A => 'actual-output',    MTIME_A => time,
 		FILENAME_B => 'expected-output',  MTIME_B => time,

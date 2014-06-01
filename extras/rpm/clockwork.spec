@@ -8,8 +8,8 @@ URL:		http://clockwork.niftylogic.com
 Source0:	%{name}-%{version}.tar.gz
 BuildRoot:	%(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 
-BuildRequires:	augeas-devel sqlite-devel readline-devel
-Requires:	augeas-libs sqlite readline yum-utils
+BuildRequires:	augeas-devel readline-devel
+Requires:	augeas-libs readline yum-utils
 
 %description
 
@@ -49,13 +49,13 @@ make %{?_smp_mflags}
 rm -rf %{buildroot}
 make install DESTDIR=%{buildroot}
 # VIM stuff
-%{__install} -D -p -m 644 share/vim/cwa.vim %{buildroot}%{_datadir}/vim/vimfiles/syntax/cwa.vim
-%{__install} -D -p -m 644 share/vim/pol.vim %{buildroot}%{_datadir}/vim/vimfiles/syntax/pol.vim
-%{__install} -D -p -m 644 share/vim/policyd.vim %{buildroot}%{_datadir}/vim/vimfiles/syntax/policyd.vim
-%{__install} -D -p -m 644 share/vim/ft-agent.vim %{buildroot}%{_datadir}/vim/vimfiles/ftdetect/cwa.vim
-%{__install} -D -p -m 644 share/vim/ft-server.vim %{buildroot}%{_datadir}/vim/vimfiles/ftdetect/policyd.vim
+%{__install} -D -p -m 644 share/vim/cogd.vim %{buildroot}%{_datadir}/vim/vimfiles/syntax/cogd.vim
+%{__install} -D -p -m 644 share/vim/clockwork.vim %{buildroot}%{_datadir}/vim/vimfiles/syntax/clockwork.vim
+%{__install} -D -p -m 644 share/vim/clockd.vim %{buildroot}%{_datadir}/vim/vimfiles/syntax/clockd.vim
+%{__install} -D -p -m 644 share/vim/ft-agent.vim %{buildroot}%{_datadir}/vim/vimfiles/ftdetect/cogd.vim
+%{__install} -D -p -m 644 share/vim/ft-server.vim %{buildroot}%{_datadir}/vim/vimfiles/ftdetect/clockd.vim
 # Init scripts
-%{__install} -D -p -m 755 share/rpm/policyd.init %{buildroot}/etc/init.d/policyd
+%{__install} -D -p -m 755 share/rpm/clockd.init %{buildroot}/etc/init.d/clockd
 # Gatherer scripts
 %{__install} -d %{buildroot}/var/lib/clockwork/gather.d
 %{__install} -D -p -m 755 share/gather.d/* %{buildroot}/var/lib/clockwork/gather.d
@@ -65,40 +65,36 @@ rm -rf %{buildroot}
 
 
 %post server
-/sbin/chkconfig --add policyd
+/sbin/chkconfig --add clockd
 
 %preun server
-/sbin/chkconfig --del policyd
+/sbin/chkconfig --del clockd
 
 %files agent
 %defattr(755,root,root,-)
-/sbin/cwa
-/sbin/cwcert
-/etc/clockwork/ssl
+/sbin/cogd
 /var/lib/clockwork
 %defattr(644,root,root,-)
-%config(noreplace) /etc/clockwork/cwa.conf
-%doc /usr/share/man/man1/cwa.1.gz
-%doc /usr/share/man/man5/cwa.conf.5.gz
-%doc /usr/share/vim/vimfiles/ftdetect/cwa.vim
-%doc /usr/share/vim/vimfiles/syntax/cwa.vim
-%doc /usr/share/clockwork/agent.sql
+%config(noreplace) /etc/clockwork/cogd.conf
+%doc /usr/share/man/man1/cogd.1.gz
+%doc /usr/share/man/man5/cogd.conf.5.gz
+%doc /usr/share/vim/vimfiles/ftdetect/cogd.vim
+%doc /usr/share/vim/vimfiles/syntax/cogd.vim
 
 %files server
 %defattr(755,root,root,-)
 /sbin/cwca
-/sbin/policyd
+/sbin/clockd
 /sbin/cwpol
-/etc/init.d/policyd
-/etc/clockwork/ssl
+/etc/init.d/clockd
 /var/cache/clockwork
 /var/lib/clockwork
 %defattr(644,root,root,-)
 %config(noreplace) /etc/clockwork/manifest.pol
-%config(noreplace) /etc/clockwork/policyd.conf
-%doc /usr/share/man/man1/policyd.1.gz
+%config(noreplace) /etc/clockwork/clockd.conf
+%doc /usr/share/man/man1/clockd.1.gz
 %doc /usr/share/man/man1/cwpol.1.gz
-%doc /usr/share/man/man5/policyd.conf.5.gz
+%doc /usr/share/man/man5/clockd.conf.5.gz
 %doc /usr/share/man/man5/res_dir.5.gz
 %doc /usr/share/man/man5/res_exec.5.gz
 %doc /usr/share/man/man5/res_file.5.gz
@@ -110,10 +106,9 @@ rm -rf %{buildroot}
 %doc /usr/share/man/man5/res_user.5.gz
 %doc /usr/share/man/man7/clockwork.7.gz
 %doc /usr/share/clockwork/help/*
-%doc /usr/share/clockwork/master.sql
-%doc /usr/share/vim/vimfiles/ftdetect/policyd.vim
-%doc /usr/share/vim/vimfiles/syntax/policyd.vim
-%doc /usr/share/vim/vimfiles/syntax/pol.vim
+%doc /usr/share/vim/vimfiles/ftdetect/clockd.vim
+%doc /usr/share/vim/vimfiles/syntax/clockd.vim
+%doc /usr/share/vim/vimfiles/syntax/clockwork.vim
 
 
 %changelog

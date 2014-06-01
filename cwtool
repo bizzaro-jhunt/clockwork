@@ -9,69 +9,20 @@
 
 # USAGE: cwtool <action> [arguments]
 #
-# <action> must be one of the following:
+# Supported actions:
 #
-#   identify              Identify the current cwtool environment
-#                         (including the detect system type)
+#   identify
 #
-#   svc-run-status SVC    Determine whether or not the service is
-#                         running (per LSB semantics).
+#   svc-run-status  <service>
+#   svc-boot-status <service>
+#   svc-init        <service> <action>
+#   svc-enable      <service>
+#   svc-disable SVC <service>
 #
-#                           exit 0    = service is running
-#                           otherwise = service is not running
-#                                       or has other init-script
-#                                       issues (dead locks, no
-#                                       PID file, etc.)
-#
-#   svc-boot-status SVC   Determine whether or not the service is
-#                         set to be started on boot (runlevel 3)
-#
-#                           exit 0    = service starts at boot
-#                           otherwise = service is off by default
-#
-#   svc-init SVC INIT     Run the init script action INIT.
-#
-#                           exit 0    = action succeeded (i.e. it
-#                                       started, stopped, etc.)
-#                           otherwise = action failed
-#
-#   svc-enable SVC        Set the service to start on boot (runevel 3)
-#
-#                           exit 0    = service enabled at boot
-#                           otherwise = failure
-#
-#   svc-disable SVC       Keep the service from starting at boot
-#
-#                           exit 0    = service won't start at boot
-#                           otherwise = failure
-#
-#   pkg-version PKG       Print out the installed version of
-#                         the named package, on a single line.
-#
-#                           exit 0    = package is installed
-#                           otherwise = package is not installed
-#
-#   pkg-latest PKG        Print out the latest available version
-#                         of the named package, on a single line,
-#                         and then exit 0.
-#
-#                           exit 0    = package is available
-#                           otherwise = package is not available
-#
-#   pkg-install PKG VER   Install the named package.  If VER is
-#                         the string "latest", the latest version
-#                         will be installed.
-#
-#                           exit 0    = installed successfully
-#                           otherwise = failure (any reason)
-#
-#   pkg-remove PKG        Uninstall the named package.
-#
-#                           exit 0    = removed successfully
-#                           otherwise = failure (any reason)
-#
-# Any unrecognized commands will be met with a ruthless and
-# merciless exit code of 125.
+#   pkg-version <package>
+#   pkg-latest  <package>
+#   pkg-install <package> <version>
+#   pkg-remove  <package>
 #
 
 #################################################################

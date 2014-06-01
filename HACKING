@@ -255,7 +255,7 @@ Question: can normal users chroot?
 
 5.7. Sending Generated Policy vs. Sending Policy Generators
 -----------------------------------------------------------
-During design / development of policyd, I had to decide whether to generate the policy
+During design / development of clockd, I had to decide whether to generate the policy
 every time a client connects, and send the full policy definition, or just send the
 syntax tree that the client could run against its set of facts and get a policy.
 
@@ -454,11 +454,6 @@ So...
 
 The final decision (at least at this point) is to run the following sequence:
   Groups -> Users -> Files
-
-
-5.12. SSL Signing / Verification Procedure
-------------------------------------------
-If any step in cwca_sign_main fails, all other steps must be undone
 
 
 6. Platform Support Matrix

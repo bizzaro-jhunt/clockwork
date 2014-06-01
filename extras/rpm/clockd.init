@@ -1,15 +1,15 @@
 #!/bin/bash
 #
-# policyd	Starts and stops the Clockwork Policy Master
+# clockd	Starts and stops the Clockwork Policy Master
 #
 # chkconfig: 2345 55 25
 # description: Clockwork is a configuration management system. \
 #              This service starts up the Clockwork Policy Master, \
 #              which is responsible for handing out policy to agents.
 #
-# processname: policyd
-# config: /etc/clockwork/policyd.conf
-# pidfile: /var/run/clockwork/policyd.pid
+# processname: clockd
+# config: /etc/clockwork/clockd.conf
+# pidfile: /var/run/clockwork/clockd.pid
 #
 # Return values according to LSB for all commands but status:
 # 0 - success
@@ -26,22 +26,22 @@
 . /etc/rc.d/init.d/functions
 
 # pull in sysconfig settings
-[ -f /etc/sysconfig/policyd ] && . /etc/sysconfig/policyd
+[ -f /etc/sysconfig/clockd ] && . /etc/sysconfig/clockd
 
 RETVAL=0
-prog="policyd"
+prog="clockd"
 lockfile=/var/lock/subsys/$prog
 
 # Some functions to make the below more readable
-POLICYD=/sbin/policyd
-PID_FILE=/var/run/policyd.pid
+CLOCKD=/sbin/clockd
+PID_FILE=/var/run/clockd.pid
 
 runlevel=$(set -- $(runlevel); eval "echo \$$#" )
 
 do_sanity_check()
 {
-	echo -n $"Checking policyd configuration:"
-	$POLICYD -t >/dev/null 2>&1
+	echo -n $"Checking clockd configuration:"
+	$CLOCKD -t >/dev/null 2>&1
 	RETVAL=$?
 	if [ $RETVAL -ne  0 ]; then
 		failure $"Configuration sanity check failed"
@@ -53,13 +53,11 @@ do_sanity_check()
 
 start()
 {
-	[ -x $POLICYD ] || exit 5
-	[ -f /etc/clockwork/policyd.conf ] || exit 6
-	[ -d /etc/clockwork/ssl ] || exit 6
-	[ -f /etc/clockwork/ssl/key.pem ] || exit 6
+	[ -x $CLOCKD ] || exit 5
+	[ -f /etc/clockwork/clockd.conf ] || exit 6
 
 	echo -n $"Starting $prog: "
-	$POLICYD $OPTIONS && success || failure
+	$CLOCKD $OPTIONS && success || failure
 	RETVAL=$?
 	[ $RETVAL -eq 0 ] && touch $lockfile
 	echo
@@ -69,8 +67,8 @@ start()
 stop()
 {
 	echo -n $"Stopping $prog: "
-	if [ -n "`pidfileofproc $POLICYD`" ] ; then
-		killproc $POLICYD
+	if [ -n "`pidfileofproc $CLOCKD`" ] ; then
+		killproc $CLOCKD
 	else
 		failure $"Stopping $prog"
 	fi
@@ -82,8 +80,8 @@ stop()
 reload()
 {
 	echo -n $"Reloading $prog: "
-	if [ -n "`pidfileofproc $POLICYD`" ] ; then
-		killproc $POLICYD -HUP
+	if [ -n "`pidfileofproc $CLOCKD`" ] ; then
+		killproc $CLOCKD -HUP
 	else
 		failure $"Reloading $prog"
 	fi
@@ -105,13 +103,13 @@ check_config() {
 	if [ $RETVAL -eq 0 ]; then
 		echo
 	else
-		$POLICYD -t
+		$CLOCKD -t
 		RETVAL=6
 	fi
 }
 
 rh_status() {
-	status -p $PID_FILE policyd
+	status -p $PID_FILE clockd
 }
 
 rh_status_q() {

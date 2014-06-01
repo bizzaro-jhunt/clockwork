@@ -144,10 +144,10 @@ TESTS {
 
 		rs = res_service_new("svc1");
 
-		res_service_set(rs, "service", "policyd");
+		res_service_set(rs, "service", "clockd");
 		res_service_set(rs, "running", "yes");
 
-		ok(res_service_match(rs, "service", "policyd") == 0, "match service=policyd");
+		ok(res_service_match(rs, "service", "clockd") == 0, "match service=clockd");
 		ok(res_service_match(rs, "service", "apache2") != 0, "!match service=apache2");
 		ok(res_service_match(rs, "running", "yes") != 0, "running is not a matchable attr");
 

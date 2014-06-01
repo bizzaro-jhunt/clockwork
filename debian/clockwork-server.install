@@ -1,10 +1,9 @@
+examples/clockd.conf etc/clockwork
 examples/manifest.pol etc/clockwork
-examples/policyd.conf etc/clockwork
 lib/clockwork/help
-sbin/cwca
+sbin/clockd
+sbin/cwcc
 sbin/cwpol
-sbin/policyd
-usr/share/man/man1/cwca.1
+usr/share/man/man1/clockd.1
+usr/share/man/man1/cwcc.1
 usr/share/man/man1/cwpol.1
-usr/share/man/man1/policyd.1
-usr/share/man/man5/policyd.conf.5

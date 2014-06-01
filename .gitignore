@@ -17,7 +17,7 @@ stamp-h?
 *.rpm
 
 /cwpol
-/cwspec
+/cwcc
 /pn
 /clockd
 /cogd

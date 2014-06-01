@@ -25,11 +25,11 @@ override_dh_auto_configure:
 #	dh_prep
 #	dh_installdirs
 #	make install DESTDIR=$(r)
-#	$(INSTALL) -m 0644 share/vim/syntax/cwa.vim \
+#	$(INSTALL) -m 0644 share/vim/syntax/cogd.vim \
 #		$(CURDIR)/debian/tmp/usr/share/vim/addons/syntax/
-#	$(INSTALL) -m 0644 share/vim/syntax/pol.vim \
+#	$(INSTALL) -m 0644 share/vim/syntax/clockwork.vim \
 #		$(CURDIR)/debian/tmp/usr/share/vim/addons/syntax/
-#	$(INSTALL) -m 0644 share/vim/syntax/policyd.vim \
+#	$(INSTALL) -m 0644 share/vim/syntax/clockd.vim \
 #		$(CURDIR)/debian/tmp/usr/share/vim/addons/syntax/
 #	$(INSTALL) -m 0644 share/vim/ftdetect/clockwork.vim \
 #		$(CURDIR)/debian/tmp/usr/share/vim/addons/syntax/

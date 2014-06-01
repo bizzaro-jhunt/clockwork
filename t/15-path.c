@@ -84,28 +84,28 @@ TESTS {
 	subtest {
 		struct path *p;
 
-		isnt_null(p = path_new("/var/clockwork/ssl/pending"), "got a path");
+		isnt_null(p = path_new("/path/tothe/thing/youwanted"), "got a path");
 
 		ok(path_pop(p) != 0, "pop(1) returns non-zero (more to go)");
-		is_string(path(p), "/var/clockwork/ssl", "popped last component");
+		is_string(path(p), "/path/tothe/thing", "popped last component");
 
 		ok(path_pop(p) != 0, "pop(2) returns non-zero (more to go)");
-		is_string(path(p), "/var/clockwork", "popped last component");
+		is_string(path(p), "/path/tothe", "popped last component");
 
 		ok(path_pop(p) != 0, "pop(3) returns non-zero (more to go)");
-		is_string(path(p), "/var", "popped last component");
+		is_string(path(p), "/path", "popped last component");
 
 		ok(path_pop(p) == 0, "pop(4) finished it out");
 
 
 		ok(path_push(p) != 0, "push(1) returns non-zero (more to go)");
-		is_string(path(p), "/var/clockwork", "pushed last component");
+		is_string(path(p), "/path/tothe", "pushed last component");
 
 		ok(path_push(p) != 0, "push(2) returns non-zero (more to go)");
-		is_string(path(p), "/var/clockwork/ssl", "pushed last component");
+		is_string(path(p), "/path/tothe/thing", "pushed last component");
 
 		ok(path_push(p) != 0, "push(3) returns non-zero (more to go)");
-		is_string(path(p), "/var/clockwork/ssl/pending", "pushed last component");
+		is_string(path(p), "/path/tothe/thing/youwanted", "pushed last component");
 
 		ok(path_push(p) == 0, "push(4) finished it out");
 

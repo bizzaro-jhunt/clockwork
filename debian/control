@@ -11,18 +11,16 @@ Build-Depends: bison,
                libctap-dev (>= 1.1.4),
                libfile-slurp-perl,
                libreadline6-dev,
-               libsqlite3-dev (>= 3.5.9),
-               libssl-dev (>= 1.0.0),
                libtest-deep-perl,
                libtest-simple-perl,
-               openssl,
+               libzmq3-dev,
                pkg-config
 Standards-Version: 3.9.3
 Homepage: http://clockwork.niftylogic.com/
 
 Package: clockwork-server
 Architecture: any
-Depends: sqlite3, ${misc:Depends}, ${shlibs:Depends}
+Depends: libzmq3, libreadline6, ${misc:Depends}, ${shlibs:Depends}
 Description: Secure Configuration Management - Server
  Clockwork is a safe, secure and flexible system for managing system
  configurations through enforcement of targeted policies, expressed
@@ -36,7 +34,7 @@ Description: Secure Configuration Management - Server
 
 Package: clockwork-agent
 Architecture: any
-Depends: augeas-lenses, sqlite3, ${misc:Depends}, ${shlibs:Depends}
+Depends: libzmq3, augeas-lenses, ${misc:Depends}, ${shlibs:Depends}
 Description: Secure Configuration Management - Agent
  Clockwork is a safe, secure and flexible system for managing system
  configurations through enforcement of targeted policies, expressed

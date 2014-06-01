@@ -1,1 +1,1 @@
-extend-diff-ignore = '^(t|coverage|build/.*|.*.tar.gz|lcov\.info)'
+extend-diff-ignore = '^(t|coverage|build/.*|.*.tar.gz|lcov\.info|nightly.sh)'

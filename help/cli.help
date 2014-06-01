@@ -16,7 +16,7 @@ OPTIONS
   --facts      when evaluating policies against hosts.
                Equivalent to '-e "load facts from <file>"'
 
-  -c <dir>     Path to the directory where policyd caches facts
+  -c <dir>     Path to the directory where clockd caches facts
   --cache      received from its client machines.  Used for
                automatically loading facts when appropriate.
 

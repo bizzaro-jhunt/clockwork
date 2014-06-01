@@ -665,10 +665,9 @@ again:
 /**
   Apply $facts to a syntax tree to create a policy.
 
-  This function is crucial to Clockwork's policy master daemon
-  (policyd).  It turns the abstract syntax tree $root into a
-  full policy object by evaluating all conditional constructs
-  against $facts.
+  This function is crucial to Clockwork's master daemon.
+  It turns the abstract syntax tree $root into a full policy
+  object by evaluating all conditional constructs against $facts.
 
   **Note:** the policy returned must be freed with @policy_free.
 

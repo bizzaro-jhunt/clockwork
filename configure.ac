@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.68)
-AC_INIT([Clockwork], [0.5.4], [bugs@niftylogic.com])
+AC_INIT([Clockwork], [2.0.0], [bugs@niftylogic.com])
 
 AC_CONFIG_SRCDIR([src/cw.h])
 AC_CONFIG_AUX_DIR([build])
@@ -19,14 +19,6 @@ AC_PROG_CC
 AC_PROG_LEX
 AC_PROG_INSTALL
 
-AC_CHECK_LIB(ssl,
-	SSL_library_init,,
-	AC_MSG_ERROR(Missing OpenSSL libraries))
-
-AC_CHECK_LIB(crypto,
-	CRYPTO_lock,,
-	AC_MSG_ERROR(Missing OpenSSL libraries))
-
 AC_CHECK_LIB(pthread,
 	pthread_create,,
 	AC_MSG_ERROR(Missing pthread library))
@@ -34,10 +26,6 @@ AC_CHECK_LIB(pthread,
 AC_CHECK_LIB(readline,
 	read_history,,
 	AC_MSG_ERROR(Missing GNU readline library))
-
-AC_CHECK_LIB(sqlite3,
-	sqlite3_open,,
-	AC_MSG_ERROR(Missing SQLite3 library))
 
 AC_CHECK_LIB(augeas,
 	aug_init,,
@@ -66,7 +54,6 @@ AC_CHECK_HEADERS([\
 	readline/readline.h \
 	shadow.h \
 	signal.h \
-	sqlite3.h \
 	stdarg.h \
 	stdint.h \
 	stdio.h \

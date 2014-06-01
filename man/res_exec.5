@@ -55,14 +55,14 @@ should \fInot\fR be run.
 .B user
 .RS 8
 The username of a system user account to run this command as.
-Defaults to the user running \fBcwa\fR.
+Defaults to the user running \fBcogd\fR.
 .RE
 .PP
 
 .B group
 .RS 8
 Name of a system group account to run this command as.
-Defaults to the group running \fBcwa\fR.
+Defaults to the group running \fBcogd\fR.
 .RE
 .PP
 
@@ -139,7 +139,7 @@ needed or not.
 .SS 1. Default Behavior
 .PP
 If you do not specify a \fBuser\fR and \fBgroup\fR, Clockwork will
-execute your commands as the effective user and group running cwa,
+execute your commands as the effective user and group running cogd,
 which is most likely root:root.  Any files created by the command
 executed will then be owned by root:root, which may not be what you
 intended.

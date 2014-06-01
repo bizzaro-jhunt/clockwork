@@ -72,12 +72,13 @@ int main(int argc, char **argv)
 		case '?':
 			cw_log(LOG_DEBUG, "handling -h/-?/--help");
 			printf("facts, part of clockwork v%s\n", PACKAGE_VERSION);
-			printf("Usage: facts [-?hvVqT] [-c filename]\n\n");
+			printf("Usage: fact [-?hvVqT] [-c filename] [fact [fact ...]]\n\n");
 			printf("Options:\n");
 			printf("  -?, -h               show this help screen\n");
 			printf("  -V, --version        show version information and exit\n");
 			printf("  -v, --verbose        increase logging verbosity\n");
 			printf("  -q, --quiet          disable logging\n");
+			printf("  -b, --brief          don't print fact names\n");
 			printf("  -c filename          set configuration file (default: " DEFAULT_CONFIG_FILE ")\n");
 			exit(0);
 			break;

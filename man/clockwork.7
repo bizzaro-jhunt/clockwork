@@ -532,11 +532,10 @@ It's called a \fBfact\fR, and it represents some piece of information about
 the client host.  Host policies are always evaluated against the facts
 before enforcement.
 .PP
-To see a list of facts, just run \fBcwa\fR(1) with the \fB--facts\fR
-argument:
+To see a list of facts, just run \fBfact\fR(1):
 .RS 4
 .nf
-$ cwa --facts | sort
+$ fact | sort
 lsb.distro.codename = lucid
 lsb.distro.description = Ubuntu 10.04.2 LTS
 lsb.distro.id = Ubuntu
@@ -742,29 +741,6 @@ Dependencies are activated differently by different resources.
 Refer to the resource-specific man pages for more information.
 
 \"-------------------------
-.SS Templates
-.PP
-Clockwork features an embeded template rendering language for
-generating static files based on facts.
-.PP
-.RS 4
-.nf
-This is the <%= sys.fqdn %> host.
-
-<% if time.weekday is "mon" -%>
-ugh.  it's monday.
-<% elsif time.weekday is "fri" -%>
-yay! it's FRIDAY!!!
-<% else -%>
-whatever.  it's just <%= time.weekday %>.
-<% end -%>
-.fi
-.RE
-.PP
-For a full description of the Clockwork Templating Language,
-see \fBcwtemplate(1)\fR.
-
-\"-------------------------
 .SS Overriding Values
 .PP
 Clockwork allows resource attributes to be overrided by later
@@ -865,49 +841,6 @@ overrides the \fBsource\fR attribute of the /etc/ssh/sshd_config file.
 \".SS sysctl
 \"\"-------------------------
 \".SS user
-
-\"----------------------------------------------------------------
-.SH CERTIFICATES AND SECURITY
-.PP
-Clockwork uses SSL/TLS certificates to encrypt communication between
-client and server.  This helps prevent eavesdropping, message tampering
-and replay attacks.  For additional security, both \fBpolicyd\fR(1)
-and \fBcwa\fR(1) have their own certificates, and each verifies the
-other's.
-.PP
-Clockwork features a certificate request protocol, and tools for
-managing the certificate authority, i.e. \fBcwca\fR(1), and agent
-certificates, via \fBcwcert\fR(2).
-
-.SS client: Request Certificate
-.PP
-To get things started, the client needs to create a certificate request
-(normally called the \fBCSR\fR), and send it to the policy server.
-The \fBcwcert\fR utility's \fBnew\fR command is responsible for this.
-
-.SS server: Accept Certificate Request
-.PP
-After receiving a \fISEND_CERT\fR request from a client, \fBpolicyd\fR
-either signs it (if \fBautosign\fR is on in policyd.conf), or stores
-the CSR in a dedicated directory, to be signed later.
-
-.SS client: Poll Server for Certificate
-.PP
-At this point, the client is waiting on the server to sign the
-certificate.  \fBcwcert\fR will loop, continually asking the server
-for its signed certificate.
-
-.SS server: Send Signed Certificate
-.PP
-Until the certificate is signed (manually or automatically), the server
-will respond to certificate polls with a \fBNO-CERT\fR response.
-.PP
-Once the certificate is signed, the server will begin responding to
-certificate polls with the full contents of the signed certificate.
-
-.SS Complete
-.PP
-All done!
 
 \"----------------------------------------------------------------
 \".SH REFERENCE

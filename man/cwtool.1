@@ -1,0 +1,155 @@
+\"  Clockwork is free software: you can redistribute it and/or modify
+\"  it under the terms of the GNU General Public License as published by
+\"  the Free Software Foundation, either version 3 of the License, or
+\"  (at your option) any later version.
+\"
+\"  Clockwork is distributed in the hope that it will be useful,
+\"  but WITHOUT ANY WARRANTY; without even the implied warranty of
+\"  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+\"  GNU General Public License for more details.
+\"
+\"  You should have received a copy of the GNU General Public License
+\"  along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
+\"
+
+.TH cwtool "1" "May 2014" "Clockwork" "Clockwork Agent"
+.SH NAME
+.PP
+cwtool \- Clockwork Agent System Tool
+
+.SH SYNOPSIS
+.PP
+\fBcwtool\fR \fIACTION\fR [args ...]
+
+.SH DESCRIPTION
+.PP
+\fBClockwork\fR is a configuration management system designed to
+securely and correctly enforce configuration policies on lots of
+hosts.
+.PP
+It can ensure that files have the right attributes (owner,
+group, permissions, etc.) and content.  It can maintain a specific
+set of installed packages, and even make sure that system user
+accounts exist.
+.PP
+\fBcwtool\fR is a utility script that is utilized by \fBcogd\fR to
+handle platform-specific things like package installations and
+service management.  It inspects the system environment to determine
+the correct tools to use to (for example) restart services or install
+pacakges.
+
+.SH INFORMATIONAL ACTIONS
+.PP
+\fBidentify\fR
+.RS 8
+Autodetect the local system type, and then print that information.
+.RE
+.PP
+
+.SH SERVICE ACTIONS
+.PP
+\fBsvc-run-status\fR \fISERVICE\fR
+.RS 8
+Determine whether or not the service is running (per LSB semantics).
+.PP
+An exit code of \fB0\fR indicates that the service is running.  Any
+other value indicates either that the service is stopped, or that
+the init script had other issues (dead locsk, missing PID file, etc.)
+.RE
+
+.PP
+\fBsvc-boot-status\fR \fISERVICE\fR
+.RS 8
+Determine whether or not the service is configured to start at boot,
+on the current runlevel.
+.PP
+An exit code of \fB0\fR indicates that the service will start at
+boot.  Any other value indicates otherwise.
+.RE
+
+.PP
+\fBsvc-init\fR \fISERVICE\fR \fIVERB\fR
+.RS 8
+Run the services init script, using \fIVERB\fR as the action (i.e.
+start, stop, reload, etc.).
+.PP
+Exits \fB0\fR if the action succeeded, or non-zero if it failed.
+.RE
+
+.PP
+\fBsvc-enable\fR \fISERVICE\fR
+.RS 8
+Set the service to start on boot.
+.PP
+Exits \fB0\fR on success, or non-zero if it failed.
+.RE
+
+.PP
+\fBsvc-disable\fR \fISERVICE\fR
+.RS 8
+Prevent the service from starting on boot.
+.PP
+Exits \fB0\fR on success, or non-zero if it failed.
+.RE
+
+.SH PACKAGE ACTIONS
+.PP
+\fBpkg-version\fR \fIPACKAGE\fR
+.RS 8
+Prints out the installed version of the named package.
+.PP
+Exits \fB0\fR if the package is in fact installed.  Otherwise,
+exits non-zero, and nothing will be printed.
+.RE
+
+.PP
+\fBpkg-latest\fR \fIPACKAGE\fR
+.RS 8
+Query upstream repositories (APT, YUM, etc.) to determine the
+latest available version of the named package.
+.PP
+Exits \fB0\fR if the package is available upstream.  In this case,
+the latest candidate version is printed to standard output.
+Otherwise, exits non-zero to indicate that the package is not
+available for installation.
+.RE
+
+.PP
+\fBpkg-version\fR \fIPACKAGE\fR \fIVERSION\fR
+.RS 8
+Install the package at the given version.  If \fIVERSION\fR is
+the string "latest", the latest available version will be
+installed.
+.PP
+An exit code of \fB0\fR indicates that the install succeeded.
+.RE
+
+.PP
+\fBpkg-remove\fR \fIPACKAGE\fR
+.RS 8
+Uninstall the named package.
+.PP
+Exits \fB0\fR on success.
+.RE
+
+.SH EXIT CODE
+.PP
+For known actions on known platforms, exit codes depend solely on
+the action being executed.
+.PP
+Otherwise, cwtool exits:
+.PP
+.IP 125
+An unknown action was specified.
+.IP 126
+Unable to detect the local system type.
+.PP
+
+.SH SEE ALSO
+.PP
+\fBclockwork\fR(7), \fBclockd\fR(1), \fBclockd.conf\fR(5) and
+\fBcogd.conf\fR(5)
+
+.SH AUTHOR
+.PP
+Clockwork was designed and written by James Hunt.

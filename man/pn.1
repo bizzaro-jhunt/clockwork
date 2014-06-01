@@ -1,0 +1,86 @@
+\"  Clockwork is free software: you can redistribute it and/or modify
+\"  it under the terms of the GNU General Public License as published by
+\"  the Free Software Foundation, either version 3 of the License, or
+\"  (at your option) any later version.
+\"
+\"  Clockwork is distributed in the hope that it will be useful,
+\"  but WITHOUT ANY WARRANTY; without even the implied warranty of
+\"  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+\"  GNU General Public License for more details.
+\"
+\"  You should have received a copy of the GNU General Public License
+\"  along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
+\"
+
+.TH fact "1" "June 2014" "Clockwork" "Pendulum Interpreter"
+.SH NAME
+.PP
+pn \- Pendulum Interpreter
+
+.SH SYNOPSIS
+.PP
+\fBpn\fR [options] script.pn
+
+.SH DESCRIPTION
+.PP
+\fBClockwork\fR is a configuration management system designed to
+securely and correctly enforce configuration policies on lots of
+hosts.
+.PP
+It can ensure that files have the right attributes (owner,
+group, permissions, etc.) and content.  It can maintain a specific
+set of installed packages, and even make sure that system user
+accounts exist.
+.PP
+\fBpn\fR is a standalone interpreter for the Pendulum language,
+which is what \fBcogd\fR uses internally to apply policies to the
+local machine.
+.PP
+\fBpn\fR is not for everyone.  In fact, most people will never need
+the run snippets of Pendulum code outside the scope of \fBcogd\fR.
+\fBpn\fR really shines when used to aide in debugging Clockwork,
+and as an exploratory utility for writing new resource types.
+.PP
+
+.SH OPTIONS
+.PP
+\fB\-V\fR, \fB\-\-version\fR
+.RS 8
+Print version and copyright information, and then exit.
+.RE
+
+.PP
+\fB\-v\fR, \fB\-\-verbose\fR
+.RS 8
+Increase logging verbosity by one level.
+.RE
+
+.PP
+\fB\-q\fR, \fB\-\-quiet\fR
+.RS 8
+Disable logging.
+.RE
+
+.PP
+\fB\-T\fR, \fB\-\-trace\fR
+.RS 8
+Enable \fBTRACE\fR mode while executing the script.
+In this mode, \fBpn\fR will print debugging messages to standard
+error that should help to illustrate what opcodes it is executing,
+what user-defined functions are doing, branching decisions and more.
+.RE
+
+.PP
+\fB\-\-syslog\fR \fIFACILITY\fR
+.RS 8
+Redirect all output to syslog, using the target facility.
+.RE
+
+.SH SEE ALSO
+.PP
+\fBclockwork\fR(7), \fBclockd\fR(1), \fBclockd.conf\fR(5) and
+\fBcogd.conf\fR(5)
+
+.SH AUTHOR
+.PP
+Clockwork was designed and written by James Hunt.

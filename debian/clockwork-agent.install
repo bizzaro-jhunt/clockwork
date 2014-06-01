@@ -1,12 +1,11 @@
-examples/cwa.conf etc/clockwork
+bin/cwtool
+bin/fact
+bin/pn
+examples/cogd.conf etc/clockwork
 lib/clockwork/augeas
-lib/clockwork/bin/debian
-lib/clockwork/bin/redhat
-lib/clockwork/bin/unspec
 lib/clockwork/gather.d
-sbin/cwa
-sbin/cwcert
-sbin/cwtemplate
-usr/share/man/man1/cwa.1
-usr/share/man/man1/cwcert.1
-usr/share/man/man1/cwtemplate.1
+sbin/cogd
+usr/share/man/man1/cogd.1
+usr/share/man/man1/cwtool.1
+usr/share/man/man1/fact.1
+usr/share/man/man1/pn.1

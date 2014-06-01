@@ -1,0 +1,51 @@
+\"  Clockwork is free software: you can redistribute it and/or modify
+\"  it under the terms of the GNU General Public License as published by
+\"  the Free Software Foundation, either version 3 of the License, or
+\"  (at your option) any later version.
+\"
+\"  Clockwork is distributed in the hope that it will be useful,
+\"  but WITHOUT ANY WARRANTY; without even the implied warranty of
+\"  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+\"  GNU General Public License for more details.
+\"
+\"  You should have received a copy of the GNU General Public License
+\"  along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
+\"
+
+.TH cwcc "1" "May 2014" "Clockwork" "Clockwork Master"
+.SH NAME
+.PP
+cwcc \- Clockwork Policy Compiler
+
+.SH SYNOPSIS
+.PP
+\fBcwcc\fR manifest.pol
+
+.SH DESCRIPTION
+.PP
+\fBClockwork\fR is a configuration management system designed to
+securely and correctly enforce configuration policies on lots of
+hosts.
+.PP
+It can ensure that files have the right attributes (owner,
+group, permissions, etc.) and content.  It can maintain a specific
+set of installed packages, and even make sure that system user
+accounts exist.
+.PP
+\fBcwcc\fR is a utility that will compile a manifest of policies,
+in a fashion similar to \fBclockd\fR.  It will then dump the
+abstract syntax tree to standard output, calculate some memory
+usage statistics and exit.
+.PP
+\fBcwcc\fR is intended to be used to debug and troubleshoot
+Clockwork.
+.PP
+
+.SH SEE ALSO
+.PP
+\fBclockwork\fR(7), \fBclockd\fR(1), \fBclockd.conf\fR(5) and
+\fBcogd.conf\fR(5)
+
+.SH AUTHOR
+.PP
+Clockwork was designed and written by James Hunt.

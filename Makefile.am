@@ -160,8 +160,12 @@ EXTRA_DIST      += $(TEST_EXTRAS)
 
 dist_man_MANS    = man/clockwork.7
 dist_man_MANS   += man/cwpol.1
+dist_man_MANS   += man/cwtool.1
+dist_man_MANS   += man/cwcc.1
 dist_man_MANS   += man/cogd.1 man/cogd.conf.5
 dist_man_MANS   += man/clockd.1 man/clockd.conf.5
+dist_man_MANS   += man/fact.1
+dist_man_MANS   += man/pn.1
 dist_man_MANS   += man/res_dir.5
 dist_man_MANS   += man/res_exec.5
 dist_man_MANS   += man/res_file.5
@@ -191,18 +195,18 @@ parser_spec_src += src/spec/lexer.l src/spec/lexer_impl.h
 parser_spec_src += src/spec/grammar.y src/spec/grammar_impl.h
 
 sbindir = "$(prefix)/sbin"
-sbin_PROGRAMS = cwpol pn cwspec clockd cogd
+sbin_PROGRAMS = cwpol cwcc clockd cogd
 cwpol_SOURCES   = src/cwpol.c  $(core_src) $(parser_spec_src)
-pn_SOURCES      = src/pn.c     $(core_src)                    $(pendulum_src)
-cwspec_SOURCES  = src/cwspec.c $(core_src) $(parser_spec_src)
+cwcc_SOURCES    = src/cwcc.c $(core_src) $(parser_spec_src)
 clockd_SOURCES  = src/clockd.c $(core_src) $(parser_spec_src)
 cogd_SOURCES    = src/cogd.c   $(core_src) $(parser_spec_src) $(pendulum_src)
 
 dist_bin_SCRIPTS = cwtool
 
-bin_PROGRAMS = bdfa fact
+bin_PROGRAMS = bdfa fact pn
 bdfa_SOURCES = src/bdfa.c src/cw.h src/cw.c
 fact_SOURCES = src/fact.c $(core_src)
+pn_SOURCES   = src/pn.c $(core_src) $(pendulum_src)
 
 ############################################################
 

@@ -1,0 +1,87 @@
+\"  Clockwork is free software: you can redistribute it and/or modify
+\"  it under the terms of the GNU General Public License as published by
+\"  the Free Software Foundation, either version 3 of the License, or
+\"  (at your option) any later version.
+\"
+\"  Clockwork is distributed in the hope that it will be useful,
+\"  but WITHOUT ANY WARRANTY; without even the implied warranty of
+\"  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+\"  GNU General Public License for more details.
+\"
+\"  You should have received a copy of the GNU General Public License
+\"  along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
+\"
+
+.TH fact "1" "June 2014" "Clockwork" "Clockwork Agent"
+.SH NAME
+.PP
+fact \- Clockwork Agent Fact Utility
+
+.SH SYNOPSIS
+.PP
+\fBfact\fR [options]
+.PP
+\fBfact\fR -c /path/to/cogd.conf
+.PP
+\fBfact\fR sys.fqdn sys.hostname
+
+.SH DESCRIPTION
+.PP
+\fBClockwork\fR is a configuration management system designed to
+securely and correctly enforce configuration policies on lots of
+hosts.
+.PP
+It can ensure that files have the right attributes (owner,
+group, permissions, etc.) and content.  It can maintain a specific
+set of installed packages, and even make sure that system user
+accounts exist.
+.PP
+\fBfact\fR is a small utility that will gather system facts the
+way \fBcogd\fR does, and print them to standard output.
+.PP
+If you don't specify any fact arguments, all facts will be printed.
+.PP
+
+.SH OPTIONS
+.PP
+\fB\-V\fR, \fB\-\-version\fR
+.RS 8
+Print version and copyright information, and then exit.
+.RE
+
+.PP
+\fB\-c\fR, \fB\-\-config\fR \fI/path/to/cogd.conf\fR
+.RS 8
+Specify the path to an alternate configuration file.  If not
+given, the default configuration file (/etc/clockwork/cogd.conf)
+is used instead.
+.RE
+
+.PP
+\fB\-v\fR, \fB\-\-verbose\fR
+.RS 8
+Increase logging verbosity by one level.
+.RE
+
+.PP
+\fB\-q\fR, \fB\-\-quiet\fR
+.RS 8
+Disable logging.
+.RE
+
+.SH FILES
+.PP
+.TP 8
+.B /etc/clockwork/cogd.conf
+Default configuration file that
+.B cogd
+reads on start up.  See \fBcogd.conf\fR(5) for details.
+
+.SH SEE ALSO
+.PP
+\fBclockwork\fR(7), \fBclockd\fR(1), \fBclockd.conf\fR(5) and
+\fBcogd.conf\fR(5)
+
+.SH AUTHOR
+.PP
+Clockwork was designed and written by James Hunt.

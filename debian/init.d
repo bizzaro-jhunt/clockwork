@@ -15,11 +15,11 @@
 
 PATH=/sbin:/bin
 DESC=clockwork
-NAME=policyd
-DAEMON=/sbin/policyd
+NAME=clockd
+DAEMON=/sbin/clockd
 DAEMON_ARGS=""
 PIDFILE=/var/run/$NAME.pid
-SCRIPTNAME=/etc/init.d/policyd
+SCRIPTNAME=/etc/init.d/clockd
 
 # Exit if the package is not installed
 [ -x $DAEMON ] || exit 0

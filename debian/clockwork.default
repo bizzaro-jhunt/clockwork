@@ -1,2 +1,2 @@
-# Additional options that are passed to the policyd.
-POLICYD_OPTS=""
+# Additional options that are passed to clockd.
+CLOCKD_OPTS=""

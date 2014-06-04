@@ -265,12 +265,14 @@ static pn_word s_resolve_arg(pn_machine *m, const char *arg)
 
 	case '@':
 		errno = ENOENT;
-		for (i = 0; i < 4096; i++) {
+		for (i = 0; i < PN_MAX_JUMPS; i++) {
 			if (!*m->jumps[i].label) break;
 			if (strcmp(m->jumps[i].label, arg+1) != 0)
 				continue;
 
 			errno = 0;
+			cw_log(LOG_DEBUG, "Resolved label '%s' to instruction %08x",
+				arg+1, m->jumps[i].step);
 			return LABEL(m->jumps[i].step);
 		}
 		snprintf(ebuf, 1024, "Label '%s' not found\n", arg+1);
@@ -281,10 +283,16 @@ static pn_word s_resolve_arg(pn_machine *m, const char *arg)
 		for (i = 0; i < PN_MAX_FLAGS; i++) {
 			if (!m->flags[i].label[0]) {
 				strncpy(m->flags[i].label, arg+1, 63);
+				cw_log(LOG_DEBUG, "Flag '%s' is new, allocating space at index %u",
+					arg, i);
 				return FLAG((pn_word)i);
 			}
-			if (strcmp(m->flags[i].label, arg+1) == 0)
-				return FLAG((pn_word)i);
+			if (strcmp(m->flags[i].label, arg+1) != 0)
+				continue;
+
+			cw_log(LOG_DEBUG, "Resolved flag '%s' to index %u (value=%i)",
+				arg, i, m->flags[i].value);
+			return FLAG((pn_word)i);
 		}
 
 		snprintf(ebuf, 1024, "Cannot set flag '%s': insufficient space\n", arg+1);
@@ -297,6 +305,8 @@ static pn_word s_resolve_arg(pn_machine *m, const char *arg)
 			if (strcmp(m->func[i].name, arg+1)) continue;
 
 			errno = 0;
+			cw_log(LOG_DEBUG, "Resolved function '%s' to index %u / %p",
+				arg+1, i, m->func[i].call);
 			return FUNCTION((pn_word)i);
 		}
 		snprintf(ebuf, 1024, "'%s' is not a defined function\n", arg+1);
@@ -439,9 +449,9 @@ int pn_parse(pn_machine *m, FILE *io)
 	m->code = calloc(m->codesize, sizeof(pn_opcode));
 	m->data = calloc(m->datasize, sizeof(pn_byte));
 	m->Dp = 0;
-	if (!m->data || !m->code) return -1;
+	if (!m->data || !m->code) return 1;
 
-	fseek(io, 0, SEEK_SET);
+	rewind(io);
 	while (fgets(buf, 1024, io)) {
 		if (s_label(buf, NULL) == 0) {
 			pn_CODE(m, m->Ip++).op = PN_OP_NOOP;

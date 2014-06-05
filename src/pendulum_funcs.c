@@ -874,13 +874,13 @@ static pn_word uf_server_sha1(pn_machine *m)
 
 	reply = cw_pdu_recv(UDATA(m)->zconn);
 	if (!reply) {
-		cw_log(LOG_ERR, "failed: %s", zmq_strerror(errno));
+		cw_log(LOG_ERR, "SERVER.SHA1 failed: %s", zmq_strerror(errno));
 		return 1;
 	}
 	cw_log(LOG_INFO, "Received a '%s' PDU", reply->type);
 	if (strcmp(reply->type, "ERROR") == 0) {
 		char *e = cw_pdu_text(reply, 1);
-		cw_log(LOG_ERR, "failed: %s", e);
+		cw_log(LOG_ERR, "SERVER.SHA1 protocol violation: %s", e);
 		free(e);
 		return 1;
 	}
@@ -899,7 +899,7 @@ static int s_copyfile(FILE *src, const char *path)
 {
 	FILE *dst = fopen(path, "w");
 	if (!dst) {
-		cw_log(LOG_ERR, "failed: %s", strerror(errno));
+		cw_log(LOG_ERR, "copyfile failed: %s", strerror(errno));
 		fclose(src);
 		return 1;
 	}
@@ -948,7 +948,7 @@ static pn_word uf_server_writefile(pn_machine *m)
 
 		reply = cw_pdu_recv(UDATA(m)->zconn);
 		if (!reply) {
-			cw_log(LOG_ERR, "failed: %s", zmq_strerror(errno));
+			cw_log(LOG_ERR, "SERVER.WRITEFILE failed: %s", zmq_strerror(errno));
 			if (tmpf) fclose(tmpf);
 			return 1;
 		}

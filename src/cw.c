@@ -86,10 +86,12 @@ void cw_arrfree(char **a)
 void cw_timer_start(cw_timer_t *clock)
 {
 	gettimeofday(&clock->tv, NULL);
+	clock->running = 1;
 }
 
 void cw_timer_stop(cw_timer_t *clock)
 {
+	clock->running = 0;
 	struct timeval end, diff;
 	if (gettimeofday(&end, NULL) != 0)
 		return;

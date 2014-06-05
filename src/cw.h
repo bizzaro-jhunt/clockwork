@@ -36,8 +36,10 @@ void cw_arrfree(char **a);
 
  */
 typedef struct {
+	int running;
 	struct timeval tv;
 } cw_timer_t;
+#define TIMER(t, ms) for (cw_timer_start(t); (t)->running; cw_timer_stop(t), ms = cw_timer_ms(t))
 void cw_timer_start(cw_timer_t *clock);
 void cw_timer_stop(cw_timer_t *clock);
 uint32_t cw_timer_s(const cw_timer_t *clock);

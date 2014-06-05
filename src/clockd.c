@@ -122,6 +122,7 @@ struct __client_t {
 	server_t         *server;
 
 	cw_frame_t       *ident;
+	char             *rident;
 	int32_t           last_seen;
 
 	char             *name;
@@ -179,9 +180,10 @@ static char * s_gencode(client_t *c)
 	assert(io);
 
 	cw_timer_t t;
-	cw_timer_start(&t);
-	policy_gencode(c->policy, io);
-	cw_timer_stop(&t);
+	uint32_t ms;
+	TIMER(&t, ms) {
+		policy_gencode(c->policy, io);
+	}
 
 	fprintf(io, "%c", '\0');
 	c->maplen = ftell(io);
@@ -191,7 +193,22 @@ static char * s_gencode(client_t *c)
 	if (c->mapped == MAP_FAILED)
 		c->mapped = NULL;
 
-	cw_log(LOG_INFO, "Generated %lub policy in %lums", c->maplen, cw_timer_ms(&t));
+	float size;
+	char unit = 'b';
+	if (c->maplen > 1024 * 1024 * 1024) {
+		size = c->maplen / 1024.0 / 1024.0 / 1024.0;
+		unit = 'G';
+	} else if (c->maplen > 1024 * 1024) {
+		size = c->maplen / 1024.0 / 1024.0;
+		unit = 'M';
+	} else if (c->maplen > 1024) {
+		size = c->maplen / 1024.0;
+		unit = 'k';
+	} else {
+		size = c->maplen;
+		unit = 'b';
+	}
+	cw_log(LOG_INFO, "generated %0.2f%c policy for %s/%s in %lums", size, unit, c->rident, c->name, ms);
 
 	return (char *)c->mapped;
 }
@@ -200,7 +217,7 @@ static int s_state_machine(client_t *fsm, cw_pdu_t *pdu, cw_pdu_t **reply)
 {
 	fsm->last_seen = cw_time_s();
 
-	cw_log(LOG_INFO, "fsm: transition %s [%i] -> %s [%i]",
+	cw_log(LOG_DEBUG, "fsm: transition %s [%i] -> %s [%i]",
 			FSM_STATES[fsm->state], fsm->state,
 			FSM_EVENTS[fsm->event], fsm->event);
 
@@ -477,11 +494,11 @@ static void s_ccache_purge(ccache_t *c)
 			&c->clients[i], c->clients[i].last_seen, c->clients[i].name,
 			(c->clients[i].facts  ? "has" : "no"),
 			(c->clients[i].policy ? "has" : "no"));
-		cw_log(LOG_INFO, "purging %p, last_seen=%i",
-			&c->clients[i], c->clients[i].last_seen);
 
 		free(c->clients[i].ident);
 		c->clients[i].ident = NULL;
+		free(c->clients[i].rident);
+		c->clients[i].rident = NULL;
 
 		free(c->clients[i].name);
 		c->clients[i].name = NULL;
@@ -496,7 +513,7 @@ static void s_ccache_purge(ccache_t *c)
 		c->clients[i].last_seen = 0;
 		n++;
 	}
-	cw_log(LOG_INFO, "purged %i ccache entries", n);
+	if (n) cw_log(LOG_INFO, "purged %i ccache entries", n);
 }
 static size_t s_ccache_index(cw_frame_t *ident, ccache_t *c)
 {
@@ -523,8 +540,11 @@ static client_t* s_ccache_find(cw_frame_t *ident, ccache_t *c)
 		if (i >= c->len)
 			return NULL;
 		c->clients[i].ident = cw_frame_copy(ident);
+		c->clients[i].rident = cw_frame_hex(ident);
 		c->clients[i].io = NULL;
 		c->clients[i].offset = 0;
+		cw_log(LOG_INFO, "new inbound connection from client %s, assigning index %i",
+			c->clients[i].rident, i);
 	}
 	c->clients[i].last_seen = cw_time_s();
 	return &c->clients[i];
@@ -739,11 +759,10 @@ int main(int argc, char **argv)
 
 		c->server = s;
 		c->event = s_pdu_event(pdu);
-		cw_log(LOG_INFO, "%p: incoming connection", c);
 		int rc = s_state_machine(c, pdu, &reply);
 		if (rc == 0) {
-			cw_log(LOG_INFO, "%p: fsm is now at %s [%i]", c, FSM_STATES[c->state], c->state);
-			cw_log(LOG_INFO, "%p: sending back a %s PDU", c, reply->type);
+			cw_log(LOG_DEBUG, "%s: fsm is now at %s [%i]", pdu->client, FSM_STATES[c->state], c->state);
+			cw_log(LOG_DEBUG, "%s: sending back a %s PDU", pdu->client, reply->type);
 			cw_pdu_send(s->listener, reply);
 
 			if (c->mapped) {
@@ -754,7 +773,7 @@ int main(int argc, char **argv)
 
 		} else {
 			reply = cw_pdu_make(pdu->src, 2, "ERROR", FSM_ERRORS[c->error]);
-			cw_log(LOG_INFO, "%p: sending back an ERROR PDU: %s", c, FSM_ERRORS[c->error]);
+			cw_log(LOG_DEBUG, "%s: sending back an ERROR PDU: %s", pdu->client, FSM_ERRORS[c->error]);
 			cw_pdu_send(s->listener, reply);
 		}
 	}

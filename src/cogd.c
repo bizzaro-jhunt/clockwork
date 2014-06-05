@@ -182,12 +182,26 @@ static void *s_connect(client_t *c)
 
 static void s_cfm_run(client_t *c)
 {
+	cw_timer_t t;
+	int rc;
+	uint32_t ms_connect    = 0,
+	         ms_hello      = 0,
+	         ms_preinit    = 0,
+	         ms_copydown   = 0,
+	         ms_facts      = 0,
+	         ms_getpolicy  = 0,
+	         ms_parse      = 0,
+	         ms_enforce    = 0,
+	         ms_cleanup    = 0;
+
 	cw_log(LOG_INFO, "Starting configuration run (%i > %i)",
 		cw_time_ms(), c->schedule.next_run);
 	c->schedule.next_run = cw_time_ms() + c->schedule.interval;
 
 	cw_log(LOG_DEBUG, "connecting to one of the masters");
-	void *client = s_connect(c);
+	void *client;
+	TIMER(&t, ms_connect) { client = s_connect(c); }
+
 	if (!client)
 		goto maybe_next_time;
 	cw_log(LOG_DEBUG, "connected");
@@ -195,7 +209,7 @@ static void s_cfm_run(client_t *c)
 	cw_pdu_t *pdu, *reply;
 
 	pdu = cw_pdu_make(NULL, 2, "HELLO", c->fqdn);
-	reply = s_sendto(client, pdu, c->timeout);
+	TIMER(&t, ms_hello) { reply = s_sendto(client, pdu, c->timeout); }
 	if (!reply) {
 		cw_log(LOG_ERR, "HELLO failed: %s", zmq_strerror(errno));
 		goto shut_it_down;
@@ -209,51 +223,60 @@ static void s_cfm_run(client_t *c)
 	}
 
 	pdu = cw_pdu_make(NULL, 1, "COPYDOWN");
-	reply = s_sendto(client, pdu, c->timeout);
+	TIMER(&t, ms_preinit) {
+		reply = s_sendto(client, pdu, c->timeout);
+	}
 	if (!reply) {
 		cw_log(LOG_ERR, "COPYDOWN failed: %s", zmq_strerror(errno));
 		goto shut_it_down;
 	}
-	FILE *bdfa = tmpfile();
-	int rc, n = 0;
-	char size[16];
-	for (;;) {
-		rc = snprintf(size, 15, "%i", n++);
-		assert(rc > 0);
-		pdu = cw_pdu_make(NULL, 2, "DATA", size);
-		rc = cw_pdu_send(client, pdu);
-		assert(rc == 0);
+	cw_log(LOG_INFO, "COPYDOWN took %lums", cw_timer_ms(&t));
 
-		reply = cw_pdu_recv(client);
-		if (!reply) {
-			cw_log(LOG_ERR, "DATA failed: %s", zmq_strerror(errno));
-			break;
+	TIMER(&t, ms_copydown) {
+		FILE *bdfa = tmpfile();
+		int n = 0;
+		char size[16];
+		for (;;) {
+			rc = snprintf(size, 15, "%i", n++);
+			assert(rc > 0);
+			pdu = cw_pdu_make(NULL, 2, "DATA", size);
+			rc = cw_pdu_send(client, pdu);
+			assert(rc == 0);
+
+			reply = cw_pdu_recv(client);
+			if (!reply) {
+				cw_log(LOG_ERR, "DATA failed: %s", zmq_strerror(errno));
+				break;
+			}
+			cw_log(LOG_INFO, "received a %s PDU", reply->type);
+
+			if (strcmp(reply->type, "EOF") == 0)
+				break;
+			if (strcmp(reply->type, "BLOCK") != 0) {
+				cw_log(LOG_ERR, "protocol violation: received a %s PDU (expected a BLOCK)", reply->type);
+				goto maybe_next_time;
+			}
+
+			char *data = cw_pdu_text(reply, 1);
+			fwrite(data, 1, cw_pdu_framelen(reply, 1), bdfa);
+			free(data);
 		}
-		cw_log(LOG_INFO, "received a %s PDU", reply->type);
-
-		if (strcmp(reply->type, "EOF") == 0)
-			break;
-		if (strcmp(reply->type, "BLOCK") != 0) {
-			cw_log(LOG_ERR, "protocol violation: received a %s PDU (expected a BLOCK)", reply->type);
+		rewind(bdfa);
+		mkdir(c->copydown, 0777);
+		if (cw_bdfa_unpack(fileno(bdfa), c->copydown) != 0) {
+			cw_log(LOG_CRIT, "Unable to perform copydown to %s", c->copydown);
+			fclose(bdfa);
 			goto maybe_next_time;
 		}
-
-		char *data = cw_pdu_text(reply, 1);
-		fwrite(data, 1, cw_pdu_framelen(reply, 1), bdfa);
-		free(data);
-	}
-	rewind(bdfa);
-	mkdir(c->copydown, 0777);
-	if (cw_bdfa_unpack(fileno(bdfa), c->copydown) != 0) {
-		cw_log(LOG_CRIT, "Unable to perform copydown to %s", c->copydown);
 		fclose(bdfa);
-		goto maybe_next_time;
 	}
-	fclose(bdfa);
 
 	cw_hash_t facts;
 	memset(&facts, 0, sizeof(cw_hash_t));
-	if (fact_gather(c->gatherers, &facts) != 0) {
+	TIMER(&t, ms_facts) {
+		rc = fact_gather(c->gatherers, &facts) != 0;
+	}
+	if (rc != 0) {
 		cw_log(LOG_CRIT, "Unable to gather facts frm %s", c->gatherers);
 		goto maybe_next_time;
 	}
@@ -275,7 +298,9 @@ static void s_cfm_run(client_t *c)
 	}
 
 	pdu = cw_pdu_make(NULL, 3, "POLICY", c->fqdn, factstr);
-	reply = s_sendto(client, pdu, c->timeout);
+	TIMER(&t, ms_getpolicy) {
+		reply = s_sendto(client, pdu, c->timeout);
+	}
 
 	munmap(factstr, len);
 	fclose(io);
@@ -299,21 +324,27 @@ static void s_cfm_run(client_t *c)
 
 	} else {
 		pn_machine m;
-		pn_init(&m);
-		pendulum_funcs(&m, client);
+		TIMER(&t, ms_parse) {
+			pn_init(&m);
+			pendulum_funcs(&m, client);
 
-		io = tmpfile();
-		fprintf(io, "%s", code);
-		fseek(io, 0, SEEK_SET);
+			io = tmpfile();
+			fprintf(io, "%s", code);
+			fseek(io, 0, SEEK_SET);
 
-		pn_parse(&m, io);
-		m.trace = c->trace;
-		pn_run(&m);
-		fclose(io);
+			pn_parse(&m, io);
+		}
+		TIMER(&t, ms_enforce) {
+			m.trace = c->trace;
+			pn_run(&m);
+			fclose(io);
+		}
 	}
 
-	pdu = cw_pdu_make(NULL, 1, "BYE");
-	reply = s_sendto(client, pdu, c->timeout);
+	TIMER(&t, ms_cleanup) {
+		pdu = cw_pdu_make(NULL, 1, "BYE");
+		reply = s_sendto(client, pdu, c->timeout);
+	}
 	if (!reply) {
 		cw_log(LOG_ERR, "BYE failed: %s", zmq_strerror(errno));
 		goto shut_it_down;
@@ -331,6 +362,13 @@ shut_it_down:
 	cw_log(LOG_INFO, "closed connection");
 
 maybe_next_time:
+	cw_log(LOG_INFO, "STATS(ms): connect=%lu, "  "hello=%lu, "   "preinit=%lu, "
+	                            "copydown=%lu, " "facts=%lu, "   "getpolicy=%lu, "
+	                            "parse=%lu, "    "enforce=%lu, " "cleanup=%lu",
+	                             ms_connect,      ms_hello,       ms_preinit,
+	                             ms_copydown,     ms_facts,       ms_getpolicy,
+	                             ms_parse,        ms_enforce,     ms_cleanup);
+
 	if (c->mode == MODE_ONCE || c->mode == MODE_CODE)
 		return;
 	cw_log(LOG_INFO, "Scheduled next configuration run at %i (in %i ms)",

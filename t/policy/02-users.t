@@ -109,7 +109,7 @@ CALL &USER.SET_HOME
   OK? @home.exists.1
     CALL &FS.MKDIR
     CALL &FS.CHOWN
-    SET %D 448
+    SET %D 0700
     CALL &FS.CHMOD
     COPY %C %D
     COPY %B %C

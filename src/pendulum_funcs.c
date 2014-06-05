@@ -607,11 +607,11 @@ static pn_word uf_fs_chown(pn_machine *m)
 static pn_word uf_fs_chmod(pn_machine *m)
 {
 	struct stat st;
-	pn_trace(m, "FS.CHMOD '%s' %#4o\n", (const char *)m->A, m->D & 0x4777);
+	pn_trace(m, "FS.CHMOD '%s' %#4o\n", (const char *)m->A, m->D & 04777);
 	if (lstat((const char *)m->A, &st) != 0) return 1;
-	if ((st.st_mode & 0x4777) == (m->D & 0x4777)) return 0;
+	if ((st.st_mode & 04777) == (m->D & 04777)) return 0;
 	pn_flag(m, CHANGE_FLAG, 1);
-	return chmod((const char *)m->A, (m->D & 0x4777)) == 0 ? 0 : 1;
+	return chmod((const char *)m->A, (m->D & 04777)) == 0 ? 0 : 1;
 }
 
 static pn_word uf_fs_unlink(pn_machine *m)

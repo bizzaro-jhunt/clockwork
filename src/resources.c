@@ -426,7 +426,7 @@ int res_user_gencode(const void *res, FILE *io, unsigned int next)
 			fprintf(io, "  OK? @home.exists.%i\n", next);
 			fprintf(io, "    CALL &FS.MKDIR\n");
 			fprintf(io, "    CALL &FS.CHOWN\n");
-			fprintf(io, "    SET %%D %i\n", 0700);
+			fprintf(io, "    SET %%D 0%o\n", 0700);
 			fprintf(io, "    CALL &FS.CHMOD\n");
 			if (r->skel) {
 				fprintf(io, "    COPY %%C %%D\n");
@@ -2050,7 +2050,7 @@ int res_dir_gencode(const void *res, FILE *io, unsigned int next)
 	}
 
 	if (ENFORCED(r, RES_DIR_MODE)) {
-		fprintf(io, "SET %%B 0%o\n", r->mode);
+		fprintf(io, "SET %%D 0%o\n", r->mode);
 		fprintf(io, "CALL &FS.CHMOD\n");
 	}
 

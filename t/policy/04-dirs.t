@@ -43,7 +43,7 @@ COPY %F %A
 COPY %D %B
 COPY %E %C
 CALL &FS.CHOWN
-SET %B 0400
+SET %D 0400
 CALL &FS.CHMOD
 next.1:
 !FLAGGED? :changed @final.1
@@ -68,7 +68,7 @@ RESET
 ;; res_dir /chmod-me
 SET %A "/chmod-me"
 CALL &FS.MKDIR
-SET %B 0755
+SET %D 0755
 CALL &FS.CHMOD
 next.1:
 !FLAGGED? :changed @final.1
@@ -113,7 +113,7 @@ COPY %F %A
 COPY %D %B
 COPY %E %C
 CALL &FS.CHOWN
-SET %B 0710
+SET %D 0710
 CALL &FS.CHMOD
 next.1:
 !FLAGGED? :changed @final.1

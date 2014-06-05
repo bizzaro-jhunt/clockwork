@@ -23,8 +23,7 @@
 #include <fts.h>
 
 #include "pendulum_funcs.h"
-#include "cw.h"
-#include "sha1.h"
+#include "clockwork.h"
 
 #define CHANGE_FLAG ":changed"
 
@@ -427,6 +426,38 @@ static pn_word uf_pragma(pn_machine *m, const char *k, const char *v)
 
  */
 
+static void s_mkdir_parents(const char *spath)
+{
+	struct path *p;
+	p = path_new(spath);
+	if (!p || path_canon(p) != 0) goto failed;
+
+	struct stat st;
+	int rc = 1;
+
+	/* find the first parent dir */
+	while (path_pop(p) != 0) {
+		rc = stat(path(p), &st);
+		if (rc == 0)
+			break;
+	}
+	if (rc != 0) goto failed;
+
+	/* create missing parents, with ownership/mode of
+	   the first pre-existing parent dir */
+	for (path_push(p); strcmp(path(p), spath) != 0; path_push(p)) {
+		rc = mkdir(path(p), st.st_mode);
+		if (rc != 0) break;
+
+		rc = chown(path(p), st.st_uid, st.st_gid);
+		if (!rc) continue;
+	}
+
+failed:
+	path_free(p);
+	return;
+}
+
 static pn_word uf_fs_is_file(pn_machine *m)
 {
 	struct stat st;
@@ -503,6 +534,7 @@ static pn_word uf_fs_mkdir(pn_machine *m)
 	pn_trace(m, "FS.MKDIR '%s' <0777>\n", (const char *)m->A);
 	if (uf_fs_exists(m) == 0) return 1;
 	pn_flag(m, CHANGE_FLAG, 1);
+	s_mkdir_parents((const char *)m->A);
 	return mkdir((const char *)m->A, 0777) == 0 ? 0 : 1;
 }
 
@@ -511,6 +543,7 @@ static pn_word uf_fs_mkfile(pn_machine *m)
 	pn_trace(m, "FS.MKFILE '%s' <0666>\n", (const char *)m->A);
 	if (uf_fs_exists(m) == 0) return 1;
 	pn_flag(m, CHANGE_FLAG, 1);
+	s_mkdir_parents((const char *)m->A);
 	int fd = open((const char *)m->A, O_WRONLY|O_CREAT, 0666);
 	if (fd < 0) return 1;
 	close(fd);

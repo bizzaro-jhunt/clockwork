@@ -13,6 +13,11 @@ CALL &FS.MKDIR
 COPY %A %F
 SET %D 0
 SET %E 0
+CALL &USERDB.OPEN
+OK? @owner.lookup.1
+  PRINT "Failed to open the user databases\n"
+  HALT
+owner.lookup.1:
 SET %A 1
 SET %B "root"
 CALL &USER.FIND
@@ -33,6 +38,7 @@ OK? @found.group.1
 found.group.1:
 CALL &GROUP.GET_GID
 COPY %R %E
+CALL &USERDB.CLOSE
 COPY %F %A
 COPY %D %B
 COPY %E %C
@@ -77,6 +83,11 @@ CALL &FS.MKDIR
 COPY %A %F
 SET %D 0
 SET %E 0
+CALL &USERDB.OPEN
+OK? @owner.lookup.1
+  PRINT "Failed to open the user databases\n"
+  HALT
+owner.lookup.1:
 SET %A 1
 SET %B "jrhunt"
 CALL &USER.FIND
@@ -97,6 +108,7 @@ OK? @found.group.1
 found.group.1:
 CALL &GROUP.GET_GID
 COPY %R %E
+CALL &USERDB.CLOSE
 COPY %F %A
 COPY %D %B
 COPY %E %C

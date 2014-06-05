@@ -81,6 +81,7 @@ CALL &GROUP.GET_GID
 COPY %R %E
 COPY %D %B
 COPY %E %C
+CALL &USERDB.CLOSE
 SET %A "/bin/find /usr/share/mans -mtime +1 | grep -q 'xx'"
 CALL &EXEC.CHECK
 NOTOK? @next.1

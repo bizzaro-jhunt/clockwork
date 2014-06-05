@@ -180,7 +180,7 @@ static char * s_gencode(client_t *c)
 	assert(io);
 
 	cw_timer_t t;
-	uint32_t ms;
+	uint32_t ms = 0;
 	TIMER(&t, ms) {
 		policy_gencode(c->policy, io);
 	}

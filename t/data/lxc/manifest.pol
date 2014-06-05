@@ -38,6 +38,10 @@ policy "tests" {
 		group: "editors"
 		mode:  0644
 	}
+	dir defaults {
+		owner: "rjoseph"
+		group: "editors"
+	}
 	dir  "/home/rjoseph/.ssh" { mode: 0700 }
 	file "/home/rjoseph/.vimrc" {
 		source: "/cw/cfm/files/rjoseph/vimrc"

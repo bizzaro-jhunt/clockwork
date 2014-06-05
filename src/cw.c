@@ -1582,7 +1582,7 @@ int cw_bdfa_unpack(int in, const char *root)
 			cw_log(LOG_INFO, "BDFA: unpacking directory %s %06o %d:%d",
 				filename, mode, uid, gid);
 
-			if (mkdir(filename, mode) != 0) {
+			if (mkdir(filename, mode) != 0 && errno != EEXIST) {
 				perror(filename);
 				rc = 1;
 				continue;

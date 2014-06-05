@@ -2009,30 +2009,39 @@ int res_dir_gencode(const void *res, FILE *io, unsigned int next)
 		fprintf(io, "SET %%D 0\n");
 		fprintf(io, "SET %%E 0\n");
 
-		if (ENFORCED(r, RES_DIR_UID)) {
-			fprintf(io, "SET %%A 1\n");
-			fprintf(io, "SET %%B \"%s\"\n", r->owner);
-			fprintf(io, "CALL &USER.FIND\n");
-			fprintf(io, "OK? @found.user.%i\n", next);
-			fprintf(io, "  COPY %%B %%A\n");
-			fprintf(io, "  PRINT \"Unable to find user '%%s'\\n\"\n");
-			fprintf(io, "  JUMP @next.%i\n", next);
-			fprintf(io, "found.user.%i:\n", next);
-			fprintf(io, "CALL &USER.GET_UID\n");
-			fprintf(io, "COPY %%R %%D\n");
-		}
+		if (ENFORCED(r, RES_DIR_UID) || ENFORCED(r, RES_DIR_GID)) {
+			fprintf(io, "CALL &USERDB.OPEN\n");
+			fprintf(io, "OK? @owner.lookup.%i\n", next);
+			fprintf(io, "  PRINT \"Failed to open the user databases\\n\"\n");
+			fprintf(io, "  HALT\n");
+			fprintf(io, "owner.lookup.%i:\n", next);
+			if (ENFORCED(r, RES_DIR_UID)) {
+				fprintf(io, "SET %%A 1\n");
+				fprintf(io, "SET %%B \"%s\"\n", r->owner);
+				fprintf(io, "CALL &USER.FIND\n");
+				fprintf(io, "OK? @found.user.%i\n", next);
+				fprintf(io, "  COPY %%B %%A\n");
+				fprintf(io, "  PRINT \"Unable to find user '%%s'\\n\"\n");
+				fprintf(io, "  JUMP @next.%i\n", next);
+				fprintf(io, "found.user.%i:\n", next);
+				fprintf(io, "CALL &USER.GET_UID\n");
+				fprintf(io, "COPY %%R %%D\n");
+			}
 
-		if (ENFORCED(r, RES_DIR_GID)) {
-			fprintf(io, "SET %%A 1\n");
-			fprintf(io, "SET %%B \"%s\"\n", r->group);
-			fprintf(io, "CALL &GROUP.FIND\n");
-			fprintf(io, "OK? @found.group.%i\n", next);
-			fprintf(io, "  COPY %%B %%A\n");
-			fprintf(io, "  PRINT \"Unable to find group '%%s'\\n\"\n");
-			fprintf(io, "  JUMP @next.%i\n", next);
-			fprintf(io, "found.group.%i:\n", next);
-			fprintf(io, "CALL &GROUP.GET_GID\n");
-			fprintf(io, "COPY %%R %%E\n");
+			if (ENFORCED(r, RES_DIR_GID)) {
+				fprintf(io, "SET %%A 1\n");
+				fprintf(io, "SET %%B \"%s\"\n", r->group);
+				fprintf(io, "CALL &GROUP.FIND\n");
+				fprintf(io, "OK? @found.group.%i\n", next);
+				fprintf(io, "  COPY %%B %%A\n");
+				fprintf(io, "  PRINT \"Unable to find group '%%s'\\n\"\n");
+				fprintf(io, "  JUMP @next.%i\n", next);
+				fprintf(io, "found.group.%i:\n", next);
+				fprintf(io, "CALL &GROUP.GET_GID\n");
+				fprintf(io, "COPY %%R %%E\n");
+			}
+
+			fprintf(io, "CALL &USERDB.CLOSE\n");
 		}
 		fprintf(io, "COPY %%F %%A\n");
 		fprintf(io, "COPY %%D %%B\n");
@@ -2250,6 +2259,7 @@ int res_exec_gencode(const void *res, FILE *io, unsigned int next)
 		}
 		fprintf(io, "COPY %%D %%B\n");
 		fprintf(io, "COPY %%E %%C\n");
+		fprintf(io, "CALL &USERDB.CLOSE\n");
 	} else {
 		fprintf(io, "SET %%B 0\n");
 		fprintf(io, "SET %%C 0\n");

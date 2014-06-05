@@ -539,6 +539,7 @@ static inline client_t* s_client_new(int argc, char **argv)
 	if (!c->daemonize) {
 		cw_log(LOG_DEBUG, "Running in --foreground mode; forcing all logging to stderr");
 		cw_cfg_set(&config, "syslog.facility", "stderr");
+		umask(0);
 	}
 	if (c->mode == MODE_DUMP) {
 		cw_log(LOG_DEBUG, "Running in --show-config mode; forcing all logging to stderr");

@@ -1368,8 +1368,7 @@ FILE* cw_tpl_erb(const char *src, cw_hash_t *facts)
 		fprintf(in, "%s=%s\n", k, v);
 	rewind(in);
 
-	/* FIXME: template-erb needs full path! */
-	int rc = cw_run2(in, out, NULL, "./template-erb", src, NULL);
+	int rc = cw_run2(in, out, NULL, "cw-template-erb", src, NULL);
 	fclose(in);
 
 	if (rc == 0) {

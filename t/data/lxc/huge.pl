@@ -20,7 +20,7 @@ for (1 .. $USERS) {
 		uid:  $id
 		gid:  $id
 		home: "/home/user$_"
-		mkhome: "yes"
+		makehome: "yes"
 	}
 EOF
 }

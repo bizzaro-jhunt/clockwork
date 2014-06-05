@@ -93,6 +93,7 @@ struct policy {
 	cw_list_t dependencies; /* resource dependencies (implicit and explicit) */
 
 	cw_hash_t *index;       /* resources, keyed by "TYPE:pkey" */
+	cw_hash_t *cache;       /* search cache, keyed by "TYPE:attr=val" */
 };
 
 /* Iterate over a policy's resources */

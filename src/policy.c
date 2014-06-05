@@ -118,7 +118,7 @@ static int _policy_normalize(struct policy *pol, cw_hash_t *facts)
 		}
 		if (!r2) {
 			cw_log(LOG_ERR, "Failed dependency on unknown resource %s", dep->b);
-			return -1;
+			return -2;
 		}
 
 		resource_add_dependency(r1, r2);
@@ -146,7 +146,10 @@ static int _policy_normalize(struct policy *pol, cw_hash_t *facts)
 		}
 	}
 
-	if (!cw_list_isempty(&pol->resources)) { return -1; }
+	if (!cw_list_isempty(&pol->resources)) {
+		cw_log(LOG_ERR, "Leftover resources after dependency resolution");
+		return -3;
+	}
 	cw_list_replace(&deps, &pol->resources);
 
 	return 0;
@@ -721,6 +724,7 @@ struct policy* policy_new(const char *name)
 	cw_list_init(&pol->resources);
 	cw_list_init(&pol->dependencies);
 	pol->index = cw_alloc(sizeof(cw_hash_t));
+	pol->cache = cw_alloc(sizeof(cw_hash_t));
 
 	return pol;
 }
@@ -735,6 +739,7 @@ void policy_free(struct policy *pol)
 {
 	if (pol) {
 		cw_hash_done(pol->index, 0);
+		cw_hash_done(pol->cache, 0);
 		free(pol->name);
 	}
 	free(pol);
@@ -796,14 +801,28 @@ struct resource* policy_find_resource(struct policy *pol, enum restype type, con
 	struct resource *r;
 
 	cw_log(LOG_DEBUG, "Looking for resource %u matching %s => '%s'", type, attr, value);
-	for_each_resource(r, pol) {
-		if ((r->type == RES_NONE || r->type == type)
-		  && resource_match(r, attr, value) == 0)
-			return r;
-	}
-	cw_log(LOG_DEBUG, "  none found...");
+	char *needle = cw_string("%i:%s=%s", (int)type, attr, value);
+	r = cw_hash_get(pol->cache, needle);
+	if (r) {
+		cw_log(LOG_DEBUG, "Search satisfied out from cache\n");
+		if (r == (struct resource *)1) r = NULL;
 
-	return NULL;
+	} else {
+		for_each_resource(r, pol) {
+			if ((r->type == RES_NONE || r->type == type)
+			  && resource_match(r, attr, value) == 0) {
+				cw_hash_set(pol->cache, needle, r);
+				goto done;
+			}
+		}
+		cw_log(LOG_DEBUG, "  none found...");
+		cw_hash_set(pol->cache, needle, (struct resource *)1);
+		r = NULL;
+	}
+
+done:
+	free(needle);
+	return r;
 }
 
 /**

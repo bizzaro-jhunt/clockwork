@@ -101,9 +101,12 @@ static cw_pdu_t *s_sendto(void *socket, cw_pdu_t *pdu, int timeout)
 	}
 
 	zmq_pollitem_t socks[] = {{ socket, 0, ZMQ_POLLIN, 0 }};
-	int rc = zmq_poll(socks, 1, timeout);
-	if (rc == 1)
-		return cw_pdu_recv(socket);
+	for (;;) {
+		int rc = zmq_poll(socks, 1, timeout);
+		if (rc == 1)
+			return cw_pdu_recv(socket);
+		if (errno != EINTR) break;
+	}
 	return NULL;
 }
 
@@ -194,13 +197,13 @@ static void s_cfm_run(client_t *c)
 	pdu = cw_pdu_make(NULL, 2, "HELLO", c->fqdn);
 	reply = s_sendto(client, pdu, c->timeout);
 	if (!reply) {
-		cw_log(LOG_ERR, "failed: %s", zmq_strerror(errno));
+		cw_log(LOG_ERR, "HELLO failed: %s", zmq_strerror(errno));
 		goto shut_it_down;
 	}
 	cw_log(LOG_INFO, "Received a '%s' PDU", reply->type);
 	if (strcmp(reply->type, "ERROR") == 0) {
 		char *e = cw_pdu_text(reply, 1);
-		cw_log(LOG_ERR, "failed: %s", e);
+		cw_log(LOG_ERR, "protocol error: %s", e);
 		free(e);
 		goto shut_it_down;
 	}
@@ -208,7 +211,7 @@ static void s_cfm_run(client_t *c)
 	pdu = cw_pdu_make(NULL, 1, "COPYDOWN");
 	reply = s_sendto(client, pdu, c->timeout);
 	if (!reply) {
-		cw_log(LOG_ERR, "failed: %s", zmq_strerror(errno));
+		cw_log(LOG_ERR, "COPYDOWN failed: %s", zmq_strerror(errno));
 		goto shut_it_down;
 	}
 	FILE *bdfa = tmpfile();
@@ -223,7 +226,7 @@ static void s_cfm_run(client_t *c)
 
 		reply = cw_pdu_recv(client);
 		if (!reply) {
-			cw_log(LOG_ERR, "failed: %s", zmq_strerror(errno));
+			cw_log(LOG_ERR, "DATA failed: %s", zmq_strerror(errno));
 			break;
 		}
 		cw_log(LOG_INFO, "received a %s PDU", reply->type);
@@ -278,13 +281,13 @@ static void s_cfm_run(client_t *c)
 	fclose(io);
 
 	if (!reply) {
-		cw_log(LOG_ERR, "failed: %s", zmq_strerror(errno));
+		cw_log(LOG_ERR, "POLICY failed: %s", zmq_strerror(errno));
 		goto shut_it_down;
 	}
 	cw_log(LOG_INFO, "Received a '%s' PDU", pdu->type);
 	if (strcmp(reply->type, "ERROR") == 0) {
 		char *e = cw_pdu_text(reply, 1);
-		cw_log(LOG_ERR, "failed: %s", e);
+		cw_log(LOG_ERR, "protocol error: %s", e);
 		free(e);
 		goto shut_it_down;
 	}
@@ -312,13 +315,13 @@ static void s_cfm_run(client_t *c)
 	pdu = cw_pdu_make(NULL, 1, "BYE");
 	reply = s_sendto(client, pdu, c->timeout);
 	if (!reply) {
-		cw_log(LOG_ERR, "failed: %s", zmq_strerror(errno));
+		cw_log(LOG_ERR, "BYE failed: %s", zmq_strerror(errno));
 		goto shut_it_down;
 	}
 	cw_log(LOG_INFO, "Received a '%s' PDU", pdu->type);
 	if (strcmp(reply->type, "ERROR") == 0) {
 		char *e = cw_pdu_text(reply, 1);
-		cw_log(LOG_ERR, "failed: %s", e);
+		cw_log(LOG_ERR, "protocol error: %s", e);
 		free(e);
 		goto shut_it_down;
 	}
@@ -496,8 +499,8 @@ static inline client_t* s_client_new(int argc, char **argv)
 	cw_log(LOG_DEBUG, "adjusted log level is %s (%i)",
 		cw_log_level_name(level), level);
 	if (!c->daemonize) {
-		cw_log(LOG_DEBUG, "Running in --foreground mode; forcing all logging to stdout");
-		cw_cfg_set(&config, "syslog.facility", "stdout");
+		cw_log(LOG_DEBUG, "Running in --foreground mode; forcing all logging to stderr");
+		cw_cfg_set(&config, "syslog.facility", "stderr");
 	}
 	if (c->mode == MODE_DUMP) {
 		cw_log(LOG_DEBUG, "Running in --show-config mode; forcing all logging to stderr");

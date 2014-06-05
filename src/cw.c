@@ -73,6 +73,51 @@ void cw_arrfree(char **a)
 }
 
 /*
+
+     ######  ##        #######   ######  ##    ##
+    ##    ## ##       ##     ## ##    ## ##   ##
+    ##       ##       ##     ## ##       ##  ##
+    ##       ##       ##     ## ##       #####
+    ##       ##       ##     ## ##       ##  ##
+    ##    ## ##       ##     ## ##    ## ##   ##
+     ######  ########  #######   ######  ##    ##
+
+ */
+void cw_timer_start(cw_timer_t *clock)
+{
+	gettimeofday(&clock->tv, NULL);
+}
+
+void cw_timer_stop(cw_timer_t *clock)
+{
+	struct timeval end, diff;
+	if (gettimeofday(&end, NULL) != 0)
+		return;
+
+	if ((end.tv_usec - clock->tv.tv_usec) < 0) {
+		diff.tv_sec  = end.tv_sec - clock->tv.tv_sec - 1;
+		diff.tv_usec = 1000000 + end.tv_usec-clock->tv.tv_usec;
+	} else {
+		diff.tv_sec  = end.tv_sec-clock->tv.tv_sec;
+		diff.tv_usec = end.tv_usec-clock->tv.tv_usec;
+	}
+
+	clock->tv.tv_sec  = diff.tv_sec;
+	clock->tv.tv_usec = diff.tv_usec;
+}
+
+uint32_t cw_timer_s(const cw_timer_t *clock)
+{
+	return clock->tv.tv_sec;
+}
+
+uint64_t cw_timer_ms(const cw_timer_t *clock)
+{
+	return clock->tv.tv_sec  * 1000
+	     + clock->tv.tv_usec / 1000;
+}
+
+/*
      ######  ####  ######   ##    ##    ###    ##        ######
     ##    ##  ##  ##    ##  ###   ##   ## ##   ##       ##    ##
     ##        ##  ##        ####  ##  ##   ##  ##       ##
@@ -478,8 +523,9 @@ cw_frame_t *cw_frame_recv(void *zocket)
 		return NULL;
 	}
 
-	size_t len;
+	size_t len = sizeof(f->more);
 	rc = zmq_getsockopt(zocket, ZMQ_RCVMORE, &f->more, &len);
+	if (rc != 0) perror("zmq_getsockopt");
 	assert(rc == 0);
 
 	return s_cw_frame_build(f);
@@ -726,7 +772,10 @@ cw_pdu_t *cw_pdu_recv(void *zocket)
 	cw_frame_t *f;
 	do {
 		f = cw_frame_recv(zocket);
-		assert(f);
+		if (!f) {
+			cw_pdu_destroy(pdu);
+			return NULL;
+		}
 
 		if (!body) {
 			if (f->size == 0) {

@@ -175,12 +175,14 @@ static int s_sha1(client_t *fsm)
 
 static char * s_gencode(client_t *c)
 {
-	c->policy = policy_generate(c->pnode, c->facts);
-
 	FILE *io = tmpfile();
 	assert(io);
 
+	cw_timer_t t;
+	cw_timer_start(&t);
 	policy_gencode(c->policy, io);
+	cw_timer_stop(&t);
+
 	fprintf(io, "%c", '\0');
 	c->maplen = ftell(io);
 	c->mapped = mmap(NULL, c->maplen, PROT_READ, MAP_SHARED, fileno(io), 0);
@@ -188,6 +190,8 @@ static char * s_gencode(client_t *c)
 
 	if (c->mapped == MAP_FAILED)
 		c->mapped = NULL;
+
+	cw_log(LOG_INFO, "Generated %lub policy in %lums", c->maplen, cw_timer_ms(&t));
 
 	return (char *)c->mapped;
 }
@@ -718,10 +722,11 @@ static inline server_t *s_server_new(int argc, char **argv)
 int main(int argc, char **argv)
 {
 	server_t *s = s_server_new(argc, argv);
+	cw_sig_catch();
 	while (!cw_sig_interrupt()) {
 		cw_pdu_t *pdu, *reply;
 		pdu = cw_pdu_recv(s->listener);
-		assert(pdu);
+		if (!pdu) continue;
 
 		s_ccache_purge(s->ccache);
 		client_t *c = s_ccache_find(pdu->src, s->ccache);

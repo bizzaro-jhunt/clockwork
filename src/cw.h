@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <zmq.h>
 #include <syslog.h> /* for LOG_* constants */
+#include <sys/time.h>
 
 /*
 
@@ -22,6 +23,25 @@ char * cw_strdup(const char *s);
 int cw_strcmp(const char *a, const char *b);
 char** cw_arrdup(char **a);
 void cw_arrfree(char **a);
+
+/*
+
+     ######  ##        #######   ######  ##    ##
+    ##    ## ##       ##     ## ##    ## ##   ##
+    ##       ##       ##     ## ##       ##  ##
+    ##       ##       ##     ## ##       #####
+    ##       ##       ##     ## ##       ##  ##
+    ##    ## ##       ##     ## ##    ## ##   ##
+     ######  ########  #######   ######  ##    ##
+
+ */
+typedef struct {
+	struct timeval tv;
+} cw_timer_t;
+void cw_timer_start(cw_timer_t *clock);
+void cw_timer_stop(cw_timer_t *clock);
+uint32_t cw_timer_s(const cw_timer_t *clock);
+uint64_t cw_timer_ms(const cw_timer_t *clock);
 
 /*
      ######  ####  ######   ##    ##    ###    ##        ######

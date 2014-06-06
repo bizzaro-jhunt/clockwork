@@ -7,7 +7,7 @@ use t::common;
 
 gencode_ok "use host file1.test", <<'EOF', "file resource";
 RESET
-;; res_file /etc/sudoers
+TOPIC "file(/etc/sudoers)"
 SET %A "/etc/sudoers"
 CALL &FS.MKFILE
 CALL &USERDB.OPEN
@@ -52,7 +52,7 @@ EOF
 
 gencode_ok "use host file2.test", <<'EOF', "file removal";
 RESET
-;; res_file /path/to/delete
+TOPIC "file(/path/to/delete)"
 SET %A "/path/to/delete"
 CALL &FS.UNLINK
 JUMP @next.1
@@ -63,7 +63,7 @@ EOF
 
 gencode_ok "use host file3.test", <<'EOF', "file without chown";
 RESET
-;; res_file /chmod-me
+TOPIC "file(/chmod-me)"
 SET %A "/chmod-me"
 CALL &FS.MKFILE
 SET %D 0644
@@ -75,7 +75,7 @@ EOF
 
 gencode_ok "use host file4.test", <<'EOF', "file with non-root owner";
 RESET
-;; res_file /home/jrhunt/stuff
+TOPIC "file(/home/jrhunt/stuff)"
 SET %A "/home/jrhunt/stuff"
 CALL &FS.MKFILE
 CALL &USERDB.OPEN

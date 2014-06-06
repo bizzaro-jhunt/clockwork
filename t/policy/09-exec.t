@@ -7,7 +7,7 @@ use t::common;
 
 gencode_ok "use host exec1.test", <<'EOF', "exec resource";
 RESET
-;; res_exec /bin/ls -l /tmp
+TOPIC "exec(/bin/ls -l /tmp)"
 SET %B 0
 SET %C 0
 SET %A "/bin/ls -l /tmp"
@@ -21,7 +21,7 @@ EOF
 
 gencode_ok "use host exec2.test", <<'EOF', "ondemand exec";
 RESET
-;; res_exec /bin/refresh-the-thing
+TOPIC "exec(/bin/refresh-the-thing)"
 SET %B 0
 SET %C 0
 !FLAGGED? :res0 @next.1
@@ -36,7 +36,7 @@ EOF
 
 gencode_ok "use host exec3.test", <<'EOF', "conditional exec";
 RESET
-;; res_exec CONDITIONAL
+TOPIC "exec(CONDITIONAL)"
 SET %B 0
 SET %C 0
 SET %A "/usr/bin/test ! -f /stuff"
@@ -53,7 +53,7 @@ EOF
 
 gencode_ok "use host exec4.test", <<'EOF', "all attrs";
 RESET
-;; res_exec catmans
+TOPIC "exec(catmans)"
 CALL &USERDB.OPEN
 OK? @who.lookup.1
   PRINT "Failed to open the user databases\n"

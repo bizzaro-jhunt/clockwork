@@ -23,6 +23,8 @@ struct pn_machine {
 	pn_word T1, T2, Tr;
 	pn_word R,  Er;
 	pn_word Ip, Dp;
+	const char *topic;
+	uint32_t topics;
 
 	void *U;
 	pn_pragma pragma;

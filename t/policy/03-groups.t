@@ -7,7 +7,7 @@ use t::common;
 
 gencode_ok "use host group1.test", <<'EOF', "group removal";
 RESET
-;; res_group group1
+TOPIC "group(group1)"
 CALL &USERDB.OPEN
 OK? @start.1
   PRINT "Failed to open the user databases\n"
@@ -26,7 +26,7 @@ EOF
 
 gencode_ok "use host group2.test", <<'EOF', "group creation with explicit GID";
 RESET
-;; res_group group2
+TOPIC "group(group2)"
 CALL &USERDB.OPEN
 OK? @start.1
   PRINT "Failed to open the user databases\n"
@@ -53,7 +53,7 @@ EOF
 
 gencode_ok "use host group3.test", <<'EOF', "group creation without explicit GID";
 RESET
-;; res_group group3
+TOPIC "group(group3)"
 CALL &USERDB.OPEN
 OK? @start.1
   PRINT "Failed to open the user databases\n"
@@ -79,7 +79,7 @@ EOF
 
 gencode_ok "use host group4.test", <<'EOF', "group with all attrs";
 RESET
-;; res_group group4
+TOPIC "group(group4)"
 CALL &USERDB.OPEN
 OK? @start.1
   PRINT "Failed to open the user databases\n"

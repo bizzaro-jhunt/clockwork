@@ -311,7 +311,7 @@ int res_user_gencode(const void *res, FILE *io, unsigned int next)
 	struct res_user *r = (struct res_user*)(res);
 	assert(r); // LCOV_EXCL_LINE
 
-	fprintf(io, ";; res_user %s\n", r->key);
+	fprintf(io, "TOPIC \"user(%s)\"\n", r->key);
 	fprintf(io, "CALL &USERDB.OPEN\n");
 	fprintf(io, "OK? @start.%i\n", next);
 	fprintf(io, "  PRINT \"Failed to open the user databases\\n\"\n");
@@ -650,7 +650,7 @@ int res_file_gencode(const void *res, FILE *io, unsigned int next)
 	struct res_file *r = (struct res_file*)(res);
 	assert(r); // LCOV_EXCL_LINE
 
-	fprintf(io, ";; res_file %s\n", r->key);
+	fprintf(io, "TOPIC \"file(%s)\"\n", r->key);
 	fprintf(io, "SET %%A \"%s\"\n", r->path);
 
 	if (ENFORCED(r, RES_FILE_ABSENT)) {
@@ -976,7 +976,7 @@ int res_group_gencode(const void *res, FILE *io, unsigned int next)
 	struct res_group *r = (struct res_group*)(res);
 	assert(r); // LCOV_EXCL_LINE
 
-	fprintf(io, ";; res_group %s\n", r->key);
+	fprintf(io, "TOPIC \"group(%s)\"\n", r->key);
 	fprintf(io, "CALL &USERDB.OPEN\n");
 	fprintf(io, "OK? @start.%i\n", next);
 	fprintf(io, "  PRINT \"Failed to open the user databases\\n\"\n");
@@ -1259,7 +1259,7 @@ int res_package_gencode(const void *res, FILE *io, unsigned int next)
 	struct res_package *r = (struct res_package*)(res);
 	assert(r); // LCOV_EXCL_LINE
 
-	fprintf(io, ";; res_package %s\n", r->key);
+	fprintf(io, "TOPIC \"package(%s)\"\n", r->key);
 	fprintf(io, "SET %%A \"cwtool pkg-version %s\"\n", r->name);
 	fprintf(io, "CALL &EXEC.RUN1\n");
 	if (ENFORCED(r, RES_PACKAGE_ABSENT)) {
@@ -1436,7 +1436,7 @@ int res_service_gencode(const void *res, FILE *io, unsigned int next)
 	struct res_service *r = (struct res_service*)(res);
 	assert(r); // LCOV_EXCL_LINE
 
-	fprintf(io, ";; res_service %s\n", r->key);
+	fprintf(io, "TOPIC \"service(%s)\"\n", r->key);
 	if (ENFORCED(r, RES_SERVICE_ENABLED)) {
 		fprintf(io, "SET %%A \"cwtool svc-boot-status %s\"\n", r->service);
 		fprintf(io, "CALL &EXEC.CHECK\n");
@@ -1634,7 +1634,7 @@ int res_host_gencode(const void *res, FILE *io, unsigned int next)
 	struct res_host *r = (struct res_host*)(res);
 	assert(r); // LCOV_EXCL_LINE
 
-	fprintf(io, ";; res_host %s\n", r->key);
+	fprintf(io, "TOPIC \"host(%s)\"\n", r->key);
 	fprintf(io, "SET %%A \"/files/etc/hosts/*[ipaddr = \\\"%s\\\" and canonical = \\\"%s\\\"]\"\n", r->ip, r->hostname);
 	fprintf(io, "CALL &AUGEAS.FIND\n");
 
@@ -1796,7 +1796,7 @@ int res_sysctl_gencode(const void *res, FILE *io, unsigned int next)
 	for (p = path; *p; p++)
 		if (*p == '.') *p = '/';
 
-	fprintf(io, ";; res_sysctl %s\n", r->key);
+	fprintf(io, "TOPIC \"sysctl(%s)\"\n", r->key);
 	if (ENFORCED(r, RES_SYSCTL_VALUE)) {
 		fprintf(io, "SET %%A \"/proc/sys/%s\"\n", path);
 		fprintf(io, "CALL &FS.GET\n");
@@ -1991,7 +1991,7 @@ int res_dir_gencode(const void *res, FILE *io, unsigned int next)
 	struct res_dir *r = (struct res_dir*)(res);
 	assert(r); // LCOV_EXCL_LINE
 
-	fprintf(io, ";; res_dir %s\n", r->key);
+	fprintf(io, "TOPIC \"dir(%s)\"\n", r->key);
 	fprintf(io, "SET %%A \"%s\"\n", r->path);
 
 	if (ENFORCED(r, RES_DIR_ABSENT)) {
@@ -2226,7 +2226,7 @@ int res_exec_gencode(const void *res, FILE *io, unsigned int next)
 	struct res_exec *r = (struct res_exec*)(res);
 	assert(r); // LCOV_EXCL_LINE
 
-	fprintf(io, ";; res_exec %s\n", r->key);
+	fprintf(io, "TOPIC \"exec(%s)\"\n", r->key);
 	if (ENFORCED(r, RES_EXEC_UID) || ENFORCED(r, RES_EXEC_GID)) {
 		fprintf(io, "CALL &USERDB.OPEN\n");
 		fprintf(io, "OK? @who.lookup.%i\n", next);

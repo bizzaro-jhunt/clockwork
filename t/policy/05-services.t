@@ -7,7 +7,7 @@ use t::common;
 
 gencode_ok "use host service1.test", <<'EOF', "service resource";
 RESET
-;; res_service snmpd
+TOPIC "service(snmpd)"
 SET %A "cwtool svc-boot-status snmpd"
 CALL &EXEC.CHECK
 OK? @enabled.1
@@ -33,7 +33,7 @@ EOF
 
 gencode_ok "use host service2.test", <<'EOF', "stopped service";
 RESET
-;; res_service microcode
+TOPIC "service(microcode)"
 SET %A "cwtool svc-run-status microcode"
 CALL &EXEC.CHECK
 NOTOK? @stopped.1
@@ -53,7 +53,7 @@ EOF
 
 gencode_ok "use host service3.test", <<'EOF', "service resource";
 RESET
-;; res_service neverwhere
+TOPIC "service(neverwhere)"
 SET %A "cwtool svc-boot-status neverwhere"
 CALL &EXEC.CHECK
 NOTOK? @disabled.1
@@ -79,7 +79,7 @@ EOF
 
 gencode_ok "use host service4.test", <<'EOF', "service reload";
 RESET
-;; res_service snmpd
+TOPIC "service(snmpd)"
 SET %A "cwtool svc-boot-status snmpd"
 CALL &EXEC.CHECK
 OK? @enabled.1

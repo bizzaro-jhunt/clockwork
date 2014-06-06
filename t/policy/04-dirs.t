@@ -7,7 +7,7 @@ use t::common;
 
 gencode_ok "use host dir1.test", <<'EOF', "dir resource";
 RESET
-;; res_dir /etc/sudoers
+TOPIC "dir(/etc/sudoers)"
 SET %A "/etc/sudoers"
 CALL &FS.MKDIR
 COPY %A %F
@@ -52,7 +52,7 @@ EOF
 
 gencode_ok "use host dir2.test", <<'EOF', "dir removal";
 RESET
-;; res_dir /path/to/delete
+TOPIC "dir(/path/to/delete)"
 SET %A "/path/to/delete"
 CALL &FS.EXISTS?
 NOTOK? @next.1
@@ -65,7 +65,7 @@ EOF
 
 gencode_ok "use host dir3.test", <<'EOF', "dir without chown";
 RESET
-;; res_dir /chmod-me
+TOPIC "dir(/chmod-me)"
 SET %A "/chmod-me"
 CALL &FS.MKDIR
 SET %D 0755
@@ -77,7 +77,7 @@ EOF
 
 gencode_ok "use host dir4.test", <<'EOF', "dir with non-root owner";
 RESET
-;; res_dir /home/jrhunt/bin
+TOPIC "dir(/home/jrhunt/bin)"
 SET %A "/home/jrhunt/bin"
 CALL &FS.MKDIR
 COPY %A %F

@@ -184,6 +184,7 @@ static void s_cfm_run(client_t *c)
 {
 	cw_timer_t t;
 	int rc;
+	uint32_t count;
 	uint32_t ms_connect    = 0,
 	         ms_hello      = 0,
 	         ms_preinit    = 0,
@@ -339,6 +340,7 @@ static void s_cfm_run(client_t *c)
 			pn_run(&m);
 			fclose(io);
 		}
+		count = m.topics;
 	}
 
 	TIMER(&t, ms_cleanup) {
@@ -362,6 +364,12 @@ shut_it_down:
 	cw_log(LOG_INFO, "closed connection");
 
 maybe_next_time:
+	cw_log(LOG_NOTICE, "complete. enforced %lu resources in %0.2lfs",
+		count,
+		ms_connect + ms_hello + ms_preinit +
+		ms_copydown + ms_facts + ms_getpolicy +
+		ms_parse + ms_enforce + ms_cleanup);
+
 	cw_log(LOG_INFO, "STATS(ms): connect=%lu, "  "hello=%lu, "   "preinit=%lu, "
 	                            "copydown=%lu, " "facts=%lu, "   "getpolicy=%lu, "
 	                            "parse=%lu, "    "enforce=%lu, " "cleanup=%lu",
@@ -421,7 +429,7 @@ static inline client_t* s_client_new(int argc, char **argv)
 		{ "once",        no_argument,       NULL, '1' },
 		{ 0, 0, 0, 0 },
 	};
-	int verbose = -1;
+	int verbose = 0;
 	const char *config_file = DEFAULT_CONFIG_FILE;
 	int opt, idx = 0;
 	while ( (opt = getopt_long(argc, argv, short_opts, long_opts, &idx)) != -1) {
@@ -454,7 +462,7 @@ static inline client_t* s_client_new(int argc, char **argv)
 			break;
 
 		case 'q':
-			verbose = 0;
+			verbose = -1 * LOG_DEBUG;;
 			cw_log(LOG_DEBUG, "handling -q/--quiet (modifier = %i)", verbose);
 			break;
 
@@ -525,15 +533,20 @@ static inline client_t* s_client_new(int argc, char **argv)
 
 
 	cw_log(LOG_DEBUG, "determining adjusted log level/facility");
-	if (verbose < 0) verbose = 0;
-	s = cw_cfg_get(&config, "syslog.level");
-	cw_log(LOG_DEBUG, "configured log level is '%s', verbose modifier is %+i", s, verbose);
-	int level = cw_log_level_number(s);
-	if (level < 0) {
-		cw_log(LOG_WARNING, "'%s' is not a recognized log level, falling back to 'error'", s);
-		level = LOG_ERR;
+	int level = LOG_NOTICE;
+	if (c->daemonize) {
+		s = cw_cfg_get(&config, "syslog.level");
+		cw_log(LOG_DEBUG, "configured log level is '%s', verbose modifier is %+i", s, verbose);
+		level = cw_log_level_number(s);
+
+		if (level < 0) {
+			cw_log(LOG_WARNING, "'%s' is not a recognized log level, falling back to 'error'", s);
+			level = LOG_ERR;
+		}
 	}
 	level += verbose;
+	if (level > LOG_DEBUG) level = LOG_DEBUG;
+	if (level < 0) level = 0;
 	cw_log(LOG_DEBUG, "adjusted log level is %s (%i)",
 		cw_log_level_name(level), level);
 	if (!c->daemonize) {

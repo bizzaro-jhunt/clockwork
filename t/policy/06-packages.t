@@ -7,7 +7,7 @@ use t::common;
 
 gencode_ok "use host package1.test", <<'EOF', "package resource";
 RESET
-;; res_package binutils
+TOPIC "package(binutils)"
 SET %A "cwtool pkg-version binutils"
 CALL &EXEC.RUN1
 OK? @installed.1
@@ -36,7 +36,7 @@ EOF
 
 gencode_ok "use host package2.test", <<'EOF', "package uninstall";
 RESET
-;; res_package binutils
+TOPIC "package(binutils)"
 SET %A "cwtool pkg-version binutils"
 CALL &EXEC.RUN1
 NOTOK? @next.1
@@ -50,7 +50,7 @@ EOF
 
 gencode_ok "use host package3.test", <<'EOF', "package versioned install";
 RESET
-;; res_package binutils
+TOPIC "package(binutils)"
 SET %A "cwtool pkg-version binutils"
 CALL &EXEC.RUN1
 OK? @installed.1

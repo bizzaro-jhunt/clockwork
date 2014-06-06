@@ -7,7 +7,7 @@ use t::common;
 
 gencode_ok "use host user1.test", <<'EOF', "user removal";
 RESET
-;; res_user t1user
+TOPIC "user(t1user)"
 CALL &USERDB.OPEN
 OK? @start.1
   PRINT "Failed to open the user databases\n"
@@ -27,7 +27,7 @@ EOF
 
 gencode_ok "use host user2.test", <<'EOF', "user creation with explicit UID/GID";
 RESET
-;; res_user t2user
+TOPIC "user(t2user)"
 CALL &USERDB.OPEN
 OK? @start.1
   PRINT "Failed to open the user databases\n"
@@ -63,7 +63,7 @@ EOF
 
 gencode_ok "use host user3.test", <<'EOF', "user creation without UID/GID";
 RESET
-;; res_user t3user
+TOPIC "user(t3user)"
 CALL &USERDB.OPEN
 OK? @start.1
   PRINT "Failed to open the user databases\n"
@@ -126,7 +126,7 @@ EOF
 
 gencode_ok "use host user4.test", <<'EOF', "user with all attrs";
 RESET
-;; res_user t4user
+TOPIC "user(t4user)"
 CALL &USERDB.OPEN
 OK? @start.1
   PRINT "Failed to open the user databases\n"

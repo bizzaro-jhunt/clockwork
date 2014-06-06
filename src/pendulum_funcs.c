@@ -426,7 +426,7 @@ static pn_word uf_pragma(pn_machine *m, const char *k, const char *v)
 
  */
 
-static void s_mkdir_parents(const char *spath)
+static void s_mkdir_parents(pn_machine *m, const char *spath)
 {
 	struct path *p;
 	p = path_new(spath);
@@ -446,6 +446,9 @@ static void s_mkdir_parents(const char *spath)
 	/* create missing parents, with ownership/mode of
 	   the first pre-existing parent dir */
 	for (path_push(p); strcmp(path(p), spath) != 0; path_push(p)) {
+		cw_log(LOG_NOTICE, "%s creating parent directory %s, owned by %i:%i, mode %#4o",
+			m->topic, path(p), st.st_uid, st.st_gid, st.st_mode);
+
 		rc = mkdir(path(p), st.st_mode);
 		if (rc != 0) break;
 
@@ -534,7 +537,8 @@ static pn_word uf_fs_mkdir(pn_machine *m)
 	pn_trace(m, "FS.MKDIR '%s' <0777>\n", (const char *)m->A);
 	if (uf_fs_exists(m) == 0) return 1;
 	pn_flag(m, CHANGE_FLAG, 1);
-	s_mkdir_parents((const char *)m->A);
+	s_mkdir_parents(m, (const char *)m->A);
+	cw_log(LOG_NOTICE, "%s creating directory %s", m->topic, (const char *)m->A);
 	return mkdir((const char *)m->A, 0777) == 0 ? 0 : 1;
 }
 
@@ -543,7 +547,8 @@ static pn_word uf_fs_mkfile(pn_machine *m)
 	pn_trace(m, "FS.MKFILE '%s' <0666>\n", (const char *)m->A);
 	if (uf_fs_exists(m) == 0) return 1;
 	pn_flag(m, CHANGE_FLAG, 1);
-	s_mkdir_parents((const char *)m->A);
+	s_mkdir_parents(m, (const char *)m->A);
+	cw_log(LOG_NOTICE, "%s creating file %s", m->topic, (const char *)m->A);
 	int fd = open((const char *)m->A, O_WRONLY|O_CREAT, 0666);
 	if (fd < 0) return 1;
 	close(fd);
@@ -634,6 +639,8 @@ static pn_word uf_fs_chown(pn_machine *m)
 	if (lstat((const char *)m->A, &st) != 0) return 1;
 	if (st.st_uid == (uid_t)m->B && st.st_gid == (gid_t)m->C) return 0;
 	pn_flag(m, CHANGE_FLAG, 1);
+	cw_log(LOG_NOTICE, "%s set ownership of %s to %i:%i",
+		m->topic, (const char *)m->A, m->B, m->C);
 	return chown((const char *)m->A, m->B, m->C) == 0 ? 0 : 1;
 }
 
@@ -644,6 +651,8 @@ static pn_word uf_fs_chmod(pn_machine *m)
 	if (lstat((const char *)m->A, &st) != 0) return 1;
 	if ((st.st_mode & 04777) == (m->D & 04777)) return 0;
 	pn_flag(m, CHANGE_FLAG, 1);
+	cw_log(LOG_NOTICE, "%s set mode of %s to %#4o",
+		m->topic, (const char *)m->A, m->D & 04777);
 	return chmod((const char *)m->A, (m->D & 04777)) == 0 ? 0 : 1;
 }
 
@@ -653,6 +662,7 @@ static pn_word uf_fs_unlink(pn_machine *m)
 	pn_trace(m, "FS.UNLINK %s\n", (const char *)m->A);
 	if (lstat((const char *)m->A, &st) != 0) return 0;
 	pn_flag(m, CHANGE_FLAG, 1);
+	cw_log(LOG_NOTICE, "%s removing %s", m->topic, (const char *)m->A);
 	return unlink((const char *)m->A) == 0 ? 0 : 1;
 }
 
@@ -662,6 +672,7 @@ static pn_word uf_fs_rmdir(pn_machine *m)
 	pn_trace(m, "FS.RMDIR %s\n", (const char *)m->A);
 	if (lstat((const char *)m->A, &st) != 0) return 0;
 	pn_flag(m, CHANGE_FLAG, 1);
+	cw_log(LOG_NOTICE, "%s removing %s", m->topic, (const char *)m->A);
 	return rmdir((const char *)m->A) == 0 ? 0 : 1;
 }
 
@@ -1422,6 +1433,8 @@ static pn_word uf_user_set_uid(pn_machine *m)
 	if (UDATA(m)->pwent->pw_uid == (uid_t)m->B) return 0;
 	pn_flag(m, CHANGE_FLAG, 1);
 	UDATA(m)->pwent->pw_uid = (uid_t)m->B;
+	cw_log(LOG_NOTICE, "%s set uid of %s to %i", m->topic,
+		UDATA(m)->pwent->pw_name, UDATA(m)->pwent->pw_uid);
 	return 0;
 }
 
@@ -1432,6 +1445,8 @@ static pn_word uf_user_set_gid(pn_machine *m)
 	if (UDATA(m)->pwent->pw_gid == (gid_t)m->B) return 0;
 	pn_flag(m, CHANGE_FLAG, 1);
 	UDATA(m)->pwent->pw_gid = (gid_t)m->B;
+	cw_log(LOG_NOTICE, "%s set gid of %s to %i", m->topic,
+		UDATA(m)->pwent->pw_name, UDATA(m)->pwent->pw_gid);
 	return 0;
 }
 
@@ -1440,17 +1455,28 @@ static pn_word uf_user_set_name(pn_machine *m)
 	if (!UDATA(m)->pwent) return 1;
 	if (!UDATA(m)->spent) return 1;
 
+	char *orig = NULL;
+
 	pn_trace(m, "USER.SET_NAME '%s'\n", (const char *)m->B);
 	if (cw_strcmp(UDATA(m)->pwent->pw_name, (const char *)m->B) != 0) {
-		free(UDATA(m)->pwent->pw_name);
+		orig = UDATA(m)->pwent->pw_name;
 		UDATA(m)->pwent->pw_name = strdup((const char *)m->B);
 		pn_flag(m, CHANGE_FLAG, 1);
 	}
 
 	if (cw_strcmp(UDATA(m)->spent->sp_namp, (const char *)m->B) != 0) {
-		free(UDATA(m)->spent->sp_namp);
+		if (orig)
+			free(UDATA(m)->spent->sp_namp);
+		else
+			orig = UDATA(m)->spent->sp_namp;
 		UDATA(m)->spent->sp_namp = strdup((const char *)m->B);
 		pn_flag(m, CHANGE_FLAG, 1);
+	}
+
+	if (orig) {
+		cw_log(LOG_NOTICE, "%s set username of %s to %s",
+			m->topic, orig, UDATA(m)->pwent->pw_name);
+		free(orig);
 	}
 
 	return 0;
@@ -1475,6 +1501,8 @@ static pn_word uf_user_set_gecos(pn_machine *m)
 	free(UDATA(m)->pwent->pw_gecos);
 	UDATA(m)->pwent->pw_gecos = strdup((const char *)m->B);
 	pn_flag(m, CHANGE_FLAG, 1);
+	cw_log(LOG_NOTICE, "%s set comment of %s to '%s'",
+		m->topic, UDATA(m)->pwent->pw_name, UDATA(m)->pwent->pw_gecos);
 	return 0;
 }
 
@@ -1486,6 +1514,8 @@ static pn_word uf_user_set_home(pn_machine *m)
 	free(UDATA(m)->pwent->pw_dir);
 	UDATA(m)->pwent->pw_dir = strdup((const char *)m->B);
 	pn_flag(m, CHANGE_FLAG, 1);
+	cw_log(LOG_NOTICE, "%s set home of %s to '%s'",
+		m->topic, UDATA(m)->pwent->pw_name, UDATA(m)->pwent->pw_dir);
 	return 0;
 }
 
@@ -1497,6 +1527,8 @@ static pn_word uf_user_set_shell(pn_machine *m)
 	free(UDATA(m)->pwent->pw_shell);
 	UDATA(m)->pwent->pw_shell = strdup((const char *)m->B);
 	pn_flag(m, CHANGE_FLAG, 1);
+	cw_log(LOG_NOTICE, "%s set shell of %s to '%s'",
+		m->topic, UDATA(m)->pwent->pw_name, UDATA(m)->pwent->pw_shell);
 	return 0;
 }
 
@@ -1508,6 +1540,8 @@ static pn_word uf_user_set_pwhash(pn_machine *m)
 	free(UDATA(m)->spent->sp_pwdp);
 	UDATA(m)->spent->sp_pwdp = strdup((const char *)m->B);
 	pn_flag(m, CHANGE_FLAG, 1);
+	cw_log(LOG_NOTICE, "%s set password of %s",
+		m->topic, UDATA(m)->pwent->pw_name);
 	return 0;
 }
 
@@ -1518,6 +1552,8 @@ static pn_word uf_user_set_pwmin(pn_machine *m)
 	if (UDATA(m)->spent->sp_min == (signed long)(m->B)) return 0;
 	UDATA(m)->spent->sp_min = (signed long)(m->B);
 	pn_flag(m, CHANGE_FLAG, 1);
+	cw_log(LOG_NOTICE, "%s set minimum password age of %s to %lid",
+		m->topic, UDATA(m)->pwent->pw_name, UDATA(m)->spent->sp_min);
 	return 0;
 }
 
@@ -1528,6 +1564,8 @@ static pn_word uf_user_set_pwmax(pn_machine *m)
 	if (UDATA(m)->spent->sp_max == (signed long)(m->B)) return 0;
 	UDATA(m)->spent->sp_max = (signed long)(m->B);
 	pn_flag(m, CHANGE_FLAG, 1);
+	cw_log(LOG_NOTICE, "%s set maximum password age of %s to %lid",
+		m->topic, UDATA(m)->pwent->pw_name, UDATA(m)->spent->sp_max);
 	return 0;
 }
 
@@ -1538,6 +1576,8 @@ static pn_word uf_user_set_pwwarn(pn_machine *m)
 	if (UDATA(m)->spent->sp_warn == (signed long)(m->B)) return 0;
 	UDATA(m)->spent->sp_warn = (signed long)(m->B);
 	pn_flag(m, CHANGE_FLAG, 1);
+	cw_log(LOG_NOTICE, "%s set password warning period of %s to %lid",
+		m->topic, UDATA(m)->pwent->pw_name, UDATA(m)->spent->sp_warn);
 	return 0;
 }
 
@@ -1548,6 +1588,8 @@ static pn_word uf_user_set_inact(pn_machine *m)
 	if (UDATA(m)->spent->sp_inact == (signed long)(m->B)) return 0;
 	UDATA(m)->spent->sp_inact = (signed long)(m->B);
 	pn_flag(m, CHANGE_FLAG, 1);
+	cw_log(LOG_NOTICE, "%s set password inactivity period of %s to %lid",
+		m->topic, UDATA(m)->pwent->pw_name, UDATA(m)->spent->sp_inact);
 	return 0;
 }
 
@@ -1558,6 +1600,8 @@ static pn_word uf_user_set_expiry(pn_machine *m)
 	if (UDATA(m)->spent->sp_expire == (signed long)(m->B)) return 0;
 	UDATA(m)->spent->sp_expire = (signed long)(m->B);
 	pn_flag(m, CHANGE_FLAG, 1);
+	cw_log(LOG_NOTICE, "%s set account expiration of %s to %lid",
+		m->topic, UDATA(m)->pwent->pw_name, UDATA(m)->spent->sp_expire);
 	return 0;
 }
 
@@ -1598,6 +1642,10 @@ static pn_word uf_user_create(pn_machine *m)
 	UDATA(m)->spent = sp->next->spwd;
 
 	pn_flag(m, CHANGE_FLAG, 1);
+	cw_log(LOG_NOTICE, "%s creating user %s (%u:%u) with home %s and shell %s",
+		m->topic, UDATA(m)->pwent->pw_name,
+		UDATA(m)->pwent->pw_uid, UDATA(m)->pwent->pw_gid,
+		UDATA(m)->pwent->pw_dir, UDATA(m)->pwent->pw_shell);
 	return 0;
 }
 
@@ -1621,12 +1669,13 @@ UID: while (uid < 65536) {
 static pn_word uf_user_remove(pn_machine *m)
 {
 	if (!UDATA(m)->pwdb || !UDATA(m)->pwent) return 1;
+	char *name = NULL;
 
 	struct pwdb *pw, *pwent = NULL;
 	for (pw = UDATA(m)->pwdb; pw; pwent = pw, pw = pw->next) {
 		if (pw->passwd == UDATA(m)->pwent) {
 			pn_flag(m, CHANGE_FLAG, 1);
-			free(pw->passwd->pw_name);
+			name = pw->passwd->pw_name; /* we'll free it later */
 			free(pw->passwd->pw_passwd);
 			free(pw->passwd->pw_gecos);
 			free(pw->passwd->pw_dir);
@@ -1646,7 +1695,10 @@ static pn_word uf_user_remove(pn_machine *m)
 	for (sp = UDATA(m)->spdb; sp; spent = sp, sp = sp->next) {
 		if (sp->spwd == UDATA(m)->spent) {
 			pn_flag(m, CHANGE_FLAG, 1);
-			free(sp->spwd->sp_namp);
+			if (name)
+				free(sp->spwd->sp_namp);
+			else
+				name = sp->spwd->sp_namp;
 			free(sp->spwd->sp_pwdp);
 			free(sp->spwd);
 			sp->spwd = NULL;
@@ -1657,6 +1709,10 @@ static pn_word uf_user_remove(pn_machine *m)
 			}
 			break;
 		}
+	}
+	if (name) {
+		cw_log(LOG_NOTICE, "%s removing user %s", m->topic, name);
+		free(name);
 	}
 	return 0;
 }
@@ -1758,6 +1814,8 @@ static pn_word uf_group_create(pn_machine *m)
 	UDATA(m)->sgent = sg->next->sgrp;
 
 	pn_flag(m, CHANGE_FLAG, 1);
+	cw_log(LOG_NOTICE, "%s creating group %s (%u)", m->topic,
+		UDATA(m)->grent->gr_name, UDATA(m)->grent->gr_gid);
 	return 0;
 }
 
@@ -1766,11 +1824,12 @@ static pn_word uf_group_remove(pn_machine *m)
 	if (!UDATA(m)->grdb || !UDATA(m)->grent) return 1;
 	if (!UDATA(m)->sgdb || !UDATA(m)->sgent) return 1;
 
+	char *name = NULL;
 	struct grdb *gr, *grent = NULL;
 	for (gr = UDATA(m)->grdb; gr; grent = gr, gr = gr->next) {
 		if (gr->group == UDATA(m)->grent) {
 			pn_flag(m, CHANGE_FLAG, 1);
-			free(gr->group->gr_name);
+			name = gr->group->gr_name;
 			free(gr->group->gr_passwd);
 			s_strlist_free(gr->group->gr_mem);
 			free(gr->group);
@@ -1788,7 +1847,10 @@ static pn_word uf_group_remove(pn_machine *m)
 	for (sg = UDATA(m)->sgdb; sg; sgent = sg, sg = sg->next) {
 		if (sg->sgrp == UDATA(m)->sgent) {
 			pn_flag(m, CHANGE_FLAG, 1);
-			free(sg->sgrp->sg_namp);
+			if (name)
+				free(sg->sgrp->sg_namp);
+			else
+				name = sg->sgrp->sg_namp;
 			free(sg->sgrp->sg_passwd);
 			s_strlist_free(sg->sgrp->sg_mem);
 			s_strlist_free(sg->sgrp->sg_adm);
@@ -1801,6 +1863,10 @@ static pn_word uf_group_remove(pn_machine *m)
 			}
 			break;
 		}
+	}
+	if (name) {
+		cw_log(LOG_NOTICE, "%s removing group %s", m->topic, name);
+		free(name);
 	}
 	return 0;
 }
@@ -1837,6 +1903,8 @@ static pn_word uf_group_rm_member(pn_machine *m)
 		UDATA(m)->grent->gr_mem, (const char *)m->A);
 	UDATA(m)->sgent->sg_mem = s_strlist_remove(
 		UDATA(m)->sgent->sg_mem, (const char *)m->A);
+	cw_log(LOG_NOTICE, "%s removing user %s from the member list",
+		m->topic, (const char *)m->A);
 	return 0;
 }
 
@@ -1846,6 +1914,8 @@ static pn_word uf_group_rm_admin(pn_machine *m)
 	pn_trace(m, "GROUP.RM_ADMIN '%s'\n", (const char *)m->A);
 	UDATA(m)->sgent->sg_adm = s_strlist_remove(
 		UDATA(m)->sgent->sg_adm, (const char *)m->A);
+	cw_log(LOG_NOTICE, "%s removing user %s from the admin list",
+		m->topic, (const char *)m->A);
 	return 0;
 }
 
@@ -1857,6 +1927,8 @@ static pn_word uf_group_add_member(pn_machine *m)
 		UDATA(m)->grent->gr_mem, (const char *)m->A);
 	UDATA(m)->sgent->sg_mem = s_strlist_add(
 		UDATA(m)->sgent->sg_mem, (const char *)m->A);
+	cw_log(LOG_NOTICE, "%s adding user %s to the member list",
+		m->topic, (const char *)m->A);
 	return 0;
 }
 
@@ -1866,6 +1938,8 @@ static pn_word uf_group_add_admin(pn_machine *m)
 	pn_trace(m, "GROUP.ADD_ADMIN '%s'\n", (const char *)m->A);
 	UDATA(m)->sgent->sg_adm = s_strlist_add(
 		UDATA(m)->sgent->sg_adm, (const char *)m->A);
+	cw_log(LOG_NOTICE, "%s adding user %s to the admin list",
+		m->topic, (const char *)m->A);
 	return 0;
 }
 
@@ -1896,7 +1970,11 @@ static pn_word uf_group_get_pwhash(pn_machine *m)
 static pn_word uf_group_set_gid(pn_machine *m)
 {
 	if (!UDATA(m)->grent) return 1;
+	if (UDATA(m)->grent->gr_gid == (gid_t)m->B) return 0;
+	pn_flag(m, CHANGE_FLAG, 1);
 	UDATA(m)->grent->gr_gid = (gid_t)m->B;
+	cw_log(LOG_NOTICE, "%s changing gid of %s to %u",
+		m->topic, UDATA(m)->grent->gr_name, UDATA(m)->grent->gr_gid);
 	return 0;
 }
 
@@ -1905,20 +1983,29 @@ static pn_word uf_group_set_name(pn_machine *m)
 	if (!UDATA(m)->grent) return 1;
 	if (!UDATA(m)->sgent) return 1;
 
+	char *orig = NULL;
 	pn_trace(m, "GROUP.SET_NAME '%s'\n", (const char *)m->B);
 
 	if (cw_strcmp(UDATA(m)->grent->gr_name, (const char *)m->B) != 0) {
-		free(UDATA(m)->grent->gr_name);
+		orig = UDATA(m)->grent->gr_name;
 		UDATA(m)->grent->gr_name = strdup((const char *)m->B);
 		pn_flag(m, CHANGE_FLAG, 1);
 	}
 
 	if (cw_strcmp(UDATA(m)->sgent->sg_namp, (const char *)m->B) != 0) {
-		free(UDATA(m)->sgent->sg_namp);
+		if (orig)
+			free(UDATA(m)->sgent->sg_namp);
+		else
+			orig = UDATA(m)->sgent->sg_namp;
 		UDATA(m)->sgent->sg_namp = strdup((const char *)m->B);
 		pn_flag(m, CHANGE_FLAG, 1);
 	}
 
+	if (orig) {
+		cw_log(LOG_NOTICE, "%s changing name of %s to %s",
+			m->topic, orig, UDATA(m)->grent->gr_name);
+		free(orig);
+	}
 	return 0;
 }
 
@@ -1939,6 +2026,7 @@ static pn_word uf_group_set_pwhash(pn_machine *m)
 	if (cw_strcmp(UDATA(m)->sgent->sg_passwd, (const char *)m->B) == 0) return 0;
 	free(UDATA(m)->sgent->sg_passwd);
 	UDATA(m)->sgent->sg_passwd = strdup((const char *)m->B);
+	cw_log(LOG_NOTICE, "%s set password of group %s", m->topic, UDATA(m)->grent->gr_name);
 	return 0;
 }
 

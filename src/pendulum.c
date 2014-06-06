@@ -43,6 +43,7 @@
 #define  PN_OP_PRAGMA   0x0019
 #define  PN_OP_NFLAGGED 0x001a
 #define  PN_OP_RESET    0x001b
+#define  PN_OP_TOPIC    0x001c
 #define  PN_OP_INVAL    0x00ff
 
 #define PC      pn_CODE(m, m->Ip)
@@ -78,6 +79,7 @@ static const char *OP_NAMES[] = {
 	"PRAGMA",
 	"!FLAGGED?",
 	"RESET",
+	"TOPIC",
 	"(invalid)",
 	NULL,
 };
@@ -216,6 +218,7 @@ static int s_resolve_op(const char *op)
 	if (strcmp(op, "FLAGGED?")  == 0) return PN_OP_FLAGGED;
 	if (strcmp(op, "!FLAGGED?") == 0) return PN_OP_NFLAGGED;
 	if (strcmp(op, "RESET")     == 0) return PN_OP_RESET;
+	if (strcmp(op, "TOPIC")     == 0) return PN_OP_TOPIC;
 	fprintf(stderr, "Invalid op: '%s'\n", op);
 	return PN_OP_INVAL;
 }
@@ -580,7 +583,9 @@ int pn_run(pn_machine *m)
 		case PN_OP_LOG:
 			m->S1 = (pn_word)PC.arg2;
 			pn_trace(m, TRACE_START " %s\n", TRACE_ARGS, (const char *)m->S1);
-			syslog(PC.arg1, (char *)m->S1, m->A, m->B, m->C, m->D, m->E, m->F);
+			char *log = cw_string("%s %s", m->topic ? m->topic : "(no topic)", (char *)m->S1);
+			syslog(PC.arg1, log, m->A, m->B, m->C, m->D, m->E, m->F);
+			free(log);
 			m->Ip++; break;
 			NEXT;
 
@@ -640,6 +645,12 @@ int pn_run(pn_machine *m)
 			m->A = m->B = m->C = m->D = m->E = m->F = 0;
 			m->T1 = m->T2 = m->R = 0;
 			pn_flag(m, ":changed", 0);
+			NEXT;
+
+		case PN_OP_TOPIC:
+			m->topics++;
+			m->topic = (const char *)PC.arg1;
+			pn_trace(m, TRACE_START " = '%s'\n", TRACE_ARGS, m->topic);
 			NEXT;
 
 		default: pn_die(m, "Unknown / Invalid operand");

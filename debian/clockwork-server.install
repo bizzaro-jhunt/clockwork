@@ -4,6 +4,7 @@ lib/clockwork/help
 sbin/clockd
 sbin/cwcc
 sbin/cwpol
+bin/cw-template-erb
 usr/share/man/man1/clockd.1
 usr/share/man/man1/cwcc.1
 usr/share/man/man1/cwpol.1

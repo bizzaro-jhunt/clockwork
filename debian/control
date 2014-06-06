@@ -21,7 +21,7 @@ Homepage: http://clockwork.niftylogic.com/
 
 Package: clockwork-server
 Architecture: any
-Depends: libzmq3, libreadline6, ${misc:Depends}, ${shlibs:Depends}
+Depends: libzmq3, libreadline6, ruby, ${misc:Depends}, ${shlibs:Depends}
 Description: Secure Configuration Management - Server
  Clockwork is a safe, secure and flexible system for managing system
  configurations through enforcement of targeted policies, expressed

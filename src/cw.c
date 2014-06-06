@@ -1368,8 +1368,19 @@ FILE* cw_tpl_erb(const char *src, cw_hash_t *facts)
 		fprintf(in, "%s=%s\n", k, v);
 	rewind(in);
 
-	int rc = cw_run2(in, out, NULL, "cw-template-erb", src, NULL);
+	FILE *err = tmpfile();
+	int rc = cw_run2(in, out, err, "cw-template-erb", src, NULL);
 	fclose(in);
+
+	rewind(err);
+	char buf[8192];
+	while (fgets(buf, 8192, err)) {
+		char *p;
+		if    ((p = strchr(buf, '\n')) != NULL) *p = '\0';
+		while ((p = strchr(buf, '\t')) != NULL) *p = ' ';
+		cw_log(LOG_ERR, "%s", buf);
+	}
+	fclose(err);
 
 	if (rc == 0) {
 		rewind(out);

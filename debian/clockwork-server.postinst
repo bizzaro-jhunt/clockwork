@@ -9,12 +9,12 @@
 
 case "$1" in
 configure)
-	if [ -x "/etc/init.d/clockwork-server" ]; then
+	if [ -x "/etc/init.d/clockd" ]; then
 		# start the server
 		if [ -x /usr/sbin/invoke-rc.d ]; then
-			invoke-rc.d clockwork-server start || true
+			invoke-rc.d clockd start || true
 		else
-			/etc/init.d/clockwork-server start || true
+			/etc/init.d/clockd start || true
 		fi
 	fi
 	;;

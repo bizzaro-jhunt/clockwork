@@ -9,11 +9,11 @@
 
 case "$1" in
 upgrade|remove)
-	if [ -x "/etc/init.d/clockwork-server" ]; then
+	if [ -x "/etc/init.d/clockd" ]; then
 		if [ -x /usr/sbin/invoke-rc.d ]; then
-			invoke-rc.d clockwork-server stop || true
+			invoke-rc.d clockd stop || true
 		else
-			/etc/init.d/clockwork-server stop || true
+			/etc/init.d/clockd stop || true
 		fi
 	fi
 	sleep 2

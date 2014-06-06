@@ -1431,12 +1431,12 @@ static inline void s_i2c4(char *c4, uint32_t i)
 	c4[3] = HEX[(i & 0x0000000f) >>  0];
 }
 
-static inline void s_c42i(void *i, const char *c4)
+static inline uint32_t s_c42i(const char *c4)
 {
-	*(uint32_t*)i = (hexval(c4[0]) << 12)
-	              + (hexval(c4[1]) <<  8)
-	              + (hexval(c4[2]) <<  4)
-	              + (hexval(c4[3]) <<  0);
+	return (hexval(c4[0]) << 12)
+	     + (hexval(c4[1]) <<  8)
+	     + (hexval(c4[2]) <<  4)
+	     + (hexval(c4[3]) <<  0);
 }
 
 static inline void s_i2c8(char *c8, uint32_t i)
@@ -1451,16 +1451,16 @@ static inline void s_i2c8(char *c8, uint32_t i)
 	c8[7] = HEX[(i & 0x0000000f) >>  0];
 }
 
-static inline void s_c82i(void *i, const char *c8)
+static inline uint32_t s_c82i(const char *c8)
 {
-	*(uint32_t*)i = (hexval(c8[0]) << 28)
-	              + (hexval(c8[1]) << 24)
-	              + (hexval(c8[2]) << 20)
-	              + (hexval(c8[3]) << 16)
-	              + (hexval(c8[4]) << 12)
-	              + (hexval(c8[5]) <<  8)
-	              + (hexval(c8[6]) <<  4)
-	              + (hexval(c8[7]) <<  0);
+	return (hexval(c8[0]) << 28)
+	     + (hexval(c8[1]) << 24)
+	     + (hexval(c8[2]) << 20)
+	     + (hexval(c8[3]) << 16)
+	     + (hexval(c8[4]) << 12)
+	     + (hexval(c8[5]) <<  8)
+	     + (hexval(c8[6]) <<  4)
+	     + (hexval(c8[7]) <<  0);
 }
 
 int cw_bdfa_pack(int out, const char *root)
@@ -1560,7 +1560,7 @@ int cw_bdfa_unpack(int in, const char *root)
 		return -1;
 
 	struct bdfa_hdr h;
-	size_t n, len;
+	size_t n, len = 0;
 
 	uid_t uid;
 	gid_t gid;
@@ -1580,10 +1580,10 @@ int cw_bdfa_unpack(int in, const char *root)
 		if (memcmp(h.flags, "0001", 4) == 0)
 			break;
 
-		s_c82i(&mode, h.mode);
-		s_c82i(&uid,  h.uid);
-		s_c82i(&gid,  h.gid);
-		s_c82i(&len,  h.namesize);
+		mode = s_c82i(h.mode);
+		uid  = s_c82i(h.uid);
+		gid  = s_c82i(h.gid);
+		len  = s_c82i(h.namesize);
 
 		filename = cw_alloc(len);
 		n = read(in, filename, len);
@@ -1606,7 +1606,7 @@ int cw_bdfa_unpack(int in, const char *root)
 			}
 
 		} else if (S_ISREG(mode)) {
-			s_c82i(&len, h.filesize);
+			len = s_c82i(h.filesize);
 
 			cw_log(LOG_INFO, "BDFA: unpacking file %s %06o %d:%d (%d bytes)",
 					filename, mode, uid, gid, len);
@@ -1634,8 +1634,8 @@ int cw_bdfa_unpack(int in, const char *root)
 		}
 
 		struct utimbuf ut;
-		s_c82i(&ut.actime,  h.mtime);
-		s_c82i(&ut.modtime, h.mtime);
+		ut.actime  = s_c82i(h.mtime);
+		ut.modtime = s_c82i(h.mtime);
 
 		cw_log(LOG_INFO, "BDFA: setting atime/mtime to %d", ut.modtime);
 		if (utime(filename, &ut) != 0) {

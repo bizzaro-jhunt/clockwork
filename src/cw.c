@@ -1160,7 +1160,7 @@ int cw_run2(FILE *in, FILE *out, FILE *err, char *cmd, ...)
 		if (fd >= 0) dup2(fd, 2);
 	}
 
-	execv(cmd, args);
+	execvp(cmd, args);
 	exit(127);
 }
 

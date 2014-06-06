@@ -369,8 +369,6 @@ typedef struct {
 	struct sgdb   *sgdb;
 	struct sgrp   *sgent;
 
-	char          *exec_last;
-
 	augeas        *aug_ctx;
 	const char    *aug_last;
 
@@ -861,8 +859,9 @@ static pn_word uf_exec_run1(pn_machine *m)
 	*p = '\0';
 	pn_trace(m, "first line of output was '%s'", out);
 
-	free(UDATA(m)->exec_last);
-	m->S2 = (pn_word)(UDATA(m)->exec_last = out);
+	m->S2 = (pn_word)out;
+	pn_heap_purge(m);
+	pn_heap_add(m, out);
 	return rc;
 }
 

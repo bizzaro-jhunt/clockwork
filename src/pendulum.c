@@ -686,3 +686,41 @@ int pn_die(pn_machine *m, const char *e)
 	fprintf(stderr, "Fatal Pendulum Error: %s\n", e);
 	exit(2);
 }
+
+int pn_heap_add(pn_machine *m, void *p)
+{
+	int i;
+	for (i = 0; i < PN_HEAP_SIZE; i++) {
+		if (m->heap[i] == p) {
+			return 0;
+		}
+		if (!m->heap[i]) {
+			m->heap[i] = p;
+			return 0;
+		}
+	}
+	return 1;
+}
+
+int pn_heap_purge(pn_machine *m)
+{
+	int i;
+	for (i = 0; i < PN_HEAP_SIZE; i++) {
+		if ((void*)m->A  == m->heap[i]) continue;
+		if ((void*)m->B  == m->heap[i]) continue;
+		if ((void*)m->C  == m->heap[i]) continue;
+		if ((void*)m->D  == m->heap[i]) continue;
+		if ((void*)m->E  == m->heap[i]) continue;
+		if ((void*)m->F  == m->heap[i]) continue;
+
+		if ((void*)m->S1 == m->heap[i]) continue;
+		if ((void*)m->S2 == m->heap[i]) continue;
+
+		if ((void*)m->T1 == m->heap[i]) continue;
+		if ((void*)m->T2 == m->heap[i]) continue;
+
+		free(m->heap[i]);
+		m->heap[i] = NULL;
+	}
+	return 0;
+}

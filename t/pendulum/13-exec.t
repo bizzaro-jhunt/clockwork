@@ -20,5 +20,9 @@ fail said: "exiting with RC=1"
 crash said: ""
 EOF
 
+pendulum_ok "$TESTS/multi.pn", <<'EOF', "multi.pn";
+first != second (good)
+EOF
+
 
 done_testing;

@@ -8,6 +8,7 @@
 #define PN_MAX_FUNCS   512
 #define PN_MAX_JUMPS 16384
 #define PN_MAX_FLAGS  8192
+#define PN_HEAP_SIZE     10
 
 typedef uint8_t  pn_byte;
 typedef uint64_t pn_word;
@@ -25,6 +26,8 @@ struct pn_machine {
 	pn_word Ip, Dp;
 	const char *topic;
 	uint32_t topics;
+
+	void *heap[PN_HEAP_SIZE];
 
 	void *U;
 	pn_pragma pragma;
@@ -67,5 +70,8 @@ int pn_trace(pn_machine *m, const char *fmt, ...);
 int pn_run(pn_machine *m);
 int pn_run_safe(pn_machine *m);
 int pn_die(pn_machine *m, const char *e);
+
+int pn_heap_add(pn_machine *m, void *p);
+int pn_heap_purge(pn_machine *m);
 
 #endif

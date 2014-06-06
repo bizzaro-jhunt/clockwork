@@ -184,7 +184,7 @@ static void s_cfm_run(client_t *c)
 {
 	cw_timer_t t;
 	int rc;
-	uint32_t count;
+	uint32_t count = 0;
 	uint32_t ms_connect    = 0,
 	         ms_hello      = 0,
 	         ms_preinit    = 0,
@@ -366,9 +366,9 @@ shut_it_down:
 maybe_next_time:
 	cw_log(LOG_NOTICE, "complete. enforced %lu resources in %0.2lfs",
 		count,
-		ms_connect + ms_hello + ms_preinit +
-		ms_copydown + ms_facts + ms_getpolicy +
-		ms_parse + ms_enforce + ms_cleanup);
+		(ms_connect  + ms_hello   + ms_preinit +
+		 ms_copydown + ms_facts   + ms_getpolicy +
+		 ms_parse    + ms_enforce + ms_cleanup) / 1000.0);
 
 	cw_log(LOG_INFO, "STATS(ms): connect=%lu, "  "hello=%lu, "   "preinit=%lu, "
 	                            "copydown=%lu, " "facts=%lu, "   "getpolicy=%lu, "

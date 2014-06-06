@@ -92,13 +92,13 @@ group.done.1:
   CALL &USER.SET_PASSWD
   SET %B "$$crypto"
   CALL &USER.SET_PWHASH
-  FLAG 1 :mkhome.0
+  FLAG 1 :mkhome.1
   JUMP @exists.1
 check.ids.1:
 exists.1:
 SET %B "/home/t3user"
 CALL &USER.SET_HOME
-!FLAGGED? :mkhome.0 @home.exists.1
+!FLAGGED? :mkhome.1 @home.exists.1
   CALL &USER.GET_UID
   COPY %R %B
   CALL &USER.GET_GID

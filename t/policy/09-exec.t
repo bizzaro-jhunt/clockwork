@@ -24,7 +24,7 @@ RESET
 TOPIC "exec(/bin/refresh-the-thing)"
 SET %B 0
 SET %C 0
-!FLAGGED? :res0 @next.1
+!FLAGGED? :res1 @next.1
 SET %A "/bin/refresh-the-thing"
 CALL &EXEC.CHECK
 OK? @next.1

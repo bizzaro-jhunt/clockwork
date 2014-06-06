@@ -58,7 +58,7 @@ struct resource {
 
 	struct resource **deps;  /* other resources this one depends on */
 	int ndeps;               /* how many dependencies are there? */
-	int serial;
+	unsigned int serial;
 
 	cw_list_t l;
 };

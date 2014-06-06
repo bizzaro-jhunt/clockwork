@@ -306,40 +306,40 @@ int res_user_match(const void *res, const char *name, const char *value)
 	return rc;
 }
 
-int res_user_gencode(const void *res, FILE *io, unsigned int next)
+int res_user_gencode(const void *res, FILE *io, unsigned int next, unsigned int serial)
 {
 	struct res_user *r = (struct res_user*)(res);
 	assert(r); // LCOV_EXCL_LINE
 
 	fprintf(io, "TOPIC \"user(%s)\"\n", r->key);
 	fprintf(io, "CALL &USERDB.OPEN\n");
-	fprintf(io, "OK? @start.%i\n", next);
+	fprintf(io, "OK? @start.%u\n", next);
 	fprintf(io, "  PRINT \"Failed to open the user databases\\n\"\n");
 	fprintf(io, "  HALT\n");
-	fprintf(io, "start.%i:\n", next);
+	fprintf(io, "start.%u:\n", next);
 	fprintf(io, "SET %%A 1\n");
 	fprintf(io, "SET %%B \"%s\"\n", r->name);
 	fprintf(io, "CALL &USER.FIND\n");
 
 	if (ENFORCED(r, RES_USER_ABSENT)) {
-		fprintf(io, "NOTOK? @next.%i\n", next);
+		fprintf(io, "NOTOK? @next.%u\n", next);
 		fprintf(io, "  CALL &USER.REMOVE\n");
 	} else {
-		fprintf(io, "OK? @check.ids.%i\n", next);
+		fprintf(io, "OK? @check.ids.%u\n", next);
 		if (ENFORCED(r, RES_USER_GID)) {
 			fprintf(io, "  SET %%C %i\n", r->gid);
 		} else {
 			fprintf(io, "  SET %%A 1\n");
 			fprintf(io, "  SET %%B \"%s\"\n", r->name);
 			fprintf(io, "  CALL &GROUP.FIND\n");
-			fprintf(io, "  OK? @group.found.%i\n", next);
+			fprintf(io, "  OK? @group.found.%u\n", next);
 			fprintf(io, "    COPY %%B %%A\n");
 			fprintf(io, "    PRINT \"Group '%%s' not found\\n\"\n");
-			fprintf(io, "    JUMP @next.%i\n", next);
-			fprintf(io, "  group.found.%i:\n", next);
+			fprintf(io, "    JUMP @next.%u\n", next);
+			fprintf(io, "  group.found.%u:\n", next);
 			fprintf(io, "    CALL &GROUP.GET_GID\n");
 			fprintf(io, "    COPY %%R %%C\n");
-			fprintf(io, "group.done.%i:\n", next);
+			fprintf(io, "group.done.%u:\n", next);
 		}
 		if (ENFORCED(r, RES_USER_UID)) {
 			fprintf(io, "  SET %%B %i\n", r->uid);
@@ -358,11 +358,10 @@ int res_user_gencode(const void *res, FILE *io, unsigned int next)
 		}
 		fprintf(io, "  CALL &USER.SET_PWHASH\n");
 		if (ENFORCED(r, RES_USER_MKHOME)) {
-			fprintf(io, "  FLAG 1 :mkhome.%i\n",
-				((const struct resource*)res)->serial);
+			fprintf(io, "  FLAG 1 :mkhome.%u\n", serial);
 		}
-		fprintf(io, "  JUMP @exists.%i\n", next);
-		fprintf(io, "check.ids.%i:\n", next);
+		fprintf(io, "  JUMP @exists.%u\n", next);
+		fprintf(io, "check.ids.%u:\n", next);
 		if (ENFORCED(r, RES_USER_UID)) {
 			fprintf(io, "SET %%B %i\n", r->uid);
 			fprintf(io, "CALL &USER.SET_UID\n");
@@ -371,7 +370,7 @@ int res_user_gencode(const void *res, FILE *io, unsigned int next)
 			fprintf(io, "SET %%B %i\n", r->gid);
 			fprintf(io, "CALL &USER.SET_GID\n");
 		}
-		fprintf(io, "exists.%i:\n", next);
+		fprintf(io, "exists.%u:\n", next);
 
 		if (ENFORCED(r, RES_USER_PASSWD)) {
 			fprintf(io, "SET %%B \"x\"\n");
@@ -414,8 +413,7 @@ int res_user_gencode(const void *res, FILE *io, unsigned int next)
 		}
 
 		if (ENFORCED(r, RES_USER_MKHOME)) {
-			fprintf(io, "!FLAGGED? :mkhome.%i @home.exists.%i\n",
-					((const struct resource*)res)->serial, next);
+			fprintf(io, "!FLAGGED? :mkhome.%u @home.exists.%u\n", serial, next);
 			fprintf(io, "  CALL &USER.GET_UID\n");
 			fprintf(io, "  COPY %%R %%B\n");
 			fprintf(io, "  CALL &USER.GET_GID\n");
@@ -423,7 +421,7 @@ int res_user_gencode(const void *res, FILE *io, unsigned int next)
 			fprintf(io, "  CALL &USER.GET_HOME\n");
 			fprintf(io, "  COPY %%R %%A\n");
 			fprintf(io, "  CALL &FS.EXISTS?\n");
-			fprintf(io, "  OK? @home.exists.%i\n", next);
+			fprintf(io, "  OK? @home.exists.%u\n", next);
 			fprintf(io, "    CALL &FS.MKDIR\n");
 			fprintf(io, "    CALL &FS.CHOWN\n");
 			fprintf(io, "    SET %%D 0%o\n", 0700);
@@ -435,10 +433,10 @@ int res_user_gencode(const void *res, FILE *io, unsigned int next)
 				fprintf(io, "    SET %%A \"%s\"\n", r->skel);
 				fprintf(io, "    CALL &FS.COPY_R\n");
 			}
-			fprintf(io, "home.exists.%i:\n", next);
+			fprintf(io, "home.exists.%u:\n", next);
 		}
 	}
-	fprintf(io, "!FLAGGED? :changed @next.%i\n", next);
+	fprintf(io, "!FLAGGED? :changed @next.%u\n", next);
 	fprintf(io, "  CALL &USERDB.SAVE\n");
 
 return 0;
@@ -645,7 +643,7 @@ int res_file_match(const void *res, const char *name, const char *value)
 	return rc;
 }
 
-int res_file_gencode(const void *res, FILE *io, unsigned int next)
+int res_file_gencode(const void *res, FILE *io, unsigned int next, unsigned int serial)
 {
 	struct res_file *r = (struct res_file*)(res);
 	assert(r); // LCOV_EXCL_LINE
@@ -655,7 +653,7 @@ int res_file_gencode(const void *res, FILE *io, unsigned int next)
 
 	if (ENFORCED(r, RES_FILE_ABSENT)) {
 		fprintf(io, "CALL &FS.UNLINK\n");
-		fprintf(io, "JUMP @next.%i\n", next);
+		fprintf(io, "JUMP @next.%u\n", next);
 		return 0;
 	}
 
@@ -663,10 +661,10 @@ int res_file_gencode(const void *res, FILE *io, unsigned int next)
 
 	if (ENFORCED(r, RES_FILE_UID) || ENFORCED(r, RES_FILE_GID)) {
 		fprintf(io, "CALL &USERDB.OPEN\n");
-		fprintf(io, "OK? @start.%i\n", next);
+		fprintf(io, "OK? @start.%u\n", next);
 		fprintf(io, "  PRINT \"Failed to open the user databases\\n\"\n");
 		fprintf(io, "  HALT\n");
-		fprintf(io, "start.%i:\n", next);
+		fprintf(io, "start.%u:\n", next);
 		fprintf(io, "COPY %%A %%F\n");
 		fprintf(io, "SET %%D 0\n");
 		fprintf(io, "SET %%E 0\n");
@@ -675,11 +673,11 @@ int res_file_gencode(const void *res, FILE *io, unsigned int next)
 			fprintf(io, "SET %%A 1\n");
 			fprintf(io, "SET %%B \"%s\"\n", r->owner);
 			fprintf(io, "CALL &USER.FIND\n");
-			fprintf(io, "OK? @found.user.%i\n", next);
+			fprintf(io, "OK? @found.user.%u\n", next);
 			fprintf(io, "  COPY %%B %%A\n");
 			fprintf(io, "  PRINT \"Unable to find user '%%s'\\n\"\n");
-			fprintf(io, "  JUMP @next.%i\n", next);
-			fprintf(io, "found.user.%i:\n", next);
+			fprintf(io, "  JUMP @next.%u\n", next);
+			fprintf(io, "found.user.%u:\n", next);
 			fprintf(io, "CALL &USER.GET_UID\n");
 			fprintf(io, "COPY %%R %%D\n");
 		}
@@ -688,11 +686,11 @@ int res_file_gencode(const void *res, FILE *io, unsigned int next)
 			fprintf(io, "SET %%A 1\n");
 			fprintf(io, "SET %%B \"%s\"\n", r->group);
 			fprintf(io, "CALL &GROUP.FIND\n");
-			fprintf(io, "OK? @found.group.%i\n", next);
+			fprintf(io, "OK? @found.group.%u\n", next);
 			fprintf(io, "  COPY %%B %%A\n");
 			fprintf(io, "  PRINT \"Unable to find group '%%s'\\n\"\n");
-			fprintf(io, "  JUMP @next.%i\n", next);
-			fprintf(io, "found.group.%i:\n", next);
+			fprintf(io, "  JUMP @next.%u\n", next);
+			fprintf(io, "found.group.%u:\n", next);
 			fprintf(io, "CALL &GROUP.GET_GID\n");
 			fprintf(io, "COPY %%R %%E\n");
 		}
@@ -710,22 +708,22 @@ int res_file_gencode(const void *res, FILE *io, unsigned int next)
 
 	if (ENFORCED(r, RES_FILE_SHA1)) {
 		fprintf(io, "CALL &FS.SHA1\n");
-		fprintf(io, "NOTOK? @content.fail.%i\n", next);
+		fprintf(io, "NOTOK? @content.fail.%u\n", next);
 		fprintf(io, "  COPY %%S2 %%T1\n");
 		fprintf(io, "  COPY %%A %%F\n");
 		fprintf(io, "  SET %%A \"file:%s\"\n", r->key);
 		fprintf(io, "  CALL &SERVER.SHA1\n");
 		fprintf(io, "  COPY %%F %%A\n");
-		fprintf(io, "  NOTOK? @content.fail.%i\n", next);
+		fprintf(io, "  NOTOK? @content.fail.%u\n", next);
 		fprintf(io, "    COPY %%S2 %%T2\n");
-		fprintf(io, "    CMP? @sha1.done.%i\n", next);
+		fprintf(io, "    CMP? @sha1.done.%u\n", next);
 		fprintf(io, "      CALL &SERVER.WRITEFILE\n");
-		fprintf(io, "      OK? @sha1.done.%i\n", next);
+		fprintf(io, "      OK? @sha1.done.%u\n", next);
 
-		fprintf(io, "content.fail.%i:\n", next);
+		fprintf(io, "content.fail.%u:\n", next);
 		fprintf(io, "PRINT \"Failed to update contents of %%s\\n\"\n");
 
-		fprintf(io, "sha1.done.%i:\n", next);
+		fprintf(io, "sha1.done.%u:\n", next);
 	}
 
 	return 0;
@@ -971,17 +969,17 @@ int res_group_match(const void *res, const char *name, const char *value)
 	return rc;
 }
 
-int res_group_gencode(const void *res, FILE *io, unsigned int next)
+int res_group_gencode(const void *res, FILE *io, unsigned int next, unsigned int serial)
 {
 	struct res_group *r = (struct res_group*)(res);
 	assert(r); // LCOV_EXCL_LINE
 
 	fprintf(io, "TOPIC \"group(%s)\"\n", r->key);
 	fprintf(io, "CALL &USERDB.OPEN\n");
-	fprintf(io, "OK? @start.%i\n", next);
+	fprintf(io, "OK? @start.%u\n", next);
 	fprintf(io, "  PRINT \"Failed to open the user databases\\n\"\n");
 	fprintf(io, "  HALT\n");
-	fprintf(io, "start.%i:\n", next);
+	fprintf(io, "start.%u:\n", next);
 	fprintf(io, "SET %%A 1\n");
 	fprintf(io, "SET %%B \"%s\"\n", r->name);
 	fprintf(io, "CALL &GROUP.FIND\n");
@@ -989,7 +987,7 @@ int res_group_gencode(const void *res, FILE *io, unsigned int next)
 	if (ENFORCED(r, RES_GROUP_ABSENT)) {
 		fprintf(io, "CALL &GROUP.REMOVE\n");
 	} else {
-		fprintf(io, "OK? @found.%i\n", next);
+		fprintf(io, "OK? @found.%u\n", next);
 		fprintf(io, "  COPY %%B %%A\n");
 
 		if (ENFORCED(r, RES_GROUP_GID)) {
@@ -1000,15 +998,15 @@ int res_group_gencode(const void *res, FILE *io, unsigned int next)
 		}
 
 		fprintf(io, "  CALL &GROUP.CREATE\n");
-		fprintf(io, "  JUMP @update.%i\n", next);
-		fprintf(io, "found.%i:\n", next);
+		fprintf(io, "  JUMP @update.%u\n", next);
+		fprintf(io, "found.%u:\n", next);
 
 		if (ENFORCED(r, RES_GROUP_GID)) {
 			fprintf(io, "  SET %%B %i\n", r->gid);
 			fprintf(io, "  CALL &GROUP.SET_GID\n");
 		}
 
-		fprintf(io, "update.%i:\n", next);
+		fprintf(io, "update.%u:\n", next);
 		if (ENFORCED(r, RES_GROUP_PASSWD)) {
 			fprintf(io, "SET %%B \"x\"\n");
 			fprintf(io, "CALL &GROUP.SET_PASSWD\n");
@@ -1022,18 +1020,18 @@ int res_group_gencode(const void *res, FILE *io, unsigned int next)
 			for (name = r->mem_add->strings; *name; name++) {
 				fprintf(io, "SET %%A \"%s\"\n", *name);
 				fprintf(io, "CALL &GROUP.HAS_MEMBER?\n");
-				fprintf(io, "OK? @has-member.%s.%i\n", *name, next);
+				fprintf(io, "OK? @has-member.%s.%u\n", *name, next);
 				fprintf(io, "  CALL &GROUP.ADD_MEMBER\n");
 				fprintf(io, "  FLAG 1 :changed\n");
-				fprintf(io, "has-member.%s.%i:\n", *name, next);
+				fprintf(io, "has-member.%s.%u:\n", *name, next);
 			}
 			for (name = r->mem_rm->strings; *name; name++) {
 				fprintf(io, "SET %%A \"%s\"\n", *name);
 				fprintf(io, "CALL &GROUP.HAS_MEMBER?\n");
-				fprintf(io, "NOTOK? @no-member.%s.%i\n", *name, next);
+				fprintf(io, "NOTOK? @no-member.%s.%u\n", *name, next);
 				fprintf(io, "  CALL &GROUP.RM_MEMBER\n");
 				fprintf(io, "  FLAG 1 :changed\n");
-				fprintf(io, "no-member.%s.%i:\n", *name, next);
+				fprintf(io, "no-member.%s.%u:\n", *name, next);
 			}
 		}
 
@@ -1043,22 +1041,22 @@ int res_group_gencode(const void *res, FILE *io, unsigned int next)
 			for (name = r->adm_add->strings; *name; name++) {
 				fprintf(io, "SET %%A \"%s\"\n", *name);
 				fprintf(io, "CALL &GROUP.HAS_ADMIN?\n");
-				fprintf(io, "OK? @has-admin.%s.%i\n", *name, next);
+				fprintf(io, "OK? @has-admin.%s.%u\n", *name, next);
 				fprintf(io, "  CALL &GROUP.ADD_ADMIN\n");
 				fprintf(io, "  FLAG 1 :changed\n");
-				fprintf(io, "has-admin.%s.%i:\n", *name, next);
+				fprintf(io, "has-admin.%s.%u:\n", *name, next);
 			}
 			for (name = r->adm_rm->strings; *name; name++) {
 				fprintf(io, "SET %%A \"%s\"\n", *name);
 				fprintf(io, "CALL &GROUP.HAS_ADMIN?\n");
-				fprintf(io, "NOTOK? @no-admin.%s.%i\n", *name, next);
+				fprintf(io, "NOTOK? @no-admin.%s.%u\n", *name, next);
 				fprintf(io, "  CALL &GROUP.RM_ADMIN\n");
 				fprintf(io, "  FLAG 1 :changed\n");
-				fprintf(io, "no-admin.%s.%i:\n", *name, next);
+				fprintf(io, "no-admin.%s.%u:\n", *name, next);
 			}
 		}
 	}
-	fprintf(io, "!FLAGGED? :changed @next.%i\n", next);
+	fprintf(io, "!FLAGGED? :changed @next.%u\n", next);
 	fprintf(io, "  CALL &USERDB.SAVE\n");
 
 	return 0;
@@ -1254,7 +1252,7 @@ int res_package_match(const void *res, const char *name, const char *value)
 	return rc;
 }
 
-int res_package_gencode(const void *res, FILE *io, unsigned int next)
+int res_package_gencode(const void *res, FILE *io, unsigned int next, unsigned int serial)
 {
 	struct res_package *r = (struct res_package*)(res);
 	assert(r); // LCOV_EXCL_LINE
@@ -1263,31 +1261,31 @@ int res_package_gencode(const void *res, FILE *io, unsigned int next)
 	fprintf(io, "SET %%A \"cwtool pkg-version %s\"\n", r->name);
 	fprintf(io, "CALL &EXEC.RUN1\n");
 	if (ENFORCED(r, RES_PACKAGE_ABSENT)) {
-		fprintf(io, "NOTOK? @next.%i\n", next);
+		fprintf(io, "NOTOK? @next.%u\n", next);
 		fprintf(io, "  SET %%A \"cwtool pkg-remove %s\"\n", r->name);
 		fprintf(io, "  CALL &EXEC.CHECK\n");
 		fprintf(io, "  FLAG 1 :changed\n");
 	} else {
-		fprintf(io, "OK? @installed.%i\n", next);
+		fprintf(io, "OK? @installed.%u\n", next);
 		fprintf(io, "  SET %%A \"cwtool pkg-install %s %s\"\n", r->name, r->version ? r->version : "latest");
 		fprintf(io, "  CALL &EXEC.CHECK\n");
 		fprintf(io, "  FLAG 1 :changed\n");
-		fprintf(io, "  JUMP @next.%i\n", next);
-		fprintf(io, "installed.%i:\n", next);
+		fprintf(io, "  JUMP @next.%u\n", next);
+		fprintf(io, "installed.%u:\n", next);
 		fprintf(io, "COPY %%S2 %%T1\n");
 		if (r->version) {
 			fprintf(io, "SET %%T2 \"%s\"\n", r->version);
 		} else {
 			fprintf(io, "SET %%A \"cwtool pkg-latest %s\"\n", r->name);
 			fprintf(io, "CALL &EXEC.RUN1\n");
-			fprintf(io, "OK? @got.latest.%i\n", next);
+			fprintf(io, "OK? @got.latest.%u\n", next);
 			fprintf(io, "  PRINT \"Failed to detect latest version of '%s'\\n\"\n", r->name);
-			fprintf(io, "  JUMP @next.%i\n", next);
-			fprintf(io, "got.latest.%i:\n", next);
+			fprintf(io, "  JUMP @next.%u\n", next);
+			fprintf(io, "got.latest.%u:\n", next);
 			fprintf(io, "COPY %%S2 %%T2\n");
 		}
 		fprintf(io, "CALL &UTIL.VERCMP\n");
-		fprintf(io, "OK? @next.%i\n", next);
+		fprintf(io, "OK? @next.%u\n", next);
 		fprintf(io, "  SET %%A \"cwtool pkg-install %s %s\"\n", r->name, r->version ? r->version : "latest");
 		fprintf(io, "  CALL &EXEC.CHECK\n");
 		fprintf(io, "  FLAG 1 :changed\n");
@@ -1431,7 +1429,7 @@ int res_service_match(const void *res, const char *name, const char *value)
 	return rc;
 }
 
-int res_service_gencode(const void *res, FILE *io, unsigned int next)
+int res_service_gencode(const void *res, FILE *io, unsigned int next, unsigned int serial)
 {
 	struct res_service *r = (struct res_service*)(res);
 	assert(r); // LCOV_EXCL_LINE
@@ -1440,56 +1438,53 @@ int res_service_gencode(const void *res, FILE *io, unsigned int next)
 	if (ENFORCED(r, RES_SERVICE_ENABLED)) {
 		fprintf(io, "SET %%A \"cwtool svc-boot-status %s\"\n", r->service);
 		fprintf(io, "CALL &EXEC.CHECK\n");
-		fprintf(io, "OK? @enabled.%i\n", next);
+		fprintf(io, "OK? @enabled.%u\n", next);
 		fprintf(io, "  SET %%A \"cwtool svc-enable %s\"\n", r->service);
 		fprintf(io, "  CALL &EXEC.CHECK\n");
-		fprintf(io, "enabled.%i:\n", next);
+		fprintf(io, "enabled.%u:\n", next);
 
 	} else if (ENFORCED(r, RES_SERVICE_DISABLED)) {
 		fprintf(io, "SET %%A \"cwtool svc-boot-status %s\"\n", r->service);
 		fprintf(io, "CALL &EXEC.CHECK\n");
-		fprintf(io, "NOTOK? @disabled.%i\n", next);
+		fprintf(io, "NOTOK? @disabled.%u\n", next);
 		fprintf(io, "  SET %%A \"cwtool svc-disable %s\"\n", r->service);
 		fprintf(io, "  CALL &EXEC.CHECK\n");
-		fprintf(io, "disabled.%i:\n", next);
+		fprintf(io, "disabled.%u:\n", next);
 	}
 
 	if (ENFORCED(r, RES_SERVICE_RUNNING)) {
 		fprintf(io, "SET %%A \"cwtool svc-run-status %s\"\n", r->service);
 		fprintf(io, "CALL &EXEC.CHECK\n");
-		fprintf(io, "OK? @running.%i\n", next);
+		fprintf(io, "OK? @running.%u\n", next);
 		fprintf(io, "  SET %%A \"cwtool svc-init %s start\"\n", r->service);
 		fprintf(io, "  CALL &EXEC.CHECK\n");
 		fprintf(io, "  FLAG 1 :changed\n");
-		fprintf(io, "  FLAG 0 :res%i\n", ((const struct resource*)res)->serial);
-		fprintf(io, "running.%i:\n", next);
+		fprintf(io, "  FLAG 0 :res%u\n", serial);
+		fprintf(io, "running.%u:\n", next);
 
 	} else if (ENFORCED(r, RES_SERVICE_STOPPED)) {
 		fprintf(io, "SET %%A \"cwtool svc-run-status %s\"\n", r->service);
 		fprintf(io, "CALL &EXEC.CHECK\n");
-		fprintf(io, "NOTOK? @stopped.%i\n", next);
+		fprintf(io, "NOTOK? @stopped.%u\n", next);
 		fprintf(io, "  SET %%A \"cwtool svc-init %s stop\"\n", r->service);
 		fprintf(io, "  CALL &EXEC.CHECK\n");
 		fprintf(io, "  FLAG 1 :changed\n");
-		fprintf(io, "  FLAG 0 :res%i\n", ((const struct resource*)res)->serial);
-		fprintf(io, "stopped.%i:\n", next);
+		fprintf(io, "  FLAG 0 :res%u\n", serial);
+		fprintf(io, "stopped.%u:\n", next);
 	}
 
-	fprintf(io, "!FLAGGED? :res%i @next.%i\n",
-			((const struct resource*)res)->serial, next);
+	fprintf(io, "!FLAGGED? :res%u @next.%u\n", serial, next);
 
 	if (ENFORCED(r, RES_SERVICE_RUNNING)) {
 		fprintf(io, "  SET %%A \"cwtool svc-init %s %s\"\n",
 				r->service, r->notify ? r->notify : "restart");
 		fprintf(io, "  CALL &EXEC.CHECK\n");
-		fprintf(io, "  FLAG 0 :res%i\n",
-			((const struct resource*)res)->serial);
+		fprintf(io, "  FLAG 0 :res%u\n", serial);
 
 	} else if (ENFORCED(r, RES_SERVICE_STOPPED)) {
 		fprintf(io, "  SET %%A \"cwtool svc-init %s stop\"\n", r->service);
 		fprintf(io, "  CALL &EXEC.CHECK\n");
-		fprintf(io, "  FLAG 0 :res%i\n",
-			((const struct resource*)res)->serial);
+		fprintf(io, "  FLAG 0 :res%u\n", serial);
 	}
 
 
@@ -1629,7 +1624,7 @@ int res_host_match(const void *res, const char *name, const char *value)
 	return rc;
 }
 
-int res_host_gencode(const void *res, FILE *io, unsigned int next)
+int res_host_gencode(const void *res, FILE *io, unsigned int next, unsigned int serial)
 {
 	struct res_host *r = (struct res_host*)(res);
 	assert(r); // LCOV_EXCL_LINE
@@ -1639,24 +1634,24 @@ int res_host_gencode(const void *res, FILE *io, unsigned int next)
 	fprintf(io, "CALL &AUGEAS.FIND\n");
 
 	if (ENFORCED(r, RES_HOST_ABSENT)) {
-		fprintf(io, "NOTOK? @not.found.%i\n", next);
+		fprintf(io, "NOTOK? @not.found.%u\n", next);
 		fprintf(io, "  COPY %%R %%A\n");
 		fprintf(io, "  CALL &AUGEAS.REMOVE\n");
-		fprintf(io, "not.found.%i:\n", next);
+		fprintf(io, "not.found.%u:\n", next);
 
 	} else {
-		fprintf(io, "OK? @found.%i\n", next);
-		fprintf(io, "  SET %%A \"/files/etc/hosts/%i/ipaddr\"\n", 99999+next);
+		fprintf(io, "OK? @found.%u\n", next);
+		fprintf(io, "  SET %%A \"/files/etc/hosts/%u/ipaddr\"\n", 99999+next);
 		fprintf(io, "  SET %%B \"%s\"\n", r->ip);
 		fprintf(io, "  CALL &AUGEAS.SET\n");
-		fprintf(io, "  SET %%A \"/files/etc/hosts/%i/canonical\"\n", 99999+next);
+		fprintf(io, "  SET %%A \"/files/etc/hosts/%u/canonical\"\n", 99999+next);
 		fprintf(io, "  SET %%B \"%s\"\n", r->hostname);
 		fprintf(io, "  CALL &AUGEAS.SET\n");
-		fprintf(io, "  JUMP @aliases.%i\n", next);
-		fprintf(io, "found.%i:\n", next);
+		fprintf(io, "  JUMP @aliases.%u\n", next);
+		fprintf(io, "found.%u:\n", next);
 		fprintf(io, "  COPY %%S2 %%A\n");
 
-		fprintf(io, "aliases.%i:\n", next);
+		fprintf(io, "aliases.%u:\n", next);
 		if (ENFORCED(r, RES_HOST_ALIASES)) {
 			fprintf(io, "SET %%C \"/alias\"\n");
 			fprintf(io, "CALL &AUGEAS.REMOVE\n");
@@ -1787,7 +1782,7 @@ int res_sysctl_match(const void *res, const char *name, const char *value)
 	return rc;
 }
 
-int res_sysctl_gencode(const void *res, FILE *io, unsigned int next)
+int res_sysctl_gencode(const void *res, FILE *io, unsigned int next, unsigned int serial)
 {
 	struct res_sysctl *r = (struct res_sysctl*)(res);
 	assert(r); // LCOV_EXCL_LINE
@@ -1802,10 +1797,10 @@ int res_sysctl_gencode(const void *res, FILE *io, unsigned int next)
 		fprintf(io, "CALL &FS.GET\n");
 		fprintf(io, "COPY %%S2 %%T1\n");
 		fprintf(io, "SET %%T2 \"%s\"\n", r->value);
-		fprintf(io, "CMP? @done.%i\n", next);
+		fprintf(io, "CMP? @done.%u\n", next);
 		fprintf(io, "  COPY %%T2 %%B\n");
 		fprintf(io, "  CALL &FS.PUT\n");
-		fprintf(io, "done.%i:\n", next);
+		fprintf(io, "done.%u:\n", next);
 
 		if (ENFORCED(r, RES_SYSCTL_PERSIST)) {
 			fprintf(io, "SET %%A \"/files/etc/sysctl.conf/%%s\"\n");
@@ -1986,7 +1981,7 @@ int res_dir_match(const void *res, const char *name, const char *value)
 	return rc;
 }
 
-int res_dir_gencode(const void *res, FILE *io, unsigned int next)
+int res_dir_gencode(const void *res, FILE *io, unsigned int next, unsigned int serial)
 {
 	struct res_dir *r = (struct res_dir*)(res);
 	assert(r); // LCOV_EXCL_LINE
@@ -1996,9 +1991,9 @@ int res_dir_gencode(const void *res, FILE *io, unsigned int next)
 
 	if (ENFORCED(r, RES_DIR_ABSENT)) {
 		fprintf(io, "CALL &FS.EXISTS?\n");
-		fprintf(io, "NOTOK? @next.%i\n", next);
+		fprintf(io, "NOTOK? @next.%u\n", next);
 		fprintf(io, "  CALL &FS.RMDIR\n");
-		fprintf(io, "  JUMP @next.%i\n", next);
+		fprintf(io, "  JUMP @next.%u\n", next);
 		return 0;
 	}
 
@@ -2011,19 +2006,19 @@ int res_dir_gencode(const void *res, FILE *io, unsigned int next)
 
 		if (ENFORCED(r, RES_DIR_UID) || ENFORCED(r, RES_DIR_GID)) {
 			fprintf(io, "CALL &USERDB.OPEN\n");
-			fprintf(io, "OK? @owner.lookup.%i\n", next);
+			fprintf(io, "OK? @owner.lookup.%u\n", next);
 			fprintf(io, "  PRINT \"Failed to open the user databases\\n\"\n");
 			fprintf(io, "  HALT\n");
-			fprintf(io, "owner.lookup.%i:\n", next);
+			fprintf(io, "owner.lookup.%u:\n", next);
 			if (ENFORCED(r, RES_DIR_UID)) {
 				fprintf(io, "SET %%A 1\n");
 				fprintf(io, "SET %%B \"%s\"\n", r->owner);
 				fprintf(io, "CALL &USER.FIND\n");
-				fprintf(io, "OK? @found.user.%i\n", next);
+				fprintf(io, "OK? @found.user.%u\n", next);
 				fprintf(io, "  COPY %%B %%A\n");
 				fprintf(io, "  PRINT \"Unable to find user '%%s'\\n\"\n");
-				fprintf(io, "  JUMP @next.%i\n", next);
-				fprintf(io, "found.user.%i:\n", next);
+				fprintf(io, "  JUMP @next.%u\n", next);
+				fprintf(io, "found.user.%u:\n", next);
 				fprintf(io, "CALL &USER.GET_UID\n");
 				fprintf(io, "COPY %%R %%D\n");
 			}
@@ -2032,11 +2027,11 @@ int res_dir_gencode(const void *res, FILE *io, unsigned int next)
 				fprintf(io, "SET %%A 1\n");
 				fprintf(io, "SET %%B \"%s\"\n", r->group);
 				fprintf(io, "CALL &GROUP.FIND\n");
-				fprintf(io, "OK? @found.group.%i\n", next);
+				fprintf(io, "OK? @found.group.%u\n", next);
 				fprintf(io, "  COPY %%B %%A\n");
 				fprintf(io, "  PRINT \"Unable to find group '%%s'\\n\"\n");
-				fprintf(io, "  JUMP @next.%i\n", next);
-				fprintf(io, "found.group.%i:\n", next);
+				fprintf(io, "  JUMP @next.%u\n", next);
+				fprintf(io, "found.group.%u:\n", next);
 				fprintf(io, "CALL &GROUP.GET_GID\n");
 				fprintf(io, "COPY %%R %%E\n");
 			}
@@ -2221,7 +2216,7 @@ int res_exec_match(const void *res, const char *name, const char *value)
 	return rc;
 }
 
-int res_exec_gencode(const void *res, FILE *io, unsigned int next)
+int res_exec_gencode(const void *res, FILE *io, unsigned int next, unsigned int serial)
 {
 	struct res_exec *r = (struct res_exec*)(res);
 	assert(r); // LCOV_EXCL_LINE
@@ -2229,20 +2224,20 @@ int res_exec_gencode(const void *res, FILE *io, unsigned int next)
 	fprintf(io, "TOPIC \"exec(%s)\"\n", r->key);
 	if (ENFORCED(r, RES_EXEC_UID) || ENFORCED(r, RES_EXEC_GID)) {
 		fprintf(io, "CALL &USERDB.OPEN\n");
-		fprintf(io, "OK? @who.lookup.%i\n", next);
+		fprintf(io, "OK? @who.lookup.%u\n", next);
 		fprintf(io, "  PRINT \"Failed to open the user databases\\n\"\n");
 		fprintf(io, "  HALT\n");
-		fprintf(io, "who.lookup.%i:\n", next);
+		fprintf(io, "who.lookup.%u:\n", next);
 		fprintf(io, "SET %%D 0\n");
 		fprintf(io, "SET %%E 0\n");
 		if (ENFORCED(r, RES_EXEC_UID)) {
 			fprintf(io, "SET %%A 1\n");
 			fprintf(io, "SET %%B \"%s\"\n", r->user);
 			fprintf(io, "CALL &USER.FIND\n");
-			fprintf(io, "OK? @user.found.%i\n", next);
+			fprintf(io, "OK? @user.found.%u\n", next);
 			fprintf(io, "  PRINT \"Failed to find user '%s'\\n\"\n", r->user);
 			fprintf(io, "  HALT\n");
-			fprintf(io, "user.found.%i:\n", next);
+			fprintf(io, "user.found.%u:\n", next);
 			fprintf(io, "CALL &USER.GET_UID\n");
 			fprintf(io, "COPY %%R %%D\n");
 		}
@@ -2250,10 +2245,10 @@ int res_exec_gencode(const void *res, FILE *io, unsigned int next)
 			fprintf(io, "SET %%A 1\n");
 			fprintf(io, "SET %%B \"%s\"\n", r->group);
 			fprintf(io, "CALL &GROUP.FIND\n");
-			fprintf(io, "OK? @group.found.%i\n", next);
+			fprintf(io, "OK? @group.found.%u\n", next);
 			fprintf(io, "  PRINT \"Failed to find group '%s'\\n\"\n", r->group);
 			fprintf(io, "  HALT\n");
-			fprintf(io, "group.found.%i:\n", next);
+			fprintf(io, "group.found.%u:\n", next);
 			fprintf(io, "CALL &GROUP.GET_GID\n");
 			fprintf(io, "COPY %%R %%E\n");
 		}
@@ -2267,15 +2262,14 @@ int res_exec_gencode(const void *res, FILE *io, unsigned int next)
 	if (ENFORCED(r, RES_EXEC_TEST)) {
 		fprintf(io, "SET %%A \"%s\"\n", r->test);
 		fprintf(io, "CALL &EXEC.CHECK\n");
-		fprintf(io, "NOTOK? @next.%i\n", next);
+		fprintf(io, "NOTOK? @next.%u\n", next);
 	}
 	if (ENFORCED(r, RES_EXEC_ONDEMAND)) {
-		fprintf(io, "!FLAGGED? :res%i @next.%i\n",
-			((const struct resource*)res)->serial, next);
+		fprintf(io, "!FLAGGED? :res%u @next.%u\n", serial, next);
 	}
 	fprintf(io, "SET %%A \"%s\"\n", r->command);
 	fprintf(io, "CALL &EXEC.CHECK\n");
-	fprintf(io, "OK? @next.%i\n", next);
+	fprintf(io, "OK? @next.%u\n", next);
 	fprintf(io, "  FLAG 1 :changed\n");
 	return 0;
 }

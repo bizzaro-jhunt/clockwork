@@ -36,7 +36,7 @@ void*          res_ ## t ## _new(const char *key); \
 void*          res_ ## t ## _clone(const void *res, const char *key); \
 void           res_ ## t ## _free(void *res); \
 char*          res_ ## t ## _key(const void *res); \
-int            res_ ## t ## _gencode(const void *res, FILE *io, unsigned int next); \
+int            res_ ## t ## _gencode(const void *res, FILE *io, unsigned int next, unsigned int serial); \
 int            res_ ## t ## _attrs(const void *res, cw_hash_t *attrs); \
 int            res_ ## t ## _norm(void *res, struct policy *pol, cw_hash_t *facts); \
 int            res_ ## t ## _set(void *res, const char *attr, const char *value); \

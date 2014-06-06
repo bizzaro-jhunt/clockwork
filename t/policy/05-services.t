@@ -20,12 +20,12 @@ OK? @running.1
   SET %A "cwtool svc-init snmpd start"
   CALL &EXEC.CHECK
   FLAG 1 :changed
-  FLAG 0 :res0
+  FLAG 0 :res1
 running.1:
-!FLAGGED? :res0 @next.1
+!FLAGGED? :res1 @next.1
   SET %A "cwtool svc-init snmpd restart"
   CALL &EXEC.CHECK
-  FLAG 0 :res0
+  FLAG 0 :res1
 next.1:
 !FLAGGED? :changed @final.1
 final.1:
@@ -40,12 +40,12 @@ NOTOK? @stopped.1
   SET %A "cwtool svc-init microcode stop"
   CALL &EXEC.CHECK
   FLAG 1 :changed
-  FLAG 0 :res0
+  FLAG 0 :res1
 stopped.1:
-!FLAGGED? :res0 @next.1
+!FLAGGED? :res1 @next.1
   SET %A "cwtool svc-init microcode stop"
   CALL &EXEC.CHECK
-  FLAG 0 :res0
+  FLAG 0 :res1
 next.1:
 !FLAGGED? :changed @final.1
 final.1:
@@ -66,12 +66,12 @@ NOTOK? @stopped.1
   SET %A "cwtool svc-init neverwhere stop"
   CALL &EXEC.CHECK
   FLAG 1 :changed
-  FLAG 0 :res0
+  FLAG 0 :res1
 stopped.1:
-!FLAGGED? :res0 @next.1
+!FLAGGED? :res1 @next.1
   SET %A "cwtool svc-init neverwhere stop"
   CALL &EXEC.CHECK
-  FLAG 0 :res0
+  FLAG 0 :res1
 next.1:
 !FLAGGED? :changed @final.1
 final.1:
@@ -92,12 +92,12 @@ OK? @running.1
   SET %A "cwtool svc-init snmpd start"
   CALL &EXEC.CHECK
   FLAG 1 :changed
-  FLAG 0 :res0
+  FLAG 0 :res1
 running.1:
-!FLAGGED? :res0 @next.1
+!FLAGGED? :res1 @next.1
   SET %A "cwtool svc-init snmpd reload"
   CALL &EXEC.CHECK
-  FLAG 0 :res0
+  FLAG 0 :res1
 next.1:
 !FLAGGED? :changed @final.1
 final.1:

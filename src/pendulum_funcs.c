@@ -224,6 +224,10 @@ static int s_exec(const char *cmd, char **out, char **err, uid_t uid, gid_t gid)
 	}
 
 	waitpid(pid, &proc_stat, 0);
+	cw_log(LOG_INFO, "`%s' %s %x(rc:%u)", cmd,
+		WIFEXITED(proc_stat) ? "exited" : "died",
+		proc_stat, WEXITSTATUS(proc_stat));
+
 	if (!WIFEXITED(proc_stat)) return 255;
 	return WEXITSTATUS(proc_stat);
 }

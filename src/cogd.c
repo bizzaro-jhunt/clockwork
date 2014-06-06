@@ -200,14 +200,14 @@ static void s_cfm_run(client_t *c)
 	c->schedule.next_run = cw_time_ms() + c->schedule.interval;
 
 	cw_log(LOG_DEBUG, "connecting to one of the masters");
-	void *client;
+	void *client = NULL;
 	TIMER(&t, ms_connect) { client = s_connect(c); }
 
 	if (!client)
 		goto maybe_next_time;
 	cw_log(LOG_DEBUG, "connected");
 
-	cw_pdu_t *pdu, *reply;
+	cw_pdu_t *pdu, *reply = NULL;
 
 	pdu = cw_pdu_make(NULL, 2, "HELLO", c->fqdn);
 	TIMER(&t, ms_hello) { reply = s_sendto(client, pdu, c->timeout); }

@@ -1,7 +1,7 @@
 " Vim syntax file
 " Language:	Clockwork Policy Master Configuration
-" Maintainer:	James Hunt <filefrog@gmail.com>
-" Last Change:	2011 Mar 31
+" Maintainer:	James Hunt <james@jameshunt.us>
+" Last Change:	2014 Jun  1
 
 " Quit when a (custom) syntax file was already loaded
 if exists("b:current_syntax")

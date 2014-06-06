@@ -273,11 +273,15 @@ static int s_state_machine(client_t *fsm, cw_pdu_t *pdu, cw_pdu_t **reply)
 		case STATE_IDENTIFIED:
 			fsm->io = tmpfile();
 			if (!fsm->io) {
+				cw_log(LOG_ERR, "unable to create a temporary file for the copydown archive: %s",
+					strerror(errno));
 				fsm->error = FSM_ERR_INTERNAL;
 				return 1;
 			}
 
 			if (cw_bdfa_pack(fileno(fsm->io), fsm->server->copydown) != 0) {
+				cw_log(LOG_ERR, "unable to pack the copydown archive: %s",
+					strerror(errno));
 				fsm->error = FSM_ERR_INTERNAL;
 				return 1;
 			}
@@ -364,6 +368,8 @@ static int s_state_machine(client_t *fsm, cw_pdu_t *pdu, cw_pdu_t **reply)
 
 		fsm->io = resource_content(r, fsm->facts);
 		if (!fsm->io) {
+			cw_log(LOG_ERR, "failed to generate content for %s: %s",
+				r->key, strerror(errno));
 			fsm->error = FSM_ERR_INTERNAL;
 			return 1;
 		}

@@ -674,7 +674,7 @@ zmq_msg_t * cw_zmq_msg_recv(void *zocket, zmq_msg_t *msg, int *more)
 
 void cw_zmq_shutdown(void *zocket, int linger)
 {
-	if (linger <= 0) linger = 500;
+	if (linger < 0) linger = 500;
 	int rc = zmq_setsockopt(zocket, ZMQ_LINGER, &linger, sizeof(linger));
 	assert(rc == 0);
 
@@ -1479,6 +1479,7 @@ int cw_bdfa_pack(int out, const char *root)
 	if (!fts) {
 		if (fchdir(cwd) != 0)
 			cw_log(LOG_ERR, "Failed to chdir back to starting directory");
+		close(cwd);
 		return -1;
 	}
 
@@ -1548,6 +1549,7 @@ int cw_bdfa_pack(int out, const char *root)
 
 	if (fchdir(cwd) != 0)
 		cw_log(LOG_ERR, "Failed to chdir back to starting directory");
+	close(cwd);
 	return 0;
 }
 
@@ -1646,5 +1648,6 @@ int cw_bdfa_unpack(int in, const char *root)
 	umask(umsk);
 	if (fchdir(cwd) != 0)
 		cw_log(LOG_ERR, "Failed to chdir back to starting directory");
+	close(cwd);
 	return rc;
 }

@@ -171,6 +171,7 @@ static void *s_connect(client_t *c)
 
 		if (i == c->current_master) {
 			cw_log(LOG_ERR, "No masters were reachable; giving up");
+			cw_zmq_shutdown(client, 0);
 			return NULL;
 		};
 	}
@@ -255,7 +256,7 @@ static void s_cfm_run(client_t *c)
 				break;
 			if (strcmp(reply->type, "BLOCK") != 0) {
 				cw_log(LOG_ERR, "protocol violation: received a %s PDU (expected a BLOCK)", reply->type);
-				goto maybe_next_time;
+				goto shut_it_down;
 			}
 
 			char *data = cw_pdu_text(reply, 1);
@@ -267,7 +268,7 @@ static void s_cfm_run(client_t *c)
 		if (cw_bdfa_unpack(fileno(bdfa), c->copydown) != 0) {
 			cw_log(LOG_CRIT, "Unable to perform copydown to %s", c->copydown);
 			fclose(bdfa);
-			goto maybe_next_time;
+			goto shut_it_down;
 		}
 		fclose(bdfa);
 	}
@@ -279,7 +280,7 @@ static void s_cfm_run(client_t *c)
 	}
 	if (rc != 0) {
 		cw_log(LOG_CRIT, "Unable to gather facts frm %s", c->gatherers);
-		goto maybe_next_time;
+		goto shut_it_down;
 	}
 
 	FILE *io = tmpfile();
@@ -295,7 +296,7 @@ static void s_cfm_run(client_t *c)
 	char *factstr = mmap(NULL, len, PROT_READ, MAP_SHARED, fileno(io), 0);
 	if ((void *)factstr == MAP_FAILED) {
 		cw_log(LOG_CRIT, "Failed to mmap fact data");
-		goto maybe_next_time;
+		goto shut_it_down;
 	}
 
 	pdu = cw_pdu_make(NULL, 3, "POLICY", c->fqdn, factstr);

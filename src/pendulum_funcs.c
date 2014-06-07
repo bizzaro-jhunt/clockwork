@@ -181,6 +181,7 @@ static int s_exec(const char *cmd, char **out, char **err, uid_t uid, gid_t gid)
 		exit(1);
 
 	default: /* in parent */
+		close(nullfd);
 		if (!read_stdout && !read_stderr) { break; }
 
 		FD_ZERO(&fds);

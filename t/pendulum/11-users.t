@@ -24,9 +24,11 @@ root:!:14009:0:99999:7:::
 daemon:*:13991:0:99999:7:::
 bin:*:13991:0:99999:7:::
 sys:*:13991:0:99999:7:::
-user:$6$nahablHe$1qen4PePmYtEIC6aCTYoQFLgMp//snQY7nDGU7.9iVzXrmmCYLDsOKc22J6MPRUuH/X4XJ7w.JaEXjofw9h1d/:14871:0:99999:7:::
+user:$6$nahablHe$1qen4PePmYtEIC6aCTYoQFLgMp//snQY7nDGU7.9iVzXrmmCYLDsOKc22J6MPRUuH/X4XJ7w.JaEXjofw9h1d/:14871::99999:7:::
 svc:*:13991:0:99999:7:::
 EOF
+
+my $DAYS_SINCE_1970 = int(time / 86400);
 
 sub revert
 {
@@ -104,7 +106,7 @@ root:!:14009:0:99999:7:::
 daemon:*:13991:0:99999:7:::
 bin:*:13991:0:99999:7:::
 sys:*:13991:0:99999:7:::
-user:$6$nahablHe$1qen4PePmYtEIC6aCTYoQFLgMp//snQY7nDGU7.9iVzXrmmCYLDsOKc22J6MPRUuH/X4XJ7w.JaEXjofw9h1d/:14871:0:99999:7:::
+user:$6$nahablHe$1qen4PePmYtEIC6aCTYoQFLgMp//snQY7nDGU7.9iVzXrmmCYLDsOKc22J6MPRUuH/X4XJ7w.JaEXjofw9h1d/:14871::99999:7:::
 svc2:*:13991:90:104:14:12345:2468:
 EOF
 
@@ -144,14 +146,14 @@ user:x:100:20:User Account,,,:/home/user:/bin/bash
 svc:x:999:909:service account:/tmp/nonexistent:/sbin/nologin
 new::9001:9002:new:/:/bin/false
 EOF
-file_is "$TEMP/shadow", <<'EOF', "shadow database updated with additions";
+file_is "$TEMP/shadow", <<EOF, "shadow database updated with additions";
 root:!:14009:0:99999:7:::
 daemon:*:13991:0:99999:7:::
 bin:*:13991:0:99999:7:::
 sys:*:13991:0:99999:7:::
-user:$6$nahablHe$1qen4PePmYtEIC6aCTYoQFLgMp//snQY7nDGU7.9iVzXrmmCYLDsOKc22J6MPRUuH/X4XJ7w.JaEXjofw9h1d/:14871:0:99999:7:::
+user:\$6\$nahablHe\$1qen4PePmYtEIC6aCTYoQFLgMp//snQY7nDGU7.9iVzXrmmCYLDsOKc22J6MPRUuH/X4XJ7w.JaEXjofw9h1d/:14871::99999:7:::
 svc:*:13991:0:99999:7:::
-new:*:0:0:99999:7:0:0:0
+new:*:${DAYS_SINCE_1970}::99999:7:::
 EOF
 
 revert;

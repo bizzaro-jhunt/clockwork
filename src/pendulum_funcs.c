@@ -786,14 +786,16 @@ static pn_word uf_aug_find(pn_machine *m)
 	pn_trace(m, "AUGEAS.FIND %s\n", path);
 	int rc = aug_match(UDATA(m)->aug_ctx, path, &r);
 	free(path);
-	if (rc != 1) return 1;
 
-	UDATA(m)->aug_last = strdup(r[0]);
-	m->S2 = (pn_word)(UDATA(m)->aug_last);
+	if (rc == 1) {
+		UDATA(m)->aug_last = r[0];
+		m->S2 = (pn_word)(UDATA(m)->aug_last);
+		free(r);
+		return 0;
+	}
 	while (rc > 0)
 		free(r[--rc]);
-	free(r);
-	return 0;
+	return 1;
 }
 
 static pn_word uf_aug_remove(pn_machine *m)

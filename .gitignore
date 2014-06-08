@@ -77,8 +77,10 @@ t/70-managers
 *.debhelper
 *.substvars
 debian/clockwork-agent/
+debian/clockwork-agent-dbg/
 debian/clockwork-doc/
 debian/clockwork-server/
+debian/clockwork-server-dbg/
 debian/files
 debian/tmp/
 debian/vim-clockwork/

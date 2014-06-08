@@ -10,11 +10,15 @@
 # Modified to make a template file for a multi-binary package with separated
 # build-arch and build-indep targets  by Bill Allombert 2001
 
+CFLAGS=-Wall -g
+
 # Uncomment this to turn on verbose mode.
 export DH_VERBOSE=1
 
 # This has to be exported to make some magic below work.
 export DH_OPTIONS
+
+.PHONY: override_dh_auto_configure override_dh_installinit override_dh_strip
 
 override_dh_auto_configure:
 	dh_auto_configure -- --prefix= --exec-prefix= --datarootdir=/usr --mandir=/usr/share/man
@@ -22,6 +26,10 @@ override_dh_auto_configure:
 override_dh_installinit:
 	dh_installinit --name clockd
 	dh_installinit --name cogd
+
+override_dh_strip:
+	dh_strip -pclockwork-server --dbg-package=clockwork-server-dbg
+	dh_strip -pclockwork-agent  --dbg-package=clockwork-agent-dbg
 
 #install: build
 #	dh_testdir

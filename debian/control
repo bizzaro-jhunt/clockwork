@@ -30,8 +30,22 @@ Description: Secure Configuration Management - Server
  With Clockwork, managing infrastructures of all scales is easier,
  more effective and less difficult.
  .
- This package provides the server-side components of the Clockwork
- system, including the Certificate Authority and Policy Master.
+ This package provides the server-side components of Clockwork.
+
+Package: clockwork-server-dbg
+Architecture: any
+Section: debug
+Priority: extra
+Depends: clockwork-server (= ${binary:Version}), ${misc:Depends}
+Description: Debugging Symbols for Clockwork Server
+ Clockwork is a safe, secure and flexible system for managing system
+ configurations through enforcement of targeted policies, expressed
+ in a system-independent, declarative format.
+ .
+ With Clockwork, managing infrastructures of all scales is easier,
+ more effective and less difficult.
+ .
+ This package provides the debugging symbols for clockd.
 
 Package: clockwork-agent
 Architecture: any
@@ -47,6 +61,21 @@ Description: Secure Configuration Management - Agent
  This package provides the host-side components of the Clockwork
  system that are responsible for gathering local facts, retrieving
  policy from an upstream server and applying that policy locally.
+
+Package: clockwork-agent-dbg
+Architecture: any
+Section: debug
+Priority: extra
+Depends: clockwork-agent (= ${binary:Version}), ${misc:Depends}
+Description: Debugging Symbols for Clockwork Agent
+ Clockwork is a safe, secure and flexible system for managing system
+ configurations through enforcement of targeted policies, expressed
+ in a system-independent, declarative format.
+ .
+ With Clockwork, managing infrastructures of all scales is easier,
+ more effective and less difficult.
+ .
+ This package provides the debugging symbols for cogd.
 
 Package: clockwork-doc
 Section: doc

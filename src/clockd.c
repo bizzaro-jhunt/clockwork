@@ -737,8 +737,9 @@ static inline server_t *s_server_new(int argc, char **argv)
 	s->copydown = cw_cfg_get(&config, "copydown");
 	s->manifest = parse_file(cw_cfg_get(&config, "manifest"));
 	if (!s->manifest) {
-		cw_log(LOG_CRIT, "Failed to parse %s: %s",
-			cw_cfg_get(&config, "manifest"), strerror(errno));
+		if (errno)
+			cw_log(LOG_CRIT, "Failed to parse %s: %s",
+				cw_cfg_get(&config, "manifest"), strerror(errno));
 		exit(1);
 	}
 	if (s->mode == MODE_TEST) {

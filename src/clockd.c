@@ -110,6 +110,7 @@ static const char *FSM_ERRORS[] = {
 
 #define MODE_RUN  0
 #define MODE_DUMP 1
+#define MODE_TEST 2
 
 typedef struct __client_t client_t;
 typedef struct __server_t server_t;
@@ -588,7 +589,7 @@ static inline server_t *s_server_new(int argc, char **argv)
 
 
 	cw_log(LOG_DEBUG, "processing command-line options");
-	const char *short_opts = "?hvVqFdS" "c:";
+	const char *short_opts = "?hvVqFdSt" "c:";
 	struct option long_opts[] = {
 		{ "help",        no_argument,       NULL, 'h' },
 		{ "verbose",     no_argument,       NULL, 'v' },
@@ -597,6 +598,7 @@ static inline server_t *s_server_new(int argc, char **argv)
 		{ "config",      required_argument, NULL, 'c' },
 		{ "foreground",  no_argument,       NULL, 'F' },
 		{ "show-config", no_argument,       NULL, 'S' },
+		{ "test",        no_argument,       NULL, 't' },
 		{ 0, 0, 0, 0 },
 	};
 	int verbose = -1;
@@ -609,7 +611,7 @@ static inline server_t *s_server_new(int argc, char **argv)
 			cw_log(LOG_DEBUG, "handling -h/-?/--help");
 			printf("clockd, part of clockwork v%s runtime %i protocol %i\n",
 				PACKAGE_VERSION, PENDULUM_VERSION, PROTOCOL_VERSION);
-			printf("Usage: clockd [-?hvVqFdS] [-c filename]\n\n");
+			printf("Usage: clockd [-?hvVqFdSt] [-c filename]\n\n");
 			printf("Options:\n");
 			printf("  -?, -h               show this help screen\n");
 			printf("  -V, --version        show version information and exit\n");
@@ -617,6 +619,7 @@ static inline server_t *s_server_new(int argc, char **argv)
 			printf("  -q, --quiet          disable logging\n");
 			printf("  -F, --foreground     don't daemonize, run in the foreground\n");
 			printf("  -S, --show-config    print configuration and exit\n");
+			printf("  -t, --test           test configuration and manifest\n");
 			printf("  -c filename          set configuration file (default: " DEFAULT_CONFIG_FILE ")\n");
 			exit(0);
 
@@ -653,6 +656,11 @@ static inline server_t *s_server_new(int argc, char **argv)
 		case 'S':
 			cw_log(LOG_DEBUG, "handling -S/--show-config");
 			s->mode = MODE_DUMP;
+			break;
+
+		case 't':
+			cw_log(LOG_DEBUG, "handling -t/--test");
+			s->mode = MODE_TEST;
 			break;
 		}
 	}
@@ -696,6 +704,10 @@ static inline server_t *s_server_new(int argc, char **argv)
 		cw_log(LOG_DEBUG, "Running in --show-config mode; forcing all logging to stderr");
 		cw_cfg_set(&config, "syslog.facility", "stderr");
 	}
+	if (s->mode == MODE_TEST) {
+		cw_log(LOG_DEBUG, "Running in --test mode; forcing all logging to stderr");
+		cw_cfg_set(&config, "syslog.facility", "stderr");
+	}
 	cw_log(LOG_DEBUG, "redirecting to %s log as %s",
 		cw_cfg_get(&config, "syslog.facility"),
 		cw_cfg_get(&config, "syslog.ident"));
@@ -728,6 +740,10 @@ static inline server_t *s_server_new(int argc, char **argv)
 		cw_log(LOG_CRIT, "Failed to parse %s: %s",
 			cw_cfg_get(&config, "manifest"), strerror(errno));
 		exit(1);
+	}
+	if (s->mode == MODE_TEST) {
+		printf("Syntax OK\n");
+		exit(0);
 	}
 
 	if (s->daemonize)

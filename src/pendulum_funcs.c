@@ -1637,12 +1637,13 @@ static pn_word uf_user_create(pn_machine *m)
 	sp->next->spwd = calloc(1, sizeof(struct spwd));
 	sp->next->spwd->sp_namp   = strdup((const char *)m->A);
 	sp->next->spwd->sp_pwdp   = strdup("*");
-	/* FIXME - set sp_lstchg! */
-	sp->next->spwd->sp_min    = 0;
+	sp->next->spwd->sp_lstchg = cw_time_s() / 86400;
+	sp->next->spwd->sp_min    = -1;
 	sp->next->spwd->sp_max    = 99999;
 	sp->next->spwd->sp_warn   = 7;
-	sp->next->spwd->sp_inact  = 0;
-	sp->next->spwd->sp_expire = 0;
+	sp->next->spwd->sp_inact  = -1;
+	sp->next->spwd->sp_expire = -1;
+	sp->next->spwd->sp_flag   = ~0UL;
 	UDATA(m)->spent = sp->next->spwd;
 
 	pn_flag(m, CHANGE_FLAG, 1);

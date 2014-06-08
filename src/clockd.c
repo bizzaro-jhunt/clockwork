@@ -588,7 +588,7 @@ static inline server_t *s_server_new(int argc, char **argv)
 
 
 	cw_log(LOG_DEBUG, "processing command-line options");
-	const char *short_opts = "h?vqVc:Fd";
+	const char *short_opts = "?hvVqFdS" "c:";
 	struct option long_opts[] = {
 		{ "help",        no_argument,       NULL, 'h' },
 		{ "verbose",     no_argument,       NULL, 'v' },
@@ -609,7 +609,7 @@ static inline server_t *s_server_new(int argc, char **argv)
 			cw_log(LOG_DEBUG, "handling -h/-?/--help");
 			printf("clockd, part of clockwork v%s runtime %i protocol %i\n",
 				PACKAGE_VERSION, PENDULUM_VERSION, PROTOCOL_VERSION);
-			printf("Usage: clockd [-?hvVqFd] [-c filename]\n\n");
+			printf("Usage: clockd [-?hvVqFdS] [-c filename]\n\n");
 			printf("Options:\n");
 			printf("  -?, -h               show this help screen\n");
 			printf("  -V, --version        show version information and exit\n");

@@ -61,6 +61,8 @@ struct pn_machine {
 #define PN_ATTR_DUMPFD 0x0001
 
 int pn_init(pn_machine *m);
+int pn_destroy(pn_machine *m);
+
 int pn_set(pn_machine *m, int attr, void *value);
 int pn_flag(pn_machine *m, const char *label, int value);
 int pn_flagged(pn_machine *m, const char *label);
@@ -70,7 +72,6 @@ int pn_trace(pn_machine *m, const char *fmt, ...);
 int pn_run(pn_machine *m);
 int pn_run_safe(pn_machine *m);
 int pn_die(pn_machine *m, const char *e);
-
 int pn_heap_add(pn_machine *m, void *p);
 int pn_heap_purge(pn_machine *m);
 

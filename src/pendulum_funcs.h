@@ -3,6 +3,7 @@
 
 #include "pendulum.h"
 
-int pendulum_funcs(pn_machine *m, void *zconn);
+int pendulum_init(pn_machine *m, void *zconn);
+int pendulum_destroy(pn_machine *m);
 
 #endif

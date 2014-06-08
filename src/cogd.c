@@ -328,7 +328,7 @@ static void s_cfm_run(client_t *c)
 		pn_machine m;
 		TIMER(&t, ms_parse) {
 			pn_init(&m);
-			pendulum_funcs(&m, client);
+			pendulum_init(&m, client);
 
 			io = tmpfile();
 			fprintf(io, "%s", code);
@@ -342,6 +342,9 @@ static void s_cfm_run(client_t *c)
 			fclose(io);
 		}
 		count = m.topics;
+
+		pendulum_destroy(&m);
+		pn_destroy(&m);
 	}
 
 	TIMER(&t, ms_cleanup) {

@@ -10,7 +10,7 @@
 
 int main(int argc, char **argv)
 {
-	int trace = 0, check = 0, debug = 0;
+	int trace = 0, check = 0, debug = 0, saferun = 0;
 	int log_level = LOG_WARNING;
 	const char *ident = "pn", *facility = "stdout";
 
@@ -24,6 +24,7 @@ int main(int argc, char **argv)
 		{ "trace",    no_argument,       NULL, 'T' },
 		{ "check",    no_argument,       NULL, 'c' },
 		{ "syslog",   required_argument, NULL, '0' },
+		{ "nofork",   no_argument,       NULL, '1' },
 
 		{ 0, 0, 0, 0 },
 	};
@@ -65,6 +66,11 @@ int main(int argc, char **argv)
 
 		case '0': /* --syslog */
 			facility = argv[optind];
+			break;
+
+		case '1': /* --nofork */
+			saferun = 0;
+			break;
 		}
 	}
 
@@ -90,7 +96,7 @@ int main(int argc, char **argv)
 	m.trace = trace;
 
 	/* register clockwork pendulum functions */
-	pendulum_funcs(&m, NULL);
+	pendulum_init(&m, NULL);
 
 	/* parse and run the input script */
 	int rc = pn_parse(&m, io);
@@ -101,6 +107,9 @@ int main(int argc, char **argv)
 	if (check)
 		printf("Syntax OK\n");
 	else
-		rc = pn_run_safe(&m);
+		rc = saferun ? pn_run_safe(&m) : pn_run(&m);
+
+	pendulum_destroy(&m);
+	pn_destroy(&m);
 	return rc;
 }

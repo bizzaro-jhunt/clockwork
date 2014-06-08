@@ -87,11 +87,7 @@ static char ** s_strlist_munge(char **l, const char *add, const char *rm)
 void s_strlist_free(char **a)
 {
 	char **s;
-	if (!a || !*a) return;
-	s = a;
-	while (*s) {
-		free(*s++);
-	}
+	for (s = a; s && *s; free(*s++));
 	free(a);
 }
 
@@ -371,7 +367,7 @@ typedef struct {
 	struct sgrp   *sgent;
 
 	augeas        *aug_ctx;
-	const char    *aug_last;
+	char          *aug_last;
 
 	char          *rsha1;
 	struct SHA1    lsha1;
@@ -777,7 +773,7 @@ static pn_word uf_aug_get(pn_machine *m)
 {
 	char *path = s_format((const char *)m->A, m->C, m->D, m->E, m->F);
 	pn_trace(m, "AUGEAS.GET %s\n", path);
-	int rc = aug_get(UDATA(m)->aug_ctx, path, &(UDATA(m)->aug_last));
+	int rc = aug_get(UDATA(m)->aug_ctx, path, (const char **)&(UDATA(m)->aug_last));
 	m->S2 = (pn_word)(UDATA(m)->aug_last);
 	free(path);
 	return rc == 1 ? 0 : 1;
@@ -794,6 +790,8 @@ static pn_word uf_aug_find(pn_machine *m)
 
 	UDATA(m)->aug_last = strdup(r[0]);
 	m->S2 = (pn_word)(UDATA(m)->aug_last);
+	while (rc > 0)
+		free(r[--rc]);
 	free(r);
 	return 0;
 }
@@ -1201,6 +1199,7 @@ static int _grdb_close(pn_machine *m)
 		free(ent);
 		ent = cur;
 	}
+	UDATA(m)->grdb = NULL;
 	return 0;
 }
 static int _sgdb_open(pn_machine *m)
@@ -1266,6 +1265,7 @@ static int _sgdb_close(pn_machine *m)
 		free(ent);
 		ent = cur;
 	}
+	UDATA(m)->sgdb = NULL;
 	return 0;
 }
 
@@ -2047,7 +2047,7 @@ static pn_word uf_group_set_pwhash(pn_machine *m)
  */
 
 
-int pendulum_funcs(pn_machine *m, void *zconn)
+int pendulum_init(pn_machine *m, void *zconn)
 {
 	pn_func(m,  "FS.EXISTS?",         uf_fs_exists);
 	pn_func(m,  "FS.FILE?",           uf_fs_is_file);
@@ -2156,5 +2156,17 @@ int pendulum_funcs(pn_machine *m, void *zconn)
 	UDATA(m)->zconn = zconn;
 	uf_pragma(m, "userdb.root", "");
 
+	return 0;
+}
+
+int pendulum_destroy(pn_machine *m)
+{
+	_sgdb_close(m); _grdb_close(m);
+	_spdb_close(m); _pwdb_close(m);
+
+	free(UDATA(m)->aug_last);
+	aug_close(UDATA(m)->aug_ctx);
+
+	free(m->U);
 	return 0;
 }

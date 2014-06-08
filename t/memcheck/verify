@@ -1,0 +1,21 @@
+#!/bin/bash
+
+VG=/usr/bin/valgrind
+EFAIL=61
+
+if [[ ! -x $VG ]]; then
+	echo "SKIP: $VG not found (Valgrind not installed or otherwise unavailable)";
+	exit 77;
+fi
+
+TEMPFILE=$(mktemp);
+trap "rm -f $TEMPFILE" INT TERM EXIT
+$VG --tool=memcheck --leak-check=full --error-exitcode=$EFAIL 2>$TEMPFILE >/dev/null -- "$@"
+if [[ $? == $EFAIL ]]; then
+	echo "FAIL: $@"
+	cat >&2 $TEMPFILE
+	exit 1
+else
+	echo "PASS: $@"
+	exit 0
+fi

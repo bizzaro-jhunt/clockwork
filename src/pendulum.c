@@ -362,6 +362,23 @@ int pn_init(pn_machine *m)
 	return 0;
 }
 
+int pn_destroy(pn_machine *m)
+{
+	m->A = m->B = m->C = 0;
+	m->D = m->E = m->F = 0;
+	m->Tr = m->R = m->E = 0;
+	m->S1 = m->S2 = 0;
+	m->T1 = m->T2 = 0;
+	m->Ip = m->Dp = 0;
+
+	pn_heap_purge(m);
+
+	free(m->code);
+	free(m->data);
+
+	return 0;
+}
+
 int pn_set(pn_machine *m, int attr, void *value)
 {
 	switch (attr) {

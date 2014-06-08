@@ -95,7 +95,16 @@ PERL_TESTS += t/policy/30-deps.t
 
 PERL_TESTS += t/bdfa/01-basics.t
 
-TESTS          = $(CTAP_TESTS) $(PERL_TESTS)
+SHELL_TESTS  =
+SHELL_TESTS += t/memcheck/00-pn-usage.t
+SHELL_TESTS += t/memcheck/01-pn-basics.t
+SHELL_TESTS += t/memcheck/02-pn-fs.t
+SHELL_TESTS += t/memcheck/03-pn-users.t
+SHELL_TESTS += t/memcheck/04-pn-groups.t
+SHELL_TESTS += t/memcheck/05-pn-exec.t
+SHELL_TESTS += t/memcheck/06-pn-augeas.t
+
+TESTS          = $(CTAP_TESTS) $(PERL_TESTS) $(SHELL_TESTS)
 BUILT_TESTS    = $(CTAP_TESTS)
 check_PROGRAMS = $(CTAP_TESTS)
 check_DATA     = t/tmp/check-data-install.stamp
@@ -108,6 +117,7 @@ t/tmp/check-data-install.stamp:
 
 TEST_EXTRAS  = t/data t/common.pm
 TEST_EXTRAS += $(PERL_TESTS)
+TEST_EXTRAS += $(SHELL_TESTS)
 
 test_source  = t/test.h
 test_source += src/cw.h src/cw.c

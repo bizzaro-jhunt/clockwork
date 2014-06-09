@@ -93,6 +93,7 @@ TESTS {
 		is_null(cw_hash_get(h, "xyzzy"), "h.xyzzy is NULL (bad attr)");
 
 		cw_hash_done(h, 1);
+		free(h);
 		res_sysctl_free(rs);
 	}
 

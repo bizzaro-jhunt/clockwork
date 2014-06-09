@@ -31,6 +31,7 @@ TESTS {
 		"2.6.32-194.distro5-generic",
 		"parse fact line");
 	cw_hash_done(facts, 1);
+	free(facts);
 
 	/**********************************************************/
 
@@ -52,6 +53,7 @@ TESTS {
 		"get test.multi.level.fact");
 	fclose(io);
 	cw_hash_done(facts, 1);
+	free(facts);
 
 	/**********************************************************/
 
@@ -75,6 +77,7 @@ TESTS {
 		"get test.multi.level.fact");
 	fclose(io);
 	cw_hash_done(facts, 1);
+	free(facts);
 
 	/**********************************************************/
 
@@ -91,6 +94,7 @@ TESTS {
 		cw_hash_get(facts, "test.multi.level.fact"), "multilevel fact",
 		"get test.multi.level.fact");
 	cw_hash_done(facts, 1);
+	free(facts);
 
 	/**********************************************************/
 
@@ -106,6 +110,7 @@ TESTS {
 	ok(!cw_hash_get(facts, "not.defined"),
 		"not.defined fact (in skip.me) not defined");
 	cw_hash_done(facts, 1);
+	free(facts);
 
 	/**********************************************************/
 
@@ -118,12 +123,15 @@ TESTS {
 	ok(!cw_hash_get(facts, "not.defined"),
 		"not.defined fact (in skip.me) not defined");
 	cw_hash_done(facts, 1);
+	free(facts);
 
 	/**********************************************************/
 
 	facts = cw_alloc(sizeof(cw_hash_t));
 	ok(fact_gather(TEST_DATA "/facts/gather.d/*.nomatch", facts) != 0,
 			"failed to gather facts from bad glob match");
+	cw_hash_done(facts, 1);
+	free(facts);
 
 	/**********************************************************/
 
@@ -140,6 +148,7 @@ TESTS {
 	fclose(io);
 
 	cw_hash_done(facts, 0);
+	free(facts);
 	io = fopen(TEST_TMP "/write.facts", "r");
 	ok(io, "reopened write.facts for reading");
 	facts = cw_alloc(sizeof(cw_hash_t));
@@ -155,6 +164,7 @@ TESTS {
 		cw_hash_get(facts, "sys.test"), "test-mode",
 		"check sys.test");
 	cw_hash_done(facts, 1);
+	free(facts);
 
 	/**********************************************************/
 
@@ -165,6 +175,7 @@ TESTS {
 		cw_hash_get(facts, "exec.fact"), "Value",
 		"check exec.fact");
 	cw_hash_done(facts, 1);
+	free(facts);
 
 	/**********************************************************/
 
@@ -172,6 +183,7 @@ TESTS {
 	ok(fact_exec_read(TEST_DATA "/facts/ENOENT", facts) != 0,
 			"failed to read facts from a non-existent gatherer script");
 	cw_hash_done(facts, 1);
+	free(facts);
 
 	/**********************************************************/
 
@@ -179,6 +191,7 @@ TESTS {
 	ok(fact_exec_read(TEST_DATA "/facts/empty.sh", facts) != 0,
 			"failed to read facts from an empty gatherer script");
 	cw_hash_done(facts, 1);
+	free(facts);
 
 	/**********************************************************/
 
@@ -186,6 +199,7 @@ TESTS {
 	ok(fact_exec_read(TEST_DATA "/facts/non-exec.sh", facts) != 0,
 			"failed to read facts from a non-executable gatherer script");
 	cw_hash_done(facts, 1);
+	free(facts);
 
 	/**********************************************************/
 
@@ -196,6 +210,7 @@ TESTS {
 		cw_hash_get(facts, "sys.hostname"), "host22",
 		"sys.hostname is defined (from node.facts)");
 	cw_hash_done(facts, 1);
+	free(facts);
 
 	done_testing();
 }

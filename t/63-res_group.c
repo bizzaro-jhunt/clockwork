@@ -189,6 +189,7 @@ TESTS {
 
 		res_group_free(rg);
 		cw_hash_done(h, 1);
+		free(h);
 	}
 
 	done_testing();

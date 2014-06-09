@@ -193,6 +193,7 @@ TESTS {
 		res_user_set(ru, "present",    "no");
 
 		cw_hash_done(h, 1);
+		free(h);
 		isnt_null(h = cw_alloc(sizeof(cw_hash_t)), "hash created");
 
 		ok(res_user_attrs(ru, h) == 0, "got raw user attributes");
@@ -212,6 +213,7 @@ TESTS {
 		is_string(cw_hash_get(h, "present"),    "no",         "h.present");
 
 		cw_hash_done(h, 1);
+		free(h);
 		isnt_null(h = cw_alloc(sizeof(cw_hash_t)), "hash created");
 
 		res_user_set(ru, "locked", "no");
@@ -219,6 +221,7 @@ TESTS {
 		is_string(cw_hash_get(h, "locked"), "no", "h.locked");
 
 		cw_hash_done(h, 1);
+		free(h);
 		res_user_free(ru);
 	}
 

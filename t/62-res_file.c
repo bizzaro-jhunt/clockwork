@@ -130,6 +130,7 @@ TESTS {
 		is_null(cw_hash_get(h, "xyzzy"), "h.xyzzy is unset");
 
 		cw_hash_done(h, 1);
+		free(h);
 		res_file_free(rf);
 	}
 

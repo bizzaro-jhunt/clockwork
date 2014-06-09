@@ -103,6 +103,8 @@ SHELL_TESTS += t/memcheck/03-pn-users.t
 SHELL_TESTS += t/memcheck/04-pn-groups.t
 SHELL_TESTS += t/memcheck/05-pn-exec.t
 SHELL_TESTS += t/memcheck/06-pn-augeas.t
+SHELL_TESTS += t/memcheck/21-cwcc.t
+SHELL_TESTS += t/memcheck/22-units.t
 
 TESTS          = $(CTAP_TESTS) $(PERL_TESTS) $(SHELL_TESTS)
 BUILT_TESTS    = $(CTAP_TESTS)

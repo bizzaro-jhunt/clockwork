@@ -204,6 +204,7 @@ TESTS {
 		is_null(cw_hash_get(h, "xyzzy"), "h.xyzzy is unset (bad attr)");
 
 		cw_hash_done(h, 1);
+		free(h);
 		res_service_free(r);
 	}
 

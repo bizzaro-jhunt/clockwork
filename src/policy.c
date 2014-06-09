@@ -191,6 +191,9 @@ void manifest_free(struct manifest *m)
 
 		cw_hash_done(m->policies, 0);
 		cw_hash_done(m->hosts,    0);
+
+		free(m->policies);
+		free(m->hosts);
 	}
 	free(m);
 }
@@ -740,6 +743,8 @@ void policy_free(struct policy *pol)
 	if (pol) {
 		cw_hash_done(pol->index, 0);
 		cw_hash_done(pol->cache, 0);
+		free(pol->index);
+		free(pol->cache);
 		free(pol->name);
 	}
 	free(pol);

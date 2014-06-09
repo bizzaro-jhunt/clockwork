@@ -94,6 +94,7 @@ TESTS {
 		is_string(cw_hash_get(h, "present"),  "no", "h.present");
 
 		cw_hash_done(h, 1);
+		free(h);
 		res_host_free(rh);
 	}
 

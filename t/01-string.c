@@ -71,6 +71,7 @@ TESTS {
 		}
 
 		cw_hash_done(context, 0);
+		free(context);
 	}
 
 	subtest {
@@ -85,6 +86,7 @@ TESTS {
 		is_string(buf, "1234567", "interpolated value cut short");
 
 		cw_hash_done(context, 0);
+		free(context);
 	}
 
 	subtest {
@@ -436,6 +438,7 @@ TESTS {
 			tmp = stringlist_join(sl2, " "),
 			"ipsum dolor sit",
 			"sl2 (list of things to remove) is untouched");
+		free(tmp);
 
 		stringlist_free(sl1);
 		stringlist_free(sl2);
@@ -509,6 +512,7 @@ TESTS {
 			"alice bob candace",
 			"stringlist_uniq removed all duplicates (and sorted!)");
 		free(tmp);
+		stringlist_free(sl);
 	}
 
 	subtest {

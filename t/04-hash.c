@@ -38,6 +38,7 @@ TESTS {
 		is_string(cw_hash_get(h, "name"), name, "get h.name");
 
 		cw_hash_done(h, 0);
+		free(h);
 		free(path);
 		free(name);
 	}
@@ -59,6 +60,7 @@ TESTS {
 		is_string(cw_hash_get(h, "group"), group, "get h.group");
 
 		cw_hash_done(h, 0);
+		free(h);
 		free(path);
 		free(group);
 	}
@@ -78,6 +80,8 @@ TESTS {
 		is_string(cw_hash_get(h, "key"), value2, "cw_hash_get of second value");
 
 		cw_hash_done(h, 1);
+		free(h);
+		free(value1);
 	}
 
 	subtest {
@@ -90,6 +94,7 @@ TESTS {
 
 		is_null(cw_hash_get(h, NULL), "cw_hash_get NULL key");
 		cw_hash_done(h, 0);
+		free(h);
 	}
 
 	subtest {

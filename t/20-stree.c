@@ -294,6 +294,7 @@ TESTS {
 		is_string(user->dir, "/srv/oper/ubuntu", "user home");
 
 		cw_hash_done(facts, 0);
+		free(facts);
 		policy_free_all(pol);
 
 
@@ -317,6 +318,7 @@ TESTS {
 		is_string(file->path, "snmpd.conf", "file local path");
 
 		cw_hash_done(facts, 0);
+		free(facts);
 		policy_free_all(pol);
 	}
 
@@ -346,6 +348,7 @@ TESTS {
 		is_int(group->gid, 101, "group GID");
 
 		cw_hash_done(facts, 0);
+		free(facts);
 		policy_free_all(pol);
 
 		isnt_null(facts = facts_for_prog2(), "got facts");
@@ -376,6 +379,7 @@ TESTS {
 		is_int(i, 2, "tested both groups defined");
 
 		cw_hash_done(facts, 0);
+		free(facts);
 		policy_free_all(pol);
 	}
 

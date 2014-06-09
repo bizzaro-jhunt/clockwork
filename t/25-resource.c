@@ -56,6 +56,7 @@ TESTS {
 		is_null(cw_hash_get(h, "aliases"), "aliases attr is unset");
 
 		cw_hash_done(h, 1);
+		free(h);
 		resource_free(res);
 	}
 

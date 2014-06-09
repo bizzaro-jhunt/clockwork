@@ -98,6 +98,7 @@ TESTS {
 				"dir:parent -> group:staff");
 
 		policy_free_all(pol);
+		free(facts);
 		manifest_free(m);
 	}
 
@@ -113,6 +114,7 @@ TESTS {
 				"policy 'base' found");
 
 		policy_free_all(pol);
+		free(facts);
 		manifest_free(m);
 	}
 

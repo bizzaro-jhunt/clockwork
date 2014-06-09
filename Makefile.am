@@ -117,6 +117,7 @@ t/tmp/check-data-install.stamp:
 
 TEST_EXTRAS  = t/data t/common.pm
 TEST_EXTRAS += $(PERL_TESTS)
+TEST_EXTRAS += t/memcheck/verify
 TEST_EXTRAS += $(SHELL_TESTS)
 
 test_source  = t/test.h

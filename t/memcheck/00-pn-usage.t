@@ -1,2 +1,3 @@
 #!/bin/bash
-./t/memcheck/verify ./pn -h
+SCRIPTPATH=$(cd $(dirname $0); pwd -P);
+$SCRIPTPATH/verify ./pn -h

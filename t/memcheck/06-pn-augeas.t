@@ -1,4 +1,5 @@
 #!/bin/bash
+SCRIPTPATH=$(cd $(dirname $0); pwd -P);
 for PN in $(find t/tmp/data/pn/$X -name '*.pn'); do
-	./t/memcheck/verify ./pn --nofork $PN || exit $?
+	$SCRIPTPATH/verify ./pn --nofork $PN || exit $?
 done

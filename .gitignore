@@ -47,6 +47,7 @@ dev/
 t/tmp
 t/00-bits
 t/01-string
+t/02-pdu
 t/04-hash
 t/05-mem
 t/06-pack

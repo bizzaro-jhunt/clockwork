@@ -293,6 +293,7 @@ char * cw_cfg_get(cw_list_t *cfg, const char *key);
 int cw_cfg_isset(cw_list_t *cfg, const char *key);
 int cw_cfg_read(cw_list_t *cfg, FILE *io);
 int cw_cfg_uniq(cw_list_t *dest, cw_list_t *src);
+int cw_cfg_done(cw_list_t *cfg);
 
 
 /*

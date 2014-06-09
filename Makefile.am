@@ -53,6 +53,7 @@ gather_SCRIPTS += gather.d/time
 CTAP_TESTS =
 CTAP_TESTS += t/00-bits
 CTAP_TESTS += t/01-string
+CTAP_TESTS += t/02-pdu
 CTAP_TESTS += t/04-hash
 CTAP_TESTS += t/05-mem
 CTAP_TESTS += t/07-sha1
@@ -105,6 +106,7 @@ SHELL_TESTS += t/memcheck/05-pn-exec.t
 SHELL_TESTS += t/memcheck/06-pn-augeas.t
 SHELL_TESTS += t/memcheck/21-cwcc.t
 SHELL_TESTS += t/memcheck/22-units.t
+SHELL_TESTS += t/memcheck/31-cogd.t
 
 TESTS          = $(CTAP_TESTS) $(PERL_TESTS) $(SHELL_TESTS)
 BUILT_TESTS    = $(CTAP_TESTS)
@@ -142,6 +144,7 @@ test_source += src/gear/string.c
 
 t_00_bits_SOURCES        = t/00-bits.c          $(test_source)
 t_01_string_SOURCES      = t/01-string.c        $(test_source)
+t_02_pdu_SOURCES         = t/02-pdu.c           $(test_source)
 t_04_hash_SOURCES        = t/04-hash.c          $(test_source)
 t_05_mem_SOURCES         = t/05-mem.c           $(test_source)
 t_07_sha1_SOURCES        = t/07-sha1.c          $(test_source)
@@ -233,6 +236,9 @@ manifest:
 	@echo >&2 "nothin doin"
 
 test: check
+test-data:
+	rm -f t/tmp/check-data-install.stamp
+	make t/tmp/check-data-install.stamp
 
 ############################################################
 # Lex/YACC Parsers

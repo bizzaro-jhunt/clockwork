@@ -44,9 +44,9 @@
 typedef struct {
 	void *zmq;
 	void *listener;
-	const char *fqdn;
-	const char *gatherers;
-	const char *copydown;
+	char *fqdn;
+	char *gatherers;
+	char *copydown;
 
 	int   mode;
 	int   trace;
@@ -143,8 +143,8 @@ static void *s_connect(client_t *c)
 	for (i = (c->current_master + 1) % 8; ; i = (i + 1) % 8) {
 		if (!c->masters[i]) continue;
 
-		strcat(endpoint+6, c->masters[i]);
-		cw_log(LOG_DEBUG, "Attempting to connect to %s", endpoint);
+		strncat(endpoint+6, c->masters[i], 249);
+		cw_log(LOG_DEBUG, "Attempting to connect to %s (%s)", endpoint, c->masters[i]);
 		int rc = zmq_connect(client, endpoint);
 		assert(rc == 0);
 
@@ -155,10 +155,16 @@ static void *s_connect(client_t *c)
 				cw_log(LOG_ERR, "Unexpected %s response from master %i (%s) - expected PONG",
 					pong->type, i+1, c->masters[i]);
 
-			} else if (atoi(cw_pdu_text(pong, 1)) != PROTOCOL_VERSION) {
-				cw_log(LOG_ERR, "Upstream server speaks protocol %s (we want %i)",
-					cw_pdu_text(pong, 1), PROTOCOL_VERSION);
-			} else break;
+			} else {
+				char *vframe = cw_pdu_text(pong, 1);
+				int vers = atoi(vframe);
+				free(vframe);
+
+				if (vers != PROTOCOL_VERSION) {
+					cw_log(LOG_ERR, "Upstream server speaks protocol %i (we want %i)",
+					vers, PROTOCOL_VERSION);
+				} else break;
+			}
 
 		} else {
 			if (errno == 0)
@@ -172,9 +178,14 @@ static void *s_connect(client_t *c)
 		if (i == c->current_master) {
 			cw_log(LOG_ERR, "No masters were reachable; giving up");
 			cw_zmq_shutdown(client, 0);
+			cw_pdu_destroy(ping);
+			cw_pdu_destroy(pong);
 			return NULL;
 		};
 	}
+
+	cw_pdu_destroy(ping);
+	cw_pdu_destroy(pong);
 
 	cw_log(LOG_DEBUG, "setting current master idx to %i", i);
 	c->current_master = i;
@@ -211,7 +222,10 @@ static void s_cfm_run(client_t *c)
 	cw_pdu_t *pdu, *reply = NULL;
 
 	pdu = cw_pdu_make(NULL, 2, "HELLO", c->fqdn);
-	TIMER(&t, ms_hello) { reply = s_sendto(client, pdu, c->timeout); }
+	TIMER(&t, ms_hello) {
+		reply = s_sendto(client, pdu, c->timeout);
+		cw_pdu_destroy(pdu);
+	}
 	if (!reply) {
 		cw_log(LOG_ERR, "HELLO failed: %s", zmq_strerror(errno));
 		goto shut_it_down;
@@ -221,18 +235,22 @@ static void s_cfm_run(client_t *c)
 		char *e = cw_pdu_text(reply, 1);
 		cw_log(LOG_ERR, "protocol error: %s", e);
 		free(e);
+		cw_pdu_destroy(reply);
 		goto shut_it_down;
 	}
+	cw_pdu_destroy(reply);
 
 	pdu = cw_pdu_make(NULL, 1, "COPYDOWN");
 	TIMER(&t, ms_preinit) {
 		reply = s_sendto(client, pdu, c->timeout);
+		cw_pdu_destroy(pdu);
 	}
 	if (!reply) {
 		cw_log(LOG_ERR, "COPYDOWN failed: %s", zmq_strerror(errno));
 		goto shut_it_down;
 	}
 	cw_log(LOG_INFO, "COPYDOWN took %lums", cw_timer_ms(&t));
+	cw_pdu_destroy(reply);
 
 	TIMER(&t, ms_copydown) {
 		FILE *bdfa = tmpfile();
@@ -244,6 +262,7 @@ static void s_cfm_run(client_t *c)
 			pdu = cw_pdu_make(NULL, 2, "DATA", size);
 			rc = cw_pdu_send(client, pdu);
 			assert(rc == 0);
+			cw_pdu_destroy(pdu);
 
 			reply = cw_pdu_recv(client);
 			if (!reply) {
@@ -252,16 +271,20 @@ static void s_cfm_run(client_t *c)
 			}
 			cw_log(LOG_INFO, "received a %s PDU", reply->type);
 
-			if (strcmp(reply->type, "EOF") == 0)
+			if (strcmp(reply->type, "EOF") == 0) {
+				cw_pdu_destroy(reply);
 				break;
+			}
 			if (strcmp(reply->type, "BLOCK") != 0) {
 				cw_log(LOG_ERR, "protocol violation: received a %s PDU (expected a BLOCK)", reply->type);
+				cw_pdu_destroy(reply);
 				goto shut_it_down;
 			}
 
 			char *data = cw_pdu_text(reply, 1);
 			fwrite(data, 1, cw_pdu_framelen(reply, 1), bdfa);
 			free(data);
+			cw_pdu_destroy(reply);
 		}
 		rewind(bdfa);
 		mkdir(c->copydown, 0777);
@@ -276,10 +299,11 @@ static void s_cfm_run(client_t *c)
 	cw_hash_t facts;
 	memset(&facts, 0, sizeof(cw_hash_t));
 	TIMER(&t, ms_facts) {
+		cw_log(LOG_INFO, "Gathering facts from '%s'", c->gatherers);
 		rc = fact_gather(c->gatherers, &facts) != 0;
 	}
 	if (rc != 0) {
-		cw_log(LOG_CRIT, "Unable to gather facts frm %s", c->gatherers);
+		cw_log(LOG_CRIT, "Unable to gather facts from %s", c->gatherers);
 		goto shut_it_down;
 	}
 
@@ -288,6 +312,7 @@ static void s_cfm_run(client_t *c)
 
 	rc = fact_write(io, &facts);
 	assert(rc == 0);
+	cw_hash_done(&facts, 1);
 
 	fprintf(io, "%c", '\0');
 	size_t len = ftell(io);
@@ -302,6 +327,7 @@ static void s_cfm_run(client_t *c)
 	pdu = cw_pdu_make(NULL, 3, "POLICY", c->fqdn, factstr);
 	TIMER(&t, ms_getpolicy) {
 		reply = s_sendto(client, pdu, c->timeout);
+		cw_pdu_destroy(pdu);
 	}
 
 	munmap(factstr, len);
@@ -311,18 +337,22 @@ static void s_cfm_run(client_t *c)
 		cw_log(LOG_ERR, "POLICY failed: %s", zmq_strerror(errno));
 		goto shut_it_down;
 	}
-	cw_log(LOG_INFO, "Received a '%s' PDU", pdu->type);
+	cw_log(LOG_INFO, "Received a '%s' PDU", reply->type);
 	if (strcmp(reply->type, "ERROR") == 0) {
 		char *e = cw_pdu_text(reply, 1);
 		cw_log(LOG_ERR, "protocol error: %s", e);
 		free(e);
+		cw_pdu_destroy(reply);
 		goto shut_it_down;
 	}
 
 	char *code = cw_pdu_text(reply, 1);
+	cw_pdu_destroy(reply);
+
 	if (c->mode == MODE_CODE) {
 		cw_log(LOG_DEBUG, "dumping pendulum code to standard output");
 		printf("%s\n", code);
+		free(code);
 
 	} else {
 		pn_machine m;
@@ -333,6 +363,7 @@ static void s_cfm_run(client_t *c)
 			io = tmpfile();
 			fprintf(io, "%s", code);
 			fseek(io, 0, SEEK_SET);
+			free(code);
 
 			pn_parse(&m, io);
 		}
@@ -350,22 +381,25 @@ static void s_cfm_run(client_t *c)
 	TIMER(&t, ms_cleanup) {
 		pdu = cw_pdu_make(NULL, 1, "BYE");
 		reply = s_sendto(client, pdu, c->timeout);
+		cw_pdu_destroy(pdu);
 	}
 	if (!reply) {
 		cw_log(LOG_ERR, "BYE failed: %s", zmq_strerror(errno));
 		goto shut_it_down;
 	}
-	cw_log(LOG_INFO, "Received a '%s' PDU", pdu->type);
+	cw_log(LOG_INFO, "Received a '%s' PDU", reply->type);
 	if (strcmp(reply->type, "ERROR") == 0) {
 		char *e = cw_pdu_text(reply, 1);
 		cw_log(LOG_ERR, "protocol error: %s", e);
 		free(e);
-		goto shut_it_down;
 	}
+	cw_pdu_destroy(reply);
 
 shut_it_down:
-	cw_zmq_shutdown(client, 0);
-	cw_log(LOG_INFO, "closed connection");
+	if (client) {
+		cw_zmq_shutdown(client, 0);
+		cw_log(LOG_INFO, "closed connection");
+	}
 
 maybe_next_time:
 	cw_log(LOG_NOTICE, "complete. enforced %lu resources in %0.2lfs",
@@ -582,17 +616,16 @@ static inline client_t* s_client_new(int argc, char **argv)
 
 
 	cw_log(LOG_DEBUG, "parsing master.* definitions into endpoint records");
-	int n; char *key;
+	int n; char key[9] = "master.1";
 	c->nmasters = 0;
 	memset(c->masters, 0, sizeof(c->masters));
-	for (key = cw_string("master.%i", (n = 1));
-	     n <= 8 && key != NULL && (s = cw_cfg_get(&config, key)) != NULL;
-	     key = cw_string("master.%i", ++n)) {
-
+	for (n = 0; n < 8; n++, key[7]++) {
+		cw_log(LOG_DEBUG, "searching for %s", key);
+		s = cw_cfg_get(&config, key);
+		if (!s) break;
 		cw_log(LOG_DEBUG, "found a master: %s", s);
-		c->masters[c->nmasters++] = s;
+		c->masters[c->nmasters++] = strdup(s);
 	}
-
 
 	if (c->mode == MODE_DUMP) {
 		printf("listen          %s\n", cw_cfg_get(&config, "listen"));
@@ -616,8 +649,8 @@ static inline client_t* s_client_new(int argc, char **argv)
 		exit(2);
 	}
 
-	c->gatherers = cw_cfg_get(&config, "gatherers");
-	c->copydown  = cw_cfg_get(&config, "copydown");
+	c->gatherers = strdup(cw_cfg_get(&config, "gatherers"));
+	c->copydown  = strdup(cw_cfg_get(&config, "copydown"));
 	c->schedule.interval  = 1000 * atoi(cw_cfg_get(&config, "interval"));
 	c->timeout            = 1000 * atoi(cw_cfg_get(&config, "timeout"));
 
@@ -636,21 +669,32 @@ static inline client_t* s_client_new(int argc, char **argv)
 		free(s);
 	}
 
+	cw_cfg_done(&config);
 	return c;
+}
+
+static void s_client_free(client_t *c)
+{
+	assert(c);
+	for (; c->nmasters >= 0; free(c->masters[c->nmasters--]));
+	free(c->gatherers);
+	free(c->copydown);
+	free(c->fqdn);
+	free(c);
 }
 
 int main(int argc, char **argv)
 {
-	client_t *c = s_client_new(argc, argv);
-
 	if (getuid() != 0 || geteuid() != 0) {
 		fprintf(stderr, "%s must be run as root!\n", argv[0]);
 		exit(9);
 	}
 
+	client_t *c = s_client_new(argc, argv);
+
 	if (c->mode == MODE_ONCE || c->mode == MODE_CODE) {
 		s_cfm_run(c);
-		exit(0);
+		goto shut_it_down;
 	}
 
 	while (!cw_sig_interrupt()) {
@@ -673,9 +717,16 @@ int main(int argc, char **argv)
 		if (cw_time_ms() >= c->schedule.next_run)
 			s_cfm_run(c);
 	}
+
+shut_it_down:
 	cw_log(LOG_INFO, "shutting down");
 
-	cw_zmq_shutdown(c->listener, 500);
+	if (c->listener) {
+		cw_zmq_shutdown(c->listener, 500);
+		cw_log(LOG_INFO, "shutdown listener socket (500ms linger)");
+	}
 	zmq_ctx_destroy(c->zmq);
+	s_client_free(c);
+	cw_log_close();
 	return 0;
 }

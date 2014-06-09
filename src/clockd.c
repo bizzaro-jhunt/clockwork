@@ -112,6 +112,8 @@ static const char *FSM_ERRORS[] = {
 #define MODE_DUMP 1
 #define MODE_TEST 2
 
+#define MODE_DEBUG 0xfe
+
 typedef struct __client_t client_t;
 typedef struct __server_t server_t;
 typedef struct __ccache_t ccache_t;
@@ -718,6 +720,9 @@ static inline server_t *s_server_new(int argc, char **argv)
 
 
 	cw_log(LOG_INFO, "clockd starting up");
+	if (cw_cfg_get(&config, "super.secret.dev.mode")) {
+		s->mode = MODE_DEBUG;
+	}
 
 
 	if (s->mode == MODE_DUMP) {
@@ -794,12 +799,20 @@ int main(int argc, char **argv)
 				c->maplen = 0;
 			}
 
+			if (c->event == EVENT_BYE && s->mode == MODE_DEBUG)
+				goto finished;
+
 		} else {
 			reply = cw_pdu_make(pdu->src, 2, "ERROR", FSM_ERRORS[c->error]);
 			cw_log(LOG_DEBUG, "%s: sending back an ERROR PDU: %s", pdu->client, FSM_ERRORS[c->error]);
 			cw_pdu_send(s->listener, reply);
+
+			if (s->mode == MODE_DEBUG)
+				goto finished;
 		}
 	}
+
+finished:
 	cw_log(LOG_INFO, "shutting down");
 
 	cw_zmq_shutdown(s->listener, 500);

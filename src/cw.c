@@ -676,6 +676,9 @@ void cw_zmq_shutdown(void *zocket, int linger)
 {
 	if (linger < 0) linger = 500;
 	int rc = zmq_setsockopt(zocket, ZMQ_LINGER, &linger, sizeof(linger));
+	if (rc != 0)
+		cw_log(LOG_ERR, "failed to set ZMQ_LINGER to %i on socket %p: %s",
+			linger, zocket, zmq_strerror(errno));
 	assert(rc == 0);
 
 	rc = zmq_close(zocket);
@@ -708,6 +711,7 @@ void cw_pdu_destroy(cw_pdu_t *pdu)
 
 	cw_frame_t *f, *tmp;
 	for_each_object_safe(f, tmp, &pdu->frames, l) {
+		cw_list_delete(&f->l);
 		cw_frame_close(f);
 		free(f);
 	}
@@ -772,7 +776,7 @@ cw_pdu_t *cw_pdu_recv(void *zocket)
 
 	int body = 0;
 	cw_frame_t *f;
-	do {
+	for (;;) {
 		f = cw_frame_recv(zocket);
 		if (!f) {
 			cw_pdu_destroy(pdu);
@@ -782,6 +786,12 @@ cw_pdu_t *cw_pdu_recv(void *zocket)
 		if (!body) {
 			if (f->size == 0) {
 				body = 1;
+				int more = f->more;
+				cw_frame_close(f);
+				free(f);
+
+				if (more) continue;
+				else break;
 			} else {
 				pdu->src = f;
 			}
@@ -789,7 +799,10 @@ cw_pdu_t *cw_pdu_recv(void *zocket)
 			int rc = cw_pdu_extend(pdu, f);
 			assert(rc == 0);
 		}
-	} while (f && f->more);
+
+		if (!f->more)
+			break;
+	}
 
 	free(pdu->client);
 	pdu->client = pdu->src ? cw_frame_hex(pdu->src) : strdup("none");
@@ -800,7 +813,6 @@ cw_pdu_t *cw_pdu_recv(void *zocket)
 	free(pdu->data); pdu->data = cw_pdu_text(pdu, 1);
 	if (!pdu->data)  pdu->data = strdup(".");
 
-	//cw_pdu_dump(stderr, pdu);
 	return pdu;
 }
 
@@ -956,6 +968,18 @@ int cw_cfg_uniq(cw_list_t *dest, cw_list_t *src)
 	return 0;
 }
 
+int cw_cfg_done(cw_list_t *cfg)
+{
+	cw_keyval_t *kv, *tmp;
+	for_each_object_safe(kv, tmp, cfg, l) {
+		free(kv->key);
+		free(kv->val);
+		cw_list_delete(&kv->l);
+		free(kv);
+	}
+	return 0;
+}
+
 /*
     ##        #######   ######    ######
     ##       ##     ## ##    ##  ##    ##
@@ -1020,6 +1044,7 @@ void cw_log_close(void)
 	if (CW_LOG.console) {
 		fclose(CW_LOG.console);
 		CW_LOG.console = NULL;
+		free(CW_LOG.ident);
 	} else {
 		closelog();
 	}
@@ -1644,6 +1669,8 @@ int cw_bdfa_unpack(int in, const char *root)
 			perror(filename);
 			rc = 1;
 		}
+
+		free(filename);
 	}
 	umask(umsk);
 	if (fchdir(cwd) != 0)

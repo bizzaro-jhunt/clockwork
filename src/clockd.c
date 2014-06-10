@@ -371,8 +371,8 @@ static int s_state_machine(client_t *fsm, cw_pdu_t *pdu, cw_pdu_t **reply)
 
 		fsm->io = resource_content(r, fsm->facts);
 		if (!fsm->io) {
-			cw_log(LOG_ERR, "failed to generate content for %s: %s",
-				r->key, strerror(errno));
+			cw_log(LOG_ERR, "failed to generate content for %s (on behalf of %s): %s",
+				r->key, fsm->name, strerror(errno));
 			fsm->error = FSM_ERR_INTERNAL;
 			return 1;
 		}

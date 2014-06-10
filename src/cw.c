@@ -716,6 +716,11 @@ void cw_pdu_destroy(cw_pdu_t *pdu)
 		free(f);
 	}
 
+	if (pdu->src) {
+		cw_frame_close(pdu->src);
+		free(pdu->src);
+	}
+
 	free(pdu);
 }
 
@@ -793,6 +798,7 @@ cw_pdu_t *cw_pdu_recv(void *zocket)
 				if (more) continue;
 				else break;
 			} else {
+				assert(!pdu->src);
 				pdu->src = f;
 			}
 		} else {
@@ -1556,6 +1562,7 @@ int cw_bdfa_pack(int out, const char *root)
 		n = write(out, path, namelen);
 		if (n < namelen)
 			cw_log(LOG_ERR, "short write: %s", strerror(errno));
+		free(path);
 
 		if (contents && filelen >= 0) {
 			n = write(out, contents, filelen);
@@ -1564,6 +1571,7 @@ int cw_bdfa_pack(int out, const char *root)
 			munmap(contents, filelen);
 		}
 	}
+	fts_close(fts);
 
 	memset(&h, '0', sizeof(h));
 	memcpy(h.magic, "BDFA", 4);

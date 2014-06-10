@@ -242,7 +242,7 @@ static int s_state_machine(client_t *fsm, cw_pdu_t *pdu, cw_pdu_t **reply)
 			fsm->offset = 0;
 
 		case STATE_POLICY:
-			cw_hash_done(fsm->facts, 0);
+			cw_hash_done(fsm->facts, 1);
 			fsm->facts = NULL;
 			policy_free(fsm->policy);
 			fsm->policy = NULL;
@@ -312,7 +312,7 @@ static int s_state_machine(client_t *fsm, cw_pdu_t *pdu, cw_pdu_t **reply)
 			fsm->offset = 0;
 
 		case STATE_POLICY:
-			cw_hash_done(fsm->facts, 0);
+			cw_hash_done(fsm->facts, 1);
 			fsm->facts = NULL;
 			policy_free(fsm->policy);
 			fsm->policy = NULL;
@@ -456,9 +456,10 @@ static int s_state_machine(client_t *fsm, cw_pdu_t *pdu, cw_pdu_t **reply)
 			fsm->offset = 0;
 
 		case STATE_POLICY:
-			cw_hash_done(fsm->facts, 0);
+			cw_hash_done(fsm->facts, 1);
+			free(fsm->facts);
 			fsm->facts = NULL;
-			policy_free(fsm->policy);
+			policy_free_all(fsm->policy);
 			fsm->policy = NULL;
 
 		case STATE_IDENTIFIED:
@@ -480,7 +481,7 @@ static int s_state_machine(client_t *fsm, cw_pdu_t *pdu, cw_pdu_t **reply)
 	return 1;
 }
 
-ccache_t* s_ccache_init(size_t num_conns, int32_t min_life)
+static ccache_t* s_ccache_init(size_t num_conns, int32_t min_life)
 {
 	ccache_t *cc = cw_alloc(
 			sizeof(ccache_t) +
@@ -489,14 +490,16 @@ ccache_t* s_ccache_init(size_t num_conns, int32_t min_life)
 	cc->min_life = min_life;
 	return cc;
 }
-static void s_ccache_purge(ccache_t *c)
+
+static void s_ccache_purge(ccache_t *c, int force)
 {
 	int32_t now = cw_time_s();
 	int n = 0;
 	size_t i;
 	for (i = 0; i < c->len; i++) {
-		if (c->clients[i].last_seen == 0
-		 || c->clients[i].last_seen >= now - c->min_life)
+		if (!force &&
+		     (c->clients[i].last_seen == 0
+		   || c->clients[i].last_seen >= now - c->min_life))
 			continue;
 
 		cw_log(LOG_DEBUG, "purging %p, last_seen=%i, name=%s, %s facts, %s policy",
@@ -504,26 +507,42 @@ static void s_ccache_purge(ccache_t *c)
 			(c->clients[i].facts  ? "has" : "no"),
 			(c->clients[i].policy ? "has" : "no"));
 
-		free(c->clients[i].ident);
-		c->clients[i].ident = NULL;
+		if (c->clients[i].ident) {
+			cw_frame_close(c->clients[i].ident);
+			free(c->clients[i].ident);
+			c->clients[i].ident = NULL;
+		}
 		free(c->clients[i].rident);
 		c->clients[i].rident = NULL;
 
 		free(c->clients[i].name);
 		c->clients[i].name = NULL;
 
-		if (c->clients[i].facts)
-			cw_hash_done(c->clients[i].facts, 0);
+		if (c->clients[i].facts) {
+			cw_hash_done(c->clients[i].facts, 1);
+			free(c->clients[i].facts);
+			c->clients[i].facts = NULL;
+		}
 
 		if (c->clients[i].io)
 			fclose(c->clients[i].io);
 		c->clients[i].io        = NULL;
 		c->clients[i].offset    = 0;
 		c->clients[i].last_seen = 0;
+
+		if (c->clients[i].policy)
+			policy_free_all(c->clients[i].policy);
 		n++;
 	}
 	if (n) cw_log(LOG_INFO, "purged %i ccache entries", n);
 }
+
+static void s_ccache_destroy(ccache_t *c)
+{
+	s_ccache_purge(c, 1);
+	free(c);
+}
+
 static size_t s_ccache_index(cw_frame_t *ident, ccache_t *c)
 {
 	size_t i;
@@ -533,6 +552,7 @@ static size_t s_ccache_index(cw_frame_t *ident, ccache_t *c)
 			break;
 	return i;
 }
+
 static size_t s_ccache_next(ccache_t *c)
 {
 	size_t i;
@@ -541,6 +561,7 @@ static size_t s_ccache_next(ccache_t *c)
 			break;
 	return i;
 }
+
 static client_t* s_ccache_find(cw_frame_t *ident, ccache_t *c)
 {
 	size_t i = s_ccache_index(ident, c);
@@ -548,7 +569,7 @@ static client_t* s_ccache_find(cw_frame_t *ident, ccache_t *c)
 		i = s_ccache_next(c);
 		if (i >= c->len)
 			return NULL;
-		c->clients[i].ident = cw_frame_copy(ident);
+		c->clients[i].ident  = cw_frame_copy(ident);
 		c->clients[i].rident = cw_frame_hex(ident);
 		c->clients[i].io = NULL;
 		c->clients[i].offset = 0;
@@ -739,7 +760,7 @@ static inline server_t *s_server_new(int argc, char **argv)
 	}
 
 
-	s->copydown = cw_cfg_get(&config, "copydown");
+	s->copydown = strdup(cw_cfg_get(&config, "copydown"));
 	s->manifest = parse_file(cw_cfg_get(&config, "manifest"));
 	if (!s->manifest) {
 		if (errno)
@@ -764,7 +785,16 @@ static inline server_t *s_server_new(int argc, char **argv)
 	zmq_bind(s->listener, t);
 	free(t);
 
+	cw_cfg_done(&config);
 	return s;
+}
+
+static inline void s_server_destroy(server_t *s)
+{
+	s_ccache_destroy(s->ccache);
+	manifest_free(s->manifest);
+	free(s->copydown);
+	free(s);
 }
 
 int main(int argc, char **argv)
@@ -776,12 +806,14 @@ int main(int argc, char **argv)
 		pdu = cw_pdu_recv(s->listener);
 		if (!pdu) continue;
 
-		s_ccache_purge(s->ccache);
+		s_ccache_purge(s->ccache, 0);
 		client_t *c = s_ccache_find(pdu->src, s->ccache);
 		if (!c) {
 			cw_log(LOG_CRIT, "max connections reached!");
 			reply = cw_pdu_make(pdu->src, 2, "ERROR", "Server busy; try again later\n");
 			cw_pdu_send(s->listener, reply);
+			cw_pdu_destroy(pdu);
+			cw_pdu_destroy(reply);
 			continue;
 		}
 
@@ -792,6 +824,8 @@ int main(int argc, char **argv)
 			cw_log(LOG_DEBUG, "%s: fsm is now at %s [%i]", pdu->client, FSM_STATES[c->state], c->state);
 			cw_log(LOG_DEBUG, "%s: sending back a %s PDU", pdu->client, reply->type);
 			cw_pdu_send(s->listener, reply);
+			cw_pdu_destroy(pdu);
+			cw_pdu_destroy(reply);
 
 			if (c->mapped) {
 				munmap(c->mapped, c->maplen);
@@ -806,6 +840,8 @@ int main(int argc, char **argv)
 			reply = cw_pdu_make(pdu->src, 2, "ERROR", FSM_ERRORS[c->error]);
 			cw_log(LOG_DEBUG, "%s: sending back an ERROR PDU: %s", pdu->client, FSM_ERRORS[c->error]);
 			cw_pdu_send(s->listener, reply);
+			cw_pdu_destroy(pdu);
+			cw_pdu_destroy(reply);
 
 			if (s->mode == MODE_DEBUG)
 				goto finished;
@@ -817,5 +853,8 @@ finished:
 
 	cw_zmq_shutdown(s->listener, 500);
 	zmq_ctx_destroy(s->zmq);
+	s_server_destroy(s);
+
+	cw_log_close();
 	return 0;
 }

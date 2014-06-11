@@ -207,8 +207,9 @@ static void s_cfm_run(client_t *c)
 	         ms_enforce    = 0,
 	         ms_cleanup    = 0;
 
-	cw_log(LOG_INFO, "Starting configuration run (%i > %i)",
-		cw_time_ms(), c->schedule.next_run);
+	cw_log(LOG_NOTICE, "Starting configuration run");
+	cw_log(LOG_INFO, "Scheduled run at %ims, it is now %ims",
+		c->schedule.next_run, cw_time_ms());
 	c->schedule.next_run = cw_time_ms() + c->schedule.interval;
 
 	cw_log(LOG_DEBUG, "connecting to one of the masters");

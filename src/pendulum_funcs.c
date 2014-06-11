@@ -369,7 +369,6 @@ typedef struct {
 	augeas        *aug_ctx;
 	char          *aug_last;
 
-	char          *rsha1;
 	struct SHA1    lsha1;
 } udata;
 
@@ -886,6 +885,7 @@ static pn_word uf_server_sha1(pn_machine *m)
 	pdu = cw_pdu_make(NULL, 2, "FILE", (const char *)m->A);
 	int rc = cw_pdu_send(UDATA(m)->zconn, pdu);
 	assert(rc == 0);
+	cw_pdu_destroy(pdu);
 
 	reply = cw_pdu_recv(UDATA(m)->zconn);
 	if (!reply) {
@@ -897,16 +897,21 @@ static pn_word uf_server_sha1(pn_machine *m)
 		char *e = cw_pdu_text(reply, 1);
 		cw_log(LOG_ERR, "SERVER.SHA1 protocol violation: %s", e);
 		free(e);
+		cw_pdu_destroy(reply);
 		return 1;
 	}
 
 	if (strcmp(reply->type, "SHA1") == 0) {
-		free(UDATA(m)->rsha1);
-		m->S2 = (pn_word)(UDATA(m)->rsha1 = cw_pdu_text(reply, 1));
+		char *s = cw_pdu_text(reply, 1);
+		pn_heap_purge(m);
+		pn_heap_add(m, s);
+		m->S2 = (pn_word)s;
+		cw_pdu_destroy(reply);
 		return 0;
 	}
 
 	cw_log(LOG_ERR, "Unexpected PDU received.");
+	cw_pdu_destroy(reply);
 	return 1;
 }
 
@@ -1271,21 +1276,24 @@ static int _sgdb_close(pn_machine *m)
 	return 0;
 }
 
-static pn_word uf_userdb_open(pn_machine *m)
-{
-	if (_pwdb_open(m) == 0 && _spdb_open(m) == 0
-	 && _grdb_open(m) == 0 && _sgdb_open(m) == 0) return 0;
-
-	_sgdb_close(m); _grdb_close(m);
-	_spdb_close(m); _pwdb_close(m);
-	return 1;
-}
-
 static pn_word uf_userdb_close(pn_machine *m)
 {
 	_sgdb_close(m); _grdb_close(m);
 	_spdb_close(m); _pwdb_close(m);
 	return 0;
+}
+
+static pn_word uf_userdb_open(pn_machine *m)
+{
+	/* in case it wasn't closed from a previous open */
+	uf_userdb_close(m);
+
+	if (_pwdb_open(m) == 0 && _spdb_open(m) == 0
+	 && _grdb_open(m) == 0 && _sgdb_open(m) == 0) return 0;
+
+	/* open failed */
+	uf_userdb_close(m);
+	return 1;
 }
 
 static pn_word uf_userdb_save(pn_machine *m)

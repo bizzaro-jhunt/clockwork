@@ -112,8 +112,6 @@ static const char *FSM_ERRORS[] = {
 #define MODE_DUMP 1
 #define MODE_TEST 2
 
-#define MODE_DEBUG 0xfe
-
 typedef struct __client_t client_t;
 typedef struct __server_t server_t;
 typedef struct __ccache_t ccache_t;
@@ -741,9 +739,6 @@ static inline server_t *s_server_new(int argc, char **argv)
 
 
 	cw_log(LOG_INFO, "clockd starting up");
-	if (cw_cfg_get(&config, "super.secret.dev.mode")) {
-		s->mode = MODE_DEBUG;
-	}
 
 
 	if (s->mode == MODE_DUMP) {
@@ -799,6 +794,10 @@ static inline void s_server_destroy(server_t *s)
 
 int main(int argc, char **argv)
 {
+#ifdef UNIT_TESTS
+	/* only let unit tests run for 60s */
+	alarm(60);
+#endif
 	server_t *s = s_server_new(argc, argv);
 	cw_sig_catch();
 	while (!cw_sig_interrupt()) {
@@ -833,8 +832,10 @@ int main(int argc, char **argv)
 				c->maplen = 0;
 			}
 
-			if (c->event == EVENT_BYE && s->mode == MODE_DEBUG)
-				goto finished;
+#ifdef UNIT_TESTS
+			if (c->event == EVENT_BYE)
+				goto unit_tests_finished;
+#endif
 
 		} else {
 			reply = cw_pdu_make(pdu->src, 2, "ERROR", FSM_ERRORS[c->error]);
@@ -843,12 +844,15 @@ int main(int argc, char **argv)
 			cw_pdu_destroy(pdu);
 			cw_pdu_destroy(reply);
 
-			if (s->mode == MODE_DEBUG)
-				goto finished;
+#ifdef UNIT_TESTS
+			goto unit_tests_finished;
+#endif
 		}
 	}
 
-finished:
+#ifdef UNIT_TESTS
+unit_tests_finished:
+#endif
 	cw_log(LOG_INFO, "shutting down");
 
 	cw_zmq_shutdown(s->listener, 500);

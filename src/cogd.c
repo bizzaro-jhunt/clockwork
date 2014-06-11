@@ -548,10 +548,6 @@ static inline client_t* s_client_new(int argc, char **argv)
 			c->mode = MODE_CODE;
 			c->daemonize = 0;
 			break;
-
-		case (char)254:
-			cw_log(LOG_DEBUG, "handling --skip-root");
-			break;
 		}
 	}
 	cw_log(LOG_DEBUG, "option processing complete");
@@ -690,10 +686,15 @@ static void s_client_free(client_t *c)
 
 int main(int argc, char **argv)
 {
-	if (!getenv("COGD_SKIP_ROOT") && (getuid() != 0 || geteuid() != 0)) {
+#ifdef UNIT_TESTS
+	/* only let unit tests run for 60s */
+	alarm(60);
+#else
+	if (getuid() != 0 || geteuid() != 0) {
 		fprintf(stderr, "%s must be run as root!\n", argv[0]);
 		exit(9);
 	}
+#endif
 
 	client_t *c = s_client_new(argc, argv);
 

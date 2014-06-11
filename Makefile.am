@@ -111,7 +111,7 @@ SHELL_TESTS += t/memcheck/32-clockd.t
 
 TESTS          = $(CTAP_TESTS) $(PERL_TESTS) $(SHELL_TESTS)
 BUILT_TESTS    = $(CTAP_TESTS)
-check_PROGRAMS = $(CTAP_TESTS)
+check_PROGRAMS = $(CTAP_TESTS) TEST_cogd TEST_clockd
 check_DATA     = t/tmp/check-data-install.stamp
 t/tmp/check-data-install.stamp:
 	mkdir -p t/tmp
@@ -143,6 +143,8 @@ test_source += src/gear/gear.h
 test_source += src/gear/path.c
 test_source += src/gear/string.c
 
+TEST_cogd_SOURCES        = t/test-cogd.c $(core_src) $(parser_spec_src) $(pendulum_src)
+TEST_clockd_SOURCES      = t/test-clockd.c $(core_src) $(parser_spec_src)
 t_00_bits_SOURCES        = t/00-bits.c          $(test_source)
 t_01_string_SOURCES      = t/01-string.c        $(test_source)
 t_02_pdu_SOURCES         = t/02-pdu.c           $(test_source)

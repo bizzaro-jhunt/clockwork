@@ -23,6 +23,8 @@ stamp-h?
 /cogd
 /fact
 /bdfa
+/TEST_cogd
+/TEST_clockd
 
 config.h
 

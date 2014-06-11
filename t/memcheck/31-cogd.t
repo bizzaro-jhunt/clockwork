@@ -4,6 +4,5 @@ export COGD_SKIP_ROOT=1
 ETC=t/tmp/data/memcheck
 SCRIPTPATH=$(cd $(dirname $0); pwd -P);
 
-./clockd -c $ETC/clockd.conf -F &
-./cogd -c $ETC/cogd.conf -X
-$SCRIPTPATH/verify ./cogd -c $ETC/cogd.conf -X || exit $?
+./TEST_clockd -c $ETC/clockd.conf -F &
+$SCRIPTPATH/verify ./TEST_cogd -c $ETC/cogd.conf -X || exit $?

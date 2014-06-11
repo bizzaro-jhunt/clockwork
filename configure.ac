@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.68)
-AC_INIT([Clockwork], [2.0.7], [bugs@niftylogic.com])
+AC_INIT([Clockwork], [2.0.8], [bugs@niftylogic.com])
 
 AC_CONFIG_SRCDIR([src/cw.h])
 AC_CONFIG_AUX_DIR([build])

@@ -1042,7 +1042,8 @@ void cw_log_open(const char *ident, const char *facility)
 	        :                                   LOG_DAEMON;
 
 	CW_LOG.console = NULL;
-	openlog(ident, LOG_PID, fac);
+	closelog();
+	openlog(CW_LOG.ident, LOG_PID, fac);
 }
 
 void cw_log_close(void)
@@ -1050,10 +1051,12 @@ void cw_log_close(void)
 	if (CW_LOG.console) {
 		fclose(CW_LOG.console);
 		CW_LOG.console = NULL;
-		free(CW_LOG.ident);
 	} else {
 		closelog();
 	}
+
+	free(CW_LOG.ident);
+	CW_LOG.ident = NULL;
 }
 
 int cw_log_level(int level, const char *name)

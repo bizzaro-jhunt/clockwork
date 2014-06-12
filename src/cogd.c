@@ -28,6 +28,7 @@
 #include <sys/mman.h>
 #include <netdb.h>
 #include <getopt.h>
+#include <fcntl.h>
 
 #include "policy.h"
 
@@ -47,6 +48,8 @@ typedef struct {
 	char *fqdn;
 	char *gatherers;
 	char *copydown;
+
+	char *cfm_lock;
 
 	int   mode;
 	int   trace;
@@ -206,6 +209,16 @@ static void s_cfm_run(client_t *c)
 	         ms_parse      = 0,
 	         ms_enforce    = 0,
 	         ms_cleanup    = 0;
+
+	int lockfd = -1;
+	if (c->mode != MODE_CODE) {
+		cw_log(LOG_DEBUG, "acquiring CFM lock '%s'", c->cfm_lock);
+		lockfd = open(c->cfm_lock, O_CREAT|O_EXCL|O_WRONLY, 0644);
+		if (lockfd < 0) {
+			cw_log(LOG_WARNING, "Another configuration management run in progress; skipping.");
+			goto maybe_next_time;
+		}
+	}
 
 	cw_log(LOG_NOTICE, "Starting configuration run");
 	cw_log(LOG_INFO, "Scheduled run at %ims, it is now %ims",
@@ -402,7 +415,6 @@ shut_it_down:
 		cw_log(LOG_INFO, "closed connection");
 	}
 
-maybe_next_time:
 	cw_log(LOG_NOTICE, "complete. enforced %lu resources in %0.2lfs",
 		count,
 		(ms_connect  + ms_hello   + ms_preinit +
@@ -415,6 +427,16 @@ maybe_next_time:
 	                             ms_connect,      ms_hello,       ms_preinit,
 	                             ms_copydown,     ms_facts,       ms_getpolicy,
 	                             ms_parse,        ms_enforce,     ms_cleanup);
+
+maybe_next_time:
+	if (lockfd >= 0) {
+		cw_log(LOG_DEBUG, "releasing CFM lock '%s'", c->cfm_lock);
+		close(lockfd);
+		rc = unlink(c->cfm_lock);
+		if (rc != 0)
+			cw_log(LOG_ERR, "Failed to release CFM lock '%s': %s",
+					c->cfm_lock, strerror(errno));
+	}
 
 	if (c->mode == MODE_ONCE || c->mode == MODE_CODE)
 		return;
@@ -438,6 +460,7 @@ static inline client_t* s_client_new(int argc, char **argv)
 	cw_cfg_set(&config, "syslog.facility", "daemon");
 	cw_cfg_set(&config, "syslog.level",    "error");
 	cw_cfg_set(&config, "pidfile",         "/var/run/cogd.pid");
+	cw_cfg_set(&config, "lockdir",         "/var/lock/cogd");
 
 	cw_log_open(cw_cfg_get(&config, "syslog.ident"), "stderr");
 	cw_log_level(0, (getenv("COGD_DEBUG") ? "debug" : "error"));
@@ -451,6 +474,7 @@ static inline client_t* s_client_new(int argc, char **argv)
 	cw_log(LOG_DEBUG, "  syslog.facility %s", cw_cfg_get(&config, "syslog.facility"));
 	cw_log(LOG_DEBUG, "  syslog.level    %s", cw_cfg_get(&config, "syslog.level"));
 	cw_log(LOG_DEBUG, "  pidfile         %s", cw_cfg_get(&config, "pidfile"));
+	cw_log(LOG_DEBUG, "  lockdir         %s", cw_cfg_get(&config, "lockdir"));
 
 
 	cw_log(LOG_DEBUG, "processing command-line options");
@@ -641,6 +665,7 @@ static inline client_t* s_client_new(int argc, char **argv)
 		printf("syslog.facility %s\n", cw_cfg_get(&config, "syslog.facility"));
 		printf("syslog.level    %s\n", cw_cfg_get(&config, "syslog.level"));
 		printf("pidfile         %s\n", cw_cfg_get(&config, "pidfile"));
+		printf("lockdir         %s\n", cw_cfg_get(&config, "lockdir"));
 		exit(0);
 	}
 
@@ -670,6 +695,11 @@ static inline client_t* s_client_new(int argc, char **argv)
 		free(s);
 	}
 
+	c->cfm_lock = cw_string("%s/%s",
+		cw_cfg_get(&config, "lockdir"),
+		"cfm.lock");
+	cw_log(LOG_DEBUG, "will use CFM lock file '%s'", c->cfm_lock);
+
 	cw_cfg_done(&config);
 	return c;
 }
@@ -681,6 +711,9 @@ static void s_client_free(client_t *c)
 	free(c->gatherers);
 	free(c->copydown);
 	free(c->fqdn);
+	if (c->cfm_lock)
+		unlink(c->cfm_lock);
+	free(c->cfm_lock);
 	free(c);
 }
 

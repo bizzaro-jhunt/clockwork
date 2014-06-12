@@ -130,6 +130,23 @@ Defaults to \fI/var/run/cogd.conf\fR.
 .RE
 
 .PP
+\fBlockdir\fR \- Where to store coordination locks
+.PP
+.RS 4
+.PP
+Certain actions that \fBcogd\fR performs should only be executed
+by a single process at any given point in time.  To help coordinate
+this, and still enable one-off runs, \fBcogd\fR creates lock files
+that serve as advisory locks to other \fBcogd\fR processes.
+.PP
+This setting lets you relocate the directory where these lock files
+are created.  Note that anyone wishing to run \fBcogd\fR must be
+allowed to write to this directory.
+.PP
+Defaults to \fI/var/lock/cogd\fR.
+.RE
+
+.PP
 \fBsyslog.ident\fR \- Syslog identity string
 .PP
 .RS 4

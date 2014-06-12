@@ -221,8 +221,8 @@ static void s_cfm_run(client_t *c)
 	}
 
 	cw_log(LOG_NOTICE, "Starting configuration run");
-	cw_log(LOG_INFO, "Scheduled run at %ims, it is now %ims",
-		c->schedule.next_run, cw_time_ms());
+	cw_log(LOG_INFO, "run was scheduled to start at %s",
+		cw_time_strf(NULL, c->schedule.next_run / 1000));
 	c->schedule.next_run = cw_time_ms() + c->schedule.interval;
 
 	cw_log(LOG_DEBUG, "connecting to one of the masters");
@@ -440,8 +440,11 @@ maybe_next_time:
 
 	if (c->mode == MODE_ONCE || c->mode == MODE_CODE)
 		return;
-	cw_log(LOG_INFO, "Scheduled next configuration run at %i (in %i ms)",
-		c->schedule.next_run, c->schedule.next_run - cw_time_ms());
+
+	cw_log(LOG_INFO, "Scheduled next configuration run at %s (every %li %s)",
+		cw_time_strf(NULL, c->schedule.next_run / 1000),
+		c->schedule.interval / (c->schedule.interval > 120000 ? 60000 : 1000),
+		(c->schedule.interval > 120000 ? "minutes" : "seconds"));
 }
 
 static inline client_t* s_client_new(int argc, char **argv)

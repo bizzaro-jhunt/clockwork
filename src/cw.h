@@ -192,6 +192,7 @@ int cw_hash_merge(cw_hash_t *a, cw_hash_t *b);
 
 int32_t cw_time_s(void);
 int64_t cw_time_ms(void);
+const char *cw_time_strf(const char *fmt, int32_t s);
 int cw_sleep_ms(int64_t ms);
 
 /*

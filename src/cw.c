@@ -433,6 +433,21 @@ int64_t cw_time_ms(void)
 	return (int64_t) ((int64_t) tv.tv_sec * 1000 + (int64_t) tv.tv_usec / 1000);
 }
 
+const char *cw_time_strf(const char *fmt, int32_t s)
+{
+	static char buf[1024];
+
+	time_t ts = (time_t)s;
+	struct tm tm;
+	if (!localtime_r(&ts, &tm))
+		return NULL;
+
+	if (!fmt) fmt = "%x %X";
+	size_t n = strftime(buf, sizeof(buf)-1, fmt, &tm);
+	buf[n] = '\0';
+	return buf;
+}
+
 int cw_sleep_ms(int64_t ms)
 {
 	struct timespec ts;

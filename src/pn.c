@@ -83,12 +83,42 @@ int main(int argc, char **argv)
 	cw_log_open(ident, facility);
 	cw_log_level(log_level, NULL);
 
-	cw_log(LOG_INFO, "reading from %s", argv[optind]);
-	FILE *io = fopen(argv[optind], "r");
-	if (!io) {
-		fprintf(stderr, "Failed to open %s: %s\n",
-				argv[optind], strerror(errno));
-		return 2;
+	FILE *io;
+	if (strcmp(argv[optind], "-") == 0) {
+		cw_log(LOG_INFO, "reading from standard input");
+		io = tmpfile();
+		if (!io) {
+			cw_log(LOG_ERR, "failed to create temporary file: %s", strerror(errno));
+			return 2;
+		}
+		char buf[8192];
+		size_t nread, nwrit;
+		for (;;) {
+			nread = fread(buf, 1, 8192, stdin);
+			cw_log(LOG_DEBUG, "read %li bytes from stdin", nread);
+			if (nread <= 0) {
+				if (feof(stdin)) break;
+				cw_log(LOG_ERR, "read failed: %s", strerror(errno));
+				fclose(io);
+				return 2;
+			}
+
+			nwrit = fwrite(buf, 1, nread, io);
+			cw_log(LOG_DEBUG, "wrote %li bytes to temporary file", nwrit);
+			if (nwrit != nread) {
+				cw_log(LOG_ERR, "failed to write to temp file: %s", strerror(errno));
+				fclose(io);
+				return 2;
+			}
+		}
+	} else {
+		cw_log(LOG_INFO, "reading from %s", argv[optind]);
+		io = fopen(argv[optind], "r");
+		if (!io) {
+			fprintf(stderr, "Failed to open %s: %s\n",
+					argv[optind], strerror(errno));
+			return 2;
+		}
 	}
 
 	pn_machine m;

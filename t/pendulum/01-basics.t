@@ -7,6 +7,9 @@ use t::common;
 
 my $TESTS = "t/tmp/data/pn/basics";
 
+qx(echo 'HALT' | ./pn -);
+is $?, 0, "qx/echo HALT | ./pn/ should exit 0 (read from stdin)";
+
 pendulum_ok "$TESTS/simple.pn", <<EOF, "simple.pn";
 Hello, World!
 EOF

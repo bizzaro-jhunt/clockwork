@@ -857,7 +857,7 @@ static pn_word uf_exec_run1(pn_machine *m)
 
 	for (p = out; *p && *p != '\n'; p++);
 	*p = '\0';
-	pn_trace(m, "first line of output was '%s'", out);
+	pn_trace(m, "first line of output was '%s'\n", out);
 
 	m->S2 = (pn_word)out;
 	pn_heap_purge(m);

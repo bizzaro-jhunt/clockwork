@@ -86,7 +86,7 @@ on_debian () {
 	pkg-latest)
 		NAME=$1
 		if test -x /usr/bin/apt-cache; then
-			/usr/bin/apt-cache policy $NAME | grep Candidate | sed -e 's/.*: *//' | tr -d '\n'
+			/usr/bin/apt-cache policy $NAME | grep Candidate | sed -e 's/[^:]*: *//' | tr -d '\n'
 			exit $?
 		fi
 		exit 0

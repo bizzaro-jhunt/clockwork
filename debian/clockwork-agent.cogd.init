@@ -85,7 +85,7 @@ start)
 	do_start
 	case "$?" in
 		0|1) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
-		2) [ "$VERBOSE" != no ] && log_end_msg 1 ;;
+		2)   [ "$VERBOSE" != no ] && log_end_msg 1 ;;
 	esac
 	;;
 stop)
@@ -93,32 +93,32 @@ stop)
 	do_stop
 	case "$?" in
 		0|1) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
-		2) [ "$VERBOSE" != no ] && log_end_msg 1 ;;
+		2)   [ "$VERBOSE" != no ] && log_end_msg 1 ;;
 	esac
 	;;
 status)
 	status_of_proc "$DAEMON" "$NAME" && exit 0 || exit $?
 	;;
 reload|force-reload)
-	log_daemon_msg "Reloading $DESC" "$NAME"
+	[ "$VERBOSE" != no ] && log_daemon_msg "Reloading $DESC" "$NAME"
 	do_reload
-	log_end_msg $?
+	[ "$VERBOSE" != no ] && log_end_msg $?
 	;;
 restart)
-	log_daemon_msg "Restarting $DESC" "$NAME"
+	[ "$VERBOSE" != no ] && log_daemon_msg "Restarting $DESC" "$NAME"
 	do_stop
 	case "$?" in
 	0|1)
 		do_start
 		case "$?" in
-		0) log_end_msg 0 ;;
-		1) log_end_msg 1 ;; # Old process is still running
-		*) log_end_msg 1 ;; # Failed to start
+		0) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
+		1) [ "$VERBOSE" != no ] && log_end_msg 1 ;; # Old process is still running
+		*) [ "$VERBOSE" != no ] && log_end_msg 1 ;; # Failed to start
 		esac
 		;;
 	*)
 		# Failed to stop
-		log_end_msg 1
+		[ "$VERBOSE" != no ] && log_end_msg 1
 		;;
 	esac
 	;;

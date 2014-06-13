@@ -461,33 +461,6 @@ static inline client_t* s_client_new(int argc, char **argv)
 	client_t *c = cw_alloc(sizeof(client_t));
 	c->daemonize = 1;
 
-	LIST(config);
-	cw_cfg_set(&config, "listen",          "*:2304");
-	cw_cfg_set(&config, "timeout",         "5");
-	cw_cfg_set(&config, "gatherers",       CW_GATHER_DIR "/*");
-	cw_cfg_set(&config, "copydown",        CW_GATHER_DIR);
-	cw_cfg_set(&config, "interval",        "300");
-	cw_cfg_set(&config, "syslog.ident",    "cogd");
-	cw_cfg_set(&config, "syslog.facility", "daemon");
-	cw_cfg_set(&config, "syslog.level",    "error");
-	cw_cfg_set(&config, "pidfile",         "/var/run/cogd.pid");
-	cw_cfg_set(&config, "lockdir",         "/var/lock/cogd");
-
-	cw_log_open(cw_cfg_get(&config, "syslog.ident"), "stderr");
-	cw_log_level(0, (getenv("COGD_DEBUG") ? "debug" : "error"));
-	cw_log(LOG_DEBUG, "default configuration:");
-	cw_log(LOG_DEBUG, "  listen          %s", cw_cfg_get(&config, "listen"));
-	cw_log(LOG_DEBUG, "  timeout         %s", cw_cfg_get(&config, "timeout"));
-	cw_log(LOG_DEBUG, "  gatherers       %s", cw_cfg_get(&config, "gatherers"));
-	cw_log(LOG_DEBUG, "  copydown        %s", cw_cfg_get(&config, "copydown"));
-	cw_log(LOG_DEBUG, "  interval        %s", cw_cfg_get(&config, "interval"));
-	cw_log(LOG_DEBUG, "  syslog.ident    %s", cw_cfg_get(&config, "syslog.ident"));
-	cw_log(LOG_DEBUG, "  syslog.facility %s", cw_cfg_get(&config, "syslog.facility"));
-	cw_log(LOG_DEBUG, "  syslog.level    %s", cw_cfg_get(&config, "syslog.level"));
-	cw_log(LOG_DEBUG, "  pidfile         %s", cw_cfg_get(&config, "pidfile"));
-	cw_log(LOG_DEBUG, "  lockdir         %s", cw_cfg_get(&config, "lockdir"));
-
-
 	cw_log(LOG_DEBUG, "processing command-line options");
 	const char *short_opts = "h?vqVc:FdTX1";
 	struct option long_opts[] = {
@@ -589,6 +562,33 @@ static inline client_t* s_client_new(int argc, char **argv)
 	cw_log(LOG_DEBUG, "running in mode %i\n", c->mode);
 
 
+	LIST(config);
+	cw_cfg_set(&config, "listen",          "*:2304");
+	cw_cfg_set(&config, "timeout",         "5");
+	cw_cfg_set(&config, "gatherers",       CW_GATHER_DIR "/*");
+	cw_cfg_set(&config, "copydown",        CW_GATHER_DIR);
+	cw_cfg_set(&config, "interval",        "300");
+	cw_cfg_set(&config, "syslog.ident",    "cogd");
+	cw_cfg_set(&config, "syslog.facility", "daemon");
+	cw_cfg_set(&config, "syslog.level",    "error");
+	cw_cfg_set(&config, "pidfile",         "/var/run/cogd.pid");
+	cw_cfg_set(&config, "lockdir",         "/var/lock/cogd");
+
+	cw_log_open(cw_cfg_get(&config, "syslog.ident"), "stderr");
+	cw_log_level(0, (getenv("COGD_DEBUG") ? "debug" : "error"));
+	cw_log(LOG_DEBUG, "default configuration:");
+	cw_log(LOG_DEBUG, "  listen          %s", cw_cfg_get(&config, "listen"));
+	cw_log(LOG_DEBUG, "  timeout         %s", cw_cfg_get(&config, "timeout"));
+	cw_log(LOG_DEBUG, "  gatherers       %s", cw_cfg_get(&config, "gatherers"));
+	cw_log(LOG_DEBUG, "  copydown        %s", cw_cfg_get(&config, "copydown"));
+	cw_log(LOG_DEBUG, "  interval        %s", cw_cfg_get(&config, "interval"));
+	cw_log(LOG_DEBUG, "  syslog.ident    %s", cw_cfg_get(&config, "syslog.ident"));
+	cw_log(LOG_DEBUG, "  syslog.facility %s", cw_cfg_get(&config, "syslog.facility"));
+	cw_log(LOG_DEBUG, "  syslog.level    %s", cw_cfg_get(&config, "syslog.level"));
+	cw_log(LOG_DEBUG, "  pidfile         %s", cw_cfg_get(&config, "pidfile"));
+	cw_log(LOG_DEBUG, "  lockdir         %s", cw_cfg_get(&config, "lockdir"));
+
+
 	cw_log(LOG_DEBUG, "parsing cogd configuration file '%s'", config_file);
 	FILE *io = fopen(config_file, "r");
 	if (!io) {
@@ -641,16 +641,6 @@ static inline client_t* s_client_new(int argc, char **argv)
 	cw_log_level(level, NULL);
 
 
-	cw_log(LOG_INFO, "cogd starting up");
-	c->schedule.next_run = cw_time_ms();
-
-
-	cw_log(LOG_DEBUG, "detecting fully-qualified domain name of local node");
-	c->fqdn = s_myfqdn();
-	if (!c->fqdn) exit(1);
-	cw_log(LOG_INFO, "detected my FQDN as '%s'", c->fqdn);
-
-
 	cw_log(LOG_DEBUG, "parsing master.* definitions into endpoint records");
 	int n; char key[9] = "master.1";
 	c->nmasters = 0;
@@ -685,6 +675,22 @@ static inline client_t* s_client_new(int argc, char **argv)
 		cw_log(LOG_ERR, "No masters defined in %s", config_file);
 		exit(2);
 	}
+
+#ifndef UNIT_TESTS
+	if (getuid() != 0 || geteuid() != 0) {
+		fprintf(stderr, "%s must be run as root!\n", argv[0]);
+		exit(9);
+	}
+#endif
+
+	cw_log(LOG_INFO, "cogd starting up");
+	c->schedule.next_run = cw_time_ms();
+
+	cw_log(LOG_DEBUG, "detecting fully-qualified domain name of local node");
+	c->fqdn = s_myfqdn();
+	if (!c->fqdn) exit(1);
+	cw_log(LOG_INFO, "detected my FQDN as '%s'", c->fqdn);
+
 
 	c->gatherers = strdup(cw_cfg_get(&config, "gatherers"));
 	c->copydown  = strdup(cw_cfg_get(&config, "copydown"));
@@ -733,11 +739,6 @@ int main(int argc, char **argv)
 #ifdef UNIT_TESTS
 	/* only let unit tests run for 60s */
 	alarm(60);
-#else
-	if (getuid() != 0 || geteuid() != 0) {
-		fprintf(stderr, "%s must be run as root!\n", argv[0]);
-		exit(9);
-	}
 #endif
 
 	client_t *c = s_client_new(argc, argv);

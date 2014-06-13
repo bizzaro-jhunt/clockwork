@@ -10,7 +10,7 @@ RESET
 TOPIC "user(t1user)"
 CALL &USERDB.OPEN
 OK? @start.1
-  PRINT "Failed to open the user databases\n"
+  ERROR "Failed to open the user database"
   HALT
 start.1:
 SET %A 1
@@ -30,7 +30,7 @@ RESET
 TOPIC "user(t2user)"
 CALL &USERDB.OPEN
 OK? @start.1
-  PRINT "Failed to open the user databases\n"
+  ERROR "Failed to open the user database"
   HALT
 start.1:
 SET %A 1
@@ -66,7 +66,7 @@ RESET
 TOPIC "user(t3user)"
 CALL &USERDB.OPEN
 OK? @start.1
-  PRINT "Failed to open the user databases\n"
+  ERROR "Failed to open the user database"
   HALT
 start.1:
 SET %A 1
@@ -78,7 +78,7 @@ OK? @check.ids.1
   CALL &GROUP.FIND
   OK? @group.found.1
     COPY %B %A
-    PRINT "Group '%s' not found\n"
+    ERROR "Failed to find group '%s'"
     JUMP @next.1
   group.found.1:
     CALL &GROUP.GET_GID
@@ -129,7 +129,7 @@ RESET
 TOPIC "user(t4user)"
 CALL &USERDB.OPEN
 OK? @start.1
-  PRINT "Failed to open the user databases\n"
+  ERROR "Failed to open the user database"
   HALT
 start.1:
 SET %A 1

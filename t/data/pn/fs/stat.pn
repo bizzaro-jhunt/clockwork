@@ -4,7 +4,7 @@
 ;;
 
 SET %A "t/tmp/pn/fs/test.file"
-CALL &FS.FILE?
+CALL &FS.IS_FILE?
 OK? @true.1
   PRINT "%s is NOT a regular file\n"
   SYSERR
@@ -14,7 +14,7 @@ true.1:
 
 test.2:
 SET %A "t/tmp/pn/fs/test.dir"
-CALL &FS.DIR?
+CALL &FS.IS_DIR?
 OK? @true.2
   PRINT "%s is NOT a directory\n"
   SYSERR
@@ -24,7 +24,7 @@ true.2:
 
 test.3:
 SET %A "t/tmp/pn/fs/test.symlink"
-CALL &FS.SYMLINK?
+CALL &FS.IS_SYMLINK?
 OK? @true.3
   PRINT "%s is NOT a symlink\n"
   JUMP @test.4
@@ -33,7 +33,7 @@ true.3:
 
 test.4:
 SET %A "t/tmp/pn/fs/test.fifo"
-CALL &FS.FIFO?
+CALL &FS.IS_FIFO?
 OK? @true.4
   PRINT "%s is NOT a fifo\n"
   SYSERR
@@ -43,7 +43,7 @@ true.4:
 
 test.5:
 SET %A "/dev/null"
-CALL &FS.CHARDEV?
+CALL &FS.IS_CHARDEV?
 OK? @true.5
   PRINT "%s is NOT a chardev\n"
   SYSERR
@@ -53,7 +53,7 @@ true.5:
 
 test.6:
 SET %A "/dev/ram0"
-CALL &FS.BLOCKDEV?
+CALL &FS.IS_BLOCKDEV?
 OK? @true.6
   PRINT "%s is NOT a blockdev\n"
   SYSERR

@@ -660,7 +660,7 @@ static pn_word uf_fs_unlink(pn_machine *m)
 	pn_trace(m, "FS.UNLINK %s\n", (const char *)m->A);
 	if (lstat((const char *)m->A, &st) != 0) return 0;
 	pn_flag(m, CHANGE_FLAG, 1);
-	cw_log(LOG_NOTICE, "%s removing %s", m->topic, (const char *)m->A);
+	cw_log(LOG_NOTICE, "%s removing file %s", m->topic, (const char *)m->A);
 	return unlink((const char *)m->A) == 0 ? 0 : 1;
 }
 
@@ -670,7 +670,7 @@ static pn_word uf_fs_rmdir(pn_machine *m)
 	pn_trace(m, "FS.RMDIR %s\n", (const char *)m->A);
 	if (lstat((const char *)m->A, &st) != 0) return 0;
 	pn_flag(m, CHANGE_FLAG, 1);
-	cw_log(LOG_NOTICE, "%s removing %s", m->topic, (const char *)m->A);
+	cw_log(LOG_NOTICE, "%s removing directory %s", m->topic, (const char *)m->A);
 	return rmdir((const char *)m->A) == 0 ? 0 : 1;
 }
 
@@ -2061,13 +2061,13 @@ static pn_word uf_group_set_pwhash(pn_machine *m)
 int pendulum_init(pn_machine *m, void *zconn)
 {
 	pn_func(m,  "FS.EXISTS?",         uf_fs_exists);
-	pn_func(m,  "FS.FILE?",           uf_fs_is_file);
-	pn_func(m,  "FS.DIR?",            uf_fs_is_dir);
-	pn_func(m,  "FS.CHARDEV?",        uf_fs_is_chardev);
-	pn_func(m,  "FS.BLOCKDEV?",       uf_fs_is_blockdev);
-	pn_func(m,  "FS.FIFO?",           uf_fs_is_fifo);
-	pn_func(m,  "FS.SYMLINK?",        uf_fs_is_symlink);
-	pn_func(m,  "FS.SOCKET?",         uf_fs_is_socket);
+	pn_func(m,  "FS.IS_FILE?",        uf_fs_is_file);
+	pn_func(m,  "FS.IS_DIR?",         uf_fs_is_dir);
+	pn_func(m,  "FS.IS_CHARDEV?",     uf_fs_is_chardev);
+	pn_func(m,  "FS.IS_BLOCKDEV?",    uf_fs_is_blockdev);
+	pn_func(m,  "FS.IS_FIFO?",        uf_fs_is_fifo);
+	pn_func(m,  "FS.IS_SYMLINK?",     uf_fs_is_symlink);
+	pn_func(m,  "FS.IS_SOCKET?",      uf_fs_is_socket);
 	pn_func(m,  "FS.SHA1",            uf_fs_sha1);
 
 	pn_func(m,  "FS.MKDIR",           uf_fs_mkdir);

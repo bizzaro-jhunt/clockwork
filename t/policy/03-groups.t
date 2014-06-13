@@ -10,7 +10,7 @@ RESET
 TOPIC "group(group1)"
 CALL &USERDB.OPEN
 OK? @start.1
-  PRINT "Failed to open the user databases\n"
+  ERROR "Failed to open the user database"
   HALT
 start.1:
 SET %A 1
@@ -29,7 +29,7 @@ RESET
 TOPIC "group(group2)"
 CALL &USERDB.OPEN
 OK? @start.1
-  PRINT "Failed to open the user databases\n"
+  ERROR "Failed to open the user database"
   HALT
 start.1:
 SET %A 1
@@ -56,7 +56,7 @@ RESET
 TOPIC "group(group3)"
 CALL &USERDB.OPEN
 OK? @start.1
-  PRINT "Failed to open the user databases\n"
+  ERROR "Failed to open the user database"
   HALT
 start.1:
 SET %A 1
@@ -82,7 +82,7 @@ RESET
 TOPIC "group(group4)"
 CALL &USERDB.OPEN
 OK? @start.1
-  PRINT "Failed to open the user databases\n"
+  ERROR "Failed to open the user database"
   HALT
 start.1:
 SET %A 1

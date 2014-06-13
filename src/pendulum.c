@@ -544,6 +544,7 @@ int pn_run(pn_machine *m)
 
 #   define NEXT    m->Ip++; break
 
+	char *log;
 	while (m->Ip < m->codesize) {
 		switch (PC.op) {
 		case PN_OP_NOOP:
@@ -591,17 +592,26 @@ int pn_run(pn_machine *m)
 			goto done;
 
 		case PN_OP_ERROR:
-			m->S2 = (pn_word)PC.arg1;
-			pn_trace(m, TRACE_START " %s\n", TRACE_ARGS, (const char *)m->S1);
-			fprintf(stderr, "E%i: ", (int)m->Er);
-			fprintf(stderr, (char *)m->S2, m->A, m->B, m->C, m->D, m->E, m->F);
+			m->S1 = (pn_word)PC.arg1;
+			pn_trace(m, TRACE_START " %s (errno=%i)\n", TRACE_ARGS, (const char *)m->S1, (int)m->Er);
+			char *error = NULL;
+			if (m->Er > 0)
+				error = cw_string(": error %i [%s]", (int)m->Er, strerror((int)m->Er));
+
+			log = cw_string("%s %s%s",
+				m->topic ? m->topic : "(no topic)",
+				(char *)m->S1, error ? error : "");
+			free(error);
+
+			cw_log(LOG_ERR, log, m->A, m->B, m->C, m->D, m->E, m->F);
+			free(log);
 			NEXT;
 
 		case PN_OP_LOG:
 			m->S1 = (pn_word)PC.arg2;
 			pn_trace(m, TRACE_START " %s\n", TRACE_ARGS, (const char *)m->S1);
-			char *log = cw_string("%s %s", m->topic ? m->topic : "(no topic)", (char *)m->S1);
-			syslog(PC.arg1, log, m->A, m->B, m->C, m->D, m->E, m->F);
+			log = cw_string("%s %s", m->topic ? m->topic : "(no topic)", (char *)m->S1);
+			cw_log(PC.arg1, log, m->A, m->B, m->C, m->D, m->E, m->F);
 			free(log);
 			m->Ip++; break;
 			NEXT;

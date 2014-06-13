@@ -56,7 +56,7 @@ RESET
 TOPIC "exec(catmans)"
 CALL &USERDB.OPEN
 OK? @who.lookup.1
-  PRINT "Failed to open the user databases\n"
+  ERROR "Failed to open the user database"
   HALT
 who.lookup.1:
 SET %D 0
@@ -65,7 +65,7 @@ SET %A 1
 SET %B "librarian"
 CALL &USER.FIND
 OK? @user.found.1
-  PRINT "Failed to find user 'librarian'\n"
+  ERROR "Failed to find user 'librarian'"
   HALT
 user.found.1:
 CALL &USER.GET_UID
@@ -74,7 +74,7 @@ SET %A 1
 SET %B "booklovers"
 CALL &GROUP.FIND
 OK? @group.found.1
-  PRINT "Failed to find group 'booklovers'\n"
+  ERROR "Failed to find group 'booklovers'"
   HALT
 group.found.1:
 CALL &GROUP.GET_GID

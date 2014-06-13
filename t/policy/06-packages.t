@@ -20,7 +20,7 @@ COPY %S2 %T1
 SET %A "cwtool pkg-latest binutils"
 CALL &EXEC.RUN1
 OK? @got.latest.1
-  PRINT "Failed to detect latest version of 'binutils'\n"
+  ERROR "Failed to detect latest version of 'binutils'"
   JUMP @next.1
 got.latest.1:
 COPY %S2 %T2

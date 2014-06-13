@@ -10,14 +10,14 @@ OK? @exists
 CALL &FS.MKDIR
 NOTOK? @mkdir.failed
 
-CALL &FS.DIR?
+CALL &FS.IS_DIR?
 NOTOK? @create.failed
 PRINT "%s created\n"
 
 CALL &FS.RMDIR
 NOTOK? @rmdir.failed
 
-CALL &FS.DIR?
+CALL &FS.IS_DIR?
 OK? @not.removed
 
 PRINT "%s removed\n"

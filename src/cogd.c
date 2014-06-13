@@ -214,8 +214,16 @@ static void s_cfm_run(client_t *c)
 	if (c->mode != MODE_CODE) {
 		cw_log(LOG_DEBUG, "acquiring CFM lock '%s'", c->cfm_lock);
 		lockfd = open(c->cfm_lock, O_CREAT|O_EXCL|O_WRONLY, 0644);
+		int my_errno = errno;
 		if (lockfd < 0) {
-			cw_log(LOG_WARNING, "Another configuration management run in progress; skipping.");
+			struct stat st;
+			if (stat(c->cfm_lock, &st) == 0)
+				cw_log(LOG_WARNING, "Another configuration management run in progress; skipping.");
+			else
+				cw_log(LOG_ERR, "Failed to acquire CFM lock: %s",
+						my_errno == 0 ? "unknown error"
+						              : strerror(my_errno));
+
 			goto maybe_next_time;
 		}
 	}

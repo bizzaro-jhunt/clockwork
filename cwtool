@@ -94,14 +94,14 @@ on_debian () {
 	pkg-install)
 		NAME=$1
 		VERSION=$2
-		ARGS='-qq --assume-no -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold"'
+		ARGS="-qq --assume-no -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold"
 		if [ "x$VERSION" = "xlatest" ]; then
-			/usr/bin/apt-get install $ARGS "$NAME"
+			/usr/bin/apt-get $ARGS install "$NAME"
 			exit $?
 		else
 			# specific version
 			echo "$VERSION" | grep -q '-' || VERSION="$VERSION-*"
-			/usr/bin/apt-get install $ARGS "$NAME=$VERSION"
+			/usr/bin/apt-get $ARGS install "$NAME=$VERSION"
 			exit $?
 		fi
 		;;

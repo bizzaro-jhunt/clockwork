@@ -48,6 +48,7 @@ typedef struct {
 	char *fqdn;
 	char *gatherers;
 	char *copydown;
+	char *difftool;
 
 	char *cfm_lock;
 
@@ -121,13 +122,13 @@ static void s_cogd_run(client_t *c)
 
 	if (strcmp(pdu->type, "INFO") == 0) {
 		char *code = cw_pdu_text(pdu, 1);
-		cw_log(LOG_INFO, "inbound INFO request:\n%s", code);
+		cw_log(LOG_DEBUG, "inbound INFO request:\n%s", code);
 
 		reply = cw_pdu_make(pdu->src, 2, "OK", "");
 		cw_pdu_send(c->listener, reply);
 
 	} else {
-		cw_log(LOG_INFO, "unrecognized PDU: '%s'", pdu->type);
+		cw_log(LOG_DEBUG, "unrecognized PDU: '%s'", pdu->type);
 		reply = cw_pdu_make(pdu->src, 2, "ERROR", "Unrecognized PDU");
 		cw_pdu_send(c->listener, reply);
 	}
@@ -251,7 +252,7 @@ static void s_cfm_run(client_t *c)
 		cw_log(LOG_ERR, "HELLO failed: %s", zmq_strerror(errno));
 		goto shut_it_down;
 	}
-	cw_log(LOG_INFO, "Received a '%s' PDU", reply->type);
+	cw_log(LOG_DEBUG, "Received a '%s' PDU", reply->type);
 	if (strcmp(reply->type, "ERROR") == 0) {
 		char *e = cw_pdu_text(reply, 1);
 		cw_log(LOG_ERR, "protocol error: %s", e);
@@ -290,7 +291,7 @@ static void s_cfm_run(client_t *c)
 				cw_log(LOG_ERR, "DATA failed: %s", zmq_strerror(errno));
 				break;
 			}
-			cw_log(LOG_INFO, "received a %s PDU", reply->type);
+			cw_log(LOG_DEBUG, "received a %s PDU", reply->type);
 
 			if (strcmp(reply->type, "EOF") == 0) {
 				cw_pdu_destroy(reply);
@@ -358,7 +359,7 @@ static void s_cfm_run(client_t *c)
 		cw_log(LOG_ERR, "POLICY failed: %s", zmq_strerror(errno));
 		goto shut_it_down;
 	}
-	cw_log(LOG_INFO, "Received a '%s' PDU", reply->type);
+	cw_log(LOG_DEBUG, "Received a '%s' PDU", reply->type);
 	if (strcmp(reply->type, "ERROR") == 0) {
 		char *e = cw_pdu_text(reply, 1);
 		cw_log(LOG_ERR, "protocol error: %s", e);
@@ -380,6 +381,7 @@ static void s_cfm_run(client_t *c)
 		TIMER(&t, ms_parse) {
 			pn_init(&m);
 			pendulum_init(&m, client);
+			pn_pragma(&m, "diff.tool", c->difftool);
 
 			io = tmpfile();
 			fprintf(io, "%s", code);
@@ -408,7 +410,7 @@ static void s_cfm_run(client_t *c)
 		cw_log(LOG_ERR, "BYE failed: %s", zmq_strerror(errno));
 		goto shut_it_down;
 	}
-	cw_log(LOG_INFO, "Received a '%s' PDU", reply->type);
+	cw_log(LOG_DEBUG, "Received a '%s' PDU", reply->type);
 	if (strcmp(reply->type, "ERROR") == 0) {
 		char *e = cw_pdu_text(reply, 1);
 		cw_log(LOG_ERR, "protocol error: %s", e);
@@ -573,6 +575,7 @@ static inline client_t* s_client_new(int argc, char **argv)
 	cw_cfg_set(&config, "syslog.level",    "error");
 	cw_cfg_set(&config, "pidfile",         "/var/run/cogd.pid");
 	cw_cfg_set(&config, "lockdir",         "/var/lock/cogd");
+	cw_cfg_set(&config, "difftool",        "/usr/bin/diff -u");
 
 	cw_log_open(cw_cfg_get(&config, "syslog.ident"), "stderr");
 	cw_log_level(0, (getenv("COGD_DEBUG") ? "debug" : "error"));
@@ -587,6 +590,7 @@ static inline client_t* s_client_new(int argc, char **argv)
 	cw_log(LOG_DEBUG, "  syslog.level    %s", cw_cfg_get(&config, "syslog.level"));
 	cw_log(LOG_DEBUG, "  pidfile         %s", cw_cfg_get(&config, "pidfile"));
 	cw_log(LOG_DEBUG, "  lockdir         %s", cw_cfg_get(&config, "lockdir"));
+	cw_log(LOG_DEBUG, "  difftool        %s", cw_cfg_get(&config, "difftool"));
 
 
 	cw_log(LOG_DEBUG, "parsing cogd configuration file '%s'", config_file);
@@ -667,6 +671,7 @@ static inline client_t* s_client_new(int argc, char **argv)
 		printf("syslog.level    %s\n", cw_cfg_get(&config, "syslog.level"));
 		printf("pidfile         %s\n", cw_cfg_get(&config, "pidfile"));
 		printf("lockdir         %s\n", cw_cfg_get(&config, "lockdir"));
+		printf("difftool        %s\n", cw_cfg_get(&config, "difftool"));
 		exit(0);
 	}
 
@@ -694,6 +699,7 @@ static inline client_t* s_client_new(int argc, char **argv)
 
 	c->gatherers = strdup(cw_cfg_get(&config, "gatherers"));
 	c->copydown  = strdup(cw_cfg_get(&config, "copydown"));
+	c->difftool  = strdup(cw_cfg_get(&config, "difftool"));
 	c->schedule.interval  = 1000 * atoi(cw_cfg_get(&config, "interval"));
 	c->timeout            = 1000 * atoi(cw_cfg_get(&config, "timeout"));
 
@@ -727,6 +733,7 @@ static void s_client_free(client_t *c)
 	for (; c->nmasters >= 0; free(c->masters[c->nmasters--]));
 	free(c->gatherers);
 	free(c->copydown);
+	free(c->difftool);
 	free(c->fqdn);
 	if (c->cfm_lock)
 		unlink(c->cfm_lock);
@@ -774,7 +781,7 @@ shut_it_down:
 
 	if (c->listener) {
 		cw_zmq_shutdown(c->listener, 500);
-		cw_log(LOG_INFO, "shutdown listener socket (500ms linger)");
+		cw_log(LOG_DEBUG, "shutdown listener socket (500ms linger)");
 	}
 	zmq_ctx_destroy(c->zmq);
 	s_client_free(c);

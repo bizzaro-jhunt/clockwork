@@ -49,7 +49,7 @@ Description: Debugging Symbols for Clockwork Server
 
 Package: clockwork-agent
 Architecture: any
-Depends: libzmq3, augeas-lenses, ${misc:Depends}, ${shlibs:Depends}
+Depends: libzmq3, augeas-lenses, diffutils, ${misc:Depends}, ${shlibs:Depends}
 Description: Secure Configuration Management - Agent
  Clockwork is a safe, secure and flexible system for managing system
  configurations through enforcement of targeted policies, expressed

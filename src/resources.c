@@ -724,21 +724,28 @@ int res_file_gencode(const void *res, FILE *io, unsigned int next, unsigned int 
 
 	if (ENFORCED(r, RES_FILE_SHA1)) {
 		fprintf(io, "CALL &FS.SHA1\n");
-		fprintf(io, "NOTOK? @content.fail.%u\n", next);
-		fprintf(io, "  COPY %%S2 %%T1\n");
-		fprintf(io, "  COPY %%A %%F\n");
-		fprintf(io, "  SET %%A \"file:%s\"\n", r->key);
-		fprintf(io, "  CALL &SERVER.SHA1\n");
+		fprintf(io, "OK? @localok.%u\n", next);
+		fprintf(io, "  ERROR \"Failed to calculate SHA1 for local copy of '%%s'\"\n");
+		fprintf(io, "  JUMP @sha1.done.%u\n", next);
+		fprintf(io, "localok.%u:\n", next);
+		fprintf(io, "COPY %%S2 %%T1\n");
+		fprintf(io, "COPY %%A %%F\n");
+		fprintf(io, "SET %%A \"file:%s\"\n", r->key);
+		fprintf(io, "CALL &SERVER.SHA1\n");
+		fprintf(io, "COPY %%F %%A\n");
+		fprintf(io, "OK? @remoteok.%u\n", next);
+		fprintf(io, "  ERROR \"Failed to retrieve SHA1 of expected contents\"\n");
+		fprintf(io, "  JUMP @sha1.done.%u\n", next);
+		fprintf(io, "remoteok.%u:\n", next);
+		fprintf(io, "COPY %%S2 %%T2\n");
+		fprintf(io, "CMP? @sha1.done.%u\n", next);
+		fprintf(io, "  COPY %%T1 %%A\n");
+		fprintf(io, "  COPY %%T2 %%B\n");
+		fprintf(io, "  LOG \"Updating local content (%%s) from remote copy (%%s)\"\n");
 		fprintf(io, "  COPY %%F %%A\n");
-		fprintf(io, "  NOTOK? @content.fail.%u\n", next);
-		fprintf(io, "    COPY %%S2 %%T2\n");
-		fprintf(io, "    CMP? @sha1.done.%u\n", next);
-		fprintf(io, "      CALL &SERVER.WRITEFILE\n");
-		fprintf(io, "      OK? @sha1.done.%u\n", next);
-
-		fprintf(io, "content.fail.%u:\n", next);
-		fprintf(io, "ERROR \"Failed to update contents of %%s\"\n");
-
+		fprintf(io, "  CALL &SERVER.WRITEFILE\n");
+		fprintf(io, "  OK? @sha1.done.%u\n", next);
+		fprintf(io, "    ERROR \"Failed to update local file contents\"\n");
 		fprintf(io, "sha1.done.%u:\n", next);
 	}
 

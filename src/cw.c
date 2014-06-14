@@ -1210,6 +1210,8 @@ int cw_run2(FILE *in, FILE *out, FILE *err, char *cmd, ...)
 	}
 
 	execvp(cmd, args);
+	cw_log(LOG_DEBUG, "cw_run2: execvp('%s') failed - %s",
+			cmd, strerror(errno));
 	exit(127);
 }
 
@@ -1642,7 +1644,7 @@ int cw_bdfa_unpack(int in, const char *root)
 		n = read(in, filename, len);
 
 		if (S_ISDIR(mode)) {
-			cw_log(LOG_INFO, "BDFA: unpacking directory %s %06o %d:%d",
+			cw_log(LOG_DEBUG, "BDFA: unpacking directory %s %06o %d:%d",
 				filename, mode, uid, gid);
 
 			if (mkdir(filename, mode) != 0 && errno != EEXIST) {
@@ -1661,7 +1663,7 @@ int cw_bdfa_unpack(int in, const char *root)
 		} else if (S_ISREG(mode)) {
 			len = s_c82i(h.filesize);
 
-			cw_log(LOG_INFO, "BDFA: unpacking file %s %06o %d:%d (%d bytes)",
+			cw_log(LOG_DEBUG, "BDFA: unpacking file %s %06o %d:%d (%d bytes)",
 					filename, mode, uid, gid, len);
 			FILE* out = fopen(filename, "w");
 			if (!out) {
@@ -1690,7 +1692,7 @@ int cw_bdfa_unpack(int in, const char *root)
 		ut.actime  = s_c82i(h.mtime);
 		ut.modtime = s_c82i(h.mtime);
 
-		cw_log(LOG_INFO, "BDFA: setting atime/mtime to %d", ut.modtime);
+		cw_log(LOG_DEBUG, "BDFA: setting atime/mtime to %d", ut.modtime);
 		if (utime(filename, &ut) != 0) {
 			perror(filename);
 			rc = 1;

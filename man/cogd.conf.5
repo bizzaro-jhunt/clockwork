@@ -147,6 +147,28 @@ Defaults to \fI/var/lock/cogd\fR.
 .RE
 
 .PP
+\fBdifftool\fR \- What tool to use for logging file change diffs
+.PP
+.RS 4
+.PP
+This command will be run, and its output logged to NOTICE, whenever
+cogd changes a local file from a remote source.  It should print out
+the key differences between the two versions, to assist system owners
+in troubleshooting proper policy enforcement.
+.PP
+Whatever program you specify must be able to take two arguments, the
+first being the path to the original, local file, and the second being
+the literal string "-".  It must also be able to read the new file
+from standard input.
+.PP
+This models the standard diff utility, which is what most people will
+probably use.  You can specify command-line options to the tool if
+so desired.
+.PP
+Defaults to \fI/usr/bin/diff -u\fR.
+.RE
+
+.PP
 \fBsyslog.ident\fR \- Syslog identity string
 .PP
 .RS 4

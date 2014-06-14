@@ -14,7 +14,7 @@ typedef uint8_t  pn_byte;
 typedef uint64_t pn_word;
 typedef struct pn_machine pn_machine;
 typedef pn_word (*pn_function)(pn_machine*);
-typedef pn_word (*pn_pragma)(pn_machine*, const char*, const char*);
+typedef pn_word (*pn_fnpragma)(pn_machine*, const char*, const char*);
 
 typedef struct { pn_word op, arg1, arg2; } pn_opcode;
 struct pn_machine {
@@ -30,7 +30,7 @@ struct pn_machine {
 	void *heap[PN_HEAP_SIZE];
 
 	void *U;
-	pn_pragma pragma;
+	pn_fnpragma pragma;
 
 	FILE *dump_fd;
 	int trace;
@@ -67,6 +67,7 @@ int pn_set(pn_machine *m, int attr, void *value);
 int pn_flag(pn_machine *m, const char *label, int value);
 int pn_flagged(pn_machine *m, const char *label);
 int pn_func(pn_machine *m, const char *op, pn_function fn);
+int pn_pragma(pn_machine *m, const char *name, const char *arg);
 int pn_parse(pn_machine *m, FILE *io);
 int pn_trace(pn_machine *m, const char *fmt, ...);
 int pn_run(pn_machine *m);

@@ -34,6 +34,15 @@ policy "file4" {
 }
 host "file4.test" { enforce "file4" }
 
+policy "file5" {
+	file "/etc/file.conf" {
+		present: "yes"
+		mode:    0644
+		source:  "/cfm/files/path/to/file.conf"
+	}
+}
+host "file5.test" { enforce "file5" }
+
 ####################################################
 ####################################################
 

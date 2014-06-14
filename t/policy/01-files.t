@@ -158,4 +158,51 @@ next.1:
 final.1:
 EOF
 
+gencode_ok "use host file5.test", <<'EOF', "file contents update";
+RESET
+TOPIC "file(/etc/file.conf)"
+SET %A "/etc/file.conf"
+CALL &FS.EXISTS?
+OK? @exists.1
+  CALL &FS.MKFILE
+  OK? @exists.1
+  ERROR "Failed to create new file '%s'"
+  JUMP @next.1
+exists.1:
+CALL &FS.IS_FILE?
+OK? @isfile.1
+  ERROR "%s exists, but is not a regular file"
+  JUMP @next.1
+isfile.1:
+SET %D 0644
+CALL &FS.CHMOD
+CALL &FS.SHA1
+OK? @localok.1
+  ERROR "Failed to calculate SHA1 for local copy of '%s'"
+  JUMP @sha1.done.1
+localok.1:
+COPY %S2 %T1
+COPY %A %F
+SET %A "file:/etc/file.conf"
+CALL &SERVER.SHA1
+COPY %F %A
+OK? @remoteok.1
+  ERROR "Failed to retrieve SHA1 of expected contents"
+  JUMP @sha1.done.1
+remoteok.1:
+COPY %S2 %T2
+CMP? @sha1.done.1
+  COPY %T1 %A
+  COPY %T2 %B
+  LOG "Updating local content (%s) from remote copy (%s)"
+  COPY %F %A
+  CALL &SERVER.WRITEFILE
+  OK? @sha1.done.1
+    ERROR "Failed to update local file contents"
+sha1.done.1:
+next.1:
+!FLAGGED? :changed @final.1
+final.1:
+EOF
+
 done_testing;

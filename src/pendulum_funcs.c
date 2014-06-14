@@ -147,7 +147,7 @@ static int s_exec(const char *cmd, char **out, char **err, uid_t uid, gid_t gid)
 	if (read_stdout && pipe(outfd) != 0) { return 254; }
 	if (read_stderr && pipe(errfd) != 0) { return 254; }
 
-	cw_log(LOG_INFO, "EXEC.CHECK: running %s", cmd);
+	cw_log(LOG_DEBUG, "EXEC.CHECK: running %s", cmd);
 	switch (pid = fork()) {
 
 	case -1: /* failed to fork */
@@ -221,7 +221,7 @@ static int s_exec(const char *cmd, char **out, char **err, uid_t uid, gid_t gid)
 	}
 
 	waitpid(pid, &proc_stat, 0);
-	cw_log(LOG_INFO, "`%s' %s %x(rc:%u)", cmd,
+	cw_log(LOG_DEBUG, "`%s' %s %x(rc:%u)", cmd,
 		WIFEXITED(proc_stat) ? "exited" : "died",
 		proc_stat, WEXITSTATUS(proc_stat));
 
@@ -370,6 +370,8 @@ typedef struct {
 	char          *aug_last;
 
 	struct SHA1    lsha1;
+
+	char *difftool;
 } udata;
 
 #define UDATA(m) ((udata*)(m->U))
@@ -409,6 +411,14 @@ static pn_word uf_pragma(pn_machine *m, const char *k, const char *v)
 		return 0;
 	}
 
+	if (strcmp(k, "diff.tool") == 0) {
+		free(UDATA(m)->difftool);
+		UDATA(m)->difftool = strdup(v);
+		pn_trace(m, " - setting diff tool to '%s'", UDATA(m)->difftool);
+		return 0;
+	}
+
+	pn_trace(m, " !!! '%s' is an unknown PRAGMA", k);
 	return 1;
 }
 
@@ -892,7 +902,7 @@ static pn_word uf_server_sha1(pn_machine *m)
 		cw_log(LOG_ERR, "SERVER.SHA1 failed: %s", zmq_strerror(errno));
 		return 1;
 	}
-	cw_log(LOG_INFO, "Received a '%s' PDU", reply->type);
+	cw_log(LOG_DEBUG, "Received a '%s' PDU", reply->type);
 	if (strcmp(reply->type, "ERROR") == 0) {
 		char *e = cw_pdu_text(reply, 1);
 		cw_log(LOG_ERR, "SERVER.SHA1 protocol violation: %s", e);
@@ -972,7 +982,7 @@ static pn_word uf_server_writefile(pn_machine *m)
 			if (tmpf) fclose(tmpf);
 			return 1;
 		}
-		cw_log(LOG_INFO, "server.writefile: received a %s PDU", reply->type);
+		cw_log(LOG_DEBUG, "server.writefile: received a %s PDU", reply->type);
 
 		if (strcmp(reply->type, "EOF") == 0)
 			break;
@@ -987,6 +997,54 @@ static pn_word uf_server_writefile(pn_machine *m)
 		free(data);
 	}
 
+	if (UDATA(m)->difftool) {
+		rewind(tmpf);
+		cw_log(LOG_DEBUG, "Running diff.tool: `%s NEWFILE OLDFILE'", UDATA(m)->difftool);
+		FILE *out = tmpfile();
+		if (!out) {
+			cw_log(LOG_ERR, "Failed to open a temporary file difftool output: %s", strerror(errno));
+		} else {
+			FILE *err = tmpfile();
+			char *diffcmd = cw_string("%s %s -", UDATA(m)->difftool, (const char *)m->A);
+			rc = cw_run2(tmpf, out, err, "/bin/sh", "-c", diffcmd, NULL);
+			if (rc < 0)
+				cw_log(LOG_ERR, "`%s' killed or otherwise terminated abnormally");
+			else if (rc == 127)
+				cw_log(LOG_ERR, "`%s': command not found");
+			else
+				cw_log(LOG_DEBUG, "`%s' exited %i", diffcmd, rc);
+
+			char buf[8192];
+			rewind(out);
+			for (;;) {
+				if (fgets(buf, sizeof(buf), out)) {
+					char *nl = strchr(buf, '\n');
+					if (nl) *nl = '\0';
+					cw_log(LOG_INFO, "%s", buf);
+					continue;
+				}
+				if (feof(out)) break;
+				cw_log(LOG_ERR, "Failed to read standard output from difftool `%s': %s", diffcmd, strerror(errno));
+				break;
+			}
+			rewind(err);
+			for (;;) {
+				if (fgets(buf, sizeof(buf), err)) {
+					char *nl = strchr(buf, '\n');
+					if (nl) *nl = '\0';
+					cw_log(LOG_ERR, "difftool: %s", buf);
+					continue;
+				}
+				if (feof(err)) break;
+				cw_log(LOG_ERR, "Failed to read standard error from difftool `%s': %s", diffcmd, strerror(errno));
+				break;
+			}
+
+			fclose(out);
+			fclose(err);
+			free(diffcmd);
+		}
+	}
 	rc = s_copyfile(tmpf, (const char *)m->A);
 	fclose(tmpf);
 	return rc == 0 ? 0 : 1;

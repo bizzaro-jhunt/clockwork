@@ -13,17 +13,17 @@ endif
 syn keyword   cogdTodo       contained TODO FIXME XXX
 syn match     cogdComment    "#.*" contains=cogdTodo
 
-syn keyword   cogdDirective  listen timeout gatherers copydown interval pidfile
-syn keyword   cogdDirective  syslog.ident syslog.facility syslog.level
-syn keyword   cogdDirective  master.1 master.2 master.3 master.4
-syn keyword   cogdDirective  master.5 master.6 master.7 master.8
+syn keyword   cogdDirective  listen timeout gatherers copydown interval pidfile difftool
+syn match     cogdDirective  /master\.[1-8]/
+syn match     cogdDirective  /syslog\.\(ident\|facility\|level\)/
 
 syn keyword   cogdLogLevel   emergency alert critical error warning notice info debug
+syn keyword   cogdLogFacil   local0 local1 local2 local3 local4 local5 local6 local7 daemon
 
 syn region    cogdString     start=+L\="+ skip=+\\\\\|\\"\|\\$+ excludenl end=+"+
 syn match     cogdNumber     "[0-9][0-9]*"
-
-syn match     cogdInvalid    /\(\I\|\/\|\*\|\.\)\+/
+syn match     cogdIpAddr     /[0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+/
+syn match     cogdEndpoint   /\*:[0-9]\+/
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
@@ -31,13 +31,14 @@ syn match     cogdInvalid    /\(\I\|\/\|\*\|\.\)\+/
 hi def link   cogdComment    Comment
 hi def link   cogdTodo       Todo
 
-hi def link   cogdDirective  Type
-hi def link   cogdLogLevel   Identifier
+hi def link   cogdDirective  Keyword
+hi def link   cogdLogLevel   Type
+hi def link   cogdLogFacil   Type
 
 hi def link   cogdString     String
 hi def link   cogdNumber     String
-
-hi def link   cogdInvalid    Error
+hi def link   cogdIpAddr     String
+hi def link   cogdEndpoint   String
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 

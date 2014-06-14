@@ -426,6 +426,11 @@ int pn_func(pn_machine *m, const char *op, pn_function fn)
 	return -1;
 }
 
+int pn_pragma(pn_machine *m, const char *name, const char *arg)
+{
+	return m->pragma ? (*m->pragma)(m, name, arg) : 1;
+}
+
 int pn_parse(pn_machine *m, FILE *io)
 {
 	assert(m);
@@ -554,9 +559,7 @@ int pn_run(pn_machine *m)
 		case PN_OP_PRAGMA:
 			pn_trace(m, TRACE_START " %s %s\n", TRACE_ARGS,
 					(const char *)PC.arg1, (const char *)PC.arg2);
-			m->R = m->pragma
-				? (*m->pragma)(m, (const char *)PC.arg1, (const char *)PC.arg2)
-				: 1;
+			m->R = pn_pragma(m, (const char *)PC.arg1, (const char *)PC.arg2);
 			NEXT;
 
 		case PN_OP_CMP:      TEST_S("CMP?",  !, m->T1, "eq", m->T2);

@@ -741,7 +741,7 @@ int res_file_gencode(const void *res, FILE *io, unsigned int next, unsigned int 
 		fprintf(io, "CMP? @sha1.done.%u\n", next);
 		fprintf(io, "  COPY %%T1 %%A\n");
 		fprintf(io, "  COPY %%T2 %%B\n");
-		fprintf(io, "  LOG \"Updating local content (%%s) from remote copy (%%s)\"\n");
+		fprintf(io, "  LOG INFO \"Updating local content (%%s) from remote copy (%%s)\"\n");
 		fprintf(io, "  COPY %%F %%A\n");
 		fprintf(io, "  CALL &SERVER.WRITEFILE\n");
 		fprintf(io, "  OK? @sha1.done.%u\n", next);

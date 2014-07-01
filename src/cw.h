@@ -4,6 +4,7 @@
 #include <zmq.h>
 #include <syslog.h> /* for LOG_* constants */
 #include <sys/time.h>
+#include <sys/types.h>
 
 /*
 
@@ -313,6 +314,7 @@ int cw_log_level(int level, const char *name);
 const char* cw_log_level_name(int level);
 int cw_log_level_number(const char *name);
 void cw_log(int level, const char *fmt, ...);
+int cw_logio(int level, const char *fmt, FILE *io);
 
 /*
     #######   ##     ## ##    ##
@@ -324,8 +326,13 @@ void cw_log(int level, const char *fmt, ...);
     ##     ##  #######  ##    ##
 */
 
-int cw_run2(FILE *in, FILE *out, FILE *err, char *cmd, ...);
-#define cw_run(cmd, ...) cw_run2(NULL, NULL, NULL, cmd, __VA_ARGS__)
+typedef struct {
+	FILE *in, *out, *err;
+	uid_t uid;
+	gid_t gid;
+} cw_runner_t;
+int cw_run2(cw_runner_t *ctx, char *cmd, ...);
+#define cw_run(cmd, ...) cw_run2(NULL, cmd, __VA_ARGS__)
 
 /*
     ########     ###    ######## ##     ##  #######  ##    ##

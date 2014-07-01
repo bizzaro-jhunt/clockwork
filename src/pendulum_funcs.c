@@ -130,105 +130,6 @@ static char * s_strlist_join(char **l, const char *delim)
 	return buf;
 }
 
-#define EXEC_OUTPUT_MAX 256
-static int s_exec(const char *cmd, char **out, char **err, uid_t uid, gid_t gid)
-{
-	int proc_stat;
-	int outfd[2], errfd[2];
-	size_t n;
-	pid_t pid;
-	fd_set fds;
-	int nfds = 0;
-	int read_stdout = (out ? 1 : 0);
-	int read_stderr = (err ? 1 : 0);
-	int nullfd;
-
-	nullfd = open("/dev/null", O_WRONLY);
-	if (read_stdout && pipe(outfd) != 0) { return 254; }
-	if (read_stderr && pipe(errfd) != 0) { return 254; }
-
-	cw_log(LOG_DEBUG, "EXEC.CHECK: running %s", cmd);
-	switch (pid = fork()) {
-
-	case -1: /* failed to fork */
-		cw_log(LOG_ERR, "failed to fork for EXEC run: %s", strerror(errno));
-		if (read_stdout) {
-			close(outfd[0]);
-			close(outfd[1]);
-		}
-		if (read_stderr) {
-			close(errfd[0]);
-			close(errfd[1]);
-		}
-		return 255;
-
-	case 0: /* in child */
-		close(0);
-		dup2((read_stdout ? outfd[1] : nullfd), 1);
-		dup2((read_stderr ? errfd[1] : nullfd), 2);
-
-		if (gid && setgid(gid) != 0)
-			cw_log(LOG_WARNING, "EXEC child could not switch to group ID %u to run `%s'", gid, cmd);
-
-		if (uid && setuid(uid) != 0)
-			cw_log(LOG_WARNING, "EXEC child could not switch to user ID %u to run `%s'", uid, cmd);
-
-		execl("/bin/sh", "sh", "-c", cmd, (char*)NULL);
-		exit(1);
-
-	default: /* in parent */
-		close(nullfd);
-		if (!read_stdout && !read_stderr) { break; }
-
-		FD_ZERO(&fds);
-
-		if (read_stderr) {
-			close(errfd[1]);
-			FD_SET(errfd[0], &fds);
-			nfds = (nfds > errfd[0] ? nfds : errfd[0]);
-		}
-		if (read_stdout) {
-			close(outfd[1]);
-			FD_SET(outfd[0], &fds);
-			nfds = (nfds > outfd[0] ? nfds : outfd[0]);
-		}
-
-		nfds++;
-		while ((read_stdout || read_stderr) && select(nfds, &fds, NULL, NULL, NULL) > 0) {
-			if (read_stdout && FD_ISSET(outfd[0], &fds)) {
-				*out = calloc(EXEC_OUTPUT_MAX, sizeof(char));
-				n = read(outfd[0], *out, EXEC_OUTPUT_MAX);
-				(*out)[n] = '\0';
-
-				FD_CLR(outfd[0], &fds);
-				close(outfd[0]);
-				read_stdout = 0;
-			}
-
-			if (read_stderr && FD_ISSET(errfd[0], &fds)) {
-				*err = calloc(EXEC_OUTPUT_MAX, sizeof(char));
-				n = read(errfd[0], *err, EXEC_OUTPUT_MAX);
-				(*err)[n] = '\0';
-
-				FD_CLR(errfd[0], &fds);
-				close(errfd[0]);
-				read_stderr = 0;
-			}
-
-			if (read_stdout) { FD_SET(outfd[0], &fds); }
-			if (read_stderr) { FD_SET(errfd[0], &fds); }
-		}
-	}
-
-	waitpid(pid, &proc_stat, 0);
-	cw_log(LOG_DEBUG, "`%s' %s %x(rc:%u)", cmd,
-		WIFEXITED(proc_stat) ? "exited" : "died",
-		proc_stat, WEXITSTATUS(proc_stat));
-
-	if (!WIFEXITED(proc_stat)) return 255;
-	return WEXITSTATUS(proc_stat);
-}
-
 /*
 
      ######   #######  ##     ## ########     ###    ########
@@ -854,19 +755,56 @@ static pn_word uf_util_vercmp(pn_machine *m)
 static pn_word uf_exec_check(pn_machine *m)
 {
 	pn_trace(m, "EXEC.CHECK (as %i:%i) `%s`\n", m->B, m->C, (const char *)m->A);
-	return s_exec((const char *)m->A, NULL, NULL,
-		(uid_t)m->B, (gid_t)m->C);
+	cw_runner_t runner = {
+		.in  = NULL,
+		.out = tmpfile(),
+		.err = tmpfile(),
+		.uid = (uid_t)m->B,
+		.gid = (gid_t)m->C
+	};
+	int rc = cw_run2(&runner, "/bin/sh", "-c", (const char *)m->A, NULL);
+
+	if (cw_logio(LOG_DEBUG, "%s", runner.out) != 0)
+		cw_log(LOG_ERR, "Failed to read standard output from `%s`: %s",
+			(const char *)m->A, strerror(errno));
+	if (cw_logio(LOG_WARNING, "%s", runner.err) != 0)
+		cw_log(LOG_ERR, "Failed to read standard error from `%s`: %s",
+			(const char *)m->A, strerror(errno));
+
+	cw_log(LOG_INFO, "Command `%s` exited %u", (const char *)m->A, rc);
+	return rc;
 }
 
 static pn_word uf_exec_run1(pn_machine *m)
 {
 	pn_trace(m, "EXEC.RUN1 (as %i:%i) `%s`\n", m->B, m->C, (const char *)m->A);
-	char *out, *p;
-	int rc = s_exec((const char *)m->A, &out, NULL,
-		(uid_t)m->B, (gid_t)m->C);
+	cw_runner_t runner = {
+		.in  = NULL,
+		.out = tmpfile(),
+		.err = tmpfile(),
+		.uid = (uid_t)m->B,
+		.gid = (gid_t)m->C
+	};
+	int rc = cw_run2(&runner, "/bin/sh", "-c", (const char *)m->A, NULL);
 
-	for (p = out; *p && *p != '\n'; p++);
-	*p = '\0';
+	char *out = NULL;
+	char buf[8192];
+	if (fgets(buf, sizeof(buf), runner.out)) {
+		char *nl = strchr(buf, '\n');
+		if (nl) *nl = '\0';
+		out = strdup(buf);
+	}
+
+	if (out) cw_log(LOG_DEBUG, "%s", out ? out : "(none)");
+	if (cw_logio(LOG_DEBUG, "stdout: %s", runner.out) != 0)
+		cw_log(LOG_ERR, "Failed to read standard output from `%s`: %s",
+			(const char *)m->A, strerror(errno));
+	if (cw_logio(LOG_WARNING, "%s", runner.err) != 0)
+		cw_log(LOG_ERR, "Failed to read standard error from `%s`: %s",
+			(const char *)m->A, strerror(errno));
+
+	if (!out) out = strdup("");
+	cw_log(LOG_INFO, "Command `%s` exited %u", (const char *)m->A, rc);
 	pn_trace(m, "first line of output was '%s'\n", out);
 
 	m->S2 = (pn_word)out;
@@ -1005,8 +943,16 @@ static pn_word uf_server_writefile(pn_machine *m)
 			cw_log(LOG_ERR, "Failed to open a temporary file difftool output: %s", strerror(errno));
 		} else {
 			FILE *err = tmpfile();
+			cw_runner_t runner = {
+				.in  = tmpf,
+				.out = out,
+				.err = err,
+				.uid = -1,
+				.gid = -1,
+			};
+
 			char *diffcmd = cw_string("%s %s -", UDATA(m)->difftool, (const char *)m->A);
-			rc = cw_run2(tmpf, out, err, "/bin/sh", "-c", diffcmd, NULL);
+			rc = cw_run2(&runner, "/bin/sh", "-c", diffcmd, NULL);
 			if (rc < 0)
 				cw_log(LOG_ERR, "`%s' killed or otherwise terminated abnormally");
 			else if (rc == 127)
@@ -1014,31 +960,10 @@ static pn_word uf_server_writefile(pn_machine *m)
 			else
 				cw_log(LOG_DEBUG, "`%s' exited %i", diffcmd, rc);
 
-			char buf[8192];
-			rewind(out);
-			for (;;) {
-				if (fgets(buf, sizeof(buf), out)) {
-					char *nl = strchr(buf, '\n');
-					if (nl) *nl = '\0';
-					cw_log(LOG_INFO, "%s", buf);
-					continue;
-				}
-				if (feof(out)) break;
+			if (cw_logio(LOG_INFO, "%s", out) != 0)
 				cw_log(LOG_ERR, "Failed to read standard output from difftool `%s': %s", diffcmd, strerror(errno));
-				break;
-			}
-			rewind(err);
-			for (;;) {
-				if (fgets(buf, sizeof(buf), err)) {
-					char *nl = strchr(buf, '\n');
-					if (nl) *nl = '\0';
-					cw_log(LOG_ERR, "difftool: %s", buf);
-					continue;
-				}
-				if (feof(err)) break;
+			if (cw_logio(LOG_ERR, "diftool: %s", err) != 0)
 				cw_log(LOG_ERR, "Failed to read standard error from difftool `%s': %s", diffcmd, strerror(errno));
-				break;
-			}
 
 			fclose(out);
 			fclose(err);

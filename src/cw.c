@@ -1156,6 +1156,24 @@ void cw_log(int level, const char *fmt, ...)
 	free(msg);
 }
 
+int cw_logio(int level, const char *fmt, FILE *io)
+{
+	if (level > CW_LOG.level)
+		return 0;
+
+	char buf[8192];
+	for (;;) {
+		if (fgets(buf, sizeof(buf), io)) {
+			char *nl = strchr(buf, '\n');
+			if (nl) *nl = '\0';
+			cw_log(level, fmt, buf);
+			continue;
+		}
+		if (feof(io)) return 0;
+		return 1;
+	}
+}
+
 /*
     #######   ##     ## ##    ##
     ##    ##  ##     ## ###   ##
@@ -1168,19 +1186,42 @@ void cw_log(int level, const char *fmt, ...)
 
 # define MAXARGS 100
 
-int cw_run2(FILE *in, FILE *out, FILE *err, char *cmd, ...)
+int cw_run2(cw_runner_t *ctx, char *cmd, ...)
 {
 	pid_t pid = fork();
-	if (pid < 0)
+	if (pid < 0) {
+		cw_log(LOG_ERR, "Failed to fork(): %s", strerror(errno));
 		return -1;
+	}
 
 	if (pid > 0) {
 		int status = 0;
 		waitpid(pid, &status, 0);
+
+		if (ctx && ctx->out) rewind(ctx->out);
+		if (ctx && ctx->err) rewind(ctx->err);
+
 		if (WIFEXITED(status))
 			return WEXITSTATUS(status);
 		else
 			return -2;
+	}
+
+	if (ctx && ctx->gid) {
+		cw_log(LOG_DEBUG, "Setting GID to %u", ctx->gid);
+		if (setgid(ctx->gid) != 0) {
+			cw_log(LOG_ERR, "Failed to set effective GID to %u: %s",
+					ctx->gid, strerror(errno));
+			exit(127);
+		}
+	}
+	if (ctx && ctx->uid) {
+		cw_log(LOG_DEBUG, "Setting UID to %u", ctx->uid);
+		if (setuid(ctx->uid) != 0) {
+			cw_log(LOG_ERR, "Failed to set effective UID to %u: %s",
+					ctx->uid, strerror(errno));
+			exit(127);
+		}
 	}
 
 	char *args[MAXARGS] = { 0 };
@@ -1194,18 +1235,18 @@ int cw_run2(FILE *in, FILE *out, FILE *err, char *cmd, ...)
 	while ((args[argno++] = va_arg(argv, char *)) != (char *)0)
 		;
 
-	if (in) {
-		int fd = fileno(in);
+	if (ctx && ctx->in) {
+		int fd = fileno(ctx->in);
 		if (fd >= 0) dup2(fd, 0);
 	}
 
-	if (out) {
-		int fd = fileno(out);
+	if (ctx && ctx->out) {
+		int fd = fileno(ctx->out);
 		if (fd >= 0) dup2(fd, 1);
 	}
 
-	if (err) {
-		int fd = fileno(err);
+	if (ctx && ctx->err) {
+		int fd = fileno(ctx->err);
 		if (fd >= 0) dup2(fd, 2);
 	}
 
@@ -1420,10 +1461,17 @@ FILE* cw_tpl_erb(const char *src, cw_hash_t *facts)
 	rewind(in);
 
 	FILE *err = tmpfile();
-	int rc = cw_run2(in, out, err, "cw-template-erb", src, NULL);
+
+	cw_runner_t runner = {
+		.in  = in,
+		.out = out,
+		.err = err,
+		.uid = 0,
+		.gid = 0,
+	};
+	int rc = cw_run2(&runner, "cw-template-erb", src, NULL);
 	fclose(in);
 
-	rewind(err);
 	char buf[8192];
 	while (fgets(buf, 8192, err)) {
 		char *p;
@@ -1433,10 +1481,8 @@ FILE* cw_tpl_erb(const char *src, cw_hash_t *facts)
 	}
 	fclose(err);
 
-	if (rc == 0) {
-		rewind(out);
+	if (rc == 0)
 		return out;
-	}
 
 	fclose(out);
 	return NULL;

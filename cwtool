@@ -107,13 +107,13 @@ on_debian () {
 		;;
 	pkg-remove)
 		NAME=$1
-		/usr/bin/dpkg --purge "$NAME" 2>/dev/null
+		/usr/bin/dpkg --purge "$NAME"
 		exit $?
 		;;
 
 	svc-run-status)
 		NAME=$1
-		/usr/sbin/service $NAME status 2>/dev/null >/dev/null
+		/usr/sbin/service $NAME status
 		RC=$?
 		[ "x$RC" = "x7" ] && exit 1
 		exit $RC
@@ -128,7 +128,7 @@ on_debian () {
 	svc-init)
 		NAME=$1
 		VERB=$2
-		/usr/sbin/service $NAME $VERB 2>/dev/null >/dev/null
+		/usr/sbin/service $NAME $VERB
 		exit $?
 		;;
 	svc-enable)
@@ -178,7 +178,7 @@ on_redhat () {
 
 	svc-run-status)
 		NAME=$1
-		/usr/sbin/service $NAME status 2>/dev/null >/dev/null
+		/usr/sbin/service $NAME status
 		exit $?
 		;;
 	svc-boot-status)
@@ -189,7 +189,7 @@ on_redhat () {
 	svc-init)
 		NAME=$1
 		VERB=$2
-		/usr/sbin/service $NAME $VERB 2>/dev/null >/dev/null
+		/usr/sbin/service $NAME $VERB
 		exit $?
 		;;
 	svc-enable)

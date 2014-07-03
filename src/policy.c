@@ -207,7 +207,6 @@ static int _manifest_validate(struct stree *node)
 
 	switch (node->op) {
 	case RESOURCE:
-		cw_log(LOG_ERR, "check res %s == %u", node->data1, resource_type(node->data1));
 		if (resource_type(node->data1) == RES_UNKNOWN)
 			return 1;
 

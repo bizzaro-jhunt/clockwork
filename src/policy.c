@@ -203,7 +203,7 @@ static int _manifest_validate(struct stree *node)
 	if (!node) return 0;
 	int i;
 
-	cw_log(LOG_ERR, "node: %u %s/%s)", node->op, node->data1, node->data2);
+	cw_log(LOG_DEBUG, "node: %u %s/%s)", node->op, node->data1, node->data2);
 
 	switch (node->op) {
 	case RESOURCE:
@@ -219,6 +219,7 @@ static int _manifest_validate(struct stree *node)
 	case INCLUDE:
 	case DEPENDENCY:
 	case ATTR:
+	case RESOURCE_ID:
 		for (i = 0; i < node->size; i++)
 			if (_manifest_validate(node->nodes[i]) != 0)
 				return 1;

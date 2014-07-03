@@ -22,8 +22,7 @@
 
 TESTS {
 	subtest {
-		char buf[8192];
-		cw_hash_t *context;
+		cw_hash_t *vars;
 
 		const char *tests[][2] = {
 			{ "string with no references",
@@ -53,40 +52,29 @@ TESTS {
 			{ "Bare dollar sign at end: $",
 			  "Bare dollar sign at end: " },
 
+			{ "Bare escape at end: \\",
+			  "Bare escape at end: " },
+
 			{ NULL, NULL }
 		};
 
-		isnt_null(context = cw_alloc(sizeof(cw_hash_t)), "created a hash for vars");
-		if (!context) break;
+		isnt_null(vars = cw_alloc(sizeof(cw_hash_t)), "created a hash for vars");
+		if (!vars) break;
 
-		cw_hash_set(context, "ref1", "this is a reference");
-		cw_hash_set(context, "name", "Clockwork");
-		cw_hash_set(context, "multi.level.fact", "MULTILEVEL");
-		cw_hash_set(context, "kernel_version", "2.6");
+		cw_hash_set(vars, "ref1", "this is a reference");
+		cw_hash_set(vars, "name", "Clockwork");
+		cw_hash_set(vars, "multi.level.fact", "MULTILEVEL");
+		cw_hash_set(vars, "kernel_version", "2.6");
 
 		size_t i;
 		for (i = 0; tests[i][0]; i++) {
-			string_interpolate(buf, 8192, tests[i][0], context);
-			is_string(tests[i][1], buf, "string interpolation");
+			char *buf = cw_interpolate(tests[i][0], vars);
+			is_string(buf, tests[i][1], "string interpolation");
+			free(buf);
 		}
 
-		cw_hash_done(context, 0);
-		free(context);
-	}
-
-	subtest {
-		char buf[512]; // extra-large
-		cw_hash_t *context;
-
-		context = cw_alloc(sizeof(cw_hash_t));
-		cw_hash_set(context, "ref", "1234567890abcdef");
-
-		// interpolation with a buffer that is too small
-		string_interpolate(buf, 8, "$ref is 16 characters long", context);
-		is_string(buf, "1234567", "interpolated value cut short");
-
-		cw_hash_done(context, 0);
-		free(context);
+		cw_hash_done(vars, 0);
+		free(vars);
 	}
 
 	subtest {

@@ -184,6 +184,7 @@ localok.1:
 COPY %S2 %T1
 COPY %A %F
 SET %A "file:/etc/file.conf"
+;; source = /cfm/files/path/to//etc/file.conf
 CALL &SERVER.SHA1
 COPY %F %A
 OK? @remoteok.1

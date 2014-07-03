@@ -289,6 +289,162 @@ char* cw_string(const char *fmt, ...)
 	return cw_strdup(buf);
 }
 
+#define CW_INTERPOLATE_COPY 0
+#define CW_INTERPOLATE_SREF 1 /* "simple" reference:  $([a-zA-Z][a-zA-Z0-9]*) */
+#define CW_INTERPOLATE_CREF 2 /* "complex" reference: ${([a-zA-Z][^}]*)} */
+#define CW_INTERPOLATE_ESC  3 /* a leading '\' for escaping '$' */
+
+#define s_si_putc(b,c,l) do {\
+	if ((l) > 0) { (l)--; *(b)++ = (c); } \
+} while(0)
+
+static int s_si_count(const char *start, const char *end, const cw_hash_t *vars)
+{
+	char *var = cw_alloc((end - start) + 1);
+	if (!strncpy(var, start, end - start)) {
+		free(var);
+		return 0;
+	}
+
+	const char *val = cw_hash_get(vars, var);
+	free(var);
+
+	return val ? strlen(val) : 0;
+}
+
+static int s_si_deref(char **buf, size_t *len, const char *start, const char *end, const cw_hash_t *vars)
+{
+	char *var = cw_alloc((end - start) + 1);
+	if (!strncpy(var, start, end - start)) {
+		free(var);
+		return 1;
+	}
+
+	const char *val = cw_hash_get(vars, var);
+	if (!val) val = "";
+	free(var);
+
+	strncat(*buf, val, *len);
+	for (; **buf; (*buf)++, (*len)--)
+		;
+	return 0;
+}
+
+char* cw_interpolate(const char *str, cw_hash_t *vars)
+{
+	size_t len = 0;
+
+	int state = CW_INTERPOLATE_COPY;
+	const char *ref = NULL;
+	const char *s = str;
+
+	while (*s) {
+		if (state == CW_INTERPOLATE_SREF) {
+			if (!isalnum(*s)) {
+				state = CW_INTERPOLATE_COPY;
+				len += s_si_count(ref, s, vars);
+			}
+		} else if (state == CW_INTERPOLATE_CREF) {
+			if (*s == '}') {
+				state = CW_INTERPOLATE_COPY;
+				len += s_si_count(ref, s, vars);
+				s++;
+			}
+		}
+
+		if (state == CW_INTERPOLATE_ESC) {
+			state = CW_INTERPOLATE_COPY;
+			len++; s++;
+			continue;
+		}
+
+		if (state == CW_INTERPOLATE_COPY) {
+			if (*s == '\\') {
+				state = CW_INTERPOLATE_ESC;
+				s++;
+				continue;
+
+			} else if (*s == '$') {
+				state = CW_INTERPOLATE_SREF;
+				s++;
+
+				if (*s && *s == '{') {
+					state = CW_INTERPOLATE_CREF;
+					s++;
+				}
+
+				ref = s;
+				continue;
+			}
+
+			len++;
+		}
+		s++;
+	}
+
+	if (state != CW_INTERPOLATE_COPY
+	 && state != CW_INTERPOLATE_ESC)
+		len += s_si_count(ref, s, vars);
+
+	char *final = cw_alloc(len+1);
+	char *buf = final;
+
+	state = CW_INTERPOLATE_COPY;
+	ref = NULL;
+	s = str;
+
+	while (*s && len > 0) {
+		if (state == CW_INTERPOLATE_SREF) {
+			if (!isalnum(*s)) {
+				state = CW_INTERPOLATE_COPY;
+				s_si_deref(&buf, &len, ref, s, vars);
+			}
+		} else if (state == CW_INTERPOLATE_CREF) {
+			if (*s == '}') {
+				state = CW_INTERPOLATE_COPY;
+				s_si_deref(&buf, &len, ref, s++, vars);
+			}
+		}
+
+		if (state == CW_INTERPOLATE_ESC) {
+			state = CW_INTERPOLATE_COPY;
+			s_si_putc(buf, *s++, len);
+			continue;
+		}
+
+		if (state == CW_INTERPOLATE_COPY) {
+			if (*s == '\\') {
+				state = CW_INTERPOLATE_ESC;
+				s++;
+				continue;
+
+			} else if (*s == '$') {
+				state = CW_INTERPOLATE_SREF;
+				s++;
+
+				if (*s && *s == '{') {
+					state = CW_INTERPOLATE_CREF;
+					s++;
+				}
+
+				ref = s;
+				continue;
+			}
+
+			s_si_putc(buf, *s, len);
+		}
+
+		s++;
+	}
+
+	if (state != CW_INTERPOLATE_COPY
+	 && state != CW_INTERPOLATE_ESC)
+		s_si_deref(&buf, &len, ref, s, vars);
+	*buf = '\0';
+
+	return final;
+}
+
 /*
     ##    ##     ###     ######   ##    ##  ########  ######
     ##    ##    ## ##   ##    ##  ##    ##  ##       ##    ##

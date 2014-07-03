@@ -38,7 +38,7 @@ policy "file5" {
 	file "/etc/file.conf" {
 		present: "yes"
 		mode:    0644
-		source:  "/cfm/files/path/to/file.conf"
+		source:  "/cfm/files/path/to/$path"
 	}
 }
 host "file5.test" { enforce "file5" }

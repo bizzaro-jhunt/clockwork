@@ -561,6 +561,23 @@ int res_file_norm(void *res, struct policy *pol, cw_hash_t *facts)
 		}
 	}
 
+	/* source and template attributes can have embedded '$path' */
+	cw_hash_t *vars = cw_alloc(sizeof(cw_hash_t));
+	cw_hash_set(vars, "path", rf->path);
+
+	if (rf->source) {
+		char *x = cw_interpolate(rf->source, vars);
+		free(rf->source);
+		rf->source = x;
+	}
+	if (rf->template) {
+		char *x = cw_interpolate(rf->template, vars);
+		free(rf->template);
+		rf->template = x;
+	}
+	cw_hash_done(vars, 0);
+	free(vars);
+
 	/* files depend on res_dir resources between them and / */
 	if (_setup_path_deps(key, rf->path, pol) != 0) {
 		free(key);
@@ -731,6 +748,11 @@ int res_file_gencode(const void *res, FILE *io, unsigned int next, unsigned int 
 		fprintf(io, "COPY %%S2 %%T1\n");
 		fprintf(io, "COPY %%A %%F\n");
 		fprintf(io, "SET %%A \"file:%s\"\n", r->key);
+		if (r->source) {
+			fprintf(io, ";; source = %s\n", r->source);
+		} else if (r->template) {
+			fprintf(io, ";; template = %s\n", r->template);
+		}
 		fprintf(io, "CALL &SERVER.SHA1\n");
 		fprintf(io, "COPY %%F %%A\n");
 		fprintf(io, "OK? @remoteok.%u\n", next);

@@ -24,65 +24,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
-#include <ctype.h>
-
-#define SI_COPY 0
-#define SI_SREF 1 /* "simple" reference:  $([a-zA-Z][a-zA-Z0-9]*) */
-#define SI_CREF 2 /* "complex" reference: ${([a-zA-Z][^}]*)} */
-#define SI_ESC  3 /* a leading '\' for escaping '$' */
 
 #define INIT_LEN   16
 
 #define EXPAND_FACTOR 8
 #define EXPAND_LEN(x) (x / EXPAND_FACTOR + 1) * EXPAND_FACTOR
 
-static char*  _extract(const char *start, const char *end);
-static char*  _lookup(const char *ref, const cw_hash_t *ctx);
-static int    _deref(char **buf, size_t *n, const char *start, const char *end, const cw_hash_t *ctx);
 static int    _sl_expand(struct stringlist*, size_t);
 static int    _sl_reduce(struct stringlist*);
 static size_t _sl_capacity(struct stringlist*);
-
-static char* _extract(const char *start, const char *end)
-{
-	size_t len = end - start + 1;
-	char *buf = calloc(len, sizeof(char));
-	if (!buf) { return NULL; }
-
-	if (!strncpy(buf, start, len-1)) {
-		free(buf);
-		return NULL;
-	}
-
-	return buf;
-}
-
-static char* _lookup(const char *ref, const cw_hash_t *ctx)
-{
-	const char *value = cw_hash_get(ctx, ref);
-	return strdup(value ? value : "");
-}
-
-static int _deref(char **buf, size_t *len, const char *start, const char *end, const cw_hash_t *ctx)
-{
-	char *ref = _extract(start, end);
-	char *val = _lookup(ref, ctx);
-
-	cw_log(LOG_DEBUG, "string:deref ::%s:: -> '%s'\n", ref, val);
-
-	strncat(*buf, val, *len);
-	for (; **buf; (*buf)++, (*len)--)
-		;
-
-	free(ref);
-	free(val);
-
-	return 0;
-}
-
-#define bufcopyc(b,c,l) do {\
-	if ((l) > 0) { (l)--; *(b)++ = (c); } \
-} while(0)
 
 static int _extend(struct string *s, size_t n)
 {
@@ -244,96 +194,6 @@ int string_append1(struct string *s, char c)
 	*s->p++ = c;
 	s->len++;
 	*s->p = '\0';
-	return 0;
-}
-
-/**
-  Interpolate variable references in $src against $ctx
-
-  Variable interpolation is performed according to the following rules:
-
-  `$([a-zA-Z][a-zA-Z0-9_-]*)` is expanded to the string value stored in the 
-  $ctx hash under the key \1.  For example, in the string "My name is \$name",
-  "\$name" is taken as a reference to the value stored in $ctx under the key
-  "name".
-
-  Complex key names are also supported, using the format `${([^}]+)}`.  To give
-  another example, the string "My name is ${person.name}" contains a reference
-  to the value stored in $ctx under the key "person.name".
-
-  The caller must take care to make $buf large enough to accommodate the
-  expanded string.  If the buffer is not long enough, this function will only
-  fill $buf with the first $len bytes of the interpolated result.
-
-  The resultant NULL-terminated string (with all variables expanded) will be
-  stored in $buf.  The length of $buf (not including the NULL-terminator) will
-  be placed in $len.
-
-  On success, returns 0.  On failure, returns non-zero.
- */
-int string_interpolate(char *buf, size_t len, const char *src, const cw_hash_t *ctx)
-{
-	assert(buf); // LCOV_EXCL_LINE
-	assert(src); // LCOV_EXCL_LINE
-	assert(ctx); // LCOV_EXCL_LINE
-
-	int state = SI_COPY;
-	const char *ref = NULL;
-
-	memset(buf, 0, len);
-	//char *debug = buf;
-
-	--len; // we really only have len-1 character slots (trailing \0)
-	while (*src && len > 0) {
-		if (state == SI_SREF) {
-			if (!isalnum(*src)) {
-				_deref(&buf, &len, ref, src, ctx);
-				state = SI_COPY;
-			}
-		} else if (state == SI_CREF) {
-			if (*src == '}') {
-				_deref(&buf, &len, ref, src, ctx);
-				src++;
-				state = SI_COPY;
-			}
-		}
-
-		if (state == SI_ESC) {
-			bufcopyc(buf, *src++, len);
-			state = SI_COPY;
-			continue;
-		}
-
-		if (state == SI_COPY) {
-			if (*src == '\\') {
-				state = SI_ESC;
-				src++;
-				continue;
-
-			} else if (*src == '$') {
-				state = SI_SREF;
-				src++;
-
-				if (*src && *src == '{') {
-					state = SI_CREF;
-					src++;
-				}
-
-				ref = src;
-				continue;
-			}
-
-			bufcopyc(buf, *src, len);
-		}
-
-		src++;
-	}
-
-	if (state != SI_COPY) {
-		_deref(&buf, &len, ref, src, ctx);
-	}
-	*buf = '\0';
-
 	return 0;
 }
 

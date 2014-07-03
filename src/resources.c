@@ -1285,11 +1285,17 @@ int res_package_gencode(const void *res, FILE *io, unsigned int next, unsigned i
 	fprintf(io, "CALL &EXEC.RUN1\n");
 	if (ENFORCED(r, RES_PACKAGE_ABSENT)) {
 		fprintf(io, "NOTOK? @next.%u\n", next);
+		fprintf(io, "  LOG INFO \"uninstalling %s\"\n", r->name);
 		fprintf(io, "  SET %%A \"cwtool pkg-remove %s\"\n", r->name);
 		fprintf(io, "  CALL &EXEC.CHECK\n");
 		fprintf(io, "  FLAG 1 :changed\n");
 	} else {
 		fprintf(io, "OK? @installed.%u\n", next);
+		if (r->version) {
+			fprintf(io, "  LOG INFO \"installing %s version %s\"\n", r->name, r->version);
+		} else {
+			fprintf(io, "  LOG INFO \"installing latest version of %s\"\n", r->name);
+		}
 		fprintf(io, "  SET %%A \"cwtool pkg-install %s %s\"\n", r->name, r->version ? r->version : "latest");
 		fprintf(io, "  CALL &EXEC.CHECK\n");
 		fprintf(io, "  FLAG 1 :changed\n");
@@ -1309,6 +1315,11 @@ int res_package_gencode(const void *res, FILE *io, unsigned int next, unsigned i
 		}
 		fprintf(io, "CALL &UTIL.VERCMP\n");
 		fprintf(io, "OK? @next.%u\n", next);
+		if (r->version) {
+			fprintf(io, "  LOG INFO \"upgrading to %s version %s\"\n", r->name, r->version);
+		} else {
+			fprintf(io, "  LOG INFO \"upgrading to latest version of %s\"\n", r->name);
+		}
 		fprintf(io, "  SET %%A \"cwtool pkg-install %s %s\"\n", r->name, r->version ? r->version : "latest");
 		fprintf(io, "  CALL &EXEC.CHECK\n");
 		fprintf(io, "  FLAG 1 :changed\n");
@@ -1462,6 +1473,7 @@ int res_service_gencode(const void *res, FILE *io, unsigned int next, unsigned i
 		fprintf(io, "SET %%A \"cwtool svc-boot-status %s\"\n", r->service);
 		fprintf(io, "CALL &EXEC.CHECK\n");
 		fprintf(io, "OK? @enabled.%u\n", next);
+		fprintf(io, "  LOG INFO \"enabling service %s to start at boot\"\n", r->service);
 		fprintf(io, "  SET %%A \"cwtool svc-enable %s\"\n", r->service);
 		fprintf(io, "  CALL &EXEC.CHECK\n");
 		fprintf(io, "enabled.%u:\n", next);
@@ -1470,6 +1482,7 @@ int res_service_gencode(const void *res, FILE *io, unsigned int next, unsigned i
 		fprintf(io, "SET %%A \"cwtool svc-boot-status %s\"\n", r->service);
 		fprintf(io, "CALL &EXEC.CHECK\n");
 		fprintf(io, "NOTOK? @disabled.%u\n", next);
+		fprintf(io, "  LOG INFO \"disabling service %s\"\n", r->service);
 		fprintf(io, "  SET %%A \"cwtool svc-disable %s\"\n", r->service);
 		fprintf(io, "  CALL &EXEC.CHECK\n");
 		fprintf(io, "disabled.%u:\n", next);
@@ -1479,6 +1492,7 @@ int res_service_gencode(const void *res, FILE *io, unsigned int next, unsigned i
 		fprintf(io, "SET %%A \"cwtool svc-run-status %s\"\n", r->service);
 		fprintf(io, "CALL &EXEC.CHECK\n");
 		fprintf(io, "OK? @running.%u\n", next);
+		fprintf(io, "  LOG INFO \"starting service %s\"\n", r->service);
 		fprintf(io, "  SET %%A \"cwtool svc-init %s start\"\n", r->service);
 		fprintf(io, "  CALL &EXEC.CHECK\n");
 		fprintf(io, "  FLAG 1 :changed\n");
@@ -1489,6 +1503,7 @@ int res_service_gencode(const void *res, FILE *io, unsigned int next, unsigned i
 		fprintf(io, "SET %%A \"cwtool svc-run-status %s\"\n", r->service);
 		fprintf(io, "CALL &EXEC.CHECK\n");
 		fprintf(io, "NOTOK? @stopped.%u\n", next);
+		fprintf(io, "  LOG INFO \"stopping service %s\"\n", r->service);
 		fprintf(io, "  SET %%A \"cwtool svc-init %s stop\"\n", r->service);
 		fprintf(io, "  CALL &EXEC.CHECK\n");
 		fprintf(io, "  FLAG 1 :changed\n");
@@ -1499,12 +1514,14 @@ int res_service_gencode(const void *res, FILE *io, unsigned int next, unsigned i
 	fprintf(io, "!FLAGGED? :res%u @next.%u\n", serial, next);
 
 	if (ENFORCED(r, RES_SERVICE_RUNNING)) {
+		fprintf(io, "  LOG INFO \"%sing service %s\"\n", r->notify ? r->notify : "restart", r->service);
 		fprintf(io, "  SET %%A \"cwtool svc-init %s %s\"\n",
 				r->service, r->notify ? r->notify : "restart");
 		fprintf(io, "  CALL &EXEC.CHECK\n");
 		fprintf(io, "  FLAG 0 :res%u\n", serial);
 
 	} else if (ENFORCED(r, RES_SERVICE_STOPPED)) {
+		fprintf(io, "  LOG INFO \"stopping service %s\"\n", r->service);
 		fprintf(io, "  SET %%A \"cwtool svc-init %s stop\"\n", r->service);
 		fprintf(io, "  CALL &EXEC.CHECK\n");
 		fprintf(io, "  FLAG 0 :res%u\n", serial);

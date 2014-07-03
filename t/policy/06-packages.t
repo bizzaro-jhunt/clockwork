@@ -11,6 +11,7 @@ TOPIC "package(binutils)"
 SET %A "cwtool pkg-version binutils"
 CALL &EXEC.RUN1
 OK? @installed.1
+  LOG INFO "installing latest version of binutils"
   SET %A "cwtool pkg-install binutils latest"
   CALL &EXEC.CHECK
   FLAG 1 :changed
@@ -26,6 +27,7 @@ got.latest.1:
 COPY %S2 %T2
 CALL &UTIL.VERCMP
 OK? @next.1
+  LOG INFO "upgrading to latest version of binutils"
   SET %A "cwtool pkg-install binutils latest"
   CALL &EXEC.CHECK
   FLAG 1 :changed
@@ -40,6 +42,7 @@ TOPIC "package(binutils)"
 SET %A "cwtool pkg-version binutils"
 CALL &EXEC.RUN1
 NOTOK? @next.1
+  LOG INFO "uninstalling binutils"
   SET %A "cwtool pkg-remove binutils"
   CALL &EXEC.CHECK
   FLAG 1 :changed
@@ -54,6 +57,7 @@ TOPIC "package(binutils)"
 SET %A "cwtool pkg-version binutils"
 CALL &EXEC.RUN1
 OK? @installed.1
+  LOG INFO "installing binutils version 1.2.3"
   SET %A "cwtool pkg-install binutils 1.2.3"
   CALL &EXEC.CHECK
   FLAG 1 :changed
@@ -63,6 +67,7 @@ COPY %S2 %T1
 SET %T2 "1.2.3"
 CALL &UTIL.VERCMP
 OK? @next.1
+  LOG INFO "upgrading to binutils version 1.2.3"
   SET %A "cwtool pkg-install binutils 1.2.3"
   CALL &EXEC.CHECK
   FLAG 1 :changed

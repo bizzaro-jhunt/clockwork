@@ -947,8 +947,8 @@ static pn_word uf_server_writefile(pn_machine *m)
 				.in  = tmpf,
 				.out = out,
 				.err = err,
-				.uid = -1,
-				.gid = -1,
+				.uid = 0,
+				.gid = 0,
 			};
 
 			char *diffcmd = cw_string("%s %s -", UDATA(m)->difftool, (const char *)m->A);

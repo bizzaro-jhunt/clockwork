@@ -735,8 +735,6 @@ static void s_client_free(client_t *c)
 	free(c->copydown);
 	free(c->difftool);
 	free(c->fqdn);
-	if (c->cfm_lock)
-		unlink(c->cfm_lock);
 	free(c->cfm_lock);
 	free(c);
 }

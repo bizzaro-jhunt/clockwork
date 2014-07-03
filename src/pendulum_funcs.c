@@ -972,6 +972,7 @@ static pn_word uf_server_writefile(pn_machine *m)
 	}
 	rc = s_copyfile(tmpf, (const char *)m->A);
 	fclose(tmpf);
+	pn_flag(m, CHANGE_FLAG, rc == 0 ? 1 : 0);
 	return rc == 0 ? 0 : 1;
 }
 

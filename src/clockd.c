@@ -764,6 +764,8 @@ static inline server_t *s_server_new(int argc, char **argv)
 		exit(1);
 	}
 	if (s->mode == MODE_TEST) {
+		if (manifest_validate(s->manifest) != 0)
+			exit(2);
 		printf("Syntax OK\n");
 		exit(0);
 	}

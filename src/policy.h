@@ -110,6 +110,7 @@ struct policy {
 
 struct manifest* manifest_new(void);
 void manifest_free(struct manifest *m);
+int manifest_validate(struct manifest *m);
 
 struct stree* manifest_new_stree(struct manifest *m, enum oper op, char *data1, char *data2);
 int stree_add(struct stree *parent, struct stree *child);

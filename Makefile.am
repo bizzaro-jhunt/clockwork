@@ -93,6 +93,7 @@ PERL_TESTS += t/policy/07-hosts.t
 PERL_TESTS += t/policy/08-sysctl.t
 PERL_TESTS += t/policy/09-exec.t
 PERL_TESTS += t/policy/30-deps.t
+PERL_TESTS += t/policy/99-fail.t
 
 PERL_TESTS += t/bdfa/01-basics.t
 

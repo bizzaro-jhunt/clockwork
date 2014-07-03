@@ -198,6 +198,61 @@ void manifest_free(struct manifest *m)
 	free(m);
 }
 
+static int _manifest_validate(struct stree *node)
+{
+	if (!node) return 0;
+	int i;
+
+	cw_log(LOG_ERR, "node: %u %s/%s)", node->op, node->data1, node->data2);
+
+	switch (node->op) {
+	case RESOURCE:
+		cw_log(LOG_ERR, "check res %s == %u", node->data1, resource_type(node->data1));
+		if (resource_type(node->data1) == RES_UNKNOWN)
+			return 1;
+
+	case IF:
+	case PROG:
+	case NOOP:
+	case HOST:
+	case POLICY:
+	case INCLUDE:
+	case DEPENDENCY:
+	case ATTR:
+		for (i = 0; i < node->size; i++)
+			if (_manifest_validate(node->nodes[i]) != 0)
+				return 1;
+		return 0;
+
+	default:
+		cw_log(LOG_ERR, "unexpected node in syntax tree: %u %s/%s)", node->op, node->data1, node->data2);
+		return 1;
+	}
+
+	return 0;
+}
+
+/**
+  Validate resource types in a manifest
+ */
+int manifest_validate(struct manifest *m)
+{
+	struct stree *node;
+	if (_manifest_validate(node) != 0) return 1;
+
+	/* walk all the hosts */
+	char *host;
+	for_each_key_value(m->hosts, host, node)
+		if (_manifest_validate(node) != 0) return 1;
+
+	/* walk all the policies */
+	char *policy;
+	for_each_key_value(m->policies, policy, node)
+		if (_manifest_validate(node) != 0) return 1;
+
+	return 0;
+}
+
 /**
   Create a new syntax tree node for $m.
 

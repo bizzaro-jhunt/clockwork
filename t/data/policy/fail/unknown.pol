@@ -1,0 +1,22 @@
+host "host1" {
+  enforce "baseline"
+  enforce "security"
+}
+
+host fallback {
+  enforce "baseline"
+  enforce "security"
+}
+
+policy "baseline" {
+  dir  "dir" { }
+  file "file" { }
+  package "package" { }
+  user "user" { }
+  group "group" { }
+
+  blah "unknown" { }
+}
+
+policy "security" {
+}

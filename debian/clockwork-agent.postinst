@@ -1,0 +1,23 @@
+#!/bin/sh -e
+
+#
+# clockwork-agent postinst
+#
+# author:  James Hunt <james@niftylogic.com>
+# created: 2014-07-07
+#
+
+case "$1" in
+configure)
+	if [ ! -d "/var/lock/cogd" ]; then
+		mkdir /var/lock/cogd
+	fi
+	;;
+*)
+	exit 0
+	;;
+esac
+
+#DEBHELPER#
+
+exit 0

@@ -528,8 +528,8 @@ static void s_ccache_purge(ccache_t *c, int force)
 		c->clients[i].offset    = 0;
 		c->clients[i].last_seen = 0;
 
-		if (c->clients[i].policy)
-			policy_free_all(c->clients[i].policy);
+		policy_free_all(c->clients[i].policy);
+		c->clients[i].policy = NULL;
 		n++;
 	}
 	if (n) cw_log(LOG_INFO, "purged %i ccache entries", n);

@@ -25,6 +25,8 @@
 #   pkg-remove  <package>
 #
 
+export PATH=/sbin:/bin:/usr/sbin:/usr/bin
+
 #################################################################
 # AUTO-DETECTION
 #

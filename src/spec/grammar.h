@@ -1,19 +1,19 @@
-/* A Bison parser, made by GNU Bison 2.5.  */
+/* A Bison parser, made by GNU Bison 3.0.2.  */
 
 /* Bison interface for Yacc-like parsers in C
-   
-      Copyright (C) 1984, 1989-1990, 2000-2011 Free Software Foundation, Inc.
-   
+
+   Copyright (C) 1984, 1989-1990, 2000-2013 Free Software Foundation, Inc.
+
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation, either version 3 of the License, or
    (at your option) any later version.
-   
+
    This program is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
    GNU General Public License for more details.
-   
+
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
@@ -26,36 +26,44 @@
    special exception, which will cause the skeleton and the resulting
    Bison output files to be licensed under the GNU General Public
    License without this special exception.
-   
+
    This special exception was added by the Free Software Foundation in
    version 2.2 of Bison.  */
 
+#ifndef YY_YY_SRC_SPEC_GRAMMAR_H_INCLUDED
+# define YY_YY_SRC_SPEC_GRAMMAR_H_INCLUDED
+/* Debug traces.  */
+#ifndef YYDEBUG
+# define YYDEBUG 0
+#endif
+#if YYDEBUG
+extern int yydebug;
+#endif
 
-/* Tokens.  */
+/* Token type.  */
 #ifndef YYTOKENTYPE
 # define YYTOKENTYPE
-   /* Put the tokens into the symbol table, so that GDB and other debuggers
-      know about them.  */
-   enum yytokentype {
-     T_KEYWORD_POLICY = 258,
-     T_KEYWORD_HOST = 259,
-     T_KEYWORD_ENFORCE = 260,
-     T_KEYWORD_EXTEND = 261,
-     T_KEYWORD_IF = 262,
-     T_KEYWORD_UNLESS = 263,
-     T_KEYWORD_ELSE = 264,
-     T_KEYWORD_MAP = 265,
-     T_KEYWORD_IS = 266,
-     T_KEYWORD_NOT = 267,
-     T_KEYWORD_DEPENDS_ON = 268,
-     T_KEYWORD_AFFECTS = 269,
-     T_KEYWORD_DEFAULTS = 270,
-     T_KEYWORD_FALLBACK = 271,
-     T_IDENTIFIER = 272,
-     T_FACT = 273,
-     T_QSTRING = 274,
-     T_NUMERIC = 275
-   };
+  enum yytokentype
+  {
+    T_KEYWORD_POLICY = 258,
+    T_KEYWORD_HOST = 259,
+    T_KEYWORD_ENFORCE = 260,
+    T_KEYWORD_EXTEND = 261,
+    T_KEYWORD_IF = 262,
+    T_KEYWORD_UNLESS = 263,
+    T_KEYWORD_ELSE = 264,
+    T_KEYWORD_MAP = 265,
+    T_KEYWORD_IS = 266,
+    T_KEYWORD_NOT = 267,
+    T_KEYWORD_DEPENDS_ON = 268,
+    T_KEYWORD_AFFECTS = 269,
+    T_KEYWORD_DEFAULTS = 270,
+    T_KEYWORD_FALLBACK = 271,
+    T_IDENTIFIER = 272,
+    T_FACT = 273,
+    T_QSTRING = 274,
+    T_NUMERIC = 275
+  };
 #endif
 /* Tokens.  */
 #define T_KEYWORD_POLICY 258
@@ -77,15 +85,10 @@
 #define T_QSTRING 274
 #define T_NUMERIC 275
 
+/* Value type.  */
 
 
 
-#if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
+int yyparse (spec_parser_context *ctx);
 
-# define yystype YYSTYPE /* obsolescent; will be withdrawn */
-# define YYSTYPE_IS_DECLARED 1
-#endif
-
-
-
-
+#endif /* !YY_YY_SRC_SPEC_GRAMMAR_H_INCLUDED  */

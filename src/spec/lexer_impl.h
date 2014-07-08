@@ -93,6 +93,8 @@ static void lexer_process_file(const char *path, spec_parser_context *ctx)
 	FILE *io;
 	void *buf;
 
+	printf("INCLUDE:%s\n", path);
+
 	io = lexer_open(path, ctx);
 	if (!io) { /* already seen or some other error */
 		return; /* bail; lexer_check_file already printed warnings */
@@ -203,6 +205,7 @@ void lexer_include_file(const char *path, spec_parser_context *ctx)
 
 int lexer_include_return(spec_parser_context *ctx)
 {
+	printf("<<<<<<<: %s\n", ctx->file);
 	stringlist_remove(ctx->files, ctx->file);
 	lexer_close(ctx);
 
@@ -217,6 +220,7 @@ int lexer_include_return(spec_parser_context *ctx)
 
 int yywrap(yyscan_t scanner) {
 	/* lexer_include_return returns 0 if we need to keep going */
+	printf("YYWRAP!\n");
 	return lexer_include_return(yyget_extra(scanner));
 }
 

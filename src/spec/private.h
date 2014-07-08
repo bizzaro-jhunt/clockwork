@@ -175,28 +175,12 @@ int yylex(YYSTYPE*, yyscan_t);
 int yylex_init_extra(YY_EXTRA_TYPE, yyscan_t*);
 int yylex_destroy(yyscan_t);
 void yyset_extra(YY_EXTRA_TYPE, yyscan_t);
-int yyparse(void*);
+int yyparse(spec_parser_context*);
 
 /* Defined in lexer.l */
 void spec_parser_error(void *ctx, const char *fmt, ...);
 void spec_parser_warning(void *ctx, const char *fmt, ...);
-/* Define yyerror as a macro that invokes spec_parser_error
-
-   Because the Flex-generated C code contains calls to
-   yyerror with the following signature:
-
-     void yyerror(const char*)
-
-   This is the cleanest way to get error reporting with
-   line numbers and other useful information.  It is
-   worth pointing out that this definition will only work
-   if yyerror is called from yylex; otherwise the macro
-   expansion of YYPARSE_PARAM is potentially invalid (there
-   may not be a ctx variable to dereference).  Sine Flex
-   only ever calls yyerror from within yylex, this assumption
-   is safe insofar as generated code is concerned.
- */
-#define yyerror(s) spec_parser_error(YYPARSE_PARAM, s);
+#define yyerror spec_parser_error
 
 void lexer_include_file(const char *path, spec_parser_context*);
 int lexer_include_return(spec_parser_context*);

@@ -30,14 +30,10 @@
 #include "private.h"
 %}
 
-/*
-  To get a reentrant Bison parser, we have to use the special
-  '%pure-parser' directive.  Documentation on the 'net seems to
-  disagree about whether this should be %pure-parser (with a hyphen)
-  or %pure_parser (with an underscore).
-
-  I have found %pure-parser to work just fine.  JRH */
-%pure-parser
+/* Build a reentrant Bison parser */
+%define api.pure
+%parse-param {spec_parser_context *ctx}
+%lex-param   {YYLEX_PARAM}
 
 /* Define the lexical tokens used by the grammar.
       These definitions will be available to the lexer via the
@@ -103,6 +99,10 @@
 
 #define MANIFEST(ctx) (((spec_parser_context*)ctx)->root)
 #define NODE(op,d1,d2) (manifest_new_stree(MANIFEST(ctx), (op), (d1), (d2)))
+
+#ifdef YYDEBUG
+	int yydebug = 1;
+#endif
 %}
 
 %%

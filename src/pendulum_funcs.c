@@ -773,6 +773,9 @@ static pn_word uf_exec_check(pn_machine *m)
 		cw_log(LOG_ERR, "Failed to read standard error from `%s`: %s",
 			(const char *)m->A, strerror(errno));
 
+	fclose(runner.out);
+	fclose(runner.err);
+
 	cw_log(LOG_DEBUG, "Command `%s` exited %u", (const char *)m->A, rc);
 	return rc;
 }
@@ -804,6 +807,9 @@ static pn_word uf_exec_run1(pn_machine *m)
 	if (cw_logio(LOG_WARNING, "%s", runner.err) != 0)
 		cw_log(LOG_ERR, "Failed to read standard error from `%s`: %s",
 			(const char *)m->A, strerror(errno));
+
+	fclose(runner.out);
+	fclose(runner.err);
 
 	if (!out) out = strdup("");
 	cw_log(LOG_DEBUG, "Command `%s` exited %u", (const char *)m->A, rc);

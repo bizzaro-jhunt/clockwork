@@ -343,6 +343,7 @@ static void s_cfm_run(client_t *c)
 	char *factstr = mmap(NULL, len, PROT_READ, MAP_SHARED, fileno(io), 0);
 	if ((void *)factstr == MAP_FAILED) {
 		cw_log(LOG_CRIT, "Failed to mmap fact data");
+		fclose(io);
 		goto shut_it_down;
 	}
 

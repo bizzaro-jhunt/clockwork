@@ -431,12 +431,12 @@ shut_it_down:
 		 ms_copydown + ms_facts   + ms_getpolicy +
 		 ms_parse    + ms_enforce + ms_cleanup) / 1000.0);
 
-	cw_log(LOG_INFO, "STATS(ms): connect=%lu, "  "hello=%lu, "   "preinit=%lu, "
-	                            "copydown=%lu, " "facts=%lu, "   "getpolicy=%lu, "
-	                            "parse=%lu, "    "enforce=%lu, " "cleanup=%lu",
-	                             ms_connect,      ms_hello,       ms_preinit,
-	                             ms_copydown,     ms_facts,       ms_getpolicy,
-	                             ms_parse,        ms_enforce,     ms_cleanup);
+	cw_log(LOG_NOTICE, "STATS(ms): connect=%u, "   "hello=%u, "    "preinit=%u, "
+	                              "copydown=%u, "  "facts=%u, "    "getpolicy=%u, "
+	                              "parse=%u, "     "enforce=%u, "  "cleanup=%u",
+	                               ms_connect,      ms_hello,       ms_preinit,
+	                               ms_copydown,     ms_facts,       ms_getpolicy,
+	                               ms_parse,        ms_enforce,     ms_cleanup);
 
 maybe_next_time:
 	if (lockfd >= 0) {

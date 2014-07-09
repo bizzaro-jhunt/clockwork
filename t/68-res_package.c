@@ -39,10 +39,6 @@ TESTS {
 	}
 
 	subtest {
-		ok(res_package_norm(NULL, NULL, NULL) == 0, "res_package_norm is a NOOP");
-	}
-
-	subtest {
 		res_package_free(NULL);
 		pass("res_package_free(NULL) doesn't segfault");
 	}

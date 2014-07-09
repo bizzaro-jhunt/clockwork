@@ -76,5 +76,35 @@ next.1:
 final.1:
 EOF
 
+gencode_ok "use host package4.test", <<'EOF', "explicitly latest";
+RESET
+TOPIC "package(binutils)"
+SET %A "cwtool pkg-version binutils"
+CALL &EXEC.RUN1
+OK? @installed.1
+  LOG INFO "installing latest version of binutils"
+  SET %A "cwtool pkg-install binutils latest"
+  CALL &EXEC.CHECK
+  FLAG 1 :changed
+  JUMP @next.1
+installed.1:
+COPY %S2 %T1
+SET %A "cwtool pkg-latest binutils"
+CALL &EXEC.RUN1
+OK? @got.latest.1
+  ERROR "Failed to detect latest version of 'binutils'"
+  JUMP @next.1
+got.latest.1:
+COPY %S2 %T2
+CALL &UTIL.VERCMP
+OK? @next.1
+  LOG INFO "upgrading to latest version of binutils"
+  SET %A "cwtool pkg-install binutils latest"
+  CALL &EXEC.CHECK
+  FLAG 1 :changed
+next.1:
+!FLAGGED? :changed @final.1
+final.1:
+EOF
 
 done_testing;

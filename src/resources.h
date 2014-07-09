@@ -179,6 +179,7 @@ struct res_package {
 	char *name;       /* name of the package */
 	char *version;    /* version to be installed */
 
+	unsigned int latest;
 	unsigned int enforced;  /* enforcements; see RES_PACKAGE_* constants */
 };
 

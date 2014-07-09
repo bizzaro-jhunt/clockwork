@@ -1249,7 +1249,14 @@ int res_package_attrs(const void *res, cw_hash_t *attrs)
 	return 0;
 }
 
-int res_package_norm(void *res, struct policy *pol, cw_hash_t *facts) { return 0; }
+int res_package_norm(void *res, struct policy *pol, cw_hash_t *facts)
+{
+	struct res_package *r = (struct res_package*)(res);
+	assert(r); // LCOV_EXCL_LINE
+
+	r->latest = (!r->version || strcmp(r->version, "latest") == 0);
+	return 0;
+}
 
 int res_package_set(void *res, const char *name, const char *value)
 {
@@ -1313,7 +1320,7 @@ int res_package_gencode(const void *res, FILE *io, unsigned int next, unsigned i
 		fprintf(io, "  FLAG 1 :changed\n");
 	} else {
 		fprintf(io, "OK? @installed.%u\n", next);
-		if (r->version) {
+		if (r->version && !r->latest) {
 			fprintf(io, "  LOG INFO \"installing %s version %s\"\n", r->name, r->version);
 		} else {
 			fprintf(io, "  LOG INFO \"installing latest version of %s\"\n", r->name);
@@ -1324,9 +1331,7 @@ int res_package_gencode(const void *res, FILE *io, unsigned int next, unsigned i
 		fprintf(io, "  JUMP @next.%u\n", next);
 		fprintf(io, "installed.%u:\n", next);
 		fprintf(io, "COPY %%S2 %%T1\n");
-		if (r->version) {
-			fprintf(io, "SET %%T2 \"%s\"\n", r->version);
-		} else {
+		if (r->latest) {
 			fprintf(io, "SET %%A \"cwtool pkg-latest %s\"\n", r->name);
 			fprintf(io, "CALL &EXEC.RUN1\n");
 			fprintf(io, "OK? @got.latest.%u\n", next);
@@ -1334,15 +1339,17 @@ int res_package_gencode(const void *res, FILE *io, unsigned int next, unsigned i
 			fprintf(io, "  JUMP @next.%u\n", next);
 			fprintf(io, "got.latest.%u:\n", next);
 			fprintf(io, "COPY %%S2 %%T2\n");
+		} else {
+			fprintf(io, "SET %%T2 \"%s\"\n", r->version);
 		}
 		fprintf(io, "CALL &UTIL.VERCMP\n");
 		fprintf(io, "OK? @next.%u\n", next);
-		if (r->version) {
-			fprintf(io, "  LOG INFO \"upgrading to %s version %s\"\n", r->name, r->version);
-		} else {
+		if (r->latest) {
 			fprintf(io, "  LOG INFO \"upgrading to latest version of %s\"\n", r->name);
+		} else {
+			fprintf(io, "  LOG INFO \"upgrading to %s version %s\"\n", r->name, r->version);
 		}
-		fprintf(io, "  SET %%A \"cwtool pkg-install %s %s\"\n", r->name, r->version ? r->version : "latest");
+		fprintf(io, "  SET %%A \"cwtool pkg-install %s %s\"\n", r->name, r->latest ? "latest" : r->version);
 		fprintf(io, "  CALL &EXEC.CHECK\n");
 		fprintf(io, "  FLAG 1 :changed\n");
 	}

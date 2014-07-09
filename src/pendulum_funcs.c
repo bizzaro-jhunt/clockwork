@@ -733,6 +733,8 @@ static pn_word uf_util_vercmp(pn_machine *m)
 {
 	const char *have = (const char *)m->T1;
 	const char *want = (const char *)m->T2;
+	pn_trace(m, "UTIL.VERCMP: comparing '%s' %%T1(%p) to '%s' %%T2(%p)'",
+		have, have, want, want);
 	if (strcmp(have, want) == 0) return 0;
 	if (strchr(want, '-')) return 1;
 	if (strchr(have, '-') && strncmp(have, want, strchr(have, '-')-have) == 0)

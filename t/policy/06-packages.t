@@ -10,24 +10,8 @@ RESET
 TOPIC "package(binutils)"
 SET %A "cwtool pkg-version binutils"
 CALL &EXEC.RUN1
-OK? @installed.1
-  LOG NOTICE "installing latest version of binutils"
-  SET %A "cwtool pkg-install binutils latest"
-  CALL &EXEC.CHECK
-  FLAG 1 :changed
-  JUMP @next.1
-installed.1:
-COPY %S2 %T1
-SET %A "cwtool pkg-latest binutils"
-CALL &EXEC.RUN1
-OK? @got.latest.1
-  ERROR "Failed to detect latest version of 'binutils'"
-  JUMP @next.1
-got.latest.1:
-COPY %S2 %T2
-CALL &UTIL.VERCMP
 OK? @next.1
-  LOG NOTICE "upgrading to latest version of binutils"
+  LOG NOTICE "installing binutils"
   SET %A "cwtool pkg-install binutils latest"
   CALL &EXEC.CHECK
   FLAG 1 :changed
@@ -99,6 +83,21 @@ COPY %S2 %T2
 CALL &UTIL.VERCMP
 OK? @next.1
   LOG NOTICE "upgrading to latest version of binutils"
+  SET %A "cwtool pkg-install binutils latest"
+  CALL &EXEC.CHECK
+  FLAG 1 :changed
+next.1:
+!FLAGGED? :changed @final.1
+final.1:
+EOF
+
+gencode_ok "use host package5.test", <<'EOF', "version 'any'";
+RESET
+TOPIC "package(binutils)"
+SET %A "cwtool pkg-version binutils"
+CALL &EXEC.RUN1
+OK? @next.1
+  LOG NOTICE "installing binutils"
   SET %A "cwtool pkg-install binutils latest"
   CALL &EXEC.CHECK
   FLAG 1 :changed

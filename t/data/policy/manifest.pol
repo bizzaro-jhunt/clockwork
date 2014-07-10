@@ -229,6 +229,14 @@ policy "package4" {
 }
 host "package4.test" { enforce "package4" }
 
+policy "package5" {
+	package "binutils" {
+		installed: "yes"
+		version: "any"
+	}
+}
+host "package5.test" { enforce "package5" }
+
 ####################################################
 ####################################################
 

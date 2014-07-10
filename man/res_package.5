@@ -54,11 +54,11 @@ policy constructs should be used to get the correct name.
 .B version
 .RS 8
 The (optional) version of the package to install.  If not specified,
-the latest available version from all known repositories will be used.
+and the package is not already installed, the latest available version
+will be used.  The special value "any" forces this default behavior.
 .PP
 The special value "latest" is will cause Clockwork to keep the installed
-package at the latest version.  This differs from an unspecified version,
-which is a one-time installation of the most recent package.
+package at the latest version, upgrading as needed.
 .RE
 .PP
 

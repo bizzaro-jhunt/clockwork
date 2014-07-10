@@ -239,17 +239,15 @@ static int _manifest_validate(struct stree *node)
  */
 int manifest_validate(struct manifest *m)
 {
+	char *_;
 	struct stree *node;
-	if (_manifest_validate(node) != 0) return 1;
 
 	/* walk all the hosts */
-	char *host;
-	for_each_key_value(m->hosts, host, node)
+	for_each_key_value(m->hosts, _, node)
 		if (_manifest_validate(node) != 0) return 1;
 
 	/* walk all the policies */
-	char *policy;
-	for_each_key_value(m->policies, policy, node)
+	for_each_key_value(m->policies, _, node)
 		if (_manifest_validate(node) != 0) return 1;
 
 	return 0;

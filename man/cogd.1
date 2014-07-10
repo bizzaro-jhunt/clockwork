@@ -101,6 +101,20 @@ Default configuration file that
 .B cogd
 reads on start up.  See \fBcogd.conf\fR(5) for details.
 
+.PP
+.TP 8
+.B /var/lock/cogd/cfm.lock
+Lock file that is created to ensure that only a single configuration
+management run is undertaken at any one time.  This lock governs
+\fBcogd\fR in foreground, one-off (\fB\-F1\fr) mode and as a daemon.
+
+.PP
+.TP 8
+.B /var/lock/cogd/cfm.KILLSWITCH
+If this file exists, \fBcogd\fR will refuse to start its configuration
+management run.  This allows system admins to properly disable Clockwork
+temporarily.  This applies to daemon and standalone modes.
+
 .SH SEE ALSO
 .PP
 \fBclockwork\fR(7), \fBclockd\fR(1), \fBclockd.conf\fR(5) and

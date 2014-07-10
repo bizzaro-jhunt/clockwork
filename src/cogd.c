@@ -22,10 +22,12 @@
 #include "pendulum_funcs.h"
 
 #include <zmq.h>
+#include <time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
+#include <unistd.h>
 #include <netdb.h>
 #include <getopt.h>
 #include <fcntl.h>
@@ -51,6 +53,7 @@ typedef struct {
 	char *difftool;
 
 	char *cfm_lock;
+	char *cfm_killswitch;
 
 	int   mode;
 	int   trace;
@@ -213,11 +216,18 @@ static void s_cfm_run(client_t *c)
 
 	int lockfd = -1;
 	if (c->mode != MODE_CODE) {
+		struct stat st;
+		if (stat(c->cfm_killswitch, &st) == 0) {
+			struct tm *tm = localtime(&st.st_mtime);
+			cw_log(LOG_WARNING, "Found CFM KILLSWITCH %s, dated %s; skipping.",
+				c->cfm_killswitch, asctime(tm));
+			goto maybe_next_time;
+		}
+
 		cw_log(LOG_DEBUG, "acquiring CFM lock '%s'", c->cfm_lock);
 		lockfd = open(c->cfm_lock, O_CREAT|O_EXCL|O_WRONLY, 0644);
 		int my_errno = errno;
 		if (lockfd < 0) {
-			struct stat st;
 			if (stat(c->cfm_lock, &st) == 0)
 				cw_log(LOG_WARNING, "Another configuration management run in progress; skipping.");
 			else
@@ -724,6 +734,11 @@ static inline client_t* s_client_new(int argc, char **argv)
 		"cfm.lock");
 	cw_log(LOG_DEBUG, "will use CFM lock file '%s'", c->cfm_lock);
 
+	c->cfm_killswitch = cw_string("%s/%s",
+		cw_cfg_get(&config, "lockdir"),
+		"cfm.KILLSWITCH");
+	cw_log(LOG_DEBUG, "will use CFM killswitch file '%s'", c->cfm_killswitch);
+
 	cw_cfg_done(&config);
 	return c;
 }
@@ -737,6 +752,7 @@ static void s_client_free(client_t *c)
 	free(c->difftool);
 	free(c->fqdn);
 	free(c->cfm_lock);
+	free(c->cfm_killswitch);
 	free(c);
 }
 

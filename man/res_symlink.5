@@ -1,0 +1,138 @@
+\"
+\"  Copyright 2011-2014 James Hunt <james@jameshunt.us>
+\"
+\"  This file is part of Clockwork.
+\"
+\"  Clockwork is free software: you can redistribute it and/or modify
+\"  it under the terms of the GNU General Public License as published by
+\"  the Free Software Foundation, either version 3 of the License, or
+\"  (at your option) any later version.
+\"
+\"  Clockwork is distributed in the hope that it will be useful,
+\"  but WITHOUT ANY WARRANTY; without even the implied warranty of
+\"  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+\"  GNU General Public License for more details.
+\"
+\"  You should have received a copy of the GNU General Public License
+\"  along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
+\"
+
+.TH res_symlink "5" "March 2013" "Clockwork" " Clockwork Resource Types"'"
+\"----------------------------------------------------------------
+.SH NAME
+.PP
+res_symlink \- Clockwork Resource Type for managing symbolic links
+
+\"----------------------------------------------------------------
+.SH DESCRIPTION
+.PP
+A fair portion of Linux system administration involves creating and
+maintaining configuration files.  Sometimes, these files need to be
+linked elsewhere in the filesystem hierarchy.  The \fBres_symlink\fR
+resource for Clockwork allows administrators to set up (or tear down)
+such links.
+.PP
+
+\"----------------------------------------------------------------
+.SH ATTRIBUTES
+.PP
+
+.B path
+.RS 4
+The path (on the local system) that should be the symbolic link
+.RE
+.PP
+
+.B target
+.RS 4
+The target file that the link should point to.  Defaults to
+\fB/dev/null\fR.  Note that this path doesn't have to exist.
+.RE
+
+.B present
+.RS 4
+Whether or not this link should exist.  Valid values are
+"yes" and "no".  The default value is "yes".
+.RE
+
+\"----------------------------------------------------------------
+.SH EXAMPLES
+.PP
+Ensuring a symbolic link:
+.PP
+.RS 4
+.nf
+symlink "/home/user/.bashrc" {
+    target: "/etc/base/bashrc"
+}
+.fi
+.RE
+.PP
+If you want to remove a symbolic link:
+.PP
+.RS 4
+.nf
+symlink "MOTD" {
+    path: "/etc/motd"
+    present: "no"
+}
+.fi
+.RE
+.PP
+(This is similar to using the resource name "/etc/motd" directly).
+.PP
+
+\"----------------------------------------------------------------
+.SH DEPENDENCIES
+.PP
+All parent components of the path will be created if the link
+should exist and does not.  By default, these parent directories
+will be owned by root:root with mode 0755.  However, if the policy
+defines \fBres_dir\fR(5) resources with paths matching any component
+of the parent directory chain, the file resource will be set to
+depend on them.
+.PP
+An example should clear up any confusion:
+.PP
+.RS 4
+.nf
+symlink "/u/apps/foo/config.yml" {
+    target: "/etc/foo/config.yml"
+}
+
+dir "/u/apps" {
+    owner: "webmaster"
+    group: "web"
+    mode:  0755
+}
+
+dir "/u/apps/foo" {
+    owner: "apache"
+    group: "web"
+    mode:  0775
+}
+.fi
+.RE
+.PP
+If the above policy was enforced on a host without the /u directory,
+the following would happen (in order):
+.PP
+.IP 1. 3
+Create /u, per defaults (root:root; 0755)
+.IP 2.
+Create /u/apps, per policy (webmaster:web; 0755)
+.IP 3.
+Create /u/apps/foo, per policy (apache:web; 0775)
+.IP 4.
+Create the symbolic link /u/apps/foo/config.yml, pointing it at
+/etc/foo/config.yml.
+
+\"----------------------------------------------------------------
+.SH AUTHOR
+.PP
+Clockwork was designed and written by James Hunt.
+
+\"----------------------------------------------------------------
+.SH BUGS
+.PP
+None.

@@ -1,0 +1,10 @@
+;;
+;; fs/symlink.pn
+;; Pendulum Test Script
+;;
+
+SET %A "t/tmp/pn/fs/link"
+SET %B "decafbad"
+CALL &FS.SYMLINK
+PRINT "OK\n"
+HALT

@@ -70,6 +70,7 @@ typedef FILE* (*resource_content_f)(const void *res, cw_hash_t *facts);
 		RESOURCE_TYPE(sysctl),
 		RESOURCE_TYPE(dir),
 		RESOURCE_TYPE(exec),
+		RESOURCE_TYPE(symlink),
 	};
 
 #undef RESOURCE_TYPE

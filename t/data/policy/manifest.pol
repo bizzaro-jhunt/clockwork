@@ -302,6 +302,26 @@ host "exec4.test" { enforce "exec4" }
 ####################################################
 ####################################################
 
+policy "symlink1" {
+	symlink "/etc/old/symlink" { present: "no" }
+}
+host "symlink1.test" { enforce "symlink1" }
+
+policy "symlink2" {
+	symlink "/etc/old/symlink" {
+		target: "/a/target/file"
+	}
+}
+host "symlink2.test" { enforce "symlink2" }
+
+policy "symlink3" {
+	symlink "/etc/old/symlink" { }
+}
+host "symlink3.test" { enforce "symlink3" }
+
+####################################################
+####################################################
+
 policy "deps1" {
 	dir "/tmp" { }
 	file "/tmp/inner/file" { }

@@ -167,6 +167,18 @@ struct res_file {
 NEW_RESOURCE(file);
 
 
+/**
+  Symbolic link
+ */
+struct res_symlink {
+	char *key;    /* unique identifier, starts with "res_symlink:" */
+	char *path;   /* path to the link itself */
+	char *target; /* target the link should point to */
+	int   absent; /* link should be removed */
+};
+
+NEW_RESOURCE(symlink);
+
 
 #define RES_PACKAGE_ABSENT   0x80000000
 

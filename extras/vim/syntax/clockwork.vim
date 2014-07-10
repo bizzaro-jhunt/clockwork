@@ -13,7 +13,7 @@ endif
 syn keyword   clockworkTodo           contained TODO FIXME XXX
 syn match     clockworkComment        "#.*" contains=clockworkTodo
 
-syn match     clockworkType           /host\|policy\|user\|file\|group\|package\|service\|sysctl\|dir\|exec/
+syn match     clockworkType           /host\|policy\|user\|file\|group\|package\|service\|sysctl\|dir\|exec\|symlink/
 syn keyword   clockworkKeyword        if unless else map is not
 syn match     clockworkDepKeyword     /depends  *on\|affects/
 syn keyword   clockworkPreProc        enforce extend include defaults fallback

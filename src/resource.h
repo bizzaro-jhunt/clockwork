@@ -34,6 +34,7 @@ enum restype {
 	RES_SYSCTL,
 	RES_DIR,
 	RES_EXEC,
+	RES_SYMLINK,
 	RES_UNKNOWN /* must be LAST */
 };
 

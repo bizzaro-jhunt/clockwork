@@ -73,6 +73,7 @@ CTAP_TESTS += t/66-res_sysctl
 CTAP_TESTS += t/67-res_service
 CTAP_TESTS += t/68-res_package
 CTAP_TESTS += t/69-res_exec
+CTAP_TESTS += t/70-res_symlink
 
 PERL_TESTS  =
 PERL_TESTS += t/pendulum/01-basics.t
@@ -92,6 +93,7 @@ PERL_TESTS += t/policy/06-packages.t
 PERL_TESTS += t/policy/07-hosts.t
 PERL_TESTS += t/policy/08-sysctl.t
 PERL_TESTS += t/policy/09-exec.t
+PERL_TESTS += t/policy/10-symlink.t
 PERL_TESTS += t/policy/30-deps.t
 PERL_TESTS += t/policy/99-fail.t
 
@@ -168,6 +170,7 @@ t_66_res_sysctl_SOURCES  = t/66-res_sysctl.c    $(test_source)
 t_67_res_service_SOURCES = t/67-res_service.c   $(test_source)
 t_68_res_package_SOURCES = t/68-res_package.c   $(test_source)
 t_69_res_exec_SOURCES    = t/69-res_exec.c      $(test_source)
+t_70_res_symlink_SOURCES = t/70-res_symlink.c   $(test_source)
 
 CLEANFILES       = $(BUILT_SOURCES)
 CLEANFILES      += *.tmp

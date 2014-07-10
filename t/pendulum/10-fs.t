@@ -51,4 +51,12 @@ EOF
 
 file_is "$TEMP/putfile", "0\n", "FS.PUT wrote the file";
 
+unlink "$TEMP/link";
+pendulum_ok "$TESTS/symlink.pn", <<EOF, "symlink.pn";
+OK
+EOF
+
+ok -l "$TEMP/link", "symlink created";
+is readlink("$TEMP/link"), "decafbad", "symlink target set";
+
 done_testing;

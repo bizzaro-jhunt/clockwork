@@ -74,7 +74,7 @@ t/66-res_sysctl
 t/67-res_service
 t/68-res_package
 t/69-res_exec
-t/70-managers
+t/70-res_symlink
 
 *.debhelper.log
 *.debhelper

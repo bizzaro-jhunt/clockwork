@@ -790,6 +790,163 @@ FILE * res_file_content(const void *res, cw_hash_t *facts)
 
 /*****************************************************************/
 
+void* res_symlink_new(const char *key)
+{
+	return res_symlink_clone(NULL, key);
+}
+
+void* res_symlink_clone(const void *res, const char *key)
+{
+	const struct res_symlink *orig = (const struct res_symlink*)(res);
+	struct res_symlink *r = cw_alloc(sizeof(struct res_symlink));
+
+	r->path   = RES_DEFAULT_STR(orig, path,   NULL);
+	r->target = RES_DEFAULT_STR(orig, target, "/dev/null");
+
+	r->key = NULL;
+	if (key) {
+		r->key = strdup(key);
+		res_symlink_set(r, "path", key);
+	}
+
+	return r;
+}
+
+void res_symlink_free(void *res)
+{
+	struct res_symlink *r = (struct res_symlink*)(res);
+	if (r) {
+		free(r->path);
+		free(r->target);
+		free(r->key);
+	}
+
+	free(r);
+}
+
+char* res_symlink_key(const void *res)
+{
+	struct res_symlink *r = (struct res_symlink*)(res);
+	assert(r); // LCOV_EXCL_LINE
+
+	return cw_string("symlink:%s", r->key);
+}
+
+int res_symlink_attrs(const void *res, cw_hash_t *attrs)
+{
+	struct res_symlink *r = (struct res_symlink*)(res);
+	assert(r); // LCOV_EXCL_LINE
+
+	_hash_attr(attrs, "present", strdup(r->absent ? "no" : "yes"));
+	_hash_attr(attrs, "path",    strdup(r->path));
+	_hash_attr(attrs, "target",  strdup(r->target));
+	return 0;
+}
+
+int res_symlink_norm(void *res, struct policy *pol, cw_hash_t *facts)
+{
+	struct res_symlink *r = (struct res_symlink*)(res);
+	assert(r); // LCOV_EXCL_LINE
+
+	char *key = res_symlink_key(r);
+
+	/* files depend on res_dir resources between them and / */
+	if (_setup_path_deps(key, r->path, pol) != 0) {
+		free(key);
+		return -1;
+	}
+
+	free(key);
+	return 0;
+}
+
+int res_symlink_set(void *res, const char *name, const char *value)
+{
+	struct res_symlink *r = (struct res_symlink*)(res);
+	assert(r); // LCOV_EXCL_LINE
+
+	if (strcmp(name, "path") == 0) {
+		free(r->path);
+		r->path = strdup(value);
+
+	} else if (strcmp(name, "target") == 0) {
+		free(r->target);
+		r->target = strdup(value);
+
+	} else if (strcmp(name, "present") == 0) {
+		r->absent = strcmp(value, "no") == 0 ? 1 : 0;
+
+	} else {
+		/* unknown attribute. */
+		return -1;
+	}
+
+	return 0;
+}
+
+int res_symlink_match(const void *res, const char *name, const char *value)
+{
+	const struct res_symlink *r = (struct res_symlink*)(res);
+	assert(r); // LCOV_EXCL_LINE
+
+	char *test_value;
+	int rc;
+
+	if (strcmp(name, "path") == 0) {
+		test_value = cw_string("%s", r->path);
+	} else {
+		return 1;
+	}
+
+	rc = strcmp(test_value, value);
+	free(test_value);
+	return rc;
+}
+
+int res_symlink_gencode(const void *res, FILE *io, unsigned int next, unsigned int serial)
+{
+	struct res_symlink *r = (struct res_symlink*)(res);
+	assert(r); // LCOV_EXCL_LINE
+
+	fprintf(io, "TOPIC \"symlink(%s)\"\n", r->key);
+	fprintf(io, "SET %%A \"%s\"\n", r->path);
+	fprintf(io, "SET %%B \"%s\"\n", r->target);
+
+	fprintf(io, "CALL &FS.EXISTS?\n");
+	if (r->absent) {
+		fprintf(io, "NOTOK? @next.%u\n", next);
+		fprintf(io, "CALL &FS.IS_SYMLINK?\n");
+		fprintf(io, "OK? @islink.%u\n", next);
+		fprintf(io, "  ERROR \"%%s exists, but is not a symlink\\n\"\n");
+		fprintf(io, "  JUMP @next.%u\n", next);
+		fprintf(io, "islink.%u:\n", next);
+		fprintf(io, "CALL &FS.UNLINK\n");
+		fprintf(io, "JUMP @next.%u\n", next);
+		return 0;
+	}
+	fprintf(io, "NOTOK? @create.%u\n", next);
+	fprintf(io, "  CALL &FS.IS_SYMLINK?\n");
+	fprintf(io, "  OK? @islink.%u\n", next);
+	fprintf(io, "    ERROR \"%%s exists, but is not a symlink\\n\"\n");
+	fprintf(io, "    JUMP @next.%u\n", next);
+	fprintf(io, "  islink.%u:\n", next);
+	fprintf(io, "  CALL &FS.UNLINK\n");
+	fprintf(io, "CALL &FS.EXISTS?\n");
+	fprintf(io, "NOTOK? @create.%u\n", next);
+	fprintf(io, "  ERROR \"Failed to unlink %%s\\n\"\n");
+	fprintf(io, "  JUMP @next.%u\n", next);
+	fprintf(io, "create.%u:\n", next);
+	fprintf(io, "CALL &FS.SYMLINK\n");
+	fprintf(io, "OK? @next.%u\n", next);
+	fprintf(io, "  ERROR \"Failed to symlink %%s -> %%s\\n\"\n");
+	return 0;
+}
+
+FILE * res_symlink_content(const void *res, cw_hash_t *facts) { return NULL; }
+
+
+/*****************************************************************/
+
 void* res_group_new(const char *key)
 {
 	return res_group_clone(NULL, key);

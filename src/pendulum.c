@@ -44,6 +44,8 @@
 #define  PN_OP_NFLAGGED 0x001a
 #define  PN_OP_RESET    0x001b
 #define  PN_OP_TOPIC    0x001c
+#define  PN_OP_GETENV   0x001d
+#define  PN_OP_SETENV   0x001e
 #define  PN_OP_INVAL    0x00ff
 
 #define PC      pn_CODE(m, m->Ip)
@@ -80,6 +82,8 @@ static const char *OP_NAMES[] = {
 	"!FLAGGED?",
 	"RESET",
 	"TOPIC",
+	"GETENV",
+	"SETENV",
 	"(invalid)",
 	NULL,
 };
@@ -219,6 +223,8 @@ static int s_resolve_op(const char *op)
 	if (strcmp(op, "!FLAGGED?") == 0) return PN_OP_NFLAGGED;
 	if (strcmp(op, "RESET")     == 0) return PN_OP_RESET;
 	if (strcmp(op, "TOPIC")     == 0) return PN_OP_TOPIC;
+	if (strcmp(op, "GETENV")    == 0) return PN_OP_GETENV;
+	if (strcmp(op, "SETENV")    == 0) return PN_OP_SETENV;
 	fprintf(stderr, "Invalid op: '%s'\n", op);
 	return PN_OP_INVAL;
 }
@@ -258,6 +264,12 @@ static pn_word s_resolve_arg(pn_machine *m, const char *arg)
 
 	switch (*arg) {
 	case '"':
+		strcpy((char *)pn_ADDR(m, m->Dp), arg+1);
+		val = (pn_word)pn_ADDR(m, m->Dp);
+		m->Dp += strlen(arg);
+		return val;
+
+	case '$':
 		strcpy((char *)pn_ADDR(m, m->Dp), arg+1);
 		val = (pn_word)pn_ADDR(m, m->Dp);
 		m->Dp += strlen(arg);
@@ -463,7 +475,9 @@ int pn_parse(pn_machine *m, FILE *io)
 
 		m->codesize++;
 		if (*arg1 == '"') m->datasize += strlen(arg1);
+		if (*arg1 == '$') m->datasize += strlen(arg1);
 		if (*arg2 == '"') m->datasize += strlen(arg2);
+		if (*arg2 == '$') m->datasize += strlen(arg2);
 
 		free(arg1); free(arg2);
 		arg1 = arg2 = NULL;
@@ -584,7 +598,7 @@ int pn_run(pn_machine *m)
 			NEXT;
 
 		case PN_OP_SET:
-			if (!IS_REGISTER(PC.arg1)) pn_die(m, "Non-register passed as destiation register to SET operator");
+			if (!IS_REGISTER(PC.arg1)) pn_die(m, "Non-register passed as destination register to SET operator");
 			pn_trace(m, TRACE_START " %%%s\n",
 					TRACE_ARGS, REG_NAMES[TAGV(PC.arg1)]);
 			*(pn_word*)pn_REG(m, TAGV(PC.arg1)) = TAGV((pn_word)PC.arg2);
@@ -681,6 +695,22 @@ int pn_run(pn_machine *m)
 			m->topics++;
 			m->topic = (const char *)PC.arg1;
 			pn_trace(m, TRACE_START " = '%s'\n", TRACE_ARGS, m->topic);
+			NEXT;
+
+		case PN_OP_GETENV:
+			if (!IS_REGISTER(PC.arg1)) pn_die(m, "Non-register passed as destination register to GETENV operator");
+			pn_trace(m, TRACE_START " $%s -> %%%s\n",
+					TRACE_ARGS, TAGV((pn_word)PC.arg2), REG_NAMES[TAGV(PC.arg1)]);
+			char *var = getenv((char*)TAGV((pn_word)PC.arg2));
+			*(pn_word*)pn_REG(m, TAGV(PC.arg1)) = (pn_word)var;
+			m->R = var ? 0 : 1;
+			NEXT;
+
+		case PN_OP_SETENV:
+			pn_trace(m, TRACE_START " $%s -> '%s'\n",
+					TRACE_ARGS, TAGV((pn_word)PC.arg1), TAGV((pn_word)PC.arg1));
+			m->R = setenv((char*)TAGV((pn_word)PC.arg1),
+			              (char*)TAGV((pn_word)PC.arg2), 1);
 			NEXT;
 
 		default: pn_die(m, "Unknown / Invalid operand");

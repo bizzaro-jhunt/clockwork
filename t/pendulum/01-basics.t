@@ -88,4 +88,17 @@ undef-flag is not flagged
 fin
 EOF
 
+$ENV{PREVIOUSLY} = "on CLOCKWORK";
+delete $ENV{XYZZY};
+delete $ENV{FooBar};
+pendulum_ok "$TESTS/env.pn", <<EOF, "env.pn";
+go
+previously, on CLOCKWORK
+XYZZY not set
+XYZZY set to 'Fool!'
+FooBar not set
+FooBar set to 'quuxx'
+fin
+EOF
+
 done_testing;

@@ -714,8 +714,14 @@ static inline client_t* s_client_new(int argc, char **argv)
 	c->schedule.interval  = 1000 * atoi(cw_cfg_get(&config, "interval"));
 	c->timeout            = 1000 * atoi(cw_cfg_get(&config, "timeout"));
 
-	if (c->daemonize)
+	unsetenv("COGD");
+	if (c->daemonize) {
+		if (setenv("COGD", "1", 1) != 0) {
+			fprintf(stderr, "Failed to set COGD env var: %s\n", strerror(errno));
+			exit(3);
+		}
 		cw_daemonize(cw_cfg_get(&config, "pidfile"), "root", "root");
+	}
 
 
 	c->zmq = zmq_ctx_new();

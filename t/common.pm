@@ -67,6 +67,19 @@ sub gencode_ok
 	seek $stderr, 0, 0;
 	my $errors = do { local $/; <$stderr> };
 
+	# sneakily add the postamble:
+	$expect .= <<'EOF';
+GETENV %F $COGD
+NOTOK? @exit
+SET %A "/var/lock/cogd/.needs-restart"
+CALL &FS.EXIST?
+NOTOK? @exit
+SET %A "cwtool svc-init cogd restart"
+CALL &EXEC.CHECK
+exit:
+HALT
+EOF
+
 	if ($rc != 0) {
 		$T->ok(0, "$message: $commands returned non-zero exit code $rc");
 		$T->diag("standard error output was:\n$errors") if $errors;

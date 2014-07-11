@@ -130,7 +130,11 @@ on_debian () {
 	svc-init)
 		NAME=$1
 		VERB=$2
-		/usr/sbin/service $NAME $VERB
+		if test "x$NAME" = "xcogd" && test "x$VERB" = "xrestart" && test "x$COGD" != "x"; then
+			touch /var/lock/cogd/.needs-restart
+		else
+			/usr/sbin/service $NAME $VERB
+		fi
 		exit $?
 		;;
 	svc-enable)

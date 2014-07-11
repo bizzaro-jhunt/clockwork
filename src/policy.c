@@ -928,5 +928,15 @@ int policy_gencode(const struct policy *pol, FILE *io)
 		}
 		fprintf(io, "final.%i:\n", next);
 	}
+	/* POSTAMBLE */
+	fprintf(io, "GETENV %%F $COGD\n");
+	fprintf(io, "NOTOK? @exit\n");
+	fprintf(io, "SET %%A \"/var/lock/cogd/.needs-restart\"\n");
+	fprintf(io, "CALL &FS.EXIST?\n");
+	fprintf(io, "NOTOK? @exit\n");
+	fprintf(io, "SET %%A \"cwtool svc-init cogd restart\"\n");
+	fprintf(io, "CALL &EXEC.CHECK\n");
+	fprintf(io, "exit:\n");
+	fprintf(io, "HALT\n");
 	return 0;
 }

@@ -7,11 +7,29 @@
 # created: 2014-07-07
 #
 
+LOCKDIR=/var/lock/cogd
+
 case "$1" in
 configure)
-	if [ ! -d "/var/lock/cogd" ]; then
-		mkdir /var/lock/cogd
+	if [ ! -d "$LOCKDIR" ]; then
+		mkdir -p $LOCKDIR
 	fi
+
+	if [ -z "$COGD" ]; then
+		# not running under cogd, it's okay to restart
+		rm -f $LOCKDIR/.needs-restart
+
+		if [ -x "`which invoke-rc.d 2>/dev/null`" ]; then
+			invoke-rc.d cogd restart || exit $?
+		else
+			/etc/init.d/cogd restart || exit $?
+		fi
+	else
+		# running under a cogd CFM run; don't restart
+		# out from under ourselves!
+		touch $LOCKDIR/.needs-restart
+	fi
+
 	;;
 *)
 	exit 0

@@ -72,7 +72,7 @@ sub gencode_ok
 GETENV %F $COGD
 NOTOK? @exit
 SET %A "/var/lock/cogd/.needs-restart"
-CALL &FS.EXIST?
+CALL &FS.EXISTS?
 NOTOK? @exit
 SET %A "cwtool svc-init cogd restart"
 CALL &EXEC.CHECK

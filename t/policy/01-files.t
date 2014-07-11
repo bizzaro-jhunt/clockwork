@@ -195,7 +195,7 @@ COPY %S2 %T2
 CMP? @sha1.done.1
   COPY %T1 %A
   COPY %T2 %B
-  LOG INFO "Updating local content (%s) from remote copy (%s)"
+  LOG NOTICE "Updating local content (%s) from remote copy (%s)"
   COPY %F %A
   CALL &SERVER.WRITEFILE
   OK? @sha1.done.1

@@ -16,6 +16,7 @@
 #   svc-run-status  <service>
 #   svc-boot-status <service>
 #   svc-init        <service> <action>
+#   svc-init-force  <service> <action>
 #   svc-enable      <service>
 #   svc-disable SVC <service>
 #
@@ -137,6 +138,12 @@ on_debian () {
 		fi
 		exit $?
 		;;
+	svc-init-force)
+		NAME=$1
+		VERB=$2
+		/usr/sbin/service $NAME $VERB
+		exit $?
+		;;
 	svc-enable)
 		NAME=$1
 		/usr/sbin/update-rc.d -f "$NAME" remove
@@ -193,6 +200,16 @@ on_redhat () {
 		exit $?
 		;;
 	svc-init)
+		NAME=$1
+		VERB=$2
+		if test "x$NAME" = "xcogd" && test "x$VERB" = "xrestart" && test "x$COGD" != "x"; then
+			touch /var/lock/cogd/.needs-restart
+		else
+			/usr/sbin/service $NAME $VERB
+		fi
+		exit $?
+		;;
+	svc-init-force)
 		NAME=$1
 		VERB=$2
 		/usr/sbin/service $NAME $VERB

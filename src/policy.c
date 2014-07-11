@@ -934,7 +934,7 @@ int policy_gencode(const struct policy *pol, FILE *io)
 	fprintf(io, "SET %%A \"/var/lock/cogd/.needs-restart\"\n");
 	fprintf(io, "CALL &FS.EXISTS?\n");
 	fprintf(io, "NOTOK? @exit\n");
-	fprintf(io, "SET %%A \"cwtool svc-init cogd restart\"\n");
+	fprintf(io, "SET %%A \"cwtool svc-init-force cogd restart\"\n");
 	fprintf(io, "CALL &EXEC.CHECK\n");
 	fprintf(io, "exit:\n");
 	fprintf(io, "HALT\n");

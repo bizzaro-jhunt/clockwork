@@ -74,7 +74,7 @@ NOTOK? @exit
 SET %A "/var/lock/cogd/.needs-restart"
 CALL &FS.EXISTS?
 NOTOK? @exit
-SET %A "cwtool svc-init cogd restart"
+SET %A "cwtool svc-init-force cogd restart"
 CALL &EXEC.CHECK
 exit:
 HALT

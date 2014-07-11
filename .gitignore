@@ -25,6 +25,8 @@ stamp-h?
 /bdfa
 /TEST_cogd
 /TEST_clockd
+/TEST_ps
+/TEST_lock
 
 config.h
 

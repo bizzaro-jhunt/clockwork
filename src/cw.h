@@ -375,4 +375,57 @@ FILE* cw_tpl_erb(const char *src, cw_hash_t *facts);
 int cw_bdfa_pack(int out, const char *root);
 int cw_bdfa_unpack(int in, const char *root);
 
+/*
+
+    ########  ########   #######   ######
+    ##     ## ##     ## ##     ## ##    ##
+    ##     ## ##     ## ##     ## ##
+    ########  ########  ##     ## ##
+    ##        ##   ##   ##     ## ##
+    ##        ##    ##  ##     ## ##    ##
+    ##        ##     ##  #######   ######
+
+ */
+
+typedef struct {
+	pid_t   pid;
+	pid_t  ppid;
+
+	char  state;
+
+	uid_t   uid, euid;
+	gid_t   gid, egid;
+} cw_proc_t;
+
+int cw_proc_stat(pid_t pid, cw_proc_t *ps);
+
+/*
+
+    ##        #######   ######  ##    ##  ######
+    ##       ##     ## ##    ## ##   ##  ##    ##
+    ##       ##     ## ##       ##  ##   ##
+    ##       ##     ## ##       #####     ######
+    ##       ##     ## ##       ##  ##         ##
+    ##       ##     ## ##    ## ##   ##  ##    ##
+    ########  #######   ######  ##    ##  ######
+
+ */
+
+#define CW_LOCK_SKIP_EUID 1
+typedef struct {
+	const char *path;
+
+	int valid;
+	int fd;
+
+	pid_t   pid;
+	uid_t   uid;
+	int32_t time;
+} cw_lock_t;
+
+void cw_lock_init(cw_lock_t *lock, const char *path);
+int cw_lock(cw_lock_t *lock, int flags);
+int cw_unlock(cw_lock_t *lock);
+char* cw_lock_info(cw_lock_t *lock);
+
 #endif

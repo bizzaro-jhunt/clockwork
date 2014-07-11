@@ -214,7 +214,8 @@ static void s_cfm_run(client_t *c)
 	         ms_enforce    = 0,
 	         ms_cleanup    = 0;
 
-	int lockfd = -1;
+	cw_lock_t lock;
+	cw_lock_init(&lock, c->cfm_lock);
 	if (c->mode != MODE_CODE) {
 		struct stat st;
 		if (stat(c->cfm_killswitch, &st) == 0) {
@@ -223,17 +224,9 @@ static void s_cfm_run(client_t *c)
 			goto maybe_next_time;
 		}
 
-		cw_log(LOG_DEBUG, "acquiring CFM lock '%s'", c->cfm_lock);
-		lockfd = open(c->cfm_lock, O_CREAT|O_EXCL|O_WRONLY, 0644);
-		int my_errno = errno;
-		if (lockfd < 0) {
-			if (stat(c->cfm_lock, &st) == 0)
-				cw_log(LOG_WARNING, "Another configuration management run in progress; skipping.");
-			else
-				cw_log(LOG_ERR, "Failed to acquire CFM lock: %s",
-						my_errno == 0 ? "unknown error"
-						              : strerror(my_errno));
-
+		cw_log(LOG_DEBUG, "acquiring CFM lock '%s'", lock.path);
+		if (cw_lock(&lock, 0) != 0) {
+			cw_log(LOG_WARNING, "Another configuration management run (%s) in progress; skipping.", cw_lock_info(&lock));
 			goto maybe_next_time;
 		}
 	}
@@ -448,14 +441,7 @@ shut_it_down:
 	                               ms_parse,        ms_enforce,     ms_cleanup);
 
 maybe_next_time:
-	if (lockfd >= 0) {
-		cw_log(LOG_DEBUG, "releasing CFM lock '%s'", c->cfm_lock);
-		close(lockfd);
-		rc = unlink(c->cfm_lock);
-		if (rc != 0)
-			cw_log(LOG_ERR, "Failed to release CFM lock '%s': %s",
-					c->cfm_lock, strerror(errno));
-	}
+	cw_unlock(&lock);
 
 	if (c->mode == MODE_ONCE || c->mode == MODE_CODE)
 		return;

@@ -99,6 +99,9 @@ PERL_TESTS += t/policy/99-fail.t
 
 PERL_TESTS += t/bdfa/01-basics.t
 
+PERL_TESTS += t/cw/01-ps.t
+PERL_TESTS += t/cw/02-lock.t
+
 SHELL_TESTS  =
 SHELL_TESTS += t/memcheck/00-pn-usage.t
 SHELL_TESTS += t/memcheck/01-pn-basics.t
@@ -114,7 +117,7 @@ SHELL_TESTS += t/memcheck/32-clockd.t
 
 TESTS          = $(CTAP_TESTS) $(PERL_TESTS) $(SHELL_TESTS)
 BUILT_TESTS    = $(CTAP_TESTS)
-check_PROGRAMS = $(CTAP_TESTS) TEST_cogd TEST_clockd
+check_PROGRAMS = $(CTAP_TESTS) TEST_cogd TEST_clockd TEST_ps TEST_lock
 check_DATA     = t/tmp/check-data-install.stamp
 t/tmp/check-data-install.stamp:
 	mkdir -p t/tmp
@@ -148,6 +151,8 @@ test_source += src/gear/string.c
 
 TEST_cogd_SOURCES        = t/test-cogd.c $(core_src) $(parser_spec_src) $(pendulum_src)
 TEST_clockd_SOURCES      = t/test-clockd.c $(core_src) $(parser_spec_src)
+TEST_ps_SOURCES          = t/test-ps.c $(core_src)
+TEST_lock_SOURCES        = t/test-lock.c $(core_src)
 t_00_bits_SOURCES        = t/00-bits.c          $(test_source)
 t_01_string_SOURCES      = t/01-string.c        $(test_source)
 t_02_pdu_SOURCES         = t/02-pdu.c           $(test_source)

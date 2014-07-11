@@ -18,6 +18,7 @@ DESC="clockwork agent"
 NAME=cogd
 DAEMON=/sbin/cogd
 DAEMON_ARGS=""
+LOCKDIR=/var/lock/cogd
 PIDFILE=/var/run/$NAME.pid
 SCRIPTNAME=/etc/init.d/cogd
 
@@ -47,6 +48,9 @@ do_start() {
 	# Add code here, if necessary, that waits for the process to be ready
 	# to handle requests from services started subsequently which depend
 	# on this one.  As a last resort, sleep for some time.
+
+	rm -f $LOCKDIR/.needs-restart
+	return 0
 }
 
 do_stop() {

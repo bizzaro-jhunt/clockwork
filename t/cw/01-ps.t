@@ -7,14 +7,16 @@ use POSIX;
 
 my $output;
 my $ppid = getppid;
-my  $gid = getgid;
-my $egid = getegid;
+my  $gid = $ENV{SCHROOT_GID} ||  getgid;
+my $egid = $ENV{SCHROOT_GID} || getegid;
+my  $uid = $ENV{SCHROOT_UID} ||  getuid;
+my $euid = $ENV{SCHROOT_UID} || geteuid;
 
 diag explain \%ENV;
 
 $output = qx(./TEST_ps $$);
 is $?, 0, "`./TEST_ps $$` ran ok";
-like $output, qr{^pid $$; ppid $ppid; state [RS]; uid $>/$<; gid $gid/$egid$},
+like $output, qr{^pid $$; ppid $ppid; state [RS]; uid $uid/$euid; gid $gid/$egid$},
 	"cw_proc_stat is gathering data properly";
 
 my $pid = 2;

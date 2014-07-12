@@ -10,6 +10,8 @@ my $ppid = getppid;
 my  $gid = getgid;
 my $egid = getegid;
 
+diag explain \%ENV;
+
 $output = qx(./TEST_ps $$);
 is $?, 0, "`./TEST_ps $$` ran ok";
 like $output, qr{^pid $$; ppid $ppid; state [RS]; uid $>/$<; gid $gid/$egid$},

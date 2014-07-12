@@ -26,9 +26,10 @@ reset_lock "garbage lock data\n";
 is qx(./TEST_lock $LOCK 2>&1), "FAILED: $LOCK in use by <invalid lock file>\n",
 	"cw_lock() can detect poorly formatted lock files (and preserve them!)";
 
+my $user = getpwuid($>);
 my $time = strftime("%Y-%m-%d %H:%M:%S%z", localtime(1405048555));
 reset_lock "LOCK p$$ u$> t1405048555";
-is qx(./TEST_lock $LOCK 2>&1), "FAILED: $LOCK in use by PID $$, $ENV{USER}($>); locked $time\n",
+is qx(./TEST_lock $LOCK 2>&1), "FAILED: $LOCK in use by PID $$, $user($>); locked $time\n",
 	"cw_lock() honors locks held by living processes";
 
 my $UID = 1000;

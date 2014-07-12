@@ -12,7 +12,7 @@ my $egid = getegid;
 
 $output = qx(./TEST_ps $$);
 is $?, 0, "`./TEST_ps $$` ran ok";
-like $output, qr{^pid $$; ppid $ppid; state [S]; uid $>/$<; gid $gid/$egid$},
+like $output, qr{^pid $$; ppid $ppid; state [RS]; uid $>/$<; gid $gid/$egid$},
 	"cw_proc_stat is gathering data properly";
 
 my $pid = 2;

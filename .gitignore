@@ -81,6 +81,7 @@ t/70-res_symlink
 *.debhelper.log
 *.debhelper
 *.substvars
+debian/changelog
 debian/clockwork-agent/
 debian/clockwork-agent-dbg/
 debian/clockwork-doc/

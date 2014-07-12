@@ -178,7 +178,6 @@ t_69_res_exec_SOURCES    = t/69-res_exec.c      $(test_source)
 t_70_res_symlink_SOURCES = t/70-res_symlink.c   $(test_source)
 
 CLEANFILES       = $(BUILT_SOURCES)
-CLEANFILES      += *.tmp
 
 EXTRA_DIST       = HACKING autogen.sh
 EXTRA_DIST      += augeas gather.d
@@ -262,7 +261,10 @@ src/spec/grammar.c: src/spec/grammar.y src/spec/grammar_impl.h src/spec/parser.c
 	$(YACCCOMPILE) --output-file=src/spec/grammar.c $<
 
 .PHONY: coverage-clean coverage-report coverage clean-local-check clean-local-cov
-clean-local: clean-local-check
+clean-local: clean-local-check clean-local-gcda
+clean-local-gcda:
+	touch sac.gcda
+	find . -name '*.gc??' | xargs rm
 clean-local-check:
 	rm -fr t/tmp/*
 	rm -f check-data-install.stamp

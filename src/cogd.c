@@ -218,9 +218,8 @@ static void s_cfm_run(client_t *c)
 	if (c->mode != MODE_CODE) {
 		struct stat st;
 		if (stat(c->cfm_killswitch, &st) == 0) {
-			struct tm *tm = localtime(&st.st_mtime);
 			cw_log(LOG_WARNING, "Found CFM KILLSWITCH %s, dated %s; skipping.",
-				c->cfm_killswitch, asctime(tm));
+				c->cfm_killswitch, cw_time_strf("%b %d %Y %H:%M:%S%z", st.st_mtime));
 			goto maybe_next_time;
 		}
 

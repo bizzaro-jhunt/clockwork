@@ -54,7 +54,7 @@ t/01-string
 t/02-pdu
 t/04-hash
 t/05-mem
-t/06-pack
+t/06-cache
 t/07-sha1
 t/08-list
 t/10-facts

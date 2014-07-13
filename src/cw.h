@@ -162,7 +162,7 @@ struct cw_hash {
 int cw_hash_done(cw_hash_t *h, uint8_t all);
 void* cw_hash_get(const cw_hash_t *h, const char *k);
 void* cw_hash_set(cw_hash_t *h, const char *k, void *v);
-void *cw_hash_next(cw_hash_t *h, char **k, void **v);
+void* cw_hash_next(cw_hash_t *h, char **k, void **v);
 int cw_hash_merge(cw_hash_t *a, cw_hash_t *b);
 
 #define for_each_key_value(h,k,v) \
@@ -427,5 +427,48 @@ void cw_lock_init(cw_lock_t *lock, const char *path);
 int cw_lock(cw_lock_t *lock, int flags);
 int cw_unlock(cw_lock_t *lock);
 char* cw_lock_info(cw_lock_t *lock);
+
+/*
+
+     ######     ###     ######  ##     ## ########
+    ##    ##   ## ##   ##    ## ##     ## ##
+    ##        ##   ##  ##       ##     ## ##
+    ##       ##     ## ##       ######### ######
+    ##       ######### ##       ##     ## ##
+    ##    ## ##     ## ##    ## ##     ## ##
+     ######  ##     ##  ######  ##     ## ########
+
+*/
+
+struct __cw_cce {
+	char    *ident;
+	int32_t  last_seen;
+	void    *data;
+};
+typedef struct {
+	size_t  len;
+	size_t  max_len;
+	int32_t min_life;
+
+	void (*destroy_f)(void*);
+
+	cw_hash_t        index;
+	struct __cw_cce  entries[];
+} cw_cache_t;
+
+#define for_each_cache_key(cc,k) \
+	for ((cc)->index.offset = (cc)->index.bucket = 0; \
+	     cw_hash_next(&(cc)->index, &(k), NULL); )
+
+#define CW_CACHE_OPT_DESTROY  1
+#define CW_CACHE_OPT_MINLIFE  2
+
+cw_cache_t* cw_cache_new(size_t max, int32_t min_life);
+void cw_cache_free(cw_cache_t *cc);
+void cw_cache_purge(cw_cache_t *cc, int force);
+int   cw_cache_opt(cw_cache_t *cc, int op, void *value);
+void *cw_cache_get(cw_cache_t *cc, const char *id);
+void *cw_cache_set(cw_cache_t *cc, const char *id, void *data);
+void* cw_cache_unset(cw_cache_t *cc, const char *id);
 
 #endif

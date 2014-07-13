@@ -532,13 +532,13 @@ void* cw_hash_set(cw_hash_t *h, const char *k, void *v)
 	return existing;
 }
 
-void *cw_hash_next(cw_hash_t *h, char **k, void **v)
+void* cw_hash_next(cw_hash_t *h, char **k, void **v)
 {
 	assert(h); // LCOV_EXCL_LINE
-	assert(k); // LCOV_EXCL_LINE
-	assert(v); // LCOV_EXCL_LINE
 
-	*k = *v = NULL;
+	char *tmp = NULL;
+	if (k) *k = NULL;
+	if (v) *v = NULL;
 	while (h->bucket < 64) {
 		struct cw_hash_bkt *b = h->entries + h->bucket;
 		if (h->offset >= b->len) {
@@ -546,12 +546,13 @@ void *cw_hash_next(cw_hash_t *h, char **k, void **v)
 			h->offset = 0;
 			continue;
 		}
-		*k = b->keys[h->offset];
-		*v = b->values[h->offset];
+		tmp = b->keys[h->offset];
+		if (k) *k = b->keys[h->offset];
+		if (v) *v = b->values[h->offset];
 		h->offset++;
 		break;
 	}
-	return *k;
+	return tmp;
 }
 
 int cw_hash_merge(cw_hash_t *a, cw_hash_t *b)
@@ -2049,4 +2050,123 @@ char* cw_lock_info(cw_lock_t *lock)
 		snprintf(buf, 255, "<invalid lock file>");
 	}
 	return buf;
+}
+
+/*
+
+     ######     ###     ######  ##     ## ########
+    ##    ##   ## ##   ##    ## ##     ## ##
+    ##        ##   ##  ##       ##     ## ##
+    ##       ##     ## ##       ######### ######
+    ##       ######### ##       ##     ## ##
+    ##    ## ##     ## ##    ## ##     ## ##
+     ######  ##     ##  ######  ##     ## ########
+
+*/
+
+cw_cache_t* cw_cache_new(size_t len, int32_t min_life)
+{
+	cw_cache_t *cc  = cw_alloc(sizeof(cw_cache_t)
+	                         + sizeof(struct __cw_cce) * len);
+	cc->max_len   = len;
+	cc->min_life  = min_life;
+	memset(&cc->index, 0, sizeof(cw_hash_t));
+	return cc;
+}
+
+void cw_cache_free(cw_cache_t *cc)
+{
+	if (!cc) return;
+
+	cw_cache_purge(cc, 1);
+	cw_hash_done(&cc->index, 0);
+	free(cc);
+}
+
+void cw_cache_purge(cw_cache_t *cc, int force)
+{
+	int32_t now = cw_time_s();
+	int i;
+	for (i = 0; i < cc->max_len; i++) {
+		if (!force &&
+		     (cc->entries[i].last_seen == -1
+		   || cc->entries[i].last_seen >= now - cc->min_life))
+			continue;
+
+		if (cc->entries[i].ident) {
+			cw_hash_set(&cc->index, cc->entries[i].ident, NULL);
+
+			free(cc->entries[i].ident);
+			cc->entries[i].ident = NULL;
+
+			if (cc->destroy_f)
+				(*cc->destroy_f)(cc->entries[i].data);
+			cc->entries[i].data = NULL;
+
+			cc->entries[i].last_seen = 0;
+		}
+	}
+}
+
+int cw_cache_opt(cw_cache_t *cc, int op, void *data)
+{
+	if (op == CW_CACHE_OPT_DESTROY) {
+		cc->destroy_f = data;
+		return 0;
+	}
+	if (op == CW_CACHE_OPT_MINLIFE) {
+		cc->min_life = *(int*)(data) & 0xffffffff;
+		return 0;
+	}
+	return 1;
+}
+
+static int s_cache_next(cw_cache_t *cc)
+{
+	int i;
+	for (i = 0; i < cc->max_len; i++)
+		if (!cc->entries[i].ident)
+			return i;
+	return -1;
+}
+
+void* cw_cache_get(cw_cache_t *cc, const char *id)
+{
+	struct __cw_cce *ent = cw_hash_get(&cc->index, id);
+	if (!ent) return NULL;
+	ent->last_seen = cw_time_s();
+	return ent->data;
+}
+
+void* cw_cache_set(cw_cache_t *cc, const char *id, void *data)
+{
+	struct __cw_cce *ent = cw_hash_get(&cc->index, id);
+	if (!ent) {
+		int idx = s_cache_next(cc);
+		if (idx < 0) return NULL;
+		ent = &cc->entries[idx];
+	}
+	if (!ent->ident) {
+		ent->ident = strdup(id);
+		cw_hash_set(&cc->index, id, ent);
+	}
+	ent->last_seen = cw_time_s();
+	return ent->data = data;
+}
+
+void* cw_cache_unset(cw_cache_t *cc, const char *id)
+{
+	struct __cw_cce *ent = cw_hash_get(&cc->index, id);
+	if (!ent) return NULL;
+	cw_hash_set(&cc->index, id, NULL);
+
+	free(ent->ident);
+	ent->ident = NULL;
+
+	ent->last_seen = 0;
+
+	void *d = ent->data;
+	ent->data = NULL;
+
+	return d;
 }

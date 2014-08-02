@@ -101,4 +101,9 @@ FooBar set to 'quuxx'
 fin
 EOF
 
+pendulum_ok "$TESTS/autosize.pn", <<EOF, "autosize.pn";
+start
+fin
+EOF
+
 done_testing;

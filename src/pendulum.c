@@ -129,6 +129,66 @@ static const char *REG_NAMES[] = {
 #define FLAG(x)     ((x) | FLAG_TAG)
 #define FUNCTION(x) ((x) | FUNCTION_TAG)
 
+static int s_next_free_jump_slot(pn_machine *m)
+{
+	int i;
+	for (i = 0; i < m->njumps; i++) {
+		if (*m->jumps[i].label) continue;
+		return i;
+	}
+	size_t new_size = m->njumps += PN_SLOT_CHUNK;
+	pn_jump_t *x = realloc(m->jumps, sizeof(pn_jump_t) * new_size);
+	if (!x) {
+		errno = ENOBUFS;
+		return -1;
+	}
+
+	memset(x + i, 0, sizeof(pn_jump_t) * (new_size - i));
+	m->jumps = x;
+	m->njumps = new_size;
+	return i;
+}
+
+static int s_next_free_flag_slot(pn_machine *m)
+{
+	int i;
+	for (i = 0; i < m->nflags; i++) {
+		if (*m->flags[i].label) continue;
+		return i;
+	}
+	size_t new_size = m->nflags += PN_SLOT_CHUNK;
+	pn_flag_t *x = realloc(m->flags, sizeof(pn_flag_t) * new_size);
+	if (!x) {
+		errno = ENOBUFS;
+		return -1;
+	}
+
+	memset(x + i, 0, sizeof(pn_flag_t) * (new_size - i));
+	m->flags = x;
+	m->nflags = new_size;
+	return i;
+}
+
+static int s_next_free_func_slot(pn_machine *m)
+{
+	int i;
+	for (i = 0; i < m->nfuncs; i++) {
+		if (*m->funcs[i].name) continue;
+		return i;
+	}
+	size_t new_size = m->nfuncs += PN_SLOT_CHUNK;
+	pn_func_t *x = realloc(m->funcs, sizeof(pn_func_t) * new_size);
+	if (!x) {
+		errno = ENOBUFS;
+		return -1;
+	}
+
+	memset(x + i, 0, sizeof(pn_func_t) * (new_size - i));
+	m->funcs = x;
+	m->nfuncs = new_size;
+	return i;
+}
+
 static int s_label(char *buf, char **labelv)
 {
 	assert(buf);
@@ -184,7 +244,7 @@ argument:
 	*p++ = '\0';
 
 	arg = &arg2;
-if (n--) goto argument;
+	if (n--) goto argument;
 
 	if (opv)     *opv = strdup(op);
 	if (arg1v) *arg1v = strdup(arg1);
@@ -280,7 +340,7 @@ static pn_word s_resolve_arg(pn_machine *m, const char *arg)
 
 	case '@':
 		errno = ENOENT;
-		for (i = 0; i < PN_MAX_JUMPS; i++) {
+		for (i = 0; i < m->njumps; i++) {
 			if (!*m->jumps[i].label) break;
 			if (strcmp(m->jumps[i].label, arg+1) != 0)
 				continue;
@@ -294,14 +354,9 @@ static pn_word s_resolve_arg(pn_machine *m, const char *arg)
 		pn_die(m, ebuf);
 
 	case ':':
-		errno = ENOENT;
-		for (i = 0; i < PN_MAX_FLAGS; i++) {
-			if (!m->flags[i].label[0]) {
-				strncpy(m->flags[i].label, arg+1, 63);
-				cw_log(LOG_DEBUG, "Flag '%s' is new, allocating space at index %u",
-					arg, i);
-				return FLAG((pn_word)i);
-			}
+		for (i = 0; i < m->nflags; i++) {
+			if (!m->flags[i].label[0])
+				continue;
 			if (strcmp(m->flags[i].label, arg+1) != 0)
 				continue;
 
@@ -310,18 +365,25 @@ static pn_word s_resolve_arg(pn_machine *m, const char *arg)
 			return FLAG((pn_word)i);
 		}
 
-		snprintf(ebuf, 1024, "Cannot set flag '%s': insufficient space\n", arg+1);
-		pn_die(m, ebuf);
+		i = s_next_free_flag_slot(m);
+		if (i < 0) {
+			snprintf(ebuf, 1024, "Cannot set flag '%s': insufficient space\n", arg+1);
+			pn_die(m, ebuf);
+		}
+		strncpy(m->flags[i].label, arg+1, 63);
+		cw_log(LOG_DEBUG, "Flag '%s' is new, allocating space at index %u",
+			arg, i);
+		return FLAG((pn_word)i);
 
 	case '&':
 		errno = ENOENT;
-		for (i = 0; i < PN_MAX_FUNCS; i++) {
-			if (!m->func[i].call) break;
-			if (strcmp(m->func[i].name, arg+1)) continue;
+		for (i = 0; i < m->nfuncs; i++) {
+			if (!m->funcs[i].call) break;
+			if (strcmp(m->funcs[i].name, arg+1)) continue;
 
 			errno = 0;
 			cw_log(LOG_DEBUG, "Resolved function '%s' to index %u / %p",
-				arg+1, i, m->func[i].call);
+				arg+1, i, m->funcs[i].call);
 			return FUNCTION((pn_word)i);
 		}
 		snprintf(ebuf, 1024, "'%s' is not a defined function\n", arg+1);
@@ -388,6 +450,9 @@ int pn_destroy(pn_machine *m)
 	free(m->code);
 	free(m->data);
 
+	m->njumps = 0;  m->nfuncs = 0;  m->nflags = 0;
+	free(m->jumps); free(m->funcs); free(m->flags);
+
 	return 0;
 }
 
@@ -427,15 +492,12 @@ int pn_func(pn_machine *m, const char *op, pn_function fn)
 	assert(op);
 	assert(fn);
 
-	int i;
-	for (i = 0; i < PN_MAX_FUNCS; i++) {
-		if (m->func[i].call) continue;
-		strncpy(m->func[i].name, op, 31);
-		m->func[i].call = fn;
-		return 0;
-	}
-	errno = ENOBUFS;
-	return -1;
+	int i = s_next_free_func_slot(m);
+	if (i < 0) return -1;
+
+	strncpy(m->funcs[i].name, op, 31);
+	m->funcs[i].call = fn;
+	return 0;
 }
 
 int pn_pragma(pn_machine *m, const char *name, const char *arg)
@@ -454,18 +516,13 @@ int pn_parse(pn_machine *m, FILE *io)
 	fseek(io, 0, SEEK_SET);
 	while (fgets(buf, 1024, io)) {
 		if (s_label(buf, &label) == 0) {
-			errno = ENOBUFS;
-			for (i = 0; i < PN_MAX_JUMPS; i++) {
-				if (*m->jumps[i].label) continue;
-
-				strncpy(m->jumps[i].label, label, 63);
-				m->jumps[i].step = m->codesize;
-				errno = 0; break;
-			}
-			if (errno) {
+			i = s_next_free_jump_slot(m);
+			if (i < 0) {
 				free(label);
 				return 1;
 			}
+			strncpy(m->jumps[i].label, label, 63);
+			m->jumps[i].step = m->codesize;
 			free(label);
 			m->codesize++;
 			continue;
@@ -636,8 +693,8 @@ int pn_run(pn_machine *m)
 		case PN_OP_CALL:
 			if (!IS_FUNCTION(PC.arg1)) pn_die(m, "Non-function argument passed to CALL operator");
 			pn_trace(m, TRACE_START " %s\n", TRACE_ARGS,
-					(const char *)m->func[TAGV(PC.arg1)].name);
-			m->R = (*m->func[TAGV(PC.arg1)].call)(m);
+					(const char *)m->funcs[TAGV(PC.arg1)].name);
+			m->R = (*m->funcs[TAGV(PC.arg1)].call)(m);
 			pn_trace(m, TRACE_START " returned %#x\n", TRACE_ARGS,
 					m->R);
 			NEXT;

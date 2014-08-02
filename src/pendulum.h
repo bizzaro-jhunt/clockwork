@@ -5,10 +5,8 @@
 
 #include <stdint.h>
 
-#define PN_MAX_FUNCS   512
-#define PN_MAX_JUMPS 16384
-#define PN_MAX_FLAGS  8192
 #define PN_HEAP_SIZE     10
+#define PN_SLOT_CHUNK   256
 
 typedef uint8_t  pn_byte;
 typedef uint64_t pn_word;
@@ -17,6 +15,19 @@ typedef pn_word (*pn_function)(pn_machine*);
 typedef pn_word (*pn_fnpragma)(pn_machine*, const char*, const char*);
 
 typedef struct { pn_word op, arg1, arg2; } pn_opcode;
+typedef struct {
+	char        name[32];
+	pn_function call;
+} pn_func_t;
+typedef struct {
+	char     label[64];
+	pn_word  step;
+} pn_jump_t;
+typedef struct {
+	char     label[64];
+	pn_byte  value;
+} pn_flag_t;
+
 struct pn_machine {
 	pn_word A,  B,  C,
 	        D,  E,  F;
@@ -41,20 +52,14 @@ struct pn_machine {
 	size_t     codesize;
 	pn_opcode *code;
 
-	struct {
-		char        name[32];
-		pn_function call;
-	} func[PN_MAX_FUNCS];
+	size_t    nfuncs;
+	pn_func_t *funcs;
 
-	struct {
-		char     label[64];
-		pn_word  step;
-	} jumps[PN_MAX_JUMPS];
+	size_t    nflags;
+	pn_flag_t *flags;
 
-	struct {
-		char     label[64];
-		pn_byte  value;
-	} flags[PN_MAX_FLAGS];
+	size_t    njumps;
+	pn_jump_t *jumps;
 };
 
 

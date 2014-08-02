@@ -1,29 +1,31 @@
+#
+# Makefile.am - Clockwork Automake File
+#
+
 AUTOMAKE_OPTIONS = foreign subdir-objects
-ACLOCAL_AMFLAGS=-I build
+ACLOCAL_AMFLAGS  = -I build
 
 AM_TESTS_ENVIRONMENT = PERL5LIB='$(srcdir)'; export PERL5LIB;
 
 ############################################################
 
 pkgsysconfdir = $(sysconfdir)/$(PACKAGE)
-cachedir = $(localstatedir)/cache
-pkgcachedir = $(cachedir)/$(PACKAGE)
-sharedir = $(datarootdir)/share
-pkgsharedir = $(sharedir)/$(PACKAGE)
+cachedir      = $(localstatedir)/cache
+pkgcachedir   = $(cachedir)/$(PACKAGE)
+sharedir      = $(datarootdir)/share
+pkgsharedir   = $(sharedir)/$(PACKAGE)
 
 AM_CFLAGS  = -Wall $(DEPS_CFLAGS)
-# FIXME: use PKG_CHECK_MODULES(AUGEAS, augeas)...
-AM_CFLAGS += $(shell pkg-config --cflags augeas)
 AM_CFLAGS += -DTEST_DATA=\"$(srcdir)/t/data\"
 AM_CFLAGS += -DCW_CACHE_DIR=\"$(pkgcachedir)\"
 AM_CFLAGS += -DCW_GATHER_DIR=\"$(gatherdir)\"
+AM_CFLAGS += @AUGEAS_CFLAGS@
 AM_CFLAGS += @GCOV_CFLAGS@
 
 AM_LFLAGS = --header-file --yylineno
 AM_YFLAGS = -d
 
 LDADD = -lctap -lzmq
-
 
 ############################################################
 
@@ -50,7 +52,7 @@ gather_SCRIPTS += gather.d/time
 
 ############################################################
 
-CTAP_TESTS =
+CTAP_TESTS  =
 CTAP_TESTS += t/00-bits
 CTAP_TESTS += t/01-string
 CTAP_TESTS += t/02-pdu
@@ -150,10 +152,11 @@ test_source += src/gear/gear.h
 test_source += src/gear/path.c
 test_source += src/gear/string.c
 
-TEST_cogd_SOURCES        = t/test-cogd.c $(core_src) $(parser_spec_src) $(pendulum_src)
+TEST_cogd_SOURCES        = t/test-cogd.c   $(core_src) $(parser_spec_src)
 TEST_clockd_SOURCES      = t/test-clockd.c $(core_src) $(parser_spec_src)
-TEST_ps_SOURCES          = t/test-ps.c $(core_src)
-TEST_lock_SOURCES        = t/test-lock.c $(core_src)
+TEST_ps_SOURCES          = t/test-ps.c     $(core_src)
+TEST_lock_SOURCES        = t/test-lock.c   $(core_src)
+
 t_00_bits_SOURCES        = t/00-bits.c          $(test_source)
 t_01_string_SOURCES      = t/01-string.c        $(test_source)
 t_02_pdu_SOURCES         = t/02-pdu.c           $(test_source)
@@ -191,7 +194,7 @@ dist_man_MANS    = man/clockwork.7
 dist_man_MANS   += man/cwpol.1
 dist_man_MANS   += man/cwtool.1
 dist_man_MANS   += man/cwcc.1
-dist_man_MANS   += man/cogd.1 man/cogd.conf.5
+dist_man_MANS   += man/cogd.1   man/cogd.conf.5
 dist_man_MANS   += man/clockd.1 man/clockd.conf.5
 dist_man_MANS   += man/fact.1
 dist_man_MANS   += man/pn.1
@@ -207,17 +210,13 @@ dist_man_MANS   += man/res_user.5
 
 ############################################################
 
-core_src     = src/cw.h src/cw.c
-core_src    += src/sha1.c src/userdb.c
-core_src    += src/sha1.h src/userdb.h
-core_src    += src/policy.c src/resource.c src/resources.c
-core_src    += src/policy.h src/resource.h src/resources.h
-core_src    += src/gear/string.c src/gear/path.c
-core_src    += src/gear/gear.h
-core_src    += src/clockwork.h
-
-pendulum_src     = src/pendulum.h       src/pendulum.c
-pendulum_src    += src/pendulum_funcs.h src/pendulum_funcs.c
+core_src  = src/clockwork.h src/cw.h src/cw.c
+core_src += src/sha1.h src/sha1.c src/userdb.h src/userdb.c
+core_src += src/policy.h src/policy.c
+core_src += src/resource.h src/resource.c src/resources.h src/resources.c
+core_src += src/gear/gear.h src/gear/string.c src/gear/path.c
+core_src += src/pendulum.h src/pendulum.c
+core_src += src/pendulum_funcs.h src/pendulum_funcs.c
 
 parser_spec_src  = src/spec/parser.c src/spec/parser.h src/spec/private.h
 parser_spec_src += src/spec/lexer.l src/spec/lexer_impl.h
@@ -226,16 +225,16 @@ parser_spec_src += src/spec/grammar.y src/spec/grammar_impl.h
 sbindir = "$(prefix)/sbin"
 sbin_PROGRAMS = cwpol cwcc clockd cogd
 cwpol_SOURCES   = src/cwpol.c  $(core_src) $(parser_spec_src)
-cwcc_SOURCES    = src/cwcc.c $(core_src) $(parser_spec_src)
+cwcc_SOURCES    = src/cwcc.c   $(core_src) $(parser_spec_src)
 clockd_SOURCES  = src/clockd.c $(core_src) $(parser_spec_src)
-cogd_SOURCES    = src/cogd.c   $(core_src) $(parser_spec_src) $(pendulum_src)
+cogd_SOURCES    = src/cogd.c   $(core_src) $(parser_spec_src)
 
 dist_bin_SCRIPTS = cwtool cw-template-erb
 
 bin_PROGRAMS = bdfa fact pn
 bdfa_SOURCES = src/bdfa.c src/cw.h src/cw.c
 fact_SOURCES = src/fact.c $(core_src)
-pn_SOURCES   = src/pn.c $(core_src) $(pendulum_src)
+pn_SOURCES   = src/pn.c   $(core_src)
 
 ############################################################
 

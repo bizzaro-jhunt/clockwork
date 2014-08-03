@@ -31,56 +31,17 @@
 #include "../clockwork.h"
 #include "../policy.h"
 
-/**
-  parser_branch - interim representation of an if block
-
-  This structure is used internally by the Bison grammar to store
-  information needed to construct an if-then-else form, prior to
-  converting it into a string of syntax tree nodes.  This specific
-  implementation is limited to 'if fact is [ v1, v2 ]' idioms.
-
-  The 'affirmative' member is a boolean.  If it is set to 1, the
-  if block contains an affirmative test; the 'then' block represents
-  the control path to follow if the value of fact is contained in
-  the values string list and the 'otherwise' block is the control path
-  to follow if it is not.
-
-  If affirmative is set to 0, the test is taken as a negation of
-  'fact is [list]'.  The then and otherwise pointers have their
-  meaning switched; if the value of fact is contained in the values
-  string list, 'otherwise' is followed.  If not, 'then' is followed.
- */
 typedef struct {
-	char              *fact;        /* Name of fact to test */
-	struct stringlist *values;      /* List of values to check */
-	unsigned char      affirmative; /* see above */
-	struct stree      *then;        /* The 'then' node, used in syntax tree conversion */
-	struct stree      *otherwise;   /* The 'else' node, used in syntax tree conversion */
-} parser_branch;
-
-/**
-  parser_map - interim representation of a map construct
-
-  This structure is used internally by the Bison grammar to store
-  information needed to build a map(fact) { "v1": "value" } construct,
-  prior to converting it into a string of syntax tree nodes.
-
-  The two string lists, fact_values and attr_values, are parallel;
-  the second string in attr_values is the value to set the attribute
-  to if the second string in fact_values is the value of the fact.
-
-  If default value is NULL, no else clause was parsed, and the attribute
-  will not be set.
- */
-typedef struct {
-	char           *fact;          /* Name of fact to test */
-	char           *attribute;     /* Name of attribute to set */
-
-	struct stringlist     *fact_values;   /* List of values to check */
-	struct stringlist     *attr_values;   /* List of values to set attribute to */
-
-	char           *default_value; /* Default value (else clause) for attribute */
+	char         *attr;
+	struct stree *lhs;
+	cw_list_t     cond;
 } parser_map;
+
+typedef struct {
+	cw_list_t l;
+	struct stree *rhs;
+	char         *value;
+} parser_map_cond;
 
 /**
   parser_file - Keep track of 'seen' files, by dev/inode
@@ -134,15 +95,12 @@ typedef struct {
 #define YY_EXTRA_TYPE spec_parser_context*
 typedef union {
 	char              *string;
-	struct stringlist *strings;
-	struct stringlist *string_hash[2];
-	char              *string_pair[2];
 
 	struct stree      *stree;
 	struct manifest   *manifest;
 
-	parser_branch     *branch;
 	parser_map        *map;
+	parser_map_cond   *map_cond;
 } YYSTYPE;
 #define YYSTYPE_IS_DECLARED 1
 

@@ -74,8 +74,17 @@
 "unless" { return T_KEYWORD_UNLESS; }
 "else"   { return T_KEYWORD_ELSE; }
 "map"    { return T_KEYWORD_MAP; }
+"default" { return T_KEYWORD_DEFAULT; }
+
 "is"     { return T_KEYWORD_IS; }
+"=="     { return T_KEYWORD_IS; }
 "not"    { return T_KEYWORD_NOT; }
+"!"      { return T_KEYWORD_NOT; }
+"!="     { return T_KEYWORD_IS_NOT; }
+"or"     { return T_KEYWORD_OR; }
+"||"     { return T_KEYWORD_OR; }
+"and"    { return T_KEYWORD_AND; }
+"&&"     { return T_KEYWORD_AND; }
 
 depends[ \t\r\n]+on { return T_KEYWORD_DEPENDS_ON; }
 affects             { return T_KEYWORD_AFFECTS; }

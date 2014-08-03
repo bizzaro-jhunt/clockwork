@@ -3,7 +3,7 @@
 #
 
 AC_PREREQ(2.68)
-AC_INIT([Clockwork], [2.0.15], [bugs@niftylogic.com])
+AC_INIT([Clockwork], [2.0.16], [bugs@niftylogic.com])
 
 ################################################
 

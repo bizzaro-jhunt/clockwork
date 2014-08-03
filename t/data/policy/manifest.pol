@@ -336,3 +336,102 @@ policy "deps1" {
 	dir "/tmp/inner" { }
 }
 host "deps1.test" { enforce "deps1" }
+
+####################################################
+####################################################
+
+policy "if1" {
+	package "00:always-there" { }
+
+	if (sys.fqdn == "host.example.net") {
+		package "01:double-equals" { }
+	} else {
+		package "01:double-equals-FAIL" { }
+	}
+	if (sys.fqdn is "host.example.net") {
+		package "02:is" { }
+	} else {
+		package "02:is-FAIL" { }
+	}
+
+	if (sys.fqdn != "not-a-thing") {
+		package "03:not-equals" { }
+	} else {
+		package "03:not-equals-FAIL" { }
+	}
+
+	if (sys.fqdn is not "not-a-thing") {
+		package "04:is-not" { }
+	} else {
+		package "04:is-not-FAIL" { }
+	}
+}
+host "if1.test" { enforce "if1" }
+
+policy "if2" {
+	package "00:always-there" { }
+
+	if (sys.fqdn == "host.example.net" and sys.platform != "HPUX") {
+		package "01:and" { }
+	} else {
+		package "01:and-FAIL" { }
+	}
+	if (sys.arch == "i386" or sys.arch == "x86_64") {
+		package "02:or" { }
+	} else {
+		package "02:or-FAIL" { }
+	}
+}
+host "if2.test" { enforce "if2" }
+
+policy "if3" {
+	package "00:always-there" { }
+
+	if (sys.arch == lsb.arch) {
+		package "01:fact-equality" { }
+	} else {
+		package "01:fact-equality-FAIL" { }
+	}
+	if (sys.arch != sys.kernel.verson) {
+		package "02:fact-inequality" { }
+	} else {
+		package "02:fact-inequality-FAIL" { }
+	}
+	if ("test" == "test") {
+		package "03:literal-to-literal" { }
+	} else {
+		package "03:literal-to-literal-FAIL" { }
+	}
+
+	if ("trusty" == lsb.distro.codename) {
+		package "04:literal-to-fact" { }
+	} else {
+		package "04:literal-to-fact-FAIL" { }
+	}
+}
+host "if3.test" { enforce "if3" }
+
+####################################################
+####################################################
+
+policy "map1" {
+	package "literals" {
+		installed: "yes"
+		version: map(sys.fqdn) {
+			"host.example.net": "1.2.3"
+			"other.host":       "1.FAIL"
+			else:               "default.FAIL"
+		}
+	}
+
+	package "facts" {
+		installed: "yes"
+		version: map(sys.arch) {
+			lsb.arch:           "correct"
+			"x86_64":           "x86_64 fall-through"
+			"i386":             "i386 fall-through"
+			else:               "default fail"
+		}
+	}
+}
+host "map1.test" { enforce "map1" }

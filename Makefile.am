@@ -97,6 +97,7 @@ PERL_TESTS += t/policy/07-hosts.t
 PERL_TESTS += t/policy/08-sysctl.t
 PERL_TESTS += t/policy/09-exec.t
 PERL_TESTS += t/policy/10-symlink.t
+PERL_TESTS += t/policy/20-if.t
 PERL_TESTS += t/policy/30-deps.t
 PERL_TESTS += t/policy/99-fail.t
 
@@ -220,7 +221,7 @@ core_src += src/pendulum_funcs.h src/pendulum_funcs.c
 
 parser_spec_src  = src/spec/parser.c src/spec/parser.h src/spec/private.h
 parser_spec_src += src/spec/lexer.l src/spec/lexer_impl.h
-parser_spec_src += src/spec/grammar.y src/spec/grammar_impl.h
+parser_spec_src += src/spec/grammar.y
 
 sbindir = "$(prefix)/sbin"
 sbin_PROGRAMS = cwpol cwcc clockd cogd
@@ -258,7 +259,7 @@ test-data:
 src/spec/lexer.c: src/spec/lexer.l src/spec/grammar.h src/spec/lexer_impl.h src/spec/parser.h src/spec/private.h
 	$(LEXCOMPILE) --outfile=$@ $<
 
-src/spec/grammar.c: src/spec/grammar.y src/spec/grammar_impl.h src/spec/parser.c src/spec/parser.h src/spec/private.h
+src/spec/grammar.c: src/spec/grammar.y src/spec/parser.c src/spec/parser.h src/spec/private.h
 	$(YACCCOMPILE) --output-file=src/spec/grammar.c $<
 
 .PHONY: coverage-clean coverage-report coverage clean-local-check clean-local-cov

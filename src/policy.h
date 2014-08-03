@@ -33,7 +33,16 @@ enum oper {
 	RESOURCE_ID,
 	DEPENDENCY,
 	HOST,
-	POLICY
+	POLICY,
+
+	EXPR_NOOP,
+	EXPR_VAL,
+	EXPR_FACT,
+
+	EXPR_AND,
+	EXPR_OR,
+	EXPR_NOT,
+	EXPR_EQ,
 };
 
 /**
@@ -113,6 +122,7 @@ void manifest_free(struct manifest *m);
 int manifest_validate(struct manifest *m);
 
 struct stree* manifest_new_stree(struct manifest *m, enum oper op, char *data1, char *data2);
+struct stree* manifest_new_stree_expr(struct manifest *m, enum oper op, struct stree *a, struct stree *b);
 int stree_add(struct stree *parent, struct stree *child);
 int stree_compare(const struct stree *a, const struct stree *b);
 

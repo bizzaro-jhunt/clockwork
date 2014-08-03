@@ -23,6 +23,8 @@
 static struct manifest *MANIFEST;
 
 #define NODE(op,d1,d2) manifest_new_stree(MANIFEST, (op), cw_strdup(d1), cw_strdup(d2))
+#define EXPR(t,n1,n2) manifest_new_stree_expr(MANIFEST, EXPR_ ## t, (n1), (n2))
+#define NEGATE(n) manifest_new_stree_expr(MANIFEST, EXPR_NOT, (n), NULL)
 
 static struct stree* child_of(struct stree *parent, struct stree *new)
 {
@@ -95,11 +97,15 @@ static struct stree* conditional_policy()
 	child_of(node, NODE(ATTR, "group", "root"));
 	child_of(node, NODE(ATTR, "mode",  "0644"));
 
-	tmp = child_of(node, NODE(IF, "sys.kernel.major", "2.6"));
+	tmp = child_of(node, NODE(IF, NULL, NULL));
+	child_of(tmp, EXPR(EQ, NODE(EXPR_FACT, "sys.kernel.major", NULL),
+	                       NODE(EXPR_VAL,  "2.6",              NULL)));
 	child_of(tmp, NODE(ATTR, "source", "std/2.6.conf"));
 	child_of(tmp, NODE(ATTR, "source", "std/2.4.conf"));
 
-	node = child_of(pol, NODE(IF, "lsb.distro.codename", "lucid"));
+	node = child_of(pol, NODE(IF, NULL, NULL));
+	child_of(node, EXPR(EQ, NODE(EXPR_FACT, "lsb.distro.codename", NULL),
+	                        NODE(EXPR_VAL,  "lucid",               NULL)));
 	/* if lucid... */
 	tmp = child_of(node, NODE(RESOURCE, "user", "ubuntu"));
 	child_of(tmp, NODE(ATTR, "uid", "20050"));
@@ -107,7 +113,9 @@ static struct stree* conditional_policy()
 	child_of(tmp, NODE(ATTR, "home", "/srv/oper/ubuntu"));
 	/* else */
 	/* if karmic... */
-	node = child_of(node, NODE(IF, "lsb.distro.codename", "karmic"));
+	node = child_of(node, NODE(IF, NULL, NULL));
+	child_of(node, EXPR(EQ, NODE(EXPR_FACT, "lsb.distro.codename", NULL),
+	                        NODE(EXPR_VAL,  "karmic",              NULL)));
 	child_of(node, tmp);
 	/* else... */
 	child_of(node, NODE(NOOP, NULL, NULL));
@@ -127,7 +135,9 @@ static struct stree* prog_policy()
 	pol = child_of(root, NODE(POLICY, "testing", NULL));
 
 	/* if test.users == "2" */
-	node = child_of(pol, NODE(IF, "test.users", "2"));
+	node = child_of(pol, NODE(IF, NULL, NULL));
+	child_of(node, EXPR(EQ, NODE(EXPR_FACT, "test.users", NULL),
+	                        NODE(EXPR_VAL,  "2",          NULL)));
 	prog = child_of(node, NODE(PROG, NULL, NULL));
 
 		/* define group103 */

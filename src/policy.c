@@ -90,6 +90,68 @@ static void stree_free(struct stree *n)
 	free(n);
 }
 
+static const char* s_eval_lookup(struct stree *node, cw_hash_t *facts)
+{
+	assert(node);  // LCOV_EXCL_LINE
+	assert(facts); // LCOV_EXCL_LINE
+
+	const char *x;
+	switch (node->op) {
+	case EXPR_VAL:
+		return node->data1;
+
+	case EXPR_FACT:
+		x = cw_hash_get(facts, node->data1);
+		if (x) return x;
+		break;
+
+	default:
+		cw_log(LOG_WARNING, "unexpected node in right-hand side (%u %s/%s)", node->op, node->data1, node->data2);
+	}
+
+	return "";
+}
+
+static int s_eval(struct stree *node, cw_hash_t *facts)
+{
+	assert(node);  // LCOV_EXCL_LINE
+	assert(facts); // LCOV_EXCL_LINE
+
+	switch (node->op) {
+	case EXPR_NOOP:
+		return s_eval(node->nodes[0], facts);
+
+	case EXPR_AND:
+		return s_eval(node->nodes[0], facts)
+		    && s_eval(node->nodes[1], facts);
+
+	case EXPR_OR:
+		return s_eval(node->nodes[0], facts)
+		    || s_eval(node->nodes[1], facts);
+
+	case EXPR_NOT:
+		return !s_eval(node->nodes[0], facts);
+
+	case EXPR_EQ:
+		return strcmp(s_eval_lookup(node->nodes[0], facts),
+		              s_eval_lookup(node->nodes[1], facts)) == 0;
+
+	case EXPR_VAL:
+		cw_log(LOG_WARNING, "unexpected literal value in expression");
+		break;
+
+	case EXPR_FACT:
+		cw_log(LOG_WARNING, "unexpected fact deref in expression");
+		break;
+
+	default:
+		cw_log(LOG_WARNING, "unexpected node in expression: (%u %s/%s)", node->op, node->data1, node->data2);
+		break;
+	}
+
+	return 0;
+}
+
 static int _policy_normalize(struct policy *pol, cw_hash_t *facts)
 {
 	assert(pol); // LCOV_EXCL_LINE
@@ -221,6 +283,13 @@ static int _manifest_validate(struct stree *node)
 	case DEPENDENCY:
 	case ATTR:
 	case RESOURCE_ID:
+	case EXPR_NOOP:
+	case EXPR_AND:
+	case EXPR_OR:
+	case EXPR_NOT:
+	case EXPR_EQ:
+	case EXPR_VAL:
+	case EXPR_FACT:
 		for (i = 0; i < node->size; i++)
 			if (_manifest_validate(node->nodes[i]) != 0)
 				return 1;
@@ -301,6 +370,14 @@ struct stree* manifest_new_stree(struct manifest *m, enum oper op, char *data1, 
 	m->nodes = list;
 
 	return stree;
+}
+
+struct stree* manifest_new_stree_expr(struct manifest *m, enum oper op, struct stree *a, struct stree *b)
+{
+	struct stree *n = manifest_new_stree(m, op, NULL, NULL);
+	if (a) stree_add(n, a);
+	if (b) stree_add(n, b);
+	return n;
 }
 
 /**
@@ -633,19 +710,19 @@ static struct resource * _policy_make_resource(struct policy_generator *pgen, co
 
 static int _policy_generate(struct stree *node, struct policy_generator *pgen, int depth)
 {
-	assert(node); // LCOV_EXCL_LINE
-	assert(pgen); // LCOV_EXCL_LINE
-
 	unsigned int i;
 	struct dependency dep;
 
 again:
+	assert(node); // LCOV_EXCL_LINE
+	assert(pgen); // LCOV_EXCL_LINE
+
 	switch(node->op) {
 	case IF:
-		if (cw_strcmp(cw_hash_get(pgen->facts, node->data1), node->data2) == 0) {
-			node = node->nodes[0];
-		} else {
+		if (s_eval(node->nodes[0], pgen->facts)) {
 			node = node->nodes[1];
+		} else {
+			node = node->nodes[2];
 		}
 		goto again;
 
@@ -706,6 +783,16 @@ again:
 
 	case POLICY:
 		pgen->scope = push_scope(&pgen->scopes, depth);
+		break;
+
+	case EXPR_NOOP:
+	case EXPR_VAL:
+	case EXPR_FACT:
+	case EXPR_AND:
+	case EXPR_OR:
+	case EXPR_NOT:
+	case EXPR_EQ:
+		cw_log(LOG_WARNING, "unexpected expression");
 		break;
 
 	default:

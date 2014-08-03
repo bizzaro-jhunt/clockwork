@@ -46,8 +46,12 @@
 %token T_KEYWORD_UNLESS
 %token T_KEYWORD_ELSE
 %token T_KEYWORD_MAP
+%token T_KEYWORD_DEFAULT
+%token T_KEYWORD_AND
+%token T_KEYWORD_OR
 %token T_KEYWORD_IS
 %token T_KEYWORD_NOT
+%token T_KEYWORD_IS_NOT
 %token T_KEYWORD_DEPENDS_ON
 %token T_KEYWORD_AFFECTS
 %token T_KEYWORD_DEFAULTS
@@ -69,7 +73,6 @@
 /* Define the lvalue types of non-terminal productions.
    These definitions are necessary so that the $1..$n and $$ "magical"
    variables work in the generated C code. */
-//%type <node> definitions         /* AST_OP_PROG */
 %type <manifest> manifest
 %type <stree> host policy
 %type <stree> enforcing enforce
@@ -78,31 +81,22 @@
 %type <stree> conditional alt_condition
 %type <stree> attributes attribute optional_attributes
 %type <stree> dependency resource_id
+%type <stree> expr simple_expr value
 
-%type <branch> conditional_test
+%type <string> qstring literal_value
 
-%type <string>  value
-%type <strings> value_list
-%type <strings> explicit_value_list
-%type <string> qstring
-
-%type <map>         conditional_inline
-%type <string_hash> mapped_value_set
-%type <string_pair> mapped_value
-%type <string>      mapped_value_default
+%type <map>         map map_conds
+%type <map_cond>    map_cond map_default
 %{
-/* grammar_impl.h contains several static routines that only make sense
-   within the context of a parser.  They deal with interim representations
-   of abstract syntax trees, like if branches and map constructs.  They
-   exist in a separate C file to keep this file clean and focused. */
-#include "grammar_impl.h"
+#ifdef YYDEBUG
+int yydebug = 1;
+#endif
 
 #define MANIFEST(ctx) (((spec_parser_context*)ctx)->root)
 #define NODE(op,d1,d2) (manifest_new_stree(MANIFEST(ctx), (op), (d1), (d2)))
+#define EXPR(t,n1,n2) manifest_new_stree_expr(MANIFEST(ctx), EXPR_ ## t, (n1), (n2))
+#define NEGATE(n) manifest_new_stree_expr(MANIFEST(ctx), EXPR_NOT, (n), NULL)
 
-#ifdef YYDEBUG
-	int yydebug = 1;
-#endif
 %}
 
 %%
@@ -156,7 +150,7 @@ blocks:
 block: resource | conditional | extension | dependency
 	;
 
-resource: T_IDENTIFIER value optional_attributes
+resource: T_IDENTIFIER literal_value optional_attributes
 		{ $$ = $3;
 		  $$->op = RESOURCE;
 		  $$->data1 = $1;
@@ -166,7 +160,7 @@ resource: T_IDENTIFIER value optional_attributes
 		  $$->op = RESOURCE;
 		  $$->data1 = $1;
 		  $$->data2 = NULL; }
-	| T_KEYWORD_HOST value optional_attributes
+	| T_KEYWORD_HOST literal_value optional_attributes
 		{ $$ = $3;
 		  $$->op = RESOURCE;
 		  $$->data1 = cw_strdup("host"); /* dynamic string for stree_free */
@@ -191,26 +185,36 @@ attributes:
 		{ stree_add($$, $2); }
 	;
 
-attribute: T_IDENTIFIER ':' value
+attribute: T_IDENTIFIER ':' literal_value
 		{ $$ = NODE(ATTR, $1, $3); }
-	| T_IDENTIFIER ':' conditional_inline
-		{ $3->attribute = $1;
-		  $$ = map_expand(MANIFEST(ctx),$3);
-		  map_free($3); }
+	| T_IDENTIFIER ':' map
+		{
+			struct stree *n;
+			parser_map_cond *c;
+
+			for_each_object_r(c, &$3->cond, l) {
+				n = NODE(IF, NULL, NULL);
+				stree_add(n, EXPR(EQ, $3->lhs, c->rhs));
+				stree_add(n, NODE(ATTR, strdup($1), c->value));
+				stree_add(n, $$); $$ = n;
+			}
+			free($3);
+		}
 	;
 
-value: qstring | T_NUMERIC
+literal_value: qstring | T_NUMERIC
 	;
 
-conditional: T_KEYWORD_IF '(' conditional_test ')' '{' blocks '}' alt_condition
-		{ branch_connect($3, $6, $8);
-		  $$ = branch_expand(MANIFEST(ctx), $3);
-		  branch_free($3); }
-	| T_KEYWORD_UNLESS '(' conditional_test ')' '{' blocks '}' alt_condition
-		{ $3->affirmative = 1 ? 0 : 1;
-		  branch_connect($3, $6, $8);
-		  $$ = branch_expand(MANIFEST(ctx), $3);
-		  branch_free($3); }
+conditional: T_KEYWORD_IF '(' expr ')' '{' blocks '}' alt_condition
+		{ $$ = NODE(IF, NULL, NULL);
+		  stree_add($$, $3);
+		  stree_add($$, $6);
+		  stree_add($$, $8); }
+	| T_KEYWORD_UNLESS '(' expr ')' '{' blocks '}' alt_condition
+		{ $$ = NODE(IF, NULL, NULL);
+		  stree_add($$, NEGATE($3));
+		  stree_add($$, $6);
+		  stree_add($$, $8); }
 	;
 
 alt_condition:
@@ -221,27 +225,25 @@ alt_condition:
 		{ $$ = $2; }
 	;
 
-conditional_test: T_FACT T_KEYWORD_IS value_list
-		{ $$ = branch_new($1, $3, 1); }
-	| T_FACT T_KEYWORD_IS T_KEYWORD_NOT value_list
-		{ $$ = branch_new($1, $4, 0); }
+expr: simple_expr
+	| '(' expr ')' { $$ = EXPR(NOOP, $2, NULL); }
+	| T_KEYWORD_NOT expr { $$ = NEGATE($2); }
+	| expr T_KEYWORD_AND expr { $$ = EXPR(AND, $1, $3); }
+	| expr T_KEYWORD_OR  expr { $$ = EXPR(OR,  $1, $3); }
 	;
 
-value_list: value
-		{ $$ = stringlist_new(NULL);
-		  stringlist_add($$, $1);
-		  free($1); }
-	| '[' explicit_value_list ']'
-		{ $$ = $2; }
+simple_expr: value T_KEYWORD_IS value
+		{ $$ = EXPR(EQ, $1, $3); }
+	| value T_KEYWORD_IS T_KEYWORD_NOT value
+		{ $$ = NEGATE(EXPR(EQ, $1, $4)); }
+	| value T_KEYWORD_IS_NOT value
+		{ $$ = NEGATE(EXPR(EQ, $1, $3)); }
 	;
 
-explicit_value_list: value
-		{ $$ = stringlist_new(NULL);
-		  stringlist_add($$, $1);
-		  free($1); }
-	| explicit_value_list ',' value
-		{ stringlist_add($$, $3);
-		  free($3); }
+value: literal_value
+		{ $$ = NODE(EXPR_VAL, $1, NULL); }
+	| T_FACT
+		{ $$ = NODE(EXPR_FACT, $1, NULL); }
 	;
 
 extension: T_KEYWORD_EXTEND qstring
@@ -258,32 +260,38 @@ dependency: resource_id T_KEYWORD_DEPENDS_ON resource_id
 		  stree_add($$, $1); }
 	  ;
 
-resource_id: T_IDENTIFIER '(' value ')'
+resource_id: T_IDENTIFIER '(' literal_value ')'
 			{ $$ = NODE(RESOURCE_ID, $1, $3); }
 
-conditional_inline: T_KEYWORD_MAP '(' T_FACT ')' '{' mapped_value_set mapped_value_default '}'
-		{ $$ = map_new($3, NULL, $6[0], $6[1], $7); }
+map: T_KEYWORD_MAP '(' T_FACT ')' '{' map_conds map_default '}'
+		{ $$ = $6;
+		  if ($7) cw_list_push(&$$->cond, &$7->l);
+		  $6->lhs = NODE(EXPR_FACT, $3, NULL); }
 	;
 
-mapped_value_set:
-		{ $$[0] = stringlist_new(NULL);
-		  $$[1] = stringlist_new(NULL); }
-	| mapped_value_set mapped_value
-		{ stringlist_add($$[0], $2[0]);
-		  stringlist_add($$[1], $2[1]);
-		  free($2[0]);
-		  free($2[1]); }
+map_conds:
+		{ $$ = cw_alloc(sizeof(parser_map));
+		  cw_list_init(&$$->cond); }
+	| map_conds map_cond
+		{ cw_list_push(&$$->cond, &$2->l); }
 	;
 
-mapped_value: qstring ':' value
-		{ $$[0] = $1;
-		  $$[1] = $3; }
-		;
+map_cond: value ':' literal_value
+		{ $$ = cw_alloc(sizeof(parser_map_cond));
+		  cw_list_init(&$$->l);
+		  $$->rhs   = $1;
+		  $$->value = $3; }
+	;
 
-mapped_value_default:
+map_else: T_KEYWORD_ELSE | T_KEYWORD_DEFAULT
+	;
+
+map_default:
 		{ $$ = NULL; }
-	| T_KEYWORD_ELSE ':' value
-		{ $$ = $3; }
+	| map_else ':' literal_value
+		{ $$ = cw_alloc(sizeof(parser_map_cond));
+		  cw_list_init(&$$->l);
+		  $$->value = $3; }
 	;
 
 qstring: T_QSTRING

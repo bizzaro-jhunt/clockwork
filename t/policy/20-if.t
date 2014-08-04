@@ -47,4 +47,14 @@ package "facts" {
 }
 EOF
 
+cwpol_ok "use host map1.test; show package fallthrough",
+<<'EOF', "fact == fact map conditional";
+
+package "fallthrough" {
+  installed : "yes"
+  name      : "fallthrough"
+  version   : "default correct"
+}
+EOF
+
 done_testing;

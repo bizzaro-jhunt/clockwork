@@ -190,14 +190,22 @@ attribute: T_IDENTIFIER ':' literal_value
 	| T_IDENTIFIER ':' map
 		{
 			struct stree *n;
-			parser_map_cond *c;
+			parser_map_cond *c, *tmp;
+			$$ = NULL;
 
-			for_each_object_r(c, &$3->cond, l) {
-				n = NODE(IF, NULL, NULL);
-				stree_add(n, EXPR(EQ, $3->lhs, c->rhs));
-				stree_add(n, NODE(ATTR, strdup($1), c->value));
-				stree_add(n, $$); $$ = n;
+			for_each_object_safe_r(c, tmp, &$3->cond, l) {
+				if (c->rhs) {
+					n = NODE(IF, NULL, NULL);
+					stree_add(n, EXPR(EQ, $3->lhs, c->rhs));
+					stree_add(n, NODE(ATTR, strdup($1), c->value));
+					if ($$) stree_add(n, $$);
+					$$ = n;
+				} else {
+					$$ = NODE(ATTR, strdup($1), c->value);
+				}
+				free(c);
 			}
+			free($1);
 			free($3);
 		}
 	;

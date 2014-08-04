@@ -35,6 +35,15 @@ static const char *OP_NAMES[] = {
 	"DEPENDENCY",
 	"HOST",
 	"POLICY",
+
+	"EXPR_NOOP",
+	"EXPR_VAL",
+	"EXPR_FACT",
+
+	"EXPR_AND",
+	"EXPR_OR",
+	"EXPR_NOT",
+	"EXPR_EQ",
 	NULL
 };
 
@@ -128,7 +137,11 @@ static void traverse(struct stree *node, unsigned int depth)
 	memset(buf, ' ', 2 * depth);
 	buf[2 * depth] = '\0';
 
-	printf("%s(%u:%s // %s // %s) [%u] 0x%p\n", buf, node->op, OP_NAMES[node->op], node->data1, node->data2, node->size, node);
+	if (node->op > EXPR_EQ) { /* highest numbered op */
+		printf("%s(%u:UNKNOWN // 0x%p // 0x%p) [%u] 0x%p\n", buf, node->op, node->data1, node->data2, node->size, node);
+	} else {
+		printf("%s(%u:%s // %s // %s) [%u] 0x%p\n", buf, node->op, OP_NAMES[node->op], node->data1, node->data2, node->size, node);
+	}
 	free(buf);
 
 	for (i = 0; i < node->size; i++) {

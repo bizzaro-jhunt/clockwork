@@ -433,5 +433,14 @@ policy "map1" {
 			else:               "default fail"
 		}
 	}
+
+	package "fallthrough" {
+		installed: "yes"
+		version: map(sys.fqdn) {
+			"x86_64":           "x86_64 fail"
+			"i386":             "i386 fail"
+			else:               "default correct"
+		}
+	}
 }
 host "map1.test" { enforce "map1" }

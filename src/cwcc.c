@@ -39,13 +39,16 @@ static const char *OP_NAMES[] = {
 	"EXPR_NOOP",
 	"EXPR_VAL",
 	"EXPR_FACT",
+	"EXPR_REGEX",
 
 	"EXPR_AND",
 	"EXPR_OR",
 	"EXPR_NOT",
 	"EXPR_EQ",
+	"EXPR_MATCH",
 	NULL
 };
+#define MAX_OP EXPR_MATCH
 
 #define REDUNDANT_NODE(n) (((n)->op == PROG || (n)->op == NOOP) && (n)->size == 1)
 
@@ -137,11 +140,14 @@ static void traverse(struct stree *node, unsigned int depth)
 	memset(buf, ' ', 2 * depth);
 	buf[2 * depth] = '\0';
 
-	if (node->op > EXPR_EQ) { /* highest numbered op */
-		printf("%s(%u:UNKNOWN // 0x%p // 0x%p) [%u] 0x%p\n", buf, node->op, node->data1, node->data2, node->size, node);
-	} else {
-		printf("%s(%u:%s // %s // %s) [%u] 0x%p\n", buf, node->op, OP_NAMES[node->op], node->data1, node->data2, node->size, node);
-	}
+	int d1_empty = node->data1 && *node->data1 == '\0';
+	int d2_empty = node->data2 && *node->data2 == '\0';
+
+	printf("%s%s(%u) [%s:%s]\n", buf,
+		node->op > MAX_OP ? "UNKNOWN" : OP_NAMES[node->op],
+		node->op,
+		d1_empty ? "(empty)" : node->data1,
+		d2_empty ? "(empty)" : node->data2);
 	free(buf);
 
 	for (i = 0; i < node->size; i++) {

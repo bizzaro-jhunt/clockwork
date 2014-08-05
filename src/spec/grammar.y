@@ -84,6 +84,7 @@
 %type <stree> blocks block
 %type <stree> resource extension
 %type <stree> conditional alt_condition
+%type <stree> conditional_enforce alt_condition_enforce
 %type <stree> attributes attribute optional_attributes
 %type <stree> dependency resource_id
 %type <stree> expr simple_expr lvalue rvalue regex map_rvalue
@@ -169,10 +170,32 @@ enforcing:
 		{ $$ = NODE(PROG, NULL, NULL); }
 	| enforcing enforce
 		{ stree_add($$, $2); }
+	| enforcing conditional_enforce
+		{ stree_add($$, $2); }
 	;
 
 enforce: T_KEYWORD_ENFORCE qstring
 		{ $$ = NODE(INCLUDE, $2, NULL); }
+	;
+
+conditional_enforce: T_KEYWORD_IF '(' expr ')' '{' enforcing '}' alt_condition_enforce
+		{ $$ = NODE(IF, NULL, NULL);
+		  stree_add($$, $3);
+		  stree_add($$, $6);
+		  stree_add($$, $8); }
+	| T_KEYWORD_UNLESS '(' expr ')' '{' enforcing '}' alt_condition_enforce
+		{ $$ = NODE(IF, NULL, NULL);
+		  stree_add($$, NEGATE($3));
+		  stree_add($$, $6);
+		  stree_add($$, $8); }
+	;
+
+alt_condition_enforce:
+		{ $$ = NODE(NOOP, NULL, NULL); }
+	| T_KEYWORD_ELSE '{' enforcing '}'
+		{ $$ = $3; }
+	| T_KEYWORD_ELSE conditional_enforce
+		{ $$ = $2; }
 	;
 
 policy: T_KEYWORD_POLICY qstring '{' blocks '}'

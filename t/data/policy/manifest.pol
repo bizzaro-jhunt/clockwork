@@ -458,6 +458,22 @@ host "if4.test" { enforce "if4" }
 ####################################################
 ####################################################
 
+policy "host-a" { package "host-a" { } }
+policy "host-b" { package "host-b" { } }
+policy "host-c" { package "host-c" { } }
+host "regex.enforce" {
+	enforce "host-a"
+	if (lsb.distro.codename =~ m/trusty|lucid/) {
+		enforce "host-b"
+	}
+	if (sys.arch is "sparc") {
+		enforce "host-c" # not enforced
+	}
+}
+
+####################################################
+####################################################
+
 policy "map1" {
 	package "literals" {
 		installed: "yes"

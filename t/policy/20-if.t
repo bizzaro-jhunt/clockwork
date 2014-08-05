@@ -37,6 +37,11 @@ resources_ok "use host if4.test", <<'EOF', "regex conditionals";
   package 07:multi
 EOF
 
+resources_ok "use host regex.enforce", <<'EOF', "regex enforcement";
+  package host-a
+  package host-b
+EOF
+
 cwpol_ok "use host map1.test; show package literals",
 <<'EOF', "simple map conditional";
 

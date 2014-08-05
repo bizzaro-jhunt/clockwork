@@ -25,6 +25,7 @@
 #include <libgen.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <pcre.h>
 
 #include "policy.h"
 #include "resource.h"
@@ -90,15 +91,30 @@ static void stree_free(struct stree *n)
 	free(n);
 }
 
-static const char* s_eval_lookup(struct stree *node, cw_hash_t *facts)
+static const void* s_eval_lookup(struct stree *node, cw_hash_t *facts)
 {
 	assert(node);  // LCOV_EXCL_LINE
 	assert(facts); // LCOV_EXCL_LINE
 
 	const char *x;
+	pcre *re;
+	const char *e_string;
+	int e_offset;
+	int opts;
+
 	switch (node->op) {
 	case EXPR_VAL:
 		return node->data1;
+
+	case EXPR_REGEX:
+		opts = 0;
+		if (strchr(node->data2, 'i')) opts |= PCRE_CASELESS;
+
+		re = pcre_compile(node->data1, opts, &e_string, &e_offset, NULL);
+		if (re) return re;
+
+		cw_log(LOG_WARNING, "regular expression syntax error: %s", e_string);
+		return NULL;
 
 	case EXPR_FACT:
 		x = cw_hash_get(facts, node->data1);
@@ -106,7 +122,7 @@ static const char* s_eval_lookup(struct stree *node, cw_hash_t *facts)
 		break;
 
 	default:
-		cw_log(LOG_WARNING, "unexpected node in right-hand side (%u %s/%s)", node->op, node->data1, node->data2);
+		cw_log(LOG_WARNING, "unexpected node (%u %s/%s)", node->op, node->data1, node->data2);
 	}
 
 	return "";
@@ -116,6 +132,9 @@ static int s_eval(struct stree *node, cw_hash_t *facts)
 {
 	assert(node);  // LCOV_EXCL_LINE
 	assert(facts); // LCOV_EXCL_LINE
+
+	const char *s1, *s2;
+	pcre *regex;
 
 	switch (node->op) {
 	case EXPR_NOOP:
@@ -133,8 +152,22 @@ static int s_eval(struct stree *node, cw_hash_t *facts)
 		return !s_eval(node->nodes[0], facts);
 
 	case EXPR_EQ:
-		return strcmp(s_eval_lookup(node->nodes[0], facts),
-		              s_eval_lookup(node->nodes[1], facts)) == 0;
+		if (!node->nodes[0] || !node->nodes[1]) {
+			cw_log(LOG_WARNING, "too few nodes for an EQ operation");
+			break;
+		}
+		s1 = (const char *)s_eval_lookup(node->nodes[0], facts);
+		s2 = (const char *)s_eval_lookup(node->nodes[1], facts);
+		return strcmp(s1, s2) == 0;
+
+	case EXPR_MATCH:
+		s1 = (const char *)s_eval_lookup(node->nodes[0], facts);
+		regex = (pcre*)s_eval_lookup(node->nodes[1], facts);
+		if (!regex) break;
+
+		int rc = pcre_exec(regex, NULL, s1, strlen(s1), 0, 0, NULL, 0);
+		pcre_free(regex);
+		return rc >= 0;
 
 	case EXPR_VAL:
 		cw_log(LOG_WARNING, "unexpected literal value in expression");

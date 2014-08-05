@@ -88,6 +88,7 @@ EOF
 		$T->diag("standard error output was:\n$errors") if $errors;
 		return 0;
 	}
+	$T->diag("standard error output was:\n$errors") if $errors;
 
 	my $diff = diff \$actual, \$expect, {
 		FILENAME_A => 'actual-output',    MTIME_A => time,
@@ -157,6 +158,7 @@ sub cwpol_ok
 		$T->diag("standard error output was:\n$errors") if $errors;
 		return 0;
 	}
+	$T->diag("standard error output was:\n$errors") if $errors;
 
 	my $diff = diff \$actual, \$expect, {
 		FILENAME_A => 'actual-output',    MTIME_A => time,
@@ -226,6 +228,7 @@ sub resources_ok
 		$T->diag("standard error output was:\n$errors") if $errors;
 		return 0;
 	}
+	$T->diag("standard error output was:\n$errors") if $errors;
 
 	my $diff = diff \$actual, \$expect, {
 		FILENAME_A => 'actual-output',    MTIME_A => time,
@@ -294,6 +297,7 @@ sub pendulum_ok
 		$T->diag("standard error output was:\n$errors") if $errors;
 		return 0;
 	}
+	$T->diag("standard error output was:\n$errors") if $errors;
 
 	my $diff = diff \$actual, \$expect, {
 		FILENAME_A => 'actual-output',    MTIME_A => time,
@@ -369,6 +373,7 @@ sub bdfa_ok
 		$T->diag("standard error output was:\n$errors") if $errors;
 		return 0;
 	}
+	$T->diag("standard error output was:\n$errors") if $errors;
 
 	pass $message;
 	$T->diag("standard error output was:\n$errors") if $errors;

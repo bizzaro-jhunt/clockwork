@@ -51,7 +51,11 @@
 %token T_KEYWORD_OR
 %token T_KEYWORD_IS
 %token T_KEYWORD_NOT
-%token T_KEYWORD_IS_NOT
+%token T_KEYWORD_LIKE
+%token T_KEYWORD_DOUBLE_EQUAL
+%token T_KEYWORD_BANG_EQUAL
+%token T_KEYWORD_EQUAL_TILDE
+%token T_KEYWORD_BANG_TILDE
 %token T_KEYWORD_DEPENDS_ON
 %token T_KEYWORD_AFFECTS
 %token T_KEYWORD_DEFAULTS
@@ -69,6 +73,7 @@
 %token <string> T_FACT
 %token <string> T_QSTRING
 %token <string> T_NUMERIC
+%token <string> T_REGEX
 
 /* Define the lvalue types of non-terminal productions.
    These definitions are necessary so that the $1..$n and $$ "magical"
@@ -81,7 +86,7 @@
 %type <stree> conditional alt_condition
 %type <stree> attributes attribute optional_attributes
 %type <stree> dependency resource_id
-%type <stree> expr simple_expr value
+%type <stree> expr simple_expr lvalue rvalue regex map_rvalue
 
 %type <string> qstring literal_value
 
@@ -96,6 +101,41 @@ int yydebug = 1;
 #define NODE(op,d1,d2) (manifest_new_stree(MANIFEST(ctx), (op), (d1), (d2)))
 #define EXPR(t,n1,n2) manifest_new_stree_expr(MANIFEST(ctx), EXPR_ ## t, (n1), (n2))
 #define NEGATE(n) manifest_new_stree_expr(MANIFEST(ctx), EXPR_NOT, (n), NULL)
+
+static struct stree* s_regex(struct manifest *m, const char *literal)
+{
+	char *re, *d, delim, *opts = NULL;
+	const char *p;
+	int esc = 0;
+
+	d = re = cw_alloc(sizeof(char) * (strlen(literal)+1));
+	p = literal;
+	if (*p == 'm') p++;
+	delim = *p++;
+
+	for (; *p; p++) {
+		if (esc) {
+			*d++ = *p;
+			esc = 0;
+			continue;
+		}
+
+		if (*p == '\\') {
+			esc = 1;
+			continue;
+		}
+
+		if (*p == delim) {
+			opts = strdup(p+1);
+			break;
+		}
+
+		*d++ = *p;
+	}
+
+	if (!opts) opts = strdup("");
+	return manifest_new_stree(m, EXPR_REGEX, re, opts);
+}
 
 %}
 
@@ -195,9 +235,15 @@ attribute: T_IDENTIFIER ':' literal_value
 
 			for_each_object_safe_r(c, tmp, &$3->cond, l) {
 				if (c->rhs) {
-					n = NODE(IF, NULL, NULL);
-					stree_add(n, EXPR(EQ, $3->lhs, c->rhs));
-					stree_add(n, NODE(ATTR, strdup($1), c->value));
+					if (c->rhs) {
+						n = NODE(IF, NULL, NULL);
+						stree_add(n, c->rhs->op == EXPR_REGEX
+								? EXPR(MATCH, $3->lhs, c->rhs)
+								: EXPR(EQ,    $3->lhs, c->rhs));
+						stree_add(n, NODE(ATTR, strdup($1), c->value));
+					} else {
+						n = NODE(ATTR, strdup($1), c->value);
+					}
 					if ($$) stree_add(n, $$);
 					$$ = n;
 				} else {
@@ -240,18 +286,36 @@ expr: simple_expr
 	| expr T_KEYWORD_OR  expr { $$ = EXPR(OR,  $1, $3); }
 	;
 
-simple_expr: value T_KEYWORD_IS value
+expr_eq: T_KEYWORD_IS | T_KEYWORD_DOUBLE_EQUAL ;
+
+expr_not_eq: T_KEYWORD_IS T_KEYWORD_NOT | T_KEYWORD_BANG_EQUAL ;
+
+expr_like: T_KEYWORD_LIKE | T_KEYWORD_EQUAL_TILDE ;
+
+expr_not_like: T_KEYWORD_NOT T_KEYWORD_LIKE | T_KEYWORD_BANG_TILDE ;
+
+simple_expr: lvalue expr_eq rvalue
 		{ $$ = EXPR(EQ, $1, $3); }
-	| value T_KEYWORD_IS T_KEYWORD_NOT value
-		{ $$ = NEGATE(EXPR(EQ, $1, $4)); }
-	| value T_KEYWORD_IS_NOT value
+	| lvalue expr_not_eq rvalue
 		{ $$ = NEGATE(EXPR(EQ, $1, $3)); }
+
+	| lvalue expr_like regex
+		{ $$ = EXPR(MATCH, $1, $3); }
+	| lvalue expr_not_like regex
+		{ $$ = NEGATE(EXPR(MATCH, $1, $3)); }
 	;
 
-value: literal_value
+lvalue: literal_value
 		{ $$ = NODE(EXPR_VAL, $1, NULL); }
 	| T_FACT
 		{ $$ = NODE(EXPR_FACT, $1, NULL); }
+	;
+
+rvalue: lvalue
+	;
+
+regex: T_REGEX
+		{ $$ = s_regex(MANIFEST(ctx), $1); free($1); }
 	;
 
 extension: T_KEYWORD_EXTEND qstring
@@ -284,7 +348,9 @@ map_conds:
 		{ cw_list_push(&$$->cond, &$2->l); }
 	;
 
-map_cond: value ':' literal_value
+map_rvalue: rvalue | regex ;
+
+map_cond: map_rvalue ':' literal_value
 		{ $$ = cw_alloc(sizeof(parser_map_cond));
 		  cw_list_init(&$$->l);
 		  $$->rhs   = $1;

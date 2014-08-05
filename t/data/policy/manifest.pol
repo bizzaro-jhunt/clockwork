@@ -411,6 +411,50 @@ policy "if3" {
 }
 host "if3.test" { enforce "if3" }
 
+policy "if4" {
+	package "00:always-there" { }
+
+	if (lsb.distro.codename like m/lucid|trusty/) {
+		package "01:like" { }
+	} else {
+		package "01:like-FAIL" { }
+	}
+
+	if (lsb.distro.codename !~ /lucid|trusty/) {
+		package "03:unlike-FAIL" { }
+	} else {
+		package "03:unlike" { }
+	}
+
+	if (lsb.distro.codename =~ m|trusty|) {
+		package "04:alt-delimiters" { }
+	} else {
+		package "04:alt-delimiters-FAIL" { }
+	}
+
+	# case-sensitive match with bad case...
+	if (lsb.distro.codename not like m/TRUSTY|LUCID/) {
+		package "05:case-sensitive" { }
+	} else {
+		package "05:case-sensitive-FAIL" { }
+	}
+
+	if (lsb.distro.codename like m/TRUSTY|LUCID/i) {
+		package "06:case-insensitive" { }
+	} else {
+		package "06:case-insensitive-FAIL" { }
+	}
+
+	if (1 == 2) {
+		package "07:multi-fail1" { }
+	} else if (2 == 1) {
+		package "07:multi-fail2" { }
+	} else {
+		package "07:multi"
+	}
+}
+host "if4.test" { enforce "if4" }
+
 ####################################################
 ####################################################
 
@@ -431,6 +475,17 @@ policy "map1" {
 			"x86_64":           "x86_64 fall-through"
 			"i386":             "i386 fall-through"
 			else:               "default fail"
+		}
+	}
+
+	package "regex" {
+		installed: "yes"
+		version: map(sys.fqdn) {
+			/example.com/:       "example.com"
+			m/ietf.org/:         "ietf"
+			/example.net/:       "correct"
+			"host.example.net":  "exact match fall-through"
+			default:             "default fail"
 		}
 	}
 

@@ -515,7 +515,7 @@ policy "security" {
         mode:   0440
 
         # only set the source for lab1
-        if (sys.hostname is "lab1") {
+        if (sys.hostname == "lab1") {
             source: "/var/clockwork/files/sudoers.lab
         }
     }
@@ -533,6 +533,7 @@ the client host.  Host policies are always evaluated against the facts
 before enforcement.
 .PP
 To see a list of facts, just run \fBfact\fR(1):
+.PP
 .RS 4
 .nf
 $ fact | sort
@@ -559,7 +560,7 @@ time.yearday = 172
 .fi
 .RE
 .PP
-We can take this further with \fBelsif\fR and \fBelse\fR clauses:
+We can take this further with more \fBelse if\fR and \fBelse\fR clauses:
 .PP
 .RS 4
 .nf
@@ -571,20 +572,49 @@ policy "security" {
         group:  "root"
         mode:   0440
 
-        if (sys.hostname is "lab1") {
-            source: "/var/clockwork/files/sudoers.lab
-        } elsif (sys.hostname is "buildhost") {
-            source: "/var/clockwork/files/sudoers.prod
-        } elsif (sys.hostname is "prodweb1") {
-            source: "/var/clockwork/files/sudoers.prod
-        } elsif (sys.hostname is "prodweb2") {
-            source: "/var/clockwork/files/sudoers.prod
-        } elsif (sys.hostname is "proddb1") {
-            source: "/var/clockwork/files/sudoers.db
-        } elsif (sys.hostname is "proddb2") {
-            source: "/var/clockwork/files/sudoers.db
-        } elsif (sys.hostname is "dev") {
-            source: "/var/clockwork/files/sudoers.dev
+        if (sys.hostname == "lab1") {
+            source: "/var/clockwork/files/sudoers.lab"
+        } else if (sys.hostname == "buildhost") {
+            source: "/var/clockwork/files/sudoers.prod"
+        } else if (sys.hostname == "prodweb1") {
+            source: "/var/clockwork/files/sudoers.prod"
+        } else if (sys.hostname == "prodweb2") {
+            source: "/var/clockwork/files/sudoers.prod"
+        } else if (sys.hostname == "proddb1") {
+            source: "/var/clockwork/files/sudoers.db"
+        } else if (sys.hostname == "proddb2") {
+            source: "/var/clockwork/files/sudoers.db"
+        } else if (sys.hostname == "dev") {
+            source: "/var/clockwork/files/sudoers.dev"
+        }
+    }
+}
+.fi
+.RE
+.PP
+To make things a little more manageable, we can use Perl-comaptible
+regular expressions in our conditionals:
+.PP
+.RS 4
+.nf
+policy "security" {
+    # other resources omitted for clarity
+
+    file "/etc/sudoers" {
+        owner:  "root"
+        group:  "root"
+        mode:   0440
+
+        if (sys.hostname == "lab1") {
+            source: "/var/clockwork/files/sudoers.lab"
+        } else if (sys.hostname == "buildhost") {
+            source: "/var/clockwork/files/sudoers.prod"
+        } else if (sys.hostname =~ m/^prodweb/) {
+            source: "/var/clockwork/files/sudoers.prod"
+        } else if (sys.hostname =~ m/^proddb/) {
+            source: "/var/clockwork/files/sudoers.db"
+        } else if (sys.hostname == "dev") {
+            source: "/var/clockwork/files/sudoers.dev"
         }
     }
 }
@@ -610,10 +640,8 @@ policy "security" {
         source: map(sys.hostname) {
           "lab1":      "/var/clockwork/files/sudoers.lab"
           "buildhost": "/var/clockwork/files/sudoers.prod"
-          "prodweb1":  "/var/clockwork/files/sudoers.prod"
-          "prodweb2":  "/var/clockwork/files/sudoers.prod"
-          "proddb1":   "/var/clockwork/files/sudoers.db"
-          "proddb2":   "/var/clockwork/files/sudoers.db"
+          /^prodweb/:  "/var/clockwork/files/sudoers.prod"
+          /^proddb/:   "/var/clockwork/files/sudoers.db"
           "dev":       "/var/clockwork/files/sudoers.dev"
         }
     }
@@ -643,8 +671,7 @@ policy "security" {
 
         source: map(sys.hostname) {
           "lab1":      "/var/clockwork/files/sudoers.lab"
-          "proddb1":   "/var/clockwork/files/sudoers.db"
-          "proddb2":   "/var/clockwork/files/sudoers.db"
+          /^proddb/:   "/var/clockwork/files/sudoers.db"
           "dev":       "/var/clockwork/files/sudoers.dev"
           else:        "/var/clockwork/files/sudoers.prod"
         }
@@ -660,11 +687,11 @@ conditionally define entire resources:
 .nf
 policy "package-tools" {
 
-    if (lsb.distro.id is "Ubuntu") {
+    if (lsb.distro.id == "Ubuntu") {
         package "apt-file"  { installed: "yes" }
         package "apt-utils" { installed: "yes" }
 
-    } elsif (lsb.distro.id is "RedHat") {
+    } else if (lsb.distro.id == "Redhat") {
         package "yum-tools" { installed: "yes" }
     }
 }
@@ -673,13 +700,80 @@ policy "package-tools" {
 .PP
 Here, we define different package resource based on the distribution
 of Linux.  Ubuntu clients will install some APT packages, while
-RedHat clients will install yum-tools.  Other distributions,
+Redhat clients will install yum-tools.  Other distributions,
 like CentOS or Gentoo, will have neither resource defined.
 .PP
 .B Note:
 the \fBmap\fR conditional can only be used inside of resource attribute
 definitions.  It is a bit of convenience syntax to help keep manifests
 clean and understandable.
+.PP
+The conditional test can also be combined with the \fIand\fR, \fIor\fR
+and \fInot\fB operators, to make more complicated conditionals:
+.PP
+.RS 4
+.nf
+if (sys.arch == "x86_64" and sys.fqdn =~ /dev/) {
+    # ...
+}
+
+if ((sys.fqdn =~ /dev/ or custom.fact == "dev")
+     and lsb.distro.id == "Ubuntu") {
+    # ...
+}
+.fi
+.RE
+.PP
+Regular expressions can be specified as \fB m/.../\fR, \fB/.../\fR
+(without the leading 'm' identifier) or as \fBm|...|\fR.  The latter
+exists to allow patterns with lots of '/' characters to avoid the
+constant need to backslash-escape them.  Note that all pipe-delimited
+regular expressions \fImust\fR start with 'm'.
+.PP
+By default, pattern matching is case-sensitive.  To make your regex
+match treat upper- and lower-case characters as interchangeable, append
+an 'i' after the closing delimiter, like this:
+.PP
+.RS 4
+.nf
+if (fact.name =~ m/foo/i) {
+    # ...
+}
+.fi
+.RE
+.PP
+The following conditional operators are understood:
+.PP
+.RS 4
+.nf
+    ==, is           Strict (exact) equality
+    !=, is not       Strict (exact) inequality
+
+    =~, like         Perl-compatible regex matching
+    !~, not like     Negative regex matching
+.fi
+.RE
+.PP
+And the following boolean operators are defined:
+.PP
+.RS 4
+.nf
+    <expr> and <expr>
+    <expr> && <expr>    Both expressions must evaulate to true
+
+    <expr> or <expr>
+    <expr> || <expr>    Either expressions must evaluate to true
+                        The second expression will be skipped if
+                        the first is true.
+
+    !<expr>             Negate the expression
+
+    (<expr>)            Grouping, to enforce precedence.
+.fi
+.RE
+.PP
+There are no precedence rules to remember.  \fBand\fR and \fB&&\fR
+are completely interchangeable, as are \fBor\fR and \fB||\fR.
 .PP
 Conditionals are very powerful parts of the Clockwork manifest
 language that can help to produce specific and sophisticated

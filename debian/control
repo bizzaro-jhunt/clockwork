@@ -10,6 +10,7 @@ Build-Depends: bison,
                libctap (>= 1.1.4),
                libctap-dev (>= 1.1.4),
                libfile-slurp-perl,
+               libpcre-dev,
                libreadline6-dev,
                libtest-deep-perl,
                libtest-simple-perl,
@@ -21,7 +22,12 @@ Homepage: http://clockwork.niftylogic.com/
 
 Package: clockwork-server
 Architecture: any
-Depends: libzmq3, libreadline6, ruby, ${misc:Depends}, ${shlibs:Depends}
+Depends: libpcre,
+         libreadline6,
+         libzmq3,
+         ruby,
+         ${misc:Depends},
+         ${shlibs:Depends}
 Description: Secure Configuration Management - Server
  Clockwork is a safe, secure and flexible system for managing system
  configurations through enforcement of targeted policies, expressed
@@ -49,7 +55,7 @@ Description: Debugging Symbols for Clockwork Server
 
 Package: clockwork-agent
 Architecture: any
-Depends: libzmq3, augeas-lenses, diffutils, ${misc:Depends}, ${shlibs:Depends}
+Depends: augeas-lenses, diffutils, libzmq3, ${misc:Depends}, ${shlibs:Depends}
 Description: Secure Configuration Management - Agent
  Clockwork is a safe, secure and flexible system for managing system
  configurations through enforcement of targeted policies, expressed

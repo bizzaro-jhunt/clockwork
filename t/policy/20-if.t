@@ -27,6 +27,16 @@ resources_ok "use host if3.test", <<'EOF', "fact <=> fact";
   package 04:literal-to-fact
 EOF
 
+resources_ok "use host if4.test", <<'EOF', "regex conditionals";
+  package 00:always-there
+  package 01:like
+  package 03:unlike
+  package 04:alt-delimiters
+  package 05:case-sensitive
+  package 06:case-insensitive
+  package 07:multi
+EOF
+
 cwpol_ok "use host map1.test; show package literals",
 <<'EOF', "simple map conditional";
 
@@ -43,6 +53,16 @@ cwpol_ok "use host map1.test; show package facts",
 package "facts" {
   installed : "yes"
   name      : "facts"
+  version   : "correct"
+}
+EOF
+
+cwpol_ok "use host map1.test; show package regex",
+<<'EOF', "regexes as rhs in map";
+
+package "regex" {
+  installed : "yes"
+  name      : "regex"
   version   : "correct"
 }
 EOF

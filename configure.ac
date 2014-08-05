@@ -3,7 +3,7 @@
 #
 
 AC_PREREQ(2.68)
-AC_INIT([Clockwork], [2.0.16], [bugs@niftylogic.com])
+AC_INIT([Clockwork], [2.0.17], [bugs@niftylogic.com])
 
 ################################################
 
@@ -41,6 +41,10 @@ AC_CHECK_LIB(readline,
 AC_CHECK_LIB(augeas,
 	aug_init,,
 	AC_MSG_ERROR(Missing Augeas library))
+
+AC_CHECK_LIB(pcre,
+	pcre_compile,,
+	AC_MSG_ERROR(Missing PCRE library))
 
 AC_HAVE_LIBRARY(ctap,,
 	AC_MSG_ERROR(Missing ctap testing library))

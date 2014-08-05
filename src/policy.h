@@ -38,11 +38,13 @@ enum oper {
 	EXPR_NOOP,
 	EXPR_VAL,
 	EXPR_FACT,
+	EXPR_REGEX,
 
 	EXPR_AND,
 	EXPR_OR,
 	EXPR_NOT,
 	EXPR_EQ,
+	EXPR_MATCH,
 };
 
 /**

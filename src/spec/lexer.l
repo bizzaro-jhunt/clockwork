@@ -77,10 +77,15 @@
 "default" { return T_KEYWORD_DEFAULT; }
 
 "is"     { return T_KEYWORD_IS; }
-"=="     { return T_KEYWORD_IS; }
 "not"    { return T_KEYWORD_NOT; }
+"like"   { return T_KEYWORD_LIKE; }
+
 "!"      { return T_KEYWORD_NOT; }
-"!="     { return T_KEYWORD_IS_NOT; }
+"=="     { return T_KEYWORD_DOUBLE_EQUAL; }
+"!="     { return T_KEYWORD_BANG_EQUAL; }
+"=~"     { return T_KEYWORD_EQUAL_TILDE; }
+"!~"     { return T_KEYWORD_BANG_TILDE; }
+
 "or"     { return T_KEYWORD_OR; }
 "||"     { return T_KEYWORD_OR; }
 "and"    { return T_KEYWORD_AND; }
@@ -137,6 +142,26 @@ include[ \t]+  { BEGIN(INCLUDE); }
 		yylval->string[yyleng-2] = '\0';
 	}
 	return T_QSTRING;
+}
+m?\/(\\\/|[^\/])*(\/i?|\n) { /* PCRE pattern */
+	if (yytext[yyleng - 1] == '\n') {
+		lexer_warning("unterminated regular expression");
+		/* recoverable error */
+		yyless(yyleng - 1);
+	} else {
+		yylval->string = strdup(yytext);
+	}
+	return T_REGEX;
+}
+m\|(\\\||[^\|])*(\|i?|\n) { /* PCRE pattern, m|...|, alternate delims */
+	if (yytext[yyleng - 1] == '\n') {
+		lexer_warning("unterminated regular expression");
+		/* recoverable error */
+		yyless(yyleng - 1);
+	} else {
+		yylval->string = strdup(yytext);
+	}
+	return T_REGEX;
 }
 . { spec_parser_error(yyget_extra(yyscanner), "unexpected character '%c'", yytext[0]); }
 

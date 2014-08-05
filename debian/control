@@ -10,7 +10,7 @@ Build-Depends: bison,
                libctap (>= 1.1.4),
                libctap-dev (>= 1.1.4),
                libfile-slurp-perl,
-               libpcre-dev,
+               libpcre3-dev,
                libreadline6-dev,
                libtest-deep-perl,
                libtest-simple-perl,
@@ -22,7 +22,7 @@ Homepage: http://clockwork.niftylogic.com/
 
 Package: clockwork-server
 Architecture: any
-Depends: libpcre,
+Depends: libpcre3,
          libreadline6,
          libzmq3,
          ruby,

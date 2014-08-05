@@ -12,3 +12,5 @@ lsb.distro.release=14.04
 lsb.distro.codename=trusty
 lsb.distro.description=Ubuntu 14.04 LTS
 lsb.arch=x86_64
+test.passwd=/etc/passwd
+test.pipes="a|b|c|d|e"

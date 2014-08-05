@@ -37,6 +37,14 @@ resources_ok "use host if4.test", <<'EOF', "regex conditionals";
   package 07:multi
 EOF
 
+resources_ok "use host if5.test", <<'EOF', "advanced regexes";
+  package 00:always-there
+  package 01:slash-d
+  package 02:path-check
+  package 03:alt-delim
+  package 04:pipes
+EOF
+
 resources_ok "use host regex.enforce", <<'EOF', "regex enforcement";
   package host-a
   package host-b

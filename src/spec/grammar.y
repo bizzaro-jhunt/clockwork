@@ -116,6 +116,8 @@ static struct stree* s_regex(struct manifest *m, const char *literal)
 
 	for (; *p; p++) {
 		if (esc) {
+			if (*p != delim)
+				*d++ = '\\';
 			*d++ = *p;
 			esc = 0;
 			continue;

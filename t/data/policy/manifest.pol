@@ -455,6 +455,35 @@ policy "if4" {
 }
 host "if4.test" { enforce "if4" }
 
+policy "if5" {
+	package "00:always-there" { }
+
+	if (sys.kernel.major =~ m/\d\.\d+$/) {
+		package "01:slash-d" { }
+	} else {
+		package "01:slash-d-FAIL" { }
+	}
+
+	if (test.passwd =~ m/\/etc\/passwd/) {
+		package "02:path-check" { }
+	} else {
+		package "02:path-check-FAIL" { }
+	}
+
+	if (test.passwd =~ m|/etc/passwd|) {
+		package "03:alt-delim" { }
+	} else {
+		package "03:alt-delim-FAIL" { }
+	}
+
+	if (test.pipes =~ m/a\|b/) {
+		package "04:pipes" { }
+	} else {
+		package "04:pipes-FAIL" { }
+	}
+}
+host "if5.test" { enforce "if5" }
+
 ####################################################
 ####################################################
 

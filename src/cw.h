@@ -27,6 +27,24 @@ void cw_arrfree(char **a);
 
 /*
 
+    ########     ###     ######  ########
+    ##     ##   ## ##   ##    ## ##        ##   ##
+    ##     ##  ##   ##  ##       ##         ## ##
+    ########  ##     ##  ######  ######   #########
+    ##     ## #########       ## ##         ## ##
+    ##     ## ##     ## ##    ## ##        ##   ##
+    ########  ##     ##  ######  ########
+
+ */
+
+int base16_encode(char *dst, size_t dlen, const void *src, size_t slen);
+int base16_decode(void *dst, size_t dlen, const char *src, size_t slen);
+
+char* base16_encodestr(const void *src, size_t len);
+char* base16_decodestr(const char *src, size_t len);
+
+/*
+
      ######  ##        #######   ######  ##    ##
     ##    ## ##       ##     ## ##    ## ##   ##
     ##       ##       ##     ## ##       ##  ##
@@ -292,9 +310,11 @@ struct cw_keyval {
 };
 
 int cw_cfg_set(cw_list_t *cfg, const char *key, const char *val);
+int cw_cfg_unset(cw_list_t *cfg, const char *key);
 char * cw_cfg_get(cw_list_t *cfg, const char *key);
 int cw_cfg_isset(cw_list_t *cfg, const char *key);
 int cw_cfg_read(cw_list_t *cfg, FILE *io);
+int cw_cfg_write(cw_list_t *cfg, FILE *io);
 int cw_cfg_uniq(cw_list_t *dest, cw_list_t *src);
 int cw_cfg_done(cw_list_t *cfg);
 
@@ -470,5 +490,79 @@ int   cw_cache_opt(cw_cache_t *cc, int op, void *value);
 void *cw_cache_get(cw_cache_t *cc, const char *id);
 void *cw_cache_set(cw_cache_t *cc, const char *id, void *data);
 void* cw_cache_unset(cw_cache_t *cc, const char *id);
+
+/*
+
+     ######  ##     ## ########  ##     ## ########
+    ##    ## ##     ## ##     ## ##     ## ##
+    ##       ##     ## ##     ## ##     ## ##
+    ##       ##     ## ########  ##     ## ######
+    ##       ##     ## ##   ##    ##   ##  ##
+    ##    ## ##     ## ##    ##    ## ##   ##
+     ######   #######  ##     ##    ###    ########
+
+ */
+
+typedef struct {
+	char   *ident;
+
+	int     pubkey;
+	uint8_t pubkey_bin[32];
+	uint8_t seckey_bin[32];
+
+	int     seckey;
+	char    pubkey_b16[65];
+	char    seckey_b16[65];
+} cw_cert_t;
+
+typedef struct {
+	int       verify;
+	cw_list_t certs;
+} cw_trustdb_t;
+
+cw_cert_t* cw_cert_new(void);
+cw_cert_t* cw_cert_generate(void);
+cw_cert_t* cw_cert_read(const char *path);
+cw_cert_t* cw_cert_readio(FILE *io);
+
+int cw_cert_write(cw_cert_t *key, const char *path, int full);
+int cw_cert_writeio(cw_cert_t *key, FILE *io, int full);
+
+void cw_cert_destroy(cw_cert_t *key);
+
+uint8_t *cw_cert_public(cw_cert_t *key);
+uint8_t *cw_cert_secret(cw_cert_t *key);
+char *cw_cert_public_s(cw_cert_t *key);
+char *cw_cert_secret_s(cw_cert_t *key);
+int cw_cert_rescan(cw_cert_t *key);
+int cw_cert_encode(cw_cert_t *key);
+
+cw_trustdb_t* cw_trustdb_new(void);
+cw_trustdb_t* cw_trustdb_read(const char *path);
+cw_trustdb_t* cw_trustdb_readio(FILE *io);
+
+int cw_trustdb_write(cw_trustdb_t *ca, const char *path);
+int cw_trustdb_writeio(cw_trustdb_t *ca, FILE *io);
+
+void cw_trustdb_destroy(cw_trustdb_t *ca);
+
+int cw_trustdb_trust(cw_trustdb_t *ca, cw_cert_t *key);
+int cw_trustdb_revoke(cw_trustdb_t *ca, cw_cert_t *key);
+int cw_trustdb_verify(cw_trustdb_t *ca, cw_cert_t *key);
+
+/*
+
+    ########    ###    ########
+         ##    ## ##   ##     ##
+        ##    ##   ##  ##     ##
+       ##    ##     ## ########
+      ##     ######### ##
+     ##      ##     ## ##
+    ######## ##     ## ##
+
+ */
+
+void *cw_zap_startup(void *zctx, cw_trustdb_t *tdb);
+void cw_zap_shutdown(void *handle);
 
 #endif

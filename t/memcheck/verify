@@ -8,9 +8,10 @@ if [[ ! -x $VG ]]; then
 	exit 77;
 fi
 
+SUPPS="t/tmp/data/vg/clockwork.supp"
 TEMPFILE=$(mktemp);
 trap "rm -f $TEMPFILE" INT TERM EXIT
-$VG --tool=memcheck --leak-check=full --show-leak-kinds=all --error-exitcode=$EFAIL 2>$TEMPFILE >/dev/null -- "$@"
+$VG --tool=memcheck --leak-check=full --show-leak-kinds=all --error-exitcode=$EFAIL --suppressions=$SUPPS 2>$TEMPFILE >/dev/null -- "$@"
 if [[ $? == $EFAIL ]]; then
 	echo "FAIL: $@"
 	cat >&2 $TEMPFILE

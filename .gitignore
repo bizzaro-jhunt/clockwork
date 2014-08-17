@@ -21,12 +21,17 @@ stamp-h?
 /pn
 /clockd
 /cogd
+/cwkey
+/cwtrust
 /fact
 /bdfa
 /TEST_cogd
 /TEST_clockd
 /TEST_ps
 /TEST_lock
+
+cwcert
+cwcert.pub
 
 config.h
 
@@ -52,11 +57,13 @@ t/tmp
 t/00-bits
 t/01-string
 t/02-pdu
+t/03-basex
 t/04-hash
 t/05-mem
 t/06-cache
 t/07-sha1
 t/08-list
+t/09-curve
 t/10-facts
 t/15-path
 t/20-stree

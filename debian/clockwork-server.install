@@ -8,3 +8,4 @@ sbin/cwpol
 usr/share/man/man1/clockd.1
 usr/share/man/man1/cwcc.1
 usr/share/man/man1/cwpol.1
+usr/share/man/man5/clockd.conf.5

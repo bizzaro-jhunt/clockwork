@@ -57,7 +57,7 @@ clients they should be given to.
 \fBcopydown\fR \- Copydown Source Directory
 .PP
 .RS 4
-Clients conneting to \fBclockd\fR start their configuration runs
+Clients connecting to \fBclockd\fR start their configuration runs
 by performing a \fBCOPYDOWN\fR, in which they copy static files
 (usually gatherer scripts) locally.
 .PP
@@ -69,30 +69,44 @@ Defaults to \fI/etc/clockwork/gather.d\fR.
 .RE
 
 .PP
-\fBlog_level\fR \- Logging threshold
+\fBsecurity.strict\fR - Security Mode
 .PP
 .RS 4
-Valid values are:
-.RS 4
-.IP \fBcritical\fR 1i
-Fatal issues that cause immediate termination.
-.IP \fBerror\fR
-Non-fatal issues that prevent proper system operation.
-.IP \fBwarning\fR
-Minor problems that do not hinder system operation.
-.IP \fBnotice\fR
-Informational messages that assist in system diagnostics.
-.IP \fBinfo\fR
-More in-depth informational messages, for troublsehooting.
-.IP \fBdebug\fR
-Messages for chasing down bugs.
+When clients connect, \fBclockd\fR will always check that they have a
+secured channel (thus validating their public/private keypair).  For
+production sites, it is also a good idea to check that the client has been
+pre-authenticated, by checking against a list of trusted public key
+fingerprints, the so-called \fItrust database\fR, or \fItrustdb\fR.
+.PP
+Setting \fBsecurity.strict\fR to \fIyes\fR (the default) engages this
+behavior.
+.PP
+Environments (usually not mission-critical, like testbeds and experimental
+labs) can bypass this extra security by setting security.strict to \fIno\fR.
+This is \fBnot recommended\fR for production deployments!
 .RE
+
 .PP
-Each level includes all "more important" levels.  'warning'
-will log 'critical' and 'error' messages.  'notice' is everything
-but debugging messages, etc.
+\fBsecurity.trusted\fR - Trust Database
 .PP
-A good starting point is 'warning'; default is 'error'.
+.RS 4
+Under strict mode, the trust database is consulted to ensure that remote
+clients are trusted to receive policy and file data, which could contain
+sensitive and/or privileged information.
+.PP
+The trust database can be managed by hand, or by the \fBcwtrust\fR(1) tool.
+.PP
+Defaults to \fI/etc/clockwork/certs/trusted\fR.
+.RE
+
+.PP
+\fBsecurity.cert\fR \- Master Certificate
+.PP
+.RS 4
+This certificate is used to identify this \fBclockd\fR instance to
+connecting clients.  It must contain both the public and private keys.
+.PP
+Defaults to \fI/etc/clockwork/certs/clockd\fR.
 .RE
 
 .PP
@@ -152,8 +166,27 @@ Defaults to \fIdaemon\fR.
 \fBsyslog.level\fR \- Log level
 .PP
 .RS 4
+Valid values are:
+.RS 4
+.IP \fBcritical\fR 1i
+Fatal issues that cause immediate termination.
+.IP \fBerror\fR
+Non-fatal issues that prevent proper system operation.
+.IP \fBwarning\fR
+Minor problems that do not hinder system operation.
+.IP \fBnotice\fR
+Informational messages that assist in system diagnostics.
+.IP \fBinfo\fR
+More in-depth informational messages, for troubleshooting.
+.IP \fBdebug\fR
+Messages for chasing down bugs.
+.RE
 .PP
-Defaults to \fIerror\fR.
+Each level includes all "more important" levels.  \fBwarning\fR
+will log \fBcritical\fR and \fBerror\fR messages.  \fBnotice\fR is
+everything but debugging messages, etc.
+.PP
+A good starting point is \fIwarning\fR; default is \fIerror\fR.
 .RE
 
 .SH
@@ -165,6 +198,11 @@ Here is the default configuration, made explicit:
     listen              *:2314
     pidfile             /var/run/clockd.pid
     manifest            /etc/clockwork/manifest.pol
+    copydown            /etc/clockwork/gather.d
+
+    security.strict     yes
+    security.trusted    /etc/clockwork/certs/trusted
+    security.cert       /etc/clockwork/certs/clockd
 
     ccache.connections  2048
     ccache.expiration   600

@@ -155,6 +155,10 @@ struct __server_t {
 	ccache_t *ccache;
 	struct manifest  *manifest;
 	char             *copydown;
+
+	cw_cert_t    *cert;
+	cw_trustdb_t *tdb;
+	void         *zap;
 };
 
 static int s_sha1(client_t *fsm)
@@ -593,6 +597,9 @@ static inline server_t *s_server_new(int argc, char **argv)
 	cw_cfg_set(&config, "syslog.ident",        "clockd");
 	cw_cfg_set(&config, "syslog.facility",     "daemon");
 	cw_cfg_set(&config, "syslog.level",        "error");
+	cw_cfg_set(&config, "security.strict",     "yes");
+	cw_cfg_set(&config, "security.trusted",    "/etc/clockwork/certs/trusted");
+	cw_cfg_set(&config, "security.cert",       "/etc/clockwork/certs/clockd");
 	cw_cfg_set(&config, "pidfile",             "/var/run/clockd.pid");
 
 	cw_log_open(cw_cfg_get(&config, "syslog.ident"), "stderr");
@@ -606,20 +613,23 @@ static inline server_t *s_server_new(int argc, char **argv)
 	cw_log(LOG_DEBUG, "  syslog.ident        %s", cw_cfg_get(&config, "syslog.ident"));
 	cw_log(LOG_DEBUG, "  syslog.facility     %s", cw_cfg_get(&config, "syslog.facility"));
 	cw_log(LOG_DEBUG, "  syslog.level        %s", cw_cfg_get(&config, "syslog.level"));
+	cw_log(LOG_DEBUG, "  security.strict     %s", cw_cfg_get(&config, "security.strict"));
+	cw_log(LOG_DEBUG, "  security.trusted    %s", cw_cfg_get(&config, "security.trusted"));
+	cw_log(LOG_DEBUG, "  security.cert       %s", cw_cfg_get(&config, "security.cert"));
 	cw_log(LOG_DEBUG, "  pidfile             %s", cw_cfg_get(&config, "pidfile"));
 
 
 	cw_log(LOG_DEBUG, "processing command-line options");
-	const char *short_opts = "?hvVqFdSt" "c:";
+	const char *short_opts = "?hvqVFSt" "c:";
 	struct option long_opts[] = {
 		{ "help",        no_argument,       NULL, 'h' },
 		{ "verbose",     no_argument,       NULL, 'v' },
 		{ "quiet",       no_argument,       NULL, 'q' },
 		{ "version",     no_argument,       NULL, 'V' },
-		{ "config",      required_argument, NULL, 'c' },
 		{ "foreground",  no_argument,       NULL, 'F' },
 		{ "show-config", no_argument,       NULL, 'S' },
 		{ "test",        no_argument,       NULL, 't' },
+		{ "config",      required_argument, NULL, 'c' },
 		{ 0, 0, 0, 0 },
 	};
 	int verbose = -1;
@@ -632,7 +642,7 @@ static inline server_t *s_server_new(int argc, char **argv)
 			cw_log(LOG_DEBUG, "handling -h/-?/--help");
 			printf("clockd, part of clockwork v%s runtime %i protocol %i\n",
 				PACKAGE_VERSION, PENDULUM_VERSION, PROTOCOL_VERSION);
-			printf("Usage: clockd [-?hvVqFdSt] [-c filename]\n\n");
+			printf("Usage: clockd [-?hvqVFSt] [-c filename]\n\n");
 			printf("Options:\n");
 			printf("  -?, -h               show this help screen\n");
 			printf("  -V, --version        show version information and exit\n");
@@ -737,7 +747,6 @@ static inline server_t *s_server_new(int argc, char **argv)
 	            cw_cfg_get(&config, "syslog.facility"));
 	cw_log_level(level, NULL);
 
-
 	cw_log(LOG_INFO, "clockd starting up");
 
 
@@ -750,10 +759,36 @@ static inline server_t *s_server_new(int argc, char **argv)
 		printf("syslog.ident        %s\n", cw_cfg_get(&config, "syslog.ident"));
 		printf("syslog.facility     %s\n", cw_cfg_get(&config, "syslog.facility"));
 		printf("syslog.level        %s\n", cw_cfg_get(&config, "syslog.level"));
+		printf("security.strict     %s\n", cw_cfg_get(&config, "security.strict"));
+		printf("security.trusted    %s\n", cw_cfg_get(&config, "security.trusted"));
+		printf("security.cert       %s\n", cw_cfg_get(&config, "security.cert"));
 		printf("pidfile             %s\n", cw_cfg_get(&config, "pidfile"));
 		exit(0);
 	}
 
+
+	s->cert = cw_cert_read(cw_cfg_get(&config, "security.cert"));
+	if (!s->cert) {
+		cw_log(LOG_ERR, "%s: %s", cw_cfg_get(&config, "security.cert"),
+			errno == EINVAL ? "Invalid Clockwork certificate" : strerror(errno));
+		exit(1);
+	}
+	if (!s->cert->seckey) {
+		cw_log(LOG_ERR, "%s: No secret key found in certificate",
+			cw_cfg_get(&config, "security.cert"));
+		exit(1);
+	}
+	if (!s->cert->ident) {
+		cw_log(LOG_ERR, "%s: No identity found in certificate",
+			cw_cfg_get(&config, "security.cert"));
+		exit(1);
+	}
+
+	s->tdb = cw_trustdb_read(cw_cfg_get(&config, "security.trusted"));
+	if (!s->tdb) s->tdb = cw_trustdb_new();
+	s->tdb->verify = strcmp(cw_cfg_get(&config, "security.strict"), "no");
+	cw_log(LOG_DEBUG, "%s certificate verification",
+		s->tdb->verify ? "Enabling" : "Disabling");
 
 	s->copydown = strdup(cw_cfg_get(&config, "copydown"));
 	s->manifest = parse_file(cw_cfg_get(&config, "manifest"));
@@ -775,21 +810,39 @@ static inline server_t *s_server_new(int argc, char **argv)
 	s->ccache = s_ccache_init(atoi(cw_cfg_get(&config, "ccache.connections")),
 	                          atoi(cw_cfg_get(&config, "ccache.expiration")));
 
+
+	s->zmq = zmq_ctx_new();
+	s->zap = cw_zap_startup(s->zmq, s->tdb);
+
 	t = cw_string("tcp://%s", cw_cfg_get(&config, "listen"));
 	cw_log(LOG_DEBUG, "binding to %s", t);
-	s->zmq = zmq_ctx_new();
 	s->listener = zmq_socket(s->zmq, ZMQ_ROUTER);
-	zmq_bind(s->listener, t);
+
+	int rc, optval = 1;
+	cw_log(LOG_DEBUG, "Setting ZMQ_CURVE_SERVER to %i", optval);
+	rc = zmq_setsockopt(s->listener, ZMQ_CURVE_SERVER, &optval, sizeof(optval));
+	assert(rc == 0);
+	cw_log(LOG_DEBUG, "Setting ZMQ_CURVE_SECRETKEY (sec) to %s", s->cert->seckey_b16);
+	rc = zmq_setsockopt(s->listener, ZMQ_CURVE_SECRETKEY, cw_cert_secret(s->cert), 32);
+	assert(rc == 0);
+
+	rc = zmq_bind(s->listener, t);
+	assert(rc == 0);
 	free(t);
 
 	cw_cfg_done(&config);
+
+	cw_log(LOG_INFO, "clockd running");
 	return s;
 }
 
 static inline void s_server_destroy(server_t *s)
 {
+	cw_zap_shutdown(s->zap);
 	s_ccache_destroy(s->ccache);
 	manifest_free(s->manifest);
+	cw_cert_destroy(s->cert);
+	cw_trustdb_destroy(s->tdb);
 	free(s->copydown);
 	free(s);
 }
@@ -801,12 +854,18 @@ int main(int argc, char **argv)
 	alarm(60);
 #endif
 	server_t *s = s_server_new(argc, argv);
+#ifdef UNIT_TESTS
+	if (getenv("TEST_CLOCKD_BAIL_EARLY"))
+		exit(0);
+#endif
 	cw_sig_catch();
 	while (!cw_sig_interrupt()) {
+		cw_log(LOG_DEBUG, "awaiting inbound connection");
 		cw_pdu_t *pdu, *reply;
 		pdu = cw_pdu_recv(s->listener);
 		if (!pdu) continue;
 
+		cw_log(LOG_DEBUG, "received inbound connection, checking ccache for client details");
 		s_ccache_purge(s->ccache, 0);
 		client_t *c = s_ccache_find(pdu->src, s->ccache);
 		if (!c) {
@@ -817,6 +876,7 @@ int main(int argc, char **argv)
 			cw_pdu_destroy(reply);
 			continue;
 		}
+		cw_log(LOG_DEBUG, "inbound connection for client %p", c);
 
 		c->server = s;
 		c->event = s_pdu_event(pdu);

@@ -12,6 +12,8 @@ Build-Depends: bison,
                libfile-slurp-perl,
                libpcre3-dev,
                libreadline6-dev,
+               libsodium-dev,
+               libsodium13,
                libtest-deep-perl,
                libtest-simple-perl,
                libtext-diff-perl,
@@ -20,10 +22,31 @@ Build-Depends: bison,
 Standards-Version: 3.9.3
 Homepage: http://clockwork.niftylogic.com/
 
+Package: clockwork-common
+Architecture: any
+Depends: libaugeas0 (>= 0.10.0),
+         libpcre3,
+         libsodium13,
+         libzmq3,
+         ${misc:Depends},
+         ${shlibs:Depends}
+Description: Secure Configuration Management - Server
+ Clockwork is a safe, secure and flexible system for managing system
+ configurations through enforcement of targeted policies, expressed
+ in a system-independent, declarative format.
+ .
+ With Clockwork, managing infrastructures of all scales is easier,
+ more effective and less difficult.
+ .
+ This package provides utilities common to all clockwork packages.
+
 Package: clockwork-server
 Architecture: any
-Depends: libpcre3,
+Depends: clockwork-common (= ${binary:Version}),
+         libaugeas0 (>= 0.10.0),
+         libpcre3,
          libreadline6,
+         libsodium13,
          libzmq3,
          ruby,
          ${misc:Depends},
@@ -55,7 +78,12 @@ Description: Debugging Symbols for Clockwork Server
 
 Package: clockwork-agent
 Architecture: any
-Depends: augeas-lenses, diffutils, libzmq3, ${misc:Depends}, ${shlibs:Depends}
+Depends: augeas-lenses,
+         clockwork-common (= ${binary:Version}),
+         diffutils,
+         libzmq3,
+         ${misc:Depends},
+         ${shlibs:Depends}
 Description: Secure Configuration Management - Agent
  Clockwork is a safe, secure and flexible system for managing system
  configurations through enforcement of targeted policies, expressed

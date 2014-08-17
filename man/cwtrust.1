@@ -1,0 +1,96 @@
+\"  Clockwork is free software: you can redistribute it and/or modify
+\"  it under the terms of the GNU General Public License as published by
+\"  the Free Software Foundation, either version 3 of the License, or
+\"  (at your option) any later version.
+\"
+\"  Clockwork is distributed in the hope that it will be useful,
+\"  but WITHOUT ANY WARRANTY; without even the implied warranty of
+\"  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+\"  GNU General Public License for more details.
+\"
+\"  You should have received a copy of the GNU General Public License
+\"  along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
+\"
+
+.TH cwtrust "1" "Aug 2014" "Clockwork" "Clockwork Utilities"
+.SH NAME
+.PP
+cwtrust \- Clockwork Trust Database Utility
+
+.SH SYNOPSIS
+.PP
+\fBcwtrust\fR [OPTIONS] --trust cert.pub other-cert.pub
+.PP
+\fBcwtrust\fR [OPTIONS] --revoke bad.pub
+
+.SH DESCRIPTION
+.PP
+\fBClockwork\fR is a configuration management system designed to
+securely and correctly enforce configuration policies on lots of
+hosts.
+.PP
+It can ensure that files have the right attributes (owner,
+group, permissions, etc.) and content.  It can maintain a specific
+set of installed packages, and even make sure that system user
+accounts exist.
+.PP
+\fBcwtrust\fR is a utility for managing a database of trusted Clockwork
+certificates, which is called a \fItrust database\fR, or just \fItrustdb\fR
+for short.  It allows site administrators to trust or revoke certificates.
+.PP
+When \fBclockd\fR is running in \fRsecurity.strict\fB mode, it will consult
+a trust database to determine if client \fBcogd\fR instances are trusted
+enough to receive potentially sensitive policy and configuration files.
+.PP
+
+.SH OPTIONS
+.PP
+\fB\-d\fR, \fB\-\-database\fR \fI/path/to/trustdb\fR
+.RS 8
+Specify the path to the trust database to update or create.  If the file
+does not exist, it will be created for you.
+.PP
+Defaults to \fI/etc/clockwork/certs/trusted\fR.
+.RE
+
+.PP
+\fB\-t\fR, \fB\-\-trust\fR
+.RS 8
+Add certificates given on the command line to the trust database.
+This is the default mode of \fBcwtrust\fR.
+.RE
+
+.PP
+\fB\-r\fR, \fB\-\-revoke\fR
+.RS 8
+Remove the certificates given on the command line from the trust database,
+if they are currently trusted.
+.RE
+
+.SH TRUSTDB FORMAT
+.PP
+A trustdb is really just a list of the trusted certificates, each accounted
+for by public key (in hexadecimal encoding) and the identity of the
+certificate (for human consumption).  The database files are simple text
+files that can be viewed and edited manually.
+.PP
+Here is an example database file:
+.RS 4
+.nf
+fb5cf56fabc8f9e85294f1af3e968bd02d6ebae801a76331124b94a307f57875 host1.example.com
+417b7f7946b6c65db58e86c5a66cbc698dbd1b15492e29372f927cf91620947e other-host
+.fi
+.RE
+.PP
+Empty lines will be ignored, as will any line starting with the comment
+character, \fB'#'\fR.  Keep in mind, however, that \fBcwtrust\fR will strip
+out all of the comments and reformat the trustdb.
+.PP
+
+.SH SEE ALSO
+.PP
+\fBclockwork\fR(7), \fBclockd\fR(1), \fBcwkey\fR(1) and \fBclockd.conf\fR(5)
+
+.SH AUTHOR
+.PP
+Clockwork was designed and written by James Hunt.

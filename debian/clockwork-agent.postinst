@@ -7,12 +7,37 @@
 # created: 2014-07-07
 #
 
+CWKEY=/bin/cwkey
+CERTS=/etc/clockwork/certs
 LOCKDIR=/var/lock/cogd
+
+create_dir() {
+	dir="$1"
+	name="$2"
+
+	if [ ! -d $dir ]; then
+		echo "Creating $name $dir"
+		mkdir -p $dir
+	fi
+}
+
+create_key() {
+	file="$1"
+	name="$2"
+
+	if ! test -f "$file" && ! test -f "$file.pub"; then
+		echo "Creating $name $file"
+		$CWKEY -f $file
+	fi
+}
 
 case "$1" in
 configure)
-	if [ ! -d "$LOCKDIR" ]; then
-		mkdir -p $LOCKDIR
+	create_dir $LOCKDIR '' '' "lock directory"
+
+	if [ -x $CWKEY ]; then
+		create_dir $CERTS      "certificate store"
+		create_key $CERTS/cogd "cogd certificate"
 	fi
 
 	if [ -z "$COGD" ]; then

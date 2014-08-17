@@ -1,0 +1,14 @@
+{
+   <libzmq3_socketcall_sendto>
+   Memcheck:Param
+   socketcall.sendto(msg)
+   fun:send
+   ...
+}
+{
+   <libzmq3_socketcall_sendto>
+   Memcheck:Param
+   socketcall.send(msg)
+   fun:send
+   ...
+}

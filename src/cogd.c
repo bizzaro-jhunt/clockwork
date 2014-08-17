@@ -31,6 +31,7 @@
 #include <netdb.h>
 #include <getopt.h>
 #include <fcntl.h>
+#include <pthread.h>
 
 #include "policy.h"
 
@@ -59,10 +60,17 @@ typedef struct {
 	int   trace;
 	int   daemonize;
 
-	char *masters[8];
-	int   nmasters;
-	int   current_master;
-	int   timeout;
+	struct {
+		char *endpoint;
+		char *cert_file;
+		cw_cert_t *cert;
+	} masters[8];
+	int nmasters;
+	int current_master;
+	int timeout;
+
+	cw_cert_t *cert;
+	void *zap;
 
 	struct {
 		int64_t next_run;
@@ -142,17 +150,30 @@ static void *s_connect(client_t *c)
 	void *client = zmq_socket(c->zmq, ZMQ_DEALER);
 	if (!client) return NULL;
 
+	int rc;
+	cw_log(LOG_DEBUG, "Setting ZMQ_CURVE_SECRETKEY (sec) to %s", c->cert->seckey_b16);
+	rc = zmq_setsockopt(client, ZMQ_CURVE_SECRETKEY, cw_cert_secret(c->cert), 32);
+	assert(rc == 0);
+	cw_log(LOG_DEBUG, "Setting ZMQ_CURVE_PUBLICKEY (pub) to %s", c->cert->pubkey_b16);
+	rc = zmq_setsockopt(client, ZMQ_CURVE_PUBLICKEY, cw_cert_public(c->cert), 32);
+	assert(rc == 0);
+
 	cw_pdu_t *ping = cw_pdu_make(NULL, 2, "PING", PROTOCOL_VERSION_STRING);
 	cw_pdu_t *pong;
 
 	char endpoint[256] = "tcp://";
 	int i;
 	for (i = (c->current_master + 1) % 8; ; i = (i + 1) % 8) {
-		if (!c->masters[i]) continue;
+		if (!c->masters[i].endpoint) continue;
 
-		strncat(endpoint+6, c->masters[i], 249);
-		cw_log(LOG_DEBUG, "Attempting to connect to %s (%s)", endpoint, c->masters[i]);
-		int rc = zmq_connect(client, endpoint);
+		cw_log(LOG_DEBUG, "Setting ZMQ_CURVE_SERVERKEY (pub) to %s",
+				c->masters[i].cert->pubkey_b16);
+		rc = zmq_setsockopt(client, ZMQ_CURVE_SERVERKEY, cw_cert_public(c->masters[i].cert), 32);
+		assert(rc == 0);
+
+		strncat(endpoint+6, c->masters[i].endpoint, 249);
+		cw_log(LOG_DEBUG, "Attempting to connect to %s (%s)", endpoint, c->masters[i].endpoint);
+		rc = zmq_connect(client, endpoint);
 		assert(rc == 0);
 
 		/* send the PING */
@@ -160,7 +181,7 @@ static void *s_connect(client_t *c)
 		if (pong) {
 			if (strcmp(pong->type, "PONG") != 0) {
 				cw_log(LOG_ERR, "Unexpected %s response from master %i (%s) - expected PONG",
-					pong->type, i+1, c->masters[i]);
+					pong->type, i+1, c->masters[i].endpoint);
 
 			} else {
 				char *vframe = cw_pdu_text(pong, 1);
@@ -176,10 +197,13 @@ static void *s_connect(client_t *c)
 		} else {
 			if (errno == 0)
 				cw_log(LOG_ERR, "No response from master %i (%s)",
-					i+1, c->masters[i]);
+					i+1, c->masters[i].endpoint);
+			else if (errno == EAGAIN)
+				cw_log(LOG_ERR, "No response from master %i (%s): possible certificate mismatch",
+					i+1, c->masters[i].endpoint);
 			else
 				cw_log(LOG_ERR, "Unexpected error talking to master %i (%s): %s",
-					i+1, c->masters[i], zmq_strerror(errno));
+					i+1, c->masters[i].endpoint, zmq_strerror(errno));
 		}
 
 		if (i == c->current_master) {
@@ -569,6 +593,7 @@ static inline client_t* s_client_new(int argc, char **argv)
 	cw_cfg_set(&config, "syslog.ident",    "cogd");
 	cw_cfg_set(&config, "syslog.facility", "daemon");
 	cw_cfg_set(&config, "syslog.level",    "error");
+	cw_cfg_set(&config, "security.cert",   "/etc/clockwork/certs/cogd");
 	cw_cfg_set(&config, "pidfile",         "/var/run/cogd.pid");
 	cw_cfg_set(&config, "lockdir",         "/var/lock/cogd");
 	cw_cfg_set(&config, "difftool",        "/usr/bin/diff -u");
@@ -584,6 +609,7 @@ static inline client_t* s_client_new(int argc, char **argv)
 	cw_log(LOG_DEBUG, "  syslog.ident    %s", cw_cfg_get(&config, "syslog.ident"));
 	cw_log(LOG_DEBUG, "  syslog.facility %s", cw_cfg_get(&config, "syslog.facility"));
 	cw_log(LOG_DEBUG, "  syslog.level    %s", cw_cfg_get(&config, "syslog.level"));
+	cw_log(LOG_DEBUG, "  security.cert   %s", cw_cfg_get(&config, "security.cert"));
 	cw_log(LOG_DEBUG, "  pidfile         %s", cw_cfg_get(&config, "pidfile"));
 	cw_log(LOG_DEBUG, "  lockdir         %s", cw_cfg_get(&config, "lockdir"));
 	cw_log(LOG_DEBUG, "  difftool        %s", cw_cfg_get(&config, "difftool"));
@@ -642,22 +668,33 @@ static inline client_t* s_client_new(int argc, char **argv)
 
 
 	cw_log(LOG_DEBUG, "parsing master.* definitions into endpoint records");
-	int n; char key[9] = "master.1";
+	int n; char key[9] = "master.1", cert[7] = "cert.1";
 	c->nmasters = 0;
 	memset(c->masters, 0, sizeof(c->masters));
-	for (n = 0; n < 8; n++, key[7]++) {
+	for (n = 0; n < 8; n++, key[7]++, cert[5]++) {
 		cw_log(LOG_DEBUG, "searching for %s", key);
 		s = cw_cfg_get(&config, key);
 		if (!s) break;
 		cw_log(LOG_DEBUG, "found a master: %s", s);
-		c->masters[c->nmasters++] = strdup(s);
+		c->masters[n].endpoint = strdup(s);
+		c->nmasters++;
+
+		cw_log(LOG_DEBUG, "searching for %s", cert);
+		s = cw_cfg_get(&config, cert);
+		if (!s) break;
+		cw_log(LOG_DEBUG, "found certificate: %s", s);
+		c->masters[n].cert_file = strdup(s);
 	}
 
 	if (c->mode == MODE_DUMP) {
 		printf("listen          %s\n", cw_cfg_get(&config, "listen"));
 		int i;
-		for (i = 0; i < c->nmasters; i++)
-			printf("master.%i        %s\n", i+1, c->masters[i]);
+		for (i = 0; i < c->nmasters; i++) {
+			printf("master.%i        %s\n", i+1, c->masters[i].endpoint);
+			if (c->masters[i].cert_file) {
+				printf("cert.%i          %s\n", i+1, c->masters[i].cert_file);
+			}
+		}
 		printf("timeout         %s\n", cw_cfg_get(&config, "timeout"));
 		printf("gatherers       %s\n", cw_cfg_get(&config, "gatherers"));
 		printf("copydown        %s\n", cw_cfg_get(&config, "copydown"));
@@ -665,6 +702,7 @@ static inline client_t* s_client_new(int argc, char **argv)
 		printf("syslog.ident    %s\n", cw_cfg_get(&config, "syslog.ident"));
 		printf("syslog.facility %s\n", cw_cfg_get(&config, "syslog.facility"));
 		printf("syslog.level    %s\n", cw_cfg_get(&config, "syslog.level"));
+		printf("security.cert   %s\n", cw_cfg_get(&config, "security.cert"));
 		printf("pidfile         %s\n", cw_cfg_get(&config, "pidfile"));
 		printf("lockdir         %s\n", cw_cfg_get(&config, "lockdir"));
 		printf("difftool        %s\n", cw_cfg_get(&config, "difftool"));
@@ -677,12 +715,47 @@ static inline client_t* s_client_new(int argc, char **argv)
 		exit(2);
 	}
 
+	int i;
+	for (i = 0; i < c->nmasters; i++) {
+		if (c->masters[i].cert_file) {
+			cw_log(LOG_DEBUG, "Reading master.%i certificate from %s",
+				i+1, c->masters[i].cert_file);
+			if ((c->masters[i].cert = cw_cert_read(c->masters[i].cert_file)) != NULL)
+				continue;
+			cw_log(LOG_ERR, "cert.%i %s: %s", i+1, c->masters[i].cert_file,
+				errno == EINVAL ? "Invalid Clockwork certificate" : strerror(errno));
+			exit(2);
+		} else {
+			cw_log(LOG_ERR, "master.%i (%s) has no matching certificate (cert.%i)",
+				i+1, c->masters[i].endpoint, i+1);
+			exit(2);
+		}
+	}
+
 #ifndef UNIT_TESTS
 	if (getuid() != 0 || geteuid() != 0) {
 		fprintf(stderr, "%s must be run as root!\n", argv[0]);
 		exit(9);
 	}
 #endif
+
+	s = cw_cfg_get(&config, "security.cert");
+	cw_log(LOG_DEBUG, "reading public/private key from certificate file %s", s);
+	c->cert = cw_cert_read(s);
+	if (!c->cert) {
+		cw_log(LOG_ERR, "%s: %s", s,
+			errno == EINVAL ? "Invalid Clockwork certificate" : strerror(errno));
+		exit(1);
+	}
+	if (!c->cert->seckey) {
+		cw_log(LOG_ERR, "%s: No secret key found in certificate", s);
+		exit(1);
+	}
+	if (!c->cert->ident) {
+		cw_log(LOG_ERR, "%s: No identity found in certificate", s);
+		exit(1);
+	}
+
 
 	cw_log(LOG_INFO, "cogd starting up");
 	c->schedule.next_run = cw_time_ms();
@@ -710,6 +783,8 @@ static inline client_t* s_client_new(int argc, char **argv)
 
 
 	c->zmq = zmq_ctx_new();
+	c->zap = cw_zap_startup(c->zmq, NULL);
+
 	if (c->mode == MODE_ONCE || c->mode == MODE_CODE) {
 		cw_log(LOG_DEBUG, "Running under -X/--code or -1/--once; skipping bind");
 	} else {
@@ -737,7 +812,15 @@ static inline client_t* s_client_new(int argc, char **argv)
 static void s_client_free(client_t *c)
 {
 	assert(c);
-	for (; c->nmasters >= 0; free(c->masters[c->nmasters--]));
+	int i;
+	cw_zap_shutdown(c->zap);
+	cw_cert_destroy(c->cert);
+	for (i = 0; i < c->nmasters; i++) {
+		free(c->masters[i].endpoint);
+		free(c->masters[i].cert_file);
+		cw_cert_destroy(c->masters[i].cert);
+	}
+
 	free(c->gatherers);
 	free(c->copydown);
 	free(c->difftool);

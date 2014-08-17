@@ -64,6 +64,24 @@ At least one master server (\fBmaster.1\fR) must be specified, or
 .RE
 
 .PP
+\fBcert.\fIN\fR \- Master Server Certificates
+.PP
+.RS 4
+Each master server must be authenticated by providing the cogd
+clients with their public certificate (which contains only the
+public key).
+.RE
+
+.PP
+\fBsecurity.cert\fR \- Client Certificate
+.PP
+.RS 4
+Since all communication between \fBcogd\fR and \fBclockd\fR is encrypted,
+the client must have a public/private keypair, which is contained inside of
+its combined certificate.
+.RE
+
+.PP
 \fBtimeout\fR \- Timeout for Master Server communication
 .PP
 .RS 4
@@ -202,19 +220,28 @@ This is the default configuration, plus a single master server at
     listen *:2304
 
     master.1   10.0.0.5:2314
+    cert.1     /etc/clockwork/certs/master.1.pub
+
+    security.cert  /etc/clockwork/certs/cogd
+
     timeout    5
     interval   300
     gatherers  /etc/clockwork/gather.d/*
+    copydown   /etc/clockwork/gather.d
 
+    lockdir          /var/lock/cogd
     pidfile          /var/run/cogd.pid
 
     syslog.ident     cogd
     syslog.facility  daemon
     syslog.level     error
+
+    difftool  /usr/bin/diff -u
 .fi
 
 Here's a bare-bones configuration that can talk to three different
-master servers, in three different 10/8 subnets:
+master servers, in three different 10/8 subnets (certificates have
+been omitted for brevity):
 
 .nf
     master.1   10.100.0.5:2314  # Chicago, IL

@@ -1,0 +1,109 @@
+\"  Clockwork is free software: you can redistribute it and/or modify
+\"  it under the terms of the GNU General Public License as published by
+\"  the Free Software Foundation, either version 3 of the License, or
+\"  (at your option) any later version.
+\"
+\"  Clockwork is distributed in the hope that it will be useful,
+\"  but WITHOUT ANY WARRANTY; without even the implied warranty of
+\"  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+\"  GNU General Public License for more details.
+\"
+\"  You should have received a copy of the GNU General Public License
+\"  along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
+\"
+
+.TH cwkey "1" "Aug 2014" "Clockwork" "Clockwork Utilities"
+.SH NAME
+.PP
+cwkey \- Clockwork Certificate Generator
+
+.SH SYNOPSIS
+.PP
+\fBcwkey\fR [options]
+.PP
+\fBcwkey\fR -i host.identity -f ./certs/newcert
+
+.SH DESCRIPTION
+.PP
+\fBClockwork\fR is a configuration management system designed to
+securely and correctly enforce configuration policies on lots of
+hosts.
+.PP
+It can ensure that files have the right attributes (owner,
+group, permissions, etc.) and content.  It can maintain a specific
+set of installed packages, and even make sure that system user
+accounts exist.
+.PP
+\fBcwkey\fR is a utility for generating Clockwork certificates,
+which consist of a public / secret keypair and an identity.
+.PP
+
+.SH OPTIONS
+.PP
+\fB\-i\fR, \fB\-\-identity\fR \fIhost.identity.string\fR
+.RS 8
+Override the identity of the generated certificate.  By default, the
+fully-qualified domain name of the local host is used.  You can set this
+to any value you like; it is only used to help people keep track of what
+certificate belongs to whom.
+.RE
+
+.PP
+\fB\-f\fR, \fB\-\-file\fR \fI/path/to/output/cert\fR
+.RS 8
+Specify where the output certificate should be written.  A combined
+certificate (see \fBCERTIFICATE FORMATS\fR, later) will be written to the
+named file, and a public certificate will be written to \fIFILE\fR.pub.
+.PP
+Target files must not already exist; \fBcwkey\fR will refuse to overwrite
+existing certificates.  Created files will have proper permissions,
+\fB0600\fR for the combined certificate (which contains the secret key) and
+\fB0644\fR for the public certificate.
+.PP
+Defaults to \fI./cwcert\fR, which will create \fIcwcert\fR and
+\fIcwcert.pub\fR in the current directory.
+.RE
+
+.SH CERTIFICATE FORMATS
+.PP
+Clockwork certificates come in two formats, \fBcombined\fR and \fBpublic\fR.
+.PP
+\fBCombined\fR certificates contain the identity, and both keys (public, and
+private).  These should never be exposed, since the secret key is supposed
+to remain, well, secret.
+.PP
+Here's an example combined certificate:
+.PP
+.RS 4
+.nf
+id  example.com
+pub fb5cf56fabc8f9e85294f1af3e968bd02d6ebae801a76331124b94a307f57875
+sec 19a5ac2825251bb2d2011ecc3c9dffcaf7ab666cc0a3cddde43620e6dff57387
+.fi
+.RE
+.PP
+The \fBid\fR, \fBpub\fR and \fBsec\fR labels denote the certificate
+identity, public key (in hexadecimal encoding) and private key (also in
+hex).
+.PP
+A \fBpublic\fR certificate is just a combined certificate without the secret
+key:
+.PP
+.RS 4
+.nf
+id  example.com
+pub fb5cf56fabc8f9e85294f1af3e968bd02d6ebae801a76331124b94a307f57875
+.fi
+.RE
+.PP
+These can be shared with anyone, since the public key alone is not enough to
+break the encryption.
+
+.SH SEE ALSO
+.PP
+\fBclockwork\fR(7), \fBcwtrust\fR(1), \fBclockd.conf\fR(5) and
+\fBcogd.conf\fR(5)
+
+.SH AUTHOR
+.PP
+Clockwork was designed and written by James Hunt.

@@ -13,9 +13,10 @@ endif
 syn keyword   cogdTodo       contained TODO FIXME XXX
 syn match     cogdComment    "#.*" contains=cogdTodo
 
-syn keyword   cogdDirective  listen timeout gatherers copydown interval pidfile difftool
-syn match     cogdDirective  /master\.[1-8]/
+syn keyword   cogdDirective  listen timeout gatherers copydown interval pidfile difftool lockdir
+syn match     cogdDirective  /\(cert\|master\)\.[1-8]/
 syn match     cogdDirective  /syslog\.\(ident\|facility\|level\)/
+syn match     cogdDirective  /security\.cert/
 
 syn keyword   cogdLogLevel   emergency alert critical error warning notice info debug
 syn keyword   cogdLogFacil   local0 local1 local2 local3 local4 local5 local6 local7 daemon

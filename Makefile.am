@@ -25,7 +25,7 @@ AM_CFLAGS += @GCOV_CFLAGS@
 AM_LFLAGS = --header-file --yylineno
 AM_YFLAGS = -d
 
-LDADD = -lctap -lzmq
+LDADD = -lctap -lzmq -lsodium
 
 ############################################################
 
@@ -56,11 +56,13 @@ CTAP_TESTS  =
 CTAP_TESTS += t/00-bits
 CTAP_TESTS += t/01-string
 CTAP_TESTS += t/02-pdu
+CTAP_TESTS += t/03-basex
 CTAP_TESTS += t/04-hash
 CTAP_TESTS += t/05-mem
 CTAP_TESTS += t/06-cache
 CTAP_TESTS += t/07-sha1
 CTAP_TESTS += t/08-list
+CTAP_TESTS += t/09-curve
 CTAP_TESTS += t/10-facts
 CTAP_TESTS += t/15-path
 CTAP_TESTS += t/20-stree
@@ -106,6 +108,11 @@ PERL_TESTS += t/bdfa/01-basics.t
 PERL_TESTS += t/cw/01-ps.t
 PERL_TESTS += t/cw/02-lock.t
 
+PERL_TESTS += t/security/01-cogd-invalid.t
+PERL_TESTS += t/security/02-clockd-invalid.t
+PERL_TESTS += t/security/03-trust.t
+PERL_TESTS += t/security/04-trustdb.t
+
 SHELL_TESTS  =
 SHELL_TESTS += t/memcheck/00-pn-usage.t
 SHELL_TESTS += t/memcheck/01-pn-basics.t
@@ -118,6 +125,7 @@ SHELL_TESTS += t/memcheck/21-cwcc.t
 SHELL_TESTS += t/memcheck/22-units.t
 SHELL_TESTS += t/memcheck/31-cogd.t
 SHELL_TESTS += t/memcheck/32-clockd.t
+SHELL_TESTS += t/memcheck/33-cwtrust.t
 
 TESTS          = $(CTAP_TESTS) $(PERL_TESTS) $(SHELL_TESTS)
 BUILT_TESTS    = $(CTAP_TESTS)
@@ -161,11 +169,13 @@ TEST_lock_SOURCES        = t/test-lock.c   $(core_src)
 t_00_bits_SOURCES        = t/00-bits.c          $(test_source)
 t_01_string_SOURCES      = t/01-string.c        $(test_source)
 t_02_pdu_SOURCES         = t/02-pdu.c           $(test_source)
+t_03_basex_SOURCES       = t/03-basex.c         $(test_source)
 t_04_hash_SOURCES        = t/04-hash.c          $(test_source)
 t_05_mem_SOURCES         = t/05-mem.c           $(test_source)
 t_06_cache_SOURCES       = t/06-cache.c         $(test_source)
 t_07_sha1_SOURCES        = t/07-sha1.c          $(test_source)
 t_08_list_SOURCES        = t/08-list.c          $(test_source)
+t_09_curve_SOURCES       = t/09-curve.c         $(test_source)
 t_10_facts_SOURCES       = t/10-facts.c         $(test_source)
 t_15_path_SOURCES        = t/15-path.c          $(test_source)
 t_20_stree_SOURCES       = t/20-stree.c         $(test_source)
@@ -192,8 +202,10 @@ EXTRA_DIST      += help man
 EXTRA_DIST      += $(TEST_EXTRAS)
 
 dist_man_MANS    = man/clockwork.7
+dist_man_MANS   += man/cwkey.1
 dist_man_MANS   += man/cwpol.1
 dist_man_MANS   += man/cwtool.1
+dist_man_MANS   += man/cwtrust.1
 dist_man_MANS   += man/cwcc.1
 dist_man_MANS   += man/cogd.1   man/cogd.conf.5
 dist_man_MANS   += man/clockd.1 man/clockd.conf.5
@@ -224,18 +236,20 @@ parser_spec_src += src/spec/lexer.l src/spec/lexer_impl.h
 parser_spec_src += src/spec/grammar.y
 
 sbindir = "$(prefix)/sbin"
-sbin_PROGRAMS = cwpol cwcc clockd cogd
-cwpol_SOURCES   = src/cwpol.c  $(core_src) $(parser_spec_src)
-cwcc_SOURCES    = src/cwcc.c   $(core_src) $(parser_spec_src)
-clockd_SOURCES  = src/clockd.c $(core_src) $(parser_spec_src)
-cogd_SOURCES    = src/cogd.c   $(core_src) $(parser_spec_src)
+sbin_PROGRAMS = cwpol cwcc clockd cogd cwtrust
+cwpol_SOURCES   = src/cwpol.c   $(core_src) $(parser_spec_src)
+cwcc_SOURCES    = src/cwcc.c    $(core_src) $(parser_spec_src)
+clockd_SOURCES  = src/clockd.c  $(core_src) $(parser_spec_src)
+cogd_SOURCES    = src/cogd.c    $(core_src) $(parser_spec_src)
+cwtrust_SOURCES = src/cwtrust.c $(core_src)
 
 dist_bin_SCRIPTS = cwtool cw-template-erb
 
-bin_PROGRAMS = bdfa fact pn
-bdfa_SOURCES = src/bdfa.c src/cw.h src/cw.c
-fact_SOURCES = src/fact.c $(core_src)
-pn_SOURCES   = src/pn.c   $(core_src)
+bin_PROGRAMS  = bdfa fact pn cwkey
+bdfa_SOURCES  = src/bdfa.c src/cw.h src/cw.c
+fact_SOURCES  = src/fact.c  $(core_src)
+pn_SOURCES    = src/pn.c    $(core_src)
+cwkey_SOURCES = src/cwkey.c $(core_src)
 
 ############################################################
 

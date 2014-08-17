@@ -1,0 +1,2 @@
+policy "base" { }
+host fallback { enforce "base" }

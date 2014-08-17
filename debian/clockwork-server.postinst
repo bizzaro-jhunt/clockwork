@@ -3,9 +3,32 @@
 #
 # clockwork-server postinst
 #
-# author:  James Hunt <jhunt@synacor.com>
+# author:  James Hunt <james@niftylogic.com>
 # created: 2013-03-02
 #
+
+CWKEY=/bin/cwkey
+CERTS=/etc/clockwork/certs
+
+create_dir() {
+	dir="$1"
+	name="$2"
+
+	if [ ! -d $dir ]; then
+		echo "Creating $name $dir"
+		mkdir -p $dir
+	fi
+}
+
+create_key() {
+	file="$1"
+	name="$2"
+
+	if test ! -f "$file" && test ! -f "$file.pub"; then
+		echo "Creating $name $file"
+		$CWKEY -f $file
+	fi
+}
 
 case "$1" in
 configure)
@@ -17,6 +40,12 @@ configure)
 			/etc/init.d/clockd start || true
 		fi
 	fi
+
+	if [ -x $CWKEY ]; then
+		create_dir $CERTS        "certificate store"
+		create_key $CERTS/clockd "clockd certificate"
+	fi
+
 	;;
 *)
 	exit 0

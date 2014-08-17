@@ -13,30 +13,34 @@ endif
 syn keyword   clockdTodo       contained TODO FIXME XXX
 syn match     clockdComment    "#.*" contains=clockdTodo
 
-syn keyword   clockdDirective  listen timeout gatherers copydown interval pidfile
-syn keyword   clockdDirective  syslog.ident syslog.facility syslog.level
-syn keyword   clockdDirective  master.1 master.2 master.3 master.4
-syn keyword   clockdDirective  master.5 master.6 master.7 master.8
+syn keyword   clockdDirective  listen timeout gatherers copydown interval pidfile manifest
+syn match     clockdDirective  /syslog\.\(ident\|facility\|level\)/
+syn match     clockdDirective  /security\.\(strict\|cert\|trusted\)/
+syn match     clockdDirective  /ccache\.\(connections\|expiration\)/
 
+syn keyword   clockdYesNo      yes no
 syn keyword   clockdLogLevel   emergency alert critical error warning notice info debug
+syn keyword   clockdLogFacil   local0 local1 local2 local3 local4 local5 local6 local7 daemon
 
 syn region    clockdString     start=+L\="+ skip=+\\\\\|\\"\|\\$+ excludenl end=+"+
 syn match     clockdNumber     "[0-9][0-9]*"
-
-syn match     clockdInvalid    /\(\I\|\/\)\+/
+syn match     clockdIpAddr     /[0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+/
+syn match     clockdEndpoint   /\*:[0-9]\+/
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 hi def link   clockdComment    Comment
 hi def link   clockdTodo       Todo
 
-hi def link   clockdDirective  Type
-hi def link   clockdLogLevel   Identifier
+hi def link   clockdDirective  Keyword
+hi def link   clockdYesNo      Type
+hi def link   clockdLogLevel   Type
+hi def link   clockdLogFacil   Type
 
 hi def link   clockdString     String
 hi def link   clockdNumber     String
-
-hi def link   clockdInvalid    Error
+hi def link   clockdIpAddr     String
+hi def link   clockdEndpoint   String
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 

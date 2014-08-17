@@ -17,6 +17,8 @@
 #include <grp.h>
 #include <fts.h>
 #include <utime.h>
+#include <pthread.h>
+#include <sodium.h>
 
 /*
 
@@ -70,6 +72,151 @@ void cw_arrfree(char **a)
 	if (!a) { return; }
 	for (s = a; *s; free(*s++));
 	free(a);
+}
+
+/*
+
+    ########     ###     ######  ########
+    ##     ##   ## ##   ##    ## ##        ##   ##
+    ##     ##  ##   ##  ##       ##         ## ##
+    ########  ##     ##  ######  ######   #########
+    ##     ## #########       ## ##         ## ##
+    ##     ## ##     ## ##    ## ##        ##   ##
+    ########  ##     ##  ######  ########
+
+ */
+
+static char    BASE16_ENCODE[16] = { "0123456789abcdef" };
+static uint8_t BASE16_DECODE[256] = {
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, /* 000 (NUL) - 007 (BEL) */
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, /* 010 (BS)  - 017 (SI)  */
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, /* 020 (DLE) - 027 (ETB) */
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, /* 030 (CAN) - 037 (US)  */
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, /* 040 ( )   - 047 (')   */
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, /* 050 (()   - 057 (/)   */
+
+	0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, /* '0' .. '7' */
+	0x08, 0x09,                                     /* '8' .. '9' */
+
+	            0xff, 0xff, 0xff, 0xff, 0xff, 0xff, /* 072 (:)   - 077 (?)   */
+	0xff,                                           /* 100 (@)               */
+
+	      0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,       /* 'A' .. 'F' */
+
+	                                          0xff, /*           - 107 (G)   */
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, /* 110 (H)   - 117 (O)   */
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, /* 120 (P)   - 127 (W)   */
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, /* 130 (X)   - 137 (_)   */
+	0xff,                                           /* 140 (`)               */
+
+	      0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,       /* 'a' .. 'f' */
+	                                          0xff, /*           - 147 (g)   */
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, /* 150 (h)   - 157 (o)   */
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, /* 160 (p)   - 167 (w)   */
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, /* 170 (x)   - 177 (DEL) */
+
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, /* 200 - 207 */
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, /* 210 - 217 */
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, /* 220 - 227 */
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, /* 230 - 237 */
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, /* 240 - 247 */
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, /* 250 - 257 */
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, /* 260 - 267 */
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, /* 270 - 277 */
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, /* 300 - 307 */
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, /* 310 - 317 */
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, /* 320 - 327 */
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, /* 330 - 337 */
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, /* 340 - 347 */
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, /* 350 - 357 */
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, /* 360 - 367 */
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, /* 370 - 377 */
+};
+
+int base16_encode(char *dst, size_t dlen, const void *src, size_t slen)
+{
+	/* empty string encodes as itself (no bytes) */
+	if (slen == 0) return 0;
+
+	assert(dst);
+	assert(src);
+
+	errno = EINVAL;
+	if (dlen < slen * 2) return -1;
+
+	char *d = dst;
+	int i;
+	for (i = 0; i < slen; i++) {
+		*d++ = BASE16_ENCODE[((((uint8_t*)src)[i]) & 0xf0) >> 4];
+		*d++ = BASE16_ENCODE[((((uint8_t*)src)[i]) & 0x0f)];
+	}
+
+	return d - dst;
+}
+
+int base16_decode(void *dst, size_t dlen, const char *src, size_t slen)
+{
+	/* empty string decodes as itself (no bytes) */
+	if (slen == 0) return 0;
+
+	assert(dst);
+	assert(src);
+
+	errno = EINVAL;
+	assert(slen > 0);
+	if (dlen < slen / 2) return -1;
+
+	void *d = dst;
+	int i;
+	errno = EILSEQ;
+	for (i = 0; i < slen; i += 2) {
+		uint8_t hi, lo;
+		hi = BASE16_DECODE[(uint8_t)src[i  ]];
+		lo = BASE16_DECODE[(uint8_t)src[i+1]];
+		if (hi == 0xff || lo == 0xff) return -1;
+
+		*(uint8_t*)d++ = (hi << 4) + lo;
+	}
+
+	return d - dst;
+}
+
+char* base16_encodestr(const void *src, size_t len)
+{
+	assert(src);
+	errno = EINVAL;
+	if (len <= 0) return NULL;
+
+	size_t dlen = len * 2;
+	char *dst = cw_alloc(sizeof(char) * (dlen + 1));
+
+	int rc = base16_encode(dst, dlen, src, len);
+	if (rc < 0) {
+		free(dst);
+		return NULL;
+	}
+
+	dst[rc] = '\0';
+	return dst;
+}
+
+char* base16_decodestr(const char *src, size_t len)
+{
+	assert(src);
+	errno = EINVAL;
+	if (len <= 0) return NULL;
+
+	size_t dlen = len / 2;
+	char *dst = cw_alloc(sizeof(char) * (dlen + 1));
+
+	int rc = base16_decode(dst, dlen, src, len);
+	if (rc < 0) {
+		free(dst);
+		return NULL;
+	}
+
+	dst[rc] = '\0';
+	return dst;
 }
 
 /*
@@ -1081,6 +1228,20 @@ int cw_cfg_set(cw_list_t *cfg, const char *key, const char *val)
 	return 0;
 }
 
+int cw_cfg_unset(cw_list_t *cfg, const char *key)
+{
+	cw_keyval_t *kv, *tmp;
+	for_each_object_safe(kv, tmp, cfg, l) {
+		if (strcmp(kv->key, key) != 0)
+			continue;
+		cw_list_delete(&kv->l);
+		free(kv->key);
+		free(kv->val);
+		free(kv);
+	}
+	return 0;
+}
+
 char * cw_cfg_get(cw_list_t *cfg, const char *key)
 {
 	cw_keyval_t *kv;
@@ -1133,6 +1294,24 @@ int cw_cfg_read(cw_list_t *cfg, FILE *io)
 
 		cw_list_unshift(cfg, &kv->l);
 	}
+	return 0;
+}
+
+int cw_cfg_write(cw_list_t *cfg, FILE *io)
+{
+	int rc;
+
+	cw_list_t uniq;
+	rc = cw_list_init(&uniq);
+	assert(rc == 0);
+
+	rc = cw_cfg_uniq(&uniq, cfg);
+	assert(rc == 0);
+
+	cw_keyval_t *kv;
+	for_each_object(kv, &uniq, l)
+		fprintf(io, "%s %s\n", kv->key, kv->val);
+
 	return 0;
 }
 
@@ -2169,4 +2348,444 @@ void* cw_cache_unset(cw_cache_t *cc, const char *id)
 	ent->data = NULL;
 
 	return d;
+}
+
+/*
+
+     ######  ##     ## ########  ##     ## ########
+    ##    ## ##     ## ##     ## ##     ## ##
+    ##       ##     ## ##     ## ##     ## ##
+    ##       ##     ## ########  ##     ## ######
+    ##       ##     ## ##   ##    ##   ##  ##
+    ##    ## ##     ## ##    ##    ## ##   ##
+     ######   #######  ##     ##    ###    ########
+
+ */
+
+cw_cert_t* cw_cert_new(void)
+{
+	cw_cert_t *key = cw_alloc(sizeof(cw_cert_t));
+	return key;
+}
+
+cw_cert_t* cw_cert_generate(void)
+{
+	cw_cert_t *key = cw_cert_new();
+	assert(key);
+
+	int rc = crypto_box_keypair(key->pubkey_bin, key->seckey_bin);
+	assert(rc == 0);
+
+	rc = base16_encode(key->pubkey_b16, 64, key->pubkey_bin, 32);
+	assert(rc == 64);
+	key->pubkey = 1;
+
+	base16_encode(key->seckey_b16, 64, key->seckey_bin, 32);
+	assert(rc == 64);
+	key->seckey = 1;
+
+	return key;
+}
+
+cw_cert_t* cw_cert_read(const char *path)
+{
+	assert(path);
+
+	FILE *io = fopen(path, "r");
+	if (!io) return NULL;
+
+	cw_cert_t *key = cw_cert_readio(io);
+	fclose(io);
+	return key;
+}
+
+cw_cert_t* cw_cert_readio(FILE *io)
+{
+	assert(io);
+
+	/* format:
+	   -----------------------------------------------
+	   id  fqdn
+	   pub DECAFBAD...
+	   sec DEADBEEF...
+	   -----------------------------------------------
+	 */
+
+	cw_list_t cfg;
+	cw_list_init(&cfg);
+
+	int rc = cw_cfg_read(&cfg, io);
+	if (rc != 0) return NULL;
+
+	cw_cert_t *key = cw_cert_new();
+	assert(key);
+
+	if (cw_cfg_isset(&cfg, "id")) {
+		free(key->ident);
+		key->ident = strdup(cw_cfg_get(&cfg, "id"));
+	}
+
+	char *v;
+	if (cw_cfg_isset(&cfg, "pub")) {
+		v = cw_cfg_get(&cfg, "pub");
+		if (strlen(v) != 64) goto bail_out;
+
+		strncpy(key->pubkey_b16, v, 64);
+		key->pubkey = 1;
+	}
+
+	if (cw_cfg_isset(&cfg, "sec")) {
+		v = cw_cfg_get(&cfg, "sec");
+		if (strlen(v) != 64) goto bail_out;
+
+		strncpy(key->seckey_b16, v, 64);
+		key->seckey = 1;
+	}
+
+	if (!key->pubkey) goto bail_out;
+	if (cw_cert_rescan(key) != 0) goto bail_out;
+
+	cw_cfg_done(&cfg);
+	return key;
+
+bail_out:
+	errno = EINVAL;
+	cw_cfg_done(&cfg);
+	cw_cert_destroy(key);
+	return NULL;
+}
+
+int cw_cert_write(cw_cert_t *key, const char *path, int full)
+{
+	assert(key);
+	assert(path);
+
+	FILE *io = fopen(path, "w");
+	if (!io) return -1;
+
+	int rc = cw_cert_writeio(key, io, full);
+	fclose(io);
+	return rc;
+}
+
+int cw_cert_writeio(cw_cert_t *key, FILE *io, int full)
+{
+	assert(key);
+	assert(io);
+
+	if (key->ident)          fprintf(io, "id  %s\n", key->ident);
+	if (key->pubkey)         fprintf(io, "pub %s\n", key->pubkey_b16);
+	if (key->seckey && full) fprintf(io, "sec %s\n", key->seckey_b16);
+
+	return 0;
+}
+
+void cw_cert_destroy(cw_cert_t *key)
+{
+	if (!key) return;
+	free(key->ident);
+	free(key);
+}
+
+uint8_t *cw_cert_public(cw_cert_t *key)
+{
+	assert(key);
+	return key->pubkey_bin;
+}
+
+uint8_t *cw_cert_secret(cw_cert_t *key)
+{
+	assert(key);
+	return key->seckey_bin;
+}
+
+char *cw_cert_public_s(cw_cert_t *key)
+{
+	assert(key);
+	if (!key->pubkey) return NULL;
+	return strdup(key->pubkey_b16);
+}
+
+char *cw_cert_secret_s(cw_cert_t *key)
+{
+	assert(key);
+	if (!key->seckey) return NULL;
+	return strdup(key->seckey_b16);
+}
+
+int cw_cert_rescan(cw_cert_t *key)
+{
+	assert(key);
+
+	int rc;
+
+	if (key->pubkey) {
+		rc = base16_decode(key->pubkey_bin, 32, key->pubkey_b16, 64);
+		if (rc != 32) return -1;
+	}
+
+	if (key->seckey) {
+		rc = base16_decode(key->seckey_bin, 32, key->seckey_b16, 64);
+		if (rc != 32) return -1;
+	}
+
+	return 0;
+}
+
+int cw_cert_encode(cw_cert_t *key)
+{
+	assert(key);
+
+	int rc;
+
+	if (key->pubkey) {
+		rc = base16_encode(key->pubkey_b16, 64, key->pubkey_bin, 32);
+		if (rc != 64) return -1;
+	}
+
+	if (key->seckey) {
+		rc = base16_encode(key->seckey_b16, 64, key->seckey_bin, 32);
+		if (rc != 64) return -1;
+	}
+
+	return 0;
+}
+
+cw_trustdb_t* cw_trustdb_new(void)
+{
+	cw_trustdb_t *ca = cw_alloc(sizeof(cw_trustdb_t));
+	ca->verify = 1;
+	cw_list_init(&ca->certs);
+	return ca;
+}
+
+cw_trustdb_t* cw_trustdb_read(const char *path)
+{
+	assert(path);
+
+	FILE *io = fopen(path, "r");
+	if (!io) return NULL;
+
+	cw_trustdb_t *ca = cw_trustdb_readio(io);
+	fclose(io);
+	return ca;
+}
+
+cw_trustdb_t* cw_trustdb_readio(FILE *io)
+{
+	assert(io);
+
+	cw_trustdb_t *ca = cw_trustdb_new();
+	int rc = cw_cfg_read(&ca->certs, io);
+	if (rc != 0) {
+		cw_trustdb_destroy(ca);
+		return NULL;
+	}
+
+	return ca;
+}
+
+int cw_trustdb_write(cw_trustdb_t *ca, const char *path)
+{
+	assert(ca);
+	assert(path);
+
+	FILE *io = fopen(path, "w");
+	if (!io) return -1;
+
+	int rc = cw_trustdb_writeio(ca, io);
+	fclose(io);
+	return rc;
+}
+
+int cw_trustdb_writeio(cw_trustdb_t *ca, FILE *io)
+{
+	assert(ca);
+	assert(io);
+
+	cw_keyval_t *kv;
+	for_each_object(kv, &ca->certs, l)
+		if (kv->val)
+			fprintf(io, "%s %s\n", kv->key, kv->val);
+
+	return 0;
+}
+
+void cw_trustdb_destroy(cw_trustdb_t *ca)
+{
+	if (!ca) return;
+	cw_cfg_done(&ca->certs);
+	free(ca);
+}
+
+
+int cw_trustdb_trust(cw_trustdb_t *ca, cw_cert_t *key)
+{
+	assert(ca);
+	assert(key);
+	assert(key->pubkey);
+
+	cw_cfg_set(&ca->certs, key->pubkey_b16, key->ident ? key->ident : "~");
+	return 0;
+}
+
+int cw_trustdb_revoke(cw_trustdb_t *ca, cw_cert_t *key)
+{
+	assert(ca);
+	assert(key);
+	assert(key->pubkey);
+
+	cw_cfg_unset(&ca->certs, key->pubkey_b16);
+	return 0;
+}
+
+int cw_trustdb_verify(cw_trustdb_t *ca, cw_cert_t *key)
+{
+	assert(ca);
+	assert(key);
+	assert(key->pubkey);
+
+	if (!ca->verify) return 0;
+
+	char *ident = cw_cfg_get(&ca->certs, key->pubkey_b16);
+	return ident != NULL ? 0 : 1;
+}
+
+/*
+
+    ########    ###    ########
+         ##    ## ##   ##     ##
+        ##    ##   ##  ##     ##
+       ##    ##     ## ########
+      ##     ######### ##
+     ##      ##     ## ##
+    ######## ##     ## ##
+
+ */
+
+typedef struct {
+	pthread_t     tid;
+	void         *socket;
+	cw_trustdb_t *tdb;
+} _zap_t;
+
+static char *s_zap_recv(void *socket)
+{
+	char buf[256];
+	int n = zmq_recv(socket, buf, 255, 0);
+	if (n < 0) return NULL;
+	if (n > 255) n = 255;
+	buf[n] = '\0';
+	return strdup(buf);
+}
+static int s_zap_send(void *socket, const char *s) {
+	return zmq_send(socket, s, strlen(s), 0);
+}
+static int s_zap_sendmore(void *socket, const char *s) {
+	return zmq_send(socket, s, strlen(s), ZMQ_SNDMORE);
+}
+static void* s_zap_thread(void *u)
+{
+	assert(u);
+	_zap_t *zap = (_zap_t*)u;
+
+	cw_log(LOG_INFO, "zap: authentication thread starting up");
+
+	for (;;) {
+		cw_log(LOG_DEBUG, "zap: awaiting auth packet");
+		char *version = s_zap_recv(zap->socket);
+		cw_log(LOG_DEBUG, "zap: inbound auth packet!");
+		if (!version) break;
+
+		char *sequence  = s_zap_recv(zap->socket);
+		char *domain    = s_zap_recv(zap->socket);
+		char *address   = s_zap_recv(zap->socket);
+		char *identity  = s_zap_recv(zap->socket);
+		char *mechanism = s_zap_recv(zap->socket);
+
+		cw_log(LOG_DEBUG, "zap: received frame:   version  = %s", version);
+		cw_log(LOG_DEBUG, "zap: received frame:   sequence = %s", sequence);
+		cw_log(LOG_DEBUG, "zap: received frame:   domain   = %s", domain);
+		cw_log(LOG_DEBUG, "zap: received frame:   address  = %s", address);
+		cw_log(LOG_DEBUG, "zap: received frame:   identity = %s", identity);
+
+		cw_cert_t *key = cw_cert_new();
+		assert(key);
+		key->pubkey = 1;
+		int n = zmq_recv(zap->socket, key->pubkey_bin, 32, 0);
+		if (n != 32) goto bail_out;
+		if (strcmp(version,   "1.0")   != 0) goto bail_out;
+		if (strcmp(mechanism, "CURVE") != 0) goto bail_out;
+
+		cw_log(LOG_DEBUG, "zap: verified message structure");
+
+		cw_cert_encode(key);
+		cw_log(LOG_DEBUG, "zap: checking public key [%s]", key->pubkey_b16);
+
+		s_zap_sendmore(zap->socket, version);
+		s_zap_sendmore(zap->socket, sequence);
+
+		if (!zap->tdb || cw_trustdb_verify(zap->tdb, key) == 0) {
+			cw_log(LOG_DEBUG, "zap: granting authentication request - 200 OK");
+			s_zap_sendmore(zap->socket, "200");
+			s_zap_sendmore(zap->socket, "OK");
+			s_zap_sendmore(zap->socket, "anonymous");
+			s_zap_send    (zap->socket, "");
+		} else {
+			cw_log(LOG_DEBUG, "zap: rejecting authentication request - 400 Untrusted");
+			s_zap_sendmore(zap->socket, "400");
+			s_zap_sendmore(zap->socket, "Untrusted client public key");
+			s_zap_sendmore(zap->socket, "");
+			s_zap_send    (zap->socket, "");
+		}
+
+		free(version);
+		free(sequence);
+		free(domain);
+		free(address);
+		free(identity);
+		free(mechanism);
+		cw_cert_destroy(key);
+
+		continue;
+bail_out:
+		cw_log(LOG_WARNING, "zap: denying curve authentication");
+		free(version);
+		free(sequence);
+		free(domain);
+		free(address);
+		free(identity);
+		free(mechanism);
+		cw_cert_destroy(key);
+		break;
+	}
+	zmq_close(zap->socket);
+	return zap;
+}
+void* cw_zap_startup(void *zctx, cw_trustdb_t *tdb)
+{
+	assert(zctx);
+
+	_zap_t *handle = cw_alloc(sizeof(_zap_t));
+	handle->tdb = tdb;
+
+	handle->socket = zmq_socket(zctx, ZMQ_REP);
+	assert(handle->socket);
+
+	int rc = zmq_bind(handle->socket, "inproc://zeromq.zap.01");
+	assert(rc == 0);
+
+	rc = pthread_create(&handle->tid, NULL, s_zap_thread, handle);
+	assert(rc == 0);
+
+	return handle;
+}
+
+void cw_zap_shutdown(void *handle)
+{
+	if (!handle) return;
+	_zap_t *z = (_zap_t*)handle;
+	void *_;
+	pthread_join(z->tid, &_);
+	free(z);
 }

@@ -6,12 +6,15 @@ use Text::Diff;
 use File::Temp qw/tempfile/;
 use base 'Exporter';
 our @EXPORT_OK = qw/
+	run_ok
+	background_ok
 	gencode_ok
 	cwpol_ok
 	resources_ok
 	pendulum_ok
 	bdfa_ok
 
+	string_is
 	file_is
 	bdfa_file_is
 /;
@@ -24,6 +27,71 @@ my $CWPOL = "./cwpol";
 my $BDFA = "./bdfa";
 my $MANIFEST = "t/tmp/data/policy/manifest.pol";
 my $FACTS = "t/tmp/data/policy/facts.lst";
+
+sub run_ok
+{
+	my ($cmd, $expect, $out, $err, $message) = @_;
+
+	my $stdout = tempfile;
+	my $stderr = tempfile;
+
+	my $pid = fork;
+	$T->BAIL_OUT("Failed to fork: $!") if $pid < 0;
+	if ($pid == 0) {
+		open STDOUT, ">&", $stdout
+			or die "Failed to reopen stdout: $!\n";
+		open STDERR, ">&", $stderr
+			or die "Failed to reopen stderr: $!\n";
+		exec $cmd
+			or die "Failed to exec $cmd: $!\n";
+	}
+
+	local $SIG{ALRM} = sub { die "timed out\n" };
+	alarm(10);
+	eval {
+		waitpid $pid, 0;
+		alarm 0;
+	};
+	alarm 0;
+	if ($@) {
+		if ($@ =~ m/^timed out/) {
+			kill 9, $pid;
+			$T->ok(0, "$message: timed out $cmd");
+			return 0;
+		}
+		$T->ok(0, "$message: exception raised - $@");
+		return 0;
+	}
+
+	my $rc = $? >> 8;
+
+	seek $stdout, 0, 0;
+	$$out = do { local $/; <$stdout> };
+
+	seek $stderr, 0, 0;
+	$$err = do { local $/; <$stderr> };
+
+	if ($rc != $expect) {
+		$T->ok(0, "$message: $cmd returned exit code $rc (not $expect)");
+		return 0;
+	}
+
+	$T->ok(1, $message);
+	return 1;
+}
+
+sub background_ok
+{
+	my ($cmd, $message) = @_;
+
+	my $pid = fork;
+	$T->BAIL_OUT("Failed to fork for background run: $!") if $pid < 0;
+	if ($pid == 0) {
+		exec $cmd or die "Failed to exec $cmd: $!\n";
+	}
+	$T->ok(1, "$message (pid $pid)");
+	return $pid;
+}
 
 sub gencode_ok
 {
@@ -104,7 +172,7 @@ EOF
 		return 0;
 	}
 
-	pass $message;
+	$T->ok(1, $message);
 	return 1;
 }
 
@@ -174,7 +242,7 @@ sub cwpol_ok
 		return 0;
 	}
 
-	pass $message;
+	$T->ok(1, $message);
 	return 1;
 }
 
@@ -244,7 +312,7 @@ sub resources_ok
 		return 0;
 	}
 
-	pass $message;
+	$T->ok(1, $message);
 	return 1;
 }
 
@@ -319,7 +387,7 @@ sub pendulum_ok
 		return 0;
 	}
 
-	pass $message;
+	$T->ok(1, $message);
 	return 1;
 }
 
@@ -375,8 +443,29 @@ sub bdfa_ok
 	}
 	$T->diag("standard error output was:\n$errors") if $errors;
 
-	pass $message;
+	$T->ok(1, $message);
 	$T->diag("standard error output was:\n$errors") if $errors;
+	return 1;
+}
+
+sub string_is
+{
+	my ($actual, $expect, $message) = @_;
+
+	my $diff = diff \$actual, \$expect, {
+		FILENAME_A => 'actual-output',    MTIME_A => time,
+		FILENAME_B => 'expected-output',  MTIME_B => time,
+		STYLE      => 'Unified',
+		CONTEXT    => 8
+	};
+
+	if ($diff) {
+		$T->ok(0, $message);
+		$T->diag("differences follow:\n$diff");
+		return 0;
+	}
+
+	$T->ok(1, $message);
 	return 1;
 }
 
@@ -398,21 +487,7 @@ sub file_is
 	$actual =~ s/\0/\\0/g;
 	$expect =~ s/\0/\\0/g;
 
-	my $diff = diff \$actual, \$expect, {
-		FILENAME_A => 'actual-output',    MTIME_A => time,
-		FILENAME_B => 'expected-output',  MTIME_B => time,
-		STYLE      => 'Unified',
-		CONTEXT    => 8
-	};
-
-	if ($diff) {
-		$T->ok(0, $message);
-		$T->diag("differences follow:\n$diff");
-		return 0;
-	}
-
-	pass $message;
-	return 1;
+	string_is $actual, $expect, $message;
 }
 
 sub bdfa_file_is
@@ -439,21 +514,7 @@ sub bdfa_file_is
 	$actual = join('', map { "$_\n" } sort split('\n', $actual));
 	$expect = join('', map { "$_\n" } sort split('\n', $expect));
 
-	my $diff = diff \$actual, \$expect, {
-		FILENAME_A => 'actual-output',    MTIME_A => time,
-		FILENAME_B => 'expected-output',  MTIME_B => time,
-		STYLE      => 'Unified',
-		CONTEXT    => 8
-	};
-
-	if ($diff) {
-		$T->ok(0, $message);
-		$T->diag("differences follow:\n$diff");
-		return 0;
-	}
-
-	pass $message;
-	return 1;
+	string_is $actual, $expect, $message;
 }
 
 1;

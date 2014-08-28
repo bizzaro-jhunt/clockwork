@@ -4,6 +4,7 @@
 #define PENDULUM_VERSION  1
 
 #include <stdint.h>
+#include "cw.h"
 
 #define PN_HEAP_SIZE     10
 #define PN_SLOT_CHUNK   256
@@ -38,12 +39,15 @@ struct pn_machine {
 	const char *topic;
 	uint32_t topics;
 
+	cw_list_t *acl;
+
 	void *heap[PN_HEAP_SIZE];
 
 	void *U;
 	pn_fnpragma pragma;
 
 	FILE *dump_fd;
+	FILE *output;
 	int trace;
 
 	size_t     datasize;
@@ -73,6 +77,7 @@ int pn_flag(pn_machine *m, const char *label, int value);
 int pn_flagged(pn_machine *m, const char *label);
 int pn_func(pn_machine *m, const char *op, pn_function fn);
 int pn_pragma(pn_machine *m, const char *name, const char *arg);
+int pn_parse_s(pn_machine *m, const char *s);
 int pn_parse(pn_machine *m, FILE *io);
 int pn_trace(pn_machine *m, const char *fmt, ...);
 int pn_run(pn_machine *m);

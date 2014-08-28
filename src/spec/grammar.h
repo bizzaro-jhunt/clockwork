@@ -67,11 +67,16 @@ extern int yydebug;
     T_KEYWORD_AFFECTS = 277,
     T_KEYWORD_DEFAULTS = 278,
     T_KEYWORD_FALLBACK = 279,
-    T_IDENTIFIER = 280,
-    T_FACT = 281,
-    T_QSTRING = 282,
-    T_NUMERIC = 283,
-    T_REGEX = 284
+    T_KEYWORD_ALLOW = 280,
+    T_KEYWORD_DENY = 281,
+    T_KEYWORD_FINAL = 282,
+    T_KEYWORD_ALL = 283,
+    T_ACLGROUP = 284,
+    T_IDENTIFIER = 285,
+    T_FACT = 286,
+    T_QSTRING = 287,
+    T_NUMERIC = 288,
+    T_REGEX = 289
   };
 #endif
 /* Tokens.  */
@@ -97,11 +102,16 @@ extern int yydebug;
 #define T_KEYWORD_AFFECTS 277
 #define T_KEYWORD_DEFAULTS 278
 #define T_KEYWORD_FALLBACK 279
-#define T_IDENTIFIER 280
-#define T_FACT 281
-#define T_QSTRING 282
-#define T_NUMERIC 283
-#define T_REGEX 284
+#define T_KEYWORD_ALLOW 280
+#define T_KEYWORD_DENY 281
+#define T_KEYWORD_FINAL 282
+#define T_KEYWORD_ALL 283
+#define T_ACLGROUP 284
+#define T_IDENTIFIER 285
+#define T_FACT 286
+#define T_QSTRING 287
+#define T_NUMERIC 288
+#define T_REGEX 289
 
 /* Value type.  */
 

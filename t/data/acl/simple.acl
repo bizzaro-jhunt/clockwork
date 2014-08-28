@@ -1,0 +1,3 @@
+allow user "user things"
+allow %group "group things" final
+deny user "*"

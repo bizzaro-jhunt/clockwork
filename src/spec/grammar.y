@@ -60,6 +60,10 @@
 %token T_KEYWORD_AFFECTS
 %token T_KEYWORD_DEFAULTS
 %token T_KEYWORD_FALLBACK
+%token T_KEYWORD_ALLOW
+%token T_KEYWORD_DENY
+%token T_KEYWORD_FINAL
+%token T_KEYWORD_ALL
 
 /* These token definitions identify the expected type of the lvalue.
    The name 'string' comes from the union members of the YYSTYPE
@@ -69,6 +73,7 @@
    bison, opting to define the union myself in private.h.  If one of
    the possible lvalue types is not a basic type (like char*, int, etc.)
    then lexer is required to include the necessary header files. */
+%token <string> T_ACLGROUP
 %token <string> T_IDENTIFIER
 %token <string> T_FACT
 %token <string> T_QSTRING
@@ -88,11 +93,11 @@
 %type <stree> attributes attribute optional_attributes
 %type <stree> dependency resource_id
 %type <stree> expr simple_expr lvalue rvalue regex map_rvalue
-
 %type <string> qstring literal_value
-
-%type <map>         map map_conds
-%type <map_cond>    map_cond map_default
+%type <map> map map_conds
+%type <map_cond> map_cond map_default
+%type <stree> acl acl_subject
+%type <string> acl_disposition acl_command
 %{
 #ifdef YYDEBUG
 int yydebug = 1;
@@ -212,7 +217,7 @@ blocks:
 		{ stree_add($$, $2); }
 	;
 
-block: resource | conditional | extension | dependency
+block: resource | conditional | extension | dependency | acl
 	;
 
 resource: T_IDENTIFIER literal_value optional_attributes
@@ -391,6 +396,32 @@ map_default:
 		{ $$ = cw_alloc(sizeof(parser_map_cond));
 		  cw_list_init(&$$->l);
 		  $$->value = $3; }
+	;
+
+acl:
+	  acl_disposition acl_subject acl_command
+		{ $$ = NODE(ACL, $1, strdup("continue"));
+		  stree_add($$, $2);
+		  stree_add($$, NODE(ACL_COMMAND, $3, NULL)); }
+	| acl_disposition acl_subject acl_command T_KEYWORD_FINAL
+		{ $$ = NODE(ACL, $1, strdup("final"));
+		  stree_add($$, $2);
+		  stree_add($$, NODE(ACL_COMMAND, $3, NULL)); }
+	;
+
+acl_disposition:
+	  T_KEYWORD_ALLOW { $$ = strdup("allow"); }
+	| T_KEYWORD_DENY  { $$ = strdup("deny");  }
+	;
+
+acl_subject:
+	  T_ACLGROUP    { $$ = NODE(ACL_SUBJECT, NULL, $1); }
+	| T_IDENTIFIER  { $$ = NODE(ACL_SUBJECT, $1, NULL); }
+	;
+
+acl_command: T_KEYWORD_ALL { $$ = strdup("*"); }
+	| T_QSTRING
+	| T_IDENTIFIER
 	;
 
 qstring: T_QSTRING

@@ -25,7 +25,7 @@ AM_CFLAGS += @GCOV_CFLAGS@
 AM_LFLAGS = --header-file --yylineno
 AM_YFLAGS = -d
 
-LDADD = -lctap -lzmq -lsodium
+LDADD = -lctap -lzmq -lsodium -lpam
 
 ############################################################
 
@@ -64,7 +64,11 @@ CTAP_TESTS += t/07-sha1
 CTAP_TESTS += t/08-list
 CTAP_TESTS += t/09-curve
 CTAP_TESTS += t/10-facts
+CTAP_TESTS += t/11-cmd
+CTAP_TESTS += t/12-filter
+CTAP_TESTS += t/13-acl
 CTAP_TESTS += t/15-path
+CTAP_TESTS += t/16-reactor
 CTAP_TESTS += t/20-stree
 CTAP_TESTS += t/25-resource
 CTAP_TESTS += t/30-policy
@@ -79,14 +83,18 @@ CTAP_TESTS += t/67-res_service
 CTAP_TESTS += t/68-res_package
 CTAP_TESTS += t/69-res_exec
 CTAP_TESTS += t/70-res_symlink
+CTAP_TESTS += t/90-meshd
 
 PERL_TESTS  =
 PERL_TESTS += t/pendulum/01-basics.t
+PERL_TESTS += t/pendulum/02-show.t
 PERL_TESTS += t/pendulum/10-fs.t
 PERL_TESTS += t/pendulum/11-users.t
 PERL_TESTS += t/pendulum/12-groups.t
 PERL_TESTS += t/pendulum/13-exec.t
 PERL_TESTS += t/pendulum/14-augeas.t
+
+PERL_TESTS += t/cmd/01-show.t
 
 PERL_TESTS += t/policy/01-files.t
 PERL_TESTS += t/policy/02-users.t
@@ -101,6 +109,7 @@ PERL_TESTS += t/policy/09-exec.t
 PERL_TESTS += t/policy/10-symlink.t
 PERL_TESTS += t/policy/20-if.t
 PERL_TESTS += t/policy/30-deps.t
+PERL_TESTS += t/policy/31-acls.t
 PERL_TESTS += t/policy/99-fail.t
 
 PERL_TESTS += t/bdfa/01-basics.t
@@ -129,7 +138,7 @@ SHELL_TESTS += t/memcheck/33-cwtrust.t
 
 TESTS          = $(CTAP_TESTS) $(PERL_TESTS) $(SHELL_TESTS)
 BUILT_TESTS    = $(CTAP_TESTS)
-check_PROGRAMS = $(CTAP_TESTS) TEST_cogd TEST_clockd TEST_ps TEST_lock
+check_PROGRAMS = $(CTAP_TESTS) TEST_cogd TEST_clockd TEST_ps TEST_lock TEST_meshd TEST_cmd
 check_DATA     = t/tmp/check-data-install.stamp
 t/tmp/check-data-install.stamp:
 	mkdir -p t/tmp
@@ -144,12 +153,15 @@ TEST_EXTRAS += t/memcheck/verify
 TEST_EXTRAS += $(SHELL_TESTS)
 
 test_source  = t/test.h
-test_source += src/cw.h src/cw.c
+test_source += src/cw.h         src/cw.c
+test_source += src/mesh.h       src/mesh.c
 test_source += src/sha1.h       src/sha1.c
 test_source += src/userdb.h     src/userdb.c
 test_source += src/policy.h     src/policy.c
 test_source += src/resource.h   src/resource.c
 test_source += src/resources.h  src/resources.c
+test_source += src/pendulum.h   src/pendulum.c
+test_source += src/pendulum_funcs.h src/pendulum_funcs.c
 
 test_source += src/spec/grammar.y
 test_source += src/spec/lexer.l
@@ -163,8 +175,10 @@ test_source += src/gear/string.c
 
 TEST_cogd_SOURCES        = t/test-cogd.c   $(core_src) $(parser_spec_src)
 TEST_clockd_SOURCES      = t/test-clockd.c $(core_src) $(parser_spec_src)
+TEST_meshd_SOURCES       = t/test-meshd.c  $(core_src) $(parser_spec_src)
 TEST_ps_SOURCES          = t/test-ps.c     $(core_src)
 TEST_lock_SOURCES        = t/test-lock.c   $(core_src)
+TEST_cmd_SOURCES         = t/test-cmd.c    $(core_src)
 
 t_00_bits_SOURCES        = t/00-bits.c          $(test_source)
 t_01_string_SOURCES      = t/01-string.c        $(test_source)
@@ -177,7 +191,11 @@ t_07_sha1_SOURCES        = t/07-sha1.c          $(test_source)
 t_08_list_SOURCES        = t/08-list.c          $(test_source)
 t_09_curve_SOURCES       = t/09-curve.c         $(test_source)
 t_10_facts_SOURCES       = t/10-facts.c         $(test_source)
+t_11_cmd_SOURCES         = t/11-cmd.c           $(test_source)
+t_12_filter_SOURCES      = t/12-filter.c        $(test_source)
+t_13_acl_SOURCES         = t/13-acl.c           $(test_source)
 t_15_path_SOURCES        = t/15-path.c          $(test_source)
+t_16_reactor_SOURCES     = t/16-reactor.c       $(test_source)
 t_20_stree_SOURCES       = t/20-stree.c         $(test_source)
 t_25_resource_SOURCES    = t/25-resource.c      $(test_source)
 t_30_policy_SOURCES      = t/30-policy.c        $(test_source)
@@ -192,6 +210,7 @@ t_67_res_service_SOURCES = t/67-res_service.c   $(test_source)
 t_68_res_package_SOURCES = t/68-res_package.c   $(test_source)
 t_69_res_exec_SOURCES    = t/69-res_exec.c      $(test_source)
 t_70_res_symlink_SOURCES = t/70-res_symlink.c   $(test_source)
+t_90_meshd_SOURCES       = t/90-meshd.c         $(test_source)
 
 CLEANFILES       = $(BUILT_SOURCES)
 
@@ -224,6 +243,7 @@ dist_man_MANS   += man/res_user.5
 ############################################################
 
 core_src  = src/clockwork.h src/cw.h src/cw.c
+core_src += src/mesh.h src/mesh.c
 core_src += src/sha1.h src/sha1.c src/userdb.h src/userdb.c
 core_src += src/policy.h src/policy.c
 core_src += src/resource.h src/resource.c src/resources.h src/resources.c
@@ -236,20 +256,22 @@ parser_spec_src += src/spec/lexer.l src/spec/lexer_impl.h
 parser_spec_src += src/spec/grammar.y
 
 sbindir = "$(prefix)/sbin"
-sbin_PROGRAMS = cwpol cwcc clockd cogd cwtrust
-cwpol_SOURCES   = src/cwpol.c   $(core_src) $(parser_spec_src)
-cwcc_SOURCES    = src/cwcc.c    $(core_src) $(parser_spec_src)
-clockd_SOURCES  = src/clockd.c  $(core_src) $(parser_spec_src)
-cogd_SOURCES    = src/cogd.c    $(core_src) $(parser_spec_src)
-cwtrust_SOURCES = src/cwtrust.c $(core_src)
+sbin_PROGRAMS       = cwpol cwcc clockd cogd cwtrust authtest meshd cw-run
+cwpol_SOURCES       = src/cwpol.c    $(core_src) $(parser_spec_src)
+cwcc_SOURCES        = src/cwcc.c     $(core_src) $(parser_spec_src)
+clockd_SOURCES      = src/clockd.c   $(core_src) $(parser_spec_src)
+cogd_SOURCES        = src/cogd.c     $(core_src) $(parser_spec_src)
+cwtrust_SOURCES     = src/cwtrust.c  $(core_src)
+authtest_SOURCES    = src/authtest.c $(core_src)
+meshd_SOURCES       = src/meshd.c    $(core_src)
+cw_run_SOURCES      = src/cw-run.c   $(core_src)
 
-dist_bin_SCRIPTS = cwtool cw-template-erb
-
-bin_PROGRAMS  = bdfa fact pn cwkey
-bdfa_SOURCES  = src/bdfa.c src/cw.h src/cw.c
-fact_SOURCES  = src/fact.c  $(core_src)
-pn_SOURCES    = src/pn.c    $(core_src)
-cwkey_SOURCES = src/cwkey.c $(core_src)
+dist_bin_SCRIPTS    = cwtool cw-template-erb
+bin_PROGRAMS        = bdfa fact pn cwkey
+bdfa_SOURCES        = src/bdfa.c src/cw.h src/cw.c
+fact_SOURCES        = src/fact.c  $(core_src)
+pn_SOURCES          = src/pn.c    $(core_src)
+cwkey_SOURCES       = src/cwkey.c $(core_src)
 
 ############################################################
 

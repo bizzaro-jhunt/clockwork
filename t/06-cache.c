@@ -107,6 +107,29 @@ TESTS {
 		cw_cache_free(cc);
 	}
 
+	subtest { /* tuning caches */
+		cw_cache_t *cc = cw_cache_new(4, 20);
+
+		is_int(cc->max_len,   4, "max_len is initially 4");
+		is_int(cc->min_life, 20, "min_life is initially 20s");
+
+		ok(cw_cache_tune(&cc, 0, 0) == 0, "cw_cache_tune(cc, 0, 0) is ok");
+		is_int(cc->max_len,   4, "max_len is still 4");
+		is_int(cc->min_life, 20, "min_life is still 20s");
+
+		ok(cw_cache_tune(&cc, 0, 60) == 0, "changed cache life to 60s");
+		is_int(cc->max_len,   4, "max_len is still 4");
+		is_int(cc->min_life, 60, "min_life is 60s");
+
+		ok(cw_cache_tune(&cc, 10, 15) == 0, "changed cache life to 15s / 10 entries");
+		is_int(cc->max_len,  10, "max_len is now 10");
+		is_int(cc->min_life, 15, "min_life is 15s now");
+
+		ok(cw_cache_tune(&cc,  1, 0) != 0, "can't tune a cache to a lower max_len");
+
+		cw_cache_free(cc);
+	}
+
 	subtest { /* too much! */
 		cw_cache_t *cc = cw_cache_new(4, 20);
 
@@ -116,6 +139,9 @@ TESTS {
 		isnt_null(cw_cache_set(cc, "key4", (void*)4), "key4 inserted");
 
 		is_null(cw_cache_set(cc, "key5", (void*)5), "key5 is too much");
+
+		ok(cw_cache_tune(&cc, 128, 0) == 0, "extended cache from 4 slots to 128 slots");
+		isnt_null(cw_cache_set(cc, "key5", (void*)5), "key5 inserted (post-tune)");
 
 		cw_cache_free(cc);
 	}

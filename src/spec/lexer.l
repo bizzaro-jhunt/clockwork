@@ -68,6 +68,11 @@
 #.* { /* ignore comments */ }
 [\t \r\n]+ { /* ignore whitespace */ }
 
+"allow"  { return T_KEYWORD_ALLOW; }
+"deny"   { return T_KEYWORD_DENY;  }
+"final"  { return T_KEYWORD_FINAL; }
+"ALL"    { return T_KEYWORD_ALL;   }
+
 "policy" { return T_KEYWORD_POLICY; }
 "host"   { return T_KEYWORD_HOST; }
 "if"     { return T_KEYWORD_IF; }
@@ -123,6 +128,10 @@ include[ \t]+  { BEGIN(INCLUDE); }
 ([a-z_][a-z_0-9]*\.)+[a-z_][a-z_0-9]* { /* fact */
 	yylval->string = strdup(yytext);
 	return T_FACT;
+}
+%[a-zA-Z][a-zA-Z0-9_]+ { /* group identifier for ACLs */
+	yylval->string = strdup(yytext+1);
+	return T_ACLGROUP;
 }
 [a-z_]+ { /* identifier */
 	yylval->string = strdup(yytext);

@@ -1,0 +1,3 @@
+examples/meshd.conf etc/clockwork
+debian/pam.d/clockwork etc/pam.d/
+sbin/meshd

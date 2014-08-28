@@ -5,6 +5,7 @@
 #include <syslog.h> /* for LOG_* constants */
 #include <sys/time.h>
 #include <sys/types.h>
+#include <pcre.h>
 
 /*
 
@@ -292,6 +293,19 @@ int cw_pdu_extend(cw_pdu_t *pdu, cw_frame_t *f);
 
 int cw_pdu_send(void *zocket, cw_pdu_t *pdu);
 
+typedef struct {
+	cw_list_t       reactors;
+	zmq_pollitem_t *poller;
+} cw_reactor_t;
+typedef int (*reactor_fn)(void *socket, cw_pdu_t *pdu, void *data);
+
+#define CW_REACTOR_CONTINUE -1
+
+cw_reactor_t *cw_reactor_new(void);
+void cw_reactor_destroy(cw_reactor_t *r);
+int cw_reactor_add(cw_reactor_t *r, void *socket, reactor_fn fn, void *data);
+int cw_reactor_loop(cw_reactor_t *r);
+
 /*
      ######   #######  ##    ## ######## ####  ######
     ##    ## ##     ## ###   ## ##        ##  ##    ##
@@ -484,6 +498,7 @@ typedef struct {
 #define CW_CACHE_OPT_MINLIFE  2
 
 cw_cache_t* cw_cache_new(size_t max, int32_t min_life);
+int cw_cache_tune(cw_cache_t **cc, size_t max, int32_t min_life);
 void cw_cache_free(cw_cache_t *cc);
 void cw_cache_purge(cw_cache_t *cc, int force);
 int   cw_cache_opt(cw_cache_t *cc, int op, void *value);
@@ -564,5 +579,20 @@ int cw_trustdb_verify(cw_trustdb_t *ca, cw_cert_t *key);
 
 void *cw_zap_startup(void *zctx, cw_trustdb_t *tdb);
 void cw_zap_shutdown(void *handle);
+
+/*
+
+     ######  ########  ######## ########   ######
+    ##    ## ##     ## ##       ##     ## ##    ##
+    ##       ##     ## ##       ##     ## ##
+    ##       ########  ######   ##     ##  ######
+    ##       ##   ##   ##       ##     ##       ##
+    ##    ## ##    ##  ##       ##     ## ##    ##
+     ######  ##     ## ######## ########   ######
+
+ */
+
+int cw_authenticate(const char*, const char*, const char*);
+const char *cw_autherror(void);
 
 #endif

@@ -62,6 +62,10 @@
 
 #define CACHED_FACTS_DIR            CW_CACHE_DIR "/facts"
 
+#ifndef CW_PAM_SERVICE
+#  define CW_PAM_SERVICE "clockwork"
+#endif
+
 #include "cw.h"
 #include <assert.h>
 #include <stdlib.h>

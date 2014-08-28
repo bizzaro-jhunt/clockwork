@@ -258,7 +258,6 @@ static int s_state_machine(client_t *fsm, cw_pdu_t *pdu, cw_pdu_t **reply)
 			break;
 		}
 
-		/* FIXME: send back pendulum code for gatherer setup */
 		fsm->name = cw_pdu_text(pdu, 1);
 		*reply = cw_pdu_make(pdu->src, 1, "OK");
 
@@ -838,12 +837,15 @@ static inline server_t *s_server_new(int argc, char **argv)
 
 static inline void s_server_destroy(server_t *s)
 {
-	cw_zap_shutdown(s->zap);
 	s_ccache_destroy(s->ccache);
 	manifest_free(s->manifest);
 	cw_cert_destroy(s->cert);
 	cw_trustdb_destroy(s->tdb);
 	free(s->copydown);
+
+	cw_zap_shutdown(s->zap);
+	zmq_ctx_destroy(s->zmq);
+
 	free(s);
 }
 
@@ -918,7 +920,6 @@ unit_tests_finished:
 	cw_log(LOG_INFO, "shutting down");
 
 	cw_zmq_shutdown(s->listener, 500);
-	zmq_ctx_destroy(s->zmq);
 	s_server_destroy(s);
 
 	cw_log_close();

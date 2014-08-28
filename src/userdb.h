@@ -67,6 +67,8 @@ struct sgdb {
 	struct sgrp *sgrp;       /* shadow account record */
 };
 
+char* userdb_lookup(struct pwdb *pdb, struct grdb *gdb, const char *name);
+
 struct pwdb* pwdb_init(const char *path);
 struct passwd* pwdb_get_by_name(struct pwdb *db, const char *name);
 struct passwd* pwdb_get_by_uid(struct pwdb *db, uid_t uid);

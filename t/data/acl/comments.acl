@@ -1,0 +1,9 @@
+#
+# comments.acl - show off commenting in the ACL file format
+#
+
+
+# (oh yeah, blank lines too!)
+
+allow user "*"
+deny user "show *"

@@ -46,9 +46,13 @@ static const char *OP_NAMES[] = {
 	"EXPR_NOT",
 	"EXPR_EQ",
 	"EXPR_MATCH",
+
+	"ACL",
+	"ACL_SUBJECT",
+	"ACL_COMMAND",
 	NULL
 };
-#define MAX_OP EXPR_MATCH
+#define MAX_OP ACL_COMMAND
 
 #define REDUNDANT_NODE(n) (((n)->op == PROG || (n)->op == NOOP) && (n)->size == 1)
 
@@ -167,12 +171,13 @@ int main(int argc, char **argv)
 	       "\n");
 
 	if (argc < 2) {
-		fprintf(stderr, "USAGE: %s /path/to/config\n", argv[0]);
+		fprintf(stderr, "USAGE: %s /path/to/manifest.pol\n", argv[0]);
 		exit(1);
 	}
 
 	manifest = parse_file(argv[1]);
 	if (!manifest) {
+		fprintf(stderr, "Failed to parse %s\n", argv[1]);
 		exit(2);
 	}
 

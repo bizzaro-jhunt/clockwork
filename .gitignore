@@ -24,11 +24,16 @@ stamp-h?
 /cwkey
 /cwtrust
 /fact
+/authtest
 /bdfa
+/meshd
+/cw-run
 /TEST_cogd
 /TEST_clockd
 /TEST_ps
 /TEST_lock
+/TEST_meshd
+/TEST_cmd
 
 cwcert
 cwcert.pub
@@ -65,7 +70,12 @@ t/07-sha1
 t/08-list
 t/09-curve
 t/10-facts
+t/11-cmd
+t/12-filter
+t/13-acl
+t/14-commands
 t/15-path
+t/16-reactor
 t/20-stree
 t/22-job
 t/25-resource
@@ -84,6 +94,7 @@ t/67-res_service
 t/68-res_package
 t/69-res_exec
 t/70-res_symlink
+t/90-meshd
 
 *.debhelper.log
 *.debhelper

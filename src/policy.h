@@ -20,6 +20,7 @@
 #ifndef POLICY_H
 #define POLICY_H
 
+#include "mesh.h"
 #include "resources.h"
 
 /** Abstract Syntax Tree node types */
@@ -45,6 +46,10 @@ enum oper {
 	EXPR_NOT,
 	EXPR_EQ,
 	EXPR_MATCH,
+
+	ACL,
+	ACL_SUBJECT,
+	ACL_COMMAND,
 };
 
 /**
@@ -102,6 +107,7 @@ struct policy {
 
 	cw_list_t resources;    /* resources defined for policy */
 	cw_list_t dependencies; /* resource dependencies (implicit and explicit) */
+	cw_list_t acl;          /* remote ACLs defined via policy */
 
 	cw_hash_t *index;       /* resources, keyed by "TYPE:pkey" */
 	cw_hash_t *cache;       /* search cache, keyed by "TYPE:attr=val" */
@@ -118,6 +124,12 @@ struct policy {
 
 /* Iterate (safely) over a policy's dependencies */
 #define for_each_dependency_safe(d,t,pol) for_each_object_safe((d),(t),&((pol)->dependencies), l)
+
+/* Iterate over a policy ACL */
+#define for_each_acl(a,pol) for_each_object((a), &((pol)->acl), l)
+
+/* Iterate (safely) over a policy ACL */
+#define for_each_acl_safe(a,t,pol) for_each_object_safe((a), (t), &((pol)->acl), l)
 
 struct manifest* manifest_new(void);
 void manifest_free(struct manifest *m);

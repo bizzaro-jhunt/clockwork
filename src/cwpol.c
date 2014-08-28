@@ -60,6 +60,7 @@ static void show_facts(const char *pattern);
 static void show_fact(const char *name);
 static void show_hosts(void);
 static void show_policies(void);
+static void show_acls(void);
 static void show_resources(void);
 static void show_resource(const char *type, const char *name);
 
@@ -274,6 +275,15 @@ COMMAND(show)
 
 	} else if (c->argc == 1 && strcmp(type, "policies") == 0) {
 		show_policies();
+
+	} else if (c->argc == 1 && strcmp(type, "acls") == 0) {
+		if (!CONTEXT.root) {
+			cw_log(LOG_ERR, "Invalid referential context");
+			cw_log(LOG_INFO, "Select a host or policy through the 'use' command");
+			return 0;
+		}
+
+		show_acls();
 
 	} else if (c->argc == 1 && strcmp(type, "resources") == 0) {
 		if (!CONTEXT.root) {
@@ -623,6 +633,26 @@ static void show_policies(void)
 		return;
 	}
 	show_hash_keys(MANIFEST->policies);
+}
+
+static void show_acls(void)
+{
+	acl_t *a;
+	char *s;
+
+	make_policy();
+	if (!CONTEXT.policy) {
+		cw_log(LOG_ERR, "Failed to generate policy");
+		return;
+	}
+
+	if (cw_list_isempty(&CONTEXT.policy->acl)) {
+		cw_log(LOG_INFO, "(none defined)");
+		return;
+	}
+	for_each_acl(a, CONTEXT.policy) {
+		printf("  %s\n", s = acl_string(a)); free(s);
+	}
 }
 
 static void show_resources(void)

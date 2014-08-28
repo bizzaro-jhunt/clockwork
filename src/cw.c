@@ -19,6 +19,7 @@
 #include <utime.h>
 #include <pthread.h>
 #include <sodium.h>
+#include <security/pam_appl.h>
 
 /*
 
@@ -756,7 +757,7 @@ int cw_sleep_ms(int64_t ms)
 {
 	struct timespec ts;
 	ts.tv_sec  = (time_t)(ms / 1000.0);
-	ts.tv_nsec = (long)((ms - (ts.tv_sec * 1000)) / 1000.0);
+	ts.tv_nsec = (long)((ms - (ts.tv_sec * 1000)) * 1000.0 * 1000.0);
 	return nanosleep(&ts, NULL);
 }
 
@@ -1196,6 +1197,86 @@ int cw_pdu_send(void *zocket, cw_pdu_t *pdu)
 	}
 
 	return 0;
+}
+
+typedef struct {
+	cw_list_t   l;
+	void       *socket;
+	reactor_fn  fn;
+	void       *data;
+	int         index;
+} cw_reactor_item_t;
+
+cw_reactor_t *cw_reactor_new(void)
+{
+	cw_reactor_t *r = cw_alloc(sizeof(cw_reactor_t));
+	cw_list_init(&r->reactors);
+	return r;
+}
+
+void cw_reactor_destroy(cw_reactor_t *r)
+{
+	if (!r) free(r);
+
+	cw_reactor_item_t *item, *tmp;
+	for_each_object_safe(item, tmp, &r->reactors, l)
+		free(item);
+	free(r->poller);
+	free(r);
+}
+
+int cw_reactor_add(cw_reactor_t *r, void *socket, reactor_fn fn, void *data)
+{
+	assert(r);
+	assert(socket);
+	assert(fn);
+
+	cw_reactor_item_t *item = cw_alloc(sizeof(cw_reactor_item_t));
+	cw_list_init(&item->l);
+	item->socket = socket;
+	item->fn     = fn;
+	item->data   = data;
+
+	cw_list_push(&r->reactors, &item->l);
+
+	size_t n = cw_list_len(&r->reactors);
+	free(r->poller);
+	r->poller = cw_alloc(n * sizeof(zmq_pollitem_t));
+
+	n = 0;
+	for_each_object(item, &r->reactors, l) {
+		item->index = n;
+		r->poller[n].socket  = item->socket;
+		r->poller[n].events  = ZMQ_POLLIN;
+		n++;
+	}
+
+	return 0;
+}
+
+int cw_reactor_loop(cw_reactor_t *r)
+{
+	assert(r);
+	int rc;
+
+	size_t n = cw_list_len(&r->reactors);
+	while ( (rc = zmq_poll(r->poller, n, -1)) >= 0) {
+		cw_reactor_item_t *item;
+		for_each_object(item, &r->reactors, l) {
+			if (r->poller[item->index].revents != ZMQ_POLLIN)
+				continue;
+
+			cw_pdu_t *pdu = cw_pdu_recv(item->socket);
+			if (!pdu) continue;
+
+			rc = (*(item->fn))(item->socket, pdu, item->data);
+			cw_pdu_destroy(pdu);
+
+			if (rc != CW_REACTOR_CONTINUE) return 0;
+		}
+	}
+
+	return 1;
 }
 
 /*
@@ -2253,6 +2334,34 @@ cw_cache_t* cw_cache_new(size_t len, int32_t min_life)
 	return cc;
 }
 
+int cw_cache_tune(cw_cache_t **cc, size_t len, int32_t min_life)
+{
+	errno = EINVAL;
+	if (len      <= 0) len      = (*cc)->max_len;
+	if (min_life <= 0) min_life = (*cc)->min_life;
+
+	if (len < (*cc)->max_len)
+		return -1;
+
+	if (min_life < (*cc)->min_life)
+		cw_cache_purge((*cc), 0);
+	(*cc)->min_life = min_life;
+
+	if (len > (*cc)->max_len) {
+		cw_cache_t *new = cw_cache_new(len, min_life);
+
+		char *k; void *v;
+		for_each_key_value(&(*cc)->index, k, v)
+			cw_hash_set(&new->index, k, v);
+
+		(*cc)->destroy_f = NULL;
+		cw_cache_free((*cc));
+		*cc = new;
+	}
+
+	return 0;
+}
+
 void cw_cache_free(cw_cache_t *cc)
 {
 	if (!cc) return;
@@ -2784,8 +2893,95 @@ void* cw_zap_startup(void *zctx, cw_trustdb_t *tdb)
 void cw_zap_shutdown(void *handle)
 {
 	if (!handle) return;
+
 	_zap_t *z = (_zap_t*)handle;
+	pthread_cancel(z->tid);
+
 	void *_;
 	pthread_join(z->tid, &_);
+
+	cw_zmq_shutdown(z->socket, 0);
 	free(z);
+}
+
+/*
+
+     ######  ########  ######## ########   ######
+    ##    ## ##     ## ##       ##     ## ##    ##
+    ##       ##     ## ##       ##     ## ##
+    ##       ########  ######   ##     ##  ######
+    ##       ##   ##   ##       ##     ##       ##
+    ##    ## ##    ##  ##       ##     ## ##    ##
+     ######  ##     ## ######## ########   ######
+ */
+
+typedef struct {
+	const char *username;
+	const char *password;
+} _pam_creds_t;
+
+static int s_pam_talker(int n, const struct pam_message **m, struct pam_response **r, void *u)
+{
+	if (!m || !r || !u) return PAM_CONV_ERR;
+	_pam_creds_t *creds = (_pam_creds_t*)u;
+
+	struct pam_response *res = calloc(n, sizeof(struct pam_response));
+	if (!res) return PAM_CONV_ERR;
+
+	int i;
+	for (i = 0; i < n; i++) {
+		res[i].resp_retcode = 0;
+
+		/* the only heuristic that works:
+		   PAM_PROMPT_ECHO_ON = asking for username
+		   PAM_PROMPT_ECHO_OFF = asking for password
+		   */
+		switch (m[i]->msg_style) {
+		case PAM_PROMPT_ECHO_ON:
+			res[i].resp = strdup(creds->username);
+			break;
+		case PAM_PROMPT_ECHO_OFF:
+			res[i].resp = strdup(creds->password);
+			break;
+		default:
+			free(res);
+			return PAM_CONV_ERR;
+		}
+	}
+	*r = res;
+	return PAM_SUCCESS;
+}
+
+static char *_CW_AUTH_ERR = NULL;
+int cw_authenticate(const char *service, const char *username, const char *password)
+{
+	int rc;
+	pam_handle_t *pam = NULL;
+	_pam_creds_t creds = {
+		.username = username,
+		.password = password,
+	};
+	struct pam_conv convo = {
+		s_pam_talker,
+		(void*)(&creds),
+	};
+
+	rc = pam_start(service, creds.username, &convo, &pam);
+	if (rc == PAM_SUCCESS)
+		rc = pam_authenticate(pam, PAM_DISALLOW_NULL_AUTHTOK);
+		if (rc == PAM_SUCCESS)
+			rc = pam_acct_mgmt(pam, PAM_DISALLOW_NULL_AUTHTOK);
+
+	if (rc != PAM_SUCCESS) {
+		free(_CW_AUTH_ERR);
+		_CW_AUTH_ERR = strdup(pam_strerror(pam, rc));
+	}
+
+	pam_end(pam, PAM_SUCCESS);
+	return rc == PAM_SUCCESS ? 0 : 1;
+}
+
+const char *cw_autherror(void)
+{
+	return _CW_AUTH_ERR ? _CW_AUTH_ERR : "(no error)";
 }

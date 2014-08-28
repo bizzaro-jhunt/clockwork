@@ -10,6 +10,7 @@ Build-Depends: bison,
                libctap (>= 1.1.4),
                libctap-dev (>= 1.1.4),
                libfile-slurp-perl,
+               libpam0g-dev,
                libpcre3-dev,
                libreadline6-dev,
                libsodium-dev,
@@ -75,6 +76,40 @@ Description: Debugging Symbols for Clockwork Server
  more effective and less difficult.
  .
  This package provides the debugging symbols for clockd.
+
+Package: clockwork-mesh-server
+Architecture: any
+Depends: clockwork-common (= ${binary:Version}),
+         libpam0g,
+         libpcre3,
+         libsodium13,
+         libzmq3,
+         ${misc:Depends},
+         ${shlibs:Depends}
+Description: Secure Configuration Management - Mesh Framework
+ Clockwork is a safe, secure and flexible system for managing system
+ configurations through enforcement of targeted policies, expressed
+ in a system-independent, declarative format.
+ .
+ With Clockwork, managing infrastructures of all scales is easier,
+ more effective and less difficult.
+ .
+ This package provides the server-side components of Clockwork Mesh.
+
+Package: clockwork-mesh-server-dbg
+Architecture: any
+Section: debug
+Priority: extra
+Depends: clockwork-mesh-server (= ${binary:Version}), ${misc:Depends}
+Description: Debugging Symbols for Clockwork Server
+ Clockwork is a safe, secure and flexible system for managing system
+ configurations through enforcement of targeted policies, expressed
+ in a system-independent, declarative format.
+ .
+ With Clockwork, managing infrastructures of all scales is easier,
+ more effective and less difficult.
+ .
+ This package provides the debugging symbols for meshd.
 
 Package: clockwork-agent
 Architecture: any

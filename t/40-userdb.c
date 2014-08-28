@@ -613,5 +613,24 @@ TESTS {
 		sgdb_free(db);
 	}
 
+	subtest {
+		struct pwdb *pdb;
+		struct grdb *gdb;
+
+		isnt_null(pdb = pwdb_init(PWFILE), "read passwd db");
+		isnt_null(gdb = grdb_init(GRFILE), "read group db");
+
+		char *s = userdb_lookup(pdb, gdb, "account1");
+		is_string(s, "account1:members:service:users",
+				"Generated user and groups list");
+		free(s);
+
+		s = userdb_lookup(pdb, gdb, "account2");
+		is_null(s, "No records for account2");
+
+		pwdb_free(pdb);
+		grdb_free(gdb);
+	}
+
 	done_testing();
 }

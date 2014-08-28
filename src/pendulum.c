@@ -13,7 +13,9 @@
 #include <sys/wait.h>
 
 #include "pendulum.h"
+#include "clockwork.h"
 #include "cw.h"
+#include "mesh.h"
 
 #define  PN_OP_NOOP     0x0000
 #define  PN_OP_OK       0x0001
@@ -46,7 +48,14 @@
 #define  PN_OP_TOPIC    0x001c
 #define  PN_OP_GETENV   0x001d
 #define  PN_OP_SETENV   0x001e
+#define  PN_OP_ACL      0x001f
+#define  PN_OP_SHOW     0x0020
 #define  PN_OP_INVAL    0x00ff
+
+#define  PN_SHOW_IGNORE  0x0000
+#define  PN_SHOW_VERSION 0x0001
+#define  PN_SHOW_RUNTIME 0x0002
+#define  PN_SHOW_ACLS    0x0003
 
 #define PC      pn_CODE(m, m->Ip)
 #define TRACE_START "TRACE :: %08lx [%02x] %s"
@@ -84,6 +93,8 @@ static const char *OP_NAMES[] = {
 	"TOPIC",
 	"GETENV",
 	"SETENV",
+	"ACL",
+	"SHOW",
 	"(invalid)",
 	NULL,
 };
@@ -285,6 +296,8 @@ static int s_resolve_op(const char *op)
 	if (strcmp(op, "TOPIC")     == 0) return PN_OP_TOPIC;
 	if (strcmp(op, "GETENV")    == 0) return PN_OP_GETENV;
 	if (strcmp(op, "SETENV")    == 0) return PN_OP_SETENV;
+	if (strcmp(op, "ACL")       == 0) return PN_OP_ACL;
+	if (strcmp(op, "SHOW")      == 0) return PN_OP_SHOW;
 	fprintf(stderr, "Invalid op: '%s'\n", op);
 	return PN_OP_INVAL;
 }
@@ -427,12 +440,29 @@ if (m) {
 	fprintf(io, "'----------------------------------------------'\n");
 }
 
+static void s_show_acls(pn_machine *m, const char *query)
+{
+	acl_t *a;
+	char *s;
+
+	for_each_object(a, m->acl, l) {
+		if (query && !acl_match(a, query, NULL)) continue;
+		fprintf(m->output, "%s\n", s = acl_string(a));
+		free(s);
+	}
+}
+
 /**************************************************************/
 
 int pn_init(pn_machine *m)
 {
 	memset(m, 0, sizeof(pn_machine));
 	m->dump_fd = stderr;
+	m->output  = stdout;
+
+	m->acl = cw_alloc(sizeof(cw_list_t));
+	cw_list_init(m->acl);
+
 	return 0;
 }
 
@@ -452,6 +482,11 @@ int pn_destroy(pn_machine *m)
 
 	m->njumps = 0;  m->nfuncs = 0;  m->nflags = 0;
 	free(m->jumps); free(m->funcs); free(m->flags);
+
+	acl_t *a, *a_tmp;
+	for_each_object_safe(a, a_tmp, m->acl, l)
+		acl_destroy(a);
+	free(m->acl);
 
 	return 0;
 }
@@ -503,6 +538,20 @@ int pn_func(pn_machine *m, const char *op, pn_function fn)
 int pn_pragma(pn_machine *m, const char *name, const char *arg)
 {
 	return m->pragma ? (*m->pragma)(m, name, arg) : 1;
+}
+
+int pn_parse_s(pn_machine *m, const char *s)
+{
+	assert(m);
+	assert(s);
+
+	FILE *io = tmpfile();
+	fprintf(io, "%s", s);
+	rewind(io);
+
+	int rc = pn_parse(m, io);
+	fclose(io);
+	return rc;
 }
 
 int pn_parse(pn_machine *m, FILE *io)
@@ -557,8 +606,18 @@ int pn_parse(pn_machine *m, FILE *io)
 		if (s_parse(buf, &op, &arg1, &arg2) != 0) continue;
 
 		pn_CODE(m, m->Ip).op = s_resolve_op(op);
-		if (arg1) pn_CODE(m, m->Ip).arg1 = s_resolve_arg(m, arg1);
-		if (arg2) pn_CODE(m, m->Ip).arg2 = s_resolve_arg(m, arg2);
+		if (pn_CODE(m, m->Ip).op == PN_OP_SHOW) {
+			pn_CODE(m, m->Ip).arg1 = PN_SHOW_IGNORE;
+			if (strcmp(arg1, "version") == 0) pn_CODE(m, m->Ip).arg1 = PN_SHOW_VERSION;
+			if (strcmp(arg1, "runtime") == 0) pn_CODE(m, m->Ip).arg1 = PN_SHOW_RUNTIME;
+			if (strcmp(arg1, "acls")    == 0) pn_CODE(m, m->Ip).arg1 = PN_SHOW_ACLS;
+
+			if (arg2) pn_CODE(m, m->Ip).arg2 = s_resolve_arg(m, arg2);
+
+		} else {
+			if (arg1) pn_CODE(m, m->Ip).arg1 = s_resolve_arg(m, arg1);
+			if (arg2) pn_CODE(m, m->Ip).arg2 = s_resolve_arg(m, arg2);
+		}
 
 		free(op);
 		free(arg1); free(arg2);
@@ -620,6 +679,7 @@ int pn_run(pn_machine *m)
 
 #   define NEXT    m->Ip++; break
 
+	acl_t *acl;
 	char *log;
 	while (m->Ip < m->codesize) {
 		switch (PC.op) {
@@ -702,7 +762,7 @@ int pn_run(pn_machine *m)
 		case PN_OP_PRINT:
 			m->S1 = (pn_word)PC.arg1;
 			pn_trace(m, TRACE_START " %s\n", TRACE_ARGS, (const char *)m->S1);
-			printf((char *)(m->S1), m->A, m->B, m->C, m->D, m->E, m->F);
+			fprintf(m->output, (char *)(m->S1), m->A, m->B, m->C, m->D, m->E, m->F);
 			NEXT;
 
 		case PN_OP_JUMP:
@@ -768,6 +828,32 @@ int pn_run(pn_machine *m)
 					TRACE_ARGS, TAGV((pn_word)PC.arg1), TAGV((pn_word)PC.arg1));
 			m->R = setenv((char*)TAGV((pn_word)PC.arg1),
 			              (char*)TAGV((pn_word)PC.arg2), 1);
+			NEXT;
+
+		case PN_OP_ACL:
+			pn_trace(m, TRACE_START " %s\n",
+					TRACE_ARGS, TAGV((pn_word)PC.arg1));
+			acl = acl_parse((char*)TAGV((pn_word)PC.arg1));
+			cw_list_push(m->acl, &acl->l);
+			NEXT;
+
+		case PN_OP_SHOW:
+			pn_trace(m, TRACE_START " %s\n",
+					TRACE_ARGS, TAGV((pn_word)PC.arg1));
+
+			switch (PC.arg1) {
+			case PN_SHOW_VERSION:
+				fprintf(m->output, "%s\n", PACKAGE_VERSION); break;
+			case PN_SHOW_RUNTIME:
+				fprintf(m->output, "%i\n", PENDULUM_VERSION); break;
+			case PN_SHOW_ACLS:
+				s_show_acls(m, (char*)TAGV((pn_word)PC.arg2));
+				break;
+
+			case PN_SHOW_IGNORE:
+			default:
+				break;
+			}
 			NEXT;
 
 		default: pn_die(m, "Unknown / Invalid operand");

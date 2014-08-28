@@ -1,0 +1,57 @@
+#!/bin/sh -e
+
+#
+# clockwork-mesh-server postinst
+#
+# author:  James Hunt <james@niftylogic.com>
+# created: 2014-09-03
+#
+
+CWKEY=/bin/cwkey
+CERTS=/etc/clockwork/certs
+
+create_dir() {
+	dir="$1"
+	name="$2"
+
+	if [ ! -d $dir ]; then
+		echo "Creating $name $dir"
+		mkdir -p $dir
+	fi
+}
+
+create_key() {
+	file="$1"
+	name="$2"
+
+	if test ! -f "$file" && test ! -f "$file.pub"; then
+		echo "Creating $name $file"
+		$CWKEY -f $file
+	fi
+}
+
+case "$1" in
+configure)
+	if [ -x "/etc/init.d/meshd" ]; then
+		# start the server
+		if [ -x /usr/sbin/invoke-rc.d ]; then
+			invoke-rc.d meshd start || true
+		else
+			/etc/init.d/meshd start || true
+		fi
+	fi
+
+	if [ -x $CWKEY ]; then
+		create_dir $CERTS       "certificate store"
+		create_key $CERTS/meshd "meshd certificate"
+	fi
+
+	;;
+*)
+	exit 0
+	;;
+esac
+
+#DEBHELPER#
+
+exit 0

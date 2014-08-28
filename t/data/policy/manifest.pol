@@ -544,3 +544,42 @@ policy "map1" {
 	}
 }
 host "map1.test" { enforce "map1" }
+
+policy "acl1" {
+	allow %systems "*"      final
+	allow %dev     "show *"
+	allow juser    "service restart *"
+	deny  %probate "*"
+}
+host "acl1.test" { enforce "acl1" }
+
+policy "acl2" {
+	allow %systems "*" final
+
+	if (sys.fqdn =~ m/example.net/) {
+		allow %example "show *"
+	}
+	if (sys.platform == "HPUX") {
+		allow %hpux "*"
+	} else {
+		allow %hpux "show *" final
+		deny %hpux "*"
+	}
+}
+host "acl2.test" { enforce "acl2" }
+host "acl3.test" { enforce "acl1" enforce "acl2" }
+
+policy "acl4::baseline" { allow %base "query package *" }
+policy "acl4::network" {
+  allow %pre "show version"
+  extend "acl4::baseline"
+  allow %level1 "exec netstat" final
+  allow %systems "*"
+}
+host "acl4.test" { enforce "acl4::network" }
+
+policy "acl5" { allow %group ALL }
+host "acl5.test" { enforce "acl5" }
+
+policy "acl6" { allow user ping }
+host "acl6.test" { enforce "acl6" }

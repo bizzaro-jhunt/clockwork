@@ -31,7 +31,6 @@
 #include <netdb.h>
 #include <getopt.h>
 #include <fcntl.h>
-#include <pthread.h>
 
 #include "policy.h"
 
@@ -47,7 +46,9 @@
 
 typedef struct {
 	void *zmq;
-	void *listener;
+	void *broadcast;
+	void *control;
+
 	char *fqdn;
 	char *gatherers;
 	char *copydown;
@@ -59,6 +60,8 @@ typedef struct {
 	int   mode;
 	int   trace;
 	int   daemonize;
+	int   acl_default;
+	char *acl_file;
 
 	struct {
 		char *endpoint;
@@ -71,6 +74,9 @@ typedef struct {
 
 	cw_cert_t *cert;
 	void *zap;
+
+	cw_list_t *acl;
+	cw_hash_t *facts;
 
 	struct {
 		int64_t next_run;
@@ -123,26 +129,6 @@ static cw_pdu_t *s_sendto(void *socket, cw_pdu_t *pdu, int timeout)
 		if (errno != EINTR) break;
 	}
 	return NULL;
-}
-
-static void s_cogd_run(client_t *c)
-{
-	cw_pdu_t *pdu, *reply;
-	pdu = cw_pdu_recv(c->listener);
-	assert(pdu);
-
-	if (strcmp(pdu->type, "INFO") == 0) {
-		char *code = cw_pdu_text(pdu, 1);
-		cw_log(LOG_DEBUG, "inbound INFO request:\n%s", code);
-
-		reply = cw_pdu_make(pdu->src, 2, "OK", "");
-		cw_pdu_send(c->listener, reply);
-
-	} else {
-		cw_log(LOG_DEBUG, "unrecognized PDU: '%s'", pdu->type);
-		reply = cw_pdu_make(pdu->src, 2, "ERROR", "Unrecognized PDU");
-		cw_pdu_send(c->listener, reply);
-	}
 }
 
 static void *s_connect(client_t *c)
@@ -344,11 +330,11 @@ static void s_cfm_run(client_t *c)
 		fclose(bdfa);
 	}
 
-	cw_hash_t facts;
-	memset(&facts, 0, sizeof(cw_hash_t));
+	cw_hash_done(c->facts, 1);
+	c->facts = cw_alloc(sizeof(cw_hash_t));
 	TIMER(&t, ms_facts) {
 		cw_log(LOG_INFO, "Gathering facts from '%s'", c->gatherers);
-		rc = fact_gather(c->gatherers, &facts) != 0;
+		rc = fact_gather(c->gatherers, c->facts) != 0;
 	}
 	if (rc != 0) {
 		cw_log(LOG_CRIT, "Unable to gather facts from %s", c->gatherers);
@@ -358,9 +344,8 @@ static void s_cfm_run(client_t *c)
 	FILE *io = tmpfile();
 	assert(io);
 
-	rc = fact_write(io, &facts);
+	rc = fact_write(io, c->facts);
 	assert(rc == 0);
-	cw_hash_done(&facts, 1);
 
 	fprintf(io, "%c", '\0');
 	size_t len = ftell(io);
@@ -463,6 +448,8 @@ shut_it_down:
 	                               ms_connect,      ms_hello,       ms_preinit,
 	                               ms_copydown,     ms_facts,       ms_getpolicy,
 	                               ms_parse,        ms_enforce,     ms_cleanup);
+
+	acl_write(c->acl, c->acl_file);
 
 maybe_next_time:
 	cw_unlock(&lock);
@@ -585,11 +572,12 @@ static inline client_t* s_client_new(int argc, char **argv)
 
 
 	LIST(config);
-	cw_cfg_set(&config, "listen",          "*:2304");
 	cw_cfg_set(&config, "timeout",         "5");
 	cw_cfg_set(&config, "gatherers",       CW_GATHER_DIR "/*");
 	cw_cfg_set(&config, "copydown",        CW_GATHER_DIR);
 	cw_cfg_set(&config, "interval",        "300");
+	cw_cfg_set(&config, "acl",             "/etc/clockwork/local.acl");
+	cw_cfg_set(&config, "acl.default",     "deny");
 	cw_cfg_set(&config, "syslog.ident",    "cogd");
 	cw_cfg_set(&config, "syslog.facility", "daemon");
 	cw_cfg_set(&config, "syslog.level",    "error");
@@ -601,11 +589,12 @@ static inline client_t* s_client_new(int argc, char **argv)
 	cw_log_open(cw_cfg_get(&config, "syslog.ident"), "stderr");
 	cw_log_level(0, (getenv("COGD_DEBUG") ? "debug" : "error"));
 	cw_log(LOG_DEBUG, "default configuration:");
-	cw_log(LOG_DEBUG, "  listen          %s", cw_cfg_get(&config, "listen"));
 	cw_log(LOG_DEBUG, "  timeout         %s", cw_cfg_get(&config, "timeout"));
 	cw_log(LOG_DEBUG, "  gatherers       %s", cw_cfg_get(&config, "gatherers"));
 	cw_log(LOG_DEBUG, "  copydown        %s", cw_cfg_get(&config, "copydown"));
 	cw_log(LOG_DEBUG, "  interval        %s", cw_cfg_get(&config, "interval"));
+	cw_log(LOG_DEBUG, "  acl             %s", cw_cfg_get(&config, "acl"));
+	cw_log(LOG_DEBUG, "  acl.default     %s", cw_cfg_get(&config, "acl.default"));
 	cw_log(LOG_DEBUG, "  syslog.ident    %s", cw_cfg_get(&config, "syslog.ident"));
 	cw_log(LOG_DEBUG, "  syslog.facility %s", cw_cfg_get(&config, "syslog.facility"));
 	cw_log(LOG_DEBUG, "  syslog.level    %s", cw_cfg_get(&config, "syslog.level"));
@@ -666,7 +655,6 @@ static inline client_t* s_client_new(int argc, char **argv)
 	            cw_cfg_get(&config, "syslog.facility"));
 	cw_log_level(level, NULL);
 
-
 	cw_log(LOG_DEBUG, "parsing master.* definitions into endpoint records");
 	int n; char key[9] = "master.1", cert[7] = "cert.1";
 	c->nmasters = 0;
@@ -686,8 +674,12 @@ static inline client_t* s_client_new(int argc, char **argv)
 		c->masters[n].cert_file = strdup(s);
 	}
 
+	c->acl_file = strdup(cw_cfg_get(&config, "acl"));
+	cw_log(LOG_DEBUG, "parsing stored ACLs from %s", c->acl_file);
+	c->acl = cw_alloc(sizeof(cw_list_t)); cw_list_init(c->acl);
+	acl_read(c->acl, c->acl_file);
+
 	if (c->mode == MODE_DUMP) {
-		printf("listen          %s\n", cw_cfg_get(&config, "listen"));
 		int i;
 		for (i = 0; i < c->nmasters; i++) {
 			printf("master.%i        %s\n", i+1, c->masters[i].endpoint);
@@ -699,6 +691,8 @@ static inline client_t* s_client_new(int argc, char **argv)
 		printf("gatherers       %s\n", cw_cfg_get(&config, "gatherers"));
 		printf("copydown        %s\n", cw_cfg_get(&config, "copydown"));
 		printf("interval        %s\n", cw_cfg_get(&config, "interval"));
+		printf("acl             %s\n", cw_cfg_get(&config, "acl"));
+		printf("acl.default     %s\n", cw_cfg_get(&config, "acl.default"));
 		printf("syslog.ident    %s\n", cw_cfg_get(&config, "syslog.ident"));
 		printf("syslog.facility %s\n", cw_cfg_get(&config, "syslog.facility"));
 		printf("syslog.level    %s\n", cw_cfg_get(&config, "syslog.level"));
@@ -771,6 +765,8 @@ static inline client_t* s_client_new(int argc, char **argv)
 	c->difftool  = strdup(cw_cfg_get(&config, "difftool"));
 	c->schedule.interval  = 1000 * atoi(cw_cfg_get(&config, "interval"));
 	c->timeout            = 1000 * atoi(cw_cfg_get(&config, "timeout"));
+	c->acl_default = strcmp(cw_cfg_get(&config, "acl.default"), "deny") == 0
+		? ACL_DENY : ACL_ALLOW;
 
 	unsetenv("COGD");
 	if (c->daemonize) {
@@ -787,12 +783,58 @@ static inline client_t* s_client_new(int argc, char **argv)
 
 	if (c->mode == MODE_ONCE || c->mode == MODE_CODE) {
 		cw_log(LOG_DEBUG, "Running under -X/--code or -1/--once; skipping bind");
+
+	} else if (cw_cfg_get(&config, "mesh.broadcast")
+	        && cw_cfg_get(&config, "mesh.control")
+	        && cw_cfg_get(&config, "mesh.cert")) {
+
+		cw_cert_t *ephemeral = cw_cert_generate();
+		cw_cert_t *mesh_cert = cw_cert_read(cw_cfg_get(&config, "mesh.cert"));
+		if (!mesh_cert) {
+			cw_log(LOG_ERR, "mesh.cert %s: %s", cw_cfg_get(&config, "mesh.cert"),
+				errno == EINVAL ? "Invalid Clockwork certificate" : strerror(errno));
+			exit(1);
+		}
+		if (!mesh_cert->pubkey) {
+			cw_log(LOG_ERR, "No public key found in mesh.cert %s", cw_cfg_get(&config, "mesh.cert"));
+			exit(1);
+		}
+
+		char *control   = cw_string("tcp://%s", cw_cfg_get(&config, "mesh.control"));
+		char *broadcast = cw_string("tcp://%s", cw_cfg_get(&config, "mesh.broadcast"));
+
+		int rc;
+		cw_log(LOG_INFO, "Connecting to the mesh control at %s", control);
+		c->control = zmq_socket(c->zmq, ZMQ_DEALER);
+		rc = zmq_setsockopt(c->control, ZMQ_CURVE_SECRETKEY, cw_cert_secret(ephemeral), 32);
+		assert(rc == 0);
+		rc = zmq_setsockopt(c->control, ZMQ_CURVE_PUBLICKEY, cw_cert_public(ephemeral), 32);
+		assert(rc == 0);
+		rc = zmq_setsockopt(c->control, ZMQ_CURVE_SERVERKEY, cw_cert_public(mesh_cert), 32);
+		assert(rc == 0);
+		rc = zmq_connect(c->control, control);
+		assert(rc == 0);
+
+
+		cw_log(LOG_INFO, "Subscribing to the mesh broadcast at %s", broadcast);
+		c->broadcast = zmq_socket(c->zmq, ZMQ_SUB);
+		rc = zmq_setsockopt(c->broadcast, ZMQ_CURVE_SECRETKEY, cw_cert_secret(ephemeral), 32);
+		assert(rc == 0);
+		rc = zmq_setsockopt(c->broadcast, ZMQ_CURVE_PUBLICKEY, cw_cert_public(ephemeral), 32);
+		assert(rc == 0);
+		rc = zmq_setsockopt(c->broadcast, ZMQ_CURVE_SERVERKEY, cw_cert_public(mesh_cert), 32);
+		assert(rc == 0);
+		rc = zmq_connect(c->broadcast, broadcast);
+		assert(rc == 0);
+		rc = zmq_setsockopt(c->broadcast, ZMQ_SUBSCRIBE, NULL, 0);
+		assert(rc == 0);
+
+
+		cw_cert_destroy(ephemeral);
+
 	} else {
-		s = cw_string("tcp://%s", cw_cfg_get(&config, "listen"));
-		cw_log(LOG_DEBUG, "binding to %s", s);
-		c->listener = zmq_socket(c->zmq, ZMQ_ROUTER);
-		zmq_bind(c->listener, s);
-		free(s);
+		cw_log(LOG_INFO, "Skipping mesh registeration");
+		c->broadcast = c->control = NULL;
 	}
 
 	c->cfm_lock = cw_string("%s/%s",
@@ -813,7 +855,6 @@ static void s_client_free(client_t *c)
 {
 	assert(c);
 	int i;
-	cw_zap_shutdown(c->zap);
 	cw_cert_destroy(c->cert);
 	for (i = 0; i < c->nmasters; i++) {
 		free(c->masters[i].endpoint);
@@ -821,12 +862,33 @@ static void s_client_free(client_t *c)
 		cw_cert_destroy(c->masters[i].cert);
 	}
 
+	acl_t *a, *a_tmp;
+	for_each_object_safe(a, a_tmp, c->acl, l)
+		acl_destroy(a);
+	free(c->acl);
+	free(c->acl_file);
+
+	cw_hash_done(c->facts, 1);
+	free(c->facts);
+
 	free(c->gatherers);
 	free(c->copydown);
 	free(c->difftool);
 	free(c->fqdn);
 	free(c->cfm_lock);
 	free(c->cfm_killswitch);
+
+	if (c->broadcast) {
+		cw_log(LOG_DEBUG, "shutting down mesh broadcast socket");
+		cw_zmq_shutdown(c->broadcast, 0);
+	}
+	if (c->control) {
+		cw_log(LOG_DEBUG, "shutting down mesh control socket");
+		cw_zmq_shutdown(c->control, 0);
+	}
+	cw_zap_shutdown(c->zap);
+	zmq_ctx_destroy(c->zmq);
+
 	free(c);
 }
 
@@ -846,7 +908,7 @@ int main(int argc, char **argv)
 
 	while (!cw_sig_interrupt()) {
 		zmq_pollitem_t socks[] = {
-			{ c->listener, 0, ZMQ_POLLIN, 0 },
+			{ c->broadcast, 0, ZMQ_POLLIN, 0 },
 		};
 
 		int time_left = (int)((c->schedule.next_run - cw_time_ms()));
@@ -858,21 +920,42 @@ int main(int argc, char **argv)
 		if (rc == -1)
 			break;
 
-		if (socks[0].revents & ZMQ_POLLIN)
-			s_cogd_run(c);
+		if (socks[0].revents == ZMQ_POLLIN) {
+			mesh_client_t *client = mesh_client_new();
+			rc = mesh_client_setopt(client, MESH_CLIENT_FACTS, c->facts, sizeof(c->facts));
+			assert(rc == 0);
 
-		if (cw_time_ms() >= c->schedule.next_run)
+			rc = mesh_client_setopt(client, MESH_CLIENT_ACL, c->acl, sizeof(c->acl));
+			assert(rc == 0);
+
+			rc = mesh_client_setopt(client, MESH_CLIENT_ACL_DEFAULT, &c->acl_default, sizeof(c->acl_default));
+			assert(rc == 0);
+
+			rc = mesh_client_setopt(client, MESH_CLIENT_FQDN, c->fqdn, strlen(c->fqdn));
+			assert(rc == 0);
+
+			rc = mesh_client_setopt(client, MESH_CLIENT_GATHERERS, c->gatherers, strlen(c->gatherers));
+			assert(rc == 0);
+
+			cw_pdu_t *pdu = cw_pdu_recv(c->broadcast);
+			rc = mesh_client_handle(client, c->control, pdu);
+			cw_pdu_destroy(pdu);
+
+			mesh_client_destroy(client);
+		}
+
+		if (cw_time_ms() >= c->schedule.next_run) {
 			s_cfm_run(c);
+#ifdef UNIT_TESTS
+			if (getenv("TEST_COGD_BAIL_EARLY"))
+				exit(0);
+#endif
+		}
 	}
 
 shut_it_down:
 	cw_log(LOG_INFO, "shutting down");
 
-	if (c->listener) {
-		cw_zmq_shutdown(c->listener, 500);
-		cw_log(LOG_DEBUG, "shutdown listener socket (500ms linger)");
-	}
-	zmq_ctx_destroy(c->zmq);
 	s_client_free(c);
 	cw_log_close();
 	return 0;

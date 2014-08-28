@@ -1,0 +1,31 @@
+#!/bin/sh -e
+
+#
+# clockwork-server prerm
+#
+# author:  James Hunt <james@niftylogic.com>
+# created: 2014-09-03
+#
+
+case "$1" in
+upgrade|remove)
+	if [ -x "/etc/init.d/meshd" ]; then
+		if [ -x /usr/sbin/invoke-rc.d ]; then
+			invoke-rc.d meshd stop || true
+		else
+			/etc/init.d/meshd stop || true
+		fi
+	fi
+	sleep 2
+	;;
+deconfigure|failed-upgrade)
+	;;
+*)
+	echo >&2 "prerm called with unknown argument \`$1'"
+	exit 1
+	;;
+esac
+
+#DEBHELPER#
+
+exit 0

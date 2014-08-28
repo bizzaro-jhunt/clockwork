@@ -25,7 +25,6 @@
 #include <libgen.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <pcre.h>
 
 #include "policy.h"
 #include "resource.h"
@@ -745,6 +744,7 @@ static int _policy_generate(struct stree *node, struct policy_generator *pgen, i
 {
 	unsigned int i;
 	struct dependency dep;
+	acl_t *acl;
 
 again:
 	assert(node); // LCOV_EXCL_LINE
@@ -805,6 +805,33 @@ again:
 		free(dep.b);
 
 		policy_add_dependency(pgen->policy, pgen->dep);
+		return 0; /* don't need to traverse the RESOURCE_ID nodes */
+
+	case ACL:
+		if (node->size != 2) {
+			cw_log(LOG_ERR, "Corrupt ACL!");
+			return -1;
+		}
+
+		acl = acl_new();
+		acl->disposition  = strcmp(node->data1, "allow") == 0 ? ACL_ALLOW : ACL_DENY;
+		acl->is_final     = strcmp(node->data2, "final") == 0 ? 1 : 0;
+		acl->target_user  = node->nodes[0]->data1;
+		acl->target_group = node->nodes[0]->data2;
+		acl->pattern      = cmd_parse(node->nodes[1]->data1, COMMAND_PATTERN);
+		if (!acl->pattern) {
+			cw_log(LOG_ERR, "Corrupt ACL - failed to parse command '%s'",
+					node->nodes[1]->data1);
+			return -1;
+		}
+		if (!acl->target_user && !acl->target_group) {
+			cw_log(LOG_ERR, "Corrupt ACL - no user or group specified");
+			return -1;
+		}
+
+		if (acl->disposition == ACL_DENY) acl->is_final = 1;
+
+		cw_list_push(&pgen->policy->acl, &acl->l);
 		return 0; /* don't need to traverse the RESOURCE_ID nodes */
 
 	case PROG:
@@ -901,6 +928,7 @@ struct policy* policy_new(const char *name)
 
 	cw_list_init(&pol->resources);
 	cw_list_init(&pol->dependencies);
+	cw_list_init(&pol->acl);
 	pol->index = cw_alloc(sizeof(cw_hash_t));
 	pol->cache = cw_alloc(sizeof(cw_hash_t));
 
@@ -932,10 +960,12 @@ void policy_free_all(struct policy *pol)
 {
 	struct resource *r, *r_tmp;
 	struct dependency *d, *d_tmp;
+	acl_t *a, *a_tmp;
 
 	if (pol) {
 		for_each_resource_safe(r, r_tmp, pol) { resource_free(r); }
 		for_each_dependency_safe(d, d_tmp, pol) { dependency_free(d); }
+		for_each_acl_safe(a, a_tmp, pol) { acl_destroy(a); }
 	}
 	policy_free(pol);
 }
@@ -1031,6 +1061,10 @@ int policy_add_dependency(struct policy *pol, struct dependency *dep)
 
 int policy_gencode(const struct policy *pol, FILE *io)
 {
+	acl_t *a;
+	for_each_acl(a, pol)
+		acl_gencode(a, io);
+
 	struct resource *r;
 	unsigned int next = 0;
 	for_each_resource(r, pol) {

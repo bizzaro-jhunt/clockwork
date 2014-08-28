@@ -13,7 +13,7 @@ endif
 syn keyword   clockworkTodo           contained TODO FIXME XXX
 syn match     clockworkComment        "#.*" contains=clockworkTodo
 
-syn match     clockworkType           /host\|policy\|user\|file\|group\|package\|service\|sysctl\|dir\|exec\|symlink/
+syn match     clockworkType           /\<\(host\|policy\|user\|file\|group\|package\|service\|sysctl\|dir\|exec\|symlink\) /
 syn keyword   clockworkKeyword        if unless else map is not like and or not
 syn match     clockworkOperator       /==\|!=\|=\~\|!\~\|!/
 syn match     clockworkDepKeyword     /depends  *on\|affects/
@@ -24,7 +24,13 @@ syn match     clockworkRegex          /m?\/(\\\/|[^\/])*\/i?/
 syn match     clockworkRegex          /m|(\\||[^|])*|i?/
 syn match     clockworkAttribute      /\I\i*\s*\(:\)\@=/ display
 syn region    clockworkString         start=+L\="+ skip=+\\\\\|\\"\|\\$+ excludenl end=+"+
-syn match     clockworkNumber         "[0-9][0-9]*"
+syn match     clockworkNumber         "[0-9]\+"
+
+syn region    clockworkACL            start="\(allow\|deny\)" end="}\|\n"
+syn match     clockworkACLUser        "[a-zA-Z_][a-zA-Z0-9_]*" contained containedin=clockworkACL
+syn match     clockworkACLGroup       "%[a-zA-Z_][a-zA-Z0-9_]*" contained containedin=clockworkACL
+syn region    clockworkACLCommand     start=+L\="+ skip=+\\\\\|\\"\|\\$+ excludenl end=+"+ contained containedin=clockworkACL
+syn keyword   clockworkACLKeyword     allow deny final ALL contained containedin=clockworkACL
 
 syn region    clockworkRegex matchgroup=clockworkRegexDelim  start=+\</+ end=+/[i]*+ contains=@clockworkRegexInt keepend extend
 syn region    clockworkRegex matchgroup=clockworkRegexDelim start=+\<m/+ end=+/[i]*+ contains=@clockworkRegexInt keepend extend
@@ -61,6 +67,11 @@ hi def link   clockworkFact           Special
 hi def link   clockworkAttribute      Statement
 hi def link   clockworkString         String
 hi def link   clockworkNumber         String
+
+hi def link   clockworkACLUser        Identifier
+hi def link   clockworkACLGroup       Identifier
+hi def link   clockworkACLCommand     String
+hi def link   clockworkACLKeyword     Statement
 
 hi def link   clockworkRegex          String
 hi def link   clockworkRegexDelim     Statement

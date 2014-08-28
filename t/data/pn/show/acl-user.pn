@@ -1,0 +1,5 @@
+ACL "allow user1 \"show version\""
+ACL "allow user2 \"show *\""
+ACL "allow %systems \"*\" final"
+ACL "deny %dev \"package *\""
+SHOW acls "user1:group:dev"

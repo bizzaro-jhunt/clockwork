@@ -247,7 +247,7 @@ on_gentoo () {
 	case $ACTION in
 	pkg-version)
 		NAME=$1
-		if /usr/bin/eix -I -e "$NAME" ; then
+		if /usr/bin/eix -I -q -e "$NAME" ; then
 			exit $?
 		else
 			/usr/bin/eix -e "$NAME" --format '<installedversions:EQNAMEVERSION>' | sed -e 's,'"$NAME-"',,'

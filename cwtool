@@ -6,6 +6,9 @@
 # author:  James Hunt <james@niftylogic.com>
 # created: 2014-05-20
 #
+# author:  Dan Molik <dan@d3fy.net>
+# updated: 2014-09-03
+#
 
 # USAGE: cwtool <action> [arguments]
 #
@@ -34,12 +37,16 @@ export PATH=/sbin:/bin:/usr/sbin:/usr/bin
 
 AUTO_PKG=undetermined
 if test -x "/usr/bin/dpkg-query" \
-&& test -x "/usr/bin/apt-get"; then
+  && test -x "/usr/bin/apt-get"; then
 	AUTO_PKG=debian
 
 elif test -x "/bin/rpm" \
   && test -x "/usr/bin/yum"; then
 	AUTO_PKG=redhat
+
+elif test -x "/usr/bin/emerge" \
+  && test -x "/usr/bin/eix"; then
+	AUTO_PKG=gentoo
 fi
 
 AUTO_SVC=undetermined
@@ -49,7 +56,11 @@ if test -x "/usr/sbin/invoke-rc.d" \
 
 elif test -x "/sbin/chkconfig"; then
 	AUTO_SVC=redhat
+
+elif test -x "/sbin/rc-update"; then
+	AUTO_SVC=gentoo
 fi
+
 
 #################################################################
 
@@ -222,7 +233,94 @@ on_redhat () {
 		;;
 	svc-disable)
 		NAME=$1
-		/sbin/chkconfig "$NAME" on
+		/sbin/chkconfig "$NAME" off
+		exit $?
+		;;
+	esac
+}
+
+#################################################################
+
+on_gentoo () {
+	export CLEAN_DELAY=0
+
+	case $ACTION in
+	pkg-version)
+		NAME=$1
+		if /usr/bin/eix -I -e "$NAME" ; then
+			exit $?
+		else
+			/usr/bin/eix -e "$NAME" --format '<installedversions:EQNAMEVERSION>' | sed -e 's,'"$NAME-"',,'
+			exit 0
+		fi
+		;;
+	pkg-latest)
+		NAME=$1
+		/usr/bin/eix-sync -q
+		/usr/bin/eix -q -e "$NAME"
+		exit $?
+		;;
+	pkg-install)
+		NAME=$1
+		VERSION=$2
+		if [ "x$VERSION" = "xlatest" ]; then
+			if /usr/bin/eix -q -u -e "$NAME" ; then
+				/usr/bin/emerge -q "$NAME"
+				exit $?
+			fi
+			exit 0
+		else
+			# specific version
+			if /usr/bin/eix -q -e "$NAME-$VERSION" ; then
+				/usr/bin/emerge -q "$NAME-$VERSION"
+				exit $?
+			fi
+			exit 0
+		fi
+		;;
+	pkg-remove)
+		NAME=$1
+		if /usr/bin/eix -n -q -e "$NAME" -! -I ; then
+			/usr/bin/emerge -q -C "$NAME"
+			exit $?
+		fi
+		exit 0
+		;;
+
+	svc-run-status)
+		NAME=$1
+		/sbin/service $NAME status
+		exit $?
+		;;
+	svc-boot-status)
+		NAME=$1
+		/sbin/rc-update | /bin/grep -q "$NAME"
+		exit $?
+		;;
+	svc-init)
+		NAME=$1
+		VERB=$2
+		if test "x$NAME" = "xcogd" && test "x$VERB" = "xrestart" && test "x$COGD" != "x"; then
+			touch /var/lock/cogd/.needs-restart
+		else
+			/sbin/service $NAME $VERB
+		fi
+		exit $?
+		;;
+	svc-init-force)
+		NAME=$1
+		VERB=$2
+		/sbin/service $NAME $VERB
+		exit $?
+		;;
+	svc-enable)
+		NAME=$1
+		/sbin/rc-update add "$NAME"
+		exit $?
+		;;
+	svc-disable)
+		NAME=$1
+		/sbin/rc-update del "$NAME"
 		exit $?
 		;;
 	esac
@@ -242,6 +340,9 @@ debian)
 	;;
 redhat)
 	on_redhat "$@"
+	;;
+gentoo)
+	on_gentoo "$@"
 	;;
 *)
 	# unknown flavor

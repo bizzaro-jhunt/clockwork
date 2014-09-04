@@ -247,10 +247,11 @@ on_gentoo () {
 	case $ACTION in
 	pkg-version)
 		NAME=$1
-		if /usr/bin/eix -I -q -e "$NAME" ; then
+		/usr/bin/eix -I -q -e "$NAME"
+		if [ $? -ne 0 ]; then
 			exit $?
 		else
-			/usr/bin/eix -e "$NAME" --format '<installedversions:EQNAMEVERSION>' | sed -e 's,'"$NAME-"',,'
+			/usr/bin/eix -e "$NAME" --format '<installedversions:NAMEVERSION>' | sed -e 's,'"$NAME-"',,'
 			exit 0
 		fi
 		;;
@@ -264,27 +265,33 @@ on_gentoo () {
 		NAME=$1
 		VERSION=$2
 		if [ "x$VERSION" = "xlatest" ]; then
-			if /usr/bin/eix -q -u -e "$NAME" ; then
+			/usr/bin/eix -n -q -e "$NAME" -! -u
+			if [ $? -ne 0 ]; then
 				/usr/bin/emerge -q "$NAME"
 				exit $?
 			fi
-			exit 0
-		else
-			# specific version
-			if /usr/bin/eix -q -e "$NAME-$VERSION" ; then
-				/usr/bin/emerge -q "$NAME-$VERSION"
+			/usr/bin/eix -n -q -e "$NAME" -I
+			if [ $? -ne 0 ]; then
+				/usr/bin/emerge -q "$NAME"
 				exit $?
 			fi
-			exit 0
+			exit $?
+		else
+			# specific version
+			P_VERSION=$(/usr/bin/eix -n -e "$NAME" --format '<installedversions:NAMEVERSION>' | sed -e 's,'"$NAME-"',,')
+			if [ "$P_VERSION" != "$VERSION" ]; then
+				/usr/bin/emerge -q "$NAME-$VERSION"
+			fi
+			exit $?
 		fi
 		;;
 	pkg-remove)
 		NAME=$1
-		if /usr/bin/eix -n -q -e "$NAME" -! -I ; then
+		/usr/bin/eix -n -q -e "$NAME" -! -I
+		if [ $? -ne 0 ]; then
 			/usr/bin/emerge -q -C "$NAME"
-			exit $?
 		fi
-		exit 0
+		exit $?
 		;;
 
 	svc-run-status)

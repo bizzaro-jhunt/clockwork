@@ -233,7 +233,7 @@ on_redhat () {
 		;;
 	svc-disable)
 		NAME=$1
-		/sbin/chkconfig "$NAME" on
+		/sbin/chkconfig "$NAME" off
 		exit $?
 		;;
 	esac

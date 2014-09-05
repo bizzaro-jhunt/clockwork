@@ -160,7 +160,7 @@ should be followed whenever possible, unless there is good reason not to.
         If a module (like stringlist) allocates an area of memory, either
         because it was asked to (stringlist_add) or as part of its integral
         operation, that module is responsible for freeing that memory.  It
-        should not be left to the caller to fre memory allocated on their
+        should not be left to the caller to free memory allocated on their
         behalf.
 
  2. An object must not take responsibility for memory areas presented to
@@ -221,10 +221,11 @@ as C routines inside of the client-side agent.  After implementing uname through
 the eponymous system call, and then adding LSB support via file parsing, it seems
 it would be easier and more flexible to use independent scripts.
 
-In this architecture, the fact gatherer would only need to exec multiple binaries
-(which could be Perl, Ruby or Bash scripts) and parse the output.  The parsing
-routines only need to be implemented once for the gatherer.  Since more scripts could
-be added later (perhaps as part of a policy) this approach gains flexibility.
+In the current architecture, the fact gatherer would only need to exec multiple
+binaries (which could be Perl, Ruby or Bash scripts) and parse the output.  The
+parsing routines only need to be implemented once for the gatherer.  Since more
+scripts could be added later (perhaps as part of a policy) this approach gains
+flexibility.
 
 If the speed / optimization of C over external command interpreters is a concern,
 fact gatherers could be implemented as standalone C programs that speak the same
@@ -321,7 +322,7 @@ spoofing file contents from the master.  This is not good.
 Another idea was to implement a standalone (or built-in-but-separate) file server /
 content server that could dole out files on demand.  In theory, it works well, and
 provides a neat and clean separation of duties.  In practice, it brings in way too
-many security access problems, efficiency concerns.  Thornier issues crop up when
+many security access problems and efficiency concerns.  Thornier issues crop up when
 you start getting into templated, dynamic files generated from client host facts.
 
 Instead, why not keep the connection to the policy master open until the client
@@ -338,8 +339,8 @@ imperative methods of configuration management, and an affinity for the declarat
 approach.  You tell the tool what you want, and it determines the best sequence of
 actions to take to get the system there.
 
-As awesome as that concept is, it doesn't track too well with people.  We are
-imperative, task-based creatures.  "I want Z, so I should do X and then Y"
+As awesome as that concept is, it doesn't track very well with actual people.  We
+are imperative, task-based creatures.  "I want Z, so I should do X and then Y."
 
 One of my biggest complaints with these existing systems is the mental workout
 required to unroll a declarative configuration into its imperative format.  Most
@@ -350,7 +351,7 @@ user joe needs to be created first, and so does the group 'staff'.  When those
 dependencies are impossible to deduce, the system falls back to explicit dependency
 specification from the config.  For example, Puppet lets you "notify" a service when
 a file changes.  That's a fancy way of saying 'restart service B after updating
-file A'.
+file A, and only setup service B after file A is accounted for.'
 
 Clockwork will (and does) embrace the declarative approach.  However, I must draw
 the line at coming up with terms that don't sound imperative, when in fact they are.
@@ -360,7 +361,7 @@ If you need a resource to be evaluated after another, then the language will be
 
 5.10. Resource Trees
 --------------------
-Now that the declarative imperative tirade is over, here's some notes on Resouce Trees.
+Now that the declarative imperative tirade is over, here's some notes on Resource Trees.
 Resource Trees represent the implicit and explicit dependecies in a configuration.
 We could just ignore these dependencies and hope that successive runs get us closer
 and closer to the configuration, but that's a real disservice to system administrators.
@@ -374,9 +375,9 @@ be pretty easy.  Define a struct rtree that contains:
  * a list of dependent resources (as struct rtrees).
 
 (Astute comp sci grads will notice that this is a run-of-the-mill non-binary tree.)
-"Free" resources, that have no further dependencies exist as leaf nodes.  These go through
-remediation first, followed by their parents.  Consider the following graph, with each
-letter representing a resource.
+"Free" resources - that have no further dependencies - exist as leaf nodes.  These
+go through remediation first, followed by their parents.  Consider the following
+graph, with each letter representing a resource.
 
    A -- B -- D
    |     `-- E
@@ -416,7 +417,7 @@ Three operations later, after remediating F:
         |--- G
          `-- H
 
-This could be done through rtree delete/free, or by flagging the rtree node as 'done'
+This could be done through rtree delete/free, or by flagging the rtree node as 'done'.
 
 Another sidenote: the policy master really should be able to identify cycles in the graph
 (i.e. A depends on B, which itself depends on A).  However, without client facts, this
@@ -508,9 +509,9 @@ Key:  . = detection
 
   NOTE: For res_package, it will be best to rely on the
         package manager of choice for the local platform.  For
-        RedHat, use yum or up2date.  For Deb/Ubu, use apt*.
-        Trying to integrate with these package manager DBs
-        via C APIs seems to be too much work for little gain.
+        RedHat, use yum.  For Deb/Ubu, use apt*.  Trying to 
+        integrate with these package manager DBs via C APIs seems 
+        to be too much work for little gain.
 
   DEBIAN:
           check installed:   "dpkg-query -W -f='${Version}' %s"
@@ -666,7 +667,7 @@ Resources must be defined inside of a policy; they cannot be defined
 globally, nor can they be nested inside of other resources.  Policies can
 only be defined at the top level (globally); they cannot nest.
 
-Attributes (which belong exclusibely to resource block) are defined in the
+Attributes (which belong exclusively to resource blocks) are defined in the
 form attribute_name: "value of attribute", where <attribute_name> is some
 keyword understood by the underlying resource type, and "value of attribute"
 is an appropriate value for the attribute.
@@ -699,7 +700,7 @@ map blocks at the attirbute value.  Consider the following:
 
 The 'if' conditional block surrounding the "ubuntu" user definition ensures
 that the user will only be defined in the host fact "lsb.distro.id" is equal
-to the string "Ubuntu" (via case-sensitive string comparison).  If ths
+to the string "Ubuntu" (via case-sensitive string comparison).  If this
 policy is applied to a Fedora or CentOS installation, the if test will fail,
 and the user resource will not be defined.
 
@@ -764,7 +765,7 @@ the semantics are identical to most programming languages:
 
   }
 
-As the coments indicate, on Ubuntu boxes, user 42 will be named "ubuntu",
+As the comments indicate, on Ubuntu boxes user 42 will be named "ubuntu",
 and everywhere else (Gentoo, Debian, Slack) it will be "linux".
 
 The map construct works similarly, supplying a default attribute value if

@@ -49,6 +49,9 @@ AC_CHECK_LIB(pcre,
 AC_HAVE_LIBRARY(ctap,,
 	AC_MSG_ERROR(Missing ctap testing library))
 
+AC_HAVE_LIBRARY(sodium,,
+	AC_MSG_ERROR(Missing sodium encryption library))
+
 ################################################
 
 PKG_CHECK_MODULES([AUGEAS], [augeas])

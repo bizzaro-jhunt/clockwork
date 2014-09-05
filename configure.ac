@@ -47,7 +47,7 @@ AC_CHECK_LIB(pcre,
 	AC_MSG_ERROR(Missing PCRE library))
 
 AC_HAVE_LIBRARY(ctap,,
-	AC_MSG_ERROR(Missing ctap testing library))
+                AC_MSG_ERROR(Missing ctap testing library - see http://github.com/filefrog/ctap))
 
 AC_HAVE_LIBRARY(sodium,,
 	AC_MSG_ERROR(Missing sodium encryption library))

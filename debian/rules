@@ -25,11 +25,13 @@ override_dh_auto_configure:
 
 override_dh_installinit:
 	dh_installinit --name clockd
+	dh_installinit --name meshd
 	dh_installinit --name cogd
 
 override_dh_strip:
-	dh_strip -pclockwork-server --dbg-package=clockwork-server-dbg
-	dh_strip -pclockwork-agent  --dbg-package=clockwork-agent-dbg
+	dh_strip -pclockwork-server      --dbg-package=clockwork-server-dbg
+	dh_strip -pclockwork-mesh-server --dbg-package=clockwork-mesh-server-dbg
+	dh_strip -pclockwork-agent       --dbg-package=clockwork-agent-dbg
 
 #install: build
 #	dh_testdir

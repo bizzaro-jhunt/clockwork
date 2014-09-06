@@ -256,7 +256,7 @@ parser_spec_src += src/spec/lexer.l src/spec/lexer_impl.h
 parser_spec_src += src/spec/grammar.y
 
 sbindir = "$(prefix)/sbin"
-sbin_PROGRAMS       = cwpol cwcc clockd cogd cwtrust authtest meshd cw-run
+sbin_PROGRAMS       = cwpol cwcc clockd cogd cwtrust authtest meshd
 cwpol_SOURCES       = src/cwpol.c    $(core_src) $(parser_spec_src)
 cwcc_SOURCES        = src/cwcc.c     $(core_src) $(parser_spec_src)
 clockd_SOURCES      = src/clockd.c   $(core_src) $(parser_spec_src)
@@ -264,14 +264,14 @@ cogd_SOURCES        = src/cogd.c     $(core_src) $(parser_spec_src)
 cwtrust_SOURCES     = src/cwtrust.c  $(core_src)
 authtest_SOURCES    = src/authtest.c $(core_src)
 meshd_SOURCES       = src/meshd.c    $(core_src)
-cw_run_SOURCES      = src/cw-run.c   $(core_src)
 
 dist_bin_SCRIPTS    = cwtool cw-template-erb
-bin_PROGRAMS        = bdfa fact pn cwkey
+bin_PROGRAMS        = bdfa fact pn cwkey cw-run
 bdfa_SOURCES        = src/bdfa.c src/cw.h src/cw.c
 fact_SOURCES        = src/fact.c  $(core_src)
 pn_SOURCES          = src/pn.c    $(core_src)
 cwkey_SOURCES       = src/cwkey.c $(core_src)
+cw_run_SOURCES      = src/cw-run.c $(core_src)
 
 ############################################################
 

@@ -2,6 +2,8 @@ addon: clockwork
 description: "Syntax highlighting for clockwork"
 files:
   - ftdetect/clockwork.vim
-  - syntax/clockwork.vim
   - syntax/clockd.vim
+  - syntax/clockwork.vim
   - syntax/cogd.vim
+  - syntax/cwrc.vim
+  - syntax/meshd.vim

@@ -3,6 +3,7 @@ bin/cwtool
 bin/fact
 bin/pn
 examples/cogd.conf etc/clockwork
+examples/cw.conf   etc/clockwork
 lib/clockwork/augeas
 lib/clockwork/gather.d
 sbin/cogd

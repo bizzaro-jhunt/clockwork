@@ -3,3 +3,5 @@ extras/vim/registry/vim-clockwork.yaml  usr/share/vim/registry
 extras/vim/syntax/clockd.vim            usr/share/vim/addons/syntax
 extras/vim/syntax/clockwork.vim         usr/share/vim/addons/syntax
 extras/vim/syntax/cogd.vim              usr/share/vim/addons/syntax
+extras/vim/syntax/cwrc.vim              usr/share/vim/addons/syntax
+extras/vim/syntax/meshd.vim             usr/share/vim/addons/syntax

@@ -916,7 +916,7 @@ int main(int argc, char **argv)
 		cw_log(LOG_DEBUG, "zmq_poll for %ims", time_left);
 
 		errno = 0;
-		int rc = zmq_poll(socks, 1, time_left);
+		int rc = zmq_poll(socks, c->broadcast ? 1 : 0, time_left);
 		if (rc == -1)
 			break;
 

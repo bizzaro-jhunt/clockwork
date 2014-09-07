@@ -322,6 +322,9 @@ static int _manifest_validate(struct stree *node)
 	case EXPR_EQ:
 	case EXPR_VAL:
 	case EXPR_FACT:
+	case ACL:
+	case ACL_SUBJECT:
+	case ACL_COMMAND:
 		for (i = 0; i < node->size; i++)
 			if (_manifest_validate(node->nodes[i]) != 0)
 				return 1;

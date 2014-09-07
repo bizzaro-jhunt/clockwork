@@ -336,7 +336,6 @@ char* userdb_lookup(struct pwdb *pdb, struct grdb *gdb, const char *name)
 		next = next->next;
 	}
 
-	stringlist_uniq(creds);
 	char *list = stringlist_join(creds, ":");
 	stringlist_free(creds);
 	return list;

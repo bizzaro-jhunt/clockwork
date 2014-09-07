@@ -151,6 +151,7 @@ static client_t* s_init(int argc, char **argv)
 	struct stringlist *filters = stringlist_new(NULL);
 
 	cw_log_open("cw-run", "stderr");
+	cw_log_level(LOG_ERR, NULL);
 
 	char *x, *config_file = NULL;
 	int opt, idx = 0;

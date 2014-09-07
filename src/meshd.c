@@ -48,7 +48,7 @@ static inline mesh_server_t *s_server_new(int argc, char **argv)
 	cw_cfg_set(&config, "pidfile",             "/var/run/meshd.pid");
 
 	cw_log_open(cw_cfg_get(&config, "syslog.ident"), "stderr");
-	cw_log_level(0, (getenv("DCOGD_DEBUG") ? "debug" : "error"));
+	cw_log_level(0, (getenv("MESHD_DEBUG") ? "debug" : "error"));
 	cw_log(LOG_DEBUG, "default configuration:");
 	cw_log(LOG_DEBUG, "  broadcast           %s", cw_cfg_get(&config, "broadcast"));
 	cw_log(LOG_DEBUG, "  control             %s", cw_cfg_get(&config, "control"));
@@ -239,6 +239,7 @@ static inline mesh_server_t *s_server_new(int argc, char **argv)
 	mesh_server_t *s = mesh_server_new(NULL);
 	int rc = mesh_server_setopt(s, MESH_SERVER_CERTIFICATE, cert, sizeof(cw_cert_t));
 	assert(rc == 0);
+	cw_cert_destroy(cert);
 
 	size_t len = atoi(cw_cfg_get(&config, "client.connections"));
 	rc = mesh_server_setopt(s, MESH_SERVER_CACHE_SIZE, &len, sizeof(len));
@@ -281,6 +282,7 @@ int main(int argc, char **argv)
 #endif
 	mesh_server_t *s = s_server_new(argc, argv);
 	mesh_server_run(s);
+	mesh_server_destroy(s);
 
 	cw_log(LOG_INFO, "shutting down");
 	cw_log_close();

@@ -2354,7 +2354,7 @@ int cw_cache_tune(cw_cache_t **cc, size_t len, int32_t min_life)
 		for_each_key_value(&(*cc)->index, k, v)
 			cw_hash_set(&new->index, k, v);
 
-		(*cc)->destroy_f = NULL;
+		new->destroy_f = (*cc)->destroy_f;
 		cw_cache_free((*cc));
 		*cc = new;
 	}

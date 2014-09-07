@@ -621,7 +621,7 @@ TESTS {
 		isnt_null(gdb = grdb_init(GRFILE), "read group db");
 
 		char *s = userdb_lookup(pdb, gdb, "account1");
-		is_string(s, "account1:members:service:users",
+		is_string(s, "account1:users:members:service",
 				"Generated user and groups list");
 		free(s);
 

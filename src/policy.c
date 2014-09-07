@@ -819,15 +819,18 @@ again:
 		acl = acl_new();
 		acl->disposition  = strcmp(node->data1, "allow") == 0 ? ACL_ALLOW : ACL_DENY;
 		acl->is_final     = strcmp(node->data2, "final") == 0 ? 1 : 0;
-		acl->target_user  = node->nodes[0]->data1;
-		acl->target_group = node->nodes[0]->data2;
 		acl->pattern      = cmd_parse(node->nodes[1]->data1, COMMAND_PATTERN);
 		if (!acl->pattern) {
 			cw_log(LOG_ERR, "Corrupt ACL - failed to parse command '%s'",
 					node->nodes[1]->data1);
 			return -1;
 		}
-		if (!acl->target_user && !acl->target_group) {
+
+		if (node->nodes[0]->data1) {
+			acl->target_user = strdup(node->nodes[0]->data1);
+		} else if (node->nodes[0]->data2) {
+			acl->target_group = strdup(node->nodes[0]->data2);
+		} else {
 			cw_log(LOG_ERR, "Corrupt ACL - no user or group specified");
 			return -1;
 		}

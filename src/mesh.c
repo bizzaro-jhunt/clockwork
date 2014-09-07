@@ -133,22 +133,21 @@ static char * s_qstring(const char *a, const char *b)
 
 static void s_mesh_slot_free(void *p)
 {
+	if (!p) return;
 	mesh_slot_t *c = (mesh_slot_t*)p;
-	if (c) {
-		free(c->ident);
-		free(c->username);
-		free(c->command);
+	free(c->ident);
+	free(c->username);
+	free(c->command);
 
-		mesh_result_t *r, *tmp;
-		for_each_object_safe(r, tmp, &c->results, l) {
-			free(r->fqdn);
-			free(r->status);
-			free(r->output);
-			free(r);
-		}
-
-		free(c);
+	mesh_result_t *r, *tmp;
+	for_each_object_safe(r, tmp, &c->results, l) {
+		free(r->fqdn);
+		free(r->status);
+		free(r->output);
+		free(r);
 	}
+
+	free(c);
 }
 
 static char* s_user_lookup(const char *username)
@@ -814,9 +813,16 @@ int mesh_server_setopt(mesh_server_t *s, int opt, void *data, size_t len)
 
 	case MESH_SERVER_CERTIFICATE:
 		if (len != sizeof(cw_cert_t)) return -1;
-		cw_cert_destroy(s->cert);
-		s->cert = cw_alloc(len);
-		memcpy(s->cert, data, len);
+		free(s->cert->ident);
+		s->cert->ident = ((cw_cert_t *)data)->ident
+			? strdup(((cw_cert_t *)data)->ident)
+			: NULL;
+		s->cert->pubkey = ((cw_cert_t *)data)->pubkey;
+		memcpy(s->cert->pubkey_bin, ((cw_cert_t *)data)->pubkey_bin, 32);
+		memcpy(s->cert->pubkey_b16, ((cw_cert_t *)data)->pubkey_b16, 65);
+		s->cert->seckey = ((cw_cert_t *)data)->seckey;
+		memcpy(s->cert->seckey_bin, ((cw_cert_t *)data)->seckey_bin, 32);
+		memcpy(s->cert->seckey_b16, ((cw_cert_t *)data)->seckey_b16, 65);
 		return 0;
 
 	case MESH_SERVER_SAFE_WORD:
@@ -963,7 +969,7 @@ int mesh_server_reactor(void *sock, cw_pdu_t *pdu, void *data)
 		if (client) {
 			mesh_result_t *r = cw_alloc(sizeof(mesh_result_t));
 			cw_list_init(&r->l);
-			r->fqdn   = cw_pdu_text(pdu, 2);
+			r->fqdn = cw_pdu_text(pdu, 2);
 
 			cw_list_push(&client->results, &r->l);
 		}
@@ -989,7 +995,7 @@ int mesh_server_reactor(void *sock, cw_pdu_t *pdu, void *data)
 			reply = cw_pdu_make(pdu->src, 2, "ERROR", "Too many client connections; try again later");
 			cw_pdu_send(sock, reply);
 			cw_pdu_destroy(reply);
-			return CW_REACTOR_CONTINUE;
+			goto REQUEST_exit;
 		}
 
 		char *creds  = s_user_lookup(username); assert(creds);
@@ -1004,7 +1010,7 @@ int mesh_server_reactor(void *sock, cw_pdu_t *pdu, void *data)
 				reply = cw_pdu_make(pdu->src, 2, "ERROR", "Authentication failed");
 				cw_pdu_send(sock, reply);
 				cw_pdu_destroy(reply);
-				return CW_REACTOR_CONTINUE;
+				goto REQUEST_exit;
 			}
 		} else {
 			free(password);
@@ -1016,7 +1022,7 @@ int mesh_server_reactor(void *sock, cw_pdu_t *pdu, void *data)
 			reply = cw_pdu_make(pdu->src, 2, "ERROR", "Failed to parse command");
 			cw_pdu_send(sock, reply);
 			cw_pdu_destroy(reply);
-			return CW_REACTOR_CONTINUE;
+			goto REQUEST_exit;
 		}
 
 		cw_log(LOG_DEBUG, "checking global ACL for %s `%s`", creds, command);
@@ -1027,7 +1033,7 @@ int mesh_server_reactor(void *sock, cw_pdu_t *pdu, void *data)
 			reply = cw_pdu_make(pdu->src, 2, "ERROR", "Permission denied");
 			cw_pdu_send(sock, reply);
 			cw_pdu_destroy(reply);
-			return CW_REACTOR_CONTINUE;
+			goto REQUEST_exit;
 		}
 
 		cw_pdu_t *blast = cw_pdu_make(NULL, 6, "COMMAND", serial, creds, command, code, filters);
@@ -1038,10 +1044,12 @@ int mesh_server_reactor(void *sock, cw_pdu_t *pdu, void *data)
 		cw_pdu_send(sock, reply);
 		cw_pdu_destroy(reply);
 
+REQUEST_exit:
 		free(serial);
 		free(creds);
 		free(code);
 		free(filters);
+		return CW_REACTOR_CONTINUE;
 	}
 
 	if (strcmp(pdu->type, "CHECK") == 0) {

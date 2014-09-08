@@ -237,6 +237,7 @@ dist_man_MANS   += man/res_group.5
 dist_man_MANS   += man/res_host.5
 dist_man_MANS   += man/res_package.5
 dist_man_MANS   += man/res_service.5
+dist_man_MANS   += man/res_symlink.5
 dist_man_MANS   += man/res_sysctl.5
 dist_man_MANS   += man/res_user.5
 

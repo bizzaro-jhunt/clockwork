@@ -146,5 +146,29 @@ TESTS {
 		cw_cache_free(cc);
 	}
 
+	subtest { /* touch */
+		cw_cache_t *cc = cw_cache_new(4, 1);
+
+		isnt_null(cw_cache_set(cc, "key1", (void*)1), "key1 inserted");
+		isnt_null(cw_cache_set(cc, "key2", (void*)2), "key2 inserted");
+		isnt_null(cw_cache_set(cc, "key3", (void*)3), "key3 inserted");
+		cw_cache_touch(cc, "key1", cw_time_s() + 301);
+		cw_cache_touch(cc, "key3",               300);
+
+		cw_cache_purge(cc, 0);
+		isnt_null(cw_cache_get(cc, "key1"), "key1 still alive and well");
+		isnt_null(cw_cache_get(cc, "key2"), "key2 still alive and well");
+		  is_null(cw_cache_get(cc, "key3"), "key3 expired (ts 300 is in the past)");
+
+		diag("Sleeping for 3s");
+		cw_sleep_ms(3000);
+		cw_cache_purge(cc, 0);
+
+		isnt_null(cw_cache_get(cc, "key1"), "key1 still alive and well");
+		  is_null(cw_cache_get(cc, "key2"), "key2 expired after 1s");
+
+		cw_cache_free(cc);
+	}
+
 	done_testing();
 }

@@ -114,7 +114,6 @@ static const char *FSM_ERRORS[] = {
 
 typedef struct __client_t client_t;
 typedef struct __server_t server_t;
-typedef struct __ccache_t ccache_t;
 
 struct __client_t {
 	state_t           state;
@@ -122,10 +121,7 @@ struct __client_t {
 	fsm_err_t         error;
 	server_t         *server;
 
-	cw_frame_t       *ident;
-	char             *rident;
-	int32_t           last_seen;
-
+	char             *id;
 	char             *name;
 	struct stree     *pnode;
 	struct policy    *policy;
@@ -139,12 +135,6 @@ struct __client_t {
 	size_t            maplen;
 };
 
-struct __ccache_t {
-	size_t len;
-	int32_t min_life;
-	client_t clients[];
-};
-
 struct __server_t {
 	void *zmq;
 	void *listener;
@@ -152,7 +142,7 @@ struct __server_t {
 	int mode;
 	int daemonize;
 
-	ccache_t *ccache;
+	cw_cache_t       *clients;
 	struct manifest  *manifest;
 	char             *copydown;
 
@@ -213,14 +203,14 @@ static char * s_gencode(client_t *c)
 		size = c->maplen;
 		unit = 'b';
 	}
-	cw_log(LOG_INFO, "generated %0.2f%c policy for %s/%s in %lums", size, unit, c->rident, c->name, ms);
+	cw_log(LOG_INFO, "generated %0.2f%c policy for %s in %lums", size, unit, c->name, ms);
 
 	return (char *)c->mapped;
 }
 
 static int s_state_machine(client_t *fsm, cw_pdu_t *pdu, cw_pdu_t **reply)
 {
-	fsm->last_seen = cw_time_s();
+	cw_cache_touch(fsm->server->clients, fsm->id, 0);
 
 	cw_log(LOG_DEBUG, "fsm: transition %s [%i] -> %s [%i]",
 			FSM_STATES[fsm->state], fsm->state,
@@ -473,7 +463,7 @@ static int s_state_machine(client_t *fsm, cw_pdu_t *pdu, cw_pdu_t **reply)
 		}
 
 		fsm->state = STATE_INIT;
-		fsm->last_seen = 1;
+		cw_cache_touch(fsm->server->clients, fsm->id, 1);
 		*reply = cw_pdu_make(pdu->src, 1, "BYE");
 		return 0;
 	}
@@ -482,103 +472,25 @@ static int s_state_machine(client_t *fsm, cw_pdu_t *pdu, cw_pdu_t **reply)
 	return 1;
 }
 
-static ccache_t* s_ccache_init(size_t num_conns, int32_t min_life)
+static void s_client_destroy(void *p)
 {
-	ccache_t *cc = cw_alloc(
-			sizeof(ccache_t) +
-			(num_conns * sizeof(client_t)));
-	cc->len      = num_conns;
-	cc->min_life = min_life;
-	return cc;
-}
+	if (!p) return;
 
-static void s_ccache_purge(ccache_t *c, int force)
-{
-	int32_t now = cw_time_s();
-	int n = 0;
-	size_t i;
-	for (i = 0; i < c->len; i++) {
-		if (!force &&
-		     (c->clients[i].last_seen == 0
-		   || c->clients[i].last_seen >= now - c->min_life))
-			continue;
+	client_t *c = (client_t*)p;
 
-		cw_log(LOG_DEBUG, "purging %p, last_seen=%i, name=%s, %s facts, %s policy",
-			&c->clients[i], c->clients[i].last_seen, c->clients[i].name,
-			(c->clients[i].facts  ? "has" : "no"),
-			(c->clients[i].policy ? "has" : "no"));
+	free(c->id);
+	free(c->name);
 
-		if (c->clients[i].ident) {
-			cw_frame_close(c->clients[i].ident);
-			free(c->clients[i].ident);
-			c->clients[i].ident = NULL;
-		}
-		free(c->clients[i].rident);
-		c->clients[i].rident = NULL;
-
-		free(c->clients[i].name);
-		c->clients[i].name = NULL;
-
-		if (c->clients[i].facts) {
-			cw_hash_done(c->clients[i].facts, 1);
-			free(c->clients[i].facts);
-			c->clients[i].facts = NULL;
-		}
-
-		if (c->clients[i].io)
-			fclose(c->clients[i].io);
-		c->clients[i].io        = NULL;
-		c->clients[i].offset    = 0;
-		c->clients[i].last_seen = 0;
-
-		policy_free_all(c->clients[i].policy);
-		c->clients[i].policy = NULL;
-		n++;
+	if (c->facts) {
+		cw_hash_done(c->facts, 1);
+		free(c->facts);
 	}
-	if (n) cw_log(LOG_INFO, "purged %i ccache entries", n);
-}
 
-static void s_ccache_destroy(ccache_t *c)
-{
-	s_ccache_purge(c, 1);
+	if (c->io)
+		fclose(c->io);
+
+	policy_free_all(c->policy);
 	free(c);
-}
-
-static size_t s_ccache_index(cw_frame_t *ident, ccache_t *c)
-{
-	size_t i;
-	for (i = 0; i < c->len; i++)
-		if (c->clients[i].ident
-		 && cw_frame_cmp(ident, c->clients[i].ident))
-			break;
-	return i;
-}
-
-static size_t s_ccache_next(ccache_t *c)
-{
-	size_t i;
-	for (i = 0; i < c->len; i++)
-		if (!c->clients[i].ident)
-			break;
-	return i;
-}
-
-static client_t* s_ccache_find(cw_frame_t *ident, ccache_t *c)
-{
-	size_t i = s_ccache_index(ident, c);
-	if (i >= c->len) {
-		i = s_ccache_next(c);
-		if (i >= c->len)
-			return NULL;
-		c->clients[i].ident  = cw_frame_copy(ident);
-		c->clients[i].rident = cw_frame_hex(ident);
-		c->clients[i].io = NULL;
-		c->clients[i].offset = 0;
-		cw_log(LOG_INFO, "new inbound connection from client %s, assigning index %i",
-			c->clients[i].rident, i);
-	}
-	c->clients[i].last_seen = cw_time_s();
-	return &c->clients[i];
 }
 
 static inline server_t *s_server_new(int argc, char **argv)
@@ -806,8 +718,9 @@ static inline server_t *s_server_new(int argc, char **argv)
 
 	if (s->daemonize)
 		cw_daemonize(cw_cfg_get(&config, "pidfile"), "root", "root");
-	s->ccache = s_ccache_init(atoi(cw_cfg_get(&config, "ccache.connections")),
+	s->clients = cw_cache_new(atoi(cw_cfg_get(&config, "ccache.connections")),
 	                          atoi(cw_cfg_get(&config, "ccache.expiration")));
+	s->clients->destroy_f = s_client_destroy;
 
 
 	s->zmq = zmq_ctx_new();
@@ -837,7 +750,7 @@ static inline server_t *s_server_new(int argc, char **argv)
 
 static inline void s_server_destroy(server_t *s)
 {
-	s_ccache_destroy(s->ccache);
+	cw_cache_free(s->clients);
 	manifest_free(s->manifest);
 	cw_cert_destroy(s->cert);
 	cw_trustdb_destroy(s->tdb);
@@ -867,16 +780,22 @@ int main(int argc, char **argv)
 		pdu = cw_pdu_recv(s->listener);
 		if (!pdu) continue;
 
-		cw_log(LOG_DEBUG, "received inbound connection, checking ccache for client details");
-		s_ccache_purge(s->ccache, 0);
-		client_t *c = s_ccache_find(pdu->src, s->ccache);
+		cw_log(LOG_DEBUG, "received inbound connection, checking for client details");
+		cw_cache_purge(s->clients, 0);
+		client_t *c = cw_cache_get(s->clients, pdu->client);
 		if (!c) {
-			cw_log(LOG_CRIT, "max connections reached!");
-			reply = cw_pdu_make(pdu->src, 2, "ERROR", "Server busy; try again later\n");
-			cw_pdu_send(s->listener, reply);
-			cw_pdu_destroy(pdu);
-			cw_pdu_destroy(reply);
-			continue;
+			c = cw_alloc(sizeof(client_t));
+			c->id = strdup(pdu->client);
+
+			if (!cw_cache_set(s->clients, pdu->client, c)) {
+				cw_log(LOG_CRIT, "max connections reached!");
+				reply = cw_pdu_make(pdu->src, 2, "ERROR", "Server busy; try again later\n");
+				cw_pdu_send(s->listener, reply);
+				cw_pdu_destroy(pdu);
+				cw_pdu_destroy(reply);
+				s_client_destroy(c);
+				continue;
+			}
 		}
 		cw_log(LOG_DEBUG, "inbound connection for client %p", c);
 

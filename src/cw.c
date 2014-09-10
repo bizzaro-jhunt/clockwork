@@ -2391,7 +2391,7 @@ void cw_cache_purge(cw_cache_t *cc, int force)
 				(*cc->destroy_f)(cc->entries[i].data);
 			cc->entries[i].data = NULL;
 
-			cc->entries[i].last_seen = 0;
+			cc->entries[i].last_seen = -1;
 		}
 	}
 }
@@ -2422,7 +2422,11 @@ void* cw_cache_get(cw_cache_t *cc, const char *id)
 {
 	struct __cw_cce *ent = cw_hash_get(&cc->index, id);
 	if (!ent) return NULL;
-	ent->last_seen = cw_time_s();
+
+	int32_t now = cw_time_s();
+	if (ent->last_seen < now)
+		ent->last_seen = cw_time_s();
+
 	return ent->data;
 }
 
@@ -2451,12 +2455,21 @@ void* cw_cache_unset(cw_cache_t *cc, const char *id)
 	free(ent->ident);
 	ent->ident = NULL;
 
-	ent->last_seen = 0;
+	ent->last_seen = -1;
 
 	void *d = ent->data;
 	ent->data = NULL;
 
 	return d;
+}
+
+void cw_cache_touch(cw_cache_t *cc, const char *id, int32_t last)
+{
+	struct __cw_cce *ent = cw_hash_get(&cc->index, id);
+	if (!ent) return;
+
+	if (last <= 0) last = cw_time_s();
+	ent->last_seen = last;
 }
 
 /*

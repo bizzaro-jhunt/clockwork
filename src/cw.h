@@ -502,9 +502,10 @@ int cw_cache_tune(cw_cache_t **cc, size_t max, int32_t min_life);
 void cw_cache_free(cw_cache_t *cc);
 void cw_cache_purge(cw_cache_t *cc, int force);
 int   cw_cache_opt(cw_cache_t *cc, int op, void *value);
-void *cw_cache_get(cw_cache_t *cc, const char *id);
-void *cw_cache_set(cw_cache_t *cc, const char *id, void *data);
+void* cw_cache_get(cw_cache_t *cc, const char *id);
+void* cw_cache_set(cw_cache_t *cc, const char *id, void *data);
 void* cw_cache_unset(cw_cache_t *cc, const char *id);
+void cw_cache_touch(cw_cache_t *cc, const char *id, int32_t last);
 
 /*
 

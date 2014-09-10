@@ -47,9 +47,11 @@ static char* s_prompt(const char *prompt, int echo)
 			return NULL;
 	}
 
+	int attempts = 0;
 	char answer[8192] = {0};
 	while (!*answer) {
-		printf("%s", prompt);
+		if (attempts++ > 1) fprintf(stderr, "\n");
+		fprintf(stderr, "%s", prompt);
 		if (!fgets(answer, 8192, stdin))
 			answer[0] = '\0';
 
@@ -59,7 +61,7 @@ static char* s_prompt(const char *prompt, int echo)
 
 	if (!echo) {
 		tcsetattr(0, TCSAFLUSH, &term_old);
-		printf("\n");
+		fprintf(stderr, "\n");
 	}
 
 	return strdup(answer);

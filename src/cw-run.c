@@ -111,24 +111,34 @@ static void s_client_free(client_t *c)
 	free(c);
 }
 
-static char* s_find_config_file(void)
+static int s_read_config(cw_list_t *cfg, const char *file, int must_exist)
 {
-	struct stat st;
-	char *path;
+	assert(file);
+	assert(cfg);
 
-	if (getenv("HOME")) {
-		path = cw_string("%s/.cwrc", getenv("HOME"));
-		if (stat(path, &st) == 0)
-			return path;
-		free(path);
+	struct stat st;
+	if (stat(file, &st) != 0) {
+		if (must_exist) {
+			fprintf(stderr, "%s: %s\n", file, strerror(ENOENT));
+			return 1;
+		}
+		return 0;
 	}
 
-	path = strdup(DEFAULT_CONFIG_FILE);
-	if (stat(path, &st) == 0)
-		return path;
-	free(path);
+	FILE *io = fopen(file, "r");
+	if (!io) {
+		fprintf(stderr, "%s: %s\n", file, strerror(errno));
+		return 1;
+	}
 
-	return NULL;
+	if (cw_cfg_read(cfg, io) != 0) {
+		fprintf(stderr, "Unable to grok %s\n", file);
+		fclose(io);
+		return 1;
+	}
+
+	fclose(io);
+	return 0;
 }
 
 static client_t* s_init(int argc, char **argv)
@@ -245,30 +255,29 @@ static client_t* s_init(int argc, char **argv)
 
 	c->filters = stringlist_join(filters, "");
 
-	if (!config_file) {
-		config_file = s_find_config_file();
-
-		if (!config_file) {
-			fprintf(stderr, "Unable to find configuration file %s or ~/.cwrc\n",
-					DEFAULT_CONFIG_FILE);
-			exit(1);
-		}
-	}
-
 	LIST(config);
 	cw_cfg_set(&config, "timeout",  "40");
 	cw_cfg_set(&config, "sleep",   "250");
 
-	FILE *io = fopen(config_file, "r");
-	if (!io) {
-		fprintf(stderr, "%s: %s", config_file, strerror(errno));
+	if (!config_file) {
+		if (s_read_config(&config, DEFAULT_CONFIG_FILE, 0) != 0)
+			exit(1);
+
+		if (getenv("HOME")) {
+			char *path = cw_string("%s/.cwrc", getenv("HOME"));
+			if (s_read_config(&config, path, 0) != 0)
+				exit(1);
+
+			config_file = cw_string("%s or %s", DEFAULT_CONFIG_FILE, path);
+			free(path);
+
+		} else {
+			config_file = strdup(DEFAULT_CONFIG_FILE);
+		}
+
+	} else if (s_read_config(&config, config_file, 1) != 0) {
 		exit(1);
 	}
-	if (cw_cfg_read(&config, io) != 0) {
-		fprintf(stderr, "Unable to parse configuration from %s", config_file);
-		exit(1);
-	}
-	fclose(io);
 
 	if (c->timeout_ms == 0)
 		c->timeout_ms = atoi(cw_cfg_get(&config, "timeout")) * 1000;

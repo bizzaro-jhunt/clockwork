@@ -32,6 +32,8 @@
 #define PROMPT_ECHO   1
 #define PROMPT_NOECHO 0
 
+static int SHOW_OPTOUTS = 0;
+
 static char* s_prompt(const char *prompt, int echo)
 {
 	struct termios term_new, term_old;
@@ -145,6 +147,7 @@ static client_t* s_init(int argc, char **argv)
 		{ "sleep",       required_argument, NULL, 's' },
 		{ "where",       required_argument, NULL, 'w' },
 		{ "config",      required_argument, NULL, 'c' },
+		{ "optouts",     no_argument,       NULL,  1  },
 		{ 0, 0, 0, 0 },
 	};
 	int verbose = LOG_WARNING, noop = 0;
@@ -226,6 +229,10 @@ static client_t* s_init(int argc, char **argv)
 		case 'c':
 			free(config_file);
 			config_file = strdup(optarg);
+			break;
+
+		case (char)1:
+			SHOW_OPTOUTS = 1;
 			break;
 
 		default:
@@ -383,7 +390,8 @@ int main(int argc, char **argv)
 			}
 
 			if (strcmp(reply->type, "OPTOUT") == 0) {
-				printf("%s optout\n", cw_pdu_text(reply, 1));
+				if (SHOW_OPTOUTS)
+					printf("%s optout\n", cw_pdu_text(reply, 1));
 
 			} else if (strcmp(reply->type, "RESULT") == 0) {
 				printf("%s %s %s", cw_pdu_text(reply, 1),

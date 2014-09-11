@@ -8,25 +8,25 @@ use t::common;
 gencode_ok "use host service1.test", <<'EOF', "service resource";
 RESET
 TOPIC "service(snmpd)"
-SET %A "cwtool svc-boot-status snmpd"
+SET %A "cw localsys svc-boot-status snmpd"
 CALL &EXEC.CHECK
 OK? @enabled.1
   LOG NOTICE "enabling service snmpd to start at boot"
-  SET %A "cwtool svc-enable snmpd"
+  SET %A "cw localsys svc-enable snmpd"
   CALL &EXEC.CHECK
 enabled.1:
-SET %A "cwtool svc-run-status snmpd"
+SET %A "cw localsys svc-run-status snmpd"
 CALL &EXEC.CHECK
 OK? @running.1
   LOG NOTICE "starting service snmpd"
-  SET %A "cwtool svc-init snmpd start"
+  SET %A "cw localsys svc-init snmpd start"
   CALL &EXEC.CHECK
   FLAG 1 :changed
   FLAG 0 :res1
 running.1:
 !FLAGGED? :res1 @next.1
   LOG NOTICE "restarting service snmpd"
-  SET %A "cwtool svc-init snmpd restart"
+  SET %A "cw localsys svc-init snmpd restart"
   CALL &EXEC.CHECK
   FLAG 0 :res1
 next.1:
@@ -37,18 +37,18 @@ EOF
 gencode_ok "use host service2.test", <<'EOF', "stopped service";
 RESET
 TOPIC "service(microcode)"
-SET %A "cwtool svc-run-status microcode"
+SET %A "cw localsys svc-run-status microcode"
 CALL &EXEC.CHECK
 NOTOK? @stopped.1
   LOG NOTICE "stopping service microcode"
-  SET %A "cwtool svc-init microcode stop"
+  SET %A "cw localsys svc-init microcode stop"
   CALL &EXEC.CHECK
   FLAG 1 :changed
   FLAG 0 :res1
 stopped.1:
 !FLAGGED? :res1 @next.1
   LOG NOTICE "stopping service microcode"
-  SET %A "cwtool svc-init microcode stop"
+  SET %A "cw localsys svc-init microcode stop"
   CALL &EXEC.CHECK
   FLAG 0 :res1
 next.1:
@@ -59,25 +59,25 @@ EOF
 gencode_ok "use host service3.test", <<'EOF', "service resource";
 RESET
 TOPIC "service(neverwhere)"
-SET %A "cwtool svc-boot-status neverwhere"
+SET %A "cw localsys svc-boot-status neverwhere"
 CALL &EXEC.CHECK
 NOTOK? @disabled.1
   LOG NOTICE "disabling service neverwhere"
-  SET %A "cwtool svc-disable neverwhere"
+  SET %A "cw localsys svc-disable neverwhere"
   CALL &EXEC.CHECK
 disabled.1:
-SET %A "cwtool svc-run-status neverwhere"
+SET %A "cw localsys svc-run-status neverwhere"
 CALL &EXEC.CHECK
 NOTOK? @stopped.1
   LOG NOTICE "stopping service neverwhere"
-  SET %A "cwtool svc-init neverwhere stop"
+  SET %A "cw localsys svc-init neverwhere stop"
   CALL &EXEC.CHECK
   FLAG 1 :changed
   FLAG 0 :res1
 stopped.1:
 !FLAGGED? :res1 @next.1
   LOG NOTICE "stopping service neverwhere"
-  SET %A "cwtool svc-init neverwhere stop"
+  SET %A "cw localsys svc-init neverwhere stop"
   CALL &EXEC.CHECK
   FLAG 0 :res1
 next.1:
@@ -88,25 +88,25 @@ EOF
 gencode_ok "use host service4.test", <<'EOF', "service reload";
 RESET
 TOPIC "service(snmpd)"
-SET %A "cwtool svc-boot-status snmpd"
+SET %A "cw localsys svc-boot-status snmpd"
 CALL &EXEC.CHECK
 OK? @enabled.1
   LOG NOTICE "enabling service snmpd to start at boot"
-  SET %A "cwtool svc-enable snmpd"
+  SET %A "cw localsys svc-enable snmpd"
   CALL &EXEC.CHECK
 enabled.1:
-SET %A "cwtool svc-run-status snmpd"
+SET %A "cw localsys svc-run-status snmpd"
 CALL &EXEC.CHECK
 OK? @running.1
   LOG NOTICE "starting service snmpd"
-  SET %A "cwtool svc-init snmpd start"
+  SET %A "cw localsys svc-init snmpd start"
   CALL &EXEC.CHECK
   FLAG 1 :changed
   FLAG 0 :res1
 running.1:
 !FLAGGED? :res1 @next.1
   LOG NOTICE "reloading service snmpd"
-  SET %A "cwtool svc-init snmpd reload"
+  SET %A "cw localsys svc-init snmpd reload"
   CALL &EXEC.CHECK
   FLAG 0 :res1
 next.1:

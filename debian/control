@@ -101,7 +101,7 @@ Architecture: any
 Section: debug
 Priority: extra
 Depends: clockwork-mesh-server (= ${binary:Version}), ${misc:Depends}
-Description: Debugging Symbols for Clockwork Server
+Description: Debugging Symbols for Clockwork Mesh Server
  Clockwork is a safe, secure and flexible system for managing system
  configurations through enforcement of targeted policies, expressed
  in a system-independent, declarative format.
@@ -110,6 +110,39 @@ Description: Debugging Symbols for Clockwork Server
  more effective and less difficult.
  .
  This package provides the debugging symbols for meshd.
+
+Package: clockwork-mesh-client
+Architecture: any
+Depends: clockwork-common (= ${binary:Version}),
+         libpcre3,
+         libsodium13,
+         libzmq3,
+         ${misc:Depends},
+         ${shlibs:Depends}
+Description: Secure Configuration Management - Mesh Framework
+ Clockwork is a safe, secure and flexible system for managing system
+ configurations through enforcement of targeted policies, expressed
+ in a system-independent, declarative format.
+ .
+ With Clockwork, managing infrastructures of all scales is easier,
+ more effective and less difficult.
+ .
+ This package provides the client-side components of Clockwork Mesh.
+
+Package: clockwork-mesh-client-dbg
+Architecture: any
+Section: debug
+Priority: extra
+Depends: clockwork-mesh-client (= ${binary:Version}), ${misc:Depends}
+Description: Debugging Symbols for Clockwork Mesh Client
+ Clockwork is a safe, secure and flexible system for managing system
+ configurations through enforcement of targeted policies, expressed
+ in a system-independent, declarative format.
+ .
+ With Clockwork, managing infrastructures of all scales is easier,
+ more effective and less difficult.
+ .
+ This package provides the debugging symbols for the mesh clients.
 
 Package: clockwork-agent
 Architecture: any

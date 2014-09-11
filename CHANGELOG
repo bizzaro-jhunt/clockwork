@@ -1,0 +1,25 @@
+Release Notes for Clockwork
+
+
+v2.3.0 - 2014-09-11
+
+  * New `cw' multi-call binary to replace cw* tools into a single,
+    user-extensible sub-command dispather, a la git.
+
+    The following utilities have therefore been renamed:
+
+       cwcc     ->  cw-cc
+       fact     ->  cw-fact
+       cwtrust  ->  cw-trust
+       cwpol    ->  cw-shell
+       cwkey    ->  cw-cert
+       cw-run   ->  cw-mesh (and cw-show, cw-ping, etc.)
+
+       cwtool   ->  cw-localsys [internal to cogd]
+
+   * cw-mesh prompting is now done to stderr, for pipelines
+   * cw-mesh now ignores nodes that optout by default
+     (use --optout to retain the legacy behavior)
+   * cw-mesh now honors ~/.cwrc as an adjunct to /etc/clockwork/cw.conf
+
+

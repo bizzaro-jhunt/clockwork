@@ -17,14 +17,14 @@
 \"  along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
 \"
 
-.TH cwpol "1" "March 2013" "Clockwork" "Clockwork Policy Agent"
+.TH cw\-shell "1" "March 2013" "Clockwork" "Clockwork Policy Agent"
 .SH NAME
 .PP
-cwpol \- Clockwork Policy Explorer
+cw\-shell \- Clockwork Policy Shell
 
 .SH SYNOPSIS
 .PP
-.B cwpol
+.B cw\-shell
 [options]
 .I /path/to/manifest/file
 
@@ -37,7 +37,7 @@ prescribed attributes (owner, group, permissions, etc.) and content.  It
 can maintain a specific set of installed packages, and even make sure that
 system user accounts exist.
 .PP
-.B cwpol
+.B cw\-shell
 is a utility for administrators and policy developers that exposes the
 internals of a policy manifest, letting you explore how a policy would
 be implemented by the client agents.
@@ -54,17 +54,17 @@ a semi-colon (;) with optional whitespace.
 .PP
 \fB\-h\fR, \fB\-\-help\fR
 .RS 8
-Show a brief summary of the options that \fBcwpol\fR takes.
+Show a brief summary of the options that \fBcw\-shell\fR takes.
 .RE
 
 .PP
 \fB\-v\fR, \fB\-\-verbose\fR
 .RS 8
-Increase the verbosity of \fBcwpol\fR.  Can be used multple
+Increase the verbosity of \fBcw\-shell\fR.  Can be used multple
 times; each time it increases the log level by one.
 .PP
-\fBNote: cwpol\fR doesn't log to a file, it write all log messages
-to standard output.  If you wish to save cwpol output, use your shell's
+\fBNote: cw\-shell\fR doesn't log to a file, it write all log messages
+to standard output.  If you wish to save cw\-shell output, use your shell's
 IO redirection capabilities.
 .RE
 
@@ -77,10 +77,10 @@ any command script is ignored, as well as the \fB\-e\fR option.
 
 .SH EXIT STATUS
 .PP
-In interactive mode and script interpreter mode, \fBcwpol\fR always
+In interactive mode and script interpreter mode, \fBcw\-shell\fR always
 exits with status 0.
 .PP
-If \fB-e\fR is used, \fBcwpol\fR exits with status 0 if all commands
+If \fB-e\fR is used, \fBcw\-shell\fR exits with status 0 if all commands
 completed successfully, and exits non-zero when the first command
 (which may be the only command) fails.
 

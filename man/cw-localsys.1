@@ -12,14 +12,14 @@
 \"  along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
 \"
 
-.TH cwtool "1" "May 2014" "Clockwork" "Clockwork Agent"
+.TH cw\-localsys "1" "May 2014" "Clockwork" "Clockwork Agent"
 .SH NAME
 .PP
-cwtool \- Clockwork Agent System Tool
+cw\-localsys \- Clockwork Agent System Tool
 
 .SH SYNOPSIS
 .PP
-\fBcwtool\fR \fIACTION\fR [args ...]
+\fBcw\-localsys\fR \fIACTION\fR [args ...]
 
 .SH DESCRIPTION
 .PP
@@ -32,7 +32,7 @@ group, permissions, etc.) and content.  It can maintain a specific
 set of installed packages, and even make sure that system user
 accounts exist.
 .PP
-\fBcwtool\fR is a utility script that is utilized by \fBcogd\fR to
+\fBcw\-localsys\fR is a utility script that is utilized by \fBcogd\fR to
 handle platform-specific things like package installations and
 service management.  It inspects the system environment to determine
 the correct tools to use to (for example) restart services or install
@@ -137,7 +137,7 @@ Exits \fB0\fR on success.
 For known actions on known platforms, exit codes depend solely on
 the action being executed.
 .PP
-Otherwise, cwtool exits:
+Otherwise, cw\-localsys exits:
 .PP
 .IP 125
 An unknown action was specified.

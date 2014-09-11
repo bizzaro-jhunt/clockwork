@@ -1,3 +1,3 @@
 #!/bin/bash
 SCRIPTPATH=$(cd $(dirname $0); pwd -P);
-$SCRIPTPATH/verify ./cwcc t/tmp/data/policy/manifest.pol
+$SCRIPTPATH/verify ./cw-cc t/tmp/data/policy/manifest.pol

@@ -19,6 +19,7 @@ AM_CFLAGS  = -Wall $(DEPS_CFLAGS)
 AM_CFLAGS += -DTEST_DATA=\"$(srcdir)/t/data\"
 AM_CFLAGS += -DCW_CACHE_DIR=\"$(pkgcachedir)\"
 AM_CFLAGS += -DCW_GATHER_DIR=\"$(gatherdir)\"
+AM_CFLAGS += -DCW_CLI_DIR=\"$(clidir)\"
 AM_CFLAGS += @AUGEAS_CFLAGS@
 AM_CFLAGS += @GCOV_CFLAGS@
 
@@ -214,21 +215,22 @@ t_90_meshd_SOURCES       = t/90-meshd.c         $(test_source)
 
 CLEANFILES       = $(BUILT_SOURCES)
 
-EXTRA_DIST       = HACKING autogen.sh
+EXTRA_DIST       = HACKING CHANGELOG
+EXTRA_DIST      += autogen.sh
 EXTRA_DIST      += augeas gather.d
 EXTRA_DIST      += examples extras
 EXTRA_DIST      += help man
 EXTRA_DIST      += $(TEST_EXTRAS)
 
 dist_man_MANS    = man/clockwork.7
-dist_man_MANS   += man/cwkey.1
-dist_man_MANS   += man/cwpol.1
-dist_man_MANS   += man/cwtool.1
-dist_man_MANS   += man/cwtrust.1
-dist_man_MANS   += man/cwcc.1
+dist_man_MANS   += man/cw-cc.1
+dist_man_MANS   += man/cw-cert.1
+dist_man_MANS   += man/cw-fact.1
+dist_man_MANS   += man/cw-localsys.1
+dist_man_MANS   += man/cw-shell.1
+dist_man_MANS   += man/cw-trust.1
 dist_man_MANS   += man/cogd.1   man/cogd.conf.5
 dist_man_MANS   += man/clockd.1 man/clockd.conf.5
-dist_man_MANS   += man/fact.1
 dist_man_MANS   += man/pn.1
 dist_man_MANS   += man/res_dir.5
 dist_man_MANS   += man/res_exec.5
@@ -257,22 +259,70 @@ parser_spec_src += src/spec/lexer.l src/spec/lexer_impl.h
 parser_spec_src += src/spec/grammar.y
 
 sbindir = "$(prefix)/sbin"
-sbin_PROGRAMS       = cwpol cwcc clockd cogd cwtrust authtest meshd
-cwpol_SOURCES       = src/cwpol.c    $(core_src) $(parser_spec_src)
-cwcc_SOURCES        = src/cwcc.c     $(core_src) $(parser_spec_src)
+sbin_PROGRAMS       = clockd cogd authtest meshd
 clockd_SOURCES      = src/clockd.c   $(core_src) $(parser_spec_src)
 cogd_SOURCES        = src/cogd.c     $(core_src) $(parser_spec_src)
-cwtrust_SOURCES     = src/cwtrust.c  $(core_src)
 authtest_SOURCES    = src/authtest.c $(core_src)
 meshd_SOURCES       = src/meshd.c    $(core_src)
 
-dist_bin_SCRIPTS    = cwtool cw-template-erb
-bin_PROGRAMS        = bdfa fact pn cwkey cw-run
+bin_PROGRAMS        = bdfa pn cw
 bdfa_SOURCES        = src/bdfa.c src/cw.h src/cw.c
-fact_SOURCES        = src/fact.c  $(core_src)
 pn_SOURCES          = src/pn.c    $(core_src)
-cwkey_SOURCES       = src/cwkey.c $(core_src)
-cw_run_SOURCES      = src/cw-run.c $(core_src)
+cw_SOURCES          = cli/cw.c    $(core_src) $(parser_spec_src)
+
+clidir=$(pkglibdir)/cli
+dist_cli_SCRIPTS  = cli/mesh-builtin
+dist_cli_SCRIPTS += cli/cw-localsys
+dist_cli_SCRIPTS += cli/cw-template-erb
+
+cli_SCRIPTS  = cw-cfm
+cli_SCRIPTS += cw-exec
+cli_SCRIPTS += cw-package
+cli_SCRIPTS += cw-ping
+cli_SCRIPTS += cw-query
+cli_SCRIPTS += cw-service
+cli_SCRIPTS += cw-show
+
+cli_SCRIPTS += cli/cw-localsys
+cli_SCRIPTS += cli/cw-template-erb
+
+cli_PROGRAMS = cw cw-shell cw-cc cw-mesh
+cw_shell_SOURCES = cli/cw-shell.c     $(core_src) $(parser_spec_src)
+cw_cc_SOURCES    = cli/cw-cc.c        $(core_src) $(parser_spec_src)
+cw_mesh_SOURCES  = cli/cw-mesh.c      $(core_src)
+
+BUILTINS  = cw-fact
+BUILTINS += cw-cert
+BUILTINS += cw-trust
+BUILTINS += cw-help
+
+$(BUILTINS): cw
+	rm -f $@ && ln -s $< $@
+
+CLEANFILES += $(BUILTINS)
+
+MESH_BUILTINS  = cw-cfm
+MESH_BUILTINS += cw-exec
+MESH_BUILTINS += cw-package
+MESH_BUILTINS += cw-ping
+MESH_BUILTINS += cw-query
+MESH_BUILTINS += cw-service
+MESH_BUILTINS += cw-show
+
+$(MESH_BUILTINS): cli/mesh-builtin
+	rm -f $@ && cp $< $@
+
+CLEANFILES += $(MESH_BUILTINS);
+
+builtins: $(BUILTINS) $(MESH_BUILTINS)
+
+all-local: builtins
+
+install-exec-hook:
+	$(MKDIR_P) $(DESTDIR)$(clidir)
+	for x in $(BUILTINS); do \
+		(cd $(DESTDIR)$(clidir) && rm -f $$x$(EXEEXT) && ln -s cw$(EXEEXT) $$x$(EXEEXT)); \
+	done
 
 ############################################################
 
@@ -286,6 +336,7 @@ manifest:
 	@echo >&2 "nothin doin"
 
 test: check
+check-local: test-data
 test-data:
 	rm -f t/tmp/check-data-install.stamp
 	make t/tmp/check-data-install.stamp

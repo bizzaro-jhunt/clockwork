@@ -1,0 +1,16 @@
+#!/usr/bin/perl
+$0 =~ m{^(?:.*/)?cw-([a-z]+)$}
+	or die "cw: unrecognized mesh command!\n";
+$bin = $1;
+while ($_ = shift @ARGV) {
+	push @flags,  $_               and next if m/^-[h?nv]+$/;
+	push @flags,  $_               and next if m/^--(help|noop|optouts)$/;
+	push @flags,  $_               and next if m/^-[upktswc].+$/;
+	push @flags,  $_               and next if m/^--(username|password|pubkey|timeout|sleep|where|config)=.+$/;
+	push @flags, ($_, shift @ARGV) and next if m/^-[upktswc]$/;
+	push @flags, ($_, shift @ARGV) and next if m/^--(username|password|pubkey|timeout|sleep|where|config)$/;
+
+	push @cmd, $_;
+}
+exec "cw-mesh", @flags, '--', $bin, @cmd;
+die "failed to exec cw-mesh: $!\n";

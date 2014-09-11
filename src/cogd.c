@@ -84,35 +84,6 @@ typedef struct {
 	} schedule;
 } client_t;
 
-static char* s_myfqdn(void)
-{
-	char nodename[1024];
-	nodename[1023] = '\0';
-	gethostname(nodename, 1023);
-
-	struct addrinfo hints, *info, *p;
-	memset(&hints, 0, sizeof hints);
-	hints.ai_family   = AF_UNSPEC; /*either IPV4 or IPV6*/
-	hints.ai_socktype = SOCK_STREAM;
-	hints.ai_flags    = AI_CANONNAME;
-
-	int rc = getaddrinfo(nodename, NULL, &hints, &info);
-	if (rc != 0) {
-		cw_log(LOG_ERR, "Failed to lookup %s: %s", nodename, gai_strerror(rc));
-		return NULL;
-	}
-
-	char *ret = NULL;
-	for (p = info; p != NULL; p = p->ai_next) {
-		if (strcmp(p->ai_canonname, nodename) == 0) continue;
-		ret = strdup(p->ai_canonname);
-		break;
-	}
-
-	freeaddrinfo(info);
-	return ret ? ret : strdup(nodename);
-}
-
 static cw_pdu_t *s_sendto(void *socket, cw_pdu_t *pdu, int timeout)
 {
 	if (cw_pdu_send(socket, pdu) != 0) {
@@ -755,7 +726,7 @@ static inline client_t* s_client_new(int argc, char **argv)
 	c->schedule.next_run = cw_time_ms();
 
 	cw_log(LOG_DEBUG, "detecting fully-qualified domain name of local node");
-	c->fqdn = s_myfqdn();
+	c->fqdn = cw_fqdn();
 	if (!c->fqdn) exit(1);
 	cw_log(LOG_INFO, "detected my FQDN as '%s'", c->fqdn);
 

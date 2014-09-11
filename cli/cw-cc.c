@@ -21,8 +21,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "policy.h"
-#include "spec/parser.h"
+#include "../src/policy.h"
+#include "../src/spec/parser.h"
 
 static const char *OP_NAMES[] = {
 	"NOOP",
@@ -164,7 +164,7 @@ int main(int argc, char **argv)
 	struct manifest *manifest;
 	int redundant, count, mem;
 
-	printf("cwcc - A Clockwork Compiler\n" \
+	printf("cw-cc - A Clockwork Compiler\n" \
 	       "\n" \
 	       "This program will traverse an abstract syntax tree generated\n" \
 	       "by the lex/yacc parser allowing you to verify correctness\n" \

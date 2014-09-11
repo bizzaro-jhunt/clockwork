@@ -12,14 +12,18 @@
 \"  along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
 \"
 
-.TH cwcc "1" "May 2014" "Clockwork" "Clockwork Master"
+.TH cw\-fact "1" "June 2014" "Clockwork" "Clockwork Agent"
 .SH NAME
 .PP
-cwcc \- Clockwork Policy Compiler
+cw\-fact \- Clockwork Agent Fact Utility
 
 .SH SYNOPSIS
 .PP
-\fBcwcc\fR manifest.pol
+\fBcw\-fact\fR [options]
+.PP
+\fBcw\-fact\fR -c /path/to/cogd.conf
+.PP
+\fBcw\-fact\fR sys.fqdn sys.hostname
 
 .SH DESCRIPTION
 .PP
@@ -32,14 +36,46 @@ group, permissions, etc.) and content.  It can maintain a specific
 set of installed packages, and even make sure that system user
 accounts exist.
 .PP
-\fBcwcc\fR is a utility that will compile a manifest of policies,
-in a fashion similar to \fBclockd\fR.  It will then dump the
-abstract syntax tree to standard output, calculate some memory
-usage statistics and exit.
+\fBcw\-fact\fR is a small utility that will gather system facts the
+way \fBcogd\fR does, and print them to standard output.
 .PP
-\fBcwcc\fR is intended to be used to debug and troubleshoot
-Clockwork.
+If you don't specify any fact arguments, all facts will be printed.
 .PP
+
+.SH OPTIONS
+.PP
+\fB\-V\fR, \fB\-\-version\fR
+.RS 8
+Print version and copyright information, and then exit.
+.RE
+
+.PP
+\fB\-c\fR, \fB\-\-config\fR \fI/path/to/cogd.conf\fR
+.RS 8
+Specify the path to an alternate configuration file.  If not
+given, the default configuration file (/etc/clockwork/cogd.conf)
+is used instead.
+.RE
+
+.PP
+\fB\-v\fR, \fB\-\-verbose\fR
+.RS 8
+Increase logging verbosity by one level.
+.RE
+
+.PP
+\fB\-q\fR, \fB\-\-quiet\fR
+.RS 8
+Disable logging.
+.RE
+
+.SH FILES
+.PP
+.TP 8
+.B /etc/clockwork/cogd.conf
+Default configuration file that
+.B cogd
+reads on start up.  See \fBcogd.conf\fR(5) for details.
 
 .SH SEE ALSO
 .PP

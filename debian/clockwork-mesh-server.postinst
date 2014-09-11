@@ -7,7 +7,7 @@
 # created: 2014-09-03
 #
 
-CWKEY=/bin/cwkey
+CWKEY="/bin/cw key"
 CERTS=/etc/clockwork/certs
 
 create_dir() {

@@ -50,7 +50,7 @@ resources_ok "use host regex.enforce", <<'EOF', "regex enforcement";
   package host-b
 EOF
 
-cwpol_ok "use host map1.test; show package literals",
+cw_shell_ok "use host map1.test; show package literals",
 <<'EOF', "simple map conditional";
 
 package "literals" {
@@ -60,7 +60,7 @@ package "literals" {
 }
 EOF
 
-cwpol_ok "use host map1.test; show package facts",
+cw_shell_ok "use host map1.test; show package facts",
 <<'EOF', "fact == fact map conditional";
 
 package "facts" {
@@ -70,7 +70,7 @@ package "facts" {
 }
 EOF
 
-cwpol_ok "use host map1.test; show package regex",
+cw_shell_ok "use host map1.test; show package regex",
 <<'EOF', "regexes as rhs in map";
 
 package "regex" {
@@ -80,7 +80,7 @@ package "regex" {
 }
 EOF
 
-cwpol_ok "use host map1.test; show package fallthrough",
+cw_shell_ok "use host map1.test; show package fallthrough",
 <<'EOF', "fact == fact map conditional";
 
 package "fallthrough" {

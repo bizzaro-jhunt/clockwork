@@ -8,11 +8,11 @@ use t::common;
 gencode_ok "use host package1.test", <<'EOF', "package resource";
 RESET
 TOPIC "package(binutils)"
-SET %A "cwtool pkg-version binutils"
+SET %A "cw localsys pkg-version binutils"
 CALL &EXEC.RUN1
 OK? @next.1
   LOG NOTICE "installing binutils"
-  SET %A "cwtool pkg-install binutils latest"
+  SET %A "cw localsys pkg-install binutils latest"
   CALL &EXEC.CHECK
   FLAG 1 :changed
 next.1:
@@ -23,11 +23,11 @@ EOF
 gencode_ok "use host package2.test", <<'EOF', "package uninstall";
 RESET
 TOPIC "package(binutils)"
-SET %A "cwtool pkg-version binutils"
+SET %A "cw localsys pkg-version binutils"
 CALL &EXEC.RUN1
 NOTOK? @next.1
   LOG NOTICE "uninstalling binutils"
-  SET %A "cwtool pkg-remove binutils"
+  SET %A "cw localsys pkg-remove binutils"
   CALL &EXEC.CHECK
   FLAG 1 :changed
 next.1:
@@ -38,11 +38,11 @@ EOF
 gencode_ok "use host package3.test", <<'EOF', "package versioned install";
 RESET
 TOPIC "package(binutils)"
-SET %A "cwtool pkg-version binutils"
+SET %A "cw localsys pkg-version binutils"
 CALL &EXEC.RUN1
 OK? @installed.1
   LOG NOTICE "installing binutils version 1.2.3"
-  SET %A "cwtool pkg-install binutils 1.2.3"
+  SET %A "cw localsys pkg-install binutils 1.2.3"
   CALL &EXEC.CHECK
   FLAG 1 :changed
   JUMP @next.1
@@ -52,7 +52,7 @@ SET %T2 "1.2.3"
 CALL &UTIL.VERCMP
 OK? @next.1
   LOG NOTICE "upgrading to binutils version 1.2.3"
-  SET %A "cwtool pkg-install binutils 1.2.3"
+  SET %A "cw localsys pkg-install binutils 1.2.3"
   CALL &EXEC.CHECK
   FLAG 1 :changed
 next.1:
@@ -63,17 +63,17 @@ EOF
 gencode_ok "use host package4.test", <<'EOF', "explicitly latest";
 RESET
 TOPIC "package(binutils)"
-SET %A "cwtool pkg-version binutils"
+SET %A "cw localsys pkg-version binutils"
 CALL &EXEC.RUN1
 OK? @installed.1
   LOG NOTICE "installing latest version of binutils"
-  SET %A "cwtool pkg-install binutils latest"
+  SET %A "cw localsys pkg-install binutils latest"
   CALL &EXEC.CHECK
   FLAG 1 :changed
   JUMP @next.1
 installed.1:
 COPY %S2 %T1
-SET %A "cwtool pkg-latest binutils"
+SET %A "cw localsys pkg-latest binutils"
 CALL &EXEC.RUN1
 OK? @got.latest.1
   ERROR "Failed to detect latest version of 'binutils'"
@@ -83,7 +83,7 @@ COPY %S2 %T2
 CALL &UTIL.VERCMP
 OK? @next.1
   LOG NOTICE "upgrading to latest version of binutils"
-  SET %A "cwtool pkg-install binutils latest"
+  SET %A "cw localsys pkg-install binutils latest"
   CALL &EXEC.CHECK
   FLAG 1 :changed
 next.1:
@@ -94,11 +94,11 @@ EOF
 gencode_ok "use host package5.test", <<'EOF', "version 'any'";
 RESET
 TOPIC "package(binutils)"
-SET %A "cwtool pkg-version binutils"
+SET %A "cw localsys pkg-version binutils"
 CALL &EXEC.RUN1
 OK? @next.1
   LOG NOTICE "installing binutils"
-  SET %A "cwtool pkg-install binutils latest"
+  SET %A "cw localsys pkg-install binutils latest"
   CALL &EXEC.CHECK
   FLAG 1 :changed
 next.1:

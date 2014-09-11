@@ -1,16 +1,7 @@
-bin/cw-run
-bin/cwtool
-bin/fact
-bin/pn
 examples/cogd.conf etc/clockwork
-examples/cw.conf   etc/clockwork
 lib/clockwork/augeas
-lib/clockwork/gather.d
+lib/clockwork/cli/cw-localsys
 sbin/cogd
-sbin/cwtrust
 usr/share/man/man1/cogd.1
-usr/share/man/man1/cwtool.1
-usr/share/man/man1/cwtrust.1
-usr/share/man/man1/fact.1
-usr/share/man/man1/pn.1
+usr/share/man/man1/cw-localsys.1
 usr/share/man/man5/cogd.conf.5

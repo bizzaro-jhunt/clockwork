@@ -1466,12 +1466,12 @@ int res_package_gencode(const void *res, FILE *io, unsigned int next, unsigned i
 	assert(r); // LCOV_EXCL_LINE
 
 	fprintf(io, "TOPIC \"package(%s)\"\n", r->key);
-	fprintf(io, "SET %%A \"cwtool pkg-version %s\"\n", r->name);
+	fprintf(io, "SET %%A \"cw localsys pkg-version %s\"\n", r->name);
 	fprintf(io, "CALL &EXEC.RUN1\n");
 	if (ENFORCED(r, RES_PACKAGE_ABSENT)) {
 		fprintf(io, "NOTOK? @next.%u\n", next);
 		fprintf(io, "  LOG NOTICE \"uninstalling %s\"\n", r->name);
-		fprintf(io, "  SET %%A \"cwtool pkg-remove %s\"\n", r->name);
+		fprintf(io, "  SET %%A \"cw localsys pkg-remove %s\"\n", r->name);
 		fprintf(io, "  CALL &EXEC.CHECK\n");
 		fprintf(io, "  FLAG 1 :changed\n");
 		return 0;
@@ -1480,7 +1480,7 @@ int res_package_gencode(const void *res, FILE *io, unsigned int next, unsigned i
 	if (!r->version && !r->latest) {
 		fprintf(io, "OK? @next.%u\n", next);
 		fprintf(io, "  LOG NOTICE \"installing %s\"\n", r->name);
-		fprintf(io, "  SET %%A \"cwtool pkg-install %s latest\"\n", r->name);
+		fprintf(io, "  SET %%A \"cw localsys pkg-install %s latest\"\n", r->name);
 		fprintf(io, "  CALL &EXEC.CHECK\n");
 		fprintf(io, "  FLAG 1 :changed\n");
 		return 0;
@@ -1492,14 +1492,14 @@ int res_package_gencode(const void *res, FILE *io, unsigned int next, unsigned i
 	} else {
 		fprintf(io, "  LOG NOTICE \"installing latest version of %s\"\n", r->name);
 	}
-	fprintf(io, "  SET %%A \"cwtool pkg-install %s %s\"\n", r->name, r->version ? r->version : "latest");
+	fprintf(io, "  SET %%A \"cw localsys pkg-install %s %s\"\n", r->name, r->version ? r->version : "latest");
 	fprintf(io, "  CALL &EXEC.CHECK\n");
 	fprintf(io, "  FLAG 1 :changed\n");
 	fprintf(io, "  JUMP @next.%u\n", next);
 	fprintf(io, "installed.%u:\n", next);
 	fprintf(io, "COPY %%S2 %%T1\n");
 	if (r->latest) {
-		fprintf(io, "SET %%A \"cwtool pkg-latest %s\"\n", r->name);
+		fprintf(io, "SET %%A \"cw localsys pkg-latest %s\"\n", r->name);
 		fprintf(io, "CALL &EXEC.RUN1\n");
 		fprintf(io, "OK? @got.latest.%u\n", next);
 		fprintf(io, "  ERROR \"Failed to detect latest version of '%s'\"\n", r->name);
@@ -1516,7 +1516,7 @@ int res_package_gencode(const void *res, FILE *io, unsigned int next, unsigned i
 	} else {
 		fprintf(io, "  LOG NOTICE \"upgrading to %s version %s\"\n", r->name, r->version);
 	}
-	fprintf(io, "  SET %%A \"cwtool pkg-install %s %s\"\n", r->name, r->latest ? "latest" : r->version);
+	fprintf(io, "  SET %%A \"cw localsys pkg-install %s %s\"\n", r->name, r->latest ? "latest" : r->version);
 	fprintf(io, "  CALL &EXEC.CHECK\n");
 	fprintf(io, "  FLAG 1 :changed\n");
 	return 0;
@@ -1665,41 +1665,41 @@ int res_service_gencode(const void *res, FILE *io, unsigned int next, unsigned i
 
 	fprintf(io, "TOPIC \"service(%s)\"\n", r->key);
 	if (ENFORCED(r, RES_SERVICE_ENABLED)) {
-		fprintf(io, "SET %%A \"cwtool svc-boot-status %s\"\n", r->service);
+		fprintf(io, "SET %%A \"cw localsys svc-boot-status %s\"\n", r->service);
 		fprintf(io, "CALL &EXEC.CHECK\n");
 		fprintf(io, "OK? @enabled.%u\n", next);
 		fprintf(io, "  LOG NOTICE \"enabling service %s to start at boot\"\n", r->service);
-		fprintf(io, "  SET %%A \"cwtool svc-enable %s\"\n", r->service);
+		fprintf(io, "  SET %%A \"cw localsys svc-enable %s\"\n", r->service);
 		fprintf(io, "  CALL &EXEC.CHECK\n");
 		fprintf(io, "enabled.%u:\n", next);
 
 	} else if (ENFORCED(r, RES_SERVICE_DISABLED)) {
-		fprintf(io, "SET %%A \"cwtool svc-boot-status %s\"\n", r->service);
+		fprintf(io, "SET %%A \"cw localsys svc-boot-status %s\"\n", r->service);
 		fprintf(io, "CALL &EXEC.CHECK\n");
 		fprintf(io, "NOTOK? @disabled.%u\n", next);
 		fprintf(io, "  LOG NOTICE \"disabling service %s\"\n", r->service);
-		fprintf(io, "  SET %%A \"cwtool svc-disable %s\"\n", r->service);
+		fprintf(io, "  SET %%A \"cw localsys svc-disable %s\"\n", r->service);
 		fprintf(io, "  CALL &EXEC.CHECK\n");
 		fprintf(io, "disabled.%u:\n", next);
 	}
 
 	if (ENFORCED(r, RES_SERVICE_RUNNING)) {
-		fprintf(io, "SET %%A \"cwtool svc-run-status %s\"\n", r->service);
+		fprintf(io, "SET %%A \"cw localsys svc-run-status %s\"\n", r->service);
 		fprintf(io, "CALL &EXEC.CHECK\n");
 		fprintf(io, "OK? @running.%u\n", next);
 		fprintf(io, "  LOG NOTICE \"starting service %s\"\n", r->service);
-		fprintf(io, "  SET %%A \"cwtool svc-init %s start\"\n", r->service);
+		fprintf(io, "  SET %%A \"cw localsys svc-init %s start\"\n", r->service);
 		fprintf(io, "  CALL &EXEC.CHECK\n");
 		fprintf(io, "  FLAG 1 :changed\n");
 		fprintf(io, "  FLAG 0 :res%u\n", serial);
 		fprintf(io, "running.%u:\n", next);
 
 	} else if (ENFORCED(r, RES_SERVICE_STOPPED)) {
-		fprintf(io, "SET %%A \"cwtool svc-run-status %s\"\n", r->service);
+		fprintf(io, "SET %%A \"cw localsys svc-run-status %s\"\n", r->service);
 		fprintf(io, "CALL &EXEC.CHECK\n");
 		fprintf(io, "NOTOK? @stopped.%u\n", next);
 		fprintf(io, "  LOG NOTICE \"stopping service %s\"\n", r->service);
-		fprintf(io, "  SET %%A \"cwtool svc-init %s stop\"\n", r->service);
+		fprintf(io, "  SET %%A \"cw localsys svc-init %s stop\"\n", r->service);
 		fprintf(io, "  CALL &EXEC.CHECK\n");
 		fprintf(io, "  FLAG 1 :changed\n");
 		fprintf(io, "  FLAG 0 :res%u\n", serial);
@@ -1710,14 +1710,14 @@ int res_service_gencode(const void *res, FILE *io, unsigned int next, unsigned i
 
 	if (ENFORCED(r, RES_SERVICE_RUNNING)) {
 		fprintf(io, "  LOG NOTICE \"%sing service %s\"\n", r->notify ? r->notify : "restart", r->service);
-		fprintf(io, "  SET %%A \"cwtool svc-init %s %s\"\n",
+		fprintf(io, "  SET %%A \"cw localsys svc-init %s %s\"\n",
 				r->service, r->notify ? r->notify : "restart");
 		fprintf(io, "  CALL &EXEC.CHECK\n");
 		fprintf(io, "  FLAG 0 :res%u\n", serial);
 
 	} else if (ENFORCED(r, RES_SERVICE_STOPPED)) {
 		fprintf(io, "  LOG NOTICE \"stopping service %s\"\n", r->service);
-		fprintf(io, "  SET %%A \"cwtool svc-init %s stop\"\n", r->service);
+		fprintf(io, "  SET %%A \"cw localsys svc-init %s stop\"\n", r->service);
 		fprintf(io, "  CALL &EXEC.CHECK\n");
 		fprintf(io, "  FLAG 0 :res%u\n", serial);
 	}

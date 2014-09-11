@@ -28,7 +28,7 @@
 
 void* mesh_server_thread(void *data)
 {
-	int rc = mesh_server_run((mesh_server_t*)data);
+	mesh_server_run((mesh_server_t*)data);
 	return NULL;
 }
 

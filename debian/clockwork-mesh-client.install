@@ -1,0 +1,8 @@
+lib/clockwork/cli/cw-cfm
+lib/clockwork/cli/cw-exec
+lib/clockwork/cli/cw-mesh
+lib/clockwork/cli/cw-package
+lib/clockwork/cli/cw-ping
+lib/clockwork/cli/cw-query
+lib/clockwork/cli/cw-service
+lib/clockwork/cli/cw-show

@@ -18,15 +18,15 @@
  */
 
 
-#include "clockwork.h"
-#include "policy.h"
-#include "spec/parser.h"
+#include "../src/clockwork.h"
+#include "../src/policy.h"
+#include "../src/spec/parser.h"
 #include <getopt.h>
 #include <ctype.h>
 #include <readline/readline.h>
 #include <readline/history.h>
 
-struct cwpol_opts {
+struct cwsh_opts {
 	char *command;
 	char *manifest;
 	char *facts;
@@ -41,7 +41,7 @@ struct command {
 	struct stringlist *args;
 	char       *orig;
 };
-typedef int (*command_fn)(struct cwpol_opts *o, struct command*, int);
+typedef int (*command_fn)(struct cwsh_opts *o, struct command*, int);
 
 #define slv(sl,i) (sl)->strings[(i)]
 
@@ -64,7 +64,7 @@ static void show_acls(void);
 static void show_resources(void);
 static void show_resource(const char *type, const char *name);
 
-#define COMMAND(x) static int command_ ## x (struct cwpol_opts *o, struct command *c, int interactive)
+#define COMMAND(x) static int command_ ## x (struct cwsh_opts *o, struct command *c, int interactive)
 COMMAND(about);
 COMMAND(help);
 COMMAND(quit);
@@ -95,9 +95,9 @@ static cw_hash_t       *FACTS    = NULL;
 static struct manifest *MANIFEST = NULL;
 
 static void setup(void);
-static int dispatch(struct cwpol_opts *o, const char *command, int interactive);
-static int dispatch1(struct cwpol_opts *o, const char *command, int interactive);
-static struct cwpol_opts* cwpol_options(int argc, char **argv, int interactive);
+static int dispatch(struct cwsh_opts *o, const char *command, int interactive);
+static int dispatch1(struct cwsh_opts *o, const char *command, int interactive);
+static struct cwsh_opts* cwsh_options(int argc, char **argv, int interactive);
 
 /* Options
 
@@ -112,14 +112,14 @@ static struct cwpol_opts* cwpol_options(int argc, char **argv, int interactive);
 
 int main(int argc, char **argv)
 {
-	struct cwpol_opts *opts;
+	struct cwsh_opts *opts;
 	int interactive;
 	char *hist = NULL;
 
 	interactive = isatty(0);
-	opts = cwpol_options(argc, argv, interactive);
+	opts = cwsh_options(argc, argv, interactive);
 
-	cw_log_open("cwpol", "stdout");
+	cw_log_open("cwsh", "stdout");
 	setup();
 	if (opts->manifest) {
 		cw_log(LOG_DEBUG, "pre-loading manifest: %s", opts->manifest);
@@ -138,7 +138,7 @@ int main(int argc, char **argv)
 		printf("Type `about' for information on this program.\n");
 		printf("Type `help' to get help on shell commands.\n");
 
-		hist = cw_string("%s/.cwpol_history", getenv("HOME"));
+		hist = cw_string("%s/.cwsh_history", getenv("HOME"));
 		if (hist) {
 			using_history();
 			read_history(hist);
@@ -738,9 +738,9 @@ static void show_resource(const char *type, const char *name)
 	free(target);
 }
 
-static struct cwpol_opts* cwpol_options(int argc, char **argv, int interactive)
+static struct cwsh_opts* cwsh_options(int argc, char **argv, int interactive)
 {
-	struct cwpol_opts *o;
+	struct cwsh_opts *o;
 	const char *short_opts = "h?e:f:vqV";
 	struct option long_opts[] = {
 		{ "help",    no_argument,       NULL, 'h' },
@@ -756,7 +756,7 @@ static struct cwpol_opts* cwpol_options(int argc, char **argv, int interactive)
 	int v = (interactive ? LOG_INFO : LOG_ERR);
 	int opt, idx = 0;
 
-	o = cw_alloc(sizeof(struct cwpol_opts));
+	o = cw_alloc(sizeof(struct cwsh_opts));
 	o->cache = strdup(CACHED_FACTS_DIR);
 	o->no_clobber = 0;
 
@@ -838,7 +838,7 @@ static void setup(void)
 	MANIFEST = NULL;
 }
 
-static int dispatch(struct cwpol_opts *o, const char *c, int interactive)
+static int dispatch(struct cwsh_opts *o, const char *c, int interactive)
 {
 	struct stringlist *commands;
 	size_t i;
@@ -858,7 +858,7 @@ static int dispatch(struct cwpol_opts *o, const char *c, int interactive)
 	return rc;
 }
 
-static int dispatch1(struct cwpol_opts *o, const char *c, int interactive)
+static int dispatch1(struct cwsh_opts *o, const char *c, int interactive)
 {
 	command_fn f;
 	struct command *command;

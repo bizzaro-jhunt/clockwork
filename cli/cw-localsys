@@ -1,16 +1,13 @@
 #!/bin/sh
 
 #
-# cwtool - Portable Bourne Shell Package/Service Manager
+# cw-localsys - Portable Bourne Shell Package/Service Manager
 #
 # author:  James Hunt <james@niftylogic.com>
 # created: 2014-05-20
 #
-# author:  Dan Molik <dan@d3fy.net>
-# updated: 2014-09-03
-#
 
-# USAGE: cwtool <action> [arguments]
+# USAGE: cw-localsys <action> [arguments]
 #
 # Supported actions:
 #

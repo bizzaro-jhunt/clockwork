@@ -12,16 +12,16 @@
 \"  along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
 \"
 
-.TH cwkey "1" "Aug 2014" "Clockwork" "Clockwork Utilities"
+.TH cw\-cert "1" "Aug 2014" "Clockwork" "Clockwork Utilities"
 .SH NAME
 .PP
-cwkey \- Clockwork Certificate Generator
+cw\-cert \- Clockwork Certificate Generator
 
 .SH SYNOPSIS
 .PP
-\fBcwkey\fR [options]
+\fBcw\-cert\fR [options]
 .PP
-\fBcwkey\fR -i host.identity -f ./certs/newcert
+\fBcw\-cert\fR -i host.identity -f ./certs/newcert
 
 .SH DESCRIPTION
 .PP
@@ -34,7 +34,7 @@ group, permissions, etc.) and content.  It can maintain a specific
 set of installed packages, and even make sure that system user
 accounts exist.
 .PP
-\fBcwkey\fR is a utility for generating Clockwork certificates,
+\fBcw\-cert\fR is a utility for generating Clockwork certificates,
 which consist of a public / secret keypair and an identity.
 .PP
 
@@ -55,7 +55,7 @@ Specify where the output certificate should be written.  A combined
 certificate (see \fBCERTIFICATE FORMATS\fR, later) will be written to the
 named file, and a public certificate will be written to \fIFILE\fR.pub.
 .PP
-Target files must not already exist; \fBcwkey\fR will refuse to overwrite
+Target files must not already exist; \fBcw\-cert\fR will refuse to overwrite
 existing certificates.  Created files will have proper permissions,
 \fB0600\fR for the combined certificate (which contains the secret key) and
 \fB0644\fR for the public certificate.
@@ -101,7 +101,7 @@ break the encryption.
 
 .SH SEE ALSO
 .PP
-\fBclockwork\fR(7), \fBcwtrust\fR(1), \fBclockd.conf\fR(5) and
+\fBclockwork\fR(7), \fBcw\-trust\fR(1), \fBclockd.conf\fR(5) and
 \fBcogd.conf\fR(5)
 
 .SH AUTHOR

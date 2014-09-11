@@ -1,11 +1,11 @@
-bin/cw-template-erb
 examples/clockd.conf etc/clockwork
 examples/manifest.pol etc/clockwork
+lib/clockwork/cli/cw-cc
+lib/clockwork/cli/cw-shell
+lib/clockwork/cli/cw-template-erb
 lib/clockwork/help
 sbin/clockd
-sbin/cwcc
-sbin/cwpol
 usr/share/man/man1/clockd.1
-usr/share/man/man1/cwcc.1
-usr/share/man/man1/cwpol.1
+usr/share/man/man1/cw-cc.1
+usr/share/man/man1/cw-shell.1
 usr/share/man/man5/clockd.conf.5

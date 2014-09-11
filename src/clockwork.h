@@ -66,6 +66,14 @@
 #  define CW_PAM_SERVICE "clockwork"
 #endif
 
+#ifndef CW_MTOOL_CONFIG_FILE
+#  define CW_MTOOL_CONFIG_FILE "/etc/clockwork/cw.conf"
+#endif
+
+#ifndef CW_COGD_CONFIG_FILE
+#  define CW_COGD_CONFIG_FILE "/etc/clockwork/cogd.conf"
+#endif
+
 #include "cw.h"
 #include <assert.h>
 #include <stdlib.h>

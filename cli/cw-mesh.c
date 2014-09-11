@@ -23,11 +23,9 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include "clockwork.h"
-#include "mesh.h"
-#include "gear/gear.h"
-
-#define DEFAULT_CONFIG_FILE "/etc/clockwork/cw.conf"
+#include "../src/clockwork.h"
+#include "../src/mesh.h"
+#include "../src/gear/gear.h"
 
 #define PROMPT_ECHO   1
 #define PROMPT_NOECHO 0
@@ -165,7 +163,7 @@ static client_t* s_init(int argc, char **argv)
 	int verbose = LOG_WARNING, noop = 0;
 	struct stringlist *filters = stringlist_new(NULL);
 
-	cw_log_open("cw-run", "stderr");
+	cw_log_open("cw-mesh", "stderr");
 	cw_log_level(LOG_ERR, NULL);
 
 	char *x, *config_file = NULL;
@@ -174,11 +172,11 @@ static client_t* s_init(int argc, char **argv)
 		switch (opt) {
 		case 'h':
 		case '?':
-			printf("cw-run, part of clockwork v%s\n", PACKAGE_VERSION);
+			printf("cw-mesh, part of clockwork v%s\n", PACKAGE_VERSION);
 			exit(0);
 
 		case 'V':
-			printf("cw-run (Clockwork) %s\n"
+			printf("cw-mesh (Clockwork) %s\n"
 			       "Copyright (C) 2014 James Hunt\n",
 			       PACKAGE_VERSION);
 			exit(0);
@@ -253,6 +251,7 @@ static client_t* s_init(int argc, char **argv)
 		}
 	}
 
+	cw_log_level(verbose, NULL);
 	c->filters = stringlist_join(filters, "");
 
 	LIST(config);
@@ -260,7 +259,7 @@ static client_t* s_init(int argc, char **argv)
 	cw_cfg_set(&config, "sleep",   "250");
 
 	if (!config_file) {
-		if (s_read_config(&config, DEFAULT_CONFIG_FILE, 0) != 0)
+		if (s_read_config(&config, CW_MTOOL_CONFIG_FILE, 0) != 0)
 			exit(1);
 
 		if (getenv("HOME")) {
@@ -268,11 +267,11 @@ static client_t* s_init(int argc, char **argv)
 			if (s_read_config(&config, path, 0) != 0)
 				exit(1);
 
-			config_file = cw_string("%s or %s", DEFAULT_CONFIG_FILE, path);
+			config_file = cw_string("%s or %s", CW_MTOOL_CONFIG_FILE, path);
 			free(path);
 
 		} else {
-			config_file = strdup(DEFAULT_CONFIG_FILE);
+			config_file = strdup(CW_MTOOL_CONFIG_FILE);
 		}
 
 	} else if (s_read_config(&config, config_file, 1) != 0) {
@@ -419,7 +418,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-	cw_log(LOG_INFO, "cw-run shutting down");
+	cw_log(LOG_INFO, "cw-mesh shutting down");
 
 
 	cw_zmq_shutdown(client, 500);

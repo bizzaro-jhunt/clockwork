@@ -9,7 +9,7 @@ our @EXPORT_OK = qw/
 	run_ok
 	background_ok
 	gencode_ok
-	cwpol_ok
+	cw_shell_ok
 	resources_ok
 	pendulum_ok
 	bdfa_ok
@@ -24,7 +24,7 @@ our @EXPORT = @EXPORT_OK;
 my $T = Test::Builder->new;
 
 my $PN = "./pn";
-my $CWPOL = "./cwpol";
+my $CWSH = "./cw-shell";
 my $BDFA = "./bdfa";
 my $COMMAND = "./TEST_cmd";
 my $MANIFEST = "t/tmp/data/policy/manifest.pol";
@@ -98,21 +98,21 @@ sub background_ok
 sub gencode_ok
 {
 	my ($commands, $expect, $message, %opts) = @_;
-	$message ||= "cwpol run ok";
+	$message ||= "cw shell run ok";
 	$opts{timeout} ||= 5;
 
 	my $stdout = tempfile;
 	my $stderr = tempfile;
 
 	my $pid = fork;
-	$T->BAIL_OUT("Failed to fork for cwpol run: $!") if $pid < 0;
+	$T->BAIL_OUT("Failed to fork for cw shell run: $!") if $pid < 0;
 	if ($pid == 0) {
 		open STDOUT, ">&", $stdout
 			or die "Failed to reopen stdout: $!\n";
 		open STDERR, ">&", $stderr
 			or die "Failed to reopen stderr: $!\n";
-		exec $CWPOL, '-qvv', $MANIFEST, '-f', $FACTS, '-e', "$commands; gencode"
-			or die "Failed to exec $CWPOL: $!\n";
+		exec $CWSH, '-qvv', $MANIFEST, '-f', $FACTS, '-e', "$commands; gencode"
+			or die "Failed to exec $CWSH: $!\n";
 	}
 
 	local $SIG{ALRM} = sub { die "timed out\n" };
@@ -125,7 +125,7 @@ sub gencode_ok
 	if ($@) {
 		if ($@ =~ m/^timed out/) {
 			kill 9, $pid;
-			$T->ok(0, "$message: timed out running $CWPOL");
+			$T->ok(0, "$message: timed out running $CWSH");
 			return 0;
 		}
 		$T->ok(0, "$message: exception raised - $@");
@@ -147,7 +147,7 @@ NOTOK? @exit
 SET %A "/var/lock/cogd/.needs-restart"
 CALL &FS.EXISTS?
 NOTOK? @exit
-SET %A "cwtool svc-init-force cogd restart"
+SET %A "cw localsys svc-init-force cogd restart"
 CALL &EXEC.CHECK
 exit:
 HALT
@@ -178,24 +178,24 @@ EOF
 	return 1;
 }
 
-sub cwpol_ok
+sub cw_shell_ok
 {
 	my ($commands, $expect, $message, %opts) = @_;
-	$message ||= "cwpol run ok";
+	$message ||= "cw shell run ok";
 	$opts{timeout} ||= 5;
 
 	my $stdout = tempfile;
 	my $stderr = tempfile;
 
 	my $pid = fork;
-	$T->BAIL_OUT("Failed to fork for cwpol run: $!") if $pid < 0;
+	$T->BAIL_OUT("Failed to fork for cw shell run: $!") if $pid < 0;
 	if ($pid == 0) {
 		open STDOUT, ">&", $stdout
 			or die "Failed to reopen stdout: $!\n";
 		open STDERR, ">&", $stderr
 			or die "Failed to reopen stderr: $!\n";
-		exec $CWPOL, '-qvv', '-f', $FACTS, $MANIFEST, '-e', "$commands"
-			or die "Failed to exec $CWPOL: $!\n";
+		exec $CWSH, '-qvv', '-f', $FACTS, $MANIFEST, '-e', "$commands"
+			or die "Failed to exec $CWSH: $!\n";
 	}
 
 	local $SIG{ALRM} = sub { die "timed out\n" };
@@ -208,7 +208,7 @@ sub cwpol_ok
 	if ($@) {
 		if ($@ =~ m/^timed out/) {
 			kill 9, $pid;
-			$T->ok(0, "$message: timed out running $CWPOL");
+			$T->ok(0, "$message: timed out running $CWSH");
 			return 0;
 		}
 		$T->ok(0, "$message: exception raised - $@");
@@ -251,21 +251,21 @@ sub cwpol_ok
 sub resources_ok
 {
 	my ($commands, $expect, $message, %opts) = @_;
-	$message ||= "cwpol run ok";
+	$message ||= "cw shell run ok";
 	$opts{timeout} ||= 5;
 
 	my $stdout = tempfile;
 	my $stderr = tempfile;
 
 	my $pid = fork;
-	$T->BAIL_OUT("Failed to fork for cwpol run: $!") if $pid < 0;
+	$T->BAIL_OUT("Failed to fork for cw shell run: $!") if $pid < 0;
 	if ($pid == 0) {
 		open STDOUT, ">&", $stdout
 			or die "Failed to reopen stdout: $!\n";
 		open STDERR, ">&", $stderr
 			or die "Failed to reopen stderr: $!\n";
-		exec $CWPOL, '-qvv', '-f', $FACTS, $MANIFEST, '-e', "$commands; show resources"
-			or die "Failed to exec $CWPOL: $!\n";
+		exec $CWSH, '-qvv', '-f', $FACTS, $MANIFEST, '-e', "$commands; show resources"
+			or die "Failed to exec $CWSH: $!\n";
 	}
 
 	local $SIG{ALRM} = sub { die "timed out\n" };
@@ -278,7 +278,7 @@ sub resources_ok
 	if ($@) {
 		if ($@ =~ m/^timed out/) {
 			kill 9, $pid;
-			$T->ok(0, "$message: timed out running $CWPOL");
+			$T->ok(0, "$message: timed out running $CWSH");
 			return 0;
 		}
 		$T->ok(0, "$message: exception raised - $@");

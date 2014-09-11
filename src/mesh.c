@@ -980,7 +980,9 @@ int mesh_server_reactor(void *sock, cw_pdu_t *pdu, void *data)
 		char *username = cw_pdu_text(pdu, 1),
 		     *password = cw_pdu_text(pdu, 2),
 		     *command  = cw_pdu_text(pdu, 3),
-		     *filters  = cw_pdu_text(pdu, 4);
+		     *filters  = cw_pdu_text(pdu, 4),
+		     *creds    = NULL,
+		     *code     = NULL;
 
 		mesh_slot_t *client = cw_alloc(sizeof(mesh_slot_t));
 		client->ident    = strdup(pdu->client);
@@ -998,8 +1000,8 @@ int mesh_server_reactor(void *sock, cw_pdu_t *pdu, void *data)
 			goto REQUEST_exit;
 		}
 
-		char *creds  = s_user_lookup(username); assert(creds);
-		char *code   = s_cmd_code(command);     assert(code);
+		creds = s_user_lookup(username); assert(creds);
+		code  = s_cmd_code(command);     assert(code);
 
 		if (server->pam_service) {
 			cw_log(LOG_DEBUG, "authenticating as %s", username);

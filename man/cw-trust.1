@@ -12,16 +12,16 @@
 \"  along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
 \"
 
-.TH cwtrust "1" "Aug 2014" "Clockwork" "Clockwork Utilities"
+.TH cw\-trust "1" "Aug 2014" "Clockwork" "Clockwork Utilities"
 .SH NAME
 .PP
-cwtrust \- Clockwork Trust Database Utility
+cw\-trust \- Clockwork Trust Database Utility
 
 .SH SYNOPSIS
 .PP
-\fBcwtrust\fR [OPTIONS] --trust cert.pub other-cert.pub
+\fBcw\-trust\fR [OPTIONS] --trust cert.pub other-cert.pub
 .PP
-\fBcwtrust\fR [OPTIONS] --revoke bad.pub
+\fBcw\-trust\fR [OPTIONS] --revoke bad.pub
 
 .SH DESCRIPTION
 .PP
@@ -34,7 +34,7 @@ group, permissions, etc.) and content.  It can maintain a specific
 set of installed packages, and even make sure that system user
 accounts exist.
 .PP
-\fBcwtrust\fR is a utility for managing a database of trusted Clockwork
+\fBcw\-trust\fR is a utility for managing a database of trusted Clockwork
 certificates, which is called a \fItrust database\fR, or just \fItrustdb\fR
 for short.  It allows site administrators to trust or revoke certificates.
 .PP
@@ -57,7 +57,7 @@ Defaults to \fI/etc/clockwork/certs/trusted\fR.
 \fB\-t\fR, \fB\-\-trust\fR
 .RS 8
 Add certificates given on the command line to the trust database.
-This is the default mode of \fBcwtrust\fR.
+This is the default mode of \fBcw\-trust\fR.
 .RE
 
 .PP
@@ -83,13 +83,13 @@ fb5cf56fabc8f9e85294f1af3e968bd02d6ebae801a76331124b94a307f57875 host1.example.c
 .RE
 .PP
 Empty lines will be ignored, as will any line starting with the comment
-character, \fB'#'\fR.  Keep in mind, however, that \fBcwtrust\fR will strip
+character, \fB'#'\fR.  Keep in mind, however, that \fBcw\-trust\fR will strip
 out all of the comments and reformat the trustdb.
 .PP
 
 .SH SEE ALSO
 .PP
-\fBclockwork\fR(7), \fBclockd\fR(1), \fBcwkey\fR(1) and \fBclockd.conf\fR(5)
+\fBclockwork\fR(7), \fBclockd\fR(1), \fBcw\-cert\fR(1) and \fBclockd.conf\fR(5)
 
 .SH AUTHOR
 .PP

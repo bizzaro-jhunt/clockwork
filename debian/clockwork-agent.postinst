@@ -7,7 +7,7 @@
 # created: 2014-07-07
 #
 
-CWKEY=/bin/cwkey
+CWKEY="/bin/cw key"
 CERTS=/etc/clockwork/certs
 LOCKDIR=/var/lock/cogd
 

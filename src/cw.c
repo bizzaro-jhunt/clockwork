@@ -1,3 +1,22 @@
+/*
+  Copyright 2011-2014 James Hunt <james@jameshunt.us>
+
+  This file is part of Clockwork.
+
+  Clockwork is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  Clockwork is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #include "cw.h"
 #include <assert.h>
 #include <stdlib.h>
@@ -20,6 +39,7 @@
 #include <pthread.h>
 #include <sodium.h>
 #include <security/pam_appl.h>
+#include <netdb.h>
 
 /*
 
@@ -1886,7 +1906,7 @@ FILE* cw_tpl_erb(const char *src, cw_hash_t *facts)
 		.uid = 0,
 		.gid = 0,
 	};
-	int rc = cw_run2(&runner, "cw-template-erb", src, NULL);
+	int rc = cw_run2(&runner, "cw", "template-erb", src, NULL);
 	fclose(in);
 
 	char buf[8192];
@@ -2997,4 +3017,43 @@ int cw_authenticate(const char *service, const char *username, const char *passw
 const char *cw_autherror(void)
 {
 	return _CW_AUTH_ERR ? _CW_AUTH_ERR : "(no error)";
+}
+
+/*
+    ########  #######  ########  ##    ##
+    ##       ##     ## ##     ## ###   ##
+    ##       ##     ## ##     ## ####  ##
+    ######   ##     ## ##     ## ## ## ##
+    ##       ##  ## ## ##     ## ##  ####
+    ##       ##    ##  ##     ## ##   ###
+    ##        ##### ## ########  ##    ##
+ */
+
+char* cw_fqdn(void)
+{
+	char nodename[1024];
+	nodename[1023] = '\0';
+	gethostname(nodename, 1023);
+
+	struct addrinfo hints, *info, *p;
+	memset(&hints, 0, sizeof hints);
+	hints.ai_family   = AF_UNSPEC; /*either IPV4 or IPV6*/
+	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_flags    = AI_CANONNAME;
+
+	int rc = getaddrinfo(nodename, NULL, &hints, &info);
+	if (rc != 0) {
+		cw_log(LOG_ERR, "Failed to lookup %s: %s", nodename, gai_strerror(rc));
+		return NULL;
+	}
+
+	char *ret = NULL;
+	for (p = info; p != NULL; p = p->ai_next) {
+		if (strcmp(p->ai_canonname, nodename) == 0) continue;
+		ret = strdup(p->ai_canonname);
+		break;
+	}
+
+	freeaddrinfo(info);
+	return ret ? ret : strdup(nodename);
 }

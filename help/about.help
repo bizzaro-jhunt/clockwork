@@ -1,17 +1,13 @@
-cwpol - Clockwork Policy Explorer
-=================================
+cw shell - Clockwork Shell
+==========================
 
-Copyright 2011-2014 James Hunt
-
-The policy explorer allows you to poke around a manifest,
+The Clockwork shell allows you to poke around a manifest,
 inspecting resources, policies and hosts.  It lets you load
 arbitrary sets of facts and see how the manifest will react
 (what resources are defined, what values are assigned to
 attributes, etc.)
 
-cwpol is part of Clockwork, a Configuration Management System
+cw shell is part of Clockwork, a Configuration Management System
 that enforces configuration policies on any number of host
 systems.  For more information, see clockwork(7).
-
-Clockwork was designed and written by James Hunt.
 

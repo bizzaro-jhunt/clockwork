@@ -1,6 +1,7 @@
 examples/cw.conf   etc/clockwork
 bin/cw
 bin/pn
+lib/clockwork/cli/cw
 lib/clockwork/cli/cw-cert
 lib/clockwork/cli/cw-fact
 lib/clockwork/gather.d

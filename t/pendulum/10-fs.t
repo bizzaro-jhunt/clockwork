@@ -59,4 +59,10 @@ EOF
 ok -l "$TEMP/link", "symlink created";
 is readlink("$TEMP/link"), "decafbad", "symlink target set";
 
+unlink "$TEMP/before";
+unlink "$TEMP/after";
+pendulum_ok "$TESTS/rename.pn", <<EOF, "rename.pn";
+OK
+EOF
+
 done_testing;

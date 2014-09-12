@@ -206,4 +206,138 @@ next.1:
 final.1:
 EOF
 
+gencode_ok "use host file6.test", <<'EOF', "pre-change verify with implicit expect";
+RESET
+TOPIC "file(/etc/sudoers)"
+SET %A "/etc/sudoers"
+SET %E "/etc/.sudoers.cogd"
+CALL &FS.EXISTS?
+OK? @exists.1
+  CALL &FS.MKFILE
+  OK? @exists.1
+  ERROR "Failed to create new file '%s'"
+  JUMP @next.1
+exists.1:
+CALL &FS.IS_FILE?
+OK? @isfile.1
+  ERROR "%s exists, but is not a regular file"
+  JUMP @next.1
+isfile.1:
+CALL &FS.SHA1
+OK? @localok.1
+  ERROR "Failed to calculate SHA1 for local copy of '%s'"
+  JUMP @sha1.done.1
+localok.1:
+COPY %S2 %T1
+COPY %A %F
+SET %A "file:/etc/sudoers"
+;; source = /cfm/files/sudoers
+CALL &SERVER.SHA1
+COPY %F %A
+OK? @remoteok.1
+  ERROR "Failed to retrieve SHA1 of expected contents"
+  JUMP @sha1.done.1
+remoteok.1:
+COPY %S2 %T2
+CMP? @sha1.done.1
+  COPY %T1 %A
+  COPY %T2 %B
+  LOG NOTICE "Updating local content (%s) from remote copy (%s)"
+  COPY %E %A
+  CALL &SERVER.WRITEFILE
+  OK? @tmpfile.done.1
+    ERROR "Failed to update local file contents"
+    JUMP @sha1.done.1
+tmpfile.done.1:
+  SET %A "visudo -vf /etc/.sudoers.cogd"
+  SET %B 0
+  SET %C 0
+  CALL &EXEC.CHECK
+  COPY %R %T1
+  SET %T2 0
+  EQ? @rename.1
+    COPY %R %B
+    COPY %T2 %C
+    ERROR "Pre-change verification check `%s` failed; returned %i (not %i)"
+    JUMP @sha1.done.1
+rename.1
+  COPY %E %A
+  COPY %F %B
+  CALL &FS.RENAME
+  OK? @sha1.done.1
+    ERROR "Failed to update local file contents"
+    CALL &FS.UNLINK
+sha1.done.1:
+next.1:
+!FLAGGED? :changed @final.1
+final.1:
+EOF
+
+gencode_ok "use host file7.test", <<'EOF', "pre-change verify with implicit expect";
+RESET
+TOPIC "file(/etc/somefile)"
+SET %A "/etc/somefile"
+SET %E "/etc/.xyz"
+CALL &FS.EXISTS?
+OK? @exists.1
+  CALL &FS.MKFILE
+  OK? @exists.1
+  ERROR "Failed to create new file '%s'"
+  JUMP @next.1
+exists.1:
+CALL &FS.IS_FILE?
+OK? @isfile.1
+  ERROR "%s exists, but is not a regular file"
+  JUMP @next.1
+isfile.1:
+CALL &FS.SHA1
+OK? @localok.1
+  ERROR "Failed to calculate SHA1 for local copy of '%s'"
+  JUMP @sha1.done.1
+localok.1:
+COPY %S2 %T1
+COPY %A %F
+SET %A "file:/etc/somefile"
+;; source = /cfm/files/something
+CALL &SERVER.SHA1
+COPY %F %A
+OK? @remoteok.1
+  ERROR "Failed to retrieve SHA1 of expected contents"
+  JUMP @sha1.done.1
+remoteok.1:
+COPY %S2 %T2
+CMP? @sha1.done.1
+  COPY %T1 %A
+  COPY %T2 %B
+  LOG NOTICE "Updating local content (%s) from remote copy (%s)"
+  COPY %E %A
+  CALL &SERVER.WRITEFILE
+  OK? @tmpfile.done.1
+    ERROR "Failed to update local file contents"
+    JUMP @sha1.done.1
+tmpfile.done.1:
+  SET %A "/usr/local/bin/check-stuff"
+  SET %B 0
+  SET %C 0
+  CALL &EXEC.CHECK
+  COPY %R %T1
+  SET %T2 22
+  EQ? @rename.1
+    COPY %R %B
+    COPY %T2 %C
+    ERROR "Pre-change verification check `%s` failed; returned %i (not %i)"
+    JUMP @sha1.done.1
+rename.1
+  COPY %E %A
+  COPY %F %B
+  CALL &FS.RENAME
+  OK? @sha1.done.1
+    ERROR "Failed to update local file contents"
+    CALL &FS.UNLINK
+sha1.done.1:
+next.1:
+!FLAGGED? :changed @final.1
+final.1:
+EOF
+
 done_testing;

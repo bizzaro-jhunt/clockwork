@@ -152,8 +152,12 @@ struct res_file {
 	char *key;         /* unique identifier, starts with "res_file:" */
 
 	char       *path;     /* path to the file */
+	char       *tmpfile;  /* path to the tempfile (for pre-change verify) */
 	char       *source;   /* source of file contents, as a static file */
 	char       *template; /* source of file contents, as a template */
+
+	char       *verify;   /* command to run pre-change verfication */
+	int         expectrc; /* expected return code of verify command */
 
 	char  *owner;   /* name of the file's user owner */
 	uid_t  uid;     /* UID of the file's user owner */

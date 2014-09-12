@@ -484,6 +484,8 @@ void res_file_free(void *res)
 {
 	struct res_file *rf = (struct res_file*)(res);
 	if (rf) {
+		free(rf->verify);
+		free(rf->tmpfile);
 		free(rf->source);
 		free(rf->path);
 		free(rf->template);
@@ -514,6 +516,13 @@ int res_file_attrs(const void *res, cw_hash_t *attrs)
 	_hash_attr(attrs, "owner", ENFORCED(rf, RES_FILE_UID) ? strdup(rf->owner) : NULL);
 	_hash_attr(attrs, "group", ENFORCED(rf, RES_FILE_GID) ? strdup(rf->group) : NULL);
 	_hash_attr(attrs, "mode", ENFORCED(rf, RES_FILE_MODE) ? cw_string("%04o", rf->mode) : NULL);
+
+	if (rf->verify) {
+		_hash_attr(attrs, "verify", strdup(rf->verify));
+		_hash_attr(attrs, "expect", cw_string("%i", rf->expectrc));
+		if (rf->tmpfile)
+			_hash_attr(attrs, "tmpfile", strdup(rf->tmpfile));
+	}
 
 	if (ENFORCED(rf, RES_FILE_SHA1)) {
 		_hash_attr(attrs, "template", cw_strdup(rf->template));
@@ -578,6 +587,32 @@ int res_file_norm(void *res, struct policy *pol, cw_hash_t *facts)
 	cw_hash_done(vars, 0);
 	free(vars);
 
+	/* derive tmpfile from path */
+	if (!rf->tmpfile && rf->verify) {
+		rf->tmpfile = cw_alloc(strlen(rf->path) + 7);
+		char *slash = strrchr(rf->path, '/');
+		if (!slash)
+			slash = rf->path;
+
+		int dir_len  = slash - rf->path + 1;
+		int name_len = strlen(rf->path) - dir_len;
+
+		/* everything up to the last dir component */
+		memcpy(rf->tmpfile, rf->path, dir_len);
+		rf->tmpfile[dir_len] = '.';
+		memcpy(rf->tmpfile + dir_len + 1, rf->path + dir_len, name_len);
+		memcpy(rf->tmpfile + dir_len + 1 + name_len, ".cogd", 5);
+
+		cw_hash_t *vars = cw_alloc(sizeof(cw_hash_t));
+		res_file_attrs(rf, vars);
+		char *cmd = cw_interpolate(rf->verify, vars);
+		cw_hash_done(vars, 1);
+		free(vars);
+
+		free(rf->verify);
+		rf->verify = cmd;
+	}
+
 	/* files depend on res_dir resources between them and / */
 	if (_setup_path_deps(key, rf->path, pol) != 0) {
 		free(key);
@@ -633,6 +668,17 @@ int res_file_set(void *res, const char *name, const char *value)
 			ENFORCE(rf, RES_FILE_ABSENT);
 		}
 
+	} else if (strcmp(name, "verify") == 0) {
+		free(rf->verify);
+		rf->verify = strdup(value);
+
+	} else if (strcmp(name, "expect") == 0) {
+		rf->expectrc = atoi(value);
+
+	} else if (strcmp(name, "tmpfile") == 0) {
+		free(rf->tmpfile);
+		rf->tmpfile = strdup(value);
+
 	} else {
 		/* unknown attribute. */
 		return -1;
@@ -667,6 +713,8 @@ int res_file_gencode(const void *res, FILE *io, unsigned int next, unsigned int 
 
 	fprintf(io, "TOPIC \"file(%s)\"\n", r->key);
 	fprintf(io, "SET %%A \"%s\"\n", r->path);
+	if (r->verify)
+		fprintf(io, "SET %%E \"%s\"\n", r->tmpfile);
 
 	fprintf(io, "CALL &FS.EXISTS?\n");
 	if (ENFORCED(r, RES_FILE_ABSENT)) {
@@ -764,10 +812,35 @@ int res_file_gencode(const void *res, FILE *io, unsigned int next, unsigned int 
 		fprintf(io, "  COPY %%T1 %%A\n");
 		fprintf(io, "  COPY %%T2 %%B\n");
 		fprintf(io, "  LOG NOTICE \"Updating local content (%%s) from remote copy (%%s)\"\n");
-		fprintf(io, "  COPY %%F %%A\n");
+		fprintf(io, "  COPY %%%c %%A\n", r->verify ? 'E' : 'F');
 		fprintf(io, "  CALL &SERVER.WRITEFILE\n");
-		fprintf(io, "  OK? @sha1.done.%u\n", next);
-		fprintf(io, "    ERROR \"Failed to update local file contents\"\n");
+		if (r->verify) {
+			fprintf(io, "  OK? @tmpfile.done.%u\n", next);
+			fprintf(io, "    ERROR \"Failed to update local file contents\"\n");
+			fprintf(io, "    JUMP @sha1.done.%u\n", next);
+			fprintf(io, "tmpfile.done.%u:\n", next);
+			fprintf(io, "  SET %%A \"%s\"\n", r->verify);
+			fprintf(io, "  SET %%B 0\n");
+			fprintf(io, "  SET %%C 0\n");
+			fprintf(io, "  CALL &EXEC.CHECK\n");
+			fprintf(io, "  COPY %%R %%T1\n");
+			fprintf(io, "  SET %%T2 %i\n", r->expectrc);
+			fprintf(io, "  EQ? @rename.%u\n", next);
+			fprintf(io, "    COPY %%R %%B\n");
+			fprintf(io, "    COPY %%T2 %%C\n");
+			fprintf(io, "    ERROR \"Pre-change verification check `%%s` failed; returned %%i (not %%i)\"\n");
+			fprintf(io, "    JUMP @sha1.done.%u\n", next);
+			fprintf(io, "rename.%u\n", next);
+			fprintf(io, "  COPY %%E %%A\n");
+			fprintf(io, "  COPY %%F %%B\n");
+			fprintf(io, "  CALL &FS.RENAME\n");
+			fprintf(io, "  OK? @sha1.done.%u\n", next);
+			fprintf(io, "    ERROR \"Failed to update local file contents\"\n");
+			fprintf(io, "    CALL &FS.UNLINK\n");
+		} else {
+			fprintf(io, "  OK? @sha1.done.%u\n", next);
+			fprintf(io, "    ERROR \"Failed to update local file contents\"\n");
+		}
 		fprintf(io, "sha1.done.%u:\n", next);
 	}
 

@@ -43,6 +43,25 @@ policy "file5" {
 }
 host "file5.test" { enforce "file5" }
 
+policy "file6" {
+	file "/etc/sudoers" {
+		present: "yes"
+		source:  "/cfm/files/sudoers"
+		verify:  "visudo -vf $tmpfile"
+	}
+}
+host "file6.test" { enforce "file6" }
+
+policy "file7" {
+	file "/etc/somefile" {
+		source:  "/cfm/files/something"
+		tmpfile: "/etc/.xyz"
+		verify:  "/usr/local/bin/check-stuff"
+		expect:  22
+	}
+}
+host "file7.test" { enforce "file7" }
+
 ####################################################
 ####################################################
 

@@ -560,6 +560,13 @@ static pn_word uf_fs_copy_r(pn_machine *m)
 		(uid_t)m->C, (gid_t)m->D);
 }
 
+static pn_word uf_fs_rename(pn_machine *m)
+{
+	pn_trace(m, "FS.RENAME %s -> %s\n",
+			(const char *)m->A, (const char *)m->B);
+	return rename((const char *)m->A, (const char *)m->B);
+}
+
 static pn_word uf_fs_chown(pn_machine *m)
 {
 	struct stat st;
@@ -628,8 +635,11 @@ static pn_word uf_fs_get(pn_machine *m)
 		fclose(input);
 		return 1;
 	}
-	m->S2 = (pn_word)strdup(buf);
 	fclose(input);
+
+	char *s = strdup(buf);
+	pn_heap_add(m, s);
+	m->S2 = (pn_word)s;
 	return 0;
 }
 
@@ -2089,6 +2099,7 @@ int pendulum_init(pn_machine *m, void *zconn)
 	pn_func(m,  "FS.HARDLINK",        uf_fs_link);
 	pn_func(m,  "FS.COPY_R",          uf_fs_copy_r);
 
+	pn_func(m,  "FS.RENAME",          uf_fs_rename);
 	pn_func(m,  "FS.UNLINK",          uf_fs_unlink);
 	pn_func(m,  "FS.RMDIR",           uf_fs_rmdir);
 

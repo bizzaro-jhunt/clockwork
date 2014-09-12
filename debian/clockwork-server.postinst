@@ -7,7 +7,6 @@
 # created: 2013-03-02
 #
 
-CWKEY="/bin/cw key"
 CERTS=/etc/clockwork/certs
 
 create_dir() {
@@ -26,7 +25,7 @@ create_key() {
 
 	if test ! -f "$file" && test ! -f "$file.pub"; then
 		echo "Creating $name $file"
-		$CWKEY -f $file
+		/bin/cw cert -f $file
 	fi
 }
 
@@ -41,7 +40,7 @@ configure)
 		fi
 	fi
 
-	if [ -x $CWKEY ]; then
+	if [ -x /bin/cw ]; then
 		create_dir $CERTS        "certificate store"
 		create_key $CERTS/clockd "clockd certificate"
 	fi

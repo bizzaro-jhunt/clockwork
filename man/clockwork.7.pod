@@ -1,0 +1,788 @@
+
+  Copyright 2011-2014 James Hunt <james@jameshunt.us>
+
+  This file is part of Clockwork.
+
+  Clockwork is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  Clockwork is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
+
+=head1 NAME
+
+clockwork - Configuration Management System
+
+=head1 DESCRIPTION
+
+B<Clockwork>
+is a system configuration management system designed to securely enforce
+policies on one or more host systems.  It can ensure that files have the
+prescribed attributes (owner, group, permissions, etc.) and content.  It
+can maintain a specific set of installed packages, and even make sure that
+system user accounts exist.
+
+The I<manifest> defines the resources that Clockwork
+manages.  These definitions are grouped together into policies
+that are then applied to hosts.
+
+This document is both a gentle introduction to the manifest
+language and a full reference for its constructs.
+
+=head1 INTRODUCTION
+
+Let's start out by writing a simple, yet complete manifest for a
+small web hosting firm named Widgets, Inc.
+
+=over
+
+=item lab1.widgets.net
+
+Test lab virtual machine running CentOS 5.5, for staging
+updates to the production environment.
+
+=item buildhost.widgets.net
+
+RPM build host and YUM repository; CentOS 5.2.
+
+=item dev.widgets.net
+
+General-purpose development server, shared by three staff developers
+and one freelance designer.  Runs Ubuntu 9.10.
+
+=item prodweb1.widgets.net
+
+Production Apache web cluster node; CentOS 5.5
+
+=item prodweb2.widgets.net
+
+Production Apache web cluster node; CentOS 5.5
+
+=item proddb1.widgets.net
+
+Production MySQL database server on Oracle Enterprise Linux 5.4
+
+=item proddb2.widgets.net
+
+Production MySQL database server on Oracle Enterprise Linux 5.4
+
+=item clockwork.widgets.net
+
+Clockwork Policy Master for above servers.
+
+=back
+
+This mix of hosts will let us explore some of the more powerful
+concepts behind the Clockwork manifest language.
+
+=head2 Preparation
+
+This tutorial assumes that the Clockwork software is installed on all
+servers, and that the policy master and agent are able to communicate.
+Default configuration is assumed.
+
+=head2 Getting Started
+
+Let's start out by looking at the classical example given by most
+configuration management tutorials: the B<sudoers>(5) file.
+
+The /etc/sudoers file governs who can issue the B<sudo>(8) command
+to assume the identity of another user (usually root).  For security
+reasons, B<sudo> will refuse to run if the permissions on
+/etc/sudoers are not 0440, or the file is not owned by root:root.
+
+We can use Clockwork to make sure that this is the case.  Create a new
+manifest file in /etc/clockwork/manifest.pol:
+
+    ############################################################
+    # /etc/clockwork/manifest.pol
+    #
+    # Widgets, Inc. Policy Manifest
+    #
+
+    policy "security" {
+
+        # Ensure that /etc/sudoers is usable
+        file "/etc/sudoers" {
+            owner: "root"
+            group: "root"
+            mode:  0440
+        }
+    }
+
+    ############################################################
+
+First, a few syntax notes.
+
+Comments start with '#' and continue to the end of the line.
+
+We defined a new policy, named "security", with the B<policy>
+directive.  The definition of the policy starts at the first curly
+brace ({) and continues until the matching '}'.
+
+Inside this policy, we defined a file resource to represent the
+/etc/sudoers file.  We'll get into resources later.  For now,
+let's move on.
+
+Before client hosts can use your policy, however, you will have
+to tell the policy master which hosts the policy applies to.
+This is done through B<host enforcements.>
+
+Add the following host definition to the manifest file:
+
+    host "lab1.widgets.net" {
+        enforce "security"
+    }
+
+This will cause the policy master to send the "security" policy
+to I<lab1.widgets.net>
+when it connects.  We only specified the lab1 host so that we
+could test the policy on the staging server before pushing it
+out to the whole network.  Let's add the rest of the servers:
+
+    ############################################################
+    # /etc/clockwork/manifest.pol
+    #
+    # Widgets, Inc. Policy Manifest
+    #
+
+    policy "security" {
+
+        # Ensure that /etc/sudoers is usable
+        file "/etc/sudoers" {
+            owner: "root"
+            group: "root"
+            mode:  0440
+        }
+    }
+
+    host "lab1.widgets.net"      { enforce "security" }
+    host "buildhost.widgets.net" { enforce "security" }
+    host "dev.widgets.net"       { enforce "security" }
+    host "prodweb1.widgets.net"  { enforce "security" }
+    host "prodweb2.widgets.net"  { enforce "security" }
+    host "proddb1.widgets.net"   { enforce "security" }
+    host "proddb2.widgets.net"   { enforce "security" }
+
+    ############################################################
+
+Congratulations.  You just created your first policy.
+
+We used extra whitespace to align the B<enforce> keywords
+vertically to improve the legibility of the manifest.
+Feel free to use extra spaces (or tabs); Clockwork will ignore
+them.
+
+=head2 Adding Another Policy
+
+Let's add to our manifest by defining an B<issue>(5) file in
+/etc/issue.  This file contains a banner that will be displayed
+to anyone attempting to log into the server.  It looks like this:
+
+    ------------------------------------------------------------------
+    Unauthorized access to this machine is prohibited.
+    Use of this system is limited to authorized individuals only.
+    All activity is monitored.
+    ------------------------------------------------------------------
+
+The master issue file will live on the policy master, in
+/var/clockwork/files/banner.  To propagate it to our client hosts,
+let's add another policy:
+
+    policy "banner" {
+        file "/etc/issue" {
+            owner:  "root"
+            group:  "root"
+            mode:   0444
+            source: "/var/clockwork/files/banner"
+        }
+    }
+
+The B<source> attribute of the B<file> resource instructs the
+Clockwork agent to refresh the contents of /etc/issue file from the
+version on the server (in /var/clockwork/files/banner).
+
+Test this new policy by adding it to the host definition for
+I<lab1.widgets.net>:
+
+    host "lab1.widgets.net" {
+        enforce "security" # from before
+        enforce "banner"
+    }
+
+As you can see, a host can enforce multiple policies simultaneously.
+
+Policies can also B<extend> other policies.  Rather than keep the
+"security" and "banner" policies separate, and enforce each of them on
+every host, we can create another policy to glue the other two
+together:
+
+    policy "base" {
+        extend "security"
+        extend "banner"
+    }
+
+    host "lab1.widgets.net" {
+        enforce "base"
+    }
+
+By combining the two policies in "base", we can keep our B<host>
+definitions clean.  Here is the manifest so far, in its entirety:
+
+    ############################################################
+    # /etc/clockwork/manifest.pol
+
+    policy "base" {
+        extend "banner"
+        extend "security"
+    }
+
+    policy "banner" {
+
+        file "/etc/issue" {
+            owner:  "root"
+            group:  "root"
+            mode:   0444
+            source: "/var/clockwork/files/banner"
+        }
+    }
+
+    policy "security" {
+
+        file "/etc/sudoers" {
+            owner: "root"
+            group: "root"
+            mode:  0440
+        }
+    }
+
+    host "lab1.widgets.net"      { enforce "base" }
+    host "buildhost.widgets.net" { enforce "base" }
+    host "dev.widgets.net"       { enforce "base" }
+    host "prodweb1.widgets.net"  { enforce "base" }
+    host "prodweb2.widgets.net"  { enforce "base" }
+    host "proddb1.widgets.net"   { enforce "base" }
+    host "proddb2.widgets.net"   { enforce "base" }
+
+    ############################################################
+
+B<Note:>
+For the sake of brevity, example manifests will not have a lot of
+comments.  You are strongly encouraged to use comments in your
+real manifests.
+
+
+
+=head1 ADVANCED CONFIGURATION
+
+This section continues the tutorial from the last section, and
+introduces more advanced constructs for policy manifests.
+
+=head2 Adding More Resources
+
+Up until now, each policy we have defined ("security" and "banner")
+has contained only one resource.  This was done deliberately, to
+keep things simple, but Clockwork allows you to define as many
+resources in any given policy.
+
+To illustrate this, let's extend our "security" policy a bit.
+The policy already ensures that the /etc/sudoers file has the
+appropriate ownership and permissions, but does not ensure that
+the B<sudo> package is installed.  To fix that, we can add
+a B<package> resource, like this:
+
+    policy "security" {
+
+        # The /etc/sudoers definition from before
+        file "/etc/sudoers" {
+            owner: "root"
+            group: "root"
+            mode:  0440
+        }
+
+        # Make sure that sudo is actually installed
+        package "sudo" { installed: "yes" }
+    }
+
+Now, the sudo package will be installed if it isn't already.
+
+=head2 Including Other Files
+
+In a real-world implementation, your manifest will contain dozens
+of policies and hundreds of resources (or more).  Keeping all of
+these in one file can become unmanageable, especially
+if you keep your manifest in version control (see
+=item B<BEST PRACTICES>).
+Through the B<include> pre-processor irective, you can
+split your manifest definition up into multiple files.
+
+Continuing with our running example, let's split the manifest into
+three separate files: one for policy definitions, one for host
+definitions, and a third to pull it all together.
+
+The policies themselves will be stored in
+/etc/clockwork/policies.pol:
+
+    $ cat /etc/clockwork/policies.pol
+    ############################################################
+    # /etc/clockwork/policies.pol
+    #
+    # Widgets, Inc. Clockwork Policies
+    #
+
+    policy "base" {
+        extend "banner"
+        extend "security"
+    }
+
+    policy "banner" {
+
+        file "/etc/issue" {
+            owner:  "root"
+            group:  "root"
+            mode:   0444
+            source: "/var/clockwork/files/banner"
+        }
+    }
+
+    policy "security" {
+
+        file "/etc/sudoers" {
+            owner: "root"
+            group: "root"
+            mode:  0440
+        }
+
+        package "sudo" { installed: "yes" }
+    }
+
+    ############################################################
+
+Host definitions will be kept in /etc/clockwork/hosts.pol:
+
+    $ cat /etc/clockwork/hosts.pol
+    ############################################################
+    # /etc/clockwork/hosts.pol
+    #
+    # Widgets, Inc. Clockwork Host Definitions
+    #
+
+    host "lab1.widgets.net"      { enforce "base" }
+    host "buildhost.widgets.net" { enforce "base" }
+    host "dev.widgets.net"       { enforce "base" }
+    host "prodweb1.widgets.net"  { enforce "base" }
+    host "prodweb2.widgets.net"  { enforce "base" }
+    host "proddb1.widgets.net"   { enforce "base" }
+    host "proddb2.widgets.net"   { enforce "base" }
+
+    ############################################################
+
+And finally, the manifest.pol file will include the other two:
+
+    $ cat /etc/clockwork/manifest.pol
+    ############################################################
+    # /etc/clockwork/manifest.pol
+    #
+    # Widgets, Inc. Clockwork Manifest
+    #
+
+    include "policies.pol"
+    include "hosts.pol"
+
+    ############################################################
+
+See the B<BEST PRACTICES>
+section for some useful approaches to splitting up a large manifest.
+
+=head2 Conditionals
+
+Not every resource definition applies to every host.  What works
+on your development servers may not be appropriate for your production
+boxes.
+
+Let's consider the situation with the /etc/sudoers file, from our example.
+So far, our policy ensures that the permissions and ownership is properly
+set on the file, and that the sudo package is installed, but it says
+nothing about the contents of /etc/sudoers.
+
+Let's get started with a sudo configuration for the lab1 server.
+Here is our working /etc/sudoers file:
+
+    # /etc/sudoers - sudo configuration
+    #
+    # for lab1.widgets.net ONLY
+    #
+
+    # Allow admins to do anything as anybody
+    %admins ALL = (ALL) ALL
+
+    # Allow the developers to restart apache
+    %coders ALL = (root) /etc/init.d/apache
+
+If we store this in /var/clockwork/files/sudoers.lab, we can amend the
+file resource in the "security" policy to read:
+
+    policy "security" {
+        # other resources omitted for clarity
+
+        file "/etc/sudoers" {
+            owner:  "root"
+            group:  "root"
+            mode:   0440
+            source: "/var/clockwork/files/sudoers.lab
+        }
+    }
+
+B<BUT WAIT!>
+The "security" policy applies to all of our hosts, not just lab1.  This
+change would inadvertantly open up security leaks on the production servers!
+
+B<NOTE: Self-induced Pedagogical Ignorance>
+
+B<sudo> enables you to define a single /etc/sudoers with host-specific
+access baked in.  For this lesson, however, we will ignore all that.
+
+To do this securely, we still need to define B<source>, but only for
+lab1.widgets.net.  Through the B<if> conditional, we can do just that:
+
+    policy "security" {
+        # other resources omitted for clarity
+
+        file "/etc/sudoers" {
+            owner:  "root"
+            group:  "root"
+            mode:   0440
+
+            # only set the source for lab1
+            if (sys.hostname == "lab1") {
+                source: "/var/clockwork/files/sudoers.lab
+            }
+        }
+    }
+
+Now, the B<source> attribute of /etc/sudoers will only be present if
+when the policy is enforced on a system with the hostname of I<lab1>.
+
+Where did I<sys.hostname> come from?
+
+It's called a B<fact>, and it represents some piece of information about
+the client host.  Host policies are always evaluated against the facts
+before enforcement.
+
+To see a list of facts, just run B<fact>(1):
+
+    $ fact | sort
+    lsb.distro.codename = lucid
+    lsb.distro.description = Ubuntu 10.04.2 LTS
+    lsb.distro.id = Ubuntu
+    lsb.distro.release = 10.04
+    sys.arch = i686
+    sys.fqdn = box.niftylogic.net
+    sys.hostid = 007f0100
+    sys.hostname = box
+    sys.kernel.major = 2.6
+    sys.kernel.minor = 2.6.32
+    sys.kernel.version = 2.6.32-32-generic
+    sys.platform = Linux
+    time.hour = 16
+    time.mday = 21
+    time.minute = 39
+    time.month = 06
+    time.second = 55
+    time.weekday = tue
+    time.year = 2011
+    time.yearday = 172
+
+We can take this further with more B<else if> and B<else> clauses:
+
+    policy "security" {
+        # other resources omitted for clarity
+
+        file "/etc/sudoers" {
+            owner:  "root"
+            group:  "root"
+            mode:   0440
+
+            if (sys.hostname == "lab1") {
+                source: "/var/clockwork/files/sudoers.lab"
+            } else if (sys.hostname == "buildhost") {
+                source: "/var/clockwork/files/sudoers.prod"
+            } else if (sys.hostname == "prodweb1") {
+                source: "/var/clockwork/files/sudoers.prod"
+            } else if (sys.hostname == "prodweb2") {
+                source: "/var/clockwork/files/sudoers.prod"
+            } else if (sys.hostname == "proddb1") {
+                source: "/var/clockwork/files/sudoers.db"
+            } else if (sys.hostname == "proddb2") {
+                source: "/var/clockwork/files/sudoers.db"
+            } else if (sys.hostname == "dev") {
+                source: "/var/clockwork/files/sudoers.dev"
+            }
+        }
+    }
+
+To make things a little more manageable, we can use Perl-comaptible
+regular expressions in our conditionals:
+
+    policy "security" {
+        # other resources omitted for clarity
+
+        file "/etc/sudoers" {
+            owner:  "root"
+            group:  "root"
+            mode:   0440
+
+            if (sys.hostname == "lab1") {
+                source: "/var/clockwork/files/sudoers.lab"
+            } else if (sys.hostname == "buildhost") {
+                source: "/var/clockwork/files/sudoers.prod"
+            } else if (sys.hostname =~ m/^prodweb/) {
+                source: "/var/clockwork/files/sudoers.prod"
+            } else if (sys.hostname =~ m/^proddb/) {
+                source: "/var/clockwork/files/sudoers.db"
+            } else if (sys.hostname == "dev") {
+                source: "/var/clockwork/files/sudoers.dev"
+            }
+        }
+    }
+
+This large B<if> construct sets the B<source> for /etc/sudoers
+to one of four version (lab, prod, db or dev) based on the hostname.
+
+While it works, it is unwieldy and difficult to read.  Instead, we can
+use the B<map> conditional construct:
+
+    policy "security" {
+        # other resources omitted for clarity
+
+        file "/etc/sudoers" {
+            owner:  "root"
+            group:  "root"
+            mode:   0440
+
+            source: map(sys.hostname) {
+              "lab1":      "/var/clockwork/files/sudoers.lab"
+              "buildhost": "/var/clockwork/files/sudoers.prod"
+              /^prodweb/:  "/var/clockwork/files/sudoers.prod"
+              /^proddb/:   "/var/clockwork/files/sudoers.db"
+              "dev":       "/var/clockwork/files/sudoers.dev"
+            }
+        }
+    }
+
+Each line inside of the B<map> block defines an I<alternate>. B<map>
+chooses one of the alternates based on the value of the fact being mapped,
+in this case, I<sys.hostname>.
+
+There is a special alternate, called B<else> that acts like the B<else>
+clause of an B<if> construct: if none of the alternates match, then the
+value specified for B<else> is used.
+
+This allows us to simplify the policy definition even more:
+
+    policy "security" {
+        # other resources omitted for clarity
+
+        file "/etc/sudoers" {
+            owner:  "root"
+            group:  "root"
+            mode:   0440
+
+            source: map(sys.hostname) {
+              "lab1":      "/var/clockwork/files/sudoers.lab"
+              /^proddb/:   "/var/clockwork/files/sudoers.db"
+              "dev":       "/var/clockwork/files/sudoers.dev"
+              else:        "/var/clockwork/files/sudoers.prod"
+            }
+        }
+    }
+
+B<if> conditionals aren't limited just to resource values.  You can
+conditionally define entire resources:
+
+    policy "package-tools" {
+
+        if (lsb.distro.id == "Ubuntu") {
+            package "apt-file"  { installed: "yes" }
+            package "apt-utils" { installed: "yes" }
+
+        } else if (lsb.distro.id == "Redhat") {
+            package "yum-tools" { installed: "yes" }
+        }
+    }
+
+Here, we define different package resource based on the distribution
+of Linux.  Ubuntu clients will install some APT packages, while
+Redhat clients will install yum-tools.  Other distributions,
+like CentOS or Gentoo, will have neither resource defined.
+
+B<Note:>
+the B<map> conditional can only be used inside of resource attribute
+definitions.  It is a bit of convenience syntax to help keep manifests
+clean and understandable.
+
+The conditional test can also be combined with the I<and>, I<or>
+and \fInot\fB operators, to make more complicated conditionals:
+
+    if (sys.arch == "x86_64" and sys.fqdn =~ /dev/) {
+        # ...
+    }
+
+    if ((sys.fqdn =~ /dev/ or custom.fact == "dev")
+         and lsb.distro.id == "Ubuntu") {
+        # ...
+    }
+
+Regular expressions can be specified as B< m/.../>, B</.../>
+(without the leading 'm' identifier) or as B<m|...|>.  The latter
+exists to allow patterns with lots of '/' characters to avoid the
+constant need to backslash-escape them.  Note that all pipe-delimited
+regular expressions I<must> start with 'm'.
+
+By default, pattern matching is case-sensitive.  To make your regex
+match treat upper- and lower-case characters as interchangeable, append
+an 'i' after the closing delimiter, like this:
+
+    if (fact.name =~ m/foo/i) {
+        # ...
+    }
+
+The following conditional operators are understood:
+
+    ==, is           Strict (exact) equality
+    !=, is not       Strict (exact) inequality
+
+    =~, like         Perl-compatible regex matching
+    !~, not like     Negative regex matching
+
+And the following boolean operators are defined:
+
+    <expr> and <expr>
+    <expr> && <expr>    Both expressions must evaulate to true
+
+    <expr> or <expr>
+    <expr> || <expr>    Either expressions must evaluate to true
+                        The second expression will be skipped if
+                        the first is true.
+
+    !<expr>             Negate the expression
+
+    (<expr>)            Grouping, to enforce precedence.
+
+There are no precedence rules to remember.  B<and> and B<&&>
+are completely interchangeable, as are B<or> and B<||>.
+
+Conditionals are very powerful parts of the Clockwork manifest
+language that can help to produce specific and sophisticated
+policy and resource definitions.
+
+=head2 Dependencies
+
+Clockwork tries to reconcile the actual configuration with the
+enforced policy in a single run, and in as few steps as possible.
+To do this, it has to take into account inter-dependencies between
+resources.
+
+The simplest dependency is between a file and its parent directories.
+
+Sometimes, you will want to call out explicit dependencies that
+cannot be detected automatically by Clockwork.  For example, services,
+packages and configuration files are usually inter-dependent:
+
+    file "/etc/foo.conf" {
+        owner:  "root"
+        group:  "root"
+        mode:   0644
+        source: "/files/foo.conf"
+    }
+    package "foo-server" {
+        version: "1.2.5"
+    }
+    service "foo" {
+        running: "yes"
+        enabled: "yes"
+    }
+
+Clockwork can not possibly know how these resources inter-relate,
+or even that they are related.  This is where explicit dependencies
+come into play:
+
+    service("foo") depends on package("foo-server")
+    file("/etc/foo.conf") affects service("foo")
+
+In this case, the I<foo> service will not be started until both
+the I<foo-server> package and /etc/foo.conf are enforced.
+Furthermore, if the package is every updated, or the configuration
+file changes, the service will be reloaded.
+
+The two types of dependencies (B<depends on> and B<affects>)
+illustrate the same concept, represented in complementary ways.
+"A depends on B" is quivalent to "B affects A".
+
+Dependencies are activated differently by different resources.
+Refer to the resource-specific man pages for more information.
+
+=head2 Overriding Values
+
+Clockwork allows resource attributes to be overrided by later
+definitions with the same key.
+
+Consider the following:
+
+    policy "www" {
+
+        package "apache" { installed: "yes" }
+        package "apache" { installed: "no"  }
+        package "apache" { installed: "yes" }
+    }
+
+Although the example is entirely contrived, the concept is not.
+The "www" policy ultimately comes to the conclusion that the
+Apache web server package should be installed.
+
+Here's a more realistic (and more complicated) example:
+
+    policy "standard" {
+
+        file "/etc/ssh/sshd_config" {
+            # other attributes omitted for clarity
+            source: "/var/clockwork/files/sshd.standard"
+        }
+
+        # other resources for the 'standard' configuration
+    }
+
+    policy "secured" {
+
+        file "/etc/ssh/sshd_config" {
+            # other attributes omitted for clarity
+            source: "/var/clockwork/files/sshd.secured"
+        }
+
+        # other resources for the 'secured' configuration
+    }
+
+    host "dev1.example.com" {
+        enforce "standard"
+    }
+    host "ftp1.example.com" {
+        enforce "standard"
+        enforce "secured"
+    }
+
+The ftp1 host has a more secure SSHD configuration
+than dev1, because the "secured" policy (enforced by ftp1)
+overrides the B<source> attribute of the /etc/ssh/sshd_config file.
+
+=head1 AUTHOR
+
+#AUTHOR
+
+=cut

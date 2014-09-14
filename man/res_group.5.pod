@@ -1,0 +1,181 @@
+
+  Copyright 2011-2014 James Hunt <james@jameshunt.us>
+
+  This file is part of Clockwork.
+
+  Clockwork is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  Clockwork is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
+
+
+=head1 NAME
+
+res_group - Clockwork Resource Type for system group accounts
+
+=head1 DESCRIPTION
+
+The group resource manages system group accounts.
+
+=head1 ATTRIBUTES
+
+=over
+
+=item B<gid>
+
+Numeric group ID of this account.
+
+=item B<name>
+
+Name of this group account.
+
+=item B<present>
+
+Whether or not this account should exist on the system.
+
+=item B<member>
+
+Adds or removes a user account from the list of permanent group
+members.
+
+If set to the name of a user, that user will be added
+to the group if they do not already belong.
+
+If the username is prefixed with a "!" (as in, negation), that user
+will be removed from the group if they currently belong to it.
+
+=item B<admin>
+
+Adds or removes a user account from the list of group administrators.
+
+If set to the name of a user, that user will be added
+to the group administrator list if they are not already on it.
+
+If the username is prefixed with a "!" (as in, negation), that user
+will be removed from the group administrator list if they are
+currently on it.
+
+=item B<members>
+
+Like B<member>, except that it operates on a space-separated list
+of usernames to add or remove.  Negation rules still apply.
+
+=item B<admins>
+
+Like B<admin>, except that it takes a space-separated list
+of usernames to add or remove.  Negation rules still apply.
+
+=item B<password>
+
+=item B<pwhash>
+
+The (encrypted) password for this account.  Group passwords are used
+to allow non-members to assume temporary membership in a group, if they
+know the password.
+
+Details of encryption depend on the specific platform and system
+configuration.  Clockwork does not attempt to encrypt or decrypt passwords
+for groups.
+
+=back
+
+=head1 EXAMPLES
+
+=head2 Basic Group Management
+
+This example ensures that an I<admins> group exists on the system
+with a GID of 42.  This type of record can be used in conjunction with
+user resources (see B<res_user>(5)) to define primary groups.
+
+    group "admins" {
+      gid: 42
+    }
+
+=head2 Member Management
+
+In this example, the policy ensures that the "projectx" group exists,
+that the users I<jose>, I<bob> and I<eva> belong to the group,
+and that I<alice> does not.
+
+    group "projectx" {
+      gid:      1337
+      password: "!!"
+
+      # add these users
+      member:   "jose"
+      member:   "bob"
+      member:   "eva"
+
+      # remove these (note the '!')
+      member:   "!alice"
+    }
+
+The B<password> attribute is specified as an invalid hash to ensure
+membership in the projectx group is managed strictly by the system
+administrators (and, by extension, Clockwork).
+
+Another way to handle the membership list is via B<members>,
+like this:
+
+    group "projectx" {
+      gid:      1337
+      password: "!!"
+      members:  "jose bob eva !alice"
+    }
+
+=head2 Administrator Management
+
+Management of group administrators works just like group membership
+management.  To ensure that I<james> is an admin in the "projectx"
+group, but that I<nick> is not:
+
+    group "projectx" {
+      gid:   1337
+      admin: "james"
+      admin: "!nick"
+    }
+
+=head1 CAVEATS
+
+=head2 1. Primary vs. Auxiliary Groups
+
+Under conventional user and group mechanics, a user's primary group
+is not included in their list of auxiliary groups.  To illustrate,
+the following policy snippet does not affect I<joe>'s primary
+group:
+
+    group "users" {
+        gid:    1234
+        member: "!joe"
+    }
+
+    user "joe" {
+        uid:  100
+        gid:  1234
+    }
+
+I<joe>'s primary group will still be I<users>, even through
+the group definition attempts to remove him.
+
+=head2 2. Duplicate GIDs
+
+Clockwork does not attempt to enforce the uniqueness of group GIDs
+on the local system.
+
+=head1 DEPENDENCIES
+
+None.
+
+=head1 AUTHOR
+
+#AUTHOR
+
+=cut

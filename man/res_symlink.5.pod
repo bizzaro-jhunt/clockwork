@@ -1,0 +1,115 @@
+
+  Copyright 2011-2014 James Hunt <james@jameshunt.us>
+
+  This file is part of Clockwork.
+
+  Clockwork is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  Clockwork is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
+
+
+=head1 NAME
+
+res_symlink - Clockwork Resource Type for managing symbolic links
+
+=head1 DESCRIPTION
+
+A fair portion of Linux system administration involves creating and
+maintaining configuration files.  Sometimes, these files need to be
+linked elsewhere in the filesystem hierarchy.  The B<res_symlink>
+resource for Clockwork allows administrators to set up (or tear down)
+such links.
+
+=head1 ATTRIBUTES
+
+=over
+
+=item B<path>
+
+The path (on the local system) that should be the symbolic link
+
+=item B<target>
+
+The target file that the link should point to.  Defaults to
+=item B</dev/null>.  Note that this path doesn't have to exist.
+
+=item B<present>
+
+Whether or not this link should exist.  Valid values are
+"yes" and "no".  The default value is "yes".
+
+=back
+
+=head1 EXAMPLES
+
+Ensuring a symbolic link:
+
+    symlink "/home/user/.bashrc" {
+        target: "/etc/base/bashrc"
+    }
+
+If you want to remove a symbolic link:
+
+    symlink "MOTD" {
+        path: "/etc/motd"
+        present: "no"
+    }
+
+(This is similar to using the resource name "/etc/motd" directly).
+
+=head1 DEPENDENCIES
+
+All parent components of the path will be created if the link
+should exist and does not.  By default, these parent directories
+will be owned by root:root with mode 0755.  However, if the policy
+defines B<res_dir>(5) resources with paths matching any component
+of the parent directory chain, the file resource will be set to
+depend on them.
+
+An example should clear up any confusion:
+
+    symlink "/u/apps/foo/config.yml" {
+        target: "/etc/foo/config.yml"
+    }
+
+    dir "/u/apps" {
+        owner: "webmaster"
+        group: "web"
+        mode:  0755
+    }
+
+    dir "/u/apps/foo" {
+        owner: "apache"
+        group: "web"
+        mode:  0775
+    }
+
+If the above policy was enforced on a host without the /u directory,
+the following would happen (in order):
+
+=over
+
+=item 1.  Create /u, per defaults (root:root; 0755)
+
+=item 2. Create /u/apps, per policy (webmaster:web; 0755)
+
+=item 3. Create /u/apps/foo, per policy (apache:web; 0775)
+
+=item 4. Create the symbolic link /u/apps/foo/config.yml, pointing it at /etc/foo/config.yml.
+
+=back
+
+=head1 AUTHOR
+
+#AUTHOR
+
+=cut

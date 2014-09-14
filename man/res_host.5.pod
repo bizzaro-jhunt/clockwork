@@ -1,0 +1,134 @@
+
+  Copyright 2011-2014 James Hunt <james@jameshunt.us>
+
+  This file is part of Clockwork.
+
+  Clockwork is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  Clockwork is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
+
+
+=head1 NAME
+
+res_host - Clockwork Resource Type for /etc/hosts entries
+
+=head1 DESCRIPTION
+
+The /etc/hosts file associates IP addresses to hostnames, without the use of external
+systems like NIS, LDAP or DNS.  Through the B<host> resource, a Clockwork policy
+can modify individual entries in /etc/hosts, without having to specify a complete map.
+
+=head1 ATTRIBUTES
+
+=over
+
+=item B<hostname>
+
+The hostname that the entry should map its IP address to.
+
+=item B<ip>
+
+The IPv4 or IPv6 address for this entry.
+
+=item B<alias>
+
+=item B<aliases>
+
+One or more hostname aliases.  If multiple aliases are specified, they must be
+separated by a single space.
+
+=back
+
+=head1 EXAMPLES
+
+=head2 Basic Usage
+
+Map 10.0.0.21 to the hostname 'testhost1':
+
+    host "testhost1" {
+        ip: "10.0.0.21"
+    }
+
+=head2 Alias Usage
+
+Map 10.0.0.21 to 'testhost1', but make 'test-1' and 'lab1' aliases:
+
+    host "testhost1" {
+        ip:    "10.0.0.21"
+        alias: "test-1"
+        alias: "lab1"
+    }
+
+Same as above, but specify both aliases in a single directive:
+
+    host "testhost1" {
+        ip:      "10.0.0.21"
+        aliases: "test-1 lab1"
+    }
+
+=head1 CAVEATS
+
+Clockwork tries to be predictable and not clever.  As such, it does not
+attempt to deal with certain edge cases that crop up when managing
+hosts file entries.  Namely:
+
+=head2 1. Consolidating Hosts
+
+If /etc/hosts contains the following:
+
+    172.16.0.45   hosta
+    172.16.0.46   hostb
+    172.16.0.47   hostc
+
+And the policy manifest only specifies these host resources:
+
+    host "hostb" { ip: "172.16.0.45" }
+    host "hostc" { ip: "172.16.0.47" }
+
+Clockwork will not remove the entry for I<hosta>.  It won't even
+modify the entry for I<hostb>, but will instead append a fourth:
+
+    172.16.0.45   hosta
+    172.16.0.46   hostb
+    172.16.0.47   hostc
+    172.16.0.45   hostb
+
+=head2 2. Overlapping Canonical and Alias Hostnames
+
+Clockwork does not try to reconciliate overlap between canonical hostnames
+and aliases. If you are experiencing issues in this space, please contact
+the developers so that we can understand your needs.
+
+=head1 DEPENDENCIES
+
+None.
+
+=head1 BUGS
+
+There is currently no way to remove a host entry.
+
+There really should be an implicit dependency on /etc/hosts, if defined in
+the policy.  That way, host resources take precedence over file resources,
+and administrators can push out a base /etc/hosts via B<res_file>(5), and
+then tweak it with B<res_host>.
+
+Caveat #1 (see B<CAVEATS>) could be side-stepped if a new attribute was
+introduced to: B<exclusive>.  This attribute could be set to "ip" or
+"hostname" and would instruct the fixup routines to kill off all other entries
+matching either the IP or the hostname (but not necessarily both).
+
+=head1 AUTHOR
+
+#AUTHOR
+
+=cut
+

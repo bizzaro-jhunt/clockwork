@@ -1,0 +1,120 @@
+ Copyright 2011-2014 James Hunt <james@jameshunt.us>
+
+ This file is part of Clockwork.
+
+ Clockwork is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+
+ Clockwork is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+
+ You should have received a copy of the GNU General Public License
+ along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
+
+=head1 NAME
+
+cogd - Clockwork Agent
+
+=head1 SYNOPSIS
+
+B<cogd> [options]
+
+B<cogd> -c /path/to/cogd.conf
+
+B<cogd> -Fv[vv...]
+
+=head1 DESCRIPTION
+
+B<Clockwork> is a configuration management system designed to
+securely and correctly enforce configuration policies on lots of
+hosts.
+
+It can ensure that files have the right attributes (owner,
+group, permissions, etc.) and content.  It can maintain a specific
+set of installed packages, and even make sure that system user
+accounts exist.
+
+B<cogd> is the agent component of Clockwork that runs on
+managed hosts.  It is responsible for retrieving the host's policy
+from a master server and taking whatever steps necessary to bring
+the host back into line with that policy.
+
+=head1 OPTIONS
+
+=over
+
+=item B<-V>, B<--version>
+
+Print version and copyright information, and then exit.
+
+=item B<-c>, B<--config> I</path/to/cogd.conf>
+
+Specify the path to an alternate configuration file.  If not
+given, the default configuration file (/etc/clockwork/cogd.conf)
+is used instead.
+
+=item B<-v>, B<--verbose>
+
+Increase logging verbosity by one level.
+
+=item B<-q>, B<--quiet>
+
+Disable logging.
+
+=item B<-F>, B<--foreground>
+
+Normally, B<cogd> forks into the background and detaches from
+the controlling terminal, so that it can run as a system service.
+This flag disabled that behavior.  As a side effect, all logging
+will be forced to go to standard output, regardless of what syslog
+facility is specified in the configuration file.
+
+=item B<-S>, B<--show-config>
+
+Once B<cogd> has determined its running configuration, have it
+print that to standard output and exit.
+
+=item B<-T>, B<--trace>
+
+Enable B<TRACE> mode on the Pendulum runtime.  See
+B<clockwork>(7) for details on Pendulum, including what it is,
+why we use it, and what you can do with it.
+
+=back
+
+=head1 FILES
+
+=over
+
+=item B</etc/clockwork/cogd.conf>
+
+Default configuration file that B<cogd> reads on start up.  See
+B<cogd.conf>(5) for details.
+
+=item B</var/lock/cogd/cfm.lock>
+
+Lock file that is created to ensure that only a single configuration
+management run is undertaken at any one time.  This lock governs
+B<cogd> in foreground, one-off (B<-F1>) mode and as a daemon.
+
+=item B</var/lock/cogd/cfm.KILLSWITCH>
+
+If this file exists, B<cogd> will refuse to start its configuration
+management run.  This allows system admins to properly disable Clockwork
+temporarily.  This applies to daemon and standalone modes.
+
+=back
+
+=head1 SEE ALSO
+
+#SEEALSO
+
+=head1 AUTHOR
+
+#AUTHOR
+
+=cut

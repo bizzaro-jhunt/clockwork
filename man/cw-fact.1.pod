@@ -1,0 +1,87 @@
+  Clockwork is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  Clockwork is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
+
+
+=head1 NAME
+
+cw-fact - Clockwork Agent Fact Utility
+
+=head1 SYNOPSIS
+
+B<cw-fact> [options]
+
+B<cw-fact> -c /path/to/cogd.conf
+
+B<cw-fact> sys.fqdn sys.hostname
+
+=head1 DESCRIPTION
+
+B<Clockwork> is a configuration management system designed to
+securely and correctly enforce configuration policies on lots of
+hosts.
+
+It can ensure that files have the right attributes (owner,
+group, permissions, etc.) and content.  It can maintain a specific
+set of installed packages, and even make sure that system user
+accounts exist.
+
+B<cw-fact> is a small utility that will gather system facts the
+way B<cogd> does, and print them to standard output.
+
+If you don't specify any fact arguments, all facts will be printed.
+
+
+=head1 OPTIONS
+
+=over
+
+=item B<-V>, B<--version>
+
+Print version and copyright information, and then exit.
+
+=item B<-c>, B<--config> I</path/to/cogd.conf>
+
+Specify the path to an alternate configuration file.  If not
+given, the default configuration file (/etc/clockwork/cogd.conf)
+is used instead.
+
+=item B<-v>, B<--verbose>
+
+Increase logging verbosity by one level.
+
+=item B<-q>, B<--quiet>
+
+Disable logging.
+
+=back
+
+=head1 FILES
+
+=over
+
+=item B</etc/clockwork/cogd.conf>
+
+Default configuration file that B<cogd>
+reads on start up.  See B<cogd.conf>(5) for details.
+
+=back
+
+=head1 SEE ALSO
+
+#SEEALSO
+
+=head1 AUTHOR
+
+#AUTHOR
+
+=cut

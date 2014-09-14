@@ -1,0 +1,161 @@
+
+  Copyright 2011-2014 James Hunt <james@jameshunt.us>
+
+  This file is part of Clockwork.
+
+  Clockwork is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  Clockwork is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
+
+
+=head1 NAME
+
+res_exec - Clockwork Resource Type for arbitrary commands
+
+=head1 DESCRIPTION
+
+The exec resource allows administrators to kick off scripts and
+system commands, either on every run or under specific circumstances.
+This can be useful for one-off tasks that fall outside the standard
+model of other Clockwork resources.
+
+=head1 ATTRIBUTES
+
+=over
+
+=item B<command>
+
+The command to run.  Administrators are strongly encouraged to use
+absolutely-qualified binary paths (i.e. I</bin/grep> instead of
+just I<grep>) for security and reliability reasons.
+
+=item B<test>
+
+Another command, to determine if the B<command> should actually
+be run.  An exit code of B<0> means the test passed.  Any other
+exit coe is interpreted as a failure, indicating that B<command>
+should I<not> be run.
+
+=item B<user>
+
+The username of a system user account to run this command as.
+Defaults to the user running B<cogd>.
+
+=item B<group>
+
+Name of a system group account to run this command as.
+Defaults to the group running B<cogd>.
+
+=item B<ondemand>
+
+Specify whether or not this command should be run on-demand only.
+If "yes", Clockwork will only execute B<command> if another resource
+depends on it.
+
+This is an advanced use case for exec resources that can lead to some
+elaborate (and somewhat obtuse) behavior.  Use at your own peril.
+
+=back
+
+=head1 EXAMPLES
+
+Running a command unconditionally is very easy:
+
+    exec "/usr/local/bin/bug-admins" { }
+
+Sometimes, however, you will want to run a command only in certain
+situations:
+
+    exec "turn-off-selinux" {
+        command: "/usr/sbin/setenforce 0"
+        test:    "/usr/sbin/getenforce | /bin/grep -e 'Enforcing'"
+    }
+
+That is, turn off SELinux using the setenforce tool, but only do so
+if SELinux is actually in Enforcing mode (via the getenforce+grep test).
+
+Managing derived files presents a problem with B<res_file>(5) alone.
+For example, Postfix relies on compiled binary files for certain lookup
+tables.  The postmap utility is used to translate human-readable text
+files into this binary format.
+
+You can use an on-demand exec resource to automate this regeneration,
+only in instances where the source file is updated:
+
+    file "/etc/postfix/some-map" {
+        owner:  "root"
+        group:  "root"
+        mode:   "0640"
+        source: "/files/postfix/some-map"
+    }
+    exec "regen some-map" {
+        command:  "/usr/bin/postmap -r /etc/postfix/some-map"
+        ondemand: "yes"
+    }
+    file "/etc/postfix/some-map" depends on exec("regen some-map")
+
+Without the B<ondemand> option, Clockwork would continually re-run
+the postmap command on every single run, regardless of whether it was
+needed or not.
+
+=head1 CAVEATS
+
+=head2 1. Default Behavior
+
+If you do not specify a B<user> and B<group>, Clockwork will
+execute your commands as the effective user and group running cogd,
+which is most likely root:root.  Any files created by the command
+executed will then be owned by root:root, which may not be what you
+intended.
+
+As a general rule, it is best to always specify the user and group,
+even if you just set them explicitly to the defaults.
+
+=head1 DEPENDENCIES
+
+The exec resource does not create implicit dependencies.  This is
+important to keep in mind if Clockwork is providing the binary or
+script you are wanting to execute via a file resource.
+
+    file "/usr/local/bin/bug-admins" {
+        source: "/srv/cfm/files/tools/bug-admins",
+        owner:  "root"
+        group:  "root"
+        mode:   0755
+    }
+    exec "bug-admins" {
+        command: "/usr/local/bin/bug-admins --whine"
+    }
+
+# Best Practice: explicitly state the dependency
+exec("bug-admins") depends on file("/usr/local/bin/bug-admins")
+
+Without the last line, Clockwork may enforce the exec resource
+before the I<bug-admins> tool is created.
+
+Dependencies interact with on-demand exec resources in a completely
+different way.  An on-demand exec (one that defines B<ondemand>
+as "yes") will only be executed if one of the resources that it
+depends on is changed.
+
+=head1 BUGS
+
+Due to a bug in the policy file parser, commands cannot contain
+backslashes.  This is a severe issue for running anything more
+than simple binaries or shell scripts, and will hopefully be fixed
+in a future version.
+
+=head1 AUTHOR
+
+#AUTHOR
+
+=cut

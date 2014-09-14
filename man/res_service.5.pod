@@ -1,0 +1,156 @@
+
+  Copyright 2011-2014 James Hunt <james@jameshunt.us>
+
+  This file is part of Clockwork.
+
+  Clockwork is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  Clockwork is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
+
+
+=head1 NAME
+
+res_service - Clockwork Resource Type for system init services
+
+=head1 DESCRIPTION
+
+The service resource manages system services, normally found in
+/etc/init.d.  It can be used to restart or reload services in
+response to other system configuration changes through explicit
+dependencies.  It can also be used to enable or disable specific
+services on boot.
+
+To manage boot-time services, Clockwork relies on the native service
+management tools like chkconfig.  The following tools are currently
+supported:
+
+=over
+
+=item B<invoke-rc.d>
+
+For Debian and Ubuntu
+
+=item B<chkconfig>
+
+For RedHat / CentOS
+
+=back
+
+=head1 ATTRIBUTES
+
+=over
+
+=item B<name>
+
+=item B<service>
+
+The name of the service, derived from its init script name in
+/etc/init.d.
+
+=item B<running>
+
+=item B<stopped>
+
+Whether or not the service should be alive and running.  Valid
+values are "yes" and "no".  There is no default value; if not
+specified, Clockwork will not inspect the running state of the
+service.
+
+Which attribute you use is a matter of personal preference.
+
+B<running = "yes"> has the same meaning as B<stopped = "no">
+
+B<running = "no"> has the same meaning as B<stopped = "yes">
+
+=item B<enabled>
+
+=item B<disabled>
+
+Whether or not the service should be started at boot.  Valid
+values are "yes" and "no".  There is no default value; if not
+specified, Clockwork will not inspect the boot-state of the
+service.
+
+Which attribute you use is a matter of personal preference.
+
+B<enabled = "yes"> has the same meaning as B<disabled = "no">
+
+B<enabled = "no"> has the same meaning as B<disabled = "yes">
+
+=back
+
+=head1 EXAMPLES
+
+=head2 Starting and Enabling Services
+
+To ensure that SSH is running, and that it will automatically
+start when the system boots:
+
+    service "sshd" {
+        running: "yes"
+        enabled: "yes"
+    }
+
+If you are of a pessimistic persuasion, you can use double negatives
+to accomplish the same thing:
+
+    service "sshd" {
+        stopped:  "no"
+        disabled: "no"
+    }
+
+=head2 Stopping and Disabling Services
+
+To ensure that avahi never runs, ever:
+
+    service "avahi-daemon" {
+        running:  "no"
+        disabled: "yes"
+    }
+
+=head1 CAVEATS
+
+=head2 1. Default Behavior
+
+By default, Clockwork does nothing with services unless you tell
+it what to do.  For example, this policy snippet is useless:
+
+    service "apache" { }
+
+=head1 DEPENDENCIES
+
+The service resource does not create implicit dependencies, but
+you can leverage explicit dependencies to reload services when their
+configuration changes.
+
+For example, to restart syslog-ng when its global configuration file
+changes:
+
+    file "/etc/syslog-ng.conf" {
+        # configuration omitted for clarity
+    }
+
+    service "syslog-ng" {
+        running: "yes"
+        enabled: "yes"
+    }
+
+    service("syslog-ng") depends on file("/etc/syslog-ng.conf")
+
+Now, the I<syslog-ng> service will be reloaded if Clockwork has
+to do anything to the I</etc/syslog-ng.conf> file.
+
+=head1 AUTHOR
+
+#AUTHOR
+
+=cut

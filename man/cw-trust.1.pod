@@ -1,0 +1,91 @@
+  Clockwork is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  Clockwork is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
+
+
+=head1 NAME
+
+cw-trust - Clockwork Trust Database Utility
+
+=head1 SYNOPSIS
+
+B<cw-trust> [OPTIONS] --trust cert.pub other-cert.pub
+
+B<cw-trust> [OPTIONS] --revoke bad.pub
+
+=head1 DESCRIPTION
+
+B<Clockwork> is a configuration management system designed to
+securely and correctly enforce configuration policies on lots of
+hosts.
+
+It can ensure that files have the right attributes (owner,
+group, permissions, etc.) and content.  It can maintain a specific
+set of installed packages, and even make sure that system user
+accounts exist.
+
+B<cw-trust> is a utility for managing a database of trusted Clockwork
+certificates, which is called a I<trust database>, or just I<trustdb>
+for short.  It allows site administrators to trust or revoke certificates.
+
+When B<clockd> is running in B<security.strict> mode, it will consult
+a trust database to determine if client B<cogd> instances are trusted
+enough to receive potentially sensitive policy and configuration files.
+
+=head1 OPTIONS
+
+=over
+
+=item B<-d>, B<--database> I</path/to/trustdb>
+
+Specify the path to the trust database to update or create.  If the file
+does not exist, it will be created for you.
+
+Defaults to I</etc/clockwork/certs/trusted>.
+
+=item B<-t>, B<--trust>
+
+Add certificates given on the command line to the trust database.
+This is the default mode of B<cw-trust>.
+
+=item B<-r>, B<--revoke>
+
+Remove the certificates given on the command line from the trust database,
+if they are currently trusted.
+
+=back
+
+=head1 TRUSTDB FORMAT
+
+A trustdb is really just a list of the trusted certificates, each accounted
+for by public key (in hexadecimal encoding) and the identity of the
+certificate (for human consumption).  The database files are simple text
+files that can be viewed and edited manually.
+
+Here is an example database file:
+
+    fb5cf56fabc8f9e85294f1af3e968bd02d6ebae801a76331124b94a307f57875 host1.example.com
+    417b7f7946b6c65db58e86c5a66cbc698dbd1b15492e29372f927cf91620947e other-host
+
+Empty lines will be ignored, as will any line starting with the comment
+character, B<'#'>.  Keep in mind, however, that B<cw-trust> will strip
+out all of the comments and reformat the trustdb.
+
+=head1 SEE ALSO
+
+#SEEALSO
+
+=head1 AUTHOR
+
+#AUTHOR
+
+=cut

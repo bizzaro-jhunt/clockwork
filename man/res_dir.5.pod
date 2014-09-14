@@ -1,0 +1,123 @@
+
+  Copyright 2011-2014 James Hunt <james@jameshunt.us>
+
+  This file is part of Clockwork.
+
+  Clockwork is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  Clockwork is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
+
+
+=head1 NAME
+
+res_dir - Clockwork Resource Type for system directories
+
+=head1 DESCRIPTION
+
+The B<res_dir> resource gives administrators a way to manage
+the presence of directories and the permissions on them.
+
+=head1 ATTRIBUTES
+
+=over
+
+=item B<path>
+
+The path (from the client's point of view) to the directory to
+be managed.
+
+=item B<owner>
+
+The name of the user who should own the directory.
+
+=item B<group>
+
+The name of the group who should own this directory.
+
+=item B<mode>
+
+The permissions set for this directory.  THe value must be
+specified in octal notation, i.e. 0750 for rwxr-x---.
+
+=back
+
+=head1 EXAMPLES
+
+=head2 Basic Usage
+
+The following policy configuration would create /srv/www, and
+make it readable, writable and traversable by the apache user
+(for running Apache) and the web group (people who manage the
+code and content of web sites).
+
+    dir "/srv/www" {
+        owner: "apache"
+        group: "web"
+        mode:  "0775"
+    }
+
+=head1 DEPENDENCIES
+
+Directory resources implicitly create the following dependencies:
+
+=head2 User Owner (owner)
+
+If the B<owner> attribute is specified, the directory resource will depend on the
+existence of that user.  This is designed to ensure that directories
+are owned by valid system users.
+
+=head2 Group Owner (group)
+
+If the B<group> attribute is specified, the directory resource will depend on the
+existence of that group.  This is designed to ensure that directories
+are owned by valid system groups.
+
+=head2 Parent Directories
+
+Missing directories in between the directory path and the root (/)
+will be created if necessary (for existant resources).
+By default, these parent directories will be owned by root:root with
+mode 0755.  However, if the policy defines other directory resources
+with matching paths, they will be marked as dependencies.
+
+An example should clear up any confusion:
+
+    dir "/u/apps" {
+        owner: "webmaster"
+        group: "web"
+        mode:  0755
+    }
+
+    dir "/u/apps/test.example.net" {
+        owner: "apache"
+        group: "web"
+        mode:  0775
+    }
+
+If the above policy was enforced on a host without the /u directory,
+the following would happen (in order):
+
+=over
+
+=item 1. Create /u, per defaults (root:root; 0755)
+
+=item 2. Create /u/apps, per policy (webmaster:web; 0755)
+
+=item 3. Create /u/apps/test.example.net, per policy (apache:web; 0775)
+
+=back
+
+=head1 AUTHOR
+
+#AUTHOR
+
+=cut

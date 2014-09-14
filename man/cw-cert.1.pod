@@ -1,0 +1,102 @@
+  Clockwork is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  Clockwork is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
+
+
+=head1 NAME
+
+cw-cert - Clockwork Certificate Generator
+
+=head1 SYNOPSIS
+
+B<cw-cert> [options]
+
+B<cw-cert> -i host.identity -f ./certs/newcert
+
+=head1 DESCRIPTION
+
+B<Clockwork> is a configuration management system designed to
+securely and correctly enforce configuration policies on lots of
+hosts.
+
+It can ensure that files have the right attributes (owner,
+group, permissions, etc.) and content.  It can maintain a specific
+set of installed packages, and even make sure that system user
+accounts exist.
+
+B<cw-cert> is a utility for generating Clockwork certificates,
+which consist of a public / secret keypair and an identity.
+
+
+=head1 OPTIONS
+
+=over
+
+=item B<-i>, B<--identity> I<host.identity.string>
+
+Override the identity of the generated certificate.  By default, the
+fully-qualified domain name of the local host is used.  You can set this
+to any value you like; it is only used to help people keep track of what
+certificate belongs to whom.
+
+=item B<-f>, B<--file> I</path/to/output/cert>
+
+Specify where the output certificate should be written.  A combined
+certificate (see B<CERTIFICATE FORMATS>, later) will be written to the
+named file, and a public certificate will be written to I<FILE>.pub.
+
+Target files must not already exist; B<cw-cert> will refuse to overwrite
+existing certificates.  Created files will have proper permissions,
+B<0600> for the combined certificate (which contains the secret key) and
+B<0644> for the public certificate.
+
+Defaults to I<./cwcert>, which will create I<cwcert> and
+I<cwcert.pub> in the current directory.
+
+=back
+
+=head1 CERTIFICATE FORMATS
+
+Clockwork certificates come in two formats, B<combined> and B<public>.
+
+B<Combined> certificates contain the identity, and both keys (public, and
+private).  These should never be exposed, since the secret key is supposed
+to remain, well, secret.
+
+Here's an example combined certificate:
+
+    id  example.com
+    pub fb5cf56fabc8f9e85294f1af3e968bd02d6ebae801a76331124b94a307f57875
+    sec 19a5ac2825251bb2d2011ecc3c9dffcaf7ab666cc0a3cddde43620e6dff57387
+
+The B<id>, B<pub> and B<sec> labels denote the certificate
+identity, public key (in hexadecimal encoding) and private key (also in
+hex).
+
+A B<public> certificate is just a combined certificate without the secret
+key:
+
+    id  example.com
+    pub fb5cf56fabc8f9e85294f1af3e968bd02d6ebae801a76331124b94a307f57875
+
+These can be shared with anyone, since the public key alone is not enough to
+break the encryption.
+
+=head1 SEE ALSO
+
+#SEEALSO
+
+=head1 AUTHOR
+
+#AUTHOR
+
+=cut

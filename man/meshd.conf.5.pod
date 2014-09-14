@@ -1,0 +1,169 @@
+
+  Copyright 2011-2014 James Hunt <james@jameshunt.us>
+
+  This file is part of Clockwork.
+
+  Clockwork is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  Clockwork is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
+
+
+=head1 NAME
+
+meshd.conf - Clockwork Mesh Server configuration file
+
+=head1 SYNOPSIS
+
+B</etc/clockwork/meshd.conf>
+
+=head1 DESCRIPTION
+
+B<meshd>(1) reads its configuration from
+I</etc/clockwork/meshd.conf> (unless a different file is
+specified with the -c option).
+
+Valid configuration directives, and their meanings, are as follows:
+
+=over
+
+=item B<broadcast> - Broadcast Channel bind address
+
+This specifies what interfaces/addresses B<meshd> should bind
+to for publishing commands to subscribed B<cogd>(1) nodes.
+
+The standard port is I<2315>, and most of the time you'll want
+to listen on any available interface.
+This is the default, I<*:2315>.
+
+=item B<control> - Control Channel bind address
+
+This specifies what interfaces/addresses B<meshd> should bind
+to for accepting inbound queries from clients, as well as result
+messages from subscribed B<cogd>(1) nodes.
+
+The standard port is I<2316>, and most of the time you'll want
+to listen on any available interface.
+This is the default, I<*:2316>.
+
+=item B<security.cert> - Master Certificate
+
+This certificate is used to identify this B<meshd> instance to
+connecting clients and B<cogd> nodes.
+It must contain both the public and private keys.
+
+Defaults to I</etc/clockwork/certs/meshd>.
+
+=item B<query_cache.size> - Query Cache Size
+
+This configuration option lets you size the query cache to
+the infrastructure.  For each query that B<meshd> fields,
+it places an entry in the query connection cache to keep track
+of the query results.
+Cache entries are purged
+regularly, pursuant to B<qcache.expiration>, to make room for
+new client queries.
+
+The value chosen for the connection cache size depends on the
+number of concurrent queries you expect B<meshd> to service.
+For most environments the default size of I<2048> entries
+should be sufficient.
+
+=item B<query_cache.expiration> - Query Cache Expiration
+
+Controls how long B<meshd> will wait before purging queries
+from its query cache.  The I<age> of a query is calculated
+starting from the last time the requesting client retrieved results
+for it (not as an absolute time since query submission).
+
+This value is specified in seconds.
+
+=item B<pidfile> - PID file for storing the daemon process ID
+
+Defaults to I</var/run/meshd.pid>.
+
+=item B<syslog.ident> - Syslog identity string
+
+Defaults to I<meshd>.
+
+=item B<syslog.facility> - Syslog facility for logging
+
+Defaults to I<daemon>.
+
+=item B<syslog.level> - Log level
+
+Valid values are:
+
+=over
+
+=item B<critical>
+
+Fatal issues that cause immediate termination.
+
+=item B<error>
+
+Non-fatal issues that prevent proper system operation.
+
+=item B<warning>
+
+Minor problems that do not hinder system operation.
+
+=item B<notice>
+
+Informational messages that assist in system diagnostics.
+
+=item B<info>
+
+More in-depth informational messages, for troubleshooting.
+
+=item B<debug>
+
+Messages for chasing down bugs.
+
+=back
+
+Each level includes all "more important" levels.  B<warning>
+will log B<critical> and B<error> messages.  B<notice> is
+everything but debugging messages, etc.
+
+A good starting point is I<warning>; default is I<error>.
+
+=back
+
+=head1 EXAMPLES
+
+Here is the default configuration, made explicit:
+
+    listen              *:2314
+    pidfile             /var/run/meshd.pid
+    manifest            /etc/clockwork/manifest.pol
+    copydown            /etc/clockwork/gather.d
+
+    security.strict     yes
+    security.trusted    /etc/clockwork/certs/trusted
+    security.cert       /etc/clockwork/certs/meshd
+
+    ccache.connections  2048
+    ccache.expiration   600
+
+    syslog.ident        meshd
+    syslog.facility     daemon
+    syslog.level        error
+
+=head1 SEE ALSO
+
+#SEEALSO
+
+=head1 AUTHOR
+
+#AUTHOR
+
+=cut

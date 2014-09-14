@@ -1,0 +1,195 @@
+
+  Copyright 2011-2014 James Hunt <james@jameshunt.us>
+
+  This file is part of Clockwork.
+
+  Clockwork is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  Clockwork is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
+
+
+=head1 NAME
+
+clockd.conf - Clockwork Master configuration file
+
+=head1 SYNOPSIS
+
+B</etc/clockwork/clockd.conf>
+
+=head1 DESCRIPTION
+
+B<clockd>(1) reads its configuration from
+I</etc/clockwork/clockd.conf> (unless a different file is
+specified with the -c option).
+
+Valid configuration directives, and their meanings, are as follows:
+
+=over
+
+=item B<listen> - Listen directive
+
+This specifies what interfaces/addresses B<clockd> should bind
+to, for inbound connections from B<cogd> agents.  The default
+port is I<2314>, and most of the time you'll want to listen on
+any available interface.  This is the default, \fI*:2314\fB.
+
+=item B<manifest> - Policy Manifest File
+
+The manifest contains all of the policy definitions, and what
+clients they should be given to.
+
+=item B<copydown> - Copydown Source Directory
+
+Clients connecting to B<clockd> start their configuration runs
+by performing a B<COPYDOWN>, in which they copy static files
+(usually gatherer scripts) locally.
+
+This setting determines what files are included in the copydown
+archive.  Paths will be relative to the client's B<copydown>
+setting.
+
+Defaults to I</etc/clockwork/gather.d>.
+
+=item B<security.strict> - Security Mode
+
+When clients connect, B<clockd> will always check that they have a
+secured channel (thus validating their public/private keypair).  For
+production sites, it is also a good idea to check that the client has been
+pre-authenticated, by checking against a list of trusted public key
+fingerprints, the so-called I<trust database>, or I<trustdb>.
+
+Setting B<security.strict> to I<yes> (the default) engages this
+behavior.
+
+Environments (usually not mission-critical, like testbeds and experimental
+labs) can bypass this extra security by setting security.strict to I<no>.
+This is B<not recommended> for production deployments!
+
+=item B<security.trusted> - Trust Database
+
+Under strict mode, the trust database is consulted to ensure that remote
+clients are trusted to receive policy and file data, which could contain
+sensitive and/or privileged information.
+
+The trust database can be managed by hand, or by B<cw-trust>(1).
+
+Defaults to I</etc/clockwork/certs/trusted>.
+
+=item B<security.cert> - Master Certificate
+
+This certificate is used to identify this B<clockd> instance to
+connecting clients.  It must contain both the public and private keys.
+
+Defaults to I</etc/clockwork/certs/clockd>.
+
+=item B<ccache.connections> - Connection Cache Entries
+
+This configuration option lets you size the connection cache to
+the infrastructure.  For each client that connects, B<clockd>
+keeps an entry in the connection cache to keep track of the
+generated policy, known facts, etc.  Cache entries are purged
+regularly, pursuant to B<ccache.expiration>, to make room for
+new client connections.
+
+The value chosen for the connection cache size depends on the
+number of concurrent clients you expect B<clockd> to service.
+For most environments the default size of I<2048> entries
+should be sufficient.
+
+=item B<ccache.expiration> - Connection Cache Expiration
+
+=item B<clockd> keeps track of each client that connects, by storing
+their state information in an entry in the connection cache.  This
+configuration option lets you adjust how soon B<clockd> will
+try to reclaim stale entries for use in new client connections.
+
+This value is specified in seconds.
+
+=item B<pidfile> - PID file for storing the daemon process ID
+
+Defaults to I</var/run/clockd.pid>.
+
+=item B<syslog.ident> - Syslog identity string
+
+Defaults to I<clockd>.
+
+=item B<syslog.facility> - Syslog facility for logging
+
+Defaults to I<daemon>.
+
+=item B<syslog.level> - Log level
+
+Valid values are:
+
+=over
+
+=item B<critical>
+
+Fatal issues that cause immediate termination.
+
+=item B<error>
+
+Non-fatal issues that prevent proper system operation.
+
+=item B<warning>
+
+Minor problems that do not hinder system operation.
+
+=item B<notice>
+
+Informational messages that assist in system diagnostics.
+
+=item B<info>
+
+More in-depth informational messages, for troubleshooting.
+
+=item B<debug>
+
+Messages for chasing down bugs.
+
+=back
+
+Each level includes all "more important" levels.  B<warning>
+will log B<critical> and B<error> messages.  B<notice> is
+everything but debugging messages, etc.
+
+A good starting point is I<warning>; default is I<error>.
+
+=back
+
+=head1 EXAMPLES
+
+Here is the default configuration, made explicit:
+
+    listen              *:2314
+    pidfile             /var/run/clockd.pid
+    manifest            /etc/clockwork/manifest.pol
+    copydown            /etc/clockwork/gather.d
+
+    security.strict     yes
+    security.trusted    /etc/clockwork/certs/trusted
+    security.cert       /etc/clockwork/certs/clockd
+
+    ccache.connections  2048
+    ccache.expiration   600
+
+    syslog.ident        clockd
+    syslog.facility     daemon
+    syslog.level        error
+
+=head1 SEE ALSO
+
+#SEEALSO
+
+=head1 AUTHOR
+
+#AUTHOR

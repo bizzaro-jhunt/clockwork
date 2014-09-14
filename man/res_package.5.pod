@@ -1,0 +1,148 @@
+
+  Copyright 2011-2014 James Hunt <james@jameshunt.us>
+
+  This file is part of Clockwork.
+
+  Clockwork is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  Clockwork is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
+
+
+=head1 NAME
+
+res_package - Clockwork Resource Type for software packages
+
+=head1 DESCRIPTION
+
+The package resource allows administrators to specify what software
+should be installed (or not installed) on what hosts.  Package
+management is performed through the local system's package manager;
+standalone installation scripts (i.e. .bin files) are not supported.
+
+The following Linux package managers are currently supported:
+
+=over
+
+=item B<YUM>
+
+For RPM-based platforms (RedHat, CentOS, SuSE, OEL, etc.)
+
+=item B<APT>
+
+For DPKG-based platforms (Debian, Ubuntu, etc.)
+
+=back
+
+=head1 ATTRIBUTES
+
+=over
+
+=item B<name>
+
+The name of the software package, according to the local package
+manager.  This may be different based on host architecture; conditional
+policy constructs should be used to get the correct name.
+
+=item B<version>
+
+The (optional) version of the package to install.  If not specified,
+and the package is not already installed, the latest available version
+will be used.  The special value "any" forces this default behavior.
+
+The special value "latest" is will cause Clockwork to keep the installed
+package at the latest version, upgrading as needed.
+
+=item B<installed>
+
+Whether or not the package should be installed on the system.  Valid
+values are B<"yes"> and B<"no">.  Default value is B<"yes">.
+
+=back
+
+=head1 EXAMPLES
+
+=head2 Installation of Packages
+
+Ensure that the apache web server package, httpd, is installed and
+up-to-date:
+
+    package "httpd" { }
+
+Even though the default behavior of the package resource is to install
+the software package, explicitly specifying this is considered good
+practice:
+
+    package "httpd" {
+        installed: "yes"
+    }
+
+Same as the above, but use the 2.2 version of Apache, not the latest
+available version:
+
+    package "httpd" {
+        installed: "yes"
+        version:   "2.2"
+    }
+
+=head2 Removal of Packages
+
+Removing packages is easy; just set B<installed> to B<"no">:
+
+    package "emacs" {
+        installed: "no"
+    }
+
+=head2 Platform Detection and Package Names
+
+Not all distributions name their packages the same way.  Using I<if>
+constructs in the policy definition makes it easy to accommodate
+different naming schemes.
+
+For this example, assume we want to install I<mypackage> on CentOS and
+Ubuntu machines in your infrastructure.  The Ubuntu package name is 
+I<my-package-core>, but the CentOS package name is I<mypackage>.
+
+(We also assume that there are no other platforms to worry about.)
+
+    package "mypackage" {
+
+        # override the package name for Ubuntu
+        if (lsb.distro.id is "Ubuntu") {
+            name: "my-package-core"
+        }
+
+        installed: "yes"
+    }
+
+The above resource definition works because the initial package name will
+be set to "mypackage", and then overidden if the agent is running on Ubuntu.
+
+=head1 CAVEATS
+
+=head2 1. Package Removal and Versioning
+
+Version information (set by the B<version> attribute) is ignored
+if the package is set to be removed.
+
+=head1 DEPENDENCIES
+
+None.
+
+B<Note:>
+Package dependency resolution (i.e. apache depends on the apr-util
+package) is handled solely by the package manager.
+
+=head1 AUTHOR
+
+#AUTHOR
+
+=cut

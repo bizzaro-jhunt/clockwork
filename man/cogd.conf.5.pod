@@ -1,0 +1,223 @@
+
+  Copyright 2011-2014 James Hunt <james@jameshunt.us>
+
+  This file is part of Clockwork.
+
+  Clockwork is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  Clockwork is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
+
+
+=head1 NAME
+
+cogd.conf - Clockwork Agent configuration file
+
+=head1 SYNOPSIS
+
+B</etc/clockwork/cogd.conf>
+
+=head1 DESCRIPTION
+
+B<cogd>(1) reads its configuration from
+I</etc/clockwork/cogd.conf> (unless a different file is
+specified with the -c option).
+
+Valid configuration directives, and their meanings, are as follows:
+
+=over
+
+=item B<master.>I<N> - Master Servers
+
+Master Servers are the fixed points in the Clockwork architecture.
+They maintain the global manifest and are solely responsible for
+handing out policy to managed hosts.
+
+Each master server must be specified by its endpoint IP address
+and TCP port number.  The standard Clockwork port for master
+servers is TCP/2314.
+
+A single B<cogd> can be configured with up to 8 master servers,
+B<master.1>, B<master.2> ... B<master.8>.  It will
+round-robin between these master servers until it finds one it can
+connect to.  This can be leveraged to provide more resiliency into
+core of your configuration management layer.
+
+At least one master server (B<master.1>) must be specified, or
+
+B<cogd> will exit with an error.
+
+=item B<cert.>I<N> - Master Server Certificates
+
+Each master server must be authenticated by providing the cogd
+clients with their public certificate (which contains only the
+public key).
+
+=item B<mesh.control> - Mesh Control Channel
+
+=item B<mesh.broadcast> - Mesh Broadcast Channel
+
+Each B<cogd> can register with a Clockwork Mesh server, to which
+it will subscribe for inbound orchestration and remote queries.
+There are two channels that must be set up for this to work.
+
+The I<broadcast> channel is what B<cogd> listens to for
+inbound commands that are sent to all nodes simultaneously.  It
+usually runs on port 2316.
+
+The I<control> channel is where B<cogd> sends the results of
+any commands or queries it has executed, so that they can be related
+back to the original requester.  This is usually port 2315.
+
+=item B<security.cert> - Client Certificate
+
+Since all communication between B<cogd> and B<clockd> is encrypted,
+the client must have a public/private keypair, which is contained inside of
+its combined certificate.
+
+=item B<timeout> - Timeout for Master Server communication
+
+When communicating with master server(s), there is a chance that
+the remote peer is not up or accepting connections.  Due to the
+asynchronous nature of the Clockwork protocol, B<cogd> must
+enforce timeouts on replies from each master that it talks to.
+
+This configuration directive specifies that timeout, in seconds.
+
+Defaults to I<5>.
+
+=item B<interval> - How often to run configuration management
+
+Defaults to I<300> (5 minutes).
+
+=item B<gatherers> - Path or shell glob to gatherer script(s)
+
+Gatherers allow this host to collect as much information about
+itself as possible, and communicate that to the policy master.
+This data includes stuff like kernel version, number of
+interfaces, distribution name, etc., and allows the policy master
+to tailor a policy specific to this host.
+
+To specify more than one script (the most common case), use a
+shell glob.  For example, if you keep multiple gatherers in
+/opt/clockwork, set B<gatherers> to "/opt/clockwork/*".
+
+Only files with the executable bit set will be seen as valid
+gatherer scripts.
+
+Defaults to I</etc/clockwork/gather.d/*>.
+
+=item B<copydown> - Root directory for copydown
+
+When B<cogd> starts up, the first thing it does after
+contacting a master server is perform a B<COPYDOWN>.  During
+the step, static files (usually gatherer scripts) will be copied
+down from the master to the local node.  This ensures that the
+policy generated is correct, and that local fact gatherers are not
+tampered with.
+
+This setting lets you choose where the copydown files are stored.
+
+Defaults to I</etc/clockwork/gather.d>.
+
+=item B<pidfile> - PID file for storing the daemon process ID
+
+Defaults to I</var/run/cogd.conf>.
+
+=item B<lockdir> - Where to store coordination locks
+
+Certain actions that B<cogd> performs should only be executed
+by a single process at any given point in time.  To help coordinate
+this, and still enable one-off runs, B<cogd> creates lock files
+that serve as advisory locks to other B<cogd> processes.
+
+This setting lets you relocate the directory where these lock files
+are created.  Note that anyone wishing to run B<cogd> must be
+allowed to write to this directory.
+
+Defaults to I</var/lock/cogd>.
+
+=item B<difftool> - What tool to use for logging file change diffs
+
+This command will be run, and its output logged to NOTICE, whenever
+cogd changes a local file from a remote source.  It should print out
+the key differences between the two versions, to assist system owners
+in troubleshooting proper policy enforcement.
+
+Whatever program you specify must be able to take two arguments, the
+first being the path to the original, local file, and the second being
+the literal string "-".  It must also be able to read the new file
+from standard input.
+
+This models the standard diff utility, which is what most people will
+probably use.  You can specify command-line options to the tool if
+so desired.
+
+Defaults to I</usr/bin/diff -u>.
+
+=item B<syslog.ident> - Syslog identity string
+
+Defaults to I<cogd>.
+
+=item B<syslog.facility> - Syslog facility for logging
+
+Defaults to I<daemon>.
+
+=item B<syslog.level> - Log level
+
+Defaults to I<error>.
+
+=back
+
+=head1 EXAMPLES
+
+This is the default configuration, plus a single master server at
+10.0.0.5:2314:
+
+    listen *:2304
+
+    master.1   10.0.0.5:2314
+    cert.1     /etc/clockwork/certs/master.1.pub
+
+    security.cert  /etc/clockwork/certs/cogd
+
+    timeout    5
+    interval   300
+    gatherers  /etc/clockwork/gather.d/*
+    copydown   /etc/clockwork/gather.d
+
+    lockdir          /var/lock/cogd
+    pidfile          /var/run/cogd.pid
+
+    syslog.ident     cogd
+    syslog.facility  daemon
+    syslog.level     error
+
+    difftool  /usr/bin/diff -u
+
+Here's a bare-bones configuration that can talk to three different
+master servers, in three different 10/8 subnets (certificates have
+been omitted for brevity):
+
+    master.1   10.100.0.5:2314  # Chicago, IL
+    master.2   10.120.0.5:2314  # New York, NY
+    master.3   10.140.0.5:2314  # San Jose, CA
+    timeout 15
+
+=head1 SEE ALSO
+
+#SEEALSO
+
+=head1 AUTHOR
+
+#AUTHOR
+
+=cut

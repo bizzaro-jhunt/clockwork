@@ -1,0 +1,50 @@
+  Clockwork is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  Clockwork is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
+
+
+=head1 NAME
+
+cw-cc - Clockwork Policy Compiler
+
+=head1 SYNOPSIS
+
+B<cw-cc> manifest.pol
+
+=head1 DESCRIPTION
+
+B<Clockwork> is a configuration management system designed to
+securely and correctly enforce configuration policies on lots of
+hosts.
+
+It can ensure that files have the right attributes (owner,
+group, permissions, etc.) and content.  It can maintain a specific
+set of installed packages, and even make sure that system user
+accounts exist.
+
+B<cw-cc> is a utility that will compile a manifest of policies,
+in a fashion similar to B<clockd>.  It will then dump the
+abstract syntax tree to standard output, calculate some memory
+usage statistics and exit.
+
+B<cw-cc> is intended to be used to debug and troubleshoot
+Clockwork.
+
+=head1 SEE ALSO
+
+#SEEALSO
+
+=head1 AUTHOR
+
+#AUTHOR
+
+=cut

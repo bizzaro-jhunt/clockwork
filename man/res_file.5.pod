@@ -1,0 +1,218 @@
+
+  Copyright 2011-2014 James Hunt <james@jameshunt.us>
+
+  This file is part of Clockwork.
+
+  Clockwork is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  Clockwork is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
+
+
+=head1 NAME
+
+res_file - Clockwork Resource Type for managing files
+
+=head1 DESCRIPTION
+
+A fair portion of Linux system administration involves creating and
+maintaining configuration files.  The B<res_file> resource for
+Clockwork automates much of this work by allowing an administrator
+to specify almost every attribute of a file in a system policy:
+
+=over
+
+=item 1. Ownership (user and group)
+
+=item 2. Permissions
+
+=item 3. Contents (both static and dynamic)
+
+=back
+
+=head1 ATTRIBUTES
+
+=over
+
+=item B<owner>
+
+The name of the user who should own the file.
+
+=item B<group>
+
+The name of the group who should own this file.
+
+=item B<mode>
+
+File access permissions.  The value must be
+specified in octal notation, i.e. 0755 for rwxr-xr-x.
+
+=item B<source>
+
+The path (from the policy master's point of view) to the source file.
+If specified, the client-side file will be updated to match this static
+file.
+
+Has no affect on directories, hard links or symbolic links.
+
+=item B<template>
+
+The path (from the policy master's point of view) to a source file template.
+Like the B<source>
+attribute, specifying this will cause the client-side file to be updated
+from the copy on the master.  A template, however, is evaluated against
+the client's set of facts and a custom source file is generated.
+
+Has no affect on directories, hard links or symbolic links.
+
+=item B<path>
+
+The path (from the client's point of view) to the file to be managed.
+
+=item B<present>
+
+Whether or not this file should exist.  Valid values are
+"yes" and "no".  The default value is "yes".
+
+=back
+
+=head1 EXAMPLES
+
+=head2 Ownership and Permissions
+
+Ensure ownership and permissions on /etc/sudoers:
+
+    file "/etc/sudoers" {
+        owner: "root"
+        group: "root"
+        mode:  "0440" # required mode for sudo to work
+    }
+
+=head2 Complete Control
+
+In this scenario, local changes to /etc/foo.conf, including edits,
+file removal, and ownership / permissions changes will be undone
+by the Clockwork agent.
+
+    file "/etc/foo.conf" {
+        owner:  "foo"
+        group:  "root"
+        mode:   "0640"
+        source: "/clockwork/files/foo.conf"
+    }
+
+=head2 Templates
+
+Templates can be used to flexibly push out files that are similar
+on all hosts, but differ with host-specific details.  Assuming the
+following template (/clockwork/templates/banner.tpl):
+
+    <%= sys.fqdn %> - Widgets Co. Ltd.
+
+    Unauthorized access to this machine is prohibited.
+    Use of this system is limited to authorized individuals only.
+    All activity is monitored.
+
+This host resource will enforce a banner for all hosts that contains
+the standard "warning" verbiage and the local hostname:
+
+    file "/etc/banner" {
+        owner:    "root"
+        group:    "root"
+        mode:     "0400"
+        template: "/clockwork/templates/banner.tpl"
+    }
+
+When evaluated on the host named 'labs.example.net', /etc/banner
+will contain the following:
+
+    labs.example.net - Widgets Co. Ltd.
+
+    Unauthorized access to this machine is prohibited.
+    Use of this system is limited to authorized individuals only.
+    All activity is monitored.
+
+=head1 CAVEATS
+
+=head2 1. Link Support
+
+Symbolic links and hard links cannot be created with the file
+resource.  Use B<res_symlink>(5) instead.
+
+
+=head1 DEPENDENCIES
+
+File resources implicitly create the following dependencies:
+
+=head2 User Owner (owner)
+
+If the B<owner>
+attribute is specified, the file resource will depend on the
+existence of that user.  This is designed to ensure that files are
+owned by valid system users.
+
+=head2 Group Owner (group)
+
+If the B<group>
+attribute is specified, the file resource will depend on the
+existence of that group.  This is designed to ensure that files are
+owned by valid system groups.
+
+=head2 Parent Directories
+
+All parent components of the file path will be created if the file
+should exist and does not.  By default, these parent directories
+will be owned by root:root with mode 0755.  However, if the policy
+defines B<res_dir>(5) resources with paths matching any component
+of the parent directory chain, the file resource will be set to
+depend on them.
+
+An example should clear up any confusion:
+
+    file "/u/apps/test.example.net/index.html" {
+        owner: "apache"
+        group: "web"
+        mode:  0664
+        source: "/srv/clockwork/www/under-constr.html"
+    }
+
+    dir "/u/apps" {
+        owner: "webmaster"
+        group: "web"
+        mode:  0755
+    }
+
+    dir "/u/apps/test.example.net" {
+        owner: "apache"
+        group: "web"
+        mode:  0775
+    }
+
+If the above policy was enforced on a host without the /u directory,
+the following would happen (in order):
+
+=over
+
+=item 1. Create /u, per defaults (root:root; 0755)
+
+=item 2. Create /u/apps, per policy (webmaster:web; 0755)
+
+=item 3. Create /u/apps/test.example.net, per policy (apache:web; 0775)
+
+=item 4. Create the file and retrieve its contents from the policy master.
+
+=back
+
+=head1 AUTHOR
+
+#AUTHOR
+
+=cut

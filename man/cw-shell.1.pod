@@ -1,0 +1,92 @@
+
+  Copyright 2011-2014 James Hunt <james@jameshunt.us>
+
+  This file is part of Clockwork.
+
+  Clockwork is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  Clockwork is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
+
+
+=head1 NAME
+
+cw-shell - Clockwork Policy Shell
+
+=head1 SYNOPSIS
+
+B<cw-shell> [options] I</path/to/manifest/file>
+
+=head1 DESCRIPTION
+
+B<Clockwork>
+is a system configuration management system designed to securely enforce
+policies on one or more host systems.  It can ensure that files have the
+prescribed attributes (owner, group, permissions, etc.) and content.  It
+can maintain a specific set of installed packages, and even make sure that
+system user accounts exist.
+
+B<cw-shell>
+is a utility for administrators and policy developers that exposes the
+internals of a policy manifest, letting you explore how a policy would
+be implemented by the client agents.
+
+=head1 OPTIONS
+
+=over
+
+=item B<-e>, B<--execute> I<command>
+
+Execute arbitrary commands.  Multiple commands must be separated by
+a semi-colon (;) with optional whitespace.
+
+=item B<-h>, B<--help>
+
+Show a brief summary of the options that B<cw-shell> takes.
+
+=item B<-v>, B<--verbose>
+
+Increase the verbosity of B<cw-shell>.  Can be used multple
+times; each time it increases the log level by one.
+
+B<Note:> B<cw-shell> doesn't log to a file, it write all log messages
+to standard output.  If you wish to save cw-shell output, use your shell's
+IO redirection capabilities.
+
+=item B<-V>, B<--version>
+
+Print version and copyright information, and then exit.  If specified,
+any command script is ignored, as well as the B<-e> option.
+
+=back
+
+=head1 EXIT STATUS
+
+In interactive mode and script interpreter mode, B<cw-shell> always
+exits with status 0.
+
+If B<-e> is used, B<cw-shell> exits with status 0 if all commands
+completed successfully, and exits non-zero when the first command
+(which may be the only command) fails.
+
+=head1 FILES
+
+None
+
+=head1 SEE ALSO
+
+#SEEALSO
+
+=head1 AUTHOR
+
+#AUTHOR
+
+=cut

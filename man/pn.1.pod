@@ -1,0 +1,85 @@
+  Clockwork is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  Clockwork is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
+
+
+=head1 NAME
+
+pn - Pendulum Interpreter
+
+=head1 SYNOPSIS
+
+B<pn> [options] script.pn
+
+=head1 DESCRIPTION
+
+B<Clockwork> is a configuration management system designed to
+securely and correctly enforce configuration policies on lots of
+hosts.
+
+It can ensure that files have the right attributes (owner,
+group, permissions, etc.) and content.  It can maintain a specific
+set of installed packages, and even make sure that system user
+accounts exist.
+
+B<pn> is a standalone interpreter for the Pendulum language,
+which is what B<cogd> uses internally to apply policies to the
+local machine.
+
+B<pn> is not for everyone.  In fact, most people will never need
+the run snippets of Pendulum code outside the scope of B<cogd>.
+B<pn> really shines when used to aide in debugging Clockwork,
+and as an exploratory utility for writing new resource types.
+
+
+=head1 OPTIONS
+
+=over
+
+=item B<-V>, B<--version>
+
+Print version and copyright information, and then exit.
+
+=item B<-v>, B<--verbose>
+
+Increase logging verbosity by one level.
+
+=item B<-q>, B<--quiet>
+
+Disable logging.
+
+=item B<-T>, B<--trace>
+
+Enable B<TRACE> mode while executing the script.
+In this mode, B<pn> will print debugging messages to standard
+error that should help to illustrate what opcodes it is executing,
+what user-defined functions are doing, branching decisions and more.
+
+=item B<--syslog> I<FACILITY>
+
+Redirect all output to syslog, using the target facility.
+
+=item B<--debug>
+
+Enable debug-level logging.  Useful for development, but not much else.
+
+=back
+
+=head1 SEE ALSO
+
+#SEEALSO
+
+=head1 AUTHOR
+
+#AUTHOR
+
+=cut

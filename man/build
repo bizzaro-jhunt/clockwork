@@ -1,0 +1,13 @@
+#!/bin/bash
+
+TITLE="Clockwork Manual"
+DATE=$(date +'%Y-%m-%d')
+VERSION=$2
+POD=$1
+
+SECTION=${POD%.pod}; SECTION=${SECTION##*.}
+NAME=${POD%%.*}; NAME=${NAME##*/}; NAME=$(echo $NAME | dd conv=ucase 2>/dev/null)
+
+echo >&2 "[POD] $POD -> $NAME($SECTION) v$VERSION"
+sed -f man/fixup.sed < $POD | pod2man --center "$TITLE" --date "$DATE" --release "Clockwork v$VERSION" --name "$NAME" --section "$SECTION"
+rm -f man/*.tmp

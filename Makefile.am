@@ -243,6 +243,13 @@ dist_man_MANS   += man/res_symlink.5
 dist_man_MANS   += man/res_sysctl.5
 dist_man_MANS   += man/res_user.5
 
+man/%.1: man/%.1.pod
+	./man/build $< @PACKAGE_VERSION@ > $@
+man/%.5: man/%.5.pod
+	./man/build $< @PACKAGE_VERSION@ > $@
+man/%.7: man/%.7.pod
+	./man/build $< @PACKAGE_VERSION@ > $@
+
 ############################################################
 
 core_src  = src/clockwork.h src/cw.h src/cw.c

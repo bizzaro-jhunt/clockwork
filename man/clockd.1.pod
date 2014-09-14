@@ -1,0 +1,114 @@
+
+  Copyright 2011-2014 James Hunt <james@jameshunt.us>
+
+  This file is part of Clockwork.
+
+  Clockwork is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  Clockwork is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
+
+
+=head1 NAME
+
+clockd - Clockwork Master
+
+=head1 SYNOPSIS
+
+B<clockd> [options]
+
+B<clockd> -c /path/to/clockd.conf
+
+B<clockd> -Fvvv
+
+=head1 DESCRIPTION
+
+B<Clockwork> is a configuration management system designed to
+securely and correctly enforce configuration policies on lots of
+hosts.
+
+It can ensure that files have the right attributes (owner,
+group, permissions, etc.) and content.  It can maintain a specific
+set of installed packages, and even make sure that system user
+accounts exist.
+
+B<clockd> is the Policy Master component of Clockwork.  It
+holds all of the policies for all managed systems, and gives them
+out to the B<clockd> agents when they connect.
+
+B<clockd> is also responsible for hosting and serving file
+contents to clients that need to update file resources.
+
+=head1 OPTIONS
+
+=over
+
+=item B<-V>, B<--version>
+
+Print version and copyright information.
+
+=item B<-c> B<--config> I</path/to/clockd.conf>
+
+Specify the path to an alternate configuration file.  If not
+given, the default configuration file (/etc/clockwork/clockd.conf)
+is used instead.
+
+=item B<-q>, B<--quiet>
+
+Disable logging.
+
+=item B<-v>, B<--verbose>
+
+Increase verbosity by one level.  Can be used more than once.
+
+=item B<-t>, B<--test>
+
+Test clockd configuration and environment.  Not only does this
+check config file and manifest syntax, it also checks the system
+filesystem to ensure that configured files and directories exist,
+and are readable or writable.
+
+Administrators are strongly encouraged to run B<clockd -t>
+whenever changing configuration.
+
+=item B<-S>, B<--show-config>
+
+Once B<clockd> has determined its running configuration, have
+it print that to standard output and exit.
+
+=item B<-F>, B<--foreground>
+
+Normally, B<clockd> forks into the background and detaches from
+the controlling terminal, so that it can run as a system service.
+This flag disabled that behavior.  As a side effect, all logging
+will be forced to go to standard output, regardless of what syslog
+facility is specified in the configuration file.
+
+=back
+
+=head1 FILES
+
+=over
+
+=item B</etc/clockwork/clockd.conf>
+
+Default configuration file that B<clockd> reads on start up.
+See B<clockd.conf>(5) for details.
+
+=back
+
+=head1 SEE ALSO
+
+B<clockwork>(7), B<cogd>(1), B<clockd.conf>(5) and B<cogd.conf>(5)
+
+=head1 AUTHOR
+
+Clockwork was designed and written by James Hunt.

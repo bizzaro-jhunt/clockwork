@@ -1,3 +1,4 @@
 debian/pam.d/clockwork etc/pam.d/
 examples/meshd.conf etc/clockwork
 sbin/meshd
+use/share/man/man5/meshd.conf.5

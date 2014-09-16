@@ -1,0 +1,96 @@
+
+  Copyright 2011-2014 James Hunt <james@jameshunt.us>
+
+  This file is part of Clockwork.
+
+  Clockwork is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  Clockwork is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
+
+
+=head1 NAME
+
+meshd - Clockwork Mesh Master
+
+=head1 SYNOPSIS
+
+B<meshd> [options]
+
+B<meshd> -c /path/to/meshd.conf
+
+B<meshd> -Fvvv
+
+=head1 DESCRIPTION
+
+#INTRO
+
+B<meshd> is the Clockwork Mesh Master server.  It handles COMMAND broadcast
+and query submission / result retrieval for Mesh clients.
+
+=head1 OPTIONS
+
+=over
+
+=item B<-V>, B<--version>
+
+Print version and copyright information.
+
+=item B<-c> B<--config> I</path/to/meshd.conf>
+
+Specify the path to an alternate configuration file.  If not
+given, the default configuration file (/etc/clockwork/meshd.conf)
+is used instead.
+
+=item B<-q>, B<--quiet>
+
+Disable logging.
+
+=item B<-v>, B<--verbose>
+
+Increase verbosity by one level.  Can be used more than once.
+
+=item B<-t>, B<--test>
+
+Test meshd configuration and environment.  This checks both configuration
+file syntax and the validity of the specified B<security.cert>.
+
+=item B<-S>, B<--show-config>
+
+Once B<meshd> has determined its running configuration, have
+it print that to standard output and exit.
+
+=item B<-F>, B<--foreground>
+
+Normally, B<meshd> forks into the background and detaches from
+the controlling terminal, so that it can run as a system service.
+This flag disabled that behavior.  As a side effect, all logging
+will be forced to go to standard output, regardless of what syslog
+facility is specified in the configuration file.
+
+=back
+
+=head1 FILES
+
+=over
+
+=item B</etc/clockwork/meshd.conf>
+
+Default configuration file that B<meshd> reads on start up.
+See B<meshd.conf>(5) for details.
+
+=back
+
+=head1 AUTHOR
+
+#AUTHOR
+
+=cut

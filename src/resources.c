@@ -830,7 +830,7 @@ int res_file_gencode(const void *res, FILE *io, unsigned int next, unsigned int 
 			fprintf(io, "    COPY %%T2 %%C\n");
 			fprintf(io, "    ERROR \"Pre-change verification check `%%s` failed; returned %%i (not %%i)\"\n");
 			fprintf(io, "    JUMP @sha1.done.%u\n", next);
-			fprintf(io, "rename.%u\n", next);
+			fprintf(io, "rename.%u:\n", next);
 			fprintf(io, "  COPY %%E %%A\n");
 			fprintf(io, "  COPY %%F %%B\n");
 			fprintf(io, "  CALL &FS.RENAME\n");

@@ -260,7 +260,7 @@ tmpfile.done.1:
     COPY %T2 %C
     ERROR "Pre-change verification check `%s` failed; returned %i (not %i)"
     JUMP @sha1.done.1
-rename.1
+rename.1:
   COPY %E %A
   COPY %F %B
   CALL &FS.RENAME
@@ -327,7 +327,7 @@ tmpfile.done.1:
     COPY %T2 %C
     ERROR "Pre-change verification check `%s` failed; returned %i (not %i)"
     JUMP @sha1.done.1
-rename.1
+rename.1:
   COPY %E %A
   COPY %F %B
   CALL &FS.RENAME

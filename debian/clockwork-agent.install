@@ -2,6 +2,6 @@ examples/cogd.conf etc/clockwork
 lib/clockwork/augeas
 lib/clockwork/cli/cw-localsys
 sbin/cogd
-usr/share/man/man1/cogd.1
-usr/share/man/man1/cw-localsys.1
 usr/share/man/man5/cogd.conf.5
+usr/share/man/man8/cogd.8
+usr/share/man/man8/cw-localsys.8

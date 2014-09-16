@@ -5,7 +5,8 @@ lib/clockwork/cli/cw-shell
 lib/clockwork/cli/cw-template-erb
 lib/clockwork/help
 sbin/clockd
-usr/share/man/man1/clockd.1
 usr/share/man/man1/cw-cc.1
 usr/share/man/man1/cw-shell.1
 usr/share/man/man5/clockd.conf.5
+usr/share/man/man8/clockd.8
+usr/share/man/man8/cw-template-erb.8

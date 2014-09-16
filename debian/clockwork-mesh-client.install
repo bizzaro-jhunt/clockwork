@@ -6,3 +6,4 @@ lib/clockwork/cli/cw-ping
 lib/clockwork/cli/cw-query
 lib/clockwork/cli/cw-service
 lib/clockwork/cli/cw-show
+usr/share/man/man1/cw-mesh.1

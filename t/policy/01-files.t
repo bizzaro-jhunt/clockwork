@@ -196,7 +196,7 @@ CMP? @sha1.done.1
   COPY %T1 %A
   COPY %T2 %B
   LOG NOTICE "Updating local content (%s) from remote copy (%s)"
-  COPY %F %A
+  SET %A "/etc/file.conf"
   CALL &SERVER.WRITEFILE
   OK? @sha1.done.1
     ERROR "Failed to update local file contents"
@@ -210,7 +210,6 @@ gencode_ok "use host file6.test", <<'EOF', "pre-change verify with implicit expe
 RESET
 TOPIC "file(/etc/sudoers)"
 SET %A "/etc/sudoers"
-SET %E "/etc/.sudoers.cogd"
 CALL &FS.EXISTS?
 OK? @exists.1
   CALL &FS.MKFILE
@@ -243,7 +242,7 @@ CMP? @sha1.done.1
   COPY %T1 %A
   COPY %T2 %B
   LOG NOTICE "Updating local content (%s) from remote copy (%s)"
-  COPY %E %A
+  SET %A "/etc/.sudoers.cogd"
   CALL &SERVER.WRITEFILE
   OK? @tmpfile.done.1
     ERROR "Failed to update local file contents"
@@ -261,8 +260,8 @@ tmpfile.done.1:
     ERROR "Pre-change verification check `%s` failed; returned %i (not %i)"
     JUMP @sha1.done.1
 rename.1:
-  COPY %E %A
-  COPY %F %B
+  SET %A "/etc/.sudoers.cogd"
+  SET %B "/etc/sudoers"
   CALL &FS.RENAME
   OK? @sha1.done.1
     ERROR "Failed to update local file contents"
@@ -277,7 +276,6 @@ gencode_ok "use host file7.test", <<'EOF', "pre-change verify with implicit expe
 RESET
 TOPIC "file(/etc/somefile)"
 SET %A "/etc/somefile"
-SET %E "/etc/.xyz"
 CALL &FS.EXISTS?
 OK? @exists.1
   CALL &FS.MKFILE
@@ -310,7 +308,7 @@ CMP? @sha1.done.1
   COPY %T1 %A
   COPY %T2 %B
   LOG NOTICE "Updating local content (%s) from remote copy (%s)"
-  COPY %E %A
+  SET %A "/etc/.xyz"
   CALL &SERVER.WRITEFILE
   OK? @tmpfile.done.1
     ERROR "Failed to update local file contents"
@@ -328,8 +326,8 @@ tmpfile.done.1:
     ERROR "Pre-change verification check `%s` failed; returned %i (not %i)"
     JUMP @sha1.done.1
 rename.1:
-  COPY %E %A
-  COPY %F %B
+  SET %A "/etc/.xyz"
+  SET %B "/etc/somefile"
   CALL &FS.RENAME
   OK? @sha1.done.1
     ERROR "Failed to update local file contents"

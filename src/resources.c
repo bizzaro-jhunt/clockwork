@@ -713,9 +713,6 @@ int res_file_gencode(const void *res, FILE *io, unsigned int next, unsigned int 
 
 	fprintf(io, "TOPIC \"file(%s)\"\n", r->key);
 	fprintf(io, "SET %%A \"%s\"\n", r->path);
-	if (r->verify)
-		fprintf(io, "SET %%E \"%s\"\n", r->tmpfile);
-
 	fprintf(io, "CALL &FS.EXISTS?\n");
 	if (ENFORCED(r, RES_FILE_ABSENT)) {
 		fprintf(io, "NOTOK? @next.%u\n", next);
@@ -812,7 +809,7 @@ int res_file_gencode(const void *res, FILE *io, unsigned int next, unsigned int 
 		fprintf(io, "  COPY %%T1 %%A\n");
 		fprintf(io, "  COPY %%T2 %%B\n");
 		fprintf(io, "  LOG NOTICE \"Updating local content (%%s) from remote copy (%%s)\"\n");
-		fprintf(io, "  COPY %%%c %%A\n", r->verify ? 'E' : 'F');
+		fprintf(io, "  SET %%A \"%s\"\n", r->verify ? r->tmpfile : r->path);
 		fprintf(io, "  CALL &SERVER.WRITEFILE\n");
 		if (r->verify) {
 			fprintf(io, "  OK? @tmpfile.done.%u\n", next);
@@ -831,8 +828,8 @@ int res_file_gencode(const void *res, FILE *io, unsigned int next, unsigned int 
 			fprintf(io, "    ERROR \"Pre-change verification check `%%s` failed; returned %%i (not %%i)\"\n");
 			fprintf(io, "    JUMP @sha1.done.%u\n", next);
 			fprintf(io, "rename.%u:\n", next);
-			fprintf(io, "  COPY %%E %%A\n");
-			fprintf(io, "  COPY %%F %%B\n");
+			fprintf(io, "  SET %%A \"%s\"\n", r->tmpfile);
+			fprintf(io, "  SET %%B \"%s\"\n", r->path);
 			fprintf(io, "  CALL &FS.RENAME\n");
 			fprintf(io, "  OK? @sha1.done.%u\n", next);
 			fprintf(io, "    ERROR \"Failed to update local file contents\"\n");

@@ -22,12 +22,7 @@ clockwork - Configuration Management System
 
 =head1 DESCRIPTION
 
-B<Clockwork>
-is a system configuration management system designed to securely enforce
-policies on one or more host systems.  It can ensure that files have the
-prescribed attributes (owner, group, permissions, etc.) and content.  It
-can maintain a specific set of installed packages, and even make sure that
-system user accounts exist.
+#INTRO
 
 The I<manifest> defines the resources that Clockwork
 manages.  These definitions are grouped together into policies
@@ -780,6 +775,78 @@ Here's a more realistic (and more complicated) example:
 The ftp1 host has a more secure SSHD configuration
 than dev1, because the "secured" policy (enforced by ftp1)
 overrides the B<source> attribute of the /etc/ssh/sshd_config file.
+
+=head2 Embedding Mesh ACLs
+
+B<Mesh> is a framework for remote orchestration that is built atop the
+Clockwork configuration management system.  It leverages the existing
+B<cogd> daemon to perform queries and tasks from a centralized control
+platform.
+
+Key to that implementation is the idea of an I<access control list>; a list
+of who is allowed to do what, where.  Each B<cogd> has its own ACL, and the
+manifest is the perfect (and only) way to prescribe it.
+
+Consider this example:
+
+    policy "baseline" {
+        # all hosts get this one
+    }
+    policy "nginx" {
+        package "nginx" { installed: "yes" }
+        service "nginx" {}
+    }
+
+    host "shell01.example.com" {
+        enforce "baseline"
+    }
+    host "web01.example.com" {
+        enforce "baseline"
+        enforce "nginx"
+    }
+
+Pretty straightfoward; web servers get nginx, the shell server doesn't.
+Now let's add some ACLs to it.
+
+    policy "baseline" {
+        # all hosts get this one
+
+        allow %systems ALL
+    }
+    policy "nginx" {
+        package "nginx" { installed: "yes" }
+        service "nginx" {}
+
+        allow %oncall "service nginx *"
+
+        allow jack "service nginx start" final
+        deny  jack ALL
+    }
+
+Here we've set up three B<allow> rules and one B<deny>.  The first, in the
+baseline policy, ensures that anyone in the B<systems> group is allowed to
+run any commands.  The second rules grants the B<oncall> group the ability
+to start, stop, restart or reload the nginx service, but it only applies to
+the web servers (because its in the nginx policy).
+
+The final two rules show off the B<final> keyword, a crucial tool in
+building strict access control.  The user B<jack> will be allowed to start
+nginx, but denied everything else.  This holds true even if jack is in
+the oncall or systems groups, because of the B<deny jack ALL> rule at the
+end.  The B<final> keyword on jack's B<allow> rule cause the ACL to be
+short-circuited; no more rules will be interpreted.
+
+Using the host definitions for shell01 and web01, here's the two ACLs that
+each would end up with:
+
+    shell01              web01
+    --------             -----
+    allow %systems ALL   allow %systems ALL
+                         allow %oncall "service nginx *"
+                         allow jack "service nginx start" final
+                         deny jack ALL
+
+You can read more about it in the B<mesh>(7) man page.
 
 =head1 AUTHOR
 

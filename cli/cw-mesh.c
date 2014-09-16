@@ -143,7 +143,7 @@ static client_t* s_init(int argc, char **argv)
 {
 	client_t *c = s_client_new();
 
-	const char *short_opts = "+h?Vvqnu:p:k:t:s:w:c:";
+	const char *short_opts = "+h?Vvqnu:p:t:s:w:c:";
 	struct option long_opts[] = {
 		{ "help",        no_argument,       NULL, 'h' },
 		{ "version",     no_argument,       NULL, 'V' },
@@ -152,12 +152,12 @@ static client_t* s_init(int argc, char **argv)
 		{ "noop",        no_argument,       NULL, 'n' },
 		{ "username",    required_argument, NULL, 'u' },
 		{ "password",    required_argument, NULL, 'p' },
-		{ "pubkey",      required_argument, NULL, 'k' },
 		{ "timeout",     required_argument, NULL, 't' },
 		{ "sleep",       required_argument, NULL, 's' },
 		{ "where",       required_argument, NULL, 'w' },
 		{ "config",      required_argument, NULL, 'c' },
 		{ "optouts",     no_argument,       NULL,  1  },
+		{ "cert",        required_argument, NULL, '2' },
 		{ 0, 0, 0, 0 },
 	};
 	int verbose = LOG_WARNING, noop = 0;
@@ -207,17 +207,6 @@ static client_t* s_init(int argc, char **argv)
 			for (x = optarg; *x; *x++ = 'x');
 			break;
 
-		case 'k':
-			cw_cert_destroy(c->master_cert);
-			c->master_cert = cw_cert_read(optarg);
-			if (!c->master_cert) {
-				fprintf(stderr, "%s: %s", optarg, errno == EINVAL
-					? "Invalid Clockwork certificate"
-					: strerror(errno));
-				exit(1);
-			}
-			break;
-
 		case 't':
 			c->timeout_ms = atoi(optarg) * 1000;
 			if (c->timeout_ms <=    0) c->timeout_ms = 40 * 1000;
@@ -241,8 +230,19 @@ static client_t* s_init(int argc, char **argv)
 			config_file = strdup(optarg);
 			break;
 
-		case (char)1:
+		case 1:
 			SHOW_OPTOUTS = 1;
+			break;
+
+		case 2:
+			cw_cert_destroy(c->master_cert);
+			c->master_cert = cw_cert_read(optarg);
+			if (!c->master_cert) {
+				fprintf(stderr, "%s: %s", optarg, errno == EINVAL
+					? "Invalid Clockwork certificate"
+					: strerror(errno));
+				exit(1);
+			}
 			break;
 
 		default:
@@ -255,8 +255,8 @@ static client_t* s_init(int argc, char **argv)
 	c->filters = stringlist_join(filters, "");
 
 	LIST(config);
-	cw_cfg_set(&config, "timeout",  "40");
-	cw_cfg_set(&config, "sleep",   "250");
+	cw_cfg_set(&config, "mesh.timeout",  "40");
+	cw_cfg_set(&config, "mesh.sleep",   "250");
 
 	if (!config_file) {
 		if (s_read_config(&config, CW_MTOOL_CONFIG_FILE, 0) != 0)
@@ -279,38 +279,38 @@ static client_t* s_init(int argc, char **argv)
 	}
 
 	if (c->timeout_ms == 0)
-		c->timeout_ms = atoi(cw_cfg_get(&config, "timeout")) * 1000;
+		c->timeout_ms = atoi(cw_cfg_get(&config, "mesh.timeout")) * 1000;
 	if (c->timeout_ms < 1000)
 		c->timeout_ms = 1000;
 
 	if (c->sleep_ms == 0)
-		c->sleep_ms = atoi(cw_cfg_get(&config, "sleep"));
+		c->sleep_ms = atoi(cw_cfg_get(&config, "mesh.sleep"));
 	if (c->sleep_ms < 100)
 		c->sleep_ms = 100;
 
-	c->endpoint = cw_cfg_get(&config, "run.master");
+	c->endpoint = cw_cfg_get(&config, "mesh.master");
 	if (!c->endpoint) {
-		fprintf(stderr, "run.master not found in %s\n", config_file);
+		fprintf(stderr, "mesh.master not found in %s\n", config_file);
 		exit(1);
 	}
 	c->endpoint = cw_string("tcp://%s", c->endpoint);
 
 	if (!c->master_cert) {
-		if (!cw_cfg_get(&config, "run.cert")) {
-			fprintf(stderr, "run.cert not found in %s, and --pubkey not specified\n",
+		if (!cw_cfg_get(&config, "mesh.cert")) {
+			fprintf(stderr, "mesh.cert not found in %s, and --pubkey not specified\n",
 				config_file);
 			exit(1);
 		}
 
-		c->master_cert = cw_cert_read(cw_cfg_get(&config, "run.cert"));
+		c->master_cert = cw_cert_read(cw_cfg_get(&config, "mesh.cert"));
 		if (!c->master_cert) {
-			fprintf(stderr, "%s: %s\n", cw_cfg_get(&config, "run.cert"),
+			fprintf(stderr, "%s: %s\n", cw_cfg_get(&config, "mesh.cert"),
 				errno == EINVAL ? "Invalid Clockwork certificate" : strerror(errno));
 			exit(1);
 		}
 		if (!c->master_cert->pubkey) {
 			fprintf(stderr, "%s: no public key component found\n",
-				cw_cfg_get(&config, "run.cert"));
+				cw_cfg_get(&config, "mesh.cert"));
 			exit(1);
 		}
 	}

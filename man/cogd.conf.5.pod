@@ -182,11 +182,6 @@ Defaults to I<error>.
 This is the default configuration, plus a single master server at
 10.0.0.5:2314:
 
-    listen *:2304
-
-    master.1   10.0.0.5:2314
-    cert.1     /etc/clockwork/certs/master.1.pub
-
     security.cert  /etc/clockwork/certs/cogd
 
     timeout    5

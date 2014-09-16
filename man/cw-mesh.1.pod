@@ -1,0 +1,146 @@
+  Clockwork is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  Clockwork is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
+
+
+=head1 NAME
+
+cw-mesh - Clockwork Mesh Client
+
+=head1 SYNOPSIS
+
+B<cw-mesh> [OPTIONS] command [arg...]
+
+=head1 DESCRIPTION
+
+#INTRO
+
+B<cw-mesh> is the client utility for Clockwork Mesh.  With it you can
+interact with remote Clockwork nodes, query them for resource state (what
+version of Clockwork are you running?  Is package X installd?) start
+services, execute commands, etc.
+
+You can read more about Mesh in the B<mesh>(7) man page.
+
+There are several alias commands to make using mesh more natural.
+
+    $ cw show [OPTIONS] version
+
+is identical to
+
+    $ cw mesh [OPTIONS] show version
+
+The former makes it more natural to I<speak> mesh, especially if there are
+no options to be had.
+
+=head1 OPTIONS
+
+=over
+
+=item B<-t>, B<--timeout> I<seconds>
+
+How long to wait for responses from mesh nodes, in seconds.  B<cw-mesh> will
+B<always> wait this long, since there is no reliable way to determine how
+many nodes will respond to the query.
+
+Defaults to I<40> seconds.  Values of 0 or less will be treated as this
+default.
+
+This option can be set in the global I</etc/clockwork/cw.conf> and
+overridden in B<~/.cwrc>, via the B<mesh.timeout> directive.
+The command-line flag will override both of those values.
+
+=item B<-s>, B<--sleep> I<milliseconds>
+
+How many milliseconds to sleep between checking for results.
+
+Defaults to I<250> milliseconds.  The minimum value is I<100> milliseconds.
+
+This option can be set in the global I</etc/clockwork/cw.conf> and
+overridden in B<~/.cwrc>, via the B<mesh.sleep> directive.
+The command-line flag will override both of those values.
+
+=item B<-w>, B<--where> I<FILTER>
+
+The given command should only be run on nodes matching I<FILTER>.  Filters
+are specified as 'key op value'.  Regex matching is supported.
+
+Here are the valid forms for a filter:
+
+    fact.name =  literal   # match the value "literal"
+    fact.name != literal   # match any other value
+
+    fact.name =  /^web/    # match any value starting with "web"
+    fact.name != /^web/    # match any value not starting with "web"
+
+Note that '=' and '!=' are used for both literal matches and regex matches;
+the magic is in the forward slashes that surround the regex pattern.
+
+    fact.name = "^web"     # match the literal value "^web"
+
+Multiple filters can be givne by adding the B<-w> flag multiple times.  All
+filters are ANDed together (they all have to match).
+
+=item B<-v>, B<--verbose>
+
+=item B<-q>, B<--quiet>
+
+How much should B<cw-mesh> print out.  This is primarily for diagnostics.
+
+=item B<-n>, B<--noop>
+
+Parse options and the command, to ensure they are all valid, but don't
+authenticate or submit the query.
+
+=item B<-u>, B<--username> I<USERNAME>
+
+User to authenticate as.  If B<cw-mesh> can't figure out who the current
+user is, and this option is not specified, it will prompt for the username.
+
+=item B<-p>, B<--password> I<PASSWORD>
+
+Password for the authenticating user.  Normally, B<cw-mesh> will prompt for
+this, so you don't need (or want) to specify it on the command line.  Some
+precautions are taken to mitigate the exposure of the password to tools like
+B<ps>(1), but the most secure option is to not use this one.
+
+=item B<--mastercert> I</path/to/cert.pub>
+
+Path to the public certificate for validating the Mesh master server.
+
+There is no default for this option, but it can (and should) be set by the
+global I</etc/clockwork/cw.conf> or B<~/.cwrc> via the B<mesh.cert>
+directive.
+
+=item B<-c>, B<--config> I</path/to/cw.conf>
+
+Specify an alternate B<cw> configuration file.  If not given, B<cw-mesh>
+will check the normal places, starting with the global
+I</etc/clockwork/cw.conf> file, followed by overrides in B<~/.cwrc>.
+If you do specify a config file, the normal files (including B<~/.cwrc>)
+will be summarily skipped.
+
+=item B<--optouts>
+
+By default, B<cw-mesh> will ignore all B<OPTOUT> replies from nodes that
+received the command, but opted out due to filtering and applicability.  For
+debugging and troubleshooting, it can be helpful to see these replies, to
+verify that a missing host is in fact not responding at all, rather than
+mistakenly (or unexpectedly) opting out.
+
+=back
+
+=head1 AUTHOR
+
+#AUTHOR
+
+=cut

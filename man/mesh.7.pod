@@ -1,0 +1,125 @@
+
+  Copyright 2011-2014 James Hunt <james@jameshunt.us>
+
+  This file is part of Clockwork.
+
+  Clockwork is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  Clockwork is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
+
+=head1 NAME
+
+mesh - Clockwork Remote Orchestration Framework
+
+=head1 DESCRIPTION
+
+#INTRO
+
+With more than a handful of systems, passive orchestration (via policies
+and B<cogd> runs) starts to lose its luster.  This is where B<Mesh> comes
+in.  B<Mesh> lets you run queries in parallel across all connected nodes
+in the environment, with full-blown access control and user-specified
+filtering.
+
+It's difficult to describe just how useful Mesh is, so let's start with
+some examples.
+
+Want to find out what what version of Clockwork is installed?
+
+    $ cw show version
+    Password:
+    web01.example.com 0 2.3.0
+    db02.example.com 0 2.3.0
+    db01.example.com 0 2.3.0
+    xen01.example.com 0 2.3.0
+    web06.example.com 0 2.3.0
+    web05.example.com 0 2.3.0
+    clock01.example.com 0 2.3.0
+    web02.example.com 0 2.3.0
+    web03.example.com 0 2.3.0
+    web04.example.com 0 2.3.0
+
+What if you only care about the web boxes?
+
+    $ cw show version -w sys.fqdn=/^web/
+    Password:
+    web03.example.com 0 2.3.0
+    web01.example.com 0 2.3.0
+    web02.example.com 0 2.3.0
+    web05.example.com 0 2.3.0
+    web04.example.com 0 2.3.0
+    web06.example.com 0 2.3.0
+
+We've got lots of plans for Mesh, including the ability to query resource
+states (packages, files, users, services, etc.), manage resources actively
+(install a package, restart a service) and execute commands.
+
+=head1 COMMANDS
+
+This section desribes the commands that you can run, either via
+B<cw-mesh>(1) or dedicated command aliases like B<cw-ping>(1) and
+B<cw-show>(1).
+
+=head2 ping
+
+Similar to the network utility of the same name, except without the
+round-trip timings.
+
+=head2 show version
+
+Reports the version of Clockwork on each node.
+
+=head1 THE IMPLEMENTATION
+
+At its core, B<Mesh> is a Pendulum code broadcaster with a back-channel,
+or control channel, for result submission.  B<cogd>(1) nodes subscribe to
+the B<broadcast> channel and read B<COMMAND> messages off the wire.  They
+then look at the embedded filters to determine if they should handle the
+request or I<opt out>.
+
+Optout results in an B<OPTOUT> message being sent via the B<control>
+channel.  This message contains the serial number of the original
+B<COMMAND> message, so that B<meshd>(1) can relay that result back to the
+original requester.
+
+If the node decides to act on the B<COMMAND>, it will check the user and
+group information supplied with the request against its own access control
+list.  This ACL is managed directly by the Clockwork policy (see
+B<clockwork>(7) for more information).  If the user/group/command
+combination is allowed by the ACL, the Pendulum code in the payload of the
+B<COMMAND> message is executed.  The return code and output (stdout only)
+is then submitted back across the B<control> channel as a B<RESULT>
+message.
+
+There are a few key takeaways here:
+
+First, the B<meshd> daemon I<does not> know anything about the population
+of subscribed B<cogd> nodes.  They do not register explicitly, and it does
+not keep track of who has subscribed or dropped off.  This is by design,
+and it allows the whole system to be more tolerant of real-world issues
+like network congestion, host crashes, etc.
+
+Secondly, Mesh clients will receive a response from every subscribed node
+(barring unforeseen issues during the execution of Pendulum code), whether
+they participated in the query or not.  You won't normally see these since
+the cw-mesh utility filters them out before printing results.  See
+B<cw-mesh>, specifically the B<--optouts> flag.
+
+Finally, authentication is done at B<meshd>; subscribed nodes are only
+responsible for authorization.  Put another way, B<cogd> nodes implicitly
+trust that B<meshd> is being truthful about who requested the command.
+
+=head1 AUTHOR
+
+#AUTHOR
+
+=cut

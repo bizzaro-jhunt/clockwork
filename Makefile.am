@@ -216,21 +216,29 @@ t_90_meshd_SOURCES       = t/90-meshd.c         $(test_source)
 CLEANFILES       = $(BUILT_SOURCES)
 
 EXTRA_DIST       = HACKING CHANGELOG
-EXTRA_DIST      += autogen.sh
+EXTRA_DIST      += bootstrap
 EXTRA_DIST      += augeas gather.d
 EXTRA_DIST      += examples extras
 EXTRA_DIST      += help man
 EXTRA_DIST      += $(TEST_EXTRAS)
 
-dist_man_MANS    = man/clockwork.7
+dist_man_MANS    =
+dist_man_MANS   += man/clockd.8
+dist_man_MANS   += man/clockd.conf.5
+dist_man_MANS   += man/clockwork.7
+dist_man_MANS   += man/cogd.8
+dist_man_MANS   += man/cogd.conf.5
+dist_man_MANS   += man/cw.conf.5
 dist_man_MANS   += man/cw-cc.1
 dist_man_MANS   += man/cw-cert.1
 dist_man_MANS   += man/cw-fact.1
-dist_man_MANS   += man/cw-localsys.1
+dist_man_MANS   += man/cw-help.1
+dist_man_MANS   += man/cw-localsys.8
+dist_man_MANS   += man/cw-mesh.1
 dist_man_MANS   += man/cw-shell.1
+dist_man_MANS   += man/cw-template-erb.8
 dist_man_MANS   += man/cw-trust.1
-dist_man_MANS   += man/cogd.1   man/cogd.conf.5
-dist_man_MANS   += man/clockd.1 man/clockd.conf.5
+dist_man_MANS   += man/mesh.7
 dist_man_MANS   += man/pn.1
 dist_man_MANS   += man/res_dir.5
 dist_man_MANS   += man/res_exec.5
@@ -248,6 +256,8 @@ man/%.1: man/%.1.pod
 man/%.5: man/%.5.pod
 	./man/build $< @PACKAGE_VERSION@ > $@
 man/%.7: man/%.7.pod
+	./man/build $< @PACKAGE_VERSION@ > $@
+man/%.8: man/%.8.pod
 	./man/build $< @PACKAGE_VERSION@ > $@
 
 ############################################################

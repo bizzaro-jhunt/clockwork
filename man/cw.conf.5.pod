@@ -1,0 +1,89 @@
+
+  Copyright 2011-2014 James Hunt <james@jameshunt.us>
+
+  This file is part of Clockwork.
+
+  Clockwork is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  Clockwork is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
+
+
+=head1 NAME
+
+cw.conf - Global Configuration for B<cw> Utility
+
+=head1 SYNOPSIS
+
+B</etc/clockwork/cw.conf>
+
+=head1 DESCRIPTION
+
+B<cw>(1) reads its configuration from I</etc/clockwork/cw.conf>, and then
+attempts to read a similar file containing overrides, at I<~/.cwrc>.
+
+Valid configuration directives, and their meanings, are as follows:
+
+=over
+
+=item B<mesh.master> - Mesh Master Server
+
+Mesh master servers are the fixed points in the Clockwork Mesh architecture.
+They are responsible for listening to clients, authenticating and relaying
+queries to all subscribed B<cogd> nodes, giving back the appropriate
+responses.
+
+The master server must be identified by both its endpoint IP address and TCP
+port number.  The standard Clockwork port for Mesh master servers is
+TCP/2315.
+
+=item B<mesh.cert> - Master Server Certificates
+
+The Mesh master server will be authenticated by connecting clients via its
+public certificate (which contains only the public key component).  This
+helps to ensure that the B<cw> client is talking to the correct Mesh server.
+
+=item B<mesh.timeout> - Mesh Response Timeout
+
+How long (in seconds) B<cw> will continue to ask the Mesh master server for
+replies to its query before it gives up and exits.  Since there is no way of
+determining up-front how many nodes I<should> reply, B<cw> must wait out the
+entire span of the timeout.
+
+Defaults to I<40> seconds.  Values of 0 or less will be treated as this
+default.
+
+=item B<mesh.sleep> - Client Inter-check Sleep Interval
+
+How long (in milliseconds) B<cw> will pause between result checks.  This
+gives the Mesh server some respite from over-eager clients.
+
+Defaults to I<250> milliseconds.  The minimum value is I<100> milliseconds.
+
+=back
+
+=head1 EXAMPLES
+
+This is the default configuration, plus a single master server at
+10.0.0.5:2314:
+
+    mesh.timeout 40
+    mesh.sleep   250
+
+=head1 SEE ALSO
+
+#SEEALSO
+
+=head1 AUTHOR
+
+#AUTHOR
+
+=cut

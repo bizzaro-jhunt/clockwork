@@ -197,6 +197,7 @@ CMP? @sha1.done.1
   COPY %T2 %B
   LOG NOTICE "Updating local content (%s) from remote copy (%s)"
   SET %A "/etc/file.conf"
+  SET %B "/etc/file.conf"
   CALL &SERVER.WRITEFILE
   OK? @sha1.done.1
     ERROR "Failed to update local file contents"
@@ -243,6 +244,7 @@ CMP? @sha1.done.1
   COPY %T2 %B
   LOG NOTICE "Updating local content (%s) from remote copy (%s)"
   SET %A "/etc/.sudoers.cogd"
+  SET %B "/etc/sudoers"
   CALL &SERVER.WRITEFILE
   OK? @tmpfile.done.1
     ERROR "Failed to update local file contents"
@@ -309,6 +311,7 @@ CMP? @sha1.done.1
   COPY %T2 %B
   LOG NOTICE "Updating local content (%s) from remote copy (%s)"
   SET %A "/etc/.xyz"
+  SET %B "/etc/somefile"
   CALL &SERVER.WRITEFILE
   OK? @tmpfile.done.1
     ERROR "Failed to update local file contents"

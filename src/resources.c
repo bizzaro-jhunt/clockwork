@@ -810,6 +810,7 @@ int res_file_gencode(const void *res, FILE *io, unsigned int next, unsigned int 
 		fprintf(io, "  COPY %%T2 %%B\n");
 		fprintf(io, "  LOG NOTICE \"Updating local content (%%s) from remote copy (%%s)\"\n");
 		fprintf(io, "  SET %%A \"%s\"\n", r->verify ? r->tmpfile : r->path);
+		fprintf(io, "  SET %%B \"%s\"\n", r->path);
 		fprintf(io, "  CALL &SERVER.WRITEFILE\n");
 		if (r->verify) {
 			fprintf(io, "  OK? @tmpfile.done.%u\n", next);

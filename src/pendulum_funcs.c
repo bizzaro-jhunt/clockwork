@@ -988,7 +988,7 @@ static pn_word uf_server_writefile(pn_machine *m)
 				.gid = 0,
 			};
 
-			char *diffcmd = cw_string("%s %s -", UDATA(m)->difftool, (const char *)m->A);
+			char *diffcmd = cw_string("%s %s -", UDATA(m)->difftool, (const char *)m->B);
 			rc = cw_run2(&runner, "/bin/sh", "-c", diffcmd, NULL);
 			if (rc < 0)
 				cw_log(LOG_ERR, "`%s' killed or otherwise terminated abnormally");

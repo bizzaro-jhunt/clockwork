@@ -900,15 +900,8 @@ static pn_word uf_server_sha1(pn_machine *m)
 	return 1;
 }
 
-static int s_copyfile(FILE *src, const char *path)
+static int s_copyfile(FILE *src, FILE *dst)
 {
-	FILE *dst = fopen(path, "w");
-	if (!dst) {
-		cw_log(LOG_ERR, "copyfile failed: %s", strerror(errno));
-		fclose(src);
-		return 1;
-	}
-
 	rewind(src);
 	char buf[8192];
 	for (;;) {
@@ -928,7 +921,6 @@ static int s_copyfile(FILE *src, const char *path)
 		}
 	}
 
-	fclose(dst);
 	return 0;
 }
 
@@ -944,6 +936,7 @@ static pn_word uf_server_writefile(pn_machine *m)
 				strerror(errno));
 		return 1;
 	}
+
 	for (;;) {
 		rc = snprintf(size, 15, "%i", n++);
 		assert(rc > 0);
@@ -1007,8 +1000,25 @@ static pn_word uf_server_writefile(pn_machine *m)
 			free(diffcmd);
 		}
 	}
-	rc = s_copyfile(tmpf, (const char *)m->A);
+	FILE *dst = fopen((const char *)m->A, "w");
+	if (!dst) {
+		cw_log(LOG_ERR, "copyfile failed: %s", strerror(errno));
+		fclose(tmpf);
+		return 1;
+	}
+
+	if (strcmp((const char *)m->A, (const char *)m->B) != 0) {
+		struct stat st;
+		if (lstat((const char *)m->B, &st) == 0) {
+			rc = fchown(fileno(dst), st.st_uid, st.st_gid);
+			rc = fchmod(fileno(dst), st.st_mode);
+		}
+	}
+
+	rc = s_copyfile(tmpf, dst);
+	fclose(dst);
 	fclose(tmpf);
+
 	pn_flag(m, CHANGE_FLAG, rc == 0 ? 1 : 0);
 	return rc == 0 ? 0 : 1;
 }

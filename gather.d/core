@@ -50,7 +50,7 @@ $_ = qx(/usr/bin/hostid); chomp;
 fact("sys.hostid", $_);
 
 ## sys.uuid - Unique UUID, enforced by Clockwork itself
-$_ = qx(/lib/clockwork/cw-uuid); chomp;
+$_ = qx(/lib/clockwork/cli/cw-uuid); chomp;
 fact("sys.uuid", $_);
 
 ##

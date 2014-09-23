@@ -34,24 +34,6 @@ static int    _sl_expand(struct stringlist*, size_t);
 static int    _sl_reduce(struct stringlist*);
 static size_t _sl_capacity(struct stringlist*);
 
-static int _extend(struct string *s, size_t n)
-{
-	char *tmp;
-	if (n >= s->bytes) {
-		n = (n / s->blk + 1) * s->blk;
-		if (!(tmp = realloc(s->raw, n))) {
-			return -1;
-		}
-
-		s->raw = tmp;
-		/* realloc may move s->raw; reset s->p */
-		s->p = s->raw + s->len;
-		s->bytes = n;
-	}
-
-	return 0;
-}
-
 static int _sl_expand(struct stringlist *sl, size_t expand)
 {
 	assert(sl);         // LCOV_EXCL_LINE
@@ -99,102 +81,6 @@ static int _sl_reduce(struct stringlist *sl)
 static size_t _sl_capacity(struct stringlist *sl)
 {
 	return sl->len - 1 - sl->num;
-}
-
-/*****************************************************************/
-
-/**
-  Create a new variable-length string
-
-  If $str is not NULL, the new string will contain a copy of
-  its contents.
-
-  $block can be used to influence the memory management of the
-  string.  When more memory is needed, it will be allocated in
-  multiples of $block.  
-  If $block is negative, a suitable default block size will
-  be used.
-
-  **Note:** The pointer returned by this function must be passed to
-  @string_free in order to reclaim the memory it uses.
-
-  On success, returns a pointer to a dynamically-allocated
-  variable-length string structure.
-  On failure, returns NULL.
- */
-struct string* string_new(const char *str, size_t block)
-{
-	struct string *s = calloc(1, sizeof(struct string));
-	if (!s) { return NULL; }
-
-	s->len = 0;
-	s->bytes = s->blk = (block > 0 ? block : 1024);
-	s->p = s->raw = calloc(s->blk, sizeof(char));
-	if (!s->p) {
-		free(s);
-		return NULL;
-	}
-
-	string_append(s, str);
-	return s;
-}
-
-/**
-  Free a variable-length string
- */
-void string_free(struct string *s)
-{
-	if (s) { free(s->raw); }
-	free(s);
-}
-
-/**
-  Append a C-string to the end of $s
-
-  The arguments are ordered according to the following mnemonic:
-
-  <code>
-  string_add(my_string, " and then some")
-  // my_string += " and then some"
-  </code>
-
-  $str must be a NULL-terminated C-style character string.
-
-  On success, returns 0.  On failure, returns non-zero and
-  $s is left unmodified.
- */
-int string_append(struct string *s, const char *str)
-{
-	if (!str) { return 0; }
-	if (_extend(s, s->len + strlen(str)) != 0) { return -1; }
-
-	for (; *str; *s->p++ = *str++, s->len++)
-		;
-	*s->p = '\0';
-	return 0;
-}
-
-/**
-  Append a single character to $s
-
-  The arguments are ordered according to the following mnemonic:
-
-  <code>
-  string_add(my_string, '!');
-  // my_string += '!'
-  </code>
-
-  On success, returns 0.  On failure, returns non-zero and
-  $s is left unmodified.
- */
-int string_append1(struct string *s, char c)
-{
-	if (_extend(s, s->len+1) != 0) { return -1; }
-
-	*s->p++ = c;
-	s->len++;
-	*s->p = '\0';
-	return 0;
 }
 
 /*****************************************************************/

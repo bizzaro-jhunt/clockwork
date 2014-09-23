@@ -78,59 +78,6 @@ TESTS {
 	}
 
 	subtest {
-		struct string *s = string_new(NULL, 0);
-		is_string(s->raw, "", "Empty string");
-		is_int(s->len, 0, "Zero-length string");
-
-		ok(string_append(s, "Hello,") == 0, "string append");
-		is_string(s->raw, "Hello,", "first append operation");
-		is_int(s->len, 6, "strlen('Hello,') == 6");
-
-		ok(string_append1(s, ' ') == 0, "string append (single char)");
-		is_string(s->raw, "Hello, ", "space appended properly");
-		is_int(s->len, 7, "strlen('Hello, ') == 7");
-
-		ok(string_append(s, "World!") == 0, "string append");
-		is_string(s->raw, "Hello, World!", "string appended");
-		is_int(s->len, 13, "strlen('Hello, World!') == 13");
-
-		string_free(s);
-	}
-
-	subtest {
-		/* Insanely low block size */
-		struct string *s = string_new(NULL, 2);
-		is_string(s->raw, "", "Empty string");
-		is_int(s->len, 0, "Zero-length string");
-
-		ok(string_append1(s, 'a') == 0, "appended a single char");
-		is_int(s->bytes, 2, "s->bytes is 2 (0+1+NUL)");
-
-		ok(string_append(s, "BBB") == 0, "append a string");
-		is_string(s->raw, "aBBB", "final string");
-		is_int(s->bytes, 6, "s->bytes is 6 (0+1+3+NUL)");
-
-		string_free(s);
-	}
-
-	subtest {
-		struct string *s;
-		s = string_new("Clockwork Rocks Work!", 0);
-		is_string(s->raw, "Clockwork Rocks Work!", "initialized string");
-
-		string_free(s);
-	}
-
-	subtest {
-		struct string *s = NULL;
-		string_free(s);
-		pass("string_free(NULL) doesn't segfault");
-	}
-
-
-
-
-	subtest {
 		struct stringlist *sl = NULL; stringlist_free(sl);
 		pass("stringist_free(NULL) doesn't segfault");
 	}

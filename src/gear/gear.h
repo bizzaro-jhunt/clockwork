@@ -31,18 +31,6 @@
 #include "../cw.h"
 
 /**
-  Variable-length Character String
- */
-struct string {
-	size_t len;     /* length of string in characters */
-	size_t bytes;   /* length of buffer (string->raw) in bytes */
-	size_t blk;     /* block size for buffer expansion */
-
-	char *raw;      /* the string buffer */
-	char *p;        /* internal pointer to NULL-terminator of raw */
-};
-
-/**
   A String List
 
   A stringlist is a specialized data structure designed for
@@ -111,13 +99,6 @@ struct path {
 	ssize_t   n;
 	size_t    len;
 };
-
-struct string* string_new(const char *str, size_t block);
-void string_free(struct string *s);
-
-int string_append(struct string *s, const char *str);
-int string_append1(struct string *s, char c);
-int string_interpolate(char *buf, size_t len, const char *src, const cw_hash_t *ctx);
 
 #define for_each_string(l,i) for ((i)=0; (i)<(l)->num; (i)++)
 

@@ -453,12 +453,14 @@ int main(int argc, char **argv)
 
 			if (strcmp(reply->type, "OPTOUT") == 0) {
 				if (SHOW_OPTOUTS)
-					printf("%s optout\n", cw_pdu_text(reply, 1));
+					printf("%s %s optout\n", cw_pdu_text(reply, 1),
+					                         cw_pdu_text(reply, 2));
 
 			} else if (strcmp(reply->type, "RESULT") == 0) {
-				printf("%s %s %s", cw_pdu_text(reply, 1),
-				                   cw_pdu_text(reply, 2),
-				                   cw_pdu_text(reply, 3));
+				printf("%s %s %s %s", cw_pdu_text(reply, 1),
+				                      cw_pdu_text(reply, 2),
+				                      cw_pdu_text(reply, 3),
+				                      cw_pdu_text(reply, 4));
 
 			} else {
 				cw_log(LOG_ERR, "Unknown response: %s", reply->type);

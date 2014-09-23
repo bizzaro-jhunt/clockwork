@@ -26,6 +26,9 @@
 #include <pthread.h>
 
 #define FQDN "test01.lab.example.com"
+#define UUID1 "e6f0a5ea-cc63-4784-be50-0e37eb11c8b2"
+#define UUID2 "7a2642e6-5722-4ccb-95e9-30a0e52cb1fb"
+#define UUID3 "43033326-35f4-410c-a638-8f70047a7c16"
 
 void* mesh_server_thread(void *data)
 {
@@ -42,6 +45,7 @@ void* mesh_client_thread(void *ctx)
 
 	cw_hash_set(&facts, "sys.fqdn", FQDN);
 	cw_hash_set(&facts, "sys.os",   "linux");
+	cw_hash_set(&facts, "sys.uuid", UUID1);
 
 	int rc;
 	rc = mesh_client_setopt(client, MESH_CLIENT_FACTS, &facts, sizeof(cw_hash_t*));
@@ -136,10 +140,11 @@ TESTS {
 		cw_pdu_destroy(reply);
 
 		/* simulate back-channel responses */
-		pdu = cw_pdu_make(NULL, 5,
+		pdu = cw_pdu_make(NULL, 6,
 				"RESULT",
 				"4242",        /* request serial */
 				"host1.fq.dn", /* node FQDN */
+				UUID1,
 				"0",           /* status code */
 				"1.2.3\n");    /* output */
 		rc = cw_pdu_send(sock, pdu);
@@ -156,9 +161,10 @@ TESTS {
 		isnt_null(reply, "Got a reply from meshd thread");
 		is_string(s = cw_pdu_text(reply, 0), "RESULT",      "first reply is a RESULT");    free(s);
 		is_string(s = cw_pdu_text(reply, 1), "host1.fq.dn", "first reply is from host1");  free(s);
-		is_string(s = cw_pdu_text(reply, 2), "0",           "first reply was OK (rc 0)");  free(s);
-		is_string(s = cw_pdu_text(reply, 3), "1.2.3\n",     "first reply output proxied"); free(s);
-		is_null(cw_pdu_text(reply, 4), "there is no 5th frame in a RESULT PDU");
+		is_string(s = cw_pdu_text(reply, 2), UUID1,         "host1 UUID in frame 2");      free(s);
+		is_string(s = cw_pdu_text(reply, 3), "0",           "first reply was OK (rc 0)");  free(s);
+		is_string(s = cw_pdu_text(reply, 4), "1.2.3\n",     "first reply output proxied"); free(s);
+		is_null(cw_pdu_text(reply, 5), "there is no 5th frame in a RESULT PDU");
 		cw_pdu_destroy(reply);
 
 		reply = cw_pdu_recv(sock);
@@ -169,12 +175,19 @@ TESTS {
 
 		/* send more data from backend nodes */
 
-		pdu = cw_pdu_make(NULL, 5, "RESULT", "4242", "host2.fq.dn", "0", "1.2.5\n");
+		pdu = cw_pdu_make(NULL, 6,
+				"RESULT",
+				"4242",
+				"host2.fq.dn",
+				UUID2,
+				"0",
+				"1.2.5\n");
+
 		rc = cw_pdu_send(sock, pdu);
 		is_int(rc, 0, "sent another RESULT PDU from host2.fq.dn");
 		cw_pdu_destroy(pdu);
 
-		pdu = cw_pdu_make(NULL, 3, "OPTOUT", "4242", "host3.fq.dn");
+		pdu = cw_pdu_make(NULL, 4, "OPTOUT", "4242", "host3.fq.dn", UUID3);
 		rc = cw_pdu_send(sock, pdu);
 		is_int(rc, 0, "sent an OPTOUT PDU from host3.fq.dn");
 		cw_pdu_destroy(pdu);
@@ -189,16 +202,18 @@ TESTS {
 		isnt_null(reply, "Got a reply from meshd thread");
 		is_string(s = cw_pdu_text(reply, 0), "RESULT",      "first reply is a RESULT");    free(s);
 		is_string(s = cw_pdu_text(reply, 1), "host2.fq.dn", "first reply is from host2");  free(s);
-		is_string(s = cw_pdu_text(reply, 2), "0",           "first reply was OK (rc 0)");  free(s);
-		is_string(s = cw_pdu_text(reply, 3), "1.2.5\n",     "first reply output proxied"); free(s);
-		is_null(cw_pdu_text(reply, 4), "there is no 5th frame in a RESULT PDU");
+		is_string(s = cw_pdu_text(reply, 2), UUID2,         "host2 UUID supplied");  free(s);
+		is_string(s = cw_pdu_text(reply, 3), "0",           "first reply was OK (rc 0)");  free(s);
+		is_string(s = cw_pdu_text(reply, 4), "1.2.5\n",     "first reply output proxied"); free(s);
+		is_null(cw_pdu_text(reply, 5), "there is no sixth frame in a RESULT PDU");
 		cw_pdu_destroy(reply);
 
 		reply = cw_pdu_recv(sock);
 		isnt_null(reply, "Got a reply from meshd thread");
 		is_string(s = cw_pdu_text(reply, 0), "OPTOUT",      "second reply is a OPTOUT");   free(s);
 		is_string(s = cw_pdu_text(reply, 1), "host3.fq.dn", "second reply is from host3"); free(s);
-		is_null(cw_pdu_text(reply, 2), "there is no 3rd frame in an OPTOUT PDU");
+		is_string(s = cw_pdu_text(reply, 2), UUID3,         "host3 UUID"); free(s);
+		is_null(cw_pdu_text(reply, 3), "there is no fourth frame in an OPTOUT PDU");
 		cw_pdu_destroy(reply);
 
 		reply = cw_pdu_recv(sock);
@@ -254,9 +269,10 @@ TESTS {
 		is_string(reply->type, "RESULT", "reply was a RESULT");
 		is_string(s = cw_pdu_text(reply, 1), "4242", "serial echoed back in frame 1");   free(s);
 		is_string(s = cw_pdu_text(reply, 2), FQDN,   "mesh node FQDN in frame 2");       free(s);
-		is_string(s = cw_pdu_text(reply, 3), "0",    "status code is in frame 3");       free(s);
-		is_string(s = cw_pdu_text(reply, 4), PACKAGE_VERSION "\n", "output in frame 4"); free(s);
-		is_null(cw_pdu_text(reply, 5), "there is no fifth frame");
+		is_string(s = cw_pdu_text(reply, 3), UUID1,  "mesh node UUID in frame 3");       free(s);
+		is_string(s = cw_pdu_text(reply, 4), "0",    "status code is in frame 4");       free(s);
+		is_string(s = cw_pdu_text(reply, 5), PACKAGE_VERSION "\n", "output in frame 5"); free(s);
+		is_null(cw_pdu_text(reply, 6), "there is no sixth frame");
 		cw_pdu_destroy(reply);
 
 		void *_;

@@ -19,7 +19,8 @@ Build-Depends: bison,
                libtest-simple-perl,
                libtext-diff-perl,
                libzmq3-dev,
-               pkg-config
+               pkg-config,
+               uuid-dev
 Standards-Version: 3.9.3
 Homepage: http://clockwork.niftylogic.com/
 
@@ -28,6 +29,7 @@ Architecture: any
 Depends: libaugeas0 (>= 0.10.0),
          libpcre3,
          libsodium13,
+         libuuid1,
          libzmq3,
          ${misc:Depends},
          ${shlibs:Depends}

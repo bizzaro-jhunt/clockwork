@@ -27,6 +27,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <uuid/uuid.h>
 
 #ifdef CW_CLI_DIR
 #  define DEFAULT_EXEC_PATH  CW_CLI_DIR
@@ -121,6 +122,7 @@ static int builtin_cw_cfm     (int argc, char **argv);
 static int builtin_cw_fact    (int argc, char **argv);
 static int builtin_cw_help    (int argc, char **argv);
 static int builtin_cw_trust   (int argc, char **argv);
+static int builtin_cw_uuid    (int argc, char **argv);
 
 static struct {
 	const char *cmd;
@@ -131,6 +133,7 @@ static struct {
 	{ "cw-fact",      builtin_cw_fact      },
 	{ "cw-help",      builtin_cw_help      },
 	{ "cw-trust",     builtin_cw_trust     },
+	{ "cw-uuid",      builtin_cw_uuid      },
 	{ NULL, NULL },
 };
 
@@ -419,5 +422,69 @@ static int builtin_cw_trust(int argc, char **argv)
 	printf("Wrote %s\n", path);
 	free(path);
 	cw_trustdb_destroy(db);
+	return 0;
+}
+
+#define UUID_FILE  CW_SYSCONF_DIR "/.uuid"
+
+static int builtin_cw_uuid(int argc, char **argv)
+{
+	const char *short_opts = "h?";
+	struct option long_opts[] = {
+		{ "help",     no_argument,        NULL, 'h' },
+		{ "regen",    no_argument,        NULL,  1 },
+		{ 0, 0, 0, 0 },
+	};
+
+	int regen = 0;
+
+	int opt, idx = 0;
+	while ( (opt = getopt_long(argc, argv, short_opts, long_opts, &idx)) != -1) {
+		switch (opt) {
+		case 'h':
+		case '?':
+			printf("USAGE: %s [--regen]\n", argv[0]);
+			exit(0);
+
+		case 1:
+			regen = 1;
+			break;
+		}
+	}
+
+	char s[37];
+	FILE *io;
+	uuid_t uuid;
+
+	if (regen) {
+regen:
+		io = fopen(UUID_FILE, "w");
+		if (!io) {
+			perror(UUID_FILE);
+			exit(1);
+		}
+
+		uuid_generate(uuid);
+		uuid_unparse_lower(uuid, s);
+		fprintf(io, "%s\n", s);
+		fclose(io);
+
+	} else {
+		io = fopen(UUID_FILE, "r");
+		if (!io) {
+			if (errno == ENOENT) goto regen;
+			perror(UUID_FILE);
+			exit(2);
+		}
+
+		if (!fgets(s, 37, io)) {
+			perror(UUID_FILE);
+			exit(3);
+		}
+		s[36] = '\0';
+		fclose(io);
+	}
+
+	printf("%s\n", s);
 	return 0;
 }

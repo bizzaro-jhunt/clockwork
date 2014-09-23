@@ -20,13 +20,14 @@ AM_CFLAGS += -DTEST_DATA=\"$(srcdir)/t/data\"
 AM_CFLAGS += -DCW_CACHE_DIR=\"$(pkgcachedir)\"
 AM_CFLAGS += -DCW_GATHER_DIR=\"$(gatherdir)\"
 AM_CFLAGS += -DCW_CLI_DIR=\"$(clidir)\"
+AM_CFLAGS += -DCW_SYSCONF_DIR=\"$(pkgsysconfdir)\"
 AM_CFLAGS += @AUGEAS_CFLAGS@
 AM_CFLAGS += @GCOV_CFLAGS@
 
 AM_LFLAGS = --header-file --yylineno
 AM_YFLAGS = -d
 
-LDADD = -lctap -lzmq -lsodium -lpam
+LDADD = -lctap -lzmq -lsodium -lpam -luuid
 
 ############################################################
 
@@ -238,6 +239,7 @@ dist_man_MANS   += man/cw-mesh.1
 dist_man_MANS   += man/cw-shell.1
 dist_man_MANS   += man/cw-template-erb.8
 dist_man_MANS   += man/cw-trust.1
+dist_man_MANS   += man/cw-uuid.1
 dist_man_MANS   += man/mesh.7
 dist_man_MANS   += man/meshd.8
 dist_man_MANS   += man/meshd.conf.5
@@ -315,6 +317,7 @@ BUILTINS += cw-cert
 BUILTINS += cw-fact
 BUILTINS += cw-help
 BUILTINS += cw-trust
+BUILTINS += cw-uuid
 
 $(BUILTINS): cw
 	rm -f $@ && ln -s $< $@

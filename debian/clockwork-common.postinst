@@ -1,0 +1,25 @@
+#!/bin/sh -e
+
+#
+# clockwork-common postinst
+#
+# author:  James Hunt <james@niftylogic.com>
+# created: 2014-09-23
+#
+
+case "$1" in
+configure)
+	# generate UUID on installation
+	# (does nothing if UUID already exists)
+	if [ -x /bin/cw ]; then
+		/bin/cw uuid >/dev/null
+	fi
+	;;
+*)
+	exit 0
+	;;
+esac
+
+#DEBHELPER#
+
+exit 0

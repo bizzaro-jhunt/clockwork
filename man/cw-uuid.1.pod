@@ -1,0 +1,51 @@
+  Clockwork is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  Clockwork is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
+
+
+=head1 NAME
+
+cw-uuid - Clockwork UUID Utility
+
+=head1 SYNOPSIS
+
+B<cw-uuid> [--regen]
+
+=head1 DESCRIPTION
+
+#INTRO
+
+To keep systems separate across IP conflicts and naming mishaps, Clockwork
+generates a Universally Unique IDentifier (or UUID, for short) upon
+installation.  This UUID does not change without administrator intervention.
+
+The value of the UUID is more commonly accessed via the B<sys.uuid> fact.
+
+=head1 OPTIONS
+
+=over
+
+=item B<--regen>
+
+Regenerate the UUID.  This should be used with caution, and only by root.
+
+=back
+
+=head1 SEE ALSO
+
+#SEEALSO
+
+=head1 AUTHOR
+
+#AUTHOR
+
+=cut

@@ -1,15 +1,17 @@
-examples/cw.conf   etc/clockwork
 bin/cw
 bin/pn
+examples/cw.conf   etc/clockwork
 lib/clockwork/cli/cw
 lib/clockwork/cli/cw-cert
 lib/clockwork/cli/cw-fact
 lib/clockwork/cli/cw-help
 lib/clockwork/cli/cw-trust
+lib/clockwork/cli/cw-uuid
 lib/clockwork/gather.d
 usr/share/man/man1/cw-cert.1
 usr/share/man/man1/cw-fact.1
 usr/share/man/man1/cw-help.1
 usr/share/man/man1/cw-trust.1
+usr/share/man/man1/cw-uuid.1
 usr/share/man/man1/pn.1
 usr/share/man/man5/cw.conf.5

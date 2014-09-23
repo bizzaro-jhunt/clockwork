@@ -31,6 +31,7 @@ typedef struct {
 	cw_list_t   l;
 
 	char       *fqdn;
+	char       *uuid;
 	char       *status;
 	char       *output;
 } mesh_result_t;
@@ -142,6 +143,7 @@ static void s_mesh_slot_free(void *p)
 	mesh_result_t *r, *tmp;
 	for_each_object_safe(r, tmp, &c->results, l) {
 		free(r->fqdn);
+		free(r->uuid);
 		free(r->status);
 		free(r->output);
 		free(r);
@@ -962,8 +964,9 @@ int mesh_server_reactor(void *sock, cw_pdu_t *pdu, void *data)
 			mesh_result_t *r = cw_alloc(sizeof(mesh_result_t));
 			cw_list_init(&r->l);
 			r->fqdn   = cw_pdu_text(pdu, 2);
-			r->status = cw_pdu_text(pdu, 3);
-			r->output = cw_pdu_text(pdu, 4);
+			r->uuid   = cw_pdu_text(pdu, 3);
+			r->status = cw_pdu_text(pdu, 4);
+			r->output = cw_pdu_text(pdu, 5);
 
 			cw_list_push(&client->results, &r->l);
 		}
@@ -978,6 +981,7 @@ int mesh_server_reactor(void *sock, cw_pdu_t *pdu, void *data)
 			mesh_result_t *r = cw_alloc(sizeof(mesh_result_t));
 			cw_list_init(&r->l);
 			r->fqdn = cw_pdu_text(pdu, 2);
+			r->uuid = cw_pdu_text(pdu, 3);
 
 			cw_list_push(&client->results, &r->l);
 		}
@@ -1090,13 +1094,14 @@ REQUEST_exit:
 		if (client) {
 			for_each_object_safe(r, r_tmp, &client->results, l) {
 				reply = (r->status && r->output)
-					? cw_pdu_make(pdu->src, 4, "RESULT", r->fqdn, r->status, r->output)
-					: cw_pdu_make(pdu->src, 2, "OPTOUT", r->fqdn);
+					? cw_pdu_make(pdu->src, 5, "RESULT", r->fqdn, r->uuid, r->status, r->output)
+					: cw_pdu_make(pdu->src, 3, "OPTOUT", r->fqdn, r->uuid);
 
 				cw_pdu_send(sock, reply);
 				cw_pdu_destroy(reply);
 				cw_list_delete(&r->l);
 				free(r->fqdn);
+				free(r->uuid);
 				free(r->status);
 				free(r->output);
 				free(r);
@@ -1223,7 +1228,13 @@ int mesh_client_handle(mesh_client_t *c, void *sock, cw_pdu_t *pdu)
 		if (!filter_matchall(&filter, c->facts)) {
 			cw_log(LOG_INFO, "opting out of `%s` command from %s, per filters",
 					command, creds);
-			reply = cw_pdu_make(NULL, 3, "OPTOUT", serial, c->fqdn);
+
+			reply = cw_pdu_make(NULL, 4,
+					"OPTOUT",
+					serial,
+					c->fqdn,
+					cw_hash_get(c->facts, "sys.uuid"));
+
 			cw_pdu_send(sock, reply);
 			cw_pdu_destroy(reply);
 			goto bail;
@@ -1246,7 +1257,14 @@ int mesh_client_handle(mesh_client_t *c, void *sock, cw_pdu_t *pdu)
 		pendulum_destroy(&m);
 		pn_destroy(&m);
 
-		reply = cw_pdu_make(NULL, 5, "RESULT", serial, c->fqdn, "0", output);
+		reply = cw_pdu_make(NULL, 6,
+				"RESULT",
+				serial,
+				c->fqdn,
+				cw_hash_get(c->facts, "sys.uuid"),
+				"0",
+				output);
+
 		cw_pdu_send(sock, reply);
 		cw_pdu_destroy(reply);
 

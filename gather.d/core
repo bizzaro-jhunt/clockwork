@@ -49,6 +49,9 @@ fact("sys.fqdn", $_);
 $_ = qx(/usr/bin/hostid); chomp;
 fact("sys.hostid", $_);
 
+## sys.uuid - Unique UUID, enforced by Clockwork itself
+$_ = qx(/lib/clockwork/cw-uuid); chomp;
+fact("sys.uuid", $_);
 
 ##
 ## lsb.* - Linux Standards Base facts

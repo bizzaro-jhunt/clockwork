@@ -106,14 +106,17 @@ authenticate or submit the query.
 User to authenticate as.  If B<cw-mesh> can't figure out who the current
 user is, and this option is not specified, it will prompt for the username.
 
-=item B<-p>, B<--password> I<PASSWORD>
+=item B<-k>, B<--key> I</path/to/mesh.key>
 
-Password for the authenticating user.  Normally, B<cw-mesh> will prompt for
-this, so you don't need (or want) to specify it on the command line.  Some
-precautions are taken to mitigate the exposure of the password to tools like
-B<ps>(1), but the most secure option is to not use this one.
+Use the specified user private key and do key-based authentication.  No
+passwords will be prompted for, and password authentication will be skipped.
 
-=item B<--mastercert> I</path/to/cert.pub>
+Defaults to I<~/clockwork/mesh.key>.
+
+If the special value "0" is given (as in B<-k0>), then public key
+authentication will be skipped, and you B<will> be prompted for a password.
+
+=item B<--cert> I</path/to/cert.pub>
 
 Path to the public certificate for validating the Mesh master server.
 

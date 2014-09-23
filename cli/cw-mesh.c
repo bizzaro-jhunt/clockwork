@@ -22,6 +22,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <sodium.h>
 
 #include "../src/clockwork.h"
 #include "../src/mesh.h"
@@ -69,6 +70,7 @@ typedef struct {
 	char      *endpoint;
 	char      *username;
 	char      *password;
+	char      *authkey;
 	cmd_t     *command;
 	char      *filters;
 
@@ -77,18 +79,28 @@ typedef struct {
 
 	cw_cert_t *client_cert;
 	cw_cert_t *master_cert;
-
-
+	cw_cert_t *auth_cert;
 } client_t;
 
 static client_t* s_client_new(void)
 {
 	client_t *c = cw_alloc(sizeof(client_t));
 
-	c->client_cert = cw_cert_generate();
+	c->client_cert = cw_cert_generate(CW_CERT_TYPE_ENCRYPTION);
 
 	c->username = getenv("USER");
 	if (c->username) c->username = strdup(c->username);
+
+	if (getenv("HOME")) {
+		c->authkey = cw_string("%s/.clockwork/mesh.key", getenv("HOME"));
+
+		struct stat st;
+		if (stat(c->authkey, &st) != 0) {
+			cw_log(LOG_INFO, "Default key %s not found; skipping implicit keyauth", c->authkey);
+			free(c->authkey);
+			c->authkey = NULL;
+		}
+	}
 
 	return c;
 }
@@ -143,7 +155,7 @@ static client_t* s_init(int argc, char **argv)
 {
 	client_t *c = s_client_new();
 
-	const char *short_opts = "+h?Vvqnu:p:t:s:w:c:";
+	const char *short_opts = "+h?Vvqnu:k:t:s:w:c:";
 	struct option long_opts[] = {
 		{ "help",        no_argument,       NULL, 'h' },
 		{ "version",     no_argument,       NULL, 'V' },
@@ -151,7 +163,7 @@ static client_t* s_init(int argc, char **argv)
 		{ "quiet",       no_argument,       NULL, 'q' },
 		{ "noop",        no_argument,       NULL, 'n' },
 		{ "username",    required_argument, NULL, 'u' },
-		{ "password",    required_argument, NULL, 'p' },
+		{ "key",         required_argument, NULL, 'k' },
 		{ "timeout",     required_argument, NULL, 't' },
 		{ "sleep",       required_argument, NULL, 's' },
 		{ "where",       required_argument, NULL, 'w' },
@@ -201,10 +213,9 @@ static client_t* s_init(int argc, char **argv)
 			c->username = strdup(optarg);
 			break;
 
-		case 'p':
-			free(c->password);
-			c->password = strdup(optarg);
-			for (x = optarg; *x; *x++ = 'x');
+		case 'k':
+			free(c->authkey);
+			c->authkey = strcmp(optarg, "0") == 0 ? NULL : strdup(optarg);
 			break;
 
 		case 't':
@@ -297,7 +308,7 @@ static client_t* s_init(int argc, char **argv)
 
 	if (!c->master_cert) {
 		if (!cw_cfg_get(&config, "mesh.cert")) {
-			fprintf(stderr, "mesh.cert not found in %s, and --pubkey not specified\n",
+			fprintf(stderr, "mesh.cert not found in %s, and --cert not specified\n",
 				config_file);
 			exit(1);
 		}
@@ -311,6 +322,23 @@ static client_t* s_init(int argc, char **argv)
 		if (!c->master_cert->pubkey) {
 			fprintf(stderr, "%s: no public key component found\n",
 				cw_cfg_get(&config, "mesh.cert"));
+			exit(1);
+		}
+	}
+
+	if (c->authkey) {
+		c->auth_cert = cw_cert_read(c->authkey);
+		if (!c->auth_cert) {
+			fprintf(stderr, "%s: %s\n", c->authkey,
+				errno == EINVAL ? "Invalid Clockwork key" : strerror(errno));
+			exit(1);
+		}
+		if (c->auth_cert->type != CW_CERT_TYPE_SIGNING) {
+			fprintf(stderr, "%s: Incorrect key/certificate type (not a %%sig v1 key)\n", c->authkey);
+			exit(1);
+		}
+		if (!c->auth_cert->seckey) {
+			fprintf(stderr, "%s: no secret key component found\n", c->authkey);
 			exit(1);
 		}
 	}
@@ -354,11 +382,35 @@ int main(int argc, char **argv)
 
 	if (!c->username)
 		c->username = s_prompt("Username: ", PROMPT_ECHO);
-	if (!c->password)
+	if (!c->auth_cert)
 		c->password = s_prompt("Password: ", PROMPT_NOECHO);
 
-	cw_pdu_t *pdu = cw_pdu_make(NULL, 5, "REQUEST",
-			c->username, c->password, c->command->string, c->filters);
+	cw_pdu_t *pdu = cw_pdu_make(NULL, 2, "REQUEST", c->username);
+	if (c->auth_cert) {
+		assert(c->auth_cert);
+
+		unsigned char unsealed[256 - 64];
+		randombytes(unsealed, 256 - 64);
+
+		uint8_t *sealed;
+		unsigned long long slen;
+		slen = cw_cert_seal(c->auth_cert, unsealed, 256 - 64, &sealed);
+		assert(slen == 256);
+
+		char *pubkey = cw_cert_public_s(c->auth_cert);
+		cw_pdu_extend(pdu, cw_frame_new(pubkey));
+		cw_pdu_extend(pdu, cw_frame_newbuf((const char*)sealed, 256));
+
+		free(pubkey);
+		free(sealed);
+	} else {
+		assert(c->password);
+		cw_pdu_extend(pdu, cw_frame_new(""));
+		cw_pdu_extend(pdu, cw_frame_new(c->password));
+	}
+	cw_pdu_extend(pdu, cw_frame_new(c->command->string));
+	cw_pdu_extend(pdu, cw_frame_new(c->filters));
+
 	rc = cw_pdu_send(client, pdu);
 	assert(rc == 0);
 

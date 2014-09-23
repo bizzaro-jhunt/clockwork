@@ -759,7 +759,7 @@ static inline client_t* s_client_new(int argc, char **argv)
 	        && cw_cfg_get(&config, "mesh.control")
 	        && cw_cfg_get(&config, "mesh.cert")) {
 
-		cw_cert_t *ephemeral = cw_cert_generate();
+		cw_cert_t *ephemeral = cw_cert_generate(CW_CERT_TYPE_ENCRYPTION);
 		cw_cert_t *mesh_cert = cw_cert_read(cw_cfg_get(&config, "mesh.cert"));
 		if (!mesh_cert) {
 			cw_log(LOG_ERR, "mesh.cert %s: %s", cw_cfg_get(&config, "mesh.cert"),

@@ -118,6 +118,20 @@ Finally, authentication is done at B<meshd>; subscribed nodes are only
 responsible for authorization.  Put another way, B<cogd> nodes implicitly
 trust that B<meshd> is being truthful about who requested the command.
 
+=head1 AUTHENTICATION
+
+B<meshd> supports password authentication, which it delegates to PAM for
+credentials verification, and key-based authentication.
+
+In key-based authentication, the user provides proof that she has access to
+a private key (usually I<~/clockwork/mesh.key>) by signing a small random
+message and sending that with the request, alongside her public key (in
+base-16 encoding).  B<meshd> then verifies the signature (to prove that the
+correct private key was used) and checks to see if the public key has been
+authorized for the requesting user.  At no time is the private key ever sent
+across the wire.  Since the entire exchange is itself encrypted, replay
+attacks are minimizied.
+
 =head1 AUTHOR
 
 #AUTHOR

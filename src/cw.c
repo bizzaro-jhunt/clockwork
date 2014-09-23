@@ -2504,26 +2504,71 @@ void cw_cache_touch(cw_cache_t *cc, const char *id, int32_t last)
 
  */
 
-cw_cert_t* cw_cert_new(void)
+static int CW_CERT_KEYSIZE[2] = { 32, 64 };
+
+cw_cert_t* cw_cert_new(int type)
 {
+	if (type != CW_CERT_TYPE_ENCRYPTION
+	 && type != CW_CERT_TYPE_SIGNING)
+		return NULL;
+
 	cw_cert_t *key = cw_alloc(sizeof(cw_cert_t));
+	key->type = type;
 	return key;
 }
 
-cw_cert_t* cw_cert_generate(void)
+cw_cert_t* cw_cert_make(int type, const char *pub, const char *sec)
 {
-	cw_cert_t *key = cw_cert_new();
+	cw_cert_t *key = cw_cert_new(type);
 	assert(key);
 
-	int rc = crypto_box_keypair(key->pubkey_bin, key->seckey_bin);
-	assert(rc == 0);
+	if (pub) {
+		if (strlen(pub) != 64) goto bail_out;
+
+		strncpy(key->pubkey_b16, pub, 64);
+		key->pubkey = 1;
+	}
+
+	if (sec) {
+		int ksz = CW_CERT_KEYSIZE[key->type];
+		if (strlen(sec) != ksz * 2) goto bail_out;
+
+		strncpy(key->seckey_b16, sec, ksz * 2);
+		key->seckey = 1;
+	}
+
+	if (!key->pubkey) goto bail_out;
+	if (cw_cert_rescan(key) != 0) goto bail_out;
+	return key;
+
+bail_out:
+	errno = EINVAL;
+	cw_cert_destroy(key);
+	return NULL;
+}
+
+cw_cert_t* cw_cert_generate(int type)
+{
+	cw_cert_t *key = cw_cert_new(type);
+	assert(key);
+
+	int rc;
+
+	if (type == CW_CERT_TYPE_ENCRYPTION) {
+		rc = crypto_box_keypair(key->pubkey_bin, key->seckey_bin);
+		assert(rc == 0);
+	} else {
+		rc = crypto_sign_keypair(key->pubkey_bin, key->seckey_bin);
+		assert(rc == 0);
+	}
 
 	rc = base16_encode(key->pubkey_b16, 64, key->pubkey_bin, 32);
 	assert(rc == 64);
 	key->pubkey = 1;
 
-	base16_encode(key->seckey_b16, 64, key->seckey_bin, 32);
-	assert(rc == 64);
+	int ksz = CW_CERT_KEYSIZE[type];
+	rc = base16_encode(key->seckey_b16, ksz * 2, key->seckey_bin, ksz);
+	assert(rc == ksz * 2);
 	key->seckey = 1;
 
 	return key;
@@ -2547,6 +2592,7 @@ cw_cert_t* cw_cert_readio(FILE *io)
 
 	/* format:
 	   -----------------------------------------------
+	   [%(encryption|signing) v1]
 	   id  fqdn
 	   pub DECAFBAD...
 	   sec DEADBEEF...
@@ -2559,7 +2605,19 @@ cw_cert_t* cw_cert_readio(FILE *io)
 	int rc = cw_cfg_read(&cfg, io);
 	if (rc != 0) return NULL;
 
-	cw_cert_t *key = cw_cert_new();
+	cw_cert_t *key;
+	if (cw_cfg_isset(&cfg, "\%signing")
+	 && strcmp(cw_cfg_get(&cfg, "\%signing"), "v1") == 0) {
+		key = cw_cert_new(CW_CERT_TYPE_SIGNING);
+
+	} else if (cw_cfg_isset(&cfg, "\%encryption")
+	 && strcmp(cw_cfg_get(&cfg, "\%encryption"), "v1") == 0) {
+		key = cw_cert_new(CW_CERT_TYPE_ENCRYPTION);
+
+	} else {
+		// legacy behavior
+		key = cw_cert_new(CW_CERT_TYPE_ENCRYPTION);
+	}
 	assert(key);
 
 	if (cw_cfg_isset(&cfg, "id")) {
@@ -2577,10 +2635,11 @@ cw_cert_t* cw_cert_readio(FILE *io)
 	}
 
 	if (cw_cfg_isset(&cfg, "sec")) {
+		int ksz = CW_CERT_KEYSIZE[key->type];
 		v = cw_cfg_get(&cfg, "sec");
-		if (strlen(v) != 64) goto bail_out;
+		if (strlen(v) != ksz * 2) goto bail_out;
 
-		strncpy(key->seckey_b16, v, 64);
+		strncpy(key->seckey_b16, v, ksz * 2);
 		key->seckey = 1;
 	}
 
@@ -2614,6 +2673,9 @@ int cw_cert_writeio(cw_cert_t *key, FILE *io, int full)
 {
 	assert(key);
 	assert(io);
+
+	fprintf(io, "%%%s v1\n", key->type == CW_CERT_TYPE_ENCRYPTION
+		                                ? "encryption" : "signing");
 
 	if (key->ident)          fprintf(io, "id  %s\n", key->ident);
 	if (key->pubkey)         fprintf(io, "pub %s\n", key->pubkey_b16);
@@ -2667,8 +2729,9 @@ int cw_cert_rescan(cw_cert_t *key)
 	}
 
 	if (key->seckey) {
-		rc = base16_decode(key->seckey_bin, 32, key->seckey_b16, 64);
-		if (rc != 32) return -1;
+		int ksz = CW_CERT_KEYSIZE[key->type];
+		rc = base16_decode(key->seckey_bin, ksz, key->seckey_b16, ksz * 2);
+		if (rc != ksz) return -1;
 	}
 
 	return 0;
@@ -2686,10 +2749,60 @@ int cw_cert_encode(cw_cert_t *key)
 	}
 
 	if (key->seckey) {
-		rc = base16_encode(key->seckey_b16, 64, key->seckey_bin, 32);
-		if (rc != 64) return -1;
+		int ksz = CW_CERT_KEYSIZE[key->type];
+		rc = base16_encode(key->seckey_b16, ksz * 2, key->seckey_bin, ksz);
+		if (rc != ksz * 2) return -1;
 	}
 
+	return 0;
+}
+
+unsigned long long cw_cert_seal(cw_cert_t *k, const void *_u, unsigned long long ulen, uint8_t **s)
+{
+	const uint8_t *u = (const uint8_t *)_u;
+	assert(k && k->seckey);
+	assert(u);
+	assert(ulen > 0);
+	assert(s);
+
+	long long unsigned slen = ulen + crypto_sign_BYTES;
+	*s = cw_alloc(slen);
+
+	if (crypto_sign(*s, &slen, u, ulen, k->seckey_bin) == 0)
+		return slen;
+	free(*s); *s = NULL;
+	return 0;
+}
+
+unsigned long long cw_cert_unseal(cw_cert_t *k, const void *_s, unsigned long long slen, uint8_t **u)
+{
+	const uint8_t *s = (const uint8_t *)_s;
+	assert(k && k->pubkey);
+	assert(s);
+	assert(slen > crypto_sign_BYTES);
+	assert(u);
+
+	unsigned long long ulen = slen - crypto_sign_BYTES;
+	*u = cw_alloc(ulen);
+
+	if (crypto_sign_open(*u, &ulen, s, slen, k->pubkey_bin) == 0)
+		return ulen;
+	free(*u); *u = NULL;
+	return 0;
+}
+
+int cw_cert_sealed(cw_cert_t *k, const void *_s, unsigned long long slen)
+{
+	const uint8_t *s = (const uint8_t *)_s;
+	assert(k && k->pubkey);
+	assert(s);
+	assert(slen > crypto_sign_BYTES);
+
+	uint8_t *u;
+	if (cw_cert_unseal(k, s, slen, &u) > 0) {
+		free(u);
+		return 1;
+	}
 	return 0;
 }
 
@@ -2781,7 +2894,7 @@ int cw_trustdb_revoke(cw_trustdb_t *ca, cw_cert_t *key)
 	return 0;
 }
 
-int cw_trustdb_verify(cw_trustdb_t *ca, cw_cert_t *key)
+int cw_trustdb_verify(cw_trustdb_t *ca, cw_cert_t *key, const char *ident)
 {
 	assert(ca);
 	assert(key);
@@ -2789,8 +2902,10 @@ int cw_trustdb_verify(cw_trustdb_t *ca, cw_cert_t *key)
 
 	if (!ca->verify) return 0;
 
-	char *ident = cw_cfg_get(&ca->certs, key->pubkey_b16);
-	return ident != NULL ? 0 : 1;
+	char *id = cw_cfg_get(&ca->certs, key->pubkey_b16);
+	if (!id) return 1;
+	if (ident && strcmp(ident, id) != 0) return 1;
+	return 0;
 }
 
 /*
@@ -2851,7 +2966,7 @@ static void* s_zap_thread(void *u)
 		cw_log(LOG_DEBUG, "zap: received frame:   address  = %s", address);
 		cw_log(LOG_DEBUG, "zap: received frame:   identity = %s", identity);
 
-		cw_cert_t *key = cw_cert_new();
+		cw_cert_t *key = cw_cert_new(CW_CERT_TYPE_ENCRYPTION);
 		assert(key);
 		key->pubkey = 1;
 		int n = zmq_recv(zap->socket, key->pubkey_bin, 32, 0);
@@ -2867,7 +2982,7 @@ static void* s_zap_thread(void *u)
 		s_zap_sendmore(zap->socket, version);
 		s_zap_sendmore(zap->socket, sequence);
 
-		if (!zap->tdb || cw_trustdb_verify(zap->tdb, key) == 0) {
+		if (!zap->tdb || cw_trustdb_verify(zap->tdb, key, NULL) == 0) {
 			cw_log(LOG_DEBUG, "zap: granting authentication request - 200 OK");
 			s_zap_sendmore(zap->socket, "200");
 			s_zap_sendmore(zap->socket, "OK");

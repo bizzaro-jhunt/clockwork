@@ -784,7 +784,7 @@ mesh_server_t* mesh_server_new(void *zmq)
 	s->slots = cw_cache_new(128, 600);
 	s->slots->destroy_f = s_mesh_slot_free;
 
-	s->cert = cw_cert_generate();
+	s->cert = cw_cert_generate(CW_CERT_TYPE_ENCRYPTION);
 	return s;
 }
 
@@ -848,6 +848,13 @@ int mesh_server_setopt(mesh_server_t *s, int opt, void *data, size_t len)
 			acl_destroy(acl);
 		acl_read(&s->acl, (const char*)data);
 		/* FIXME: need to differentiate ENOENT from bad ACL */
+		return 0;
+
+	case MESH_SERVER_TRUSTDB:
+		cw_trustdb_destroy(s->trustdb);
+		s->trustdb = cw_trustdb_read((const char*)data);
+		if (!s->trustdb)
+			s->trustdb = cw_trustdb_new();
 		return 0;
 	}
 
@@ -928,6 +935,7 @@ void mesh_server_destroy(mesh_server_t *s)
 	free(s->_safe_word);
 
 	cw_cert_destroy(s->cert);
+	cw_trustdb_destroy(s->trustdb);
 
 	acl_t *acl, *acl_tmp;
 	for_each_object_safe(acl, acl_tmp, &s->acl, l)
@@ -977,10 +985,13 @@ int mesh_server_reactor(void *sock, cw_pdu_t *pdu, void *data)
 
 	if (strcmp(pdu->type, "REQUEST") == 0) {
 		cw_cache_purge(server->slots, 0);
+
+		size_t secret_len = cw_pdu_framelen(pdu, 3);
 		char *username = cw_pdu_text(pdu, 1),
-		     *password = cw_pdu_text(pdu, 2),
-		     *command  = cw_pdu_text(pdu, 3),
-		     *filters  = cw_pdu_text(pdu, 4),
+		     *pubkey   = cw_pdu_text(pdu, 2),
+		     *secret   = cw_pdu_text(pdu, 3),
+		     *command  = cw_pdu_text(pdu, 4),
+		     *filters  = cw_pdu_text(pdu, 5),
 		     *creds    = NULL,
 		     *code     = NULL;
 
@@ -1003,19 +1014,32 @@ int mesh_server_reactor(void *sock, cw_pdu_t *pdu, void *data)
 		creds = s_user_lookup(username); assert(creds);
 		code  = s_cmd_code(command);     assert(code);
 
-		if (server->pam_service) {
-			cw_log(LOG_DEBUG, "authenticating as %s", username);
-			int rc = cw_authenticate(server->pam_service, username, password);
-			free(password);
+		if (strlen(pubkey) > 0) {
+			cw_log(LOG_INFO, "authenticating as %s using public key %s", username, pubkey);
+			cw_cert_t *cert = cw_cert_make(CW_CERT_TYPE_SIGNING, pubkey, NULL);
 
-			if (rc != 0) {
-				reply = cw_pdu_make(pdu->src, 2, "ERROR", "Authentication failed");
+			if (!cw_cert_sealed(cert, secret, secret_len)
+			 || cw_trustdb_verify(server->trustdb, cert, username) != 0) {
+
+				reply = cw_pdu_make(pdu->src, 2, "ERROR", "Authentication failed (pubkey)");
+				cw_cert_destroy(cert);
 				cw_pdu_send(sock, reply);
 				cw_pdu_destroy(reply);
 				goto REQUEST_exit;
 			}
+			cw_cert_destroy(cert);
+
+		} else if (server->pam_service) {
+			cw_log(LOG_DEBUG, "authenticating as %s using supplied password", username);
+			if (cw_authenticate(server->pam_service, username, secret) != 0) {
+				reply = cw_pdu_make(pdu->src, 2, "ERROR", "Authentication failed (password)");
+				cw_pdu_send(sock, reply);
+				cw_pdu_destroy(reply);
+				goto REQUEST_exit;
+			}
+
 		} else {
-			free(password);
+			cw_log(LOG_INFO, "authentication disabled; allowing");
 		}
 
 		cmd_t *cmd = cmd_parse(command, COMMAND_LITERAL);
@@ -1047,6 +1071,9 @@ int mesh_server_reactor(void *sock, cw_pdu_t *pdu, void *data)
 		cw_pdu_destroy(reply);
 
 REQUEST_exit:
+		/* username is owned by the client object now */
+		free(pubkey);
+		free(secret);
 		free(serial);
 		free(creds);
 		free(code);

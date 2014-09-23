@@ -42,7 +42,7 @@ static void usage(int rc)
 	                "\n"
 	                "Commonly used commands:\n"
 	                "  fact      Show local system facts\n"
-	                "  cert      Generate certificates and keys\n"
+	                "  cert      Generate certificates (for host identity)\n"
 	                "  shell     Interactively explore a manifest\n"
 	                "  trust     Manage a certificate trust database\n"
 	                "\n"
@@ -161,23 +161,25 @@ int main(int argc, char **argv)
 
 static int builtin_cw_cert(int argc, char **argv)
 {
-	const char *short_opts = "h?f:i:";
+	const char *short_opts = "h?f:i:u";
 	struct option long_opts[] = {
 		{ "help",     no_argument,       NULL, 'h' },
 		{ "identity", required_argument, NULL, 'i' },
 		{ "file",     required_argument, NULL, 'f' },
+		{ "user",     no_argument,       NULL, 'u' },
 		{ 0, 0, 0, 0 },
 	};
 
 	char *ident = NULL;
 	char *file  = strdup("cwcert");
+	int   type  = CW_CERT_TYPE_ENCRYPTION;
 
 	int opt, idx = 0;
 	while ( (opt = getopt_long(argc, argv, short_opts, long_opts, &idx)) != -1) {
 		switch (opt) {
 		case 'h':
 		case '?':
-			printf("USAGE: %s [--identity FQDN] [--file cwcert]\n", argv[0]);
+			printf("USAGE: %s [--identity FQDN] [--type host|user] [--file cwcert]\n", argv[0]);
 			exit(0);
 
 		case 'i':
@@ -188,6 +190,10 @@ static int builtin_cw_cert(int argc, char **argv)
 		case 'f':
 			free(file);
 			file = strdup(optarg);
+			break;
+
+		case 'u':
+			type = CW_CERT_TYPE_SIGNING;
 			break;
 		}
 	}
@@ -214,9 +220,21 @@ static int builtin_cw_cert(int argc, char **argv)
 		exit(1);
 	}
 
-	cw_cert_t *cert = cw_cert_generate();
+	cw_cert_t *cert = cw_cert_generate(type);
 	assert(cert);
-	cert->ident = ident ? ident : cw_fqdn();
+	if (ident) {
+		cert->ident = ident;
+	} else if (cert->type == CW_CERT_TYPE_SIGNING) {
+		cert->ident = getenv("USER") ? strdup(getenv("USER")) : NULL;
+	} else {
+		cert->ident = cw_fqdn();
+	}
+	if (!cert->ident || strlen(cert->ident) == 0) {
+		fprintf(stderr, "Failed to determine certificate/key identity!\n");
+		fclose(pubio); close(pubfd); unlink(pubfile);
+		fclose(secio); close(secfd); unlink(file);
+		exit(1);
+	}
 
 	cw_cert_writeio(cert, pubio, 0);
 	cw_cert_writeio(cert, secio, 1);

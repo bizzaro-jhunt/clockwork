@@ -43,6 +43,7 @@ static inline mesh_server_t *s_server_new(int argc, char **argv)
 	cw_cfg_set(&config, "syslog.facility",     "daemon");
 	cw_cfg_set(&config, "syslog.level",        "error");
 	cw_cfg_set(&config, "auth.service",        "clockwork");
+	cw_cfg_set(&config, "auth.trusted",        "/etc/clockwork/auth/trusted");
 	cw_cfg_set(&config, "security.cert",       "/etc/clockwork/certs/meshd");
 	cw_cfg_set(&config, "acl.global",          "/etc/clockwork/global.acl");
 	cw_cfg_set(&config, "pidfile",             "/var/run/meshd.pid");
@@ -58,6 +59,7 @@ static inline mesh_server_t *s_server_new(int argc, char **argv)
 	cw_log(LOG_DEBUG, "  syslog.facility     %s", cw_cfg_get(&config, "syslog.facility"));
 	cw_log(LOG_DEBUG, "  syslog.level        %s", cw_cfg_get(&config, "syslog.level"));
 	cw_log(LOG_DEBUG, "  auth.service        %s", cw_cfg_get(&config, "auth.service"));
+	cw_log(LOG_DEBUG, "  auth.trusted        %s", cw_cfg_get(&config, "auth.trusted"));
 	cw_log(LOG_DEBUG, "  security.cert       %s", cw_cfg_get(&config, "security.cert"));
 	cw_log(LOG_DEBUG, "  acl.global          %s", cw_cfg_get(&config, "acl.global"));
 	cw_log(LOG_DEBUG, "  pidfile             %s", cw_cfg_get(&config, "pidfile"));
@@ -204,6 +206,7 @@ static inline mesh_server_t *s_server_new(int argc, char **argv)
 		printf("syslog.facility     %s\n", cw_cfg_get(&config, "syslog.facility"));
 		printf("syslog.level        %s\n", cw_cfg_get(&config, "syslog.level"));
 		printf("auth.service        %s\n", cw_cfg_get(&config, "auth.service"));
+		printf("auth.trusted        %s\n", cw_cfg_get(&config, "auth.trusted"));
 		printf("security.cert       %s\n", cw_cfg_get(&config, "security.cert"));
 		printf("acl.global          %s\n", cw_cfg_get(&config, "acl.global"));
 		printf("pidfile             %s\n", cw_cfg_get(&config, "pidfile"));
@@ -251,6 +254,10 @@ static inline mesh_server_t *s_server_new(int argc, char **argv)
 
 	t = cw_cfg_get(&config, "auth.service");
 	rc = mesh_server_setopt(s, MESH_SERVER_PAM_SERVICE, t, strlen(t));
+	assert(rc == 0);
+
+	t = cw_cfg_get(&config, "auth.trusted");
+	rc = mesh_server_setopt(s, MESH_SERVER_TRUSTDB, t, strlen(t));
 	assert(rc == 0);
 
 	t = cw_cfg_get(&config, "acl.global");

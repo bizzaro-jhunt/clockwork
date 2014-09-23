@@ -16,7 +16,7 @@ syn match     meshdComment    "#.*" contains=meshdTodo
 syn keyword   meshdDirective  control broadcast pidfile
 syn match     meshdDirective  /client\.\(connections\|expiration\)/
 syn match     meshdDirective  /syslog\.\(ident\|facility\|level\)/
-syn match     meshdDirective  /auth\.service/
+syn match     meshdDirective  /auth\.\(service\|trusted\)/
 syn match     meshdDirective  /security\.cert/
 syn match     meshdDirective  /acl\.global/
 

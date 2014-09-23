@@ -310,10 +310,11 @@ cw_shell_SOURCES = cli/cw-shell.c     $(core_src) $(parser_spec_src)
 cw_cc_SOURCES    = cli/cw-cc.c        $(core_src) $(parser_spec_src)
 cw_mesh_SOURCES  = cli/cw-mesh.c      $(core_src)
 
-BUILTINS  = cw-fact
+BUILTINS  =
 BUILTINS += cw-cert
-BUILTINS += cw-trust
+BUILTINS += cw-fact
 BUILTINS += cw-help
+BUILTINS += cw-trust
 
 $(BUILTINS): cw
 	rm -f $@ && ln -s $< $@

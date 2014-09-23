@@ -17,6 +17,7 @@
   along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <sodium.h>
 #include "test.h"
 #include "../src/clockwork.h"
 #include "../src/mesh.h"
@@ -120,8 +121,8 @@ TESTS {
 		is_int(rc, 0, "connected to inproc://ctl.1");
 
 		cw_pdu_t *pdu, *reply;
-		pdu = cw_pdu_make(NULL, 5,
-				"REQUEST", "anonymous", "nopassword",
+		pdu = cw_pdu_make(NULL, 6,
+				"REQUEST", "anonymous", "", "nopassword",
 				"show version", "" /* no filter */);
 		rc = cw_pdu_send(sock, pdu);
 		is_int(rc, 0, "sent REQUEST PDU to meshd thread");
@@ -264,6 +265,237 @@ TESTS {
 		cw_zmq_shutdown(broadcast, 500);
 		cw_zmq_shutdown(control,   500);
 		zmq_ctx_destroy(ctx);
+	}
+
+	subtest { /* key-based authentication */
+		char *trustdb_path = strdup(TEST_TMP "/data/mesh/trustdb");
+		char *authkey_path = strdup(TEST_TMP "/data/mesh/key.trusted");
+
+		char *s; int rc;
+
+		void *ctx = zmq_ctx_new();
+		mesh_server_t *server = mesh_server_new(ctx);
+
+		uint64_t serial = 0x4242UL;
+		ok(mesh_server_setopt(server, MESH_SERVER_SERIAL, &serial, sizeof(serial)) == 0,
+			"Set a fixed serial number on the mesh_server");
+		ok(mesh_server_setopt(server, MESH_SERVER_PAM_SERVICE, NULL, 0) == 0,
+			"Disabled PAM authentication in the mesh_server");
+		ok(mesh_server_setopt(server, MESH_SERVER_TRUSTDB, trustdb_path, strlen(trustdb_path)) == 0,
+			"Set trust database path for key-based auth");
+		ok(mesh_server_setopt(server, MESH_SERVER_SAFE_WORD, "TEST_COMPLETE", 13) == 0,
+			"Set a safe-word for early exit");
+
+		ok(mesh_server_bind_control(server, "inproc://ctl.1") == 0,
+			"Bound control port to inproc://ctl.1");
+		ok(mesh_server_bind_broadcast(server, "inproc://pub.1") == 0,
+			"Bound broadcast port to inproc://pub.1");
+
+		pthread_t tid;
+		rc = pthread_create(&tid, NULL, mesh_server_thread, server);
+		is_int(rc, 0, "created meshd thread");
+
+		void *sock = zmq_socket(server->zmq, ZMQ_DEALER);
+		rc = zmq_connect(sock, "inproc://ctl.1");
+		is_int(rc, 0, "connected to inproc://ctl.1");
+
+		cw_cert_t *authkey = cw_cert_read(authkey_path);
+		isnt_null(authkey, "Read authkey from test data");
+
+		unsigned char unsealed[256 - 64];
+		randombytes(unsealed, 256 - 64);
+		uint8_t *sealed;
+		unsigned long long slen;
+		slen = cw_cert_seal(authkey, unsealed, 256 - 64, &sealed);
+		is_int(slen, 256, "sealed message is 256 bytes long");
+
+		cw_pdu_t *pdu, *reply;
+		pdu = cw_pdu_make(NULL, 2, "REQUEST", "jhacker");
+		char *pubkey = cw_cert_public_s(authkey);
+		cw_pdu_extend(pdu, cw_frame_new(pubkey));
+		cw_pdu_extend(pdu, cw_frame_newbuf((const char*)sealed, 256));
+		free(pubkey);
+		free(sealed);
+		cw_pdu_extend(pdu, cw_frame_new("show version"));
+		cw_pdu_extend(pdu, cw_frame_new("")); /* no filter */
+
+		cw_cert_destroy(authkey);
+
+		rc = cw_pdu_send(sock, pdu);
+		is_int(rc, 0, "sent REQUEST PDU to meshd thread");
+		cw_pdu_destroy(pdu);
+
+		reply = cw_pdu_recv(sock);
+		isnt_null(reply, "Got a reply from meshd thread");
+		is_string(s = cw_pdu_text(reply, 0), "SUBMITTED", "REQUEST -> SUBMITTED"); free(s);
+		is_string(s = cw_pdu_text(reply, 1), "4242", "Serial returned to client"); free(s);
+		is_null(cw_pdu_text(reply, 2), "There is no 3rd frame");
+		cw_pdu_destroy(reply);
+
+		/* send the safe word to terminate the meshd thread */
+		pdu = cw_pdu_make(NULL, 1, "TEST_COMPLETE");
+		cw_pdu_send(sock, pdu);
+		cw_pdu_destroy(pdu);
+
+		void *_;
+		pthread_join(tid, &_);
+		cw_zmq_shutdown(sock, 0);
+		mesh_server_destroy(server);
+		zmq_ctx_destroy(ctx);
+		free(authkey_path);
+		free(trustdb_path);
+	}
+
+	subtest { /* key-based authentication (username mismatch fail) */
+		char *trustdb_path = strdup(TEST_TMP "/data/mesh/trustdb");
+		char *authkey_path = strdup(TEST_TMP "/data/mesh/key.trusted");
+
+		char *s; int rc;
+
+		void *ctx = zmq_ctx_new();
+		mesh_server_t *server = mesh_server_new(ctx);
+
+		ok(mesh_server_setopt(server, MESH_SERVER_TRUSTDB, trustdb_path, strlen(trustdb_path)) == 0,
+			"Set trust database path for key-based auth");
+		ok(mesh_server_setopt(server, MESH_SERVER_SAFE_WORD, "TEST_COMPLETE", 13) == 0,
+			"Set a safe-word for early exit");
+
+		ok(mesh_server_bind_control(server, "inproc://ctl.1") == 0,
+			"Bound control port to inproc://ctl.1");
+		ok(mesh_server_bind_broadcast(server, "inproc://pub.1") == 0,
+			"Bound broadcast port to inproc://pub.1");
+
+		pthread_t tid;
+		rc = pthread_create(&tid, NULL, mesh_server_thread, server);
+		is_int(rc, 0, "created meshd thread");
+
+		void *sock = zmq_socket(server->zmq, ZMQ_DEALER);
+		rc = zmq_connect(sock, "inproc://ctl.1");
+		is_int(rc, 0, "connected to inproc://ctl.1");
+
+		cw_cert_t *authkey = cw_cert_read(authkey_path);
+		isnt_null(authkey, "Read authkey from test data");
+
+		unsigned char unsealed[256 - 64];
+		randombytes(unsealed, 256 - 64);
+		uint8_t *sealed;
+		unsigned long long slen;
+		slen = cw_cert_seal(authkey, unsealed, 256 - 64, &sealed);
+		is_int(slen, 256, "sealed message is 256 bytes long");
+
+		cw_pdu_t *pdu, *reply;
+		pdu = cw_pdu_make(NULL, 2, "REQUEST", "WrongUser");
+		char *pubkey = cw_cert_public_s(authkey);
+		cw_pdu_extend(pdu, cw_frame_new(pubkey));
+		cw_pdu_extend(pdu, cw_frame_newbuf((const char*)sealed, 256));
+		free(pubkey);
+		free(sealed);
+		cw_pdu_extend(pdu, cw_frame_new("show version"));
+		cw_pdu_extend(pdu, cw_frame_new("")); /* no filter */
+
+		cw_cert_destroy(authkey);
+
+		rc = cw_pdu_send(sock, pdu);
+		is_int(rc, 0, "sent REQUEST PDU to meshd thread");
+		cw_pdu_destroy(pdu);
+
+		reply = cw_pdu_recv(sock);
+		isnt_null(reply, "Got a reply from meshd thread");
+		is_string(s = cw_pdu_text(reply, 0), "ERROR", "REQUEST -> ERROR"); free(s);
+		is_string(s = cw_pdu_text(reply, 1), "Authentication failed (pubkey)",
+				"Authentication failed (username mismatch)"); free(s);
+		is_null(cw_pdu_text(reply, 2), "There is no 3rd frame");
+		cw_pdu_destroy(reply);
+
+		/* send the safe word to terminate the meshd thread */
+		pdu = cw_pdu_make(NULL, 1, "TEST_COMPLETE");
+		cw_pdu_send(sock, pdu);
+		cw_pdu_destroy(pdu);
+
+		void *_;
+		pthread_join(tid, &_);
+		cw_zmq_shutdown(sock, 0);
+		mesh_server_destroy(server);
+		zmq_ctx_destroy(ctx);
+
+		free(authkey_path);
+		free(trustdb_path);
+	}
+
+	subtest { /* key-based authentication (untrusted key) */
+		char *trustdb_path = strdup(TEST_TMP "/data/mesh/trustdb");
+		char *authkey_path = strdup(TEST_TMP "/data/mesh/key.untrusted");
+
+		char *s; int rc;
+
+		void *ctx = zmq_ctx_new();
+		mesh_server_t *server = mesh_server_new(ctx);
+
+		ok(mesh_server_setopt(server, MESH_SERVER_TRUSTDB, trustdb_path, strlen(trustdb_path)) == 0,
+			"Set trust database path for key-based auth");
+		ok(mesh_server_setopt(server, MESH_SERVER_SAFE_WORD, "TEST_COMPLETE", 13) == 0,
+			"Set a safe-word for early exit");
+
+		ok(mesh_server_bind_control(server, "inproc://ctl.1") == 0,
+			"Bound control port to inproc://ctl.1");
+		ok(mesh_server_bind_broadcast(server, "inproc://pub.1") == 0,
+			"Bound broadcast port to inproc://pub.1");
+
+		pthread_t tid;
+		rc = pthread_create(&tid, NULL, mesh_server_thread, server);
+		is_int(rc, 0, "created meshd thread");
+
+		void *sock = zmq_socket(server->zmq, ZMQ_DEALER);
+		rc = zmq_connect(sock, "inproc://ctl.1");
+		is_int(rc, 0, "connected to inproc://ctl.1");
+
+		cw_cert_t *authkey = cw_cert_read(authkey_path);
+		isnt_null(authkey, "Read authkey from test data");
+
+		unsigned char unsealed[256 - 64];
+		randombytes(unsealed, 256 - 64);
+		uint8_t *sealed;
+		unsigned long long slen;
+		slen = cw_cert_seal(authkey, unsealed, 256 - 64, &sealed);
+		is_int(slen, 256, "sealed message is 256 bytes long");
+
+		cw_pdu_t *pdu, *reply;
+		pdu = cw_pdu_make(NULL, 2, "REQUEST", "rogue");
+		char *pubkey = cw_cert_public_s(authkey);
+		cw_pdu_extend(pdu, cw_frame_new(pubkey));
+		cw_pdu_extend(pdu, cw_frame_newbuf((const char*)sealed, 256));
+		free(pubkey);
+		free(sealed);
+		cw_pdu_extend(pdu, cw_frame_new("show version"));
+		cw_pdu_extend(pdu, cw_frame_new("")); /* no filter */
+
+		cw_cert_destroy(authkey);
+
+		rc = cw_pdu_send(sock, pdu);
+		is_int(rc, 0, "sent REQUEST PDU to meshd thread");
+		cw_pdu_destroy(pdu);
+
+		reply = cw_pdu_recv(sock);
+		isnt_null(reply, "Got a reply from meshd thread");
+		is_string(s = cw_pdu_text(reply, 0), "ERROR", "REQUEST -> ERROR"); free(s);
+		is_string(s = cw_pdu_text(reply, 1), "Authentication failed (pubkey)",
+				"Authentication failed (untrusted key)"); free(s);
+		is_null(cw_pdu_text(reply, 2), "There is no 3rd frame");
+		cw_pdu_destroy(reply);
+
+		/* send the safe word to terminate the meshd thread */
+		pdu = cw_pdu_make(NULL, 1, "TEST_COMPLETE");
+		cw_pdu_send(sock, pdu);
+		cw_pdu_destroy(pdu);
+
+		void *_;
+		pthread_join(tid, &_);
+		cw_zmq_shutdown(sock, 0);
+		mesh_server_destroy(server);
+		zmq_ctx_destroy(ctx);
+
+		free(authkey_path);
+		free(trustdb_path);
 	}
 
 	done_testing();

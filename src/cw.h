@@ -538,16 +538,20 @@ void cw_cache_touch(cw_cache_t *cc, const char *id, int32_t last);
 
  */
 
+#define CW_CERT_TYPE_ENCRYPTION 0
+#define CW_CERT_TYPE_SIGNING    1
+
 typedef struct {
 	char   *ident;
+	int     type;
 
 	int     pubkey;
 	uint8_t pubkey_bin[32];
-	uint8_t seckey_bin[32];
+	uint8_t seckey_bin[64];
 
 	int     seckey;
 	char    pubkey_b16[65];
-	char    seckey_b16[65];
+	char    seckey_b16[129];
 } cw_cert_t;
 
 typedef struct {
@@ -555,8 +559,9 @@ typedef struct {
 	cw_list_t certs;
 } cw_trustdb_t;
 
-cw_cert_t* cw_cert_new(void);
-cw_cert_t* cw_cert_generate(void);
+cw_cert_t* cw_cert_new(int type);
+cw_cert_t* cw_cert_make(int type, const char *pub, const char *sec);
+cw_cert_t* cw_cert_generate(int type);
 cw_cert_t* cw_cert_read(const char *path);
 cw_cert_t* cw_cert_readio(FILE *io);
 
@@ -572,6 +577,10 @@ char *cw_cert_secret_s(cw_cert_t *key);
 int cw_cert_rescan(cw_cert_t *key);
 int cw_cert_encode(cw_cert_t *key);
 
+unsigned long long cw_cert_seal(cw_cert_t *k, const void *u, unsigned long long ulen, uint8_t **s);
+unsigned long long cw_cert_unseal(cw_cert_t *k, const void *s, unsigned long long slen, uint8_t **u);
+int cw_cert_sealed(cw_cert_t *k, const void *s, unsigned long long slen);
+
 cw_trustdb_t* cw_trustdb_new(void);
 cw_trustdb_t* cw_trustdb_read(const char *path);
 cw_trustdb_t* cw_trustdb_readio(FILE *io);
@@ -583,7 +592,7 @@ void cw_trustdb_destroy(cw_trustdb_t *ca);
 
 int cw_trustdb_trust(cw_trustdb_t *ca, cw_cert_t *key);
 int cw_trustdb_revoke(cw_trustdb_t *ca, cw_cert_t *key);
-int cw_trustdb_verify(cw_trustdb_t *ca, cw_cert_t *key);
+int cw_trustdb_verify(cw_trustdb_t *ca, cw_cert_t *key, const char *ident);
 
 /*
 

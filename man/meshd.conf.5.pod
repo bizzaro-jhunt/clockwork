@@ -62,6 +62,29 @@ It must contain both the public and private keys.
 
 Defaults to I</etc/clockwork/certs/meshd>.
 
+=item B<auth.service> - PAM Authentication Service
+
+For password-based authentication, where the remote user provides
+their username and password, B<meshd> will use PAM to verify the
+credentials.  This gives the system administrator full control
+over the authentication policy in play for Mesh.
+
+Defaults to I<clockwork>.
+
+=item B<auth.trusted> - Public Key Trust Database
+
+For public-key authentication, where the remote user proves that
+they have access to the private component of a user keypair,
+B<meshd> uses a trust database to keep track of what public keys
+have been marked as trusted for what usernames.
+
+The trust database is a flat file containing only publicly
+available information, so it doesn't need any special permissions.
+
+Defaults to I</etc/clockwork/auth/trusted>.
+
+The trust database can be managed with the B<cw-trust> tool.
+
 =item B<query_cache.size> - Query Cache Size
 
 This configuration option lets you size the query cache to

@@ -657,14 +657,14 @@ cw_hash_t* fact_read_string(const char *s, cw_hash_t *facts)
 	assert(facts); // LCOV_EXCL_LINE
 
 	size_t i;
-	struct stringlist *lines = stringlist_split(s, strlen(s), "\n", SPLIT_GREEDY);
+	cw_strl_t *lines = cw_strl_split(s, strlen(s), "\n", SPLIT_GREEDY);
 	if (!lines) return NULL;
 
 	for (i = 0; i < lines->num; i++) {
 		fact_parse(lines->strings[i], facts);
 	}
 
-	stringlist_free(lines);
+	cw_strl_free(lines);
 	return facts;
 }
 
@@ -681,23 +681,23 @@ int fact_write(FILE *io, cw_hash_t *facts)
 	assert(io); // LCOV_EXCL_LINE
 	assert(facts); // LCOV_EXCL_LINE
 
-	struct stringlist *lines;
+	cw_strl_t *lines;
 	char buf[8192] = {0};
 	char *k; void *v;
 	size_t i;
 
-	lines = stringlist_new(NULL);
+	lines = cw_strl_new(NULL);
 	for_each_key_value(facts, k, v) {
 		snprintf(buf, 8192, "%s=%s\n", k, (const char*)v);
-		stringlist_add(lines, buf);
+		cw_strl_add(lines, buf);
 	}
 
-	stringlist_sort(lines, STRINGLIST_SORT_ASC);
+	cw_strl_sort(lines, STRL_ASC);
 	for_each_string(lines, i) {
 		fputs(lines->strings[i], io);
 	}
 
-	stringlist_free(lines);
+	cw_strl_free(lines);
 	return 0;
 }
 

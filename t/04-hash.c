@@ -18,7 +18,6 @@
  */
 
 #include "test.h"
-#include "../src/gear/gear.h"
 
 TESTS {
 	subtest {

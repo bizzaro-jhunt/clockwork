@@ -21,7 +21,6 @@
 #include <ctype.h>
 #include <assert.h>
 #include "mesh.h"
-#include "gear/gear.h"
 #include "userdb.h"
 #include "policy.h"
 #include "pendulum.h"
@@ -227,7 +226,7 @@ static int s_cmd_reconstruct(cmd_t *cmd)
 {
 	assert(cmd);
 
-	struct stringlist *tokens = stringlist_new(NULL);
+	cw_strl_t *tokens = cw_strl_new(NULL);
 	cmd_token_t *t;
 
 	for_each_object(t, &cmd->tokens, l) {
@@ -242,15 +241,15 @@ static int s_cmd_reconstruct(cmd_t *cmd)
 
 		if (quoted) {
 			char *s = s_quote_escape(t->value);
-			stringlist_add(tokens, s);
+			cw_strl_add(tokens, s);
 			free(s);
 		} else {
-			stringlist_add(tokens, t->value);
+			cw_strl_add(tokens, t->value);
 		}
 	}
 
-	cmd->string = stringlist_join(tokens, " ");
-	stringlist_free(tokens);
+	cmd->string = cw_strl_join(tokens, " ");
+	cw_strl_free(tokens);
 	return 0;
 }
 

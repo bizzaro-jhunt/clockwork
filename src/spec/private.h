@@ -86,7 +86,7 @@ typedef struct {
 	unsigned int       errors;   /* Number of times spec_parser_error called */
 
 	const char        *file;     /* Name of the current file being parsed */
-	struct stringlist *files;    /* "Stack" of file names processed so far */
+	cw_strl_t         *files;    /* "Stack" of file names processed so far */
 	cw_list_t          fseen;    /* List of device ID / inode pairs already include'd */
 
 	struct manifest *root;

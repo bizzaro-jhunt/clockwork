@@ -27,7 +27,7 @@
 #define ENFORCE(r,f)   (r)->enforced  |=  (f)
 #define UNENFORCE(r,f) (r)->enforced  &= ~(f)
 
-static int _group_update(struct stringlist*, struct stringlist*, const char*);
+static int _group_update(cw_strl_t*, cw_strl_t*, const char*);
 static int _setup_path_deps(const char *key, const char *path, struct policy *pol);
 static void _hash_attr(cw_hash_t *attrs, const char *key, void *val);
 
@@ -36,16 +36,16 @@ static void _hash_attr(cw_hash_t *attrs, const char *key, void *val);
 
 /*****************************************************************/
 
-static int _group_update(struct stringlist *add, struct stringlist *rm, const char *user)
+static int _group_update(cw_strl_t *add, cw_strl_t *rm, const char *user)
 {
 	/* put user in add */
-	if (stringlist_search(add, user) != 0) {
-		stringlist_add(add, user);
+	if (cw_strl_search(add, user) != 0) {
+		cw_strl_add(add, user);
 	}
 
 	/* take user out of rm */
-	if (stringlist_search(rm, user) == 0) {
-		stringlist_remove(rm, user);
+	if (cw_strl_search(rm, user) == 0) {
+		cw_strl_remove(rm, user);
 	}
 
 	return 0;
@@ -1036,12 +1036,12 @@ void* res_group_clone(const void *res, const char *key)
 	rg->gid    = RES_DEFAULT(orig, gid, 0);
 
 	/* FIXME: clone members of res_group */
-	rg->mem_add = stringlist_new(NULL);
-	rg->mem_rm  = stringlist_new(NULL);
+	rg->mem_add = cw_strl_new(NULL);
+	rg->mem_rm  = cw_strl_new(NULL);
 
 	/* FIXME: clone admins of res_group */
-	rg->adm_add = stringlist_new(NULL);
-	rg->adm_rm  = stringlist_new(NULL);
+	rg->adm_add = cw_strl_new(NULL);
+	rg->adm_rm  = cw_strl_new(NULL);
 
 	/* state variables are never cloned */
 	rg->grp = NULL;
@@ -1069,16 +1069,16 @@ void res_group_free(void *res)
 		free(rg->passwd);
 
 		if (rg->mem) {
-			stringlist_free(rg->mem);
+			cw_strl_free(rg->mem);
 		}
-		stringlist_free(rg->mem_add);
-		stringlist_free(rg->mem_rm);
+		cw_strl_free(rg->mem_add);
+		cw_strl_free(rg->mem_rm);
 
 		if (rg->adm) {
-			stringlist_free(rg->adm);
+			cw_strl_free(rg->adm);
 		}
-		stringlist_free(rg->adm_add);
-		stringlist_free(rg->adm_rm);
+		cw_strl_free(rg->adm_add);
+		cw_strl_free(rg->adm_rm);
 	}
 	free(rg);
 }
@@ -1091,17 +1091,17 @@ char* res_group_key(const void *res)
 	return cw_string("group:%s", rg->key);
 }
 
-static char* _res_group_roster_mv(struct stringlist *add, struct stringlist *rm)
+static char* _res_group_roster_mv(cw_strl_t *add, cw_strl_t *rm)
 {
 	char *added   = NULL;
 	char *removed = NULL;
 	char *final   = NULL;
 
 	if (add->num > 0) {
-		added = stringlist_join(add, " ");
+		added = cw_strl_join(add, " ");
 	}
 	if (rm->num > 0) {
-		removed = stringlist_join(rm, " !");
+		removed = cw_strl_join(rm, " !");
 	}
 
 	if (added && removed) {
@@ -1154,7 +1154,7 @@ int res_group_set(void *res, const char *name, const char *value)
 	struct res_group *rg = (struct res_group*)(res);
 
 	/* for multi-value attributes */
-	struct stringlist *multi;
+	cw_strl_t *multi;
 	size_t i;
 
 	assert(rg); // LCOV_EXCL_LINE
@@ -1183,11 +1183,11 @@ int res_group_set(void *res, const char *name, const char *value)
 		}
 
 	} else if (strcmp(name, "members") == 0) {
-		multi = stringlist_split(value, strlen(value), " ", SPLIT_GREEDY);
+		multi = cw_strl_split(value, strlen(value), " ", SPLIT_GREEDY);
 		for_each_string(multi, i) {
 			res_group_set(res, "member", multi->strings[i]);
 		}
-		stringlist_free(multi);
+		cw_strl_free(multi);
 
 	} else if (strcmp(name, "admin") == 0) {
 		if (value[0] == '!') {
@@ -1197,11 +1197,11 @@ int res_group_set(void *res, const char *name, const char *value)
 		}
 
 	} else if (strcmp(name, "admins") == 0) {
-		multi = stringlist_split(value, strlen(value), " ", SPLIT_GREEDY);
+		multi = cw_strl_split(value, strlen(value), " ", SPLIT_GREEDY);
 		for_each_string(multi, i) {
 			res_group_set(res, "admin", multi->strings[i]);
 		}
-		stringlist_free(multi);
+		cw_strl_free(multi);
 
 	} else if (strcmp(name, "pwhash") == 0 || strcmp(name, "password") == 0) {
 		free(rg->passwd);
@@ -1814,7 +1814,7 @@ void* res_host_clone(const void *res, const char *key)
 	rh->enforced  = RES_DEFAULT(orig, enforced, RES_NONE);
 
 	/* FIXME: clone host aliases */
-	rh->aliases = stringlist_new(NULL);
+	rh->aliases = cw_strl_new(NULL);
 
 	rh->ip = RES_DEFAULT_STR(orig, ip, NULL);
 
@@ -1837,7 +1837,7 @@ void res_host_free(void *res)
 		free(rh->aug_root);
 		free(rh->hostname);
 		free(rh->ip);
-		stringlist_free(rh->aliases);
+		cw_strl_free(rh->aliases);
 
 		free(rh->key);
 	}
@@ -1862,7 +1862,7 @@ int res_host_attrs(const void *res, cw_hash_t *attrs)
 	_hash_attr(attrs, "present",  strdup(ENFORCED(rh, RES_HOST_ABSENT) ? "no" : "yes"));
 	_hash_attr(attrs, "ip", cw_strdup(rh->ip));
 	if (ENFORCED(rh, RES_HOST_ALIASES)) {
-		_hash_attr(attrs, "aliases", stringlist_join(rh->aliases, " "));
+		_hash_attr(attrs, "aliases", cw_strl_join(rh->aliases, " "));
 	} else {
 		_hash_attr(attrs, "aliases", NULL);
 	}
@@ -1875,7 +1875,7 @@ int res_host_set(void *res, const char *name, const char *value)
 {
 	struct res_host *rh = (struct res_host*)(res);
 	assert(rh); // LCOV_EXCL_LINE
-	struct stringlist *alias_tmp;
+	cw_strl_t *alias_tmp;
 
 	if (strcmp(name, "hostname") == 0) {
 		free(rh->hostname);
@@ -1886,12 +1886,12 @@ int res_host_set(void *res, const char *name, const char *value)
 		rh->ip = strdup(value);
 
 	} else if (strcmp(name, "aliases") == 0 || strcmp(name, "alias") == 0) {
-		alias_tmp = stringlist_split(value, strlen(value), " ", SPLIT_GREEDY);
-		if (stringlist_add_all(rh->aliases, alias_tmp) != 0) {
-			stringlist_free(alias_tmp);
+		alias_tmp = cw_strl_split(value, strlen(value), " ", SPLIT_GREEDY);
+		if (cw_strl_add_all(rh->aliases, alias_tmp) != 0) {
+			cw_strl_free(alias_tmp);
 			return -1;
 		}
-		stringlist_free(alias_tmp);
+		cw_strl_free(alias_tmp);
 
 		ENFORCE(rh, RES_HOST_ALIASES);
 

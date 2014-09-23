@@ -61,7 +61,7 @@ struct manifest* parse_file(const char *path)
 
 	ctx.file = NULL;
 	ctx.warnings = ctx.errors = 0;
-	ctx.files = stringlist_new(NULL);
+	ctx.files = cw_strl_new(NULL);
 	cw_list_init(&ctx.fseen);
 
 	yylex_init_extra(&ctx, &ctx.scanner);
@@ -71,7 +71,7 @@ struct manifest* parse_file(const char *path)
 	manifest = ctx.root;
 
 	yylex_destroy(ctx.scanner);
-	stringlist_free(ctx.files);
+	cw_strl_free(ctx.files);
 	for_each_object_safe(seen, tmp, &ctx.fseen, ls) {
 		free(seen);
 	}

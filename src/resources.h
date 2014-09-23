@@ -112,14 +112,14 @@ struct res_group {
 	char *passwd; /* encrypted group password */
 	gid_t gid;    /* numeric group ID */
 
-	struct stringlist *mem_add;  /* users that should be in this group */
-	struct stringlist *mem_rm;   /* users that should not be in this group */
+	cw_strl_t *mem_add;  /* users that should be in this group */
+	cw_strl_t *mem_rm;   /* users that should not be in this group */
 
-	struct stringlist *adm_add;  /* users that should be admins */
-	struct stringlist *adm_rm;   /* users that should not be admins */
+	cw_strl_t *adm_add;  /* users that should be admins */
+	cw_strl_t *adm_rm;   /* users that should not be admins */
 
-	struct stringlist *mem;      /* copy of gr_mem (from stat) for fixup */
-	struct stringlist *adm;      /* copy of sg_adm (from stat) for fixup */
+	cw_strl_t *mem;      /* copy of gr_mem (from stat) for fixup */
+	cw_strl_t *adm;      /* copy of sg_adm (from stat) for fixup */
 
 	struct group *grp;    /* pointer to /etc/group entry */
 	struct sgrp *sg;      /* pointer to /etc/gshadow entry */
@@ -229,7 +229,7 @@ struct res_host {
 
 	char *hostname;
 	char *ip;
-	struct stringlist *aliases;
+	cw_strl_t *aliases;
 
 	unsigned int enforced;
 

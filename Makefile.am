@@ -171,9 +171,6 @@ test_source += src/spec/parser.h
 test_source += src/spec/parser.c
 test_source += src/spec/private.h
 
-test_source += src/gear/gear.h
-test_source += src/gear/string.c
-
 TEST_cogd_SOURCES        = t/test-cogd.c   $(core_src) $(parser_spec_src)
 TEST_clockd_SOURCES      = t/test-clockd.c $(core_src) $(parser_spec_src)
 TEST_meshd_SOURCES       = t/test-meshd.c  $(core_src) $(parser_spec_src)
@@ -270,7 +267,6 @@ core_src += src/mesh.h src/mesh.c
 core_src += src/sha1.h src/sha1.c src/userdb.h src/userdb.c
 core_src += src/policy.h src/policy.c
 core_src += src/resource.h src/resource.c src/resources.h src/resources.c
-core_src += src/gear/gear.h src/gear/string.c
 core_src += src/pendulum.h src/pendulum.c
 core_src += src/pendulum_funcs.h src/pendulum_funcs.c
 

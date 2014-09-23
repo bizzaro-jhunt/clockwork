@@ -101,7 +101,7 @@ static void lexer_process_file(const char *path, spec_parser_context *ctx)
 	buf = yy_create_buffer(io, YY_BUF_SIZE, ctx->scanner);
 	yypush_buffer_state(buf, ctx->scanner);
 
-	stringlist_add(ctx->files, path);
+	cw_strl_add(ctx->files, path);
 	ctx->file = ctx->files->strings[ctx->files->num-1];
 }
 
@@ -203,7 +203,7 @@ void lexer_include_file(const char *path, spec_parser_context *ctx)
 
 int lexer_include_return(spec_parser_context *ctx)
 {
-	stringlist_remove(ctx->files, ctx->file);
+	cw_strl_remove(ctx->files, ctx->file);
 	lexer_close(ctx);
 
 	if (ctx->files->num == 0) {

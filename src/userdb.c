@@ -86,16 +86,16 @@ static struct sgrp* fgetsgent(FILE *io)
 static int putsgent(const struct sgrp *g, FILE *io)
 {
 	char *members, *admins;
-	struct stringlist *mem, *adm;
+	cw_strl_t *mem, *adm;
 	int ret;
 
-	mem = stringlist_new(g->sg_mem);
-	members = stringlist_join(mem, ",");
-	stringlist_free(mem);
+	mem = cw_strl_new(g->sg_mem);
+	members = cw_strl_join(mem, ",");
+	cw_strl_free(mem);
 
-	adm  = stringlist_new(g->sg_adm);
-	admins = stringlist_join(adm, ",");
-	stringlist_free(adm);
+	adm  = cw_strl_new(g->sg_adm);
+	admins = cw_strl_join(adm, ",");
+	cw_strl_free(adm);
 
 	ret = fprintf(io, "%s:%s:%s:%s\n", g->sg_namp, g->sg_passwd, admins, members);
 	free(admins); free(members);
@@ -323,21 +323,21 @@ char* userdb_lookup(struct pwdb *pdb, struct grdb *gdb, const char *name)
 	struct group *gr = grdb_get_by_gid(gdb, pw->pw_gid);
 	if (!gr) return NULL;
 
-	struct stringlist *creds = stringlist_new(NULL);
-	stringlist_add(creds, pw->pw_name);
-	stringlist_add(creds, gr->gr_name);
+	cw_strl_t *creds = cw_strl_new(NULL);
+	cw_strl_add(creds, pw->pw_name);
+	cw_strl_add(creds, gr->gr_name);
 
 	struct grdb *next = gdb;
 	while (next) {
 		int i;
 		for (i = 0; next->group->gr_mem[i]; i++)
 			if (strcmp(next->group->gr_mem[i], pw->pw_name) == 0)
-				stringlist_add(creds, next->group->gr_name);
+				cw_strl_add(creds, next->group->gr_name);
 		next = next->next;
 	}
 
-	char *list = stringlist_join(creds, ":");
-	stringlist_free(creds);
+	char *list = cw_strl_join(creds, ":");
+	cw_strl_free(creds);
 	return list;
 }
 

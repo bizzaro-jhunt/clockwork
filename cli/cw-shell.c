@@ -38,7 +38,7 @@ struct cwsh_opts {
 struct command {
 	char       *cmd;
 	size_t      argc;
-	struct stringlist *args;
+	cw_strl_t  *args;
 	char       *orig;
 };
 typedef int (*command_fn)(struct cwsh_opts *o, struct command*, int);
@@ -53,7 +53,7 @@ static void set_context(int type, const char *name, struct stree *obj);
 static void clear_policy(void);
 static void make_policy(void);
 static void load_facts_from_path(const char *path);
-static struct stringlist* hash_keys(cw_hash_t*);
+static cw_strl_t* hash_keys(cw_hash_t*);
 static int show_help_file(const char *path);
 static void show_hash_keys(cw_hash_t *h);
 static void show_facts(const char *pattern);
@@ -198,9 +198,9 @@ static struct command* parse_command(const char *s)
 
 	c->orig = strdup(s);
 	c->argc = 0;
-	c->args = stringlist_new(NULL);
+	c->args = cw_strl_new(NULL);
 	while ((tok = strtok_r(NULL, TOKEN_DELIM, &ctx)) != NULL) {
-		stringlist_add(c->args, tok);
+		cw_strl_add(c->args, tok);
 		c->argc++;
 	}
 
@@ -211,7 +211,7 @@ static void free_command(struct command* c)
 {
 	if (c) {
 		free(c->orig);
-		stringlist_free(c->args);
+		cw_strl_free(c->args);
 	}
 	free(c);
 }
@@ -539,14 +539,14 @@ static void load_facts_from_path(const char *path)
 	fclose(io);
 }
 
-static struct stringlist *hash_keys(cw_hash_t *h)
+static cw_strl_t *hash_keys(cw_hash_t *h)
 {
 	char *k, *v;
-	struct stringlist *l;
+	cw_strl_t *l;
 
-	l = stringlist_new(NULL);
+	l = cw_strl_new(NULL);
 	for_each_key_value(h, k, v)
-		stringlist_add(l, k);
+		cw_strl_add(l, k);
 
 	return l;
 }
@@ -570,9 +570,9 @@ static int show_help_file(const char *path)
 static void show_hash_keys(cw_hash_t *h)
 {
 	size_t i;
-	struct stringlist *keys = hash_keys(h);
+	cw_strl_t *keys = hash_keys(h);
 
-	stringlist_sort(keys, STRINGLIST_SORT_ASC);
+	cw_strl_sort(keys, STRL_ASC);
 	if (keys->num == 0) {
 		cw_log(LOG_INFO, "(none defined)");
 	} else {
@@ -588,13 +588,13 @@ static void show_facts(const char *pattern)
 	size_t i;
 	size_t cmpn = (pattern ? strlen(pattern) : 0);
 
-	struct stringlist *keys = hash_keys(FACTS);
+	cw_strl_t *keys = hash_keys(FACTS);
 	if (keys->num == 0) {
 		cw_log(LOG_INFO, "(none defined)");
 		return;
 	}
 
-	stringlist_sort(keys, STRINGLIST_SORT_ASC);
+	cw_strl_sort(keys, STRL_ASC);
 	for_each_string(keys,i) {
 		k = slv(keys, i);
 		v = cw_hash_get(FACTS, k);
@@ -657,7 +657,7 @@ static void show_acls(void)
 
 static void show_resources(void)
 {
-	struct stringlist *list;
+	cw_strl_t *list;
 	struct resource *r;
 	size_t i;
 	char type[256], *key;
@@ -668,16 +668,16 @@ static void show_resources(void)
 		return;
 	}
 
-	list = stringlist_new(NULL);
+	list = cw_strl_new(NULL);
 	for_each_resource(r, CONTEXT.policy) {
-		stringlist_add(list, r->key);
+		cw_strl_add(list, r->key);
 	}
 	if (list->num == 0) {
 		cw_log(LOG_INFO, "(none defined)");
 		return;
 	}
 
-	stringlist_sort(list, STRINGLIST_SORT_ASC);
+	cw_strl_sort(list, STRL_ASC);
 	for_each_string(list, i) {
 		strncpy(type, slv(list,i), 255); type[255] = '\0';
 
@@ -694,7 +694,7 @@ static void show_resource(const char *type, const char *name)
 	struct resource *r;
 	char *target = cw_string("%s:%s", type, name);
 	cw_hash_t *attrs;
-	struct stringlist *keys;
+	cw_strl_t *keys;
 	size_t i;
 	char *value;
 	size_t maxlen = 0, n;
@@ -711,7 +711,7 @@ static void show_resource(const char *type, const char *name)
 	} else {
 		attrs = resource_attrs(r);
 		keys = hash_keys(attrs);
-		stringlist_sort(keys, STRINGLIST_SORT_ASC);
+		cw_strl_sort(keys, STRL_ASC);
 
 		maxlen = 0;
 		for_each_string(keys, i) {
@@ -840,11 +840,11 @@ static void setup(void)
 
 static int dispatch(struct cwsh_opts *o, const char *c, int interactive)
 {
-	struct stringlist *commands;
+	cw_strl_t *commands;
 	size_t i;
 	int rc = 0, t;
 
-	commands = stringlist_split(c, strlen(c), ";", SPLIT_GREEDY);
+	commands = cw_strl_split(c, strlen(c), ";", SPLIT_GREEDY);
 	for_each_string(commands, i) {
 		t = dispatch1(o, slv(commands, i), interactive);
 		if (t && !interactive) {
@@ -854,7 +854,7 @@ static int dispatch(struct cwsh_opts *o, const char *c, int interactive)
 
 		if (!rc && t > 0) { rc = t; }
 	}
-	stringlist_free(commands);
+	cw_strl_free(commands);
 	return rc;
 }
 

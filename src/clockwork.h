@@ -84,6 +84,5 @@
 #include <limits.h>
 
 #include "sha1.h"
-#include "gear/gear.h"
 
 #endif

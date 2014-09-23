@@ -26,7 +26,6 @@
 
 #include "../src/clockwork.h"
 #include "../src/mesh.h"
-#include "../src/gear/gear.h"
 
 #define PROMPT_ECHO   1
 #define PROMPT_NOECHO 0
@@ -173,7 +172,7 @@ static client_t* s_init(int argc, char **argv)
 		{ 0, 0, 0, 0 },
 	};
 	int verbose = LOG_WARNING, noop = 0;
-	struct stringlist *filters = stringlist_new(NULL);
+	cw_strl_t *filters = cw_strl_new(NULL);
 
 	cw_log_open("cw-mesh", "stderr");
 	cw_log_level(LOG_ERR, NULL);
@@ -232,7 +231,7 @@ static client_t* s_init(int argc, char **argv)
 
 		case 'w':
 			x = cw_string("%s\n", optarg);
-			stringlist_add(filters, x);
+			cw_strl_add(filters, x);
 			free(x);
 			break;
 
@@ -263,7 +262,7 @@ static client_t* s_init(int argc, char **argv)
 	}
 
 	cw_log_level(verbose, NULL);
-	c->filters = stringlist_join(filters, "");
+	c->filters = cw_strl_join(filters, "");
 
 	LIST(config);
 	cw_cfg_set(&config, "mesh.timeout",  "40");

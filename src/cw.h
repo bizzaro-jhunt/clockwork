@@ -220,6 +220,36 @@ int cw_hash_merge(cw_hash_t *a, cw_hash_t *b);
 char* cw_string(const char *fmt, ...);
 char* cw_interpolate(const char *s, cw_hash_t *vars);
 
+typedef struct {
+	size_t   num;      /* number of actual strings */
+	size_t   len;      /* number of memory slots for strings */
+	char   **strings;  /* array of NULL-terminated strings */
+} cw_strl_t;
+typedef int (*strl_cmp_fn)(const void*, const void*);
+
+#define SPLIT_NORMAL  0
+#define SPLIT_GREEDY  1
+
+#define for_each_string(l,i) for ((i)=0; (i)<(l)->num; (i)++)
+
+int STRL_ASC(const void *a, const void *b);
+int STRL_DESC(const void *a, const void *b);
+
+cw_strl_t* cw_strl_new(char** src);
+cw_strl_t* cw_strl_dup(cw_strl_t *orig);
+void cw_strl_free(cw_strl_t *list);
+void cw_strl_sort(cw_strl_t *list, strl_cmp_fn cmp);
+void cw_strl_uniq(cw_strl_t *list);
+int cw_strl_search(const cw_strl_t *list, const char *needle);
+int cw_strl_add(cw_strl_t *list, const char *value);
+int cw_strl_add_all(cw_strl_t *dst, const cw_strl_t *src);
+int cw_strl_remove(cw_strl_t *list, const char *value);
+int cw_strl_remove_all(cw_strl_t *dst, cw_strl_t *src);
+cw_strl_t* cw_strl_intersect(const cw_strl_t *a, const cw_strl_t *b);
+int cw_strl_diff(cw_strl_t *a, cw_strl_t *b);
+char* cw_strl_join(cw_strl_t *list, const char *delim);
+cw_strl_t* cw_strl_split(const char *str, size_t len, const char *delim, int opt);
+
 /*
     ######## #### ##     ## ########
        ##     ##  ###   ### ##

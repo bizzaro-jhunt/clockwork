@@ -140,7 +140,123 @@ debugging and troubleshooting, it can be helpful to see these replies, to
 verify that a missing host is in fact not responding at all, rather than
 mistakenly (or unexpectedly) opting out.
 
+=item B<-Y>, B<--yaml>
+
+Output results in YAML format.  See B<OUTPUT FORMATS> for examples.
+
+=item B<-J>, B<--json>
+
+Output results in JSON format.  See B<OUTPUT FORMATS> for examples.
+
+=item B<-X>, B<--xml>
+
+Output results in XML format.  See B<OUTPUT FORMATS> for examples.
+
+=item B<-T>, B<--text>
+
+Output results in a simple, machine-readable text format.  This format is
+intended to be easily parsed by simple shell scripts.
+
+See B<OUTPUT FORMATS> for examples.
+
+=item B<-P>, B<--pretty>
+
+Output results in a pretty, human-readable format.  This is the default.
+
+See B<OUTPUT FORMATS> for examples.
+
 =back
+
+=head1 OUTPUT FORMATS
+
+=head2 YAML
+
+    ---
+    fe8565d6-2c2b-43e6-9c84-58a57f7d33ee:
+      fqdn: host1.example.com
+      status: 0
+      output: |-
+        command output
+    aef5002e-9238-43fe-b280-3e197136bb53:
+      fqdn: host2.example.com
+      status: 3
+      output: |-
+        more output
+        on multiple lines
+    d79835c2-7e0f-41c4-adb7-f87596229542:
+      fqdn: optout.example.com
+      status: ~
+      output: ~
+
+=head2 JSON (--json)
+
+    {
+      "fe8565d6-2c2b-43e6-9c84-58a57f7d33ee": {
+        "fqdn"   : "host1.example.com",
+        "status" : 0,
+        "output" : "command output\n"
+      },
+      "aef5002e-9238-43fe-b280-3e197136bb53": {
+        "fqdn"   : "host2.example.com",
+        "status" : 3,
+        "output" : "more output\non multiple lines\n"
+      },
+      "d79835c2-7e0f-41c4-adb7-f87596229542": {
+        "fqdn"   : "optout.example.com",
+        "status" : null,
+        "output" : null
+      },
+    }
+
+=head2 XML (--xml)
+
+    <?xml version="1.0" encoding="UTF-8"?>
+    <results>
+      <result uuid="fe8565d6-2c2b-43e6-9c84-58a57f7d33ee">
+        <fqdn>host1.example.com</fqdn>
+        <status>0</status>
+        <output><![CDATA[command output
+    </output>
+      </result>
+      <result uuid="aef5002e-9238-43fe-b280-3e197136bb53">
+        <fqdn>host2.example.com</fqdn>
+        <status>3</status>
+        <output><![CDATA[more output
+    on multiple lines
+    ]]></output>
+      </result>
+      <result uuid="d79835c2-7e0f-41c4-adb7-f87596229542">
+        <fqdn>optout.example.com</fqdn>
+        <optout/>
+      </result>
+    </results>
+
+=head2 Machine-parseable Text (--text)
+
+    fe8565d6-2c2b-43e6-9c84-58a57f7d33ee host1.example.com success 0
+     command output
+    aef5002e-9238-43fe-b280-3e197136bb53 host2.example.com failed 3
+     more output
+     on multiple lines
+    d79835c2-7e0f-41c4-adb7-f87596229542 optout.example.com optout
+
+=head2 Human-readable Text (--pretty)
+
+    host1.example.com succeeded
+    UUID fe8565d6-2c2b-43e6-9c84-58a57f7d33ee
+    ------------------------------------------------------------
+      command output
+
+
+    host2.example.com failed (rc=3)
+    UUID aef5002e-9238-43fe-b280-3e197136bb53
+    ------------------------------------------------------------
+     more output
+     on multiple lines
+
+
+    optout.example.com opted out
+    UUID d79835c2-7e0f-41c4-adb7-f87596229542
 
 =head1 AUTHOR
 

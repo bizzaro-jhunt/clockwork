@@ -30,7 +30,14 @@
 #define PROMPT_ECHO   1
 #define PROMPT_NOECHO 0
 
+#define FORMAT_YAML   1
+#define FORMAT_JSON   2
+#define FORMAT_XML    3
+#define FORMAT_TEXT   4
+#define FORMAT_PRETTY 5
+
 static int SHOW_OPTOUTS = 0;
+static int FORMAT = FORMAT_PRETTY;
 
 static char* s_prompt(const char *prompt, int echo)
 {
@@ -154,7 +161,7 @@ static client_t* s_init(int argc, char **argv)
 {
 	client_t *c = s_client_new();
 
-	const char *short_opts = "+h?Vvqnu:k:t:s:w:c:";
+	const char *short_opts = "+h?Vvqnu:k:t:s:w:c:YJXTP";
 	struct option long_opts[] = {
 		{ "help",        no_argument,       NULL, 'h' },
 		{ "version",     no_argument,       NULL, 'V' },
@@ -168,7 +175,13 @@ static client_t* s_init(int argc, char **argv)
 		{ "where",       required_argument, NULL, 'w' },
 		{ "config",      required_argument, NULL, 'c' },
 		{ "optouts",     no_argument,       NULL,  1  },
-		{ "cert",        required_argument, NULL, '2' },
+		{ "cert",        required_argument, NULL,  2  },
+
+		{ "yaml",        no_argument,       NULL, 'Y' },
+		{ "json",        no_argument,       NULL, 'J' },
+		{ "xml",         no_argument,       NULL, 'X' },
+		{ "text",        no_argument,       NULL, 'T' },
+		{ "pretty",      no_argument,       NULL, 'P' },
 		{ 0, 0, 0, 0 },
 	};
 	int verbose = LOG_WARNING, noop = 0;
@@ -254,6 +267,12 @@ static client_t* s_init(int argc, char **argv)
 				exit(1);
 			}
 			break;
+
+		case 'Y': FORMAT = FORMAT_YAML;   break;
+		case 'J': FORMAT = FORMAT_JSON;   break;
+		case 'X': FORMAT = FORMAT_XML;    break;
+		case 'T': FORMAT = FORMAT_TEXT;   break;
+		case 'P': FORMAT = FORMAT_PRETTY; break;
 
 		default:
 			fprintf(stderr, "Unknown flag '-%c' (optind %i / optarg '%s')\n", opt, optind, optarg);
@@ -357,6 +376,136 @@ static client_t* s_init(int argc, char **argv)
 	return c;
 }
 
+void print_header(void)
+{
+	switch (FORMAT) {
+	case FORMAT_YAML:
+		printf("---\n");
+		break;
+
+	case FORMAT_JSON:
+		printf("{\n");
+		break;
+
+	case FORMAT_XML:
+		printf("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+		printf("<results>\n");
+		break;
+	}
+}
+
+void print_optout(const char *fqdn, const char *uuid)
+{
+	switch (FORMAT) {
+	case FORMAT_YAML:
+		printf("%s:\n", uuid);
+		printf("  fqdn: %s\n", fqdn);
+		printf("  status: ~\n");
+		printf("  output: ~\n");
+		break;
+
+	case FORMAT_JSON:
+		printf("  \"%s\": {\n", uuid);
+		printf("    \"fqdn\"   : \"%s\",\n", fqdn);
+		printf("    \"status\" : null,\n");
+		printf("    \"output\" : null\n");
+		printf("  },\n");
+		break;
+
+	case FORMAT_XML:
+		printf("  <result uuid=\"%s\">\n", uuid);
+		printf("    <fqdn>%s</fqdn>\n", fqdn);
+		printf("    <optout/>\n");
+		printf("  </result>\n");
+		break;
+
+	case FORMAT_TEXT:
+		printf("%s %s optout\n", uuid, fqdn);
+		break;
+
+	case FORMAT_PRETTY:
+		printf("%s opted out\nUUID %s\n\n", fqdn, uuid);
+		break;
+	}
+}
+
+static void printf_eachline(const char *fmt, const char *buf)
+{
+	size_t len = 0;
+	const char *a, *b;
+
+	for (a = buf, b = strchr(a, '\n'); b; a = b + 1, b = strchr(a, '\n'))
+		if (b - a > len)
+			len = b - a;
+
+	char *tmp = cw_alloc(len + 1);
+	for (a = buf, b = strchr(a, '\n'); b; a = b + 1, b = strchr(a, '\n')) {
+		memcpy(tmp, a, b - a);
+		tmp[b-a] = '\0';
+		printf(fmt, tmp);
+	}
+}
+
+void print_result(const char *fqdn, const char *uuid, const char *result, const char *output)
+{
+	switch (FORMAT) {
+	case FORMAT_YAML:
+		printf("%s:\n", uuid);
+		printf("  fqdn: %s\n", fqdn);
+		printf("  status: %s\n", result);
+		printf("  output: |-\n");
+		printf_eachline("    %s\n", output);
+		break;
+
+	case FORMAT_JSON:
+		printf("  \"%s\": {\n", uuid);
+		printf("    \"fqdn\"   : \"%s\",\n", fqdn);
+		printf("    \"status\" : \"%s\",\n", result);
+		printf("    \"output\" : \"%s\"\n",  output); /* FIXME: escape quotes/newlines! */
+		printf("  }\n");
+		break;
+
+	case FORMAT_XML:
+		printf("  <result uuid=\"%s\">\n", uuid);
+		printf("    <fqdn>%s</fqdn>\n", fqdn);
+		printf("    <status>%s</status>\n", result);
+		printf("    <output><![CDATA[%s]]></output>\n", output); /* FIXME: escape ']]>' */
+		printf("  </result>\n");
+		break;
+
+	case FORMAT_TEXT:
+		printf("%s %s %s %s\n", uuid, fqdn,
+			strcmp(result, "0") == 0 ? "success" : "failed",
+			result);
+		printf_eachline(" %s\n", output);
+		break;
+
+	case FORMAT_PRETTY:
+		if (strcmp(result, "0") == 0)
+			printf("%s succeeded\n", fqdn);
+		else
+			printf("%s failed (rc=%s)\n", fqdn, result);
+		printf("UUID %s\n", uuid);
+		printf("------------------------------------------------------------\n");
+		printf_eachline("  %s\n", output);
+		printf("\n\n");
+		break;
+	}
+}
+
+void print_footer(void)
+{
+	switch (FORMAT) {
+	case FORMAT_JSON:
+		printf("}\n");
+		break;
+
+	case FORMAT_XML:
+		printf("</results>\n");
+		break;
+	}
+}
+
 int main(int argc, char **argv)
 {
 	client_t *c = s_init(argc, argv);
@@ -427,6 +576,8 @@ int main(int argc, char **argv)
 	cw_pdu_destroy(reply);
 	cw_log(LOG_INFO, "query submitted; serial = %s", serial);
 
+	print_header();
+
 	int n;
 	for (n = c->timeout_ms / c->sleep_ms; n > 0; n--) {
 		cw_sleep_ms(c->sleep_ms);
@@ -450,16 +601,29 @@ int main(int argc, char **argv)
 				break;
 			}
 
+
 			if (strcmp(reply->type, "OPTOUT") == 0) {
-				if (SHOW_OPTOUTS)
-					printf("%s %s optout\n", cw_pdu_text(reply, 1),
-					                         cw_pdu_text(reply, 2));
+				if (SHOW_OPTOUTS) {
+					char *fqdn = cw_pdu_text(reply, 1);
+					char *uuid = cw_pdu_text(reply, 2);
+					print_optout(fqdn, uuid);
+
+					free(fqdn);
+					free(uuid);
+				}
 
 			} else if (strcmp(reply->type, "RESULT") == 0) {
-				printf("%s %s %s %s", cw_pdu_text(reply, 1),
-				                      cw_pdu_text(reply, 2),
-				                      cw_pdu_text(reply, 3),
-				                      cw_pdu_text(reply, 4));
+				char *fqdn   = cw_pdu_text(reply, 1);
+				char *uuid   = cw_pdu_text(reply, 2);
+				char *result = cw_pdu_text(reply, 3);
+				char *output = cw_pdu_text(reply, 4);
+
+				print_result(fqdn, uuid, result, output);
+
+				free(fqdn);
+				free(uuid);
+				free(result);
+				free(output);
 
 			} else {
 				cw_log(LOG_ERR, "Unknown response: %s", reply->type);
@@ -470,6 +634,8 @@ int main(int argc, char **argv)
 			cw_pdu_destroy(reply);
 		}
 	}
+
+	print_footer();
 
 	cw_log(LOG_INFO, "cw-mesh shutting down");
 

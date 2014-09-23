@@ -3172,3 +3172,108 @@ char* cw_fqdn(void)
 	freeaddrinfo(info);
 	return ret ? ret : strdup(nodename);
 }
+
+/*
+
+    ########     ###    ######## ##     ##
+    ##     ##   ## ##      ##    ##     ##
+    ##     ##  ##   ##     ##    ##     ##
+    ########  ##     ##    ##    #########
+    ##        #########    ##    ##     ##
+    ##        ##     ##    ##    ##     ##
+    ##        ##     ##    ##    ##     ##
+
+ */
+
+cw_path_t* cw_path_new(const char *s)
+{
+	cw_path_t *p;
+	if (!s) { return NULL; }
+
+	p = calloc(1, sizeof(cw_path_t));
+	if (!p) { return NULL; }
+
+	p->n = p->len = strlen(s);
+	p->buf = calloc(p->len+2, sizeof(char));
+	if (!p->buf) {
+		free(p);
+		return NULL;
+	}
+
+	memcpy(p->buf, s, p->len);
+	return p;
+}
+
+void cw_path_free(cw_path_t *p)
+{
+	if (!p) return;
+	free(p->buf);
+	free(p);
+}
+
+const char *cw_path(cw_path_t *p)
+{
+	return p->buf;
+}
+
+int cw_path_canon(cw_path_t *p)
+{
+	char *s, *a, *b, *end;
+	if (p->len == 0) { return 0; }
+
+	s = p->buf;
+	end = s + p->len;
+	for (b = s+1; b <= end; b++) {
+		if (b == end || *b == '/') {
+			for (a = b-1; a != s && *a != '/'; a--)
+				;
+			if (b-a == 3 && memcmp(a, "/..", b-a) == 0) {
+				for (a--; a >= s && *a != '/'; a--)
+						;
+				if (a <= s) a = s; // avoid underflow
+				memset(a, 0, b-a);
+			} else if (b-a == 2 && memcmp(a, "/.", b-a) == 0) {
+				memset(a, 0, b-a);
+			}
+		}
+	}
+
+	for (a = b = s; a != end; a++) {
+		if (*a) { *b++ = *a; }
+	}
+	if (b == s) {
+		*b++ = '/';
+	} else if (*(b-1) == '/') {
+		*b-- = '\0';
+	}
+	*b = '\0';
+
+	p->n = p->len = strlen(s);
+	if (p->len == 0) {
+		*s = '/';
+		p->n = p->len = 1;
+	}
+	return 0;
+}
+
+int cw_path_push(cw_path_t *p)
+{
+	char *s = p->buf;
+	while (*(++s))
+		;
+	if (*(s+1)) { *s = '/'; }
+	p->n = strlen(s);
+	return *s;
+}
+
+int cw_path_pop(cw_path_t *p)
+{
+	char *s;
+	for (s = p->buf + p->n; s > p->buf; s--, p->n--) {
+		if (*s == '/') {
+			*s = '\0';
+			return 1;
+		}
+	}
+	return 0;
+}

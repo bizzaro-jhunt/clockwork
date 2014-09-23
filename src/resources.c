@@ -53,21 +53,21 @@ static int _group_update(struct stringlist *add, struct stringlist *rm, const ch
 
 static int _setup_path_deps(const char *key, const char *spath, struct policy *pol)
 {
-	struct path *p;
+	cw_path_t *p;
 	struct dependency *dep;
 	struct resource *dir;
 
 	cw_log(LOG_DEBUG, "setup_path_deps: setting up for %s (%s)", spath, key);
-	p = path_new(spath);
+	p = cw_path_new(spath);
 	if (!p) {
 		return -1;
 	}
-	if (path_canon(p) != 0) { goto failed; }
+	if (cw_path_canon(p) != 0) { goto failed; }
 
-	while (path_pop(p) != 0) {
+	while (cw_path_pop(p) != 0) {
 		/* look for deps, and add them. */
-		cw_log(LOG_DEBUG, "setup_path_deps: looking for %s", path(p));
-		dir = policy_find_resource(pol, RES_DIR, "path", path(p));
+		cw_log(LOG_DEBUG, "setup_path_deps: looking for %s", cw_path(p));
+		dir = policy_find_resource(pol, RES_DIR, "path", cw_path(p));
 		if (dir) {
 			dep = dependency_new(key, dir->key);
 			if (policy_add_dependency(pol, dep) != 0) {
@@ -75,16 +75,16 @@ static int _setup_path_deps(const char *key, const char *spath, struct policy *p
 				goto failed;
 			}
 		} else {
-			cw_log(LOG_DEBUG, "setup_path_deps: no res_dir defined for '%s'", path(p));
+			cw_log(LOG_DEBUG, "setup_path_deps: no res_dir defined for '%s'", cw_path(p));
 		}
 	}
 
-	path_free(p);
+	cw_path_free(p);
 	return 0;
 
 failed:
 	cw_log(LOG_DEBUG, "setup_path_deps: unspecified failure");
-	path_free(p);
+	cw_path_free(p);
 	return -1;
 }
 

@@ -94,12 +94,6 @@ struct stringlist {
  */
 typedef int (*sl_comparator)(const void*, const void*);
 
-struct path {
-	char     *buf;
-	ssize_t   n;
-	size_t    len;
-};
-
 #define for_each_string(l,i) for ((i)=0; (i)<(l)->num; (i)++)
 
 int STRINGLIST_SORT_ASC(const void *a, const void *b);
@@ -119,12 +113,5 @@ struct stringlist* stringlist_intersect(const struct stringlist *a, const struct
 int stringlist_diff(struct stringlist *a, struct stringlist *b);
 char* stringlist_join(struct stringlist *list, const char *delim);
 struct stringlist* stringlist_split(const char *str, size_t len, const char *delim, int opt);
-
-struct path* path_new(const char *path);
-void path_free(struct path *path);
-const char *path(struct path *path);
-int path_canon(struct path *path);
-int path_push(struct path *path);
-int path_pop(struct path *path);
 
 #endif

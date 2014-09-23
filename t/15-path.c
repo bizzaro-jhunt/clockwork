@@ -18,32 +18,32 @@
  */
 
 #include "test.h"
-#include "../src/gear/gear.h"
+#include "../src/cw.h"
 
 static void is_canonical(const char *orig_path, const char *expected)
 {
-	struct path *p;
-	isnt_null(p = path_new(orig_path), "path_new succeeds");
-	ok(path_canon(p) == 0, "path_canon returns 0");
-	is_string(path(p), expected, orig_path);
-	path_free(p);
+	cw_path_t *p;
+	isnt_null(p = cw_path_new(orig_path), "path_new succeeds");
+	ok(cw_path_canon(p) == 0, "cw_path_canon returns 0");
+	is_string(cw_path(p), expected, orig_path);
+	cw_path_free(p);
 }
 
 TESTS {
 	subtest {
-		struct path *p = NULL;
-		path_free(p);
-		pass("path_free(NULL) doesn't segfault");
+		cw_path_t *p = NULL;
+		cw_path_free(p);
+		pass("cw_path_free(NULL) doesn't segfault");
 	}
 
 	subtest {
-		struct path *p;
+		cw_path_t *p;
 
-		is_null(p = path_new(NULL), "NULL string = NULL path");
-		isnt_null(p = path_new("/etc/test"), "created new path");
-		is_string(path(p), "/etc/test", "path buffer");
+		is_null(p = cw_path_new(NULL), "NULL string = NULL path");
+		isnt_null(p = cw_path_new("/etc/test"), "created new path");
+		is_string(cw_path(p), "/etc/test", "path buffer");
 
-		path_free(p);
+		cw_path_free(p);
 	}
 
 	subtest {
@@ -82,34 +82,34 @@ TESTS {
 	}
 
 	subtest {
-		struct path *p;
+		cw_path_t *p;
 
-		isnt_null(p = path_new("/path/tothe/thing/youwanted"), "got a path");
+		isnt_null(p = cw_path_new("/path/tothe/thing/youwanted"), "got a path");
 
-		ok(path_pop(p) != 0, "pop(1) returns non-zero (more to go)");
-		is_string(path(p), "/path/tothe/thing", "popped last component");
+		ok(cw_path_pop(p) != 0, "pop(1) returns non-zero (more to go)");
+		is_string(cw_path(p), "/path/tothe/thing", "popped last component");
 
-		ok(path_pop(p) != 0, "pop(2) returns non-zero (more to go)");
-		is_string(path(p), "/path/tothe", "popped last component");
+		ok(cw_path_pop(p) != 0, "pop(2) returns non-zero (more to go)");
+		is_string(cw_path(p), "/path/tothe", "popped last component");
 
-		ok(path_pop(p) != 0, "pop(3) returns non-zero (more to go)");
-		is_string(path(p), "/path", "popped last component");
+		ok(cw_path_pop(p) != 0, "pop(3) returns non-zero (more to go)");
+		is_string(cw_path(p), "/path", "popped last component");
 
-		ok(path_pop(p) == 0, "pop(4) finished it out");
+		ok(cw_path_pop(p) == 0, "pop(4) finished it out");
 
 
-		ok(path_push(p) != 0, "push(1) returns non-zero (more to go)");
-		is_string(path(p), "/path/tothe", "pushed last component");
+		ok(cw_path_push(p) != 0, "push(1) returns non-zero (more to go)");
+		is_string(cw_path(p), "/path/tothe", "pushed last component");
 
-		ok(path_push(p) != 0, "push(2) returns non-zero (more to go)");
-		is_string(path(p), "/path/tothe/thing", "pushed last component");
+		ok(cw_path_push(p) != 0, "push(2) returns non-zero (more to go)");
+		is_string(cw_path(p), "/path/tothe/thing", "pushed last component");
 
-		ok(path_push(p) != 0, "push(3) returns non-zero (more to go)");
-		is_string(path(p), "/path/tothe/thing/youwanted", "pushed last component");
+		ok(cw_path_push(p) != 0, "push(3) returns non-zero (more to go)");
+		is_string(cw_path(p), "/path/tothe/thing/youwanted", "pushed last component");
 
-		ok(path_push(p) == 0, "push(4) finished it out");
+		ok(cw_path_push(p) == 0, "push(4) finished it out");
 
-		path_free(p);
+		cw_path_free(p);
 	}
 
 	done_testing();

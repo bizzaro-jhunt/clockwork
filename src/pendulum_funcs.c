@@ -356,16 +356,16 @@ static pn_word uf_pragma(pn_machine *m, const char *k, const char *v)
 
 static void s_mkdir_parents(pn_machine *m, const char *spath)
 {
-	struct path *p;
-	p = path_new(spath);
-	if (!p || path_canon(p) != 0) goto failed;
+	cw_path_t *p;
+	p = cw_path_new(spath);
+	if (!p || cw_path_canon(p) != 0) goto failed;
 
 	struct stat st;
 	int rc = 1;
 
 	/* find the first parent dir */
-	while (path_pop(p) != 0) {
-		rc = stat(path(p), &st);
+	while (cw_path_pop(p) != 0) {
+		rc = stat(cw_path(p), &st);
 		if (rc == 0)
 			break;
 	}
@@ -373,19 +373,19 @@ static void s_mkdir_parents(pn_machine *m, const char *spath)
 
 	/* create missing parents, with ownership/mode of
 	   the first pre-existing parent dir */
-	for (path_push(p); strcmp(path(p), spath) != 0; path_push(p)) {
+	for (cw_path_push(p); strcmp(cw_path(p), spath) != 0; cw_path_push(p)) {
 		cw_log(LOG_NOTICE, "%s creating parent directory %s, owned by %i:%i, mode %#4o",
-			m->topic, path(p), st.st_uid, st.st_gid, st.st_mode);
+			m->topic, cw_path(p), st.st_uid, st.st_gid, st.st_mode);
 
-		rc = mkdir(path(p), st.st_mode);
+		rc = mkdir(cw_path(p), st.st_mode);
 		if (rc != 0) break;
 
-		rc = chown(path(p), st.st_uid, st.st_gid);
+		rc = chown(cw_path(p), st.st_uid, st.st_gid);
 		if (!rc) continue;
 	}
 
 failed:
-	path_free(p);
+	cw_path_free(p);
 	return;
 }
 

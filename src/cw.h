@@ -636,4 +636,29 @@ const char *cw_autherror(void);
 
 char* cw_fqdn(void);
 
+/*
+
+    ########     ###    ######## ##     ##
+    ##     ##   ## ##      ##    ##     ##
+    ##     ##  ##   ##     ##    ##     ##
+    ########  ##     ##    ##    #########
+    ##        #########    ##    ##     ##
+    ##        ##     ##    ##    ##     ##
+    ##        ##     ##    ##    ##     ##
+
+ */
+
+typedef struct {
+	char     *buf;
+	ssize_t   n;
+	size_t    len;
+} cw_path_t;
+
+cw_path_t* cw_path_new(const char *p);
+void cw_path_free(cw_path_t *p);
+const char *cw_path(cw_path_t *p);
+int cw_path_canon(cw_path_t *p);
+int cw_path_push(cw_path_t *p);
+int cw_path_pop(cw_path_t *p);
+
 #endif

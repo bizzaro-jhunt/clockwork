@@ -2347,7 +2347,7 @@ int cw_daemonize(const char *pidfile, const char *user, const char *group)
 				perror("failed to inform parent of our error condition");
 			if (n < strlen(error))
 				fprintf(stderr, "child->parent inform - only wrote %li of %li bytes\n",
-					n, strlen(error));
+					(long)n, (long)strlen(error));
 			exit(2);
 		}
 	}
@@ -2365,7 +2365,7 @@ int cw_daemonize(const char *pidfile, const char *user, const char *group)
 			perror("failed to write PID to pidfile");
 		if (n < strlen(buf))
 			fprintf(stderr, "only wrote %li of %li bytes to pidfile\n",
-				n, strlen(error));
+				(long)n, (long)strlen(error));
 		rc = fsync(fd);
 		assert(rc == 0);
 
@@ -2666,8 +2666,8 @@ int cw_bdfa_unpack(int in, const char *root)
 	umsk = umask(0);
 	while ((n = read(in, &h, sizeof(h))) > 0) {
 		if (n < sizeof(h)) {
-			fprintf(stderr, "Partial read error (only read %lu/%lu bytes)\n",
-				n, sizeof(h));
+			fprintf(stderr, "Partial read error (only read %li/%li bytes)\n",
+				(long)n, (long)sizeof(h));
 			rc = 4;
 			break;
 		}

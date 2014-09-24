@@ -131,6 +131,8 @@ AC_TYPE_UINT32_T
 AC_TYPE_UINT64_T
 AC_TYPE_UINT8_T
 
+AC_CHECK_SIZEOF([uintptr_t])
+
 ################################################
 
 AC_FUNC_ALLOCA

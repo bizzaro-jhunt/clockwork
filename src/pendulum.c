@@ -139,20 +139,34 @@ static const char *REG_NAMES[] = {
    identify the type of value.  Remaining
    bits encode the value.
  */
-#define     TAG_MASK 0xf000000000000000UL
-#define   VALUE_MASK 0x0fffffffffffffffUL
+#if SIZEOF_UINTPTR_T == 4 /* 32-bit platforms */
+#  define     TAG_MASK 0xf0000000UL
+#  define   VALUE_MASK 0x0fffffffUL
 
-#define REGISTER_TAG 0x9000000000000000UL /* 1001 */
-#define    LABEL_TAG 0xa000000000000000UL /* 1010 */
-#define     FLAG_TAG 0xb000000000000000UL /* 1011 */
-#define FUNCTION_TAG 0xc000000000000000UL /* 1100 */
+#  define REGISTER_TAG 0x90000000UL /* 1001 */
+#  define    LABEL_TAG 0xa0000000UL /* 1010 */
+#  define     FLAG_TAG 0xb0000000UL /* 1011 */
+#  define FUNCTION_TAG 0xc0000000UL /* 1100 */
+
+#elif SIZEOF_UINTPTR_T == 8 /* 64-bit platforms */
+#  define     TAG_MASK 0xf000000000000000UL
+#  define   VALUE_MASK 0x0fffffffffffffffUL
+
+#  define REGISTER_TAG 0x9000000000000000UL /* 1001 */
+#  define    LABEL_TAG 0xa000000000000000UL /* 1010 */
+#  define     FLAG_TAG 0xb000000000000000UL /* 1011 */
+#  define FUNCTION_TAG 0xc000000000000000UL /* 1100 */
+
+#else
+#error "Unrecognized pointer size (not 32- or 64-bits)"
+#endif
 
 #define IS_REGISTER(x) (((x) & TAG_MASK) == REGISTER_TAG)
 #define IS_LABEL(x)    (((x) & TAG_MASK) == LABEL_TAG)
 #define IS_FLAG(x)     (((x) & TAG_MASK) == FLAG_TAG)
 #define IS_FUNCTION(x) (((x) & TAG_MASK) == FUNCTION_TAG)
 
-#define TAGV(x) ((x) & VALUE_MASK)
+#define TAGV(x) (pn_word)((x) & VALUE_MASK)
 
 #define REGISTER(x) ((x) | REGISTER_TAG)
 #define LABEL(x)    ((x) | LABEL_TAG)
@@ -323,7 +337,7 @@ static int s_resolve_op(const char *op)
 
 static pn_word s_resolve_reg(const char *reg)
 {
-#define reg_offset(M) REGISTER((offsetof(pn_machine, M) - offsetof(pn_machine, A))/sizeof(pn_word))
+#define reg_offset(M) (pn_word)REGISTER((offsetof(pn_machine, M) - offsetof(pn_machine, A))/sizeof(pn_word))
 	if (strcmp(reg, "\%A")  == 0) return reg_offset(A);
 	if (strcmp(reg, "\%B")  == 0) return reg_offset(B);
 	if (strcmp(reg, "\%C")  == 0) return reg_offset(C);
@@ -438,13 +452,13 @@ static void s_dump(FILE *io, pn_machine *m)
 {
 	fprintf(io, ".-----===( machine 0x%016lx )===-----.\n", (long)m);
 	fprintf(io, "|                                              |\n");
-	fprintf(io, "|     A: %8lx   B: %8lx   C: %8lx  |\n", m->A, m->B, m->C);
-	fprintf(io, "|     D: %8lx   E: %8lx   F: %8lx  |\n", m->D, m->E, m->F);
+	fprintf(io, "|     A: %8lx   B: %8lx   C: %8lx  |\n", (long)m->A,  (long)m->B,  (long)m->C);
+	fprintf(io, "|     D: %8lx   E: %8lx   F: %8lx  |\n", (long)m->D,  (long)m->E,  (long)m->F);
 	fprintf(io, "|                                              |\n");
-	fprintf(io, "|    Ip: %8lx  S1: %8lx  S2: %8lx  |\n", m->Ip, m->S1, m->S2);
-	fprintf(io, "|    Dp: %8lx   R: %8lx  Er: %8lx  |\n", m->Dp, m->R,  m->Er);
+	fprintf(io, "|    Ip: %8lx  S1: %8lx  S2: %8lx  |\n", (long)m->Ip, (long)m->S1, (long)m->S2);
+	fprintf(io, "|    Dp: %8lx   R: %8lx  Er: %8lx  |\n", (long)m->Dp, (long)m->R,  (long) m->Er);
 	fprintf(io, "|                                              |\n");
-	fprintf(io, "|    T1: %8lx  T2: %8lx  Tr: %8lx  |\n", m->T1, m->T2, m->Tr);
+	fprintf(io, "|    T1: %8lx  T2: %8lx  Tr: %8lx  |\n", (long)m->T1, (long)m->T2, (long)m->Tr);
 	fprintf(io, "|                                              |\n");
 if (m) {
 	fprintf(io, "|  ----- PROGRAM ----------------------------  |\n");

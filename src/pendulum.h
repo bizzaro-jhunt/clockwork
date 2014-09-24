@@ -29,7 +29,7 @@
 #define PN_SLOT_CHUNK   256
 
 typedef uint8_t  pn_byte;
-typedef uint64_t pn_word;
+typedef uintptr_t pn_word;
 typedef struct pn_machine pn_machine;
 typedef pn_word (*pn_function)(pn_machine*);
 typedef pn_word (*pn_fnpragma)(pn_machine*, const char*, const char*);

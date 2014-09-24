@@ -246,7 +246,7 @@ on_gentoo () {
 		NAME=$1
 		/usr/bin/eix -I -q -e "$NAME"
 		if [ $? -ne 0 ]; then
-			exit $?
+			exit 1
 		else
 			/usr/bin/eix -e "$NAME" --format '<installedversions:NAMEVERSION>' | sed -e 's,'"$NAME-"',,'
 			exit 0

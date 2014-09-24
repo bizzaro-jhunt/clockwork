@@ -50,10 +50,18 @@ AC_CHECK_LIB(pcre,
 	AC_MSG_ERROR(Missing PCRE library))
 
 AC_HAVE_LIBRARY(ctap,,
-                AC_MSG_ERROR(Missing ctap testing library - see http://github.com/filefrog/ctap))
+	AC_MSG_ERROR(Missing ctap testing library - see http://github.com/filefrog/ctap))
 
-AC_HAVE_LIBRARY(sodium,,
+AC_CHECK_LIB(sodium,
+	crypto_box_keypair,,
 	AC_MSG_ERROR(Missing sodium encryption library))
+
+AC_CHECK_LIB(uuid,
+	uuid_generate,,
+	AC_MSG_ERROR(Missing UUID library))
+
+AC_HAVE_LIBRARY(zmq,,
+	AC_MSG_ERROR(Missing 0MQ library))
 
 ################################################
 

@@ -208,11 +208,11 @@ static int _policy_normalize(struct policy *pol, cw_hash_t *facts)
 
 		if (!r1) {
 			cw_log(LOG_ERR, "Failed dependency for unknown resource %s", dep->a);
-			return -1;
+			continue;
 		}
 		if (!r2) {
 			cw_log(LOG_ERR, "Failed dependency on unknown resource %s", dep->b);
-			return -2;
+			continue;
 		}
 
 		resource_add_dependency(r1, r2);

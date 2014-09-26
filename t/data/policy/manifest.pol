@@ -356,6 +356,20 @@ policy "deps1" {
 }
 host "deps1.test" { enforce "deps1" }
 
+policy "deps2" {
+	package "test" { }
+	# dangling dependency
+	package("test") depends on file("test.conf")
+}
+host "deps2.host" { enforce "deps2" }
+
+policy "deps3" {
+	package "test" { }
+	# dangling dependency
+	package("test") affects file("test.conf")
+}
+host "deps3.host" { enforce "deps3" }
+
 ####################################################
 ####################################################
 
@@ -563,6 +577,9 @@ policy "map1" {
 	}
 }
 host "map1.test" { enforce "map1" }
+
+####################################################
+####################################################
 
 policy "acl1" {
 	allow %systems "*"      final

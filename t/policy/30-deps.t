@@ -66,5 +66,13 @@ final.3:
 EOF
 
 
+resources_ok "use host deps2.host", <<'EOF', "dangling dependency target doesn't crash";
+  package test
+EOF
+
+resources_ok "use host deps3.host", <<'EOF', "dangling dependency subject doesn't crash";
+  package test
+EOF
+
 
 done_testing;

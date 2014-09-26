@@ -190,7 +190,7 @@ static int _policy_normalize(struct policy *pol, cw_hash_t *facts)
 
 	LIST(deps);
 	struct resource *r1, *r2, *tmp;
-	struct dependency *dep;
+	struct dependency *dep, *d_tmp;
 
 	for_each_resource(r1, pol) {
 		cw_log(LOG_DEBUG, "Normalizing resource %s", r1->key);
@@ -200,7 +200,7 @@ static int _policy_normalize(struct policy *pol, cw_hash_t *facts)
 	}
 
 	/* expand defered dependencies */
-	for_each_dependency(dep, pol) {
+	for_each_dependency_safe(dep, d_tmp, pol) {
 		cw_log(LOG_DEBUG, "Expanding dependency for %s on %s", dep->a, dep->b);
 
 		dep->resource_a = r1 = cw_hash_get(pol->index, dep->a);
@@ -208,10 +208,12 @@ static int _policy_normalize(struct policy *pol, cw_hash_t *facts)
 
 		if (!r1) {
 			cw_log(LOG_ERR, "Failed dependency for unknown resource %s", dep->a);
+			cw_list_delete(&dep->l);
 			continue;
 		}
 		if (!r2) {
 			cw_log(LOG_ERR, "Failed dependency on unknown resource %s", dep->b);
+			cw_list_delete(&dep->l);
 			continue;
 		}
 

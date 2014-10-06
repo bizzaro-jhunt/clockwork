@@ -322,8 +322,10 @@ static int _manifest_validate(struct stree *node)
 	case EXPR_OR:
 	case EXPR_NOT:
 	case EXPR_EQ:
+	case EXPR_MATCH:
 	case EXPR_VAL:
 	case EXPR_FACT:
+	case EXPR_REGEX:
 	case ACL:
 	case ACL_SUBJECT:
 	case ACL_COMMAND:

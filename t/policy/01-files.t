@@ -18,7 +18,19 @@ OK? @exists.1
 exists.1:
 CALL &FS.IS_FILE?
 OK? @isfile.1
-  ERROR "%s exists, but is not a regular file"
+  CALL &FS.IS_SYMLINK?
+  OK? @islink.1
+    ERROR "%s exists, but is not a regular file"
+    JUMP @next.1
+islink.1:
+CALL &FS.UNLINK
+OK? @unlinked.1
+  ERROR "Failed to remove symlink '%s'"
+  JUMP @next.1
+unlinked.1:
+CALL &FS.MKFILE
+OK? @isfile.1
+  ERROR "Failed to create new file '%s'"
   JUMP @next.1
 isfile.1:
 CALL &USERDB.OPEN
@@ -68,10 +80,12 @@ SET %A "/path/to/delete"
 CALL &FS.EXISTS?
 NOTOK? @next.1
 CALL &FS.IS_FILE?
-OK? @isfile.1
-  ERROR "%s exists, but is not a regular file"
-  JUMP @next.1
-isfile.1:
+OK? @remove.1
+  CALL &FS.IS_SYMLINK?
+  OK? @remove.1
+    ERROR "%s exists, but is not a regular file"
+    JUMP @next.1
+remove.1:
 CALL &FS.UNLINK
 JUMP @next.1
 next.1:
@@ -92,7 +106,19 @@ OK? @exists.1
 exists.1:
 CALL &FS.IS_FILE?
 OK? @isfile.1
-  ERROR "%s exists, but is not a regular file"
+  CALL &FS.IS_SYMLINK?
+  OK? @islink.1
+    ERROR "%s exists, but is not a regular file"
+    JUMP @next.1
+islink.1:
+CALL &FS.UNLINK
+OK? @unlinked.1
+  ERROR "Failed to remove symlink '%s'"
+  JUMP @next.1
+unlinked.1:
+CALL &FS.MKFILE
+OK? @isfile.1
+  ERROR "Failed to create new file '%s'"
   JUMP @next.1
 isfile.1:
 SET %D 0644
@@ -115,7 +141,19 @@ OK? @exists.1
 exists.1:
 CALL &FS.IS_FILE?
 OK? @isfile.1
-  ERROR "%s exists, but is not a regular file"
+  CALL &FS.IS_SYMLINK?
+  OK? @islink.1
+    ERROR "%s exists, but is not a regular file"
+    JUMP @next.1
+islink.1:
+CALL &FS.UNLINK
+OK? @unlinked.1
+  ERROR "Failed to remove symlink '%s'"
+  JUMP @next.1
+unlinked.1:
+CALL &FS.MKFILE
+OK? @isfile.1
+  ERROR "Failed to create new file '%s'"
   JUMP @next.1
 isfile.1:
 CALL &USERDB.OPEN
@@ -171,7 +209,19 @@ OK? @exists.1
 exists.1:
 CALL &FS.IS_FILE?
 OK? @isfile.1
-  ERROR "%s exists, but is not a regular file"
+  CALL &FS.IS_SYMLINK?
+  OK? @islink.1
+    ERROR "%s exists, but is not a regular file"
+    JUMP @next.1
+islink.1:
+CALL &FS.UNLINK
+OK? @unlinked.1
+  ERROR "Failed to remove symlink '%s'"
+  JUMP @next.1
+unlinked.1:
+CALL &FS.MKFILE
+OK? @isfile.1
+  ERROR "Failed to create new file '%s'"
   JUMP @next.1
 isfile.1:
 SET %D 0644
@@ -220,7 +270,19 @@ OK? @exists.1
 exists.1:
 CALL &FS.IS_FILE?
 OK? @isfile.1
-  ERROR "%s exists, but is not a regular file"
+  CALL &FS.IS_SYMLINK?
+  OK? @islink.1
+    ERROR "%s exists, but is not a regular file"
+    JUMP @next.1
+islink.1:
+CALL &FS.UNLINK
+OK? @unlinked.1
+  ERROR "Failed to remove symlink '%s'"
+  JUMP @next.1
+unlinked.1:
+CALL &FS.MKFILE
+OK? @isfile.1
+  ERROR "Failed to create new file '%s'"
   JUMP @next.1
 isfile.1:
 CALL &FS.SHA1
@@ -287,7 +349,19 @@ OK? @exists.1
 exists.1:
 CALL &FS.IS_FILE?
 OK? @isfile.1
-  ERROR "%s exists, but is not a regular file"
+  CALL &FS.IS_SYMLINK?
+  OK? @islink.1
+    ERROR "%s exists, but is not a regular file"
+    JUMP @next.1
+islink.1:
+CALL &FS.UNLINK
+OK? @unlinked.1
+  ERROR "Failed to remove symlink '%s'"
+  JUMP @next.1
+unlinked.1:
+CALL &FS.MKFILE
+OK? @isfile.1
+  ERROR "Failed to create new file '%s'"
   JUMP @next.1
 isfile.1:
 CALL &FS.SHA1

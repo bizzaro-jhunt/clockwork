@@ -717,10 +717,12 @@ int res_file_gencode(const void *res, FILE *io, unsigned int next, unsigned int 
 	if (ENFORCED(r, RES_FILE_ABSENT)) {
 		fprintf(io, "NOTOK? @next.%u\n", next);
 		fprintf(io, "CALL &FS.IS_FILE?\n");
-		fprintf(io, "OK? @isfile.%u\n", next);
-		fprintf(io, "  ERROR \"%%s exists, but is not a regular file\"\n");
-		fprintf(io, "  JUMP @next.%u\n", next);
-		fprintf(io, "isfile.%u:\n", next);
+		fprintf(io, "OK? @remove.%u\n", next);
+		fprintf(io, "  CALL &FS.IS_SYMLINK?\n");
+		fprintf(io, "  OK? @remove.%u\n", next);
+		fprintf(io, "    ERROR \"%%s exists, but is not a regular file\"\n");
+		fprintf(io, "    JUMP @next.%u\n", next);
+		fprintf(io, "remove.%u:\n", next);
 		fprintf(io, "CALL &FS.UNLINK\n");
 		fprintf(io, "JUMP @next.%u\n", next);
 		return 0;
@@ -733,7 +735,19 @@ int res_file_gencode(const void *res, FILE *io, unsigned int next, unsigned int 
 	fprintf(io, "exists.%u:\n",  next);
 	fprintf(io, "CALL &FS.IS_FILE?\n");
 	fprintf(io, "OK? @isfile.%u\n", next);
-	fprintf(io, "  ERROR \"%%s exists, but is not a regular file\"\n");
+	fprintf(io, "  CALL &FS.IS_SYMLINK?\n");
+	fprintf(io, "  OK? @islink.%u\n", next);
+	fprintf(io, "    ERROR \"%%s exists, but is not a regular file\"\n");
+	fprintf(io, "    JUMP @next.%u\n", next);
+	fprintf(io, "islink.%u:\n", next);
+	fprintf(io, "CALL &FS.UNLINK\n");
+	fprintf(io, "OK? @unlinked.%u\n", next);
+	fprintf(io, "  ERROR \"Failed to remove symlink '%%s'\"\n");
+	fprintf(io, "  JUMP @next.%u\n", next);
+	fprintf(io, "unlinked.%u:\n", next);
+	fprintf(io, "CALL &FS.MKFILE\n");
+	fprintf(io, "OK? @isfile.%u\n", next);
+	fprintf(io, "  ERROR \"Failed to create new file '%%s'\"\n");
 	fprintf(io, "  JUMP @next.%u\n", next);
 	fprintf(io, "isfile.%u:\n", next);
 
@@ -2300,8 +2314,13 @@ int res_dir_gencode(const void *res, FILE *io, unsigned int next, unsigned int s
 		fprintf(io, "NOTOK? @next.%u\n", next);
 		fprintf(io, "CALL &FS.IS_DIR?\n");
 		fprintf(io, "OK? @isdir.%u\n", next);
-		fprintf(io, "  ERROR \"%%s exists, but is not a directory\"\n");
-		fprintf(io, "  JUMP @next.%u\n", next);
+		fprintf(io, "  CALL &FS.IS_SYMLINK?\n");
+		fprintf(io, "  OK? @islink.%u\n", next);
+		fprintf(io, "    ERROR \"%%s exists, but is not a directory\"\n");
+		fprintf(io, "    JUMP @next.%u\n", next);
+		fprintf(io, "islink.%u:\n", next);
+		fprintf(io, "CALL &FS.UNLINK\n");
+		fprintf(io, "JUMP @next.%u\n", next);
 		fprintf(io, "isdir.%u:\n", next);
 		fprintf(io, "CALL &FS.RMDIR\n");
 		fprintf(io, "JUMP @next.%u\n", next);
@@ -2315,7 +2334,19 @@ int res_dir_gencode(const void *res, FILE *io, unsigned int next, unsigned int s
 	fprintf(io, "exists.%u:\n", next);
 	fprintf(io, "CALL &FS.IS_DIR?\n");
 	fprintf(io, "OK? @isdir.%u\n", next);
-	fprintf(io, "  ERROR \"%%s exists, but is not a directory\"\n");
+	fprintf(io, "  CALL &FS.IS_SYMLINK?\n");
+	fprintf(io, "  OK? @islink.%u\n", next);
+	fprintf(io, "    ERROR \"%%s exists, but is not a directory\"\n");
+	fprintf(io, "    JUMP @next.%u\n", next);
+	fprintf(io, "islink.%u:\n", next);
+	fprintf(io, "CALL &FS.UNLINK\n");
+	fprintf(io, "OK? @unlinked.%u\n", next);
+	fprintf(io, "  ERROR \"Failed to remove symlink '%%s'\"\n");
+	fprintf(io, "  JUMP @next.%u\n", next);
+	fprintf(io, "unlinked.%u:\n", next);
+	fprintf(io, "CALL &FS.MKDIR\n");
+	fprintf(io, "OK? @isdir.%u\n", next);
+	fprintf(io, "  ERROR \"Failed to create new directory '%%s'\"\n");
 	fprintf(io, "  JUMP @next.%u\n", next);
 	fprintf(io, "isdir.%u:\n", next);
 

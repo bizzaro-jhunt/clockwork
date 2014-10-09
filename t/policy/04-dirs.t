@@ -18,7 +18,19 @@ OK? @exists.1
 exists.1:
 CALL &FS.IS_DIR?
 OK? @isdir.1
-  ERROR "%s exists, but is not a directory"
+  CALL &FS.IS_SYMLINK?
+  OK? @islink.1
+    ERROR "%s exists, but is not a directory"
+    JUMP @next.1
+islink.1:
+CALL &FS.UNLINK
+OK? @unlinked.1
+  ERROR "Failed to remove symlink '%s'"
+  JUMP @next.1
+unlinked.1:
+CALL &FS.MKDIR
+OK? @isdir.1
+  ERROR "Failed to create new directory '%s'"
   JUMP @next.1
 isdir.1:
 COPY %A %F
@@ -69,8 +81,13 @@ CALL &FS.EXISTS?
 NOTOK? @next.1
 CALL &FS.IS_DIR?
 OK? @isdir.1
-  ERROR "%s exists, but is not a directory"
-  JUMP @next.1
+  CALL &FS.IS_SYMLINK?
+  OK? @islink.1
+    ERROR "%s exists, but is not a directory"
+    JUMP @next.1
+islink.1:
+CALL &FS.UNLINK
+JUMP @next.1
 isdir.1:
 CALL &FS.RMDIR
 JUMP @next.1
@@ -92,7 +109,19 @@ OK? @exists.1
 exists.1:
 CALL &FS.IS_DIR?
 OK? @isdir.1
-  ERROR "%s exists, but is not a directory"
+  CALL &FS.IS_SYMLINK?
+  OK? @islink.1
+    ERROR "%s exists, but is not a directory"
+    JUMP @next.1
+islink.1:
+CALL &FS.UNLINK
+OK? @unlinked.1
+  ERROR "Failed to remove symlink '%s'"
+  JUMP @next.1
+unlinked.1:
+CALL &FS.MKDIR
+OK? @isdir.1
+  ERROR "Failed to create new directory '%s'"
   JUMP @next.1
 isdir.1:
 SET %D 0755
@@ -115,7 +144,19 @@ OK? @exists.1
 exists.1:
 CALL &FS.IS_DIR?
 OK? @isdir.1
-  ERROR "%s exists, but is not a directory"
+  CALL &FS.IS_SYMLINK?
+  OK? @islink.1
+    ERROR "%s exists, but is not a directory"
+    JUMP @next.1
+islink.1:
+CALL &FS.UNLINK
+OK? @unlinked.1
+  ERROR "Failed to remove symlink '%s'"
+  JUMP @next.1
+unlinked.1:
+CALL &FS.MKDIR
+OK? @isdir.1
+  ERROR "Failed to create new directory '%s'"
   JUMP @next.1
 isdir.1:
 COPY %A %F

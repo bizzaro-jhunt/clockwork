@@ -27,25 +27,25 @@
 #define ENFORCE(r,f)   (r)->enforced  |=  (f)
 #define UNENFORCE(r,f) (r)->enforced  &= ~(f)
 
-static int _group_update(cw_strl_t*, cw_strl_t*, const char*);
+static int _group_update(strings_t*, strings_t*, const char*);
 static int _setup_path_deps(const char *key, const char *path, struct policy *pol);
-static void _hash_attr(cw_hash_t *attrs, const char *key, void *val);
+static void _hash_attr(hash_t *attrs, const char *key, void *val);
 
 #define RES_DEFAULT(orig,field,dflt) ((orig) ? (orig)->field : (dflt))
 #define RES_DEFAULT_STR(orig,field,dflt) cw_strdup(RES_DEFAULT((orig),field,(dflt)))
 
 /*****************************************************************/
 
-static int _group_update(cw_strl_t *add, cw_strl_t *rm, const char *user)
+static int _group_update(strings_t *add, strings_t *rm, const char *user)
 {
 	/* put user in add */
-	if (cw_strl_search(add, user) != 0) {
-		cw_strl_add(add, user);
+	if (strings_search(add, user) != 0) {
+		strings_add(add, user);
 	}
 
 	/* take user out of rm */
-	if (cw_strl_search(rm, user) == 0) {
-		cw_strl_remove(rm, user);
+	if (strings_search(rm, user) == 0) {
+		strings_remove(rm, user);
 	}
 
 	return 0;
@@ -53,21 +53,21 @@ static int _group_update(cw_strl_t *add, cw_strl_t *rm, const char *user)
 
 static int _setup_path_deps(const char *key, const char *spath, struct policy *pol)
 {
-	cw_path_t *p;
+	path_t *p;
 	struct dependency *dep;
 	struct resource *dir;
 
-	cw_log(LOG_DEBUG, "setup_path_deps: setting up for %s (%s)", spath, key);
-	p = cw_path_new(spath);
+	logger(LOG_DEBUG, "setup_path_deps: setting up for %s (%s)", spath, key);
+	p = path_new(spath);
 	if (!p) {
 		return -1;
 	}
-	if (cw_path_canon(p) != 0) { goto failed; }
+	if (path_canon(p) != 0) { goto failed; }
 
-	while (cw_path_pop(p) != 0) {
+	while (path_pop(p) != 0) {
 		/* look for deps, and add them. */
-		cw_log(LOG_DEBUG, "setup_path_deps: looking for %s", cw_path(p));
-		dir = policy_find_resource(pol, RES_DIR, "path", cw_path(p));
+		logger(LOG_DEBUG, "setup_path_deps: looking for %s", path(p));
+		dir = policy_find_resource(pol, RES_DIR, "path", path(p));
 		if (dir) {
 			dep = dependency_new(key, dir->key);
 			if (policy_add_dependency(pol, dep) != 0) {
@@ -75,23 +75,23 @@ static int _setup_path_deps(const char *key, const char *spath, struct policy *p
 				goto failed;
 			}
 		} else {
-			cw_log(LOG_DEBUG, "setup_path_deps: no res_dir defined for '%s'", cw_path(p));
+			logger(LOG_DEBUG, "setup_path_deps: no res_dir defined for '%s'", path(p));
 		}
 	}
 
-	cw_path_free(p);
+	path_free(p);
 	return 0;
 
 failed:
-	cw_log(LOG_DEBUG, "setup_path_deps: unspecified failure");
-	cw_path_free(p);
+	logger(LOG_DEBUG, "setup_path_deps: unspecified failure");
+	path_free(p);
 	return -1;
 }
 
-static void _hash_attr(cw_hash_t *attrs, const char *key, void *val)
+static void _hash_attr(hash_t *attrs, const char *key, void *val)
 {
-	void *prev = cw_hash_get(attrs, key);
-	cw_hash_set(attrs, key, val);
+	void *prev = hash_get(attrs, key);
+	hash_set(attrs, key, val);
 	if (prev) free(prev);
 }
 
@@ -106,7 +106,7 @@ void* res_user_new(const char *key)
 void* res_user_clone(const void *res, const char *key)
 {
 	struct res_user *orig = (struct res_user*)(res);
-	struct res_user *ru = ru = cw_alloc(sizeof(struct res_user));
+	struct res_user *ru = ru = vmalloc(sizeof(struct res_user));
 
 	ru->enforced  = RES_DEFAULT(orig, enforced, RES_NONE);
 
@@ -161,33 +161,33 @@ char* res_user_key(const void *res)
 	const struct res_user *ru = (struct res_user*)(res);
 	assert(ru); // LCOV_EXCL_LINE
 
-	return cw_string("user:%s", ru->key);
+	return string("user:%s", ru->key);
 }
 
-int res_user_attrs(const void *res, cw_hash_t *attrs)
+int res_user_attrs(const void *res, hash_t *attrs)
 {
 	const struct res_user *ru = (const struct res_user*)(res);
 	assert(ru); // LCOV_EXCL_LINE
 
 	_hash_attr(attrs, "username", strdup(ru->name));
-	_hash_attr(attrs, "uid", ENFORCED(ru, RES_USER_UID) ? cw_string("%u",ru->uid) : NULL);
-	_hash_attr(attrs, "gid", ENFORCED(ru, RES_USER_GID) ? cw_string("%u",ru->gid) : NULL);
+	_hash_attr(attrs, "uid", ENFORCED(ru, RES_USER_UID) ? string("%u",ru->uid) : NULL);
+	_hash_attr(attrs, "gid", ENFORCED(ru, RES_USER_GID) ? string("%u",ru->gid) : NULL);
 	_hash_attr(attrs, "home", ENFORCED(ru, RES_USER_DIR) ? strdup(ru->dir) : NULL);
 	_hash_attr(attrs, "present", strdup(ENFORCED(ru, RES_USER_ABSENT) ? "no" : "yes"));
 	_hash_attr(attrs, "locked", ENFORCED(ru, RES_USER_LOCK) ? strdup(ru->lock ? "yes" : "no") : NULL);
 	_hash_attr(attrs, "comment", ENFORCED(ru, RES_USER_GECOS) ? strdup(ru->gecos) : NULL);
 	_hash_attr(attrs, "shell", ENFORCED(ru, RES_USER_SHELL) ? strdup(ru->shell) : NULL);
 	_hash_attr(attrs, "password", ENFORCED(ru, RES_USER_PASSWD) ? strdup(ru->passwd) : NULL);
-	_hash_attr(attrs, "pwmin", ENFORCED(ru, RES_USER_PWMIN) ? cw_string("%u", ru->pwmin) : NULL);
-	_hash_attr(attrs, "pwmax", ENFORCED(ru, RES_USER_PWMAX) ? cw_string("%u", ru->pwmax) : NULL);
-	_hash_attr(attrs, "pwwarn", ENFORCED(ru, RES_USER_PWWARN) ? cw_string("%u", ru->pwwarn) : NULL);
-	_hash_attr(attrs, "inact", ENFORCED(ru, RES_USER_INACT) ? cw_string("%u", ru->inact) : NULL);
-	_hash_attr(attrs, "expiration", ENFORCED(ru, RES_USER_EXPIRE) ? cw_string("%u", ru->expire) : NULL);
+	_hash_attr(attrs, "pwmin", ENFORCED(ru, RES_USER_PWMIN) ? string("%u", ru->pwmin) : NULL);
+	_hash_attr(attrs, "pwmax", ENFORCED(ru, RES_USER_PWMAX) ? string("%u", ru->pwmax) : NULL);
+	_hash_attr(attrs, "pwwarn", ENFORCED(ru, RES_USER_PWWARN) ? string("%u", ru->pwwarn) : NULL);
+	_hash_attr(attrs, "inact", ENFORCED(ru, RES_USER_INACT) ? string("%u", ru->inact) : NULL);
+	_hash_attr(attrs, "expiration", ENFORCED(ru, RES_USER_EXPIRE) ? string("%u", ru->expire) : NULL);
 	_hash_attr(attrs, "skeleton", ENFORCED(ru, RES_USER_MKHOME) ? strdup(ru->skel) : NULL);
 	return 0;
 }
 
-int res_user_norm(void *res, struct policy *pol, cw_hash_t *facts) { return 0; }
+int res_user_norm(void *res, struct policy *pol, hash_t *facts) { return 0; }
 
 int res_user_set(void *res, const char *name, const char *value)
 {
@@ -290,13 +290,13 @@ int res_user_match(const void *res, const char *name, const char *value)
 	int rc;
 
 	if (strcmp(name, "uid") == 0) {
-		test_value = cw_string("%u", ru->uid);
+		test_value = string("%u", ru->uid);
 	} else if (strcmp(name, "gid") == 0) {
-		test_value = cw_string("%u", ru->gid);
+		test_value = string("%u", ru->gid);
 	} else if (strcmp(name, "username") == 0) {
-		test_value = cw_string("%s", ru->name);
+		test_value = string("%s", ru->name);
 	} else if (strcmp(name, "home") == 0) {
-		test_value = cw_string("%s", ru->dir);
+		test_value = string("%s", ru->dir);
 	} else {
 		return 1;
 	}
@@ -442,7 +442,7 @@ int res_user_gencode(const void *res, FILE *io, unsigned int next, unsigned int 
 return 0;
 }
 
-FILE * res_user_content(const void *res, cw_hash_t *facts) { return NULL; }
+FILE * res_user_content(const void *res, hash_t *facts) { return NULL; }
 
 
 /*****************************************************************/
@@ -455,7 +455,7 @@ void* res_file_new(const char *key)
 void* res_file_clone(const void *res, const char *key)
 {
 	const struct res_file *orig = (const struct res_file*)(res);
-	struct res_file *rf = cw_alloc(sizeof(struct res_file));
+	struct res_file *rf = vmalloc(sizeof(struct res_file));
 
 	rf->enforced    = RES_DEFAULT(orig, enforced,  RES_NONE);
 
@@ -502,10 +502,10 @@ char* res_file_key(const void *res)
 	const struct res_file *rf = (struct res_file*)(res);
 	assert(rf); // LCOV_EXCL_LINE
 
-	return cw_string("file:%s", rf->key);
+	return string("file:%s", rf->key);
 }
 
-int res_file_attrs(const void *res, cw_hash_t *attrs)
+int res_file_attrs(const void *res, hash_t *attrs)
 {
 	const struct res_file *rf = (const struct res_file*)(res);
 	assert(rf); // LCOV_EXCL_LINE
@@ -515,11 +515,11 @@ int res_file_attrs(const void *res, cw_hash_t *attrs)
 
 	_hash_attr(attrs, "owner", ENFORCED(rf, RES_FILE_UID) ? strdup(rf->owner) : NULL);
 	_hash_attr(attrs, "group", ENFORCED(rf, RES_FILE_GID) ? strdup(rf->group) : NULL);
-	_hash_attr(attrs, "mode", ENFORCED(rf, RES_FILE_MODE) ? cw_string("%04o", rf->mode) : NULL);
+	_hash_attr(attrs, "mode", ENFORCED(rf, RES_FILE_MODE) ? string("%04o", rf->mode) : NULL);
 
 	if (rf->verify) {
 		_hash_attr(attrs, "verify", strdup(rf->verify));
-		_hash_attr(attrs, "expect", cw_string("%i", rf->expectrc));
+		_hash_attr(attrs, "expect", string("%i", rf->expectrc));
 		if (rf->tmpfile)
 			_hash_attr(attrs, "tmpfile", strdup(rf->tmpfile));
 	}
@@ -535,7 +535,7 @@ int res_file_attrs(const void *res, cw_hash_t *attrs)
 	return 0;
 }
 
-int res_file_norm(void *res, struct policy *pol, cw_hash_t *facts)
+int res_file_norm(void *res, struct policy *pol, hash_t *facts)
 {
 	struct res_file *rf = (struct res_file*)(res);
 	assert(rf); // LCOV_EXCL_LINE
@@ -571,25 +571,25 @@ int res_file_norm(void *res, struct policy *pol, cw_hash_t *facts)
 	}
 
 	/* source and template attributes can have embedded '$path' */
-	cw_hash_t *vars = cw_alloc(sizeof(cw_hash_t));
-	cw_hash_set(vars, "path", rf->path);
+	hash_t *vars = vmalloc(sizeof(hash_t));
+	hash_set(vars, "path", rf->path);
 
 	if (rf->source) {
-		char *x = cw_interpolate(rf->source, vars);
+		char *x = interpolate(rf->source, vars);
 		free(rf->source);
 		rf->source = x;
 	}
 	if (rf->template) {
-		char *x = cw_interpolate(rf->template, vars);
+		char *x = interpolate(rf->template, vars);
 		free(rf->template);
 		rf->template = x;
 	}
-	cw_hash_done(vars, 0);
+	hash_done(vars, 0);
 	free(vars);
 
 	/* derive tmpfile from path */
 	if (!rf->tmpfile && rf->verify) {
-		rf->tmpfile = cw_alloc(strlen(rf->path) + 7);
+		rf->tmpfile = vmalloc(strlen(rf->path) + 7);
 		char *slash = strrchr(rf->path, '/');
 		if (!slash)
 			slash = rf->path;
@@ -603,10 +603,10 @@ int res_file_norm(void *res, struct policy *pol, cw_hash_t *facts)
 		memcpy(rf->tmpfile + dir_len + 1, rf->path + dir_len, name_len);
 		memcpy(rf->tmpfile + dir_len + 1 + name_len, ".cogd", 5);
 
-		cw_hash_t *vars = cw_alloc(sizeof(cw_hash_t));
+		hash_t *vars = vmalloc(sizeof(hash_t));
 		res_file_attrs(rf, vars);
-		char *cmd = cw_interpolate(rf->verify, vars);
-		cw_hash_done(vars, 1);
+		char *cmd = interpolate(rf->verify, vars);
+		hash_done(vars, 1);
 		free(vars);
 
 		free(rf->verify);
@@ -696,7 +696,7 @@ int res_file_match(const void *res, const char *name, const char *value)
 	int rc;
 
 	if (strcmp(name, "path") == 0) {
-		test_value = cw_string("%s", rf->path);
+		test_value = string("%s", rf->path);
 	} else {
 		return 1;
 	}
@@ -859,7 +859,7 @@ int res_file_gencode(const void *res, FILE *io, unsigned int next, unsigned int 
 	return 0;
 }
 
-FILE * res_file_content(const void *res, cw_hash_t *facts)
+FILE * res_file_content(const void *res, hash_t *facts)
 {
 	struct res_file *r = (struct res_file*)(res);
 	assert(r); // LCOV_EXCL_LINE
@@ -883,7 +883,7 @@ void* res_symlink_new(const char *key)
 void* res_symlink_clone(const void *res, const char *key)
 {
 	const struct res_symlink *orig = (const struct res_symlink*)(res);
-	struct res_symlink *r = cw_alloc(sizeof(struct res_symlink));
+	struct res_symlink *r = vmalloc(sizeof(struct res_symlink));
 
 	r->path   = RES_DEFAULT_STR(orig, path,   NULL);
 	r->target = RES_DEFAULT_STR(orig, target, "/dev/null");
@@ -914,10 +914,10 @@ char* res_symlink_key(const void *res)
 	struct res_symlink *r = (struct res_symlink*)(res);
 	assert(r); // LCOV_EXCL_LINE
 
-	return cw_string("symlink:%s", r->key);
+	return string("symlink:%s", r->key);
 }
 
-int res_symlink_attrs(const void *res, cw_hash_t *attrs)
+int res_symlink_attrs(const void *res, hash_t *attrs)
 {
 	struct res_symlink *r = (struct res_symlink*)(res);
 	assert(r); // LCOV_EXCL_LINE
@@ -928,7 +928,7 @@ int res_symlink_attrs(const void *res, cw_hash_t *attrs)
 	return 0;
 }
 
-int res_symlink_norm(void *res, struct policy *pol, cw_hash_t *facts)
+int res_symlink_norm(void *res, struct policy *pol, hash_t *facts)
 {
 	struct res_symlink *r = (struct res_symlink*)(res);
 	assert(r); // LCOV_EXCL_LINE
@@ -978,7 +978,7 @@ int res_symlink_match(const void *res, const char *name, const char *value)
 	int rc;
 
 	if (strcmp(name, "path") == 0) {
-		test_value = cw_string("%s", r->path);
+		test_value = string("%s", r->path);
 	} else {
 		return 1;
 	}
@@ -1027,7 +1027,7 @@ int res_symlink_gencode(const void *res, FILE *io, unsigned int next, unsigned i
 	return 0;
 }
 
-FILE * res_symlink_content(const void *res, cw_hash_t *facts) { return NULL; }
+FILE * res_symlink_content(const void *res, hash_t *facts) { return NULL; }
 
 
 /*****************************************************************/
@@ -1040,7 +1040,7 @@ void* res_group_new(const char *key)
 void* res_group_clone(const void *res, const char *key)
 {
 	const struct res_group *orig = (const struct res_group*)(res);
-	struct res_group *rg = cw_alloc(sizeof(struct res_group));
+	struct res_group *rg = vmalloc(sizeof(struct res_group));
 
 	rg->enforced  = RES_DEFAULT(orig, enforced, RES_NONE);
 
@@ -1050,12 +1050,12 @@ void* res_group_clone(const void *res, const char *key)
 	rg->gid    = RES_DEFAULT(orig, gid, 0);
 
 	/* FIXME: clone members of res_group */
-	rg->mem_add = cw_strl_new(NULL);
-	rg->mem_rm  = cw_strl_new(NULL);
+	rg->mem_add = strings_new(NULL);
+	rg->mem_rm  = strings_new(NULL);
 
 	/* FIXME: clone admins of res_group */
-	rg->adm_add = cw_strl_new(NULL);
-	rg->adm_rm  = cw_strl_new(NULL);
+	rg->adm_add = strings_new(NULL);
+	rg->adm_rm  = strings_new(NULL);
 
 	/* state variables are never cloned */
 	rg->grp = NULL;
@@ -1083,16 +1083,16 @@ void res_group_free(void *res)
 		free(rg->passwd);
 
 		if (rg->mem) {
-			cw_strl_free(rg->mem);
+			strings_free(rg->mem);
 		}
-		cw_strl_free(rg->mem_add);
-		cw_strl_free(rg->mem_rm);
+		strings_free(rg->mem_add);
+		strings_free(rg->mem_rm);
 
 		if (rg->adm) {
-			cw_strl_free(rg->adm);
+			strings_free(rg->adm);
 		}
-		cw_strl_free(rg->adm_add);
-		cw_strl_free(rg->adm_rm);
+		strings_free(rg->adm_add);
+		strings_free(rg->adm_rm);
 	}
 	free(rg);
 }
@@ -1102,24 +1102,24 @@ char* res_group_key(const void *res)
 	const struct res_group *rg = (struct res_group*)(res);
 	assert(rg); // LCOV_EXCL_LINE
 
-	return cw_string("group:%s", rg->key);
+	return string("group:%s", rg->key);
 }
 
-static char* _res_group_roster_mv(cw_strl_t *add, cw_strl_t *rm)
+static char* _res_group_roster_mv(strings_t *add, strings_t *rm)
 {
 	char *added   = NULL;
 	char *removed = NULL;
 	char *final   = NULL;
 
 	if (add->num > 0) {
-		added = cw_strl_join(add, " ");
+		added = strings_join(add, " ");
 	}
 	if (rm->num > 0) {
-		removed = cw_strl_join(rm, " !");
+		removed = strings_join(rm, " !");
 	}
 
 	if (added && removed) {
-		final = cw_string("%s !%s", added, removed);
+		final = string("%s !%s", added, removed);
 		free(added);
 		free(removed);
 		added = removed = NULL;
@@ -1128,7 +1128,7 @@ static char* _res_group_roster_mv(cw_strl_t *add, cw_strl_t *rm)
 		final = added;
 
 	} else if (removed) {
-		final = cw_string("!%s", removed);
+		final = string("!%s", removed);
 		free(removed);
 		removed = NULL;
 
@@ -1139,13 +1139,13 @@ static char* _res_group_roster_mv(cw_strl_t *add, cw_strl_t *rm)
 	return final;
 }
 
-int res_group_attrs(const void *res, cw_hash_t *attrs)
+int res_group_attrs(const void *res, hash_t *attrs)
 {
 	const struct res_group *rg = (const struct res_group*)(res);
 	assert(rg); // LCOV_EXCL_LINE
 
 	_hash_attr(attrs, "name", strdup(rg->name));
-	_hash_attr(attrs, "gid", ENFORCED(rg, RES_GROUP_GID) ? cw_string("%u",rg->gid) : NULL);
+	_hash_attr(attrs, "gid", ENFORCED(rg, RES_GROUP_GID) ? string("%u",rg->gid) : NULL);
 	_hash_attr(attrs, "present", strdup(ENFORCED(rg, RES_GROUP_ABSENT) ? "no" : "yes"));
 	_hash_attr(attrs, "password", ENFORCED(rg, RES_GROUP_PASSWD) ? strdup(rg->passwd) : NULL);
 	if (ENFORCED(rg, RES_GROUP_MEMBERS)) {
@@ -1161,14 +1161,14 @@ int res_group_attrs(const void *res, cw_hash_t *attrs)
 	return 0;
 }
 
-int res_group_norm(void *res, struct policy *pol, cw_hash_t *facts) { return 0; }
+int res_group_norm(void *res, struct policy *pol, hash_t *facts) { return 0; }
 
 int res_group_set(void *res, const char *name, const char *value)
 {
 	struct res_group *rg = (struct res_group*)(res);
 
 	/* for multi-value attributes */
-	cw_strl_t *multi;
+	strings_t *multi;
 	size_t i;
 
 	assert(rg); // LCOV_EXCL_LINE
@@ -1197,11 +1197,11 @@ int res_group_set(void *res, const char *name, const char *value)
 		}
 
 	} else if (strcmp(name, "members") == 0) {
-		multi = cw_strl_split(value, strlen(value), " ", SPLIT_GREEDY);
+		multi = strings_split(value, strlen(value), " ", SPLIT_GREEDY);
 		for_each_string(multi, i) {
 			res_group_set(res, "member", multi->strings[i]);
 		}
-		cw_strl_free(multi);
+		strings_free(multi);
 
 	} else if (strcmp(name, "admin") == 0) {
 		if (value[0] == '!') {
@@ -1211,11 +1211,11 @@ int res_group_set(void *res, const char *name, const char *value)
 		}
 
 	} else if (strcmp(name, "admins") == 0) {
-		multi = cw_strl_split(value, strlen(value), " ", SPLIT_GREEDY);
+		multi = strings_split(value, strlen(value), " ", SPLIT_GREEDY);
 		for_each_string(multi, i) {
 			res_group_set(res, "admin", multi->strings[i]);
 		}
-		cw_strl_free(multi);
+		strings_free(multi);
 
 	} else if (strcmp(name, "pwhash") == 0 || strcmp(name, "password") == 0) {
 		free(rg->passwd);
@@ -1244,9 +1244,9 @@ int res_group_match(const void *res, const char *name, const char *value)
 	int rc;
 
 	if (strcmp(name, "gid") == 0) {
-		test_value = cw_string("%u", rg->gid);
+		test_value = string("%u", rg->gid);
 	} else if (strcmp(name, "name") == 0) {
-		test_value = cw_string("%s", rg->name);
+		test_value = string("%s", rg->name);
 	} else {
 		return 1;
 	}
@@ -1433,7 +1433,7 @@ int res_group_remove_admin(struct res_group *rg, const char *user)
 	return _group_update(rg->adm_rm, rg->adm_add, user);
 }
 
-FILE * res_group_content(const void *res, cw_hash_t *facts) { return NULL; }
+FILE * res_group_content(const void *res, hash_t *facts) { return NULL; }
 
 /*****************************************************************/
 
@@ -1445,7 +1445,7 @@ void* res_package_new(const char *key)
 void* res_package_clone(const void *res, const char *key)
 {
 	const struct res_package *orig = (const struct res_package*)(res);
-	struct res_package *rp = cw_alloc(sizeof(struct res_package));
+	struct res_package *rp = vmalloc(sizeof(struct res_package));
 
 	rp->enforced  = RES_DEFAULT(orig, enforced, RES_NONE);
 	rp->version   = RES_DEFAULT_STR(orig, version, NULL);
@@ -1477,10 +1477,10 @@ char* res_package_key(const void *res)
 	const struct res_package *rp = (struct res_package*)(res);
 	assert(rp); // LCOV_EXCL_LINE
 
-	return cw_string("package:%s", rp->key);
+	return string("package:%s", rp->key);
 }
 
-int res_package_attrs(const void *res, cw_hash_t *attrs)
+int res_package_attrs(const void *res, hash_t *attrs)
 {
 	const struct res_package *rp = (const struct res_package*)(res);
 	assert(rp); // LCOV_EXCL_LINE
@@ -1491,7 +1491,7 @@ int res_package_attrs(const void *res, cw_hash_t *attrs)
 	return 0;
 }
 
-int res_package_norm(void *res, struct policy *pol, cw_hash_t *facts) { return 0; }
+int res_package_norm(void *res, struct policy *pol, hash_t *facts) { return 0; }
 
 int res_package_set(void *res, const char *name, const char *value)
 {
@@ -1535,7 +1535,7 @@ int res_package_match(const void *res, const char *name, const char *value)
 	int rc;
 
 	if (strcmp(name, "name") == 0) {
-		test_value = cw_string("%s", rp->name);
+		test_value = string("%s", rp->name);
 	} else {
 		return 1;
 	}
@@ -1607,7 +1607,7 @@ int res_package_gencode(const void *res, FILE *io, unsigned int next, unsigned i
 	return 0;
 }
 
-FILE * res_package_content(const void *res, cw_hash_t *facts) { return NULL; }
+FILE * res_package_content(const void *res, hash_t *facts) { return NULL; }
 
 /*****************************************************************/
 
@@ -1619,7 +1619,7 @@ void* res_service_new(const char *key)
 void* res_service_clone(const void *res, const char *key)
 {
 	const struct res_service *orig = (const struct res_service*)(res);
-	struct res_service *rs = cw_alloc(sizeof(struct res_service));
+	struct res_service *rs = vmalloc(sizeof(struct res_service));
 
 	rs->enforced  = RES_DEFAULT(orig, enforced, RES_NONE);
 	rs->notify    = RES_DEFAULT_STR(orig, notify,  NULL);
@@ -1651,10 +1651,10 @@ char* res_service_key(const void *res)
 	const struct res_service *rs = (struct res_service*)(res);
 	assert(rs); // LCOV_EXCL_LINE
 
-	return cw_string("service:%s", rs->key);
+	return string("service:%s", rs->key);
 }
 
-int res_service_attrs(const void *res, cw_hash_t *attrs)
+int res_service_attrs(const void *res, hash_t *attrs)
 {
 	const struct res_service *rs = (const struct res_service*)(res);
 	assert(rs); // LCOV_EXCL_LINE
@@ -1666,7 +1666,7 @@ int res_service_attrs(const void *res, cw_hash_t *attrs)
 	return 0;
 }
 
-int res_service_norm(void *res, struct policy *pol, cw_hash_t *facts) { return 0; }
+int res_service_norm(void *res, struct policy *pol, hash_t *facts) { return 0; }
 
 int res_service_set(void *res, const char *name, const char *value)
 {
@@ -1733,7 +1733,7 @@ int res_service_match(const void *res, const char *name, const char *value)
 	int rc;
 
 	if (strcmp(name, "name") == 0 || strcmp(name, "service") == 0) {
-		test_value = cw_string("%s", rs->service);
+		test_value = string("%s", rs->service);
 	} else {
 		return 1;
 	}
@@ -1811,7 +1811,7 @@ int res_service_gencode(const void *res, FILE *io, unsigned int next, unsigned i
 	return 0;
 }
 
-FILE * res_service_content(const void *res, cw_hash_t *facts) { return NULL; }
+FILE * res_service_content(const void *res, hash_t *facts) { return NULL; }
 
 /*****************************************************************/
 
@@ -1823,12 +1823,12 @@ void* res_host_new(const char *key)
 void* res_host_clone(const void *res, const char *key)
 {
 	const struct res_host *orig = (const struct res_host*)(res);
-	struct res_host *rh = cw_alloc(sizeof(struct res_host));
+	struct res_host *rh = vmalloc(sizeof(struct res_host));
 
 	rh->enforced  = RES_DEFAULT(orig, enforced, RES_NONE);
 
 	/* FIXME: clone host aliases */
-	rh->aliases = cw_strl_new(NULL);
+	rh->aliases = strings_new(NULL);
 
 	rh->ip = RES_DEFAULT_STR(orig, ip, NULL);
 
@@ -1851,7 +1851,7 @@ void res_host_free(void *res)
 		free(rh->aug_root);
 		free(rh->hostname);
 		free(rh->ip);
-		cw_strl_free(rh->aliases);
+		strings_free(rh->aliases);
 
 		free(rh->key);
 	}
@@ -1864,10 +1864,10 @@ char* res_host_key(const void *res)
 	const struct res_host *rh = (struct res_host*)(res);
 	assert(rh); // LCOV_EXCL_LINE
 
-	return cw_string("host:%s", rh->key);
+	return string("host:%s", rh->key);
 }
 
-int res_host_attrs(const void *res, cw_hash_t *attrs)
+int res_host_attrs(const void *res, hash_t *attrs)
 {
 	const struct res_host *rh = (const struct res_host*)(res);
 	assert(rh); // LCOV_EXCL_LINE
@@ -1876,20 +1876,20 @@ int res_host_attrs(const void *res, cw_hash_t *attrs)
 	_hash_attr(attrs, "present",  strdup(ENFORCED(rh, RES_HOST_ABSENT) ? "no" : "yes"));
 	_hash_attr(attrs, "ip", cw_strdup(rh->ip));
 	if (ENFORCED(rh, RES_HOST_ALIASES)) {
-		_hash_attr(attrs, "aliases", cw_strl_join(rh->aliases, " "));
+		_hash_attr(attrs, "aliases", strings_join(rh->aliases, " "));
 	} else {
 		_hash_attr(attrs, "aliases", NULL);
 	}
 	return 0;
 }
 
-int res_host_norm(void *res, struct policy *pol, cw_hash_t *facts) { return 0; }
+int res_host_norm(void *res, struct policy *pol, hash_t *facts) { return 0; }
 
 int res_host_set(void *res, const char *name, const char *value)
 {
 	struct res_host *rh = (struct res_host*)(res);
 	assert(rh); // LCOV_EXCL_LINE
-	cw_strl_t *alias_tmp;
+	strings_t *alias_tmp;
 
 	if (strcmp(name, "hostname") == 0) {
 		free(rh->hostname);
@@ -1900,12 +1900,12 @@ int res_host_set(void *res, const char *name, const char *value)
 		rh->ip = strdup(value);
 
 	} else if (strcmp(name, "aliases") == 0 || strcmp(name, "alias") == 0) {
-		alias_tmp = cw_strl_split(value, strlen(value), " ", SPLIT_GREEDY);
-		if (cw_strl_add_all(rh->aliases, alias_tmp) != 0) {
-			cw_strl_free(alias_tmp);
+		alias_tmp = strings_split(value, strlen(value), " ", SPLIT_GREEDY);
+		if (strings_add_all(rh->aliases, alias_tmp) != 0) {
+			strings_free(alias_tmp);
 			return -1;
 		}
-		cw_strl_free(alias_tmp);
+		strings_free(alias_tmp);
 
 		ENFORCE(rh, RES_HOST_ALIASES);
 
@@ -1932,9 +1932,9 @@ int res_host_match(const void *res, const char *name, const char *value)
 	int rc;
 
 	if (strcmp(name, "hostname") == 0) {
-		test_value = cw_string("%s", rh->hostname);
+		test_value = string("%s", rh->hostname);
 	} else if (strcmp(name, "ip") == 0 || strcmp(name, "address") == 0) {
-		test_value = cw_string("%s", rh->ip);
+		test_value = string("%s", rh->ip);
 	} else {
 		return 1;
 	}
@@ -1989,7 +1989,7 @@ int res_host_gencode(const void *res, FILE *io, unsigned int next, unsigned int 
 	return 0;
 }
 
-FILE * res_host_content(const void *res, cw_hash_t *facts) { return NULL; }
+FILE * res_host_content(const void *res, hash_t *facts) { return NULL; }
 
 /*****************************************************************/
 
@@ -2001,7 +2001,7 @@ void* res_sysctl_new(const char *key)
 void* res_sysctl_clone(const void *res, const char *key)
 {
 	const struct res_sysctl *orig = (const struct res_sysctl*)(res);
-	struct res_sysctl *rs = cw_alloc(sizeof(struct res_sysctl));
+	struct res_sysctl *rs = vmalloc(sizeof(struct res_sysctl));
 
 	rs->enforced  = RES_DEFAULT(orig, enforced, RES_NONE);
 
@@ -2038,10 +2038,10 @@ char* res_sysctl_key(const void *res)
 	const struct res_sysctl *rs = (struct res_sysctl*)(res);
 	assert(rs); // LCOV_EXCL_LINE
 
-	return cw_string("sysctl:%s", rs->key);
+	return string("sysctl:%s", rs->key);
 }
 
-int res_sysctl_attrs(const void *res, cw_hash_t *attrs)
+int res_sysctl_attrs(const void *res, hash_t *attrs)
 {
 	const struct res_sysctl *rs = (const struct res_sysctl*)(res);
 	assert(rs); // LCOV_EXCL_LINE
@@ -2052,7 +2052,7 @@ int res_sysctl_attrs(const void *res, cw_hash_t *attrs)
 	return 0;
 }
 
-int res_sysctl_norm(void *res, struct policy *pol, cw_hash_t *facts) { return 0; }
+int res_sysctl_norm(void *res, struct policy *pol, hash_t *facts) { return 0; }
 
 int res_sysctl_set(void *res, const char *name, const char *value)
 {
@@ -2092,7 +2092,7 @@ int res_sysctl_match(const void *res, const char *name, const char *value)
 	int rc;
 
 	if (strcmp(name, "param") == 0) {
-		test_value = cw_string("%s", rs->param);
+		test_value = string("%s", rs->param);
 	} else {
 		return 1;
 	}
@@ -2134,7 +2134,7 @@ int res_sysctl_gencode(const void *res, FILE *io, unsigned int next, unsigned in
 	return 0;
 }
 
-FILE * res_sysctl_content(const void *res, cw_hash_t *facts) { return NULL; }
+FILE * res_sysctl_content(const void *res, hash_t *facts) { return NULL; }
 
 /*****************************************************************/
 
@@ -2146,7 +2146,7 @@ void* res_dir_new(const char *key)
 void* res_dir_clone(const void *res, const char *key)
 {
 	const struct res_dir *orig = (const struct res_dir*)(res);
-	struct res_dir *rd = cw_alloc(sizeof(struct res_dir));
+	struct res_dir *rd = vmalloc(sizeof(struct res_dir));
 
 	rd->enforced  = RES_DEFAULT(orig, enforced, RES_NONE);
 
@@ -2183,10 +2183,10 @@ char *res_dir_key(const void *res)
 	const struct res_dir *rd = (const struct res_dir*)(res);
 	assert(rd); // LCOV_EXCL_LINE
 
-	return cw_string("dir:%s", rd->key);
+	return string("dir:%s", rd->key);
 }
 
-int res_dir_attrs(const void *res, cw_hash_t *attrs)
+int res_dir_attrs(const void *res, hash_t *attrs)
 {
 	const struct res_dir *rd = (const struct res_dir*)(res);
 	assert(rd); // LCOV_EXCL_LINE
@@ -2194,12 +2194,12 @@ int res_dir_attrs(const void *res, cw_hash_t *attrs)
 	_hash_attr(attrs, "path", cw_strdup(rd->path));
 	_hash_attr(attrs, "owner", ENFORCED(rd, RES_DIR_UID) ? strdup(rd->owner) : NULL);
 	_hash_attr(attrs, "group", ENFORCED(rd, RES_DIR_GID) ? strdup(rd->group) : NULL);
-	_hash_attr(attrs, "mode", ENFORCED(rd, RES_DIR_MODE) ? cw_string("%04o", rd->mode) : NULL);
+	_hash_attr(attrs, "mode", ENFORCED(rd, RES_DIR_MODE) ? string("%04o", rd->mode) : NULL);
 	_hash_attr(attrs, "present", strdup(ENFORCED(rd, RES_DIR_ABSENT) ? "no" : "yes"));
 	return 0;
 }
 
-int res_dir_norm(void *res, struct policy *pol, cw_hash_t *facts)
+int res_dir_norm(void *res, struct policy *pol, hash_t *facts)
 {
 	struct res_dir *rd = (struct res_dir*)(res);
 	assert(rd); // LCOV_EXCL_LINE
@@ -2291,7 +2291,7 @@ int res_dir_match(const void *res, const char *name, const char *value)
 	int rc;
 
 	if (strcmp(name, "path") == 0) {
-		test_value = cw_string("%s", rd->path);
+		test_value = string("%s", rd->path);
 	} else {
 		return 1;
 	}
@@ -2403,7 +2403,7 @@ int res_dir_gencode(const void *res, FILE *io, unsigned int next, unsigned int s
 	return 0;
 }
 
-FILE * res_dir_content(const void *res, cw_hash_t *facts) { return NULL; }
+FILE * res_dir_content(const void *res, hash_t *facts) { return NULL; }
 
 /********************************************************************/
 
@@ -2415,7 +2415,7 @@ void* res_exec_new(const char *key)
 void* res_exec_clone(const void *res, const char *key)
 {
 	const struct res_exec *orig = (const struct res_exec*)(res);
-	struct res_exec *re = cw_alloc(sizeof(struct res_exec));
+	struct res_exec *re = vmalloc(sizeof(struct res_exec));
 
 	re->enforced  = RES_DEFAULT(orig, enforced, RES_NONE);
 
@@ -2455,10 +2455,10 @@ char *res_exec_key(const void *res)
 	const struct res_exec *re = (const struct res_exec*)(res);
 	assert(re); // LCOV_EXCL_LINE
 
-	return cw_string("exec:%s", re->key);
+	return string("exec:%s", re->key);
 }
 
-int res_exec_attrs(const void *res, cw_hash_t *attrs)
+int res_exec_attrs(const void *res, hash_t *attrs)
 {
 	const struct res_exec *re = (const struct res_exec*)(res);
 	assert(re); // LCOV_EXCL_LINE
@@ -2471,7 +2471,7 @@ int res_exec_attrs(const void *res, cw_hash_t *attrs)
 	return 0;
 }
 
-int res_exec_norm(void *res, struct policy *pol, cw_hash_t *facts)
+int res_exec_norm(void *res, struct policy *pol, hash_t *facts)
 {
 	struct res_exec *re = (struct res_exec*)(res);
 	assert(re); // LCOV_EXCL_LINE
@@ -2557,7 +2557,7 @@ int res_exec_match(const void *res, const char *name, const char *value)
 	int rc;
 
 	if (strcmp(name, "command") == 0) {
-		test_value = cw_string("%s", re->command);
+		test_value = string("%s", re->command);
 	} else {
 		return 1;
 	}
@@ -2625,4 +2625,4 @@ int res_exec_gencode(const void *res, FILE *io, unsigned int next, unsigned int 
 	return 0;
 }
 
-FILE * res_exec_content(const void *res, cw_hash_t *facts) { return NULL; }
+FILE * res_exec_content(const void *res, hash_t *facts) { return NULL; }

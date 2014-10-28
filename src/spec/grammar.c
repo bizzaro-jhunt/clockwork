@@ -110,7 +110,7 @@ static struct stree* s_regex(struct manifest *m, const char *literal)
 	const char *p;
 	int esc = 0;
 
-	d = re = cw_alloc(sizeof(char) * (strlen(literal)+1));
+	d = re = vmalloc(strlen(literal) + 1);
 	p = literal;
 	if (*p == 'm') p++;
 	delim = *p++;
@@ -1473,7 +1473,7 @@ yyreduce:
 #line 155 "src/spec/grammar.y" /* yacc.c:1646  */
     { stree_add(MANIFEST(ctx)->root, (yyvsp[0].stree));
 		  if ((yyvsp[0].stree)->data1) {
-			cw_hash_set(MANIFEST(ctx)->hosts, (yyvsp[0].stree)->data1, (yyvsp[0].stree));
+			hash_set(MANIFEST(ctx)->hosts, (yyvsp[0].stree)->data1, (yyvsp[0].stree));
 		  } else {
 			MANIFEST(ctx)->fallback = (yyvsp[0].stree);
 		  } }
@@ -1483,7 +1483,7 @@ yyreduce:
   case 4:
 #line 162 "src/spec/grammar.y" /* yacc.c:1646  */
     { stree_add(MANIFEST(ctx)->root, (yyvsp[0].stree));
-		  cw_hash_set(MANIFEST(ctx)->policies, (yyvsp[0].stree)->data1, (yyvsp[0].stree)); }
+		  hash_set(MANIFEST(ctx)->policies, (yyvsp[0].stree)->data1, (yyvsp[0].stree)); }
 #line 1488 "src/spec/grammar.c" /* yacc.c:1646  */
     break;
 
@@ -1813,28 +1813,28 @@ yyreduce:
   case 66:
 #line 369 "src/spec/grammar.y" /* yacc.c:1646  */
     { (yyval.map) = (yyvsp[-2].map);
-		  if ((yyvsp[-1].map_cond)) cw_list_push(&(yyval.map)->cond, &(yyvsp[-1].map_cond)->l);
+		  if ((yyvsp[-1].map_cond)) list_push(&(yyval.map)->cond, &(yyvsp[-1].map_cond)->l);
 		  (yyvsp[-2].map)->lhs = NODE(EXPR_FACT, (yyvsp[-5].string), NULL); }
 #line 1819 "src/spec/grammar.c" /* yacc.c:1646  */
     break;
 
   case 67:
 #line 375 "src/spec/grammar.y" /* yacc.c:1646  */
-    { (yyval.map) = cw_alloc(sizeof(parser_map));
-		  cw_list_init(&(yyval.map)->cond); }
+    { (yyval.map) = vmalloc(sizeof(parser_map));
+		  list_init(&(yyval.map)->cond); }
 #line 1826 "src/spec/grammar.c" /* yacc.c:1646  */
     break;
 
   case 68:
 #line 378 "src/spec/grammar.y" /* yacc.c:1646  */
-    { cw_list_push(&(yyval.map)->cond, &(yyvsp[0].map_cond)->l); }
+    { list_push(&(yyval.map)->cond, &(yyvsp[0].map_cond)->l); }
 #line 1832 "src/spec/grammar.c" /* yacc.c:1646  */
     break;
 
   case 71:
 #line 384 "src/spec/grammar.y" /* yacc.c:1646  */
-    { (yyval.map_cond) = cw_alloc(sizeof(parser_map_cond));
-		  cw_list_init(&(yyval.map_cond)->l);
+    { (yyval.map_cond) = vmalloc(sizeof(parser_map_cond));
+		  list_init(&(yyval.map_cond)->l);
 		  (yyval.map_cond)->rhs   = (yyvsp[-2].stree);
 		  (yyval.map_cond)->value = (yyvsp[0].string); }
 #line 1841 "src/spec/grammar.c" /* yacc.c:1646  */
@@ -1848,8 +1848,8 @@ yyreduce:
 
   case 75:
 #line 396 "src/spec/grammar.y" /* yacc.c:1646  */
-    { (yyval.map_cond) = cw_alloc(sizeof(parser_map_cond));
-		  cw_list_init(&(yyval.map_cond)->l);
+    { (yyval.map_cond) = vmalloc(sizeof(parser_map_cond));
+		  list_init(&(yyval.map_cond)->l);
 		  (yyval.map_cond)->value = (yyvsp[0].string); }
 #line 1855 "src/spec/grammar.c" /* yacc.c:1646  */
     break;

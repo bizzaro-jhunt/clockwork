@@ -70,8 +70,8 @@ static FILE* lexer_open(const char *path, spec_parser_context *ctx)
 	seen->st_dev = st.st_dev;
 	seen->st_ino = st.st_ino;
 	seen->io     = io;
-	cw_list_init(&(seen->ls));
-	cw_list_push(&ctx->fseen, &seen->ls);
+	list_init(&(seen->ls));
+	list_push(&ctx->fseen, &seen->ls);
 	return io;
 }
 
@@ -101,7 +101,7 @@ static void lexer_process_file(const char *path, spec_parser_context *ctx)
 	buf = yy_create_buffer(io, YY_BUF_SIZE, ctx->scanner);
 	yypush_buffer_state(buf, ctx->scanner);
 
-	cw_strl_add(ctx->files, path);
+	strings_add(ctx->files, path);
 	ctx->file = ctx->files->strings[ctx->files->num-1];
 }
 
@@ -122,7 +122,7 @@ static char* lexer_resolve_path_spec(const char *current_file, const char *path)
 	file_dup = strdup(current_file);
 	base = dirname(file_dup);
 
-	full_path = cw_string("%s/%s", base, path);
+	full_path = string("%s/%s", base, path);
 	free(file_dup);
 
 	return full_path;
@@ -136,10 +136,10 @@ void spec_parser_error(void *user, const char *fmt, ...)
 
 	va_start(args, fmt);
 	if (vsnprintf(buf, 256, fmt, args) < 0) {
-		cw_log(LOG_CRIT, "%s:%u: error: vsnprintf failed in spec_parser_error",
+		logger(LOG_CRIT, "%s:%u: error: vsnprintf failed in spec_parser_error",
 		                ctx->file, yyget_lineno(ctx->scanner));
 	} else {
-		cw_log(LOG_CRIT, "%s:%u: error: %s", ctx->file, yyget_lineno(ctx->scanner), buf);
+		logger(LOG_CRIT, "%s:%u: error: %s", ctx->file, yyget_lineno(ctx->scanner), buf);
 	}
 	ctx->errors++;
 }
@@ -152,11 +152,11 @@ void spec_parser_warning(void *user, const char *fmt, ...)
 
 	va_start(args, fmt);
 	if (vsnprintf(buf, 256, fmt, args) < 0) {
-		cw_log(LOG_CRIT, "%s:%u: error: vsnprintf failed in spec_parser_warning",
+		logger(LOG_CRIT, "%s:%u: error: vsnprintf failed in spec_parser_warning",
 		                ctx->file, yyget_lineno(ctx->scanner));
 		ctx->errors++; /* treat this as an error */
 	} else {
-		cw_log(LOG_CRIT, "%s:%u: warning: %s", ctx->file, yyget_lineno(ctx->scanner), buf);
+		logger(LOG_CRIT, "%s:%u: warning: %s", ctx->file, yyget_lineno(ctx->scanner), buf);
 		ctx->warnings++; 
 	}
 }
@@ -203,7 +203,7 @@ void lexer_include_file(const char *path, spec_parser_context *ctx)
 
 int lexer_include_return(spec_parser_context *ctx)
 {
-	cw_strl_remove(ctx->files, ctx->file);
+	strings_remove(ctx->files, ctx->file);
 	lexer_close(ctx);
 
 	if (ctx->files->num == 0) {

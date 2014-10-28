@@ -30,7 +30,7 @@ TESTS {
 
 		isnt_null(pol = policy_new("policy name"), "initialized policy");
 		is_string(pol->name, "policy name", "Policy name initialized");
-		ok(cw_list_isempty(&pol->resources), "new policy has no resources");
+		ok(list_isempty(&pol->resources), "new policy has no resources");
 
 		policy_free(pol);
 	}
@@ -70,12 +70,12 @@ TESTS {
 	subtest {
 		struct manifest *m;
 		struct policy *pol;
-		cw_hash_t *facts;
+		hash_t *facts;
 
-		facts = cw_alloc(sizeof(cw_hash_t));
+		facts = vmalloc(sizeof(hash_t));
 		isnt_null(m = parse_file(TEST_DATA "/policy/parse.pol"),
 				"manifest parsed");
-		isnt_null(pol = policy_generate(cw_hash_get(m->policies, "base"), facts),
+		isnt_null(pol = policy_generate(hash_get(m->policies, "base"), facts),
 				"policy 'base' found");
 
 		ok(has_dep(pol, "file:test-file", "user:james"),
@@ -105,12 +105,12 @@ TESTS {
 	subtest {
 		struct manifest *m;
 		struct policy *pol;
-		cw_hash_t *facts;
+		hash_t *facts;
 
-		facts = cw_alloc(sizeof(cw_hash_t));
+		facts = vmalloc(sizeof(hash_t));
 		isnt_null(m = parse_file(TEST_DATA "/policy/fail-unknown-attr.pol"),
 				"manifest parsed");
-		isnt_null(pol = policy_generate(cw_hash_get(m->policies, "base"), facts),
+		isnt_null(pol = policy_generate(hash_get(m->policies, "base"), facts),
 				"policy 'base' found");
 
 		policy_free_all(pol);

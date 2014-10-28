@@ -65,34 +65,34 @@ TESTS {
 
 	subtest {
 		struct res_sysctl *rs;
-		cw_hash_t *h;
+		hash_t *h;
 
-		isnt_null(h = cw_alloc(sizeof(cw_hash_t)), "created hash");
+		isnt_null(h = vmalloc(sizeof(hash_t)), "created hash");
 		isnt_null(rs = res_sysctl_new("net.ipv4.tun"), "created sysctl");
 
 		ok(res_sysctl_attrs(rs, h) == 0, "got res_sysctl attrs");
-		is_string(cw_hash_get(h, "param"),   "net.ipv4.tun", "h.param");
-		is_string(cw_hash_get(h, "persist"), "no",           "h.persist");
-		is_null(cw_hash_get(h, "value"), "h.value is unset");
+		is_string(hash_get(h, "param"),   "net.ipv4.tun", "h.param");
+		is_string(hash_get(h, "persist"), "no",           "h.persist");
+		is_null(hash_get(h, "value"), "h.value is unset");
 
 		res_sysctl_set(rs, "value", "42");
 		res_sysctl_set(rs, "persist", "yes");
 
 		ok(res_sysctl_attrs(rs, h) == 0, "got res_sysctl attrs");
-		is_string(cw_hash_get(h, "param"),   "net.ipv4.tun", "h.param");
-		is_string(cw_hash_get(h, "value"),   "42",           "h.value");
-		is_string(cw_hash_get(h, "persist"), "yes",          "h.persist");
+		is_string(hash_get(h, "param"),   "net.ipv4.tun", "h.param");
+		is_string(hash_get(h, "value"),   "42",           "h.value");
+		is_string(hash_get(h, "persist"), "yes",          "h.persist");
 
 		res_sysctl_set(rs, "persist", "no");
 
 		ok(res_sysctl_attrs(rs, h) == 0, "got res_sysctl attrs");
-		is_string(cw_hash_get(h, "persist"), "no",           "h.persist");
+		is_string(hash_get(h, "persist"), "no",           "h.persist");
 
 		ok(res_sysctl_set(rs, "xyzzy", "BAD") != 0, "xyzzy is not a valid attribute");
 		ok(res_sysctl_attrs(rs, h) == 0, "got res_sysctl attrs");
-		is_null(cw_hash_get(h, "xyzzy"), "h.xyzzy is NULL (bad attr)");
+		is_null(hash_get(h, "xyzzy"), "h.xyzzy is NULL (bad attr)");
 
-		cw_hash_done(h, 1);
+		hash_done(h, 1);
 		free(h);
 		res_sysctl_free(rs);
 	}

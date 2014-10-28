@@ -154,27 +154,27 @@ TESTS {
 
 	subtest {
 		struct res_user *ru;
-		cw_hash_t *h;
+		hash_t *h;
 
 		isnt_null(ru = res_user_new("user"), "res_user created");
 
-		isnt_null(h = cw_alloc(sizeof(cw_hash_t)), "hash created");
+		isnt_null(h = vmalloc(sizeof(hash_t)), "hash created");
 		ok(res_user_attrs(ru, h) == 0, "got raw user attributes");
-		is_string(cw_hash_get(h, "username"), "user", "h.username");
-		is_string(cw_hash_get(h, "present"),  "yes",  "h.present"); // default
-		is_null(cw_hash_get(h, "uid"), "h.uid is unset");
-		is_null(cw_hash_get(h, "gid"), "h.gid is unset");
-		is_null(cw_hash_get(h, "home"), "h.home is unset");
-		is_null(cw_hash_get(h, "locked"), "h.locked is unset");
-		is_null(cw_hash_get(h, "comment"), "h.comment is unset");
-		is_null(cw_hash_get(h, "shell"), "h.shell is unset");
-		is_null(cw_hash_get(h, "password"), "h.password is unset");
-		is_null(cw_hash_get(h, "pwmin"), "h.pwmin is unset");
-		is_null(cw_hash_get(h, "pwmax"), "h.pwmax is unset");
-		is_null(cw_hash_get(h, "pwwarn"), "h.pwwarn is unset");
-		is_null(cw_hash_get(h, "inact"), "h.inact is unset");
-		is_null(cw_hash_get(h, "expiration"), "h.expiration is unset");
-		is_null(cw_hash_get(h, "skeleton"), "h.skeleton is unset");
+		is_string(hash_get(h, "username"), "user", "h.username");
+		is_string(hash_get(h, "present"),  "yes",  "h.present"); // default
+		is_null(hash_get(h, "uid"), "h.uid is unset");
+		is_null(hash_get(h, "gid"), "h.gid is unset");
+		is_null(hash_get(h, "home"), "h.home is unset");
+		is_null(hash_get(h, "locked"), "h.locked is unset");
+		is_null(hash_get(h, "comment"), "h.comment is unset");
+		is_null(hash_get(h, "shell"), "h.shell is unset");
+		is_null(hash_get(h, "password"), "h.password is unset");
+		is_null(hash_get(h, "pwmin"), "h.pwmin is unset");
+		is_null(hash_get(h, "pwmax"), "h.pwmax is unset");
+		is_null(hash_get(h, "pwwarn"), "h.pwwarn is unset");
+		is_null(hash_get(h, "inact"), "h.inact is unset");
+		is_null(hash_get(h, "expiration"), "h.expiration is unset");
+		is_null(hash_get(h, "skeleton"), "h.skeleton is unset");
 
 		res_user_set(ru, "uid",        "1001");
 		res_user_set(ru, "gid",        "2002");
@@ -192,35 +192,35 @@ TESTS {
 		res_user_set(ru, "skeleton",   "/etc/skel");
 		res_user_set(ru, "present",    "no");
 
-		cw_hash_done(h, 1);
+		hash_done(h, 1);
 		free(h);
-		isnt_null(h = cw_alloc(sizeof(cw_hash_t)), "hash created");
+		isnt_null(h = vmalloc(sizeof(hash_t)), "hash created");
 
 		ok(res_user_attrs(ru, h) == 0, "got raw user attributes");
-		is_string(cw_hash_get(h, "uid"),        "1001",       "h.uid");
-		is_string(cw_hash_get(h, "gid"),        "2002",       "h.gid");
-		is_string(cw_hash_get(h, "home"),       "/home/user", "h.home");
-		is_string(cw_hash_get(h, "locked"),     "yes",        "h.locked");
-		is_string(cw_hash_get(h, "comment"),    "User",       "h.comment");
-		is_string(cw_hash_get(h, "shell"),      "/bin/bash",  "h.shell");
-		is_string(cw_hash_get(h, "password"),   "secret",     "h.password");
-		is_string(cw_hash_get(h, "pwmin"),      "2",          "h.pwmin");
-		is_string(cw_hash_get(h, "pwmax"),      "30",         "h.pwmax");
-		is_string(cw_hash_get(h, "pwwarn"),     "7",          "h.pwwarn");
-		is_string(cw_hash_get(h, "inact"),      "14",         "h.inact");
-		is_string(cw_hash_get(h, "expiration"), "365",        "h.expiration");
-		is_string(cw_hash_get(h, "skeleton"),   "/etc/skel",  "h.skeleton");
-		is_string(cw_hash_get(h, "present"),    "no",         "h.present");
+		is_string(hash_get(h, "uid"),        "1001",       "h.uid");
+		is_string(hash_get(h, "gid"),        "2002",       "h.gid");
+		is_string(hash_get(h, "home"),       "/home/user", "h.home");
+		is_string(hash_get(h, "locked"),     "yes",        "h.locked");
+		is_string(hash_get(h, "comment"),    "User",       "h.comment");
+		is_string(hash_get(h, "shell"),      "/bin/bash",  "h.shell");
+		is_string(hash_get(h, "password"),   "secret",     "h.password");
+		is_string(hash_get(h, "pwmin"),      "2",          "h.pwmin");
+		is_string(hash_get(h, "pwmax"),      "30",         "h.pwmax");
+		is_string(hash_get(h, "pwwarn"),     "7",          "h.pwwarn");
+		is_string(hash_get(h, "inact"),      "14",         "h.inact");
+		is_string(hash_get(h, "expiration"), "365",        "h.expiration");
+		is_string(hash_get(h, "skeleton"),   "/etc/skel",  "h.skeleton");
+		is_string(hash_get(h, "present"),    "no",         "h.present");
 
-		cw_hash_done(h, 1);
+		hash_done(h, 1);
 		free(h);
-		isnt_null(h = cw_alloc(sizeof(cw_hash_t)), "hash created");
+		isnt_null(h = vmalloc(sizeof(hash_t)), "hash created");
 
 		res_user_set(ru, "locked", "no");
 		ok(res_user_attrs(ru, h) == 0, "got raw user attributes");
-		is_string(cw_hash_get(h, "locked"), "no", "h.locked");
+		is_string(hash_get(h, "locked"), "no", "h.locked");
 
-		cw_hash_done(h, 1);
+		hash_done(h, 1);
 		free(h);
 		res_user_free(ru);
 	}

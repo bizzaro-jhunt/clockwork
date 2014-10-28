@@ -78,8 +78,8 @@ struct stree {
   can be easily located.
  */
 struct manifest {
-	cw_hash_t *policies;    /* policy defs, hashed by name */
-	cw_hash_t *hosts;       /* host defs, hashed by FQDN */
+	hash_t *policies;       /* policy defs, hashed by name */
+	hash_t *hosts;          /* host defs, hashed by FQDN */
 
 	struct stree *fallback; /* host def for implicit hosts */
 
@@ -103,14 +103,14 @@ struct manifest {
   the hash exists to ease searching.
  */
 struct policy {
-	char *name;             /* policy name */
+	char *name;          /* policy name */
 
-	cw_list_t resources;    /* resources defined for policy */
-	cw_list_t dependencies; /* resource dependencies (implicit and explicit) */
-	cw_list_t acl;          /* remote ACLs defined via policy */
+	list_t resources;    /* resources defined for policy */
+	list_t dependencies; /* resource dependencies (implicit and explicit) */
+	list_t acl;          /* remote ACLs defined via policy */
 
-	cw_hash_t *index;       /* resources, keyed by "TYPE:pkey" */
-	cw_hash_t *cache;       /* search cache, keyed by "TYPE:attr=val" */
+	hash_t *index;       /* resources, keyed by "TYPE:pkey" */
+	hash_t *cache;       /* search cache, keyed by "TYPE:attr=val" */
 };
 
 /* Iterate over a policy's resources */
@@ -140,15 +140,15 @@ struct stree* manifest_new_stree_expr(struct manifest *m, enum oper op, struct s
 int stree_add(struct stree *parent, struct stree *child);
 int stree_compare(const struct stree *a, const struct stree *b);
 
-cw_hash_t* fact_read(FILE *io, cw_hash_t *facts);
-cw_hash_t* fact_read_string(const char *s, cw_hash_t *facts);
-int fact_write(FILE *io, cw_hash_t *facts);
-int fact_parse(const char *line, cw_hash_t *hash);
-int fact_exec_read(const char *script, cw_hash_t *facts);
-int fact_cat_read(const char *file, cw_hash_t *facts);
-int fact_gather(const char *paths, cw_hash_t *facts);
+hash_t* fact_read(FILE *io, hash_t *facts);
+hash_t* fact_read_string(const char *s, hash_t *facts);
+int fact_write(FILE *io, hash_t *facts);
+int fact_parse(const char *line, hash_t *hash);
+int fact_exec_read(const char *script, hash_t *facts);
+int fact_cat_read(const char *file, hash_t *facts);
+int fact_gather(const char *paths, hash_t *facts);
 
-struct policy* policy_generate(struct stree *root, cw_hash_t *facts);
+struct policy* policy_generate(struct stree *root, hash_t *facts);
 struct policy* policy_new(const char *name);
 void policy_free(struct policy *pol);
 void policy_free_all(struct policy *pol);

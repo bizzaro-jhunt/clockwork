@@ -26,12 +26,12 @@ typedef void* (*resource_new_f)(const char *key);
 typedef void* (*resource_clone_f)(const void *res, const char *key);
 typedef void (*resource_free_f)(void *res);
 typedef char* (*resource_key_f)(const void *res);
-typedef int (*resource_attrs_f)(const void *res, cw_hash_t *attrs);
-typedef int (*resource_norm_f)(void *res, struct policy *pol, cw_hash_t *facts);
+typedef int (*resource_attrs_f)(const void *res, hash_t *attrs);
+typedef int (*resource_norm_f)(void *res, struct policy *pol, hash_t *facts);
 typedef int (*resource_set_f)(void *res, const char *attr, const char *value);
 typedef int (*resource_match_f)(const void *res, const char *attr, const char *value);
 typedef int (*resource_gencode_f)(const void *res, FILE *io, unsigned int next, unsigned int serial);
-typedef FILE* (*resource_content_f)(const void *res, cw_hash_t *facts);
+typedef FILE* (*resource_content_f)(const void *res, hash_t *facts);
 
 #define RESOURCE_TYPE(t) { \
 	             .name = #t,                    \
@@ -110,9 +110,9 @@ struct resource* resource_new(const char *type, const char *key)
 {
 	assert(type); // LCOV_EXCL_LINE
 
-	struct resource *r = cw_alloc(sizeof(struct resource));
+	struct resource *r = vmalloc(sizeof(struct resource));
 
-	cw_list_init(&r->l);
+	list_init(&r->l);
 	r->key = NULL;
 	r->type = resource_type(type);
 	if (r->type == RES_UNKNOWN) {
@@ -133,8 +133,8 @@ struct resource* resource_clone(const struct resource *orig, const char *key)
 		return NULL;
 	}
 
-	struct resource *r = cw_alloc(sizeof(struct resource));
-	cw_list_init(&r->l);
+	struct resource *r = vmalloc(sizeof(struct resource));
+	list_init(&r->l);
 	r->type = orig->type;
 
 	r->resource = (*(resource_types[r->type].clone_callback))(orig->resource, key);
@@ -178,16 +178,16 @@ char *resource_key(const struct resource *r)
 	return (*(resource_types[r->type].key_callback))(r->resource);
 }
 
-cw_hash_t* resource_attrs(const struct resource *r)
+hash_t* resource_attrs(const struct resource *r)
 {
 	assert(r); // LCOV_EXCL_LINE
 	assert(r->type != RES_UNKNOWN); // LCOV_EXCL_LINE
 
-	cw_hash_t *attrs = cw_alloc(sizeof(cw_hash_t));
+	hash_t *attrs = vmalloc(sizeof(hash_t));
 	if (!attrs) return NULL;
 
 	if ((*(resource_types[r->type].attrs_callback))(r->resource, attrs) != 0) {
-		cw_hash_done(attrs, 1);
+		hash_done(attrs, 1);
 		return NULL;
 	}
 
@@ -213,7 +213,7 @@ cw_hash_t* resource_attrs(const struct resource *r)
 
   On success, returns 0.  On failure, returns non-zero.
  */
-int resource_norm(struct resource *r, struct policy *pol, cw_hash_t *facts)
+int resource_norm(struct resource *r, struct policy *pol, hash_t *facts)
 {
 	assert(r); // LCOV_EXCL_LINE
 	assert(r->type != RES_UNKNOWN); // LCOV_EXCL_LINE
@@ -342,7 +342,7 @@ int resource_gencode(const struct resource *r, FILE *io, unsigned int next)
 	return (*(resource_types[r->type].gencode_callback))(r->resource, io, next, r->serial);
 }
 
-FILE * resource_content(const struct resource *r, cw_hash_t *facts)
+FILE * resource_content(const struct resource *r, hash_t *facts)
 {
 	assert(r); // LCOV_EXCL_LINE
 	assert(r->type != RES_UNKNOWN); // LCOV_EXCL_LINE
@@ -365,11 +365,11 @@ FILE * resource_content(const struct resource *r, cw_hash_t *facts)
 struct dependency* dependency_new(const char *a, const char *b)
 {
 	struct dependency *dep;
-	dep = cw_alloc(sizeof(struct dependency));
+	dep = vmalloc(sizeof(struct dependency));
 
 	if (a) { dep->a = strdup(a); }
 	if (b) { dep->b = strdup(b); }
-	cw_list_init(&dep->l);
+	list_init(&dep->l);
 
 	return dep;
 }
@@ -380,7 +380,7 @@ struct dependency* dependency_new(const char *a, const char *b)
 void dependency_free(struct dependency *dep)
 {
 	if (dep) {
-		cw_list_delete(&dep->l);
+		list_delete(&dep->l);
 		free(dep->a);
 		free(dep->b);
 		free(dep);

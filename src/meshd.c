@@ -32,40 +32,40 @@
 static inline mesh_server_t *s_server_new(int argc, char **argv)
 {
 	char *t;
-	int mode = MODE_RUN, daemonize = 1;
+	int mode = MODE_RUN, daemon = 1;
 
 	LIST(config);
-	cw_cfg_set(&config, "control",             "*:2315");
-	cw_cfg_set(&config, "broadcast",           "*:2316");
-	cw_cfg_set(&config, "client.connections",  "2048");
-	cw_cfg_set(&config, "client.expiration",   "600");
-	cw_cfg_set(&config, "syslog.ident",        "meshd");
-	cw_cfg_set(&config, "syslog.facility",     "daemon");
-	cw_cfg_set(&config, "syslog.level",        "error");
-	cw_cfg_set(&config, "auth.service",        "clockwork");
-	cw_cfg_set(&config, "auth.trusted",        "/etc/clockwork/auth/trusted");
-	cw_cfg_set(&config, "security.cert",       "/etc/clockwork/certs/meshd");
-	cw_cfg_set(&config, "acl.global",          "/etc/clockwork/global.acl");
-	cw_cfg_set(&config, "pidfile",             "/var/run/meshd.pid");
+	config_set(&config, "control",             "*:2315");
+	config_set(&config, "broadcast",           "*:2316");
+	config_set(&config, "client.connections",  "2048");
+	config_set(&config, "client.expiration",   "600");
+	config_set(&config, "syslog.ident",        "meshd");
+	config_set(&config, "syslog.facility",     "daemon");
+	config_set(&config, "syslog.level",        "error");
+	config_set(&config, "auth.service",        "clockwork");
+	config_set(&config, "auth.trusted",        "/etc/clockwork/auth/trusted");
+	config_set(&config, "security.cert",       "/etc/clockwork/certs/meshd");
+	config_set(&config, "acl.global",          "/etc/clockwork/global.acl");
+	config_set(&config, "pidfile",             "/var/run/meshd.pid");
 
-	cw_log_open(cw_cfg_get(&config, "syslog.ident"), "stderr");
-	cw_log_level(0, (getenv("MESHD_DEBUG") ? "debug" : "error"));
-	cw_log(LOG_DEBUG, "default configuration:");
-	cw_log(LOG_DEBUG, "  broadcast           %s", cw_cfg_get(&config, "broadcast"));
-	cw_log(LOG_DEBUG, "  control             %s", cw_cfg_get(&config, "control"));
-	cw_log(LOG_DEBUG, "  client.connections  %s", cw_cfg_get(&config, "client.connections"));
-	cw_log(LOG_DEBUG, "  client.expiration   %s", cw_cfg_get(&config, "client.expiration"));
-	cw_log(LOG_DEBUG, "  syslog.ident        %s", cw_cfg_get(&config, "syslog.ident"));
-	cw_log(LOG_DEBUG, "  syslog.facility     %s", cw_cfg_get(&config, "syslog.facility"));
-	cw_log(LOG_DEBUG, "  syslog.level        %s", cw_cfg_get(&config, "syslog.level"));
-	cw_log(LOG_DEBUG, "  auth.service        %s", cw_cfg_get(&config, "auth.service"));
-	cw_log(LOG_DEBUG, "  auth.trusted        %s", cw_cfg_get(&config, "auth.trusted"));
-	cw_log(LOG_DEBUG, "  security.cert       %s", cw_cfg_get(&config, "security.cert"));
-	cw_log(LOG_DEBUG, "  acl.global          %s", cw_cfg_get(&config, "acl.global"));
-	cw_log(LOG_DEBUG, "  pidfile             %s", cw_cfg_get(&config, "pidfile"));
+	log_open(config_get(&config, "syslog.ident"), "stderr");
+	log_level(0, (getenv("MESHD_DEBUG") ? "debug" : "error"));
+	logger(LOG_DEBUG, "default configuration:");
+	logger(LOG_DEBUG, "  broadcast           %s", config_get(&config, "broadcast"));
+	logger(LOG_DEBUG, "  control             %s", config_get(&config, "control"));
+	logger(LOG_DEBUG, "  client.connections  %s", config_get(&config, "client.connections"));
+	logger(LOG_DEBUG, "  client.expiration   %s", config_get(&config, "client.expiration"));
+	logger(LOG_DEBUG, "  syslog.ident        %s", config_get(&config, "syslog.ident"));
+	logger(LOG_DEBUG, "  syslog.facility     %s", config_get(&config, "syslog.facility"));
+	logger(LOG_DEBUG, "  syslog.level        %s", config_get(&config, "syslog.level"));
+	logger(LOG_DEBUG, "  auth.service        %s", config_get(&config, "auth.service"));
+	logger(LOG_DEBUG, "  auth.trusted        %s", config_get(&config, "auth.trusted"));
+	logger(LOG_DEBUG, "  security.cert       %s", config_get(&config, "security.cert"));
+	logger(LOG_DEBUG, "  acl.global          %s", config_get(&config, "acl.global"));
+	logger(LOG_DEBUG, "  pidfile             %s", config_get(&config, "pidfile"));
 
 
-	cw_log(LOG_DEBUG, "processing command-line options");
+	logger(LOG_DEBUG, "processing command-line options");
 	const char *short_opts = "?hvqVFSt" "c:";
 	struct option long_opts[] = {
 		{ "help",        no_argument,       NULL, 'h' },
@@ -85,7 +85,7 @@ static inline mesh_server_t *s_server_new(int argc, char **argv)
 		switch (opt) {
 		case 'h':
 		case '?':
-			cw_log(LOG_DEBUG, "handling -h/-?/--help");
+			logger(LOG_DEBUG, "handling -h/-?/--help");
 			printf("meshd, part of clockwork v%s runtime %i\n",
 				PACKAGE_VERSION, PENDULUM_VERSION);
 			printf("Usage: meshd [-?hvqVFSt] [-c filename]\n\n");
@@ -103,16 +103,16 @@ static inline mesh_server_t *s_server_new(int argc, char **argv)
 		case 'v':
 			if (verbose < 0) verbose = 0;
 			verbose++;
-			cw_log(LOG_DEBUG, "handling -v/--verbose (modifier = %i)", verbose);
+			logger(LOG_DEBUG, "handling -v/--verbose (modifier = %i)", verbose);
 			break;
 
 		case 'q':
 			verbose = 0;
-			cw_log(LOG_DEBUG, "handling -q/--quiet (modifier = %i)", verbose);
+			logger(LOG_DEBUG, "handling -q/--quiet (modifier = %i)", verbose);
 			break;
 
 		case 'V':
-			cw_log(LOG_DEBUG, "handling -V/--version");
+			logger(LOG_DEBUG, "handling -V/--version");
 			printf("meshd (Clockwork) %s runtime v%04x\n"
 			       "Copyright (C) 2014 James Hunt\n",
 			       PACKAGE_VERSION, PENDULUM_VERSION);
@@ -120,40 +120,40 @@ static inline mesh_server_t *s_server_new(int argc, char **argv)
 			break;
 
 		case 'c':
-			cw_log(LOG_DEBUG, "handling -c/--config; replacing '%s' with '%s'",
+			logger(LOG_DEBUG, "handling -c/--config; replacing '%s' with '%s'",
 				config_file, optarg);
 			config_file = optarg;
 			break;
 
 		case 'F':
-			cw_log(LOG_DEBUG, "handling -F/--foreground; turning off daemonize behavior");
-			daemonize = 0;
+			logger(LOG_DEBUG, "handling -F/--foreground; turning off daemonize behavior");
+			daemon = 0;
 			break;
 
 		case 'S':
-			cw_log(LOG_DEBUG, "handling -S/--show-config");
+			logger(LOG_DEBUG, "handling -S/--show-config");
 			mode = MODE_DUMP;
 			break;
 
 		case 't':
-			cw_log(LOG_DEBUG, "handling -t/--test");
+			logger(LOG_DEBUG, "handling -t/--test");
 			mode = MODE_TEST;
 			break;
 		}
 	}
-	cw_log(LOG_DEBUG, "option processing complete");
+	logger(LOG_DEBUG, "option processing complete");
 
 
-	cw_log(LOG_DEBUG, "parsing meshd configuration file '%s'", config_file);
+	logger(LOG_DEBUG, "parsing meshd configuration file '%s'", config_file);
 	FILE *io = fopen(config_file, "r");
 	if (!io) {
-		cw_log(LOG_WARNING, "Failed to read configuration from %s: %s",
+		logger(LOG_WARNING, "Failed to read configuration from %s: %s",
 			config_file, strerror(errno));
-		cw_log(LOG_WARNING, "Using default configuration");
+		logger(LOG_WARNING, "Using default configuration");
 
 	} else {
-		if (cw_cfg_read(&config, io) != 0) {
-			cw_log(LOG_ERR, "Unable to parse %s");
+		if (config_read(&config, io) != 0) {
+			logger(LOG_ERR, "Unable to parse %s");
 			exit(1);
 		}
 		fclose(io);
@@ -161,72 +161,72 @@ static inline mesh_server_t *s_server_new(int argc, char **argv)
 	}
 
 
-	cw_log(LOG_DEBUG, "determining adjusted log level/facility");
+	logger(LOG_DEBUG, "determining adjusted log level/facility");
 	if (verbose < 0) verbose = 0;
-	t = cw_cfg_get(&config, "syslog.level");
-	cw_log(LOG_DEBUG, "configured log level is '%s', verbose modifier is %+i", t, verbose);
-	int level = cw_log_level_number(t);
+	t = config_get(&config, "syslog.level");
+	logger(LOG_DEBUG, "configured log level is '%s', verbose modifier is %+i", t, verbose);
+	int level = log_level_number(t);
 	if (level < 0) {
-		cw_log(LOG_WARNING, "'%s' is not a recognized log level, falling back to 'error'", t);
+		logger(LOG_WARNING, "'%s' is not a recognized log level, falling back to 'error'", t);
 		level = LOG_ERR;
 	}
 	level += verbose;
-	cw_log(LOG_DEBUG, "adjusted log level is %s (%i)",
-		cw_log_level_name(level), level);
-	if (!daemonize) {
-		cw_log(LOG_DEBUG, "Running in --foreground mode; forcing all logging to stdout");
-		cw_cfg_set(&config, "syslog.facility", "stdout");
+	logger(LOG_DEBUG, "adjusted log level is %s (%i)",
+		log_level_name(level), level);
+	if (!daemon) {
+		logger(LOG_DEBUG, "Running in --foreground mode; forcing all logging to stdout");
+		config_set(&config, "syslog.facility", "stdout");
 	}
 	if (mode == MODE_DUMP) {
-		cw_log(LOG_DEBUG, "Running in --show-config mode; forcing all logging to stderr");
-		cw_cfg_set(&config, "syslog.facility", "stderr");
+		logger(LOG_DEBUG, "Running in --show-config mode; forcing all logging to stderr");
+		config_set(&config, "syslog.facility", "stderr");
 	}
 	if (mode == MODE_TEST) {
-		cw_log(LOG_DEBUG, "Running in --test mode; forcing all logging to stderr");
-		cw_cfg_set(&config, "syslog.facility", "stderr");
+		logger(LOG_DEBUG, "Running in --test mode; forcing all logging to stderr");
+		config_set(&config, "syslog.facility", "stderr");
 	}
-	cw_log(LOG_DEBUG, "redirecting to %s log as %s",
-		cw_cfg_get(&config, "syslog.facility"),
-		cw_cfg_get(&config, "syslog.ident"));
+	logger(LOG_DEBUG, "redirecting to %s log as %s",
+		config_get(&config, "syslog.facility"),
+		config_get(&config, "syslog.ident"));
 
-	cw_log_open(cw_cfg_get(&config, "syslog.ident"),
-	            cw_cfg_get(&config, "syslog.facility"));
-	cw_log_level(level, NULL);
+	log_open(config_get(&config, "syslog.ident"),
+	            config_get(&config, "syslog.facility"));
+	log_level(level, NULL);
 
 
-	cw_log(LOG_INFO, "meshd starting up");
+	logger(LOG_INFO, "meshd starting up");
 
 
 	if (mode == MODE_DUMP) {
-		printf("control             %s\n", cw_cfg_get(&config, "control"));
-		printf("broadcast           %s\n", cw_cfg_get(&config, "broadcast"));
-		printf("client.connections  %s\n", cw_cfg_get(&config, "client.connections"));
-		printf("client.expiration   %s\n", cw_cfg_get(&config, "client.expiration"));
-		printf("syslog.ident        %s\n", cw_cfg_get(&config, "syslog.ident"));
-		printf("syslog.facility     %s\n", cw_cfg_get(&config, "syslog.facility"));
-		printf("syslog.level        %s\n", cw_cfg_get(&config, "syslog.level"));
-		printf("auth.service        %s\n", cw_cfg_get(&config, "auth.service"));
-		printf("auth.trusted        %s\n", cw_cfg_get(&config, "auth.trusted"));
-		printf("security.cert       %s\n", cw_cfg_get(&config, "security.cert"));
-		printf("acl.global          %s\n", cw_cfg_get(&config, "acl.global"));
-		printf("pidfile             %s\n", cw_cfg_get(&config, "pidfile"));
+		printf("control             %s\n", config_get(&config, "control"));
+		printf("broadcast           %s\n", config_get(&config, "broadcast"));
+		printf("client.connections  %s\n", config_get(&config, "client.connections"));
+		printf("client.expiration   %s\n", config_get(&config, "client.expiration"));
+		printf("syslog.ident        %s\n", config_get(&config, "syslog.ident"));
+		printf("syslog.facility     %s\n", config_get(&config, "syslog.facility"));
+		printf("syslog.level        %s\n", config_get(&config, "syslog.level"));
+		printf("auth.service        %s\n", config_get(&config, "auth.service"));
+		printf("auth.trusted        %s\n", config_get(&config, "auth.trusted"));
+		printf("security.cert       %s\n", config_get(&config, "security.cert"));
+		printf("acl.global          %s\n", config_get(&config, "acl.global"));
+		printf("pidfile             %s\n", config_get(&config, "pidfile"));
 	}
 
 
-	cw_cert_t *cert = cw_cert_read(cw_cfg_get(&config, "security.cert"));
+	cert_t *cert = cert_read(config_get(&config, "security.cert"));
 	if (!cert) {
-		cw_log(LOG_ERR, "%s: %s", cw_cfg_get(&config, "security.cert"),
+		logger(LOG_ERR, "%s: %s", config_get(&config, "security.cert"),
 			errno == EINVAL ? "Invalid Clockwork certificate" : strerror(errno));
 		exit(1);
 	}
 	if (!cert->seckey) {
-		cw_log(LOG_ERR, "%s: No secret key found in certificate",
-			cw_cfg_get(&config, "security.cert"));
+		logger(LOG_ERR, "%s: No secret key found in certificate",
+			config_get(&config, "security.cert"));
 		exit(1);
 	}
 	if (!cert->ident) {
-		cw_log(LOG_ERR, "%s: No identity found in certificate",
-			cw_cfg_get(&config, "security.cert"));
+		logger(LOG_ERR, "%s: No identity found in certificate",
+			config_get(&config, "security.cert"));
 		exit(1);
 	}
 
@@ -236,48 +236,48 @@ static inline mesh_server_t *s_server_new(int argc, char **argv)
 	}
 
 
-	if (daemonize)
-		cw_daemonize(cw_cfg_get(&config, "pidfile"), "root", "root");
+	if (daemon)
+		daemonize(config_get(&config, "pidfile"), "root", "root");
 
 	mesh_server_t *s = mesh_server_new(NULL);
-	int rc = mesh_server_setopt(s, MESH_SERVER_CERTIFICATE, cert, sizeof(cw_cert_t));
+	int rc = mesh_server_setopt(s, MESH_SERVER_CERTIFICATE, cert, sizeof(cert_t));
 	assert(rc == 0);
-	cw_cert_destroy(cert);
+	cert_free(cert);
 
-	size_t len = atoi(cw_cfg_get(&config, "client.connections"));
+	size_t len = atoi(config_get(&config, "client.connections"));
 	rc = mesh_server_setopt(s, MESH_SERVER_CACHE_SIZE, &len, sizeof(len));
 	assert(rc == 0);
 
-	int32_t life = atoi(cw_cfg_get(&config, "client.expiration"));
+	int32_t life = atoi(config_get(&config, "client.expiration"));
 	rc = mesh_server_setopt(s, MESH_SERVER_CACHE_LIFE, &life, sizeof(life));
 	assert(rc == 0);
 
-	t = cw_cfg_get(&config, "auth.service");
+	t = config_get(&config, "auth.service");
 	rc = mesh_server_setopt(s, MESH_SERVER_PAM_SERVICE, t, strlen(t));
 	assert(rc == 0);
 
-	t = cw_cfg_get(&config, "auth.trusted");
+	t = config_get(&config, "auth.trusted");
 	rc = mesh_server_setopt(s, MESH_SERVER_TRUSTDB, t, strlen(t));
 	assert(rc == 0);
 
-	t = cw_cfg_get(&config, "acl.global");
+	t = config_get(&config, "acl.global");
 	rc = mesh_server_setopt(s, MESH_SERVER_GLOBAL_ACL, t, strlen(t));
 	assert(rc == 0);
 
-	t = cw_string("tcp://%s", cw_cfg_get(&config, "control"));
-	cw_log(LOG_DEBUG, "binding control channel %s", t);
+	t = string("tcp://%s", config_get(&config, "control"));
+	logger(LOG_DEBUG, "binding control channel %s", t);
 	rc = mesh_server_bind_control(s, t);
 	assert(rc == 0);
 	free(t);
 
-	t = cw_string("tcp://%s", cw_cfg_get(&config, "broadcast"));
-	cw_log(LOG_DEBUG, "binding to broadcast channel %s", t);
+	t = string("tcp://%s", config_get(&config, "broadcast"));
+	logger(LOG_DEBUG, "binding to broadcast channel %s", t);
 	rc = mesh_server_bind_broadcast(s, t);
 	assert(rc == 0);
 	free(t);
 
-	cw_cfg_done(&config);
-	cw_log(LOG_INFO, "meshd running");
+	config_done(&config);
+	logger(LOG_INFO, "meshd running");
 	return s;
 }
 
@@ -291,7 +291,7 @@ int main(int argc, char **argv)
 	mesh_server_run(s);
 	mesh_server_destroy(s);
 
-	cw_log(LOG_INFO, "shutting down");
-	cw_log_close();
+	logger(LOG_INFO, "shutting down");
+	log_close();
 	return 0;
 }

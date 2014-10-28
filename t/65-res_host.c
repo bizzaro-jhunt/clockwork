@@ -70,30 +70,30 @@ TESTS {
 
 	subtest {
 		struct res_host *rh;
-		cw_hash_t *h;
+		hash_t *h;
 
-		isnt_null(h = cw_alloc(sizeof(cw_hash_t)), "created hash");
+		isnt_null(h = vmalloc(sizeof(hash_t)), "created hash");
 		isnt_null(rh = res_host_new("localhost"), "created res_host");
 
 		ok(res_host_attrs(rh, h) == 0, "got host attrs");
-		is_string(cw_hash_get(h, "hostname"), "localhost", "h.hostname");
-		is_string(cw_hash_get(h, "present"),  "yes",       "h.present"); // default
-		is_null(cw_hash_get(h, "ip"),      "h.ip is unset");
-		is_null(cw_hash_get(h, "aliases"), "h.aliases is unset");
+		is_string(hash_get(h, "hostname"), "localhost", "h.hostname");
+		is_string(hash_get(h, "present"),  "yes",       "h.present"); // default
+		is_null(hash_get(h, "ip"),      "h.ip is unset");
+		is_null(hash_get(h, "aliases"), "h.aliases is unset");
 
 		res_host_set(rh, "ip", "192.168.1.10");
 		res_host_set(rh, "alias", "localhost.localdomain");
 		res_host_set(rh, "alias", "special");
 
 		ok(res_host_attrs(rh, h) == 0, "got host attrs");
-		is_string(cw_hash_get(h, "ip"),      "192.168.1.10",                  "h.ip");
-		is_string(cw_hash_get(h, "aliases"), "localhost.localdomain special", "h.aliases");
+		is_string(hash_get(h, "ip"),      "192.168.1.10",                  "h.ip");
+		is_string(hash_get(h, "aliases"), "localhost.localdomain special", "h.aliases");
 
 		res_host_set(rh, "present", "no");
 		ok(res_host_attrs(rh, h) == 0, "got host attrs");
-		is_string(cw_hash_get(h, "present"),  "no", "h.present");
+		is_string(hash_get(h, "present"),  "no", "h.present");
 
-		cw_hash_done(h, 1);
+		hash_done(h, 1);
 		free(h);
 		res_host_free(rh);
 	}

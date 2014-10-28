@@ -27,7 +27,7 @@
 #include "pendulum_funcs.h"
 
 typedef struct {
-	cw_list_t   l;
+	list_t      l;
 
 	char       *fqdn;
 	char       *uuid;
@@ -39,7 +39,7 @@ typedef struct {
 	char       *ident;
 	uint64_t    serial;
 
-	cw_list_t   results;
+	list_t      results;
 
 	char       *username;
 	char       *command;
@@ -50,7 +50,7 @@ static char * s_string(const char *a, const char *b)
 	assert(a); assert(b);
 	assert(b >= a);
 
-	char *s = cw_alloc(sizeof(char) * (b - a + 1));
+	char *s = vmalloc(b - a + 1);
 	memcpy(s, a, b - a);
 	s[b - a] = '\0';
 	return s;
@@ -109,7 +109,7 @@ static char* s_quote_escape(const char *s)
 			n++;
 	}
 
-	char *q = cw_alloc(sizeof(char) * n);
+	char *q = vmalloc(n);
 	char *b = q;
 
 	*b++ = '"';
@@ -170,7 +170,7 @@ static char* s_user_lookup(const char *username)
 static char* s_cmd_code(const char *command)
 {
 	cmd_t *cmd = cmd_parse(command, COMMAND_LITERAL);
-	if (!cmd) return cw_string(";; %s\n", command);
+	if (!cmd) return string(";; %s\n", command);
 
 	FILE *io = tmpfile();
 	cmd_gencode(cmd, io);
@@ -179,11 +179,11 @@ static char* s_cmd_code(const char *command)
 	size_t n1 = ftell(io);
 	rewind(io);
 
-	char *code = cw_alloc(n1+1);
+	char *code = vmalloc(n1+1);
 	size_t n2 = fread(code, 1, n1, io);
 	if (n2 < n1) {
 		free(code);
-		code = cw_string(";; short read error %i/%i\n", n2, n1);
+		code = string(";; short read error %i/%i\n", n2, n1);
 	} else {
 		code[n2] = '\0';
 	}
@@ -204,8 +204,8 @@ static char* s_cmd_code(const char *command)
 
 cmd_t* cmd_new(void)
 {
-	cmd_t *cmd = cw_alloc(sizeof(cmd_t));
-	cw_list_init(&cmd->tokens);
+	cmd_t *cmd = vmalloc(sizeof(cmd_t));
+	list_init(&cmd->tokens);
 	return cmd;
 }
 
@@ -226,7 +226,7 @@ static int s_cmd_reconstruct(cmd_t *cmd)
 {
 	assert(cmd);
 
-	cw_strl_t *tokens = cw_strl_new(NULL);
+	strings_t *tokens = strings_new(NULL);
 	cmd_token_t *t;
 
 	for_each_object(t, &cmd->tokens, l) {
@@ -241,15 +241,15 @@ static int s_cmd_reconstruct(cmd_t *cmd)
 
 		if (quoted) {
 			char *s = s_quote_escape(t->value);
-			cw_strl_add(tokens, s);
+			strings_add(tokens, s);
 			free(s);
 		} else {
-			cw_strl_add(tokens, t->value);
+			strings_add(tokens, t->value);
 		}
 	}
 
-	cmd->string = cw_strl_join(tokens, " ");
-	cw_strl_free(tokens);
+	cmd->string = strings_join(tokens, " ");
+	strings_free(tokens);
 	return 0;
 }
 
@@ -269,7 +269,7 @@ cmd_t* cmd_parse(const char *s, int pattern)
 			;
 		if (!*a) break;
 
-		t = cw_alloc(sizeof(cmd_token_t));
+		t = vmalloc(sizeof(cmd_token_t));
 		t->value = s_string(a, b = s_tokenbound(a));
 		s_unescape(t->value);
 
@@ -277,13 +277,13 @@ cmd_t* cmd_parse(const char *s, int pattern)
 		if (pattern == COMMAND_PATTERN && strcmp(t->value, "*") == 0)
 			t->type = COMMAND_TOKEN_WILDCARD;
 
-		cw_list_push(&cmd->tokens, &t->l);
+		list_push(&cmd->tokens, &t->l);
 
 		a = b;
 		if (!*a) break;
 	}
 
-	if (cw_list_isempty(&cmd->tokens)) {
+	if (list_isempty(&cmd->tokens)) {
 		cmd_destroy(cmd);
 		return NULL;
 	}
@@ -310,14 +310,14 @@ cmd_t* cmd_parsev(const char **argv, int pattern)
 
 	int i;
 	for (i = 0; argv[i]; i++) {
-		t = cw_alloc(sizeof(cmd_token_t));
+		t = vmalloc(sizeof(cmd_token_t));
 		t->value = strdup(argv[i]);
 
 		t->type = COMMAND_TOKEN_LITERAL;
-		cw_list_push(&cmd->tokens, &t->l);
+		list_push(&cmd->tokens, &t->l);
 	}
 
-	if (cw_list_isempty(&cmd->tokens)) {
+	if (list_isempty(&cmd->tokens)) {
 		cmd_destroy(cmd);
 		return NULL;
 	}
@@ -332,7 +332,7 @@ int cmd_match(cmd_t *cmd, cmd_t *pat)
 	assert(cmd);
 	assert(pat);
 
-	cw_list_t *c, *c0, *p, *p0;
+	list_t *c, *c0, *p, *p0;
 	cmd_token_t *ct, *pt;
 	ct = pt = NULL;
 	c0 = &cmd->tokens; c = c0->next;
@@ -344,15 +344,15 @@ int cmd_match(cmd_t *cmd, cmd_t *pat)
 			if (p == p0) return 1;
 
 			/* check to see if our next match would be a wildcard */
-			pt = cw_list_object(p, cmd_token_t, l);
+			pt = list_object(p, cmd_token_t, l);
 			if (pt && pt->type == COMMAND_TOKEN_WILDCARD) return 1;
 
 			return 0;
 		}
 		if (p == p0) return 0;
 
-		ct = cw_list_object(c, cmd_token_t, l);
-		pt = cw_list_object(p, cmd_token_t, l);
+		ct = list_object(c, cmd_token_t, l);
+		pt = list_object(p, cmd_token_t, l);
 
 		if (pt->type == COMMAND_TOKEN_WILDCARD) return 1;
 		if (pt->type == COMMAND_TOKEN_LITERAL
@@ -366,18 +366,18 @@ int cmd_match(cmd_t *cmd, cmd_t *pat)
 int cmd_gencode(cmd_t *cmd, FILE *io)
 {
 	cmd_token_t *tok;
-	cw_list_t *l, *end;
+	list_t *l, *end;
 
-	if (cw_list_isempty(&cmd->tokens)) return 0;
+	if (list_isempty(&cmd->tokens)) return 0;
 
 	l   = cmd->tokens.next;
 	end = &cmd->tokens;
-	tok = cw_list_object(l, cmd_token_t, l);
+	tok = list_object(l, cmd_token_t, l);
 
 	if (strcmp(tok->value, "show") == 0) {
 		if (l->next == end) goto syntax;
 		l = l->next;
-		tok = cw_list_object(l, cmd_token_t, l);
+		tok = list_object(l, cmd_token_t, l);
 
 		if (strcmp(tok->value, "version") == 0) {
 			if (l->next != end) goto syntax;
@@ -392,11 +392,11 @@ int cmd_gencode(cmd_t *cmd, FILE *io)
 			}
 
 			l = l->next;
-			tok = cw_list_object(l, cmd_token_t, l);
+			tok = list_object(l, cmd_token_t, l);
 			if (strcmp(tok->value, "for") == 0) {
 				if (l->next == end) goto syntax;
 				l = l->next;
-				tok = cw_list_object(l, cmd_token_t, l);
+				tok = list_object(l, cmd_token_t, l);
 
 				if (l->next != end) goto syntax;
 				if (*tok->value == '%') {
@@ -429,8 +429,8 @@ syntax:
 
 acl_t* acl_new(void)
 {
-	acl_t *acl = cw_alloc(sizeof(acl_t));
-	cw_list_init(&acl->l);
+	acl_t *acl = vmalloc(sizeof(acl_t));
+	list_init(&acl->l);
 	return acl;
 }
 
@@ -438,7 +438,7 @@ void acl_destroy(acl_t *acl)
 {
 	if (!acl) return;
 	cmd_destroy(acl->pattern);
-	cw_list_delete(&acl->l);
+	list_delete(&acl->l);
 	free(acl->target_user);
 	free(acl->target_group);
 	free(acl);
@@ -506,7 +506,7 @@ char *acl_string(acl_t *a)
 	assert(a);
 
 	static char *s = NULL;
-	s = cw_string("%s %s%s \"%s\"%s",
+	s = string("%s %s%s \"%s\"%s",
 			a->disposition == ACL_ALLOW ? "allow" : "deny",
 			a->target_group ? "%" : "",
 			a->target_group ? a->target_group : a->target_user,
@@ -515,7 +515,7 @@ char *acl_string(acl_t *a)
 	return s;
 }
 
-int acl_read(cw_list_t *l, const char *path)
+int acl_read(list_t *l, const char *path)
 {
 	assert(l);
 	assert(path);
@@ -528,7 +528,7 @@ int acl_read(cw_list_t *l, const char *path)
 	return rc;
 }
 
-int acl_readio(cw_list_t *l, FILE *io)
+int acl_readio(list_t *l, FILE *io)
 {
 	assert(l);
 	assert(io);
@@ -543,12 +543,12 @@ int acl_readio(cw_list_t *l, FILE *io)
 		acl = acl_parse(p);
 		if (!acl) return 1;
 
-		cw_list_push(l, &acl->l);
+		list_push(l, &acl->l);
 	}
 	return 0;
 }
 
-int acl_write(cw_list_t *l, const char *path)
+int acl_write(list_t *l, const char *path)
 {
 	assert(l);
 	assert(path);
@@ -561,7 +561,7 @@ int acl_write(cw_list_t *l, const char *path)
 	return rc;
 }
 
-int acl_writeio(cw_list_t *l, FILE *io)
+int acl_writeio(list_t *l, FILE *io)
 {
 	assert(l);
 	assert(io);
@@ -629,7 +629,7 @@ int acl_match(acl_t *acl, const char *id, cmd_t *cmd)
 	return cmd_match(cmd, acl->pattern);
 }
 
-int acl_check(cw_list_t *all, const char *id, cmd_t *cmd)
+int acl_check(list_t *all, const char *id, cmd_t *cmd)
 {
 	int disposition = ACL_NEUTRAL;
 	acl_t *acl;
@@ -656,7 +656,7 @@ int acl_check(cw_list_t *all, const char *id, cmd_t *cmd)
 
 filter_t* filter_new(void)
 {
-	filter_t *f = cw_alloc(sizeof(filter_t));
+	filter_t *f = vmalloc(sizeof(filter_t));
 	return f;
 }
 
@@ -708,7 +708,7 @@ filter_t* filter_parse(const char *s)
 	return f;
 }
 
-int filter_parseall(cw_list_t *list, const char *_s)
+int filter_parseall(list_t *list, const char *_s)
 {
 	assert(list);
 	assert(_s);
@@ -719,7 +719,7 @@ int filter_parseall(cw_list_t *list, const char *_s)
 	while ( (b = strchr(a, '\n')) != NULL) {
 		*b = '\0';
 		if ((f = filter_parse(a)) != NULL)
-			cw_list_push(list, &f->l);
+			list_push(list, &f->l);
 		a = ++b;
 	}
 
@@ -727,9 +727,9 @@ int filter_parseall(cw_list_t *list, const char *_s)
 	return 0;
 }
 
-int filter_match(filter_t *f, cw_hash_t *facts)
+int filter_match(filter_t *f, hash_t *facts)
 {
-	const char *v = cw_hash_get(facts, f->fact);
+	const char *v = hash_get(facts, f->fact);
 	if (!v) return 0;
 
 	if (f->literal &&  f->match) return strcmp(v, f->literal) == 0;
@@ -742,7 +742,7 @@ int filter_match(filter_t *f, cw_hash_t *facts)
 	return 0;
 }
 
-int filter_matchall(cw_list_t *all, cw_hash_t *facts)
+int filter_matchall(list_t *all, hash_t *facts)
 {
 	filter_t *f;
 	for_each_object(f, all, l)
@@ -765,9 +765,9 @@ int filter_matchall(cw_list_t *all, cw_hash_t *facts)
 
 mesh_server_t* mesh_server_new(void *zmq)
 {
-	cw_srand();
+	seed_randomness();
 
-	mesh_server_t *s = cw_alloc(sizeof(mesh_server_t));
+	mesh_server_t *s = vmalloc(sizeof(mesh_server_t));
 	s->serial = ((uint64_t)(rand() * 4294967295.0 / RAND_MAX) << 31) + 1;
 
 	if (!zmq) {
@@ -780,12 +780,12 @@ mesh_server_t* mesh_server_new(void *zmq)
 	s->pam_service = strdup("clockwork");
 	s->_safe_word = NULL;
 
-	cw_list_init(&s->acl);
+	list_init(&s->acl);
 
-	s->slots = cw_cache_new(128, 600);
-	s->slots->destroy_f = s_mesh_slot_free;
+	s->slots = cache_new(128, 600);
+	cache_setopt(s->slots, VIGOR_CACHE_DESTRUCTOR, s_mesh_slot_free);
 
-	s->cert = cw_cert_generate(CW_CERT_TYPE_ENCRYPTION);
+	s->cert = cert_generate(VIGOR_CERT_ENCRYPTION);
 	return s;
 }
 
@@ -807,23 +807,23 @@ int mesh_server_setopt(mesh_server_t *s, int opt, void *data, size_t len)
 		if (len == 0) {
 			s->pam_service = NULL;
 		} else {
-			s->pam_service = cw_alloc((len + 1) * sizeof(char));
+			s->pam_service = vmalloc(len + 1);
 			memcpy(s->pam_service, data, len);
 		}
 		return 0;
 
 	case MESH_SERVER_CERTIFICATE:
-		if (len != sizeof(cw_cert_t)) return -1;
+		if (len != sizeof(cert_t)) return -1;
 		free(s->cert->ident);
-		s->cert->ident = ((cw_cert_t *)data)->ident
-			? strdup(((cw_cert_t *)data)->ident)
+		s->cert->ident = ((cert_t *)data)->ident
+			? strdup(((cert_t *)data)->ident)
 			: NULL;
-		s->cert->pubkey = ((cw_cert_t *)data)->pubkey;
-		memcpy(s->cert->pubkey_bin, ((cw_cert_t *)data)->pubkey_bin, 32);
-		memcpy(s->cert->pubkey_b16, ((cw_cert_t *)data)->pubkey_b16, 65);
-		s->cert->seckey = ((cw_cert_t *)data)->seckey;
-		memcpy(s->cert->seckey_bin, ((cw_cert_t *)data)->seckey_bin, 32);
-		memcpy(s->cert->seckey_b16, ((cw_cert_t *)data)->seckey_b16, 65);
+		s->cert->pubkey = ((cert_t *)data)->pubkey;
+		memcpy(s->cert->pubkey_bin, ((cert_t *)data)->pubkey_bin, 32);
+		memcpy(s->cert->pubkey_b16, ((cert_t *)data)->pubkey_b16, 65);
+		s->cert->seckey = ((cert_t *)data)->seckey;
+		memcpy(s->cert->seckey_bin, ((cert_t *)data)->seckey_bin, 32);
+		memcpy(s->cert->seckey_b16, ((cert_t *)data)->seckey_b16, 65);
 		return 0;
 
 	case MESH_SERVER_SAFE_WORD:
@@ -831,18 +831,18 @@ int mesh_server_setopt(mesh_server_t *s, int opt, void *data, size_t len)
 		if (len == 0) {
 			s->_safe_word = NULL;
 		}  else {
-			s->_safe_word = cw_alloc((len + 1) * sizeof(char));
+			s->_safe_word = vmalloc(len + 1);
 			memcpy(s->_safe_word, data, len);
 		}
 		return 0;
 
 	case MESH_SERVER_CACHE_SIZE:
 		if (len != sizeof(size_t)) return -1;
-		return cw_cache_tune(&s->slots, *(size_t*)data, 0);
+		return cache_resize(&s->slots, *(size_t*)data);
 
 	case MESH_SERVER_CACHE_LIFE:
 		if (len != sizeof(int32_t)) return -1;
-		return cw_cache_tune(&s->slots, 0, *(int32_t*)data);
+		return cache_setopt(s->slots, VIGOR_CACHE_EXPIRY, data);
 
 	case MESH_SERVER_GLOBAL_ACL:
 		for_each_object_safe(acl, acl_tmp, &s->acl, l)
@@ -852,10 +852,10 @@ int mesh_server_setopt(mesh_server_t *s, int opt, void *data, size_t len)
 		return 0;
 
 	case MESH_SERVER_TRUSTDB:
-		cw_trustdb_destroy(s->trustdb);
-		s->trustdb = cw_trustdb_read((const char*)data);
+		trustdb_free(s->trustdb);
+		s->trustdb = trustdb_read((const char*)data);
 		if (!s->trustdb)
-			s->trustdb = cw_trustdb_new();
+			s->trustdb = trustdb_new();
 		return 0;
 	}
 
@@ -876,7 +876,7 @@ int mesh_server_bind_control(mesh_server_t *s, const char *endpoint)
 		rc = zmq_setsockopt(s->control, ZMQ_CURVE_SERVER, &optval, sizeof(optval));
 		assert(rc == 0);
 
-		rc = zmq_setsockopt(s->control, ZMQ_CURVE_SECRETKEY, cw_cert_secret(s->cert), 32);
+		rc = zmq_setsockopt(s->control, ZMQ_CURVE_SECRETKEY, cert_secret(s->cert), 32);
 		assert(rc == 0);
 	}
 
@@ -896,7 +896,7 @@ int mesh_server_bind_broadcast(mesh_server_t *s, const char *endpoint)
 		rc = zmq_setsockopt(s->broadcast, ZMQ_CURVE_SERVER, &optval, sizeof(optval));
 		assert(rc == 0);
 
-		rc = zmq_setsockopt(s->broadcast, ZMQ_CURVE_SECRETKEY, cw_cert_secret(s->cert), 32);
+		rc = zmq_setsockopt(s->broadcast, ZMQ_CURVE_SECRETKEY, cert_secret(s->cert), 32);
 		assert(rc == 0);
 	}
 
@@ -906,19 +906,19 @@ int mesh_server_bind_broadcast(mesh_server_t *s, const char *endpoint)
 int mesh_server_run(mesh_server_t *s)
 {
 	int rc;
-	s->zap = cw_zap_startup(s->zmq, NULL);
+	s->zap = zap_startup(s->zmq, NULL);
 
-	cw_reactor_t *r = cw_reactor_new();
+	reactor_t *r = reactor_new();
 	if (!r) return -1;
 
-	rc = cw_reactor_add(r, s->control, mesh_server_reactor, s);
+	rc = reactor_set(r, s->control, mesh_server_reactor, s);
 	if (rc != 0) return rc;
 
-	rc = cw_reactor_loop(r);
+	rc = reactor_go(r);
 	if (rc != 0) return rc;
 
-	cw_reactor_destroy(r);
-	cw_zap_shutdown(s->zap);
+	reactor_free(r);
+	zap_shutdown(s->zap);
 	return 0;
 }
 
@@ -926,8 +926,8 @@ void mesh_server_destroy(mesh_server_t *s)
 {
 	if (!s) return;
 
-	cw_zmq_shutdown(s->control, 500);
-	cw_zmq_shutdown(s->broadcast, 0);
+	vzmq_shutdown(s->control, 500);
+	vzmq_shutdown(s->broadcast, 0);
 
 	if (s->zmq_auto)
 		zmq_ctx_destroy(s->zmq);
@@ -935,82 +935,81 @@ void mesh_server_destroy(mesh_server_t *s)
 	free(s->pam_service);
 	free(s->_safe_word);
 
-	cw_cert_destroy(s->cert);
-	cw_trustdb_destroy(s->trustdb);
+	cert_free(s->cert);
+	trustdb_free(s->trustdb);
 
 	acl_t *acl, *acl_tmp;
 	for_each_object_safe(acl, acl_tmp, &s->acl, l)
 		acl_destroy(acl);
 
-	cw_cache_purge(s->slots, 1);
-	cw_cache_free(s->slots);
+	cache_purge(s->slots, 1);
+	cache_free(s->slots);
 
 	free(s);
 }
 
-int mesh_server_reactor(void *sock, cw_pdu_t *pdu, void *data)
+int mesh_server_reactor(void *sock, pdu_t *pdu, void *data)
 {
-	cw_pdu_t *reply;
+	pdu_t *reply;
 	mesh_server_t *server = (mesh_server_t*)data;
 
-	cw_log(LOG_DEBUG, "Inbound [%s] packet from %s", pdu->type, pdu->client);
-	if (strcmp(pdu->type, "RESULT") == 0) {
-		char *serial = cw_pdu_text(pdu, 1);
-		mesh_slot_t *client = cw_cache_get(server->slots, serial);
+	logger(LOG_DEBUG, "Inbound [%s] packet from %s", pdu_type(pdu), pdu_peer(pdu));
+	if (strcmp(pdu_type(pdu), "RESULT") == 0) {
+		char *serial = pdu_string(pdu, 1);
+		mesh_slot_t *client = cache_get(server->slots, serial);
 		free(serial);
 
 		if (client) {
-			mesh_result_t *r = cw_alloc(sizeof(mesh_result_t));
-			cw_list_init(&r->l);
-			r->fqdn   = cw_pdu_text(pdu, 2);
-			r->uuid   = cw_pdu_text(pdu, 3);
-			r->status = cw_pdu_text(pdu, 4);
-			r->output = cw_pdu_text(pdu, 5);
+			mesh_result_t *r = vmalloc(sizeof(mesh_result_t));
+			list_init(&r->l);
+			r->fqdn   = pdu_string(pdu, 2);
+			r->uuid   = pdu_string(pdu, 3);
+			r->status = pdu_string(pdu, 4);
+			r->output = pdu_string(pdu, 5);
 
-			cw_list_push(&client->results, &r->l);
+			list_push(&client->results, &r->l);
 		}
 	}
 
-	if (strcmp(pdu->type, "OPTOUT") == 0) {
-		char *serial = cw_pdu_text(pdu, 1);
-		mesh_slot_t *client = cw_cache_get(server->slots, serial);
+	if (strcmp(pdu_type(pdu), "OPTOUT") == 0) {
+		char *serial = pdu_string(pdu, 1);
+		mesh_slot_t *client = cache_get(server->slots, serial);
 		free(serial);
 
 		if (client) {
-			mesh_result_t *r = cw_alloc(sizeof(mesh_result_t));
-			cw_list_init(&r->l);
-			r->fqdn = cw_pdu_text(pdu, 2);
-			r->uuid = cw_pdu_text(pdu, 3);
+			mesh_result_t *r = vmalloc(sizeof(mesh_result_t));
+			list_init(&r->l);
+			r->fqdn = pdu_string(pdu, 2);
+			r->uuid = pdu_string(pdu, 3);
 
-			cw_list_push(&client->results, &r->l);
+			list_push(&client->results, &r->l);
 		}
 	}
 
-	if (strcmp(pdu->type, "REQUEST") == 0) {
-		cw_cache_purge(server->slots, 0);
+	if (strcmp(pdu_type(pdu), "REQUEST") == 0) {
+		cache_purge(server->slots, 0);
 
-		size_t secret_len = cw_pdu_framelen(pdu, 3);
-		char *username = cw_pdu_text(pdu, 1),
-		     *pubkey   = cw_pdu_text(pdu, 2),
-		     *secret   = cw_pdu_text(pdu, 3),
-		     *command  = cw_pdu_text(pdu, 4),
-		     *filters  = cw_pdu_text(pdu, 5),
+		size_t secret_len;
+		char *username = pdu_string(pdu, 1),
+		     *pubkey   = pdu_string(pdu, 2),
+		     *secret   = (char*)pdu_segment(pdu, 3, &secret_len),
+		     *command  = pdu_string(pdu, 4),
+		     *filters  = pdu_string(pdu, 5),
 		     *creds    = NULL,
 		     *code     = NULL;
 
-		mesh_slot_t *client = cw_alloc(sizeof(mesh_slot_t));
-		client->ident    = strdup(pdu->client);
+		mesh_slot_t *client = vmalloc(sizeof(mesh_slot_t));
+		client->ident    = strdup(pdu_peer(pdu));
 		client->serial   = server->serial++;
 		client->username = username;
 		client->command  = command;
-		cw_list_init(&client->results);
+		list_init(&client->results);
 
-		char *serial = cw_string("%lx", client->serial);
+		char *serial = string("%lx", client->serial);
 
-		if (!cw_cache_set(server->slots, serial, client)) {
-			reply = cw_pdu_make(pdu->src, 2, "ERROR", "Too many client connections; try again later");
-			cw_pdu_send(sock, reply);
-			cw_pdu_destroy(reply);
+		if (!cache_set(server->slots, serial, client)) {
+			reply = pdu_reply(pdu, "ERROR", 1, "Too many client connections; try again later");
+			pdu_send_and_free(reply, sock);
 			goto REQUEST_exit;
 		}
 
@@ -1018,60 +1017,54 @@ int mesh_server_reactor(void *sock, cw_pdu_t *pdu, void *data)
 		code  = s_cmd_code(command);     assert(code);
 
 		if (strlen(pubkey) > 0) {
-			cw_log(LOG_INFO, "authenticating as %s using public key %s", username, pubkey);
-			cw_cert_t *cert = cw_cert_make(CW_CERT_TYPE_SIGNING, pubkey, NULL);
+			logger(LOG_INFO, "authenticating as %s using public key %s", username, pubkey);
+			cert_t *cert = cert_make(VIGOR_CERT_SIGNING, pubkey, NULL);
 
-			if (!cw_cert_sealed(cert, secret, secret_len)
-			 || cw_trustdb_verify(server->trustdb, cert, username) != 0) {
+			if (!cert_sealed(cert, secret, secret_len)
+			 || trustdb_verify(server->trustdb, cert, username) != 0) {
 
-				reply = cw_pdu_make(pdu->src, 2, "ERROR", "Authentication failed (pubkey)");
-				cw_cert_destroy(cert);
-				cw_pdu_send(sock, reply);
-				cw_pdu_destroy(reply);
+				reply = pdu_reply(pdu, "ERROR", 1, "Authentication failed (pubkey)");
+				cert_free(cert);
+				pdu_send_and_free(reply, sock);
 				goto REQUEST_exit;
 			}
-			cw_cert_destroy(cert);
+			cert_free(cert);
 
 		} else if (server->pam_service) {
-			cw_log(LOG_DEBUG, "authenticating as %s using supplied password", username);
+			logger(LOG_DEBUG, "authenticating as %s using supplied password", username);
 			if (cw_authenticate(server->pam_service, username, secret) != 0) {
-				reply = cw_pdu_make(pdu->src, 2, "ERROR", "Authentication failed (password)");
-				cw_pdu_send(sock, reply);
-				cw_pdu_destroy(reply);
+				reply = pdu_reply(pdu, "ERROR", 1, "Authentication failed (password)");
+				pdu_send_and_free(reply, sock);
 				goto REQUEST_exit;
 			}
 
 		} else {
-			cw_log(LOG_INFO, "authentication disabled; allowing");
+			logger(LOG_INFO, "authentication disabled; allowing");
 		}
 
 		cmd_t *cmd = cmd_parse(command, COMMAND_LITERAL);
 		if (!cmd) {
-			cw_log(LOG_DEBUG, "failed to parse command `%s`", command);
-			reply = cw_pdu_make(pdu->src, 2, "ERROR", "Failed to parse command");
-			cw_pdu_send(sock, reply);
-			cw_pdu_destroy(reply);
+			logger(LOG_DEBUG, "failed to parse command `%s`", command);
+			reply = pdu_reply(pdu, "ERROR", 1, "Failed to parse command");
+			pdu_send_and_free(reply, sock);
 			goto REQUEST_exit;
 		}
 
-		cw_log(LOG_DEBUG, "checking global ACL for %s `%s`", creds, command);
+		logger(LOG_DEBUG, "checking global ACL for %s `%s`", creds, command);
 		int rc = acl_check(&server->acl, creds, cmd);
 		cmd_destroy(cmd);
 		if (rc == ACL_DENY) {
-			cw_log(LOG_DEBUG, "access to %s `%s` denied by global ACL", creds, command);
-			reply = cw_pdu_make(pdu->src, 2, "ERROR", "Permission denied");
-			cw_pdu_send(sock, reply);
-			cw_pdu_destroy(reply);
+			logger(LOG_DEBUG, "access to %s `%s` denied by global ACL", creds, command);
+			reply = pdu_reply(pdu, "ERROR", 1, "Permission denied");
+			pdu_send_and_free(reply, sock);
 			goto REQUEST_exit;
 		}
 
-		cw_pdu_t *blast = cw_pdu_make(NULL, 6, "COMMAND", serial, creds, command, code, filters);
-		cw_pdu_send(server->broadcast, blast);
-		cw_pdu_destroy(blast);
+		pdu_t *blast = pdu_make("COMMAND", 5, serial, creds, command, code, filters);
+		pdu_send_and_free(blast, server->broadcast);
 
-		reply = cw_pdu_make(pdu->src, 2, "SUBMITTED", serial);
-		cw_pdu_send(sock, reply);
-		cw_pdu_destroy(reply);
+		reply = pdu_reply(pdu, "SUBMITTED", 1, serial);
+		pdu_send_and_free(reply, sock);
 
 REQUEST_exit:
 		/* username is owned by the client object now */
@@ -1081,24 +1074,23 @@ REQUEST_exit:
 		free(creds);
 		free(code);
 		free(filters);
-		return CW_REACTOR_CONTINUE;
+		return VIGOR_REACTOR_CONTINUE;
 	}
 
-	if (strcmp(pdu->type, "CHECK") == 0) {
+	if (strcmp(pdu_type(pdu), "CHECK") == 0) {
 		mesh_result_t *r, *r_tmp;
-		char *serial = cw_pdu_text(pdu, 1);
-		mesh_slot_t *client = cw_cache_get(server->slots, serial);
+		char *serial = pdu_string(pdu, 1);
+		mesh_slot_t *client = cache_get(server->slots, serial);
 		free(serial);
 
 		if (client) {
 			for_each_object_safe(r, r_tmp, &client->results, l) {
 				reply = (r->status && r->output)
-					? cw_pdu_make(pdu->src, 5, "RESULT", r->fqdn, r->uuid, r->status, r->output)
-					: cw_pdu_make(pdu->src, 3, "OPTOUT", r->fqdn, r->uuid);
+					? pdu_reply(pdu, "RESULT", 4, r->fqdn, r->uuid, r->status, r->output)
+					: pdu_reply(pdu, "OPTOUT", 2, r->fqdn, r->uuid);
 
-				cw_pdu_send(sock, reply);
-				cw_pdu_destroy(reply);
-				cw_list_delete(&r->l);
+				pdu_send_and_free(reply, sock);
+				list_delete(&r->l);
 				free(r->fqdn);
 				free(r->uuid);
 				free(r->status);
@@ -1106,23 +1098,22 @@ REQUEST_exit:
 				free(r);
 			}
 
-			reply = cw_pdu_make(pdu->src, 1, "DONE");
+			reply = pdu_reply(pdu, "DONE", 0);
 		} else {
-			reply = cw_pdu_make(pdu->src, 2, "ERROR", "not a client");
+			reply = pdu_reply(pdu, "ERROR", 1, "not a client");
 		}
-		cw_pdu_send(sock, reply);
-		cw_pdu_destroy(reply);
+		pdu_send_and_free(reply, sock);
 	}
 
-	if (server->_safe_word && strcmp(pdu->type, server->_safe_word) == 0)
-		return 0;
+	if (server->_safe_word && strcmp(pdu_type(pdu), server->_safe_word) == 0)
+		return VIGOR_REACTOR_HALT;
 
-	return CW_REACTOR_CONTINUE;
+	return VIGOR_REACTOR_CONTINUE;
 }
 
 mesh_client_t* mesh_client_new(void)
 {
-	mesh_client_t *c = cw_alloc(sizeof(mesh_client_t));
+	mesh_client_t *c = vmalloc(sizeof(mesh_client_t));
 	c->acl_default = ACL_DENY;
 	return c;
 }
@@ -1138,7 +1129,7 @@ int mesh_client_setopt(mesh_client_t *c, int opt, void *data, size_t len)
 		if (len == 0) {
 			c->fqdn = NULL;
 		} else {
-			c->fqdn = cw_alloc((len + 1) * sizeof(char));
+			c->fqdn = vmalloc(len + 1);
 			memcpy(c->fqdn, data, len);
 		}
 		return 0;
@@ -1148,19 +1139,19 @@ int mesh_client_setopt(mesh_client_t *c, int opt, void *data, size_t len)
 		if (len == 0) {
 			c->gatherers = NULL;
 		} else {
-			c->gatherers = cw_alloc((len + 1) * sizeof(char));
+			c->gatherers = vmalloc(len + 1);
 			memcpy(c->gatherers, data, len);
 		}
 		return 0;
 
 	case MESH_CLIENT_FACTS:
-		if (len != sizeof(cw_hash_t*)) return -1;
-		c->facts = (cw_hash_t*)data;
+		if (len != sizeof(hash_t*)) return -1;
+		c->facts = (hash_t*)data;
 		return 0;
 
 	case MESH_CLIENT_ACL:
-		if (len != sizeof(cw_list_t*)) return -1;
-		c->acl = (cw_list_t*)data;
+		if (len != sizeof(list_t*)) return -1;
+		c->acl = (list_t*)data;
 		return 0;
 
 	case MESH_CLIENT_ACL_DEFAULT:
@@ -1182,18 +1173,18 @@ void mesh_client_destroy(mesh_client_t *c)
 	free(c);
 }
 
-int mesh_client_handle(mesh_client_t *c, void *sock, cw_pdu_t *pdu)
+int mesh_client_handle(mesh_client_t *c, void *sock, pdu_t *pdu)
 {
 	assert(pdu);
-	cw_pdu_t *reply;
+	pdu_t *reply;
 
-	cw_log(LOG_INFO, "inbound %s packet", pdu->type);
-	if (strcmp(pdu->type, "COMMAND") == 0) {
-		char *serial  = cw_pdu_text(pdu, 1),
-		     *creds   = cw_pdu_text(pdu, 2),
-		     *command = cw_pdu_text(pdu, 3),
-		     *code    = cw_pdu_text(pdu, 4),
-		     *filters = cw_pdu_text(pdu, 5);
+	logger(LOG_INFO, "inbound %s packet", pdu_type(pdu));
+	if (strcmp(pdu_type(pdu), "COMMAND") == 0) {
+		char *serial  = pdu_string(pdu, 1),
+		     *creds   = pdu_string(pdu, 2),
+		     *command = pdu_string(pdu, 3),
+		     *code    = pdu_string(pdu, 4),
+		     *filters = pdu_string(pdu, 5);
 
 		assert(serial);
 		assert(creds);
@@ -1204,7 +1195,7 @@ int mesh_client_handle(mesh_client_t *c, void *sock, cw_pdu_t *pdu)
 		cmd_t *cmd = cmd_parse(command, COMMAND_LITERAL);
 		assert(cmd);
 
-		cw_log(LOG_DEBUG, "inbound COMMAND `%s` on behalf of %s", command, creds);
+		logger(LOG_DEBUG, "inbound COMMAND `%s` on behalf of %s", command, creds);
 		int disposition = acl_check(c->acl, creds, cmd);
 		cmd_destroy(cmd);
 
@@ -1212,30 +1203,28 @@ int mesh_client_handle(mesh_client_t *c, void *sock, cw_pdu_t *pdu)
 			disposition = c->acl_default;
 
 		if (disposition == ACL_DENY) {
-			cw_log(LOG_INFO, "denied `%s` to %s per ACL", command, creds);
+			logger(LOG_INFO, "denied `%s` to %s per ACL", command, creds);
 			goto bail;
 		}
 
 		if (!c->facts) {
-			c->facts = cw_alloc(sizeof(cw_hash_t));
-			cw_log(LOG_DEBUG, "no cached facts; gathering now");
+			c->facts = vmalloc(sizeof(hash_t));
+			logger(LOG_DEBUG, "no cached facts; gathering now");
 			fact_gather(c->gatherers, c->facts);
 		}
 
 		LIST(filter);
 		filter_parseall(&filter, filters);
 		if (!filter_matchall(&filter, c->facts)) {
-			cw_log(LOG_INFO, "opting out of `%s` command from %s, per filters",
+			logger(LOG_INFO, "opting out of `%s` command from %s, per filters",
 					command, creds);
 
-			reply = cw_pdu_make(NULL, 4,
-					"OPTOUT",
+			reply = pdu_make("OPTOUT", 3,
 					serial,
 					c->fqdn,
-					cw_hash_get(c->facts, "sys.uuid"));
+					hash_get(c->facts, "sys.uuid"));
 
-			cw_pdu_send(sock, reply);
-			cw_pdu_destroy(reply);
+			pdu_send_and_free(reply, sock);
 			goto bail;
 		}
 
@@ -1256,16 +1245,14 @@ int mesh_client_handle(mesh_client_t *c, void *sock, cw_pdu_t *pdu)
 		pendulum_destroy(&m);
 		pn_destroy(&m);
 
-		reply = cw_pdu_make(NULL, 6,
-				"RESULT",
+		reply = pdu_make("RESULT", 5,
 				serial,
 				c->fqdn,
-				cw_hash_get(c->facts, "sys.uuid"),
+				hash_get(c->facts, "sys.uuid"),
 				"0",
 				output);
 
-		cw_pdu_send(sock, reply);
-		cw_pdu_destroy(reply);
+		pdu_send_and_free(reply, sock);
 
 bail:
 		free(serial);
@@ -1275,7 +1262,7 @@ bail:
 		free(filters);
 
 	} else {
-		cw_log(LOG_DEBUG, "unrecognized PDU: '%s'", pdu->type);
+		logger(LOG_DEBUG, "unrecognized PDU: '%s'", pdu_type(pdu));
 		/* ignore */
 	}
 

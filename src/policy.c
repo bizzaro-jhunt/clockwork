@@ -31,42 +31,42 @@
 
 struct scope {
 	int depth;
-	cw_list_t l;
-	cw_list_t res_defs;
+	list_t l;
+	list_t res_defs;
 };
 
 struct policy_generator {
 	struct policy *policy;
-	cw_hash_t     *facts;
+	hash_t        *facts;
 	enum restype   type;
 
-	cw_list_t scopes;
+	list_t scopes;
 	struct scope *scope;
 
 	struct resource *res;
 	struct dependency *dep;
 };
 
-static struct scope* push_scope(cw_list_t *list, int depth)
+static struct scope* push_scope(list_t *list, int depth)
 {
-	struct scope *scope = cw_alloc(sizeof(struct scope));
+	struct scope *scope = vmalloc(sizeof(struct scope));
 
-	cw_list_init(&scope->res_defs);
+	list_init(&scope->res_defs);
 	scope->depth = depth;
 
-	cw_list_unshift(list, &scope->l);
+	list_unshift(list, &scope->l);
 	return scope;
 }
 
-static struct scope* pop_scope(cw_list_t *list)
+static struct scope* pop_scope(list_t *list)
 {
 	struct scope *scope;
 
-	scope = cw_list_object(list->next, struct scope, l);
+	scope = list_object(list->next, struct scope, l);
 	if (!scope) {
 		return NULL;
 	}
-	cw_list_delete(&scope->l);
+	list_delete(&scope->l);
 
 	struct resource *res_def, *tmp;
 	for_each_object_safe(res_def, tmp, &scope->res_defs, l) {
@@ -74,10 +74,10 @@ static struct scope* pop_scope(cw_list_t *list)
 	}
 	free(scope);
 
-	if (cw_list_isempty(list)) {
+	if (list_isempty(list)) {
 		return NULL;
 	}
-	return cw_list_object(list->next, struct scope, l);
+	return list_object(list->next, struct scope, l);
 }
 
 static void stree_free(struct stree *n)
@@ -90,7 +90,7 @@ static void stree_free(struct stree *n)
 	free(n);
 }
 
-static const void* s_eval_lookup(struct stree *node, cw_hash_t *facts)
+static const void* s_eval_lookup(struct stree *node, hash_t *facts)
 {
 	assert(node);  // LCOV_EXCL_LINE
 	assert(facts); // LCOV_EXCL_LINE
@@ -112,22 +112,22 @@ static const void* s_eval_lookup(struct stree *node, cw_hash_t *facts)
 		re = pcre_compile(node->data1, opts, &e_string, &e_offset, NULL);
 		if (re) return re;
 
-		cw_log(LOG_WARNING, "regular expression syntax error: %s", e_string);
+		logger(LOG_WARNING, "regular expression syntax error: %s", e_string);
 		return NULL;
 
 	case EXPR_FACT:
-		x = cw_hash_get(facts, node->data1);
+		x = hash_get(facts, node->data1);
 		if (x) return x;
 		break;
 
 	default:
-		cw_log(LOG_WARNING, "unexpected node (%u %s/%s)", node->op, node->data1, node->data2);
+		logger(LOG_WARNING, "unexpected node (%u %s/%s)", node->op, node->data1, node->data2);
 	}
 
 	return "";
 }
 
-static int s_eval(struct stree *node, cw_hash_t *facts)
+static int s_eval(struct stree *node, hash_t *facts)
 {
 	assert(node);  // LCOV_EXCL_LINE
 	assert(facts); // LCOV_EXCL_LINE
@@ -152,7 +152,7 @@ static int s_eval(struct stree *node, cw_hash_t *facts)
 
 	case EXPR_EQ:
 		if (!node->nodes[0] || !node->nodes[1]) {
-			cw_log(LOG_WARNING, "too few nodes for an EQ operation");
+			logger(LOG_WARNING, "too few nodes for an EQ operation");
 			break;
 		}
 		s1 = (const char *)s_eval_lookup(node->nodes[0], facts);
@@ -169,22 +169,22 @@ static int s_eval(struct stree *node, cw_hash_t *facts)
 		return rc >= 0;
 
 	case EXPR_VAL:
-		cw_log(LOG_WARNING, "unexpected literal value in expression");
+		logger(LOG_WARNING, "unexpected literal value in expression");
 		break;
 
 	case EXPR_FACT:
-		cw_log(LOG_WARNING, "unexpected fact deref in expression");
+		logger(LOG_WARNING, "unexpected fact deref in expression");
 		break;
 
 	default:
-		cw_log(LOG_WARNING, "unexpected node in expression: (%u %s/%s)", node->op, node->data1, node->data2);
+		logger(LOG_WARNING, "unexpected node in expression: (%u %s/%s)", node->op, node->data1, node->data2);
 		break;
 	}
 
 	return 0;
 }
 
-static int _policy_normalize(struct policy *pol, cw_hash_t *facts)
+static int _policy_normalize(struct policy *pol, hash_t *facts)
 {
 	assert(pol); // LCOV_EXCL_LINE
 
@@ -193,27 +193,27 @@ static int _policy_normalize(struct policy *pol, cw_hash_t *facts)
 	struct dependency *dep, *d_tmp;
 
 	for_each_resource(r1, pol) {
-		cw_log(LOG_DEBUG, "Normalizing resource %s", r1->key);
+		logger(LOG_DEBUG, "Normalizing resource %s", r1->key);
 		if (resource_norm(r1, pol, facts) != 0) {
-			cw_log(LOG_ERR, "Failed to normalize resource %s", r1->key);
+			logger(LOG_ERR, "Failed to normalize resource %s", r1->key);
 		}
 	}
 
 	/* expand defered dependencies */
 	for_each_dependency_safe(dep, d_tmp, pol) {
-		cw_log(LOG_DEBUG, "Expanding dependency for %s on %s", dep->a, dep->b);
+		logger(LOG_DEBUG, "Expanding dependency for %s on %s", dep->a, dep->b);
 
-		dep->resource_a = r1 = cw_hash_get(pol->index, dep->a);
-		dep->resource_b = r2 = cw_hash_get(pol->index, dep->b);
+		dep->resource_a = r1 = hash_get(pol->index, dep->a);
+		dep->resource_b = r2 = hash_get(pol->index, dep->b);
 
 		if (!r1) {
-			cw_log(LOG_ERR, "Failed dependency for unknown resource %s", dep->a);
-			cw_list_delete(&dep->l);
+			logger(LOG_ERR, "Failed dependency for unknown resource %s", dep->a);
+			list_delete(&dep->l);
 			continue;
 		}
 		if (!r2) {
-			cw_log(LOG_ERR, "Failed dependency on unknown resource %s", dep->b);
-			cw_list_delete(&dep->l);
+			logger(LOG_ERR, "Failed dependency on unknown resource %s", dep->b);
+			list_delete(&dep->l);
 			continue;
 		}
 
@@ -223,9 +223,9 @@ static int _policy_normalize(struct policy *pol, cw_hash_t *facts)
 	/* get the one with no deps */
 	for_each_resource_safe(r1, tmp, pol) {
 		if (r1->ndeps == 0) {
-			cw_log(LOG_DEBUG, "%s has no deps // appending", r1->key);
-			cw_list_delete(&r1->l);
-			cw_list_push(&deps, &r1->l);
+			logger(LOG_DEBUG, "%s has no deps // appending", r1->key);
+			list_delete(&r1->l);
+			list_push(&deps, &r1->l);
 		}
 	}
 
@@ -234,19 +234,19 @@ static int _policy_normalize(struct policy *pol, cw_hash_t *facts)
 			if (resource_depends_on(r2, r1) == 0) {
 				resource_drop_dependency(r2, r1);
 				if (r2->ndeps == 0) {
-					cw_log(LOG_DEBUG, "%s has no _outstanding_ deps // appending", r2->key);
-					cw_list_delete(&r2->l);
-					cw_list_push(&deps, &r2->l);
+					logger(LOG_DEBUG, "%s has no _outstanding_ deps // appending", r2->key);
+					list_delete(&r2->l);
+					list_push(&deps, &r2->l);
 				}
 			}
 		}
 	}
 
-	if (!cw_list_isempty(&pol->resources)) {
-		cw_log(LOG_ERR, "Leftover resources after dependency resolution");
+	if (!list_isempty(&pol->resources)) {
+		logger(LOG_ERR, "Leftover resources after dependency resolution");
 		return -3;
 	}
-	cw_list_replace(&deps, &pol->resources);
+	list_replace(&deps, &pol->resources);
 
 	return 0;
 }
@@ -262,9 +262,9 @@ struct manifest* manifest_new(void)
 {
 	struct manifest *m;
 
-	m = cw_alloc(sizeof(struct manifest));
-	m->policies = cw_alloc(sizeof(cw_hash_t));
-	m->hosts    = cw_alloc(sizeof(cw_hash_t));
+	m = vmalloc(sizeof(struct manifest));
+	m->policies = vmalloc(sizeof(hash_t));
+	m->hosts    = vmalloc(sizeof(hash_t));
 
 	m->nodes = NULL;
 	m->nodes_len = 0;
@@ -285,8 +285,8 @@ void manifest_free(struct manifest *m)
 		for (i = 0; i < m->nodes_len; i++) { stree_free(m->nodes[i]); }
 		free(m->nodes);
 
-		cw_hash_done(m->policies, 0);
-		cw_hash_done(m->hosts,    0);
+		hash_done(m->policies, 0);
+		hash_done(m->hosts,    0);
 
 		free(m->policies);
 		free(m->hosts);
@@ -299,12 +299,12 @@ static int _manifest_validate(struct stree *node)
 	if (!node) return 0;
 	int i;
 
-	cw_log(LOG_DEBUG, "node: %u %s/%s)", node->op, node->data1, node->data2);
+	logger(LOG_DEBUG, "node: %u %s/%s)", node->op, node->data1, node->data2);
 
 	switch (node->op) {
 	case RESOURCE:
 		if (resource_type(node->data1) == RES_UNKNOWN) {
-			cw_log(LOG_ERR, "Unknown resource type '%s'", node->data1);
+			logger(LOG_ERR, "Unknown resource type '%s'", node->data1);
 			return 1;
 		}
 
@@ -335,7 +335,7 @@ static int _manifest_validate(struct stree *node)
 		return 0;
 
 	default:
-		cw_log(LOG_ERR, "unexpected node in syntax tree: %u %s/%s)", node->op, node->data1, node->data2);
+		logger(LOG_ERR, "unexpected node in syntax tree: %u %s/%s)", node->op, node->data1, node->data2);
 		return 1;
 	}
 
@@ -389,7 +389,7 @@ struct stree* manifest_new_stree(struct manifest *m, enum oper op, char *data1, 
 	struct stree *stree;
 	struct stree **list;
 
-	stree = cw_alloc(sizeof(struct stree));
+	stree = vmalloc(sizeof(struct stree));
 	if (!stree) {
 		return NULL;
 	}
@@ -493,7 +493,7 @@ int stree_compare(const struct stree *a, const struct stree *b)
 	return 0;
 }
 
-int fact_parse(const char *line, cw_hash_t *h)
+int fact_parse(const char *line, hash_t *h)
 {
 	assert(line); // LCOV_EXCL_LINE
 	assert(h); // LCOV_EXCL_LINE
@@ -511,19 +511,19 @@ int fact_parse(const char *line, cw_hash_t *h)
 		;
 	*stp = '\0';
 
-	cw_hash_set(h, name, cw_strdup(value));
+	hash_set(h, name, cw_strdup(value));
 	free(buf);
 	return 0;
 }
 
-int fact_exec_read(const char *script, cw_hash_t *facts)
+int fact_exec_read(const char *script, hash_t *facts)
 {
 	pid_t pid;
 	int pipefd[2], rc;
 	FILE *input;
 	char *path_copy, *arg0;
 
-	cw_log(LOG_INFO, "Processing script %s", script);
+	logger(LOG_INFO, "Processing script %s", script);
 
 	if (pipe(pipefd) != 0) {
 		perror("gather_facts");
@@ -564,7 +564,7 @@ int fact_exec_read(const char *script, cw_hash_t *facts)
 	}
 }
 
-int fact_cat_read(const char *file, cw_hash_t *facts)
+int fact_cat_read(const char *file, hash_t *facts)
 {
 	assert(file); // LCOV_EXCL_LINE
 	assert(facts); // LCOV_EXCL_LINE
@@ -580,7 +580,7 @@ int fact_cat_read(const char *file, cw_hash_t *facts)
 	return 0;
 }
 
-int fact_gather(const char *paths, cw_hash_t *facts)
+int fact_gather(const char *paths, hash_t *facts)
 {
 	glob_t scripts;
 	size_t i;
@@ -589,14 +589,14 @@ int fact_gather(const char *paths, cw_hash_t *facts)
 	case GLOB_NOMATCH:
 		globfree(&scripts);
 		if (fact_exec_read(paths, facts) != 0) {
-			cw_hash_done(facts, 0);
+			hash_done(facts, 0);
 			return -1;
 		}
 		return 0;
 
 	case GLOB_NOSPACE:
 	case GLOB_ABORTED:
-		cw_hash_done(facts, 0);
+		hash_done(facts, 0);
 		return -1;
 
 	}
@@ -624,7 +624,7 @@ int fact_gather(const char *paths, cw_hash_t *facts)
   On success, returns $facts.  On failure, returns NULL, and the
   contents of $facts is undefined.
  */
-cw_hash_t* fact_read(FILE *io, cw_hash_t *facts)
+hash_t* fact_read(FILE *io, hash_t *facts)
 {
 	assert(io); // LCOV_EXCL_LINE
 
@@ -632,7 +632,7 @@ cw_hash_t* fact_read(FILE *io, cw_hash_t *facts)
 	int allocated = 0;
 
 	if (!facts) {
-		facts = cw_alloc(sizeof(cw_hash_t));
+		facts = vmalloc(sizeof(hash_t));
 		allocated = 1;
 	}
 
@@ -644,7 +644,7 @@ cw_hash_t* fact_read(FILE *io, cw_hash_t *facts)
 		errno = 0;
 		if (!fgets(buf, 8192, io)) {
 			if (errno != 0) {
-				if (allocated) cw_hash_done(facts, 0);
+				if (allocated) hash_done(facts, 0);
 				facts = NULL;
 			}
 			break;
@@ -655,20 +655,20 @@ cw_hash_t* fact_read(FILE *io, cw_hash_t *facts)
 	return facts;
 }
 
-cw_hash_t* fact_read_string(const char *s, cw_hash_t *facts)
+hash_t* fact_read_string(const char *s, hash_t *facts)
 {
 	assert(s); // LCOV_EXCL_LINE
 	assert(facts); // LCOV_EXCL_LINE
 
 	size_t i;
-	cw_strl_t *lines = cw_strl_split(s, strlen(s), "\n", SPLIT_GREEDY);
+	strings_t *lines = strings_split(s, strlen(s), "\n", SPLIT_GREEDY);
 	if (!lines) return NULL;
 
 	for (i = 0; i < lines->num; i++) {
 		fact_parse(lines->strings[i], facts);
 	}
 
-	cw_strl_free(lines);
+	strings_free(lines);
 	return facts;
 }
 
@@ -680,28 +680,28 @@ cw_hash_t* fact_read_string(const char *s, cw_hash_t *facts)
 
   On success, returns 0.  On failure, returns non-zero.
  */
-int fact_write(FILE *io, cw_hash_t *facts)
+int fact_write(FILE *io, hash_t *facts)
 {
 	assert(io); // LCOV_EXCL_LINE
 	assert(facts); // LCOV_EXCL_LINE
 
-	cw_strl_t *lines;
+	strings_t *lines;
 	char buf[8192] = {0};
 	char *k; void *v;
 	size_t i;
 
-	lines = cw_strl_new(NULL);
+	lines = strings_new(NULL);
 	for_each_key_value(facts, k, v) {
 		snprintf(buf, 8192, "%s=%s\n", k, (const char*)v);
-		cw_strl_add(lines, buf);
+		strings_add(lines, buf);
 	}
 
-	cw_strl_sort(lines, STRL_ASC);
+	strings_sort(lines, STRINGS_ASC);
 	for_each_string(lines, i) {
 		fputs(lines->strings[i], io);
 	}
 
-	cw_strl_free(lines);
+	strings_free(lines);
 	return 0;
 }
 
@@ -712,8 +712,8 @@ static struct resource * _policy_find_resource(struct policy_generator *pgen, co
 	char *key;
 	struct resource *r = NULL;
 
-	if ((key = cw_string("%s:%s", type, id)) != NULL) {
-		r = cw_hash_get(pgen->policy->index, key);
+	if ((key = string("%s:%s", type, id)) != NULL) {
+		r = hash_get(pgen->policy->index, key);
 		free(key);
 	}
 
@@ -725,7 +725,7 @@ static struct resource * _policy_make_resource(struct policy_generator *pgen, co
 	struct resource *res;
 	if (name == NULL) { /* default resource */
 		res = resource_new(type, NULL);
-		cw_list_unshift(&pgen->scope->res_defs, &res->l);
+		list_unshift(&pgen->scope->res_defs, &res->l);
 		return res;
 	}
 
@@ -772,15 +772,15 @@ again:
 		}
 
 		if (!pgen->scope) {
-			cw_log(LOG_ERR, "Resource %s/%s defined outside of policy!!",
+			logger(LOG_ERR, "Resource %s/%s defined outside of policy!!",
 					node->data1, (node->data2 ? node->data2 : "defaults"));
 			return -1;
 		}
 
 		pgen->res = _policy_make_resource(pgen, node->data1, node->data2);
 		if (!pgen->res) {
-			cw_log(LOG_WARNING, "Definition for unknown resource type '%s'", node->data1);
-		} else if (cw_list_isempty(&pgen->res->l)) {
+			logger(LOG_WARNING, "Definition for unknown resource type '%s'", node->data1);
+		} else if (list_isempty(&pgen->res->l)) {
 			policy_add_resource(pgen->policy, pgen->res);
 		}
 
@@ -789,11 +789,11 @@ again:
 	case ATTR:
 		if (pgen->res) {
 			if (resource_set(pgen->res, node->data1, node->data2) != 0) {
-				cw_log(LOG_WARNING, "Unknown Attribute %s = '%s'",
+				logger(LOG_WARNING, "Unknown Attribute %s = '%s'",
 					node->data1, node->data2);
 			}
 		} else {
-			cw_log(LOG_WARNING, "Attribute %s = '%s' defined for unknown type",
+			logger(LOG_WARNING, "Attribute %s = '%s' defined for unknown type",
 			        node->data1, node->data2);
 		}
 
@@ -801,12 +801,12 @@ again:
 
 	case DEPENDENCY:
 		if (node->size != 2) {
-			cw_log(LOG_ERR, "Corrupt dependency: %u constituent(s)", node->size);
+			logger(LOG_ERR, "Corrupt dependency: %u constituent(s)", node->size);
 			return -1;
 		}
 
-		dep.a = cw_string("%s:%s", node->nodes[0]->data1, node->nodes[0]->data2);
-		dep.b = cw_string("%s:%s", node->nodes[1]->data1, node->nodes[1]->data2);
+		dep.a = string("%s:%s", node->nodes[0]->data1, node->nodes[0]->data2);
+		dep.b = string("%s:%s", node->nodes[1]->data1, node->nodes[1]->data2);
 		pgen->dep = dependency_new(dep.a, dep.b);
 		free(dep.a);
 		free(dep.b);
@@ -816,7 +816,7 @@ again:
 
 	case ACL:
 		if (node->size != 2) {
-			cw_log(LOG_ERR, "Corrupt ACL!");
+			logger(LOG_ERR, "Corrupt ACL!");
 			return -1;
 		}
 
@@ -825,7 +825,7 @@ again:
 		acl->is_final     = strcmp(node->data2, "final") == 0 ? 1 : 0;
 		acl->pattern      = cmd_parse(node->nodes[1]->data1, COMMAND_PATTERN);
 		if (!acl->pattern) {
-			cw_log(LOG_ERR, "Corrupt ACL - failed to parse command '%s'",
+			logger(LOG_ERR, "Corrupt ACL - failed to parse command '%s'",
 					node->nodes[1]->data1);
 			return -1;
 		}
@@ -835,13 +835,13 @@ again:
 		} else if (node->nodes[0]->data2) {
 			acl->target_group = strdup(node->nodes[0]->data2);
 		} else {
-			cw_log(LOG_ERR, "Corrupt ACL - no user or group specified");
+			logger(LOG_ERR, "Corrupt ACL - no user or group specified");
 			return -1;
 		}
 
 		if (acl->disposition == ACL_DENY) acl->is_final = 1;
 
-		cw_list_push(&pgen->policy->acl, &acl->l);
+		list_push(&pgen->policy->acl, &acl->l);
 		return 0; /* don't need to traverse the RESOURCE_ID nodes */
 
 	case PROG:
@@ -862,11 +862,11 @@ again:
 	case EXPR_OR:
 	case EXPR_NOT:
 	case EXPR_EQ:
-		cw_log(LOG_WARNING, "unexpected expression");
+		logger(LOG_WARNING, "unexpected expression");
 		break;
 
 	default:
-		cw_log(LOG_WARNING, "unexpected node in syntax tree: (%u %s/%s)", node->op, node->data1, node->data2);
+		logger(LOG_WARNING, "unexpected node in syntax tree: (%u %s/%s)", node->op, node->data1, node->data2);
 		break;
 
 	}
@@ -891,7 +891,7 @@ again:
 
   On success, returns a new policy object.  On failure, returns NULL.
  */
-struct policy* policy_generate(struct stree *root, cw_hash_t *facts)
+struct policy* policy_generate(struct stree *root, hash_t *facts)
 {
 	assert(root); // LCOV_EXCL_LINE
 
@@ -901,7 +901,7 @@ struct policy* policy_generate(struct stree *root, cw_hash_t *facts)
 	pgen.policy = policy_new(root->data1);
 
 	/* set up scopes for default values */
-	cw_list_init(&pgen.scopes);
+	list_init(&pgen.scopes);
 	pgen.scope = NULL;
 
 	if (_policy_generate(root, &pgen, 0) != 0) {
@@ -933,14 +933,14 @@ struct policy* policy_new(const char *name)
 {
 	struct policy *pol;
 
-	pol = cw_alloc(sizeof(struct policy));
+	pol = vmalloc(sizeof(struct policy));
 	pol->name = cw_strdup(name);
 
-	cw_list_init(&pol->resources);
-	cw_list_init(&pol->dependencies);
-	cw_list_init(&pol->acl);
-	pol->index = cw_alloc(sizeof(cw_hash_t));
-	pol->cache = cw_alloc(sizeof(cw_hash_t));
+	list_init(&pol->resources);
+	list_init(&pol->dependencies);
+	list_init(&pol->acl);
+	pol->index = vmalloc(sizeof(hash_t));
+	pol->cache = vmalloc(sizeof(hash_t));
 
 	return pol;
 }
@@ -954,8 +954,8 @@ struct policy* policy_new(const char *name)
 void policy_free(struct policy *pol)
 {
 	if (pol) {
-		cw_hash_done(pol->index, 0);
-		cw_hash_done(pol->cache, 0);
+		hash_done(pol->index, 0);
+		hash_done(pol->cache, 0);
 		free(pol->index);
 		free(pol->cache);
 		free(pol->name);
@@ -990,9 +990,9 @@ int policy_add_resource(struct policy *pol, struct resource *res)
 	assert(pol); // LCOV_EXCL_LINE
 	assert(res); // LCOV_EXCL_LINE
 
-	cw_list_push(&pol->resources, &res->l);
-	cw_log(LOG_DEBUG, "Adding resource %s to policy", res->key);
-	cw_hash_set(pol->index, res->key, res);
+	list_push(&pol->resources, &res->l);
+	logger(LOG_DEBUG, "Adding resource %s to policy", res->key);
+	hash_set(pol->index, res->key, res);
 	return 0;
 }
 
@@ -1020,23 +1020,23 @@ struct resource* policy_find_resource(struct policy *pol, enum restype type, con
 {
 	struct resource *r;
 
-	cw_log(LOG_DEBUG, "Looking for resource %u matching %s => '%s'", type, attr, value);
-	char *needle = cw_string("%i:%s=%s", (int)type, attr, value);
-	r = cw_hash_get(pol->cache, needle);
+	logger(LOG_DEBUG, "Looking for resource %u matching %s => '%s'", type, attr, value);
+	char *needle = string("%i:%s=%s", (int)type, attr, value);
+	r = hash_get(pol->cache, needle);
 	if (r) {
-		cw_log(LOG_DEBUG, "Search satisfied out from cache\n");
+		logger(LOG_DEBUG, "Search satisfied out from cache\n");
 		if (r == (struct resource *)1) r = NULL;
 
 	} else {
 		for_each_resource(r, pol) {
 			if ((r->type == RES_NONE || r->type == type)
 			  && resource_match(r, attr, value) == 0) {
-				cw_hash_set(pol->cache, needle, r);
+				hash_set(pol->cache, needle, r);
 				goto done;
 			}
 		}
-		cw_log(LOG_DEBUG, "  none found...");
-		cw_hash_set(pol->cache, needle, (struct resource *)1);
+		logger(LOG_DEBUG, "  none found...");
+		hash_set(pol->cache, needle, (struct resource *)1);
 		r = NULL;
 	}
 
@@ -1059,12 +1059,12 @@ int policy_add_dependency(struct policy *pol, struct dependency *dep)
 	for_each_dependency(d, pol) {
 		if (strcmp(d->a, dep->a) == 0
 		 && strcmp(d->b, dep->b) == 0) {
-			cw_log(LOG_DEBUG, "Already have a dependency of %s -> %s", dep->a, dep->b);
+			logger(LOG_DEBUG, "Already have a dependency of %s -> %s", dep->a, dep->b);
 			return -1; /* duplicate */
 		}
 	}
-	cw_log(LOG_DEBUG, "Adding dependency of %s -> %s", dep->a, dep->b);
-	cw_list_push(&pol->dependencies, &dep->l);
+	logger(LOG_DEBUG, "Adding dependency of %s -> %s", dep->a, dep->b);
+	list_push(&pol->dependencies, &dep->l);
 
 	return 0;
 }

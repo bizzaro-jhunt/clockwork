@@ -74,7 +74,8 @@
 #  define CW_COGD_CONFIG_FILE "/etc/clockwork/cogd.conf"
 #endif
 
-#include "cw.h"
+#include "base.h"
+#include <vigor.h>
 #include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>

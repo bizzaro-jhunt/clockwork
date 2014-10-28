@@ -91,22 +91,22 @@ TESTS {
 
 	subtest {
 		struct res_file *rf;
-		cw_hash_t *h;
+		hash_t *h;
 
-		isnt_null(h = cw_alloc(sizeof(cw_hash_t)), "created hash");
+		isnt_null(h = vmalloc(sizeof(hash_t)), "created hash");
 		isnt_null(rf = res_file_new("/etc/sudoers"), "created file resource");
 
 		ok(res_file_attrs(rf, h) == 0, "got raw file attrs");
-		is_string(cw_hash_get(h, "path"),    "/etc/sudoers", "h.path");
-		is_string(cw_hash_get(h, "present"), "yes",          "h.present"); // default
-		is_null(cw_hash_get(h, "owner"),    "h.owner is unset");
-		is_null(cw_hash_get(h, "group"),    "h.group is unset");
-		is_null(cw_hash_get(h, "mode"),     "h.mode is unset");
-		is_null(cw_hash_get(h, "template"), "h.template is unset");
-		is_null(cw_hash_get(h, "source"),   "h.source is unset");
-		is_null(cw_hash_get(h, "verify"),   "h.verify is unset");
-		is_null(cw_hash_get(h, "expect"),   "h.expect is unset");
-		is_null(cw_hash_get(h, "tmpfile"),  "h.tmpfile is unset");
+		is_string(hash_get(h, "path"),    "/etc/sudoers", "h.path");
+		is_string(hash_get(h, "present"), "yes",          "h.present"); // default
+		is_null(hash_get(h, "owner"),    "h.owner is unset");
+		is_null(hash_get(h, "group"),    "h.group is unset");
+		is_null(hash_get(h, "mode"),     "h.mode is unset");
+		is_null(hash_get(h, "template"), "h.template is unset");
+		is_null(hash_get(h, "source"),   "h.source is unset");
+		is_null(hash_get(h, "verify"),   "h.verify is unset");
+		is_null(hash_get(h, "expect"),   "h.expect is unset");
+		is_null(hash_get(h, "tmpfile"),  "h.tmpfile is unset");
 
 		res_file_set(rf, "owner",  "root");
 		res_file_set(rf, "group",  "sys");
@@ -115,14 +115,14 @@ TESTS {
 		res_file_set(rf, "verify", "visudo -vf %s");
 
 		ok(res_file_attrs(rf, h) == 0, "got raw file attrs");
-		is_string(cw_hash_get(h, "owner"),  "root",            "h.owner");
-		is_string(cw_hash_get(h, "group"),  "sys",             "h.group");
-		is_string(cw_hash_get(h, "mode"),   "0644",            "h.mode");
-		is_string(cw_hash_get(h, "source"), "/srv/files/sudo", "h.source");
-		is_null(cw_hash_get(h, "template"), "h.template is unset");
-		is_string(cw_hash_get(h, "verify"), "visudo -vf %s",   "h.verify");
-		is_string(cw_hash_get(h, "expect"), "0",               "h.expect (implicit)");
-		is_null(cw_hash_get(h, "tmpfile"),  "h.tmpfile is unset");
+		is_string(hash_get(h, "owner"),  "root",            "h.owner");
+		is_string(hash_get(h, "group"),  "sys",             "h.group");
+		is_string(hash_get(h, "mode"),   "0644",            "h.mode");
+		is_string(hash_get(h, "source"), "/srv/files/sudo", "h.source");
+		is_null(hash_get(h, "template"), "h.template is unset");
+		is_string(hash_get(h, "verify"), "visudo -vf %s",   "h.verify");
+		is_string(hash_get(h, "expect"), "0",               "h.expect (implicit)");
+		is_null(hash_get(h, "tmpfile"),  "h.tmpfile is unset");
 
 		res_file_set(rf, "present", "no");
 		res_file_set(rf, "template", "/srv/tpl/sudo");
@@ -130,16 +130,16 @@ TESTS {
 		res_file_set(rf, "tmpfile", "/etc/sd.TMP");
 
 		ok(res_file_attrs(rf, h) == 0, "got raw file attrs");
-		is_string(cw_hash_get(h, "tmpfile"), "/etc/sd.TMP",    "h.tmpfile");
-		is_string(cw_hash_get(h, "template"), "/srv/tpl/sudo", "h.template");
-		is_string(cw_hash_get(h, "present"),  "no",            "h.present");
-		is_null(cw_hash_get(h, "source"), "h.source is unset");
+		is_string(hash_get(h, "tmpfile"), "/etc/sd.TMP",    "h.tmpfile");
+		is_string(hash_get(h, "template"), "/srv/tpl/sudo", "h.template");
+		is_string(hash_get(h, "present"),  "no",            "h.present");
+		is_null(hash_get(h, "source"), "h.source is unset");
 
 		ok(res_file_set(rf, "xyzzy", "bad") != 0, "xyzzy is not a valid attr");
 		ok(res_file_attrs(rf, h) == 0, "got raw file attrs");
-		is_null(cw_hash_get(h, "xyzzy"), "h.xyzzy is unset");
+		is_null(hash_get(h, "xyzzy"), "h.xyzzy is unset");
 
-		cw_hash_done(h, 1);
+		hash_done(h, 1);
 		free(h);
 		res_file_free(rf);
 	}

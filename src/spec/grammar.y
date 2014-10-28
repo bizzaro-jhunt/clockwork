@@ -114,7 +114,7 @@ static struct stree* s_regex(struct manifest *m, const char *literal)
 	const char *p;
 	int esc = 0;
 
-	d = re = cw_alloc(sizeof(char) * (strlen(literal)+1));
+	d = re = vmalloc(strlen(literal) + 1);
 	p = literal;
 	if (*p == 'm') p++;
 	delim = *p++;
@@ -154,13 +154,13 @@ manifest:
 	| manifest host
 		{ stree_add(MANIFEST(ctx)->root, $2);
 		  if ($2->data1) {
-			cw_hash_set(MANIFEST(ctx)->hosts, $2->data1, $2);
+			hash_set(MANIFEST(ctx)->hosts, $2->data1, $2);
 		  } else {
 			MANIFEST(ctx)->fallback = $2;
 		  } }
 	| manifest policy
 		{ stree_add(MANIFEST(ctx)->root, $2);
-		  cw_hash_set(MANIFEST(ctx)->policies, $2->data1, $2); }
+		  hash_set(MANIFEST(ctx)->policies, $2->data1, $2); }
 	;
 
 host: T_KEYWORD_HOST qstring '{' enforcing '}'
@@ -367,22 +367,22 @@ resource_id: T_IDENTIFIER '(' literal_value ')'
 
 map: T_KEYWORD_MAP '(' T_FACT ')' '{' map_conds map_default '}'
 		{ $$ = $6;
-		  if ($7) cw_list_push(&$$->cond, &$7->l);
+		  if ($7) list_push(&$$->cond, &$7->l);
 		  $6->lhs = NODE(EXPR_FACT, $3, NULL); }
 	;
 
 map_conds:
-		{ $$ = cw_alloc(sizeof(parser_map));
-		  cw_list_init(&$$->cond); }
+		{ $$ = vmalloc(sizeof(parser_map));
+		  list_init(&$$->cond); }
 	| map_conds map_cond
-		{ cw_list_push(&$$->cond, &$2->l); }
+		{ list_push(&$$->cond, &$2->l); }
 	;
 
 map_rvalue: rvalue | regex ;
 
 map_cond: map_rvalue ':' literal_value
-		{ $$ = cw_alloc(sizeof(parser_map_cond));
-		  cw_list_init(&$$->l);
+		{ $$ = vmalloc(sizeof(parser_map_cond));
+		  list_init(&$$->l);
 		  $$->rhs   = $1;
 		  $$->value = $3; }
 	;
@@ -393,8 +393,8 @@ map_else: T_KEYWORD_ELSE | T_KEYWORD_DEFAULT
 map_default:
 		{ $$ = NULL; }
 	| map_else ':' literal_value
-		{ $$ = cw_alloc(sizeof(parser_map_cond));
-		  cw_list_init(&$$->l);
+		{ $$ = vmalloc(sizeof(parser_map_cond));
+		  list_init(&$$->l);
 		  $$->value = $3; }
 	;
 

@@ -46,16 +46,16 @@ TESTS {
 
 	subtest {
 		struct resource *res;
-		cw_hash_t *h;
+		hash_t *h;
 
 		isnt_null(res = resource_new("host", "localhost"), "created host resource");
 		resource_set(res, "ip", "127.0.0.1");
 		isnt_null(h = resource_attrs(res), "got raw host attrs");
-		is_string(cw_hash_get(h, "hostname"), "localhost", "host name attr");
-		is_string(cw_hash_get(h, "ip"),       "127.0.0.1", "host ip attr");
-		is_null(cw_hash_get(h, "aliases"), "aliases attr is unset");
+		is_string(hash_get(h, "hostname"), "localhost", "host name attr");
+		is_string(hash_get(h, "ip"),       "127.0.0.1", "host ip attr");
+		is_null(hash_get(h, "aliases"), "aliases attr is unset");
 
-		cw_hash_done(h, 1);
+		hash_done(h, 1);
 		free(h);
 		resource_free(res);
 	}

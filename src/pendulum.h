@@ -23,7 +23,7 @@
 #define PENDULUM_VERSION  1
 
 #include <stdint.h>
-#include "cw.h"
+#include "base.h"
 
 #define PN_HEAP_SIZE     10
 #define PN_SLOT_CHUNK   256
@@ -58,7 +58,7 @@ struct pn_machine {
 	const char *topic;
 	uint32_t topics;
 
-	cw_list_t *acl;
+	list_t *acl;
 
 	void *heap[PN_HEAP_SIZE];
 

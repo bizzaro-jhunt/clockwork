@@ -61,7 +61,7 @@ struct resource {
 	int ndeps;               /* how many dependencies are there? */
 	unsigned int serial;
 
-	cw_list_t l;
+	list_t l;
 };
 
 /**
@@ -93,7 +93,7 @@ struct dependency {
 	struct resource *resource_a; /* dependent resource */
 	struct resource *resource_b; /* resource that $a depends on */
 
-	cw_list_t l;
+	list_t l;
 };
 
 /**
@@ -109,12 +109,12 @@ struct resource* resource_new(const char *type, const char *key);
 struct resource* resource_clone(const struct resource *orig, const char *key);
 void resource_free(struct resource *r);
 char *resource_key(const struct resource *r);
-cw_hash_t* resource_attrs(const struct resource *r);
-int resource_norm(struct resource *r, struct policy *pol, cw_hash_t *facts);
+hash_t* resource_attrs(const struct resource *r);
+int resource_norm(struct resource *r, struct policy *pol, hash_t *facts);
 int resource_set(struct resource *r, const char *attr, const char *value);
 int resource_match(const struct resource *r, const char *attr, const char *value);
 int resource_gencode(const struct resource *r, FILE *io, unsigned int next);
-FILE* resource_content(const struct resource *r, cw_hash_t *facts);
+FILE* resource_content(const struct resource *r, hash_t *facts);
 
 int resource_add_dependency(struct resource *r, struct resource *dep);
 int resource_drop_dependency(struct resource *r, struct resource *dep);

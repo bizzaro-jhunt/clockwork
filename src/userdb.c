@@ -86,16 +86,16 @@ static struct sgrp* fgetsgent(FILE *io)
 static int putsgent(const struct sgrp *g, FILE *io)
 {
 	char *members, *admins;
-	cw_strl_t *mem, *adm;
+	strings_t *mem, *adm;
 	int ret;
 
-	mem = cw_strl_new(g->sg_mem);
-	members = cw_strl_join(mem, ",");
-	cw_strl_free(mem);
+	mem = strings_new(g->sg_mem);
+	members = strings_join(mem, ",");
+	strings_free(mem);
 
-	adm  = cw_strl_new(g->sg_adm);
-	admins = cw_strl_join(adm, ",");
-	cw_strl_free(adm);
+	adm  = strings_new(g->sg_adm);
+	admins = strings_join(adm, ",");
+	strings_free(adm);
 
 	ret = fprintf(io, "%s:%s:%s:%s\n", g->sg_namp, g->sg_passwd, admins, members);
 	free(admins); free(members);
@@ -130,8 +130,8 @@ static struct pwdb* _pwdb_entry(struct passwd *passwd)
 	assert(passwd); // LCOV_EXCL_LINE
 
 	struct pwdb *ent;
-	ent = cw_alloc(sizeof(struct pwdb));
-	ent->passwd = cw_alloc(sizeof(struct passwd));
+	ent = vmalloc(sizeof(struct pwdb));
+	ent->passwd = vmalloc(sizeof(struct passwd));
 
 	ent->passwd->pw_name   = cw_strdup(passwd->pw_name);
 	ent->passwd->pw_passwd = cw_strdup(passwd->pw_passwd);
@@ -176,8 +176,8 @@ static struct spdb* _spdb_entry(struct spwd *spwd)
 	assert(spwd); // LCOV_EXCL_LINE
 
 	struct spdb *ent;
-	ent = cw_alloc(sizeof(struct spdb));
-	ent->spwd = cw_alloc(sizeof(struct spwd));
+	ent = vmalloc(sizeof(struct spdb));
+	ent->spwd = vmalloc(sizeof(struct spwd));
 
 	ent->spwd->sp_namp   = cw_strdup(spwd->sp_namp);
 	ent->spwd->sp_pwdp   = cw_strdup(spwd->sp_pwdp);
@@ -220,8 +220,8 @@ static struct grdb* _grdb_entry(struct group *group)
 	assert(group); // LCOV_EXCL_LINE
 
 	struct grdb *ent;
-	ent = cw_alloc(sizeof(struct grdb));
-	ent->group = cw_alloc(sizeof(struct group));
+	ent = vmalloc(sizeof(struct grdb));
+	ent->group = vmalloc(sizeof(struct group));
 
 	ent->group->gr_name   = cw_strdup(group->gr_name);
 	ent->group->gr_gid    = group->gr_gid;
@@ -267,8 +267,8 @@ static struct sgdb* _sgdb_entry(struct sgrp *sgrp)
 	assert(sgrp); // LCOV_EXCL_LINE
 
 	struct sgdb *ent;
-	ent = cw_alloc(sizeof(struct sgdb));
-	ent->sgrp = cw_alloc(sizeof(struct sgrp));
+	ent = vmalloc(sizeof(struct sgdb));
+	ent->sgrp = vmalloc(sizeof(struct sgrp));
 
 	ent->sgrp->sg_namp   = cw_strdup(sgrp->sg_namp);
 	ent->sgrp->sg_passwd = cw_strdup(sgrp->sg_passwd);
@@ -323,21 +323,21 @@ char* userdb_lookup(struct pwdb *pdb, struct grdb *gdb, const char *name)
 	struct group *gr = grdb_get_by_gid(gdb, pw->pw_gid);
 	if (!gr) return NULL;
 
-	cw_strl_t *creds = cw_strl_new(NULL);
-	cw_strl_add(creds, pw->pw_name);
-	cw_strl_add(creds, gr->gr_name);
+	strings_t *creds = strings_new(NULL);
+	strings_add(creds, pw->pw_name);
+	strings_add(creds, gr->gr_name);
 
 	struct grdb *next = gdb;
 	while (next) {
 		int i;
 		for (i = 0; next->group->gr_mem[i]; i++)
 			if (strcmp(next->group->gr_mem[i], pw->pw_name) == 0)
-				cw_strl_add(creds, next->group->gr_name);
+				strings_add(creds, next->group->gr_name);
 		next = next->next;
 	}
 
-	char *list = cw_strl_join(creds, ":");
-	cw_strl_free(creds);
+	char *list = strings_join(creds, ":");
+	strings_free(creds);
 	return list;
 }
 
@@ -477,7 +477,7 @@ struct passwd* pwdb_new_entry(struct pwdb *db, const char *name, uid_t uid, gid_
 
 	if (!db) { return NULL; }
 
-	pw = cw_alloc(sizeof(struct passwd));
+	pw = vmalloc(sizeof(struct passwd));
 	/* shallow pointers are ok; _pwdb_entry strdup's them */
 	pw->pw_name = (char *)name;
 	pw->pw_passwd = "x";
@@ -669,7 +669,7 @@ struct spwd* spdb_new_entry(struct spdb *db, const char *name)
 
 	if (!db) { return NULL; }
 
-	sp = cw_alloc(sizeof(struct spwd));
+	sp = vmalloc(sizeof(struct spwd));
 	/* shallow pointers are ok; _spdb_entry strdup's them */
 	sp->sp_namp = (char *)name;
 	sp->sp_pwdp = "!";
@@ -900,7 +900,7 @@ struct group* grdb_new_entry(struct grdb *db, const char *name, gid_t gid)
 
 	if (!db) { return NULL; }
 
-	gr = cw_alloc(sizeof(struct group));
+	gr = vmalloc(sizeof(struct group));
 	/* shallow pointers are ok; _grdb_entry strdup's them */
 	gr->gr_name = (char *)name;
 	gr->gr_passwd = "x";
@@ -1086,7 +1086,7 @@ struct sgrp* sgdb_new_entry(struct sgdb *db, const char *name)
 
 	if (!db) { return NULL; }
 
-	sg = cw_alloc(sizeof(struct sgrp));
+	sg = vmalloc(sizeof(struct sgrp));
 	/* shallow pointers are ok; _sgdb_entry strdup's them */
 	sg->sg_namp = cw_strdup(name);
 	sg->sg_passwd = "!";

@@ -356,16 +356,16 @@ static pn_word uf_pragma(pn_machine *m, const char *k, const char *v)
 
 static void s_mkdir_parents(pn_machine *m, const char *spath)
 {
-	cw_path_t *p;
-	p = cw_path_new(spath);
-	if (!p || cw_path_canon(p) != 0) goto failed;
+	path_t *p;
+	p = path_new(spath);
+	if (!p || path_canon(p) != 0) goto failed;
 
 	struct stat st;
 	int rc = 1;
 
 	/* find the first parent dir */
-	while (cw_path_pop(p) != 0) {
-		rc = stat(cw_path(p), &st);
+	while (path_pop(p) != 0) {
+		rc = stat(path(p), &st);
 		if (rc == 0)
 			break;
 	}
@@ -373,19 +373,19 @@ static void s_mkdir_parents(pn_machine *m, const char *spath)
 
 	/* create missing parents, with ownership/mode of
 	   the first pre-existing parent dir */
-	for (cw_path_push(p); strcmp(cw_path(p), spath) != 0; cw_path_push(p)) {
-		cw_log(LOG_NOTICE, "%s creating parent directory %s, owned by %i:%i, mode %#4o",
-			m->topic, cw_path(p), st.st_uid, st.st_gid, st.st_mode);
+	for (path_push(p); strcmp(path(p), spath) != 0; path_push(p)) {
+		logger(LOG_NOTICE, "%s creating parent directory %s, owned by %i:%i, mode %#4o",
+			m->topic, path(p), st.st_uid, st.st_gid, st.st_mode);
 
-		rc = mkdir(cw_path(p), st.st_mode);
+		rc = mkdir(path(p), st.st_mode);
 		if (rc != 0) break;
 
-		rc = chown(cw_path(p), st.st_uid, st.st_gid);
+		rc = chown(path(p), st.st_uid, st.st_gid);
 		if (!rc) continue;
 	}
 
 failed:
-	cw_path_free(p);
+	path_free(p);
 	return;
 }
 
@@ -466,7 +466,7 @@ static pn_word uf_fs_mkdir(pn_machine *m)
 	if (uf_fs_exists(m) == 0) return 1;
 	pn_flag(m, CHANGE_FLAG, 1);
 	s_mkdir_parents(m, (const char *)m->A);
-	cw_log(LOG_NOTICE, "%s creating directory %s", m->topic, (const char *)m->A);
+	logger(LOG_NOTICE, "%s creating directory %s", m->topic, (const char *)m->A);
 	return mkdir((const char *)m->A, 0777) == 0 ? 0 : 1;
 }
 
@@ -476,7 +476,7 @@ static pn_word uf_fs_mkfile(pn_machine *m)
 	if (uf_fs_exists(m) == 0) return 1;
 	pn_flag(m, CHANGE_FLAG, 1);
 	s_mkdir_parents(m, (const char *)m->A);
-	cw_log(LOG_NOTICE, "%s creating file %s", m->topic, (const char *)m->A);
+	logger(LOG_NOTICE, "%s creating file %s", m->topic, (const char *)m->A);
 	int fd = open((const char *)m->A, O_WRONLY|O_CREAT, 0666);
 	if (fd < 0) return 1;
 	close(fd);
@@ -516,8 +516,8 @@ static int s_copy_r(const char *dst, const char *src, uid_t uid, gid_t gid)
 
 	while ( (ent = fts_read(fts)) != NULL ) {
 		if (strcmp(ent->fts_accpath, ent->fts_path) != 0) {
-			dst_path = cw_string("%s/%s", dst, ent->fts_accpath);
-			src_path = cw_string("%s/%s", src, ent->fts_accpath);
+			dst_path = string("%s/%s", dst, ent->fts_accpath);
+			src_path = string("%s/%s", src, ent->fts_accpath);
 			mode = ent->fts_statp->st_mode & 0777;
 
 			if (S_ISREG(ent->fts_statp->st_mode)) {
@@ -574,7 +574,7 @@ static pn_word uf_fs_chown(pn_machine *m)
 	if (lstat((const char *)m->A, &st) != 0) return 1;
 	if (st.st_uid == (uid_t)m->B && st.st_gid == (gid_t)m->C) return 0;
 	pn_flag(m, CHANGE_FLAG, 1);
-	cw_log(LOG_NOTICE, "%s set ownership of %s to %i:%i",
+	logger(LOG_NOTICE, "%s set ownership of %s to %i:%i",
 		m->topic, (const char *)m->A, m->B, m->C);
 	return chown((const char *)m->A, m->B, m->C) == 0 ? 0 : 1;
 }
@@ -586,7 +586,7 @@ static pn_word uf_fs_chmod(pn_machine *m)
 	if (lstat((const char *)m->A, &st) != 0) return 1;
 	if ((st.st_mode & 04777) == (m->D & 04777)) return 0;
 	pn_flag(m, CHANGE_FLAG, 1);
-	cw_log(LOG_NOTICE, "%s set mode of %s to %#4o",
+	logger(LOG_NOTICE, "%s set mode of %s to %#4o",
 		m->topic, (const char *)m->A, m->D & 04777);
 	return chmod((const char *)m->A, (m->D & 04777)) == 0 ? 0 : 1;
 }
@@ -597,7 +597,7 @@ static pn_word uf_fs_unlink(pn_machine *m)
 	pn_trace(m, "FS.UNLINK %s\n", (const char *)m->A);
 	if (lstat((const char *)m->A, &st) != 0) return 0;
 	pn_flag(m, CHANGE_FLAG, 1);
-	cw_log(LOG_NOTICE, "%s removing file %s", m->topic, (const char *)m->A);
+	logger(LOG_NOTICE, "%s removing file %s", m->topic, (const char *)m->A);
 	return unlink((const char *)m->A) == 0 ? 0 : 1;
 }
 
@@ -607,7 +607,7 @@ static pn_word uf_fs_rmdir(pn_machine *m)
 	pn_trace(m, "FS.RMDIR %s\n", (const char *)m->A);
 	if (lstat((const char *)m->A, &st) != 0) return 0;
 	pn_flag(m, CHANGE_FLAG, 1);
-	cw_log(LOG_NOTICE, "%s removing directory %s", m->topic, (const char *)m->A);
+	logger(LOG_NOTICE, "%s removing directory %s", m->topic, (const char *)m->A);
 	return rmdir((const char *)m->A) == 0 ? 0 : 1;
 }
 
@@ -786,40 +786,40 @@ static pn_word uf_util_vercmp(pn_machine *m)
 static pn_word uf_exec_check(pn_machine *m)
 {
 	pn_trace(m, "EXEC.CHECK (as %i:%i) `%s`\n", m->B, m->C, (const char *)m->A);
-	cw_runner_t runner = {
+	runner_t runner = {
 		.in  = NULL,
 		.out = tmpfile(),
 		.err = tmpfile(),
 		.uid = (uid_t)m->B,
 		.gid = (gid_t)m->C
 	};
-	int rc = cw_run2(&runner, "/bin/sh", "-c", (const char *)m->A, NULL);
+	int rc = run2(&runner, "/bin/sh", "-c", (const char *)m->A, NULL);
 
 	if (cw_logio(LOG_DEBUG, "%s", runner.out) != 0)
-		cw_log(LOG_ERR, "Failed to read standard output from `%s`: %s",
+		logger(LOG_ERR, "Failed to read standard output from `%s`: %s",
 			(const char *)m->A, strerror(errno));
 	if (cw_logio(LOG_WARNING, "%s", runner.err) != 0)
-		cw_log(LOG_ERR, "Failed to read standard error from `%s`: %s",
+		logger(LOG_ERR, "Failed to read standard error from `%s`: %s",
 			(const char *)m->A, strerror(errno));
 
 	fclose(runner.out);
 	fclose(runner.err);
 
-	cw_log(LOG_DEBUG, "Command `%s` exited %u", (const char *)m->A, rc);
+	logger(LOG_DEBUG, "Command `%s` exited %u", (const char *)m->A, rc);
 	return rc;
 }
 
 static pn_word uf_exec_run1(pn_machine *m)
 {
 	pn_trace(m, "EXEC.RUN1 (as %i:%i) `%s`\n", m->B, m->C, (const char *)m->A);
-	cw_runner_t runner = {
+	runner_t runner = {
 		.in  = NULL,
 		.out = tmpfile(),
 		.err = tmpfile(),
 		.uid = (uid_t)m->B,
 		.gid = (gid_t)m->C
 	};
-	int rc = cw_run2(&runner, "/bin/sh", "-c", (const char *)m->A, NULL);
+	int rc = run2(&runner, "/bin/sh", "-c", (const char *)m->A, NULL);
 
 	char *out = NULL;
 	char buf[8192];
@@ -829,19 +829,19 @@ static pn_word uf_exec_run1(pn_machine *m)
 		out = strdup(buf);
 	}
 
-	if (out) cw_log(LOG_DEBUG, "%s", out ? out : "(none)");
+	if (out) logger(LOG_DEBUG, "%s", out ? out : "(none)");
 	if (cw_logio(LOG_DEBUG, "stdout: %s", runner.out) != 0)
-		cw_log(LOG_ERR, "Failed to read standard output from `%s`: %s",
+		logger(LOG_ERR, "Failed to read standard output from `%s`: %s",
 			(const char *)m->A, strerror(errno));
 	if (cw_logio(LOG_WARNING, "%s", runner.err) != 0)
-		cw_log(LOG_ERR, "Failed to read standard error from `%s`: %s",
+		logger(LOG_ERR, "Failed to read standard error from `%s`: %s",
 			(const char *)m->A, strerror(errno));
 
 	fclose(runner.out);
 	fclose(runner.err);
 
 	if (!out) out = strdup("");
-	cw_log(LOG_DEBUG, "Command `%s` exited %u", (const char *)m->A, rc);
+	logger(LOG_DEBUG, "Command `%s` exited %u", (const char *)m->A, rc);
 	pn_trace(m, "first line of output was '%s'\n", out);
 
 	m->S2 = (pn_word)out;
@@ -866,37 +866,36 @@ static pn_word uf_server_sha1(pn_machine *m)
 {
 	pn_trace(m, "SERVER.SHA1 %s\n", (const char *)m->A);
 
-	cw_pdu_t *pdu, *reply;
-	pdu = cw_pdu_make(NULL, 2, "FILE", (const char *)m->A);
-	int rc = cw_pdu_send(UDATA(m)->zconn, pdu);
+	pdu_t *pdu, *reply;
+	pdu = pdu_make("FILE", 1, (const char *)m->A);
+	int rc = pdu_send_and_free(pdu, UDATA(m)->zconn);
 	assert(rc == 0);
-	cw_pdu_destroy(pdu);
 
-	reply = cw_pdu_recv(UDATA(m)->zconn);
+	reply = pdu_recv(UDATA(m)->zconn);
 	if (!reply) {
-		cw_log(LOG_ERR, "SERVER.SHA1 failed: %s", zmq_strerror(errno));
+		logger(LOG_ERR, "SERVER.SHA1 failed: %s", zmq_strerror(errno));
 		return 1;
 	}
-	cw_log(LOG_DEBUG, "Received a '%s' PDU", reply->type);
-	if (strcmp(reply->type, "ERROR") == 0) {
-		char *e = cw_pdu_text(reply, 1);
-		cw_log(LOG_ERR, "SERVER.SHA1 protocol violation: %s", e);
+	logger(LOG_DEBUG, "Received a '%s' PDU", pdu_type(reply));
+	if (strcmp(pdu_type(reply), "ERROR") == 0) {
+		char *e = pdu_string(reply, 1);
+		logger(LOG_ERR, "SERVER.SHA1 protocol violation: %s", e);
 		free(e);
-		cw_pdu_destroy(reply);
+		pdu_free(reply);
 		return 1;
 	}
 
-	if (strcmp(reply->type, "SHA1") == 0) {
-		char *s = cw_pdu_text(reply, 1);
+	if (strcmp(pdu_type(reply), "SHA1") == 0) {
+		char *s = pdu_string(reply, 1);
 		pn_heap_purge(m);
 		pn_heap_add(m, s);
 		m->S2 = (pn_word)s;
-		cw_pdu_destroy(reply);
+		pdu_free(reply);
 		return 0;
 	}
 
-	cw_log(LOG_ERR, "Unexpected PDU received.");
-	cw_pdu_destroy(reply);
+	logger(LOG_ERR, "Unexpected PDU received.");
+	pdu_free(reply);
 	return 1;
 }
 
@@ -908,14 +907,14 @@ static int s_copyfile(FILE *src, FILE *dst)
 		size_t nread = fread(buf, 1, 8192, src);
 		if (nread == 0) {
 			if (feof(src)) break;
-			cw_log(LOG_ERR, "read error: %s", strerror(errno));
+			logger(LOG_ERR, "read error: %s", strerror(errno));
 			fclose(dst);
 			return 1;
 		}
 
 		size_t nwritten = fwrite(buf, 1, nread, dst);
 		if (nwritten != nread) {
-			cw_log(LOG_ERR, "read error: %s", strerror(errno));
+			logger(LOG_ERR, "read error: %s", strerror(errno));
 			fclose(dst);
 			return 1;
 		}
@@ -928,11 +927,11 @@ static pn_word uf_server_writefile(pn_machine *m)
 {
 	int rc, n = 0;
 	char size[16];
-	cw_pdu_t *pdu, *reply;
+	pdu_t *pdu, *reply;
 
 	FILE *tmpf = tmpfile();
 	if (!tmpf) {
-		cw_log(LOG_ERR, "SERVER.WRITEFILE failed to create temporary file: %s",
+		logger(LOG_ERR, "SERVER.WRITEFILE failed to create temporary file: %s",
 				strerror(errno));
 		return 1;
 	}
@@ -940,40 +939,40 @@ static pn_word uf_server_writefile(pn_machine *m)
 	for (;;) {
 		rc = snprintf(size, 15, "%i", n++);
 		assert(rc > 0);
-		pdu = cw_pdu_make(NULL, 2, "DATA", size);
-		rc = cw_pdu_send(UDATA(m)->zconn, pdu);
+		pdu = pdu_make("DATA", 1, size);
+		rc = pdu_send(pdu, UDATA(m)->zconn);
 		assert(rc == 0);
 
-		reply = cw_pdu_recv(UDATA(m)->zconn);
+		reply = pdu_recv(UDATA(m)->zconn);
 		if (!reply) {
-			cw_log(LOG_ERR, "SERVER.WRITEFILE failed: %s", zmq_strerror(errno));
+			logger(LOG_ERR, "SERVER.WRITEFILE failed: %s", zmq_strerror(errno));
 			if (tmpf) fclose(tmpf);
 			return 1;
 		}
-		cw_log(LOG_DEBUG, "server.writefile: received a %s PDU", reply->type);
+		logger(LOG_DEBUG, "server.writefile: received a %s PDU", pdu_type(reply));
 
-		if (strcmp(reply->type, "EOF") == 0)
+		if (strcmp(pdu_type(reply), "EOF") == 0)
 			break;
-		if (strcmp(reply->type, "BLOCK") != 0) {
-			cw_log(LOG_ERR, "protocol violation: received a %s PDU (expected a BLOCK)", reply->type);
+		if (strcmp(pdu_type(reply), "BLOCK") != 0) {
+			logger(LOG_ERR, "protocol violation: received a %s PDU (expected a BLOCK)", pdu_type(reply));
 			if (tmpf) fclose(tmpf);
 			return 1;
 		}
 
-		char *data = cw_pdu_text(reply, 1);
+		char *data = pdu_string(reply, 1);
 		fprintf(tmpf, "%s", data);
 		free(data);
 	}
 
 	if (UDATA(m)->difftool) {
 		rewind(tmpf);
-		cw_log(LOG_DEBUG, "Running diff.tool: `%s NEWFILE OLDFILE'", UDATA(m)->difftool);
+		logger(LOG_DEBUG, "Running diff.tool: `%s NEWFILE OLDFILE'", UDATA(m)->difftool);
 		FILE *out = tmpfile();
 		if (!out) {
-			cw_log(LOG_ERR, "Failed to open a temporary file difftool output: %s", strerror(errno));
+			logger(LOG_ERR, "Failed to open a temporary file difftool output: %s", strerror(errno));
 		} else {
 			FILE *err = tmpfile();
-			cw_runner_t runner = {
+			runner_t runner = {
 				.in  = tmpf,
 				.out = out,
 				.err = err,
@@ -981,19 +980,19 @@ static pn_word uf_server_writefile(pn_machine *m)
 				.gid = 0,
 			};
 
-			char *diffcmd = cw_string("%s %s -", UDATA(m)->difftool, (const char *)m->B);
-			rc = cw_run2(&runner, "/bin/sh", "-c", diffcmd, NULL);
+			char *diffcmd = string("%s %s -", UDATA(m)->difftool, (const char *)m->B);
+			rc = run2(&runner, "/bin/sh", "-c", diffcmd, NULL);
 			if (rc < 0)
-				cw_log(LOG_ERR, "`%s' killed or otherwise terminated abnormally");
+				logger(LOG_ERR, "`%s' killed or otherwise terminated abnormally");
 			else if (rc == 127)
-				cw_log(LOG_ERR, "`%s': command not found");
+				logger(LOG_ERR, "`%s': command not found");
 			else
-				cw_log(LOG_DEBUG, "`%s' exited %i", diffcmd, rc);
+				logger(LOG_DEBUG, "`%s' exited %i", diffcmd, rc);
 
 			if (cw_logio(LOG_INFO, "%s", out) != 0)
-				cw_log(LOG_ERR, "Failed to read standard output from difftool `%s': %s", diffcmd, strerror(errno));
+				logger(LOG_ERR, "Failed to read standard output from difftool `%s': %s", diffcmd, strerror(errno));
 			if (cw_logio(LOG_ERR, "diftool: %s", err) != 0)
-				cw_log(LOG_ERR, "Failed to read standard error from difftool `%s': %s", diffcmd, strerror(errno));
+				logger(LOG_ERR, "Failed to read standard error from difftool `%s': %s", diffcmd, strerror(errno));
 
 			fclose(out);
 			fclose(err);
@@ -1002,7 +1001,7 @@ static pn_word uf_server_writefile(pn_machine *m)
 	}
 	FILE *dst = fopen((const char *)m->A, "w");
 	if (!dst) {
-		cw_log(LOG_ERR, "copyfile failed: %s", strerror(errno));
+		logger(LOG_ERR, "copyfile failed: %s", strerror(errno));
 		fclose(tmpf);
 		return 1;
 	}
@@ -1478,7 +1477,7 @@ static pn_word uf_user_set_uid(pn_machine *m)
 	if (UDATA(m)->pwent->pw_uid == (uid_t)m->B) return 0;
 	pn_flag(m, CHANGE_FLAG, 1);
 	UDATA(m)->pwent->pw_uid = (uid_t)m->B;
-	cw_log(LOG_NOTICE, "%s set uid of %s to %i", m->topic,
+	logger(LOG_NOTICE, "%s set uid of %s to %i", m->topic,
 		UDATA(m)->pwent->pw_name, UDATA(m)->pwent->pw_uid);
 	return 0;
 }
@@ -1490,7 +1489,7 @@ static pn_word uf_user_set_gid(pn_machine *m)
 	if (UDATA(m)->pwent->pw_gid == (gid_t)m->B) return 0;
 	pn_flag(m, CHANGE_FLAG, 1);
 	UDATA(m)->pwent->pw_gid = (gid_t)m->B;
-	cw_log(LOG_NOTICE, "%s set gid of %s to %i", m->topic,
+	logger(LOG_NOTICE, "%s set gid of %s to %i", m->topic,
 		UDATA(m)->pwent->pw_name, UDATA(m)->pwent->pw_gid);
 	return 0;
 }
@@ -1519,7 +1518,7 @@ static pn_word uf_user_set_name(pn_machine *m)
 	}
 
 	if (orig) {
-		cw_log(LOG_NOTICE, "%s set username of %s to %s",
+		logger(LOG_NOTICE, "%s set username of %s to %s",
 			m->topic, orig, UDATA(m)->pwent->pw_name);
 		free(orig);
 	}
@@ -1546,7 +1545,7 @@ static pn_word uf_user_set_gecos(pn_machine *m)
 	free(UDATA(m)->pwent->pw_gecos);
 	UDATA(m)->pwent->pw_gecos = strdup((const char *)m->B);
 	pn_flag(m, CHANGE_FLAG, 1);
-	cw_log(LOG_NOTICE, "%s set comment of %s to '%s'",
+	logger(LOG_NOTICE, "%s set comment of %s to '%s'",
 		m->topic, UDATA(m)->pwent->pw_name, UDATA(m)->pwent->pw_gecos);
 	return 0;
 }
@@ -1559,7 +1558,7 @@ static pn_word uf_user_set_home(pn_machine *m)
 	free(UDATA(m)->pwent->pw_dir);
 	UDATA(m)->pwent->pw_dir = strdup((const char *)m->B);
 	pn_flag(m, CHANGE_FLAG, 1);
-	cw_log(LOG_NOTICE, "%s set home of %s to '%s'",
+	logger(LOG_NOTICE, "%s set home of %s to '%s'",
 		m->topic, UDATA(m)->pwent->pw_name, UDATA(m)->pwent->pw_dir);
 	return 0;
 }
@@ -1572,7 +1571,7 @@ static pn_word uf_user_set_shell(pn_machine *m)
 	free(UDATA(m)->pwent->pw_shell);
 	UDATA(m)->pwent->pw_shell = strdup((const char *)m->B);
 	pn_flag(m, CHANGE_FLAG, 1);
-	cw_log(LOG_NOTICE, "%s set shell of %s to '%s'",
+	logger(LOG_NOTICE, "%s set shell of %s to '%s'",
 		m->topic, UDATA(m)->pwent->pw_name, UDATA(m)->pwent->pw_shell);
 	return 0;
 }
@@ -1585,7 +1584,7 @@ static pn_word uf_user_set_pwhash(pn_machine *m)
 	free(UDATA(m)->spent->sp_pwdp);
 	UDATA(m)->spent->sp_pwdp = strdup((const char *)m->B);
 	pn_flag(m, CHANGE_FLAG, 1);
-	cw_log(LOG_NOTICE, "%s set password of %s",
+	logger(LOG_NOTICE, "%s set password of %s",
 		m->topic, UDATA(m)->pwent->pw_name);
 	return 0;
 }
@@ -1597,7 +1596,7 @@ static pn_word uf_user_set_pwmin(pn_machine *m)
 	if (UDATA(m)->spent->sp_min == (signed long)(m->B)) return 0;
 	UDATA(m)->spent->sp_min = (signed long)(m->B);
 	pn_flag(m, CHANGE_FLAG, 1);
-	cw_log(LOG_NOTICE, "%s set minimum password age of %s to %lid",
+	logger(LOG_NOTICE, "%s set minimum password age of %s to %lid",
 		m->topic, UDATA(m)->pwent->pw_name, UDATA(m)->spent->sp_min);
 	return 0;
 }
@@ -1609,7 +1608,7 @@ static pn_word uf_user_set_pwmax(pn_machine *m)
 	if (UDATA(m)->spent->sp_max == (signed long)(m->B)) return 0;
 	UDATA(m)->spent->sp_max = (signed long)(m->B);
 	pn_flag(m, CHANGE_FLAG, 1);
-	cw_log(LOG_NOTICE, "%s set maximum password age of %s to %lid",
+	logger(LOG_NOTICE, "%s set maximum password age of %s to %lid",
 		m->topic, UDATA(m)->pwent->pw_name, UDATA(m)->spent->sp_max);
 	return 0;
 }
@@ -1621,7 +1620,7 @@ static pn_word uf_user_set_pwwarn(pn_machine *m)
 	if (UDATA(m)->spent->sp_warn == (signed long)(m->B)) return 0;
 	UDATA(m)->spent->sp_warn = (signed long)(m->B);
 	pn_flag(m, CHANGE_FLAG, 1);
-	cw_log(LOG_NOTICE, "%s set password warning period of %s to %lid",
+	logger(LOG_NOTICE, "%s set password warning period of %s to %lid",
 		m->topic, UDATA(m)->pwent->pw_name, UDATA(m)->spent->sp_warn);
 	return 0;
 }
@@ -1633,7 +1632,7 @@ static pn_word uf_user_set_inact(pn_machine *m)
 	if (UDATA(m)->spent->sp_inact == (signed long)(m->B)) return 0;
 	UDATA(m)->spent->sp_inact = (signed long)(m->B);
 	pn_flag(m, CHANGE_FLAG, 1);
-	cw_log(LOG_NOTICE, "%s set password inactivity period of %s to %lid",
+	logger(LOG_NOTICE, "%s set password inactivity period of %s to %lid",
 		m->topic, UDATA(m)->pwent->pw_name, UDATA(m)->spent->sp_inact);
 	return 0;
 }
@@ -1645,7 +1644,7 @@ static pn_word uf_user_set_expiry(pn_machine *m)
 	if (UDATA(m)->spent->sp_expire == (signed long)(m->B)) return 0;
 	UDATA(m)->spent->sp_expire = (signed long)(m->B);
 	pn_flag(m, CHANGE_FLAG, 1);
-	cw_log(LOG_NOTICE, "%s set account expiration of %s to %lid",
+	logger(LOG_NOTICE, "%s set account expiration of %s to %lid",
 		m->topic, UDATA(m)->pwent->pw_name, UDATA(m)->spent->sp_expire);
 	return 0;
 }
@@ -1678,7 +1677,7 @@ static pn_word uf_user_create(pn_machine *m)
 	sp->next->spwd = calloc(1, sizeof(struct spwd));
 	sp->next->spwd->sp_namp   = strdup((const char *)m->A);
 	sp->next->spwd->sp_pwdp   = strdup("*");
-	sp->next->spwd->sp_lstchg = cw_time_s() / 86400;
+	sp->next->spwd->sp_lstchg = time_s() / 86400;
 	sp->next->spwd->sp_min    = -1;
 	sp->next->spwd->sp_max    = 99999;
 	sp->next->spwd->sp_warn   = 7;
@@ -1688,7 +1687,7 @@ static pn_word uf_user_create(pn_machine *m)
 	UDATA(m)->spent = sp->next->spwd;
 
 	pn_flag(m, CHANGE_FLAG, 1);
-	cw_log(LOG_NOTICE, "%s creating user %s (%u:%u) with home %s and shell %s",
+	logger(LOG_NOTICE, "%s creating user %s (%u:%u) with home %s and shell %s",
 		m->topic, UDATA(m)->pwent->pw_name,
 		UDATA(m)->pwent->pw_uid, UDATA(m)->pwent->pw_gid,
 		UDATA(m)->pwent->pw_dir, UDATA(m)->pwent->pw_shell);
@@ -1757,7 +1756,7 @@ static pn_word uf_user_remove(pn_machine *m)
 		}
 	}
 	if (name) {
-		cw_log(LOG_NOTICE, "%s removing user %s", m->topic, name);
+		logger(LOG_NOTICE, "%s removing user %s", m->topic, name);
 		free(name);
 	}
 	return 0;
@@ -1860,7 +1859,7 @@ static pn_word uf_group_create(pn_machine *m)
 	UDATA(m)->sgent = sg->next->sgrp;
 
 	pn_flag(m, CHANGE_FLAG, 1);
-	cw_log(LOG_NOTICE, "%s creating group %s (%u)", m->topic,
+	logger(LOG_NOTICE, "%s creating group %s (%u)", m->topic,
 		UDATA(m)->grent->gr_name, UDATA(m)->grent->gr_gid);
 	return 0;
 }
@@ -1911,7 +1910,7 @@ static pn_word uf_group_remove(pn_machine *m)
 		}
 	}
 	if (name) {
-		cw_log(LOG_NOTICE, "%s removing group %s", m->topic, name);
+		logger(LOG_NOTICE, "%s removing group %s", m->topic, name);
 		free(name);
 	}
 	return 0;
@@ -1949,7 +1948,7 @@ static pn_word uf_group_rm_member(pn_machine *m)
 		UDATA(m)->grent->gr_mem, (const char *)m->A);
 	UDATA(m)->sgent->sg_mem = s_strlist_remove(
 		UDATA(m)->sgent->sg_mem, (const char *)m->A);
-	cw_log(LOG_NOTICE, "%s removing user %s from the member list",
+	logger(LOG_NOTICE, "%s removing user %s from the member list",
 		m->topic, (const char *)m->A);
 	return 0;
 }
@@ -1960,7 +1959,7 @@ static pn_word uf_group_rm_admin(pn_machine *m)
 	pn_trace(m, "GROUP.RM_ADMIN '%s'\n", (const char *)m->A);
 	UDATA(m)->sgent->sg_adm = s_strlist_remove(
 		UDATA(m)->sgent->sg_adm, (const char *)m->A);
-	cw_log(LOG_NOTICE, "%s removing user %s from the admin list",
+	logger(LOG_NOTICE, "%s removing user %s from the admin list",
 		m->topic, (const char *)m->A);
 	return 0;
 }
@@ -1973,7 +1972,7 @@ static pn_word uf_group_add_member(pn_machine *m)
 		UDATA(m)->grent->gr_mem, (const char *)m->A);
 	UDATA(m)->sgent->sg_mem = s_strlist_add(
 		UDATA(m)->sgent->sg_mem, (const char *)m->A);
-	cw_log(LOG_NOTICE, "%s adding user %s to the member list",
+	logger(LOG_NOTICE, "%s adding user %s to the member list",
 		m->topic, (const char *)m->A);
 	return 0;
 }
@@ -1984,7 +1983,7 @@ static pn_word uf_group_add_admin(pn_machine *m)
 	pn_trace(m, "GROUP.ADD_ADMIN '%s'\n", (const char *)m->A);
 	UDATA(m)->sgent->sg_adm = s_strlist_add(
 		UDATA(m)->sgent->sg_adm, (const char *)m->A);
-	cw_log(LOG_NOTICE, "%s adding user %s to the admin list",
+	logger(LOG_NOTICE, "%s adding user %s to the admin list",
 		m->topic, (const char *)m->A);
 	return 0;
 }
@@ -2019,7 +2018,7 @@ static pn_word uf_group_set_gid(pn_machine *m)
 	if (UDATA(m)->grent->gr_gid == (gid_t)m->B) return 0;
 	pn_flag(m, CHANGE_FLAG, 1);
 	UDATA(m)->grent->gr_gid = (gid_t)m->B;
-	cw_log(LOG_NOTICE, "%s changing gid of %s to %u",
+	logger(LOG_NOTICE, "%s changing gid of %s to %u",
 		m->topic, UDATA(m)->grent->gr_name, UDATA(m)->grent->gr_gid);
 	return 0;
 }
@@ -2048,7 +2047,7 @@ static pn_word uf_group_set_name(pn_machine *m)
 	}
 
 	if (orig) {
-		cw_log(LOG_NOTICE, "%s changing name of %s to %s",
+		logger(LOG_NOTICE, "%s changing name of %s to %s",
 			m->topic, orig, UDATA(m)->grent->gr_name);
 		free(orig);
 	}
@@ -2072,7 +2071,7 @@ static pn_word uf_group_set_pwhash(pn_machine *m)
 	if (cw_strcmp(UDATA(m)->sgent->sg_passwd, (const char *)m->B) == 0) return 0;
 	free(UDATA(m)->sgent->sg_passwd);
 	UDATA(m)->sgent->sg_passwd = strdup((const char *)m->B);
-	cw_log(LOG_NOTICE, "%s set password of group %s", m->topic, UDATA(m)->grent->gr_name);
+	logger(LOG_NOTICE, "%s set password of group %s", m->topic, UDATA(m)->grent->gr_name);
 	return 0;
 }
 

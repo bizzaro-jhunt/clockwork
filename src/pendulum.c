@@ -33,7 +33,7 @@
 
 #include "pendulum.h"
 #include "clockwork.h"
-#include "cw.h"
+#include "base.h"
 #include "mesh.h"
 
 #define  PN_OP_NOOP     0x0000
@@ -392,7 +392,7 @@ static pn_word s_resolve_arg(pn_machine *m, const char *arg)
 				continue;
 
 			errno = 0;
-			cw_log(LOG_DEBUG, "Resolved label '%s' to instruction %08x",
+			logger(LOG_DEBUG, "Resolved label '%s' to instruction %08x",
 				arg+1, m->jumps[i].step);
 			return LABEL(m->jumps[i].step);
 		}
@@ -406,7 +406,7 @@ static pn_word s_resolve_arg(pn_machine *m, const char *arg)
 			if (strcmp(m->flags[i].label, arg+1) != 0)
 				continue;
 
-			cw_log(LOG_DEBUG, "Resolved flag '%s' to index %u (value=%i)",
+			logger(LOG_DEBUG, "Resolved flag '%s' to index %u (value=%i)",
 				arg, i, m->flags[i].value);
 			return FLAG((pn_word)i);
 		}
@@ -417,7 +417,7 @@ static pn_word s_resolve_arg(pn_machine *m, const char *arg)
 			pn_die(m, ebuf);
 		}
 		strncpy(m->flags[i].label, arg+1, 63);
-		cw_log(LOG_DEBUG, "Flag '%s' is new, allocating space at index %u",
+		logger(LOG_DEBUG, "Flag '%s' is new, allocating space at index %u",
 			arg, i);
 		return FLAG((pn_word)i);
 
@@ -428,7 +428,7 @@ static pn_word s_resolve_arg(pn_machine *m, const char *arg)
 			if (strcmp(m->funcs[i].name, arg+1)) continue;
 
 			errno = 0;
-			cw_log(LOG_DEBUG, "Resolved function '%s' to index %u / %p",
+			logger(LOG_DEBUG, "Resolved function '%s' to index %u / %p",
 				arg+1, i, m->funcs[i].call);
 			return FUNCTION((pn_word)i);
 		}
@@ -493,8 +493,8 @@ int pn_init(pn_machine *m)
 	m->dump_fd = stderr;
 	m->output  = stdout;
 
-	m->acl = cw_alloc(sizeof(cw_list_t));
-	cw_list_init(m->acl);
+	m->acl = vmalloc(sizeof(list_t));
+	list_init(m->acl);
 
 	return 0;
 }
@@ -763,22 +763,22 @@ int pn_run(pn_machine *m)
 			pn_trace(m, TRACE_START " %s (errno=%i)\n", TRACE_ARGS, (const char *)m->S1, (int)m->Er);
 			char *error = NULL;
 			if (m->Er > 0)
-				error = cw_string(": error %i [%s]", (int)m->Er, strerror((int)m->Er));
+				error = string(": error %i [%s]", (int)m->Er, strerror((int)m->Er));
 
-			log = cw_string("%s %s%s",
+			log = string("%s %s%s",
 				m->topic ? m->topic : "(no topic)",
 				(char *)m->S1, error ? error : "");
 			free(error);
 
-			cw_log(LOG_ERR, log, m->A, m->B, m->C, m->D, m->E, m->F);
+			logger(LOG_ERR, log, m->A, m->B, m->C, m->D, m->E, m->F);
 			free(log);
 			NEXT;
 
 		case PN_OP_LOG:
 			m->S1 = (pn_word)PC.arg2;
 			pn_trace(m, TRACE_START " %s\n", TRACE_ARGS, (const char *)m->S1);
-			log = cw_string("%s %s", m->topic ? m->topic : "(no topic)", (char *)m->S1);
-			cw_log(PC.arg1, log, m->A, m->B, m->C, m->D, m->E, m->F);
+			log = string("%s %s", m->topic ? m->topic : "(no topic)", (char *)m->S1);
+			logger(PC.arg1, log, m->A, m->B, m->C, m->D, m->E, m->F);
 			free(log);
 			m->Ip++; break;
 			NEXT;
@@ -867,7 +867,7 @@ int pn_run(pn_machine *m)
 			pn_trace(m, TRACE_START " %s\n",
 					TRACE_ARGS, TAGV((pn_word)PC.arg1));
 			acl = acl_parse((char*)TAGV((pn_word)PC.arg1));
-			cw_list_push(m->acl, &acl->l);
+			list_push(m->acl, &acl->l);
 			NEXT;
 
 		case PN_OP_SHOW:
@@ -908,7 +908,7 @@ int pn_run_safe(pn_machine *m)
 	int rc;
 	waitpid(pid, &rc, 0);
 	if (rc != 0)
-		cw_log(LOG_INFO, "pn_run %s, with rc %04x (%d)",
+		logger(LOG_INFO, "pn_run %s, with rc %04x (%d)",
 			WIFEXITED(rc) ? "exited" : "terminated abnormaly",
 			rc, rc);
 	return WIFEXITED(rc) ? WEXITSTATUS(rc) : -2;

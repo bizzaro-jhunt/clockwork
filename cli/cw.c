@@ -105,7 +105,7 @@ static int get_base_options(int argc, char **argv)
 	}
 
 	char *old_path = getenv("PATH");
-	char *path = old_path ? cw_string("%s:%s", exec_path, old_path)
+	char *path = old_path ? string("%s:%s", exec_path, old_path)
 	                      : strdup(exec_path);
 	setenv("PATH", path, 1);
 	free(exec_path);
@@ -155,7 +155,7 @@ int main(int argc, char **argv)
 
 	/* dispatch via exec! */
 	int next = get_base_options(argc, argv);
-	argv[next] = cw_string("cw-%s", argv[next]);
+	argv[next] = string("cw-%s", argv[next]);
 	execvp(argv[next], argv+next);
 
 	fprintf(stderr, "cw: '%s' is not a Clockwork command.  See 'cw --help'.\n", argv[next]);
@@ -175,7 +175,7 @@ static int builtin_cw_cert(int argc, char **argv)
 
 	char *ident = NULL;
 	char *file  = strdup("cwcert");
-	int   type  = CW_CERT_TYPE_ENCRYPTION;
+	int   type  = VIGOR_CERT_ENCRYPTION;
 
 	int opt, idx = 0;
 	while ( (opt = getopt_long(argc, argv, short_opts, long_opts, &idx)) != -1) {
@@ -196,12 +196,12 @@ static int builtin_cw_cert(int argc, char **argv)
 			break;
 
 		case 'u':
-			type = CW_CERT_TYPE_SIGNING;
+			type = VIGOR_CERT_SIGNING;
 			break;
 		}
 	}
 
-	char *pubfile = cw_string("%s.pub", file);
+	char *pubfile = string("%s.pub", file);
 	int pubfd = open(pubfile, O_WRONLY|O_CREAT|O_EXCL, 0444);
 	if (pubfd < 0) {
 		perror(pubfile);
@@ -223,14 +223,14 @@ static int builtin_cw_cert(int argc, char **argv)
 		exit(1);
 	}
 
-	cw_cert_t *cert = cw_cert_generate(type);
+	cert_t *cert = cert_generate(type);
 	assert(cert);
 	if (ident) {
 		cert->ident = ident;
-	} else if (cert->type == CW_CERT_TYPE_SIGNING) {
+	} else if (cert->type == VIGOR_CERT_SIGNING) {
 		cert->ident = getenv("USER") ? strdup(getenv("USER")) : NULL;
 	} else {
-		cert->ident = cw_fqdn();
+		cert->ident = fqdn();
 	}
 	if (!cert->ident || strlen(cert->ident) == 0) {
 		fprintf(stderr, "Failed to determine certificate/key identity!\n");
@@ -239,13 +239,13 @@ static int builtin_cw_cert(int argc, char **argv)
 		exit(1);
 	}
 
-	cw_cert_writeio(cert, pubio, 0);
-	cw_cert_writeio(cert, secio, 1);
+	cert_writeio(cert, pubio, 0);
+	cert_writeio(cert, secio, 1);
 
 	fclose(pubio);
 	fclose(secio);
 
-	cw_cert_destroy(cert);
+	cert_free(cert);
 	return 0;
 }
 
@@ -286,7 +286,7 @@ static int builtin_cw_fact(int argc, char **argv)
 	}
 
 	LIST(config);
-	cw_cfg_set(&config, "gatherers", CW_GATHER_DIR "/*");
+	config_set(&config, "gatherers", CW_GATHER_DIR "/*");
 	FILE *io = NULL;
 
 	if (config_file) {
@@ -300,17 +300,17 @@ static int builtin_cw_fact(int argc, char **argv)
 	}
 
 	if (io) {
-		if (cw_cfg_read(&config, io) != 0) {
+		if (config_read(&config, io) != 0) {
 			fprintf(stderr, "%s: failed to parse\n", config_file);
 			exit(3);
 		}
 		fclose(io);
 	}
 
-	char *gatherers = cw_cfg_get(&config, "gatherers");
+	char *gatherers = config_get(&config, "gatherers");
 
-	cw_hash_t facts;
-	memset(&facts, 0, sizeof(cw_hash_t));
+	hash_t facts;
+	memset(&facts, 0, sizeof(hash_t));
 	if (fact_gather(gatherers, &facts) != 0) {
 		fprintf(stderr, "Failed to gather facts via %s\n", gatherers);
 		exit(4);
@@ -323,7 +323,7 @@ static int builtin_cw_fact(int argc, char **argv)
 	} else {
 		char *v;
 		for (; optind < argc; optind++) {
-			v = cw_hash_get(&facts, argv[optind]);
+			v = hash_get(&facts, argv[optind]);
 			if (v) {
 				if (brief)
 					printf("%s\n", v);
@@ -379,13 +379,13 @@ static int builtin_cw_trust(int argc, char **argv)
 		}
 	}
 
-	cw_trustdb_t *db = cw_trustdb_read(path);
-	if (!db) db = cw_trustdb_new();
+	trustdb_t *db = trustdb_read(path);
+	if (!db) db = trustdb_new();
 
 	int rc;
 	int i, n;
 	for (i = optind, n = 0; i < argc; i++) {
-		cw_cert_t *cert = cw_cert_read(argv[i]);
+		cert_t *cert = cert_read(argv[i]);
 		if (!cert) {
 			fprintf(stderr, "skipping %s: %s\n", argv[i], strerror(errno));
 			continue;
@@ -393,27 +393,27 @@ static int builtin_cw_trust(int argc, char **argv)
 
 		if (!cert->pubkey) {
 			fprintf(stderr, "skipping %s: no public key found in certificate\n", argv[i]);
-			cw_cert_destroy(cert);
+			cert_free(cert);
 			continue;
 		}
 
 		if (mode == 't') {
-			rc = cw_trustdb_trust(db, cert);
+			rc = trustdb_trust(db, cert);
 			assert(rc == 0);
 			printf("TRUST %s %s\n", cert->pubkey_b16, cert->ident ? cert->ident : "(no ident)");
 		} else {
-			rc = cw_trustdb_revoke(db, cert);
+			rc = trustdb_revoke(db, cert);
 			assert(rc == 0);
 			printf("REVOKE %s %s\n", cert->pubkey_b16, cert->ident ? cert->ident : "(no ident)");
 		}
-		cw_cert_destroy(cert);
+		cert_free(cert);
 		n++;
 	}
 
 	printf("Processed %i certificate%s\n", n, n == 1 ? "" : "s");
 	if (!n) exit(0);
 
-	rc = cw_trustdb_write(db, path);
+	rc = trustdb_write(db, path);
 	if (rc != 0) {
 		fprintf(stderr, "Failed to write out trustdb %s: %s\n", path, strerror(errno));
 		exit(2);
@@ -421,7 +421,7 @@ static int builtin_cw_trust(int argc, char **argv)
 
 	printf("Wrote %s\n", path);
 	free(path);
-	cw_trustdb_destroy(db);
+	trustdb_free(db);
 	return 0;
 }
 

@@ -34,7 +34,7 @@ static int _manifest_expand(struct manifest *manifest)
 		node = manifest->nodes[i];
 
 		if (node->op == INCLUDE) {
-			pol = cw_hash_get(manifest->policies, node->data1);
+			pol = hash_get(manifest->policies, node->data1);
 			if (pol) {
 				stree_add(node, pol);
 				pol = NULL;
@@ -61,8 +61,8 @@ struct manifest* parse_file(const char *path)
 
 	ctx.file = NULL;
 	ctx.warnings = ctx.errors = 0;
-	ctx.files = cw_strl_new(NULL);
-	cw_list_init(&ctx.fseen);
+	ctx.files = strings_new(NULL);
+	list_init(&ctx.fseen);
 
 	yylex_init_extra(&ctx, &ctx.scanner);
 	lexer_include_file(path, &ctx);
@@ -71,7 +71,7 @@ struct manifest* parse_file(const char *path)
 	manifest = ctx.root;
 
 	yylex_destroy(ctx.scanner);
-	cw_strl_free(ctx.files);
+	strings_free(ctx.files);
 	for_each_object_safe(seen, tmp, &ctx.fseen, ls) {
 		free(seen);
 	}

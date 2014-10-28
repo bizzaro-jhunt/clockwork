@@ -6,11 +6,11 @@ AC_PREREQ(2.68)
 
 # DONT FORGET: change t/pendulum/02-show.t
 #              whenever the version changes!!
-AC_INIT([Clockwork], [2.3.6], [bugs@niftylogic.com])
+AC_INIT([Clockwork], [2.4.0], [bugs@niftylogic.com])
 
 ################################################
 
-AC_CONFIG_SRCDIR([src/cw.h])
+AC_CONFIG_SRCDIR([src/clockwork.h])
 AC_CONFIG_AUX_DIR([build])
 AC_CONFIG_MACRO_DIR([build])
 AC_CONFIG_HEADERS(config.h)
@@ -49,8 +49,13 @@ AC_CHECK_LIB(pcre,
 	pcre_compile,,
 	AC_MSG_ERROR(Missing PCRE library))
 
-AC_HAVE_LIBRARY(ctap,,
+AC_CHECK_LIB(ctap,
+	main,,
 	AC_MSG_ERROR(Missing ctap testing library - see http://github.com/filefrog/ctap))
+
+AC_CHECK_LIB(vigor,
+	time_s,,
+	AC_MSG_ERROR(Missing libvigor - see http://github.com/filefrog/libvigor))
 
 AC_CHECK_LIB(sodium,
 	crypto_box_keypair,,

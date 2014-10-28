@@ -40,15 +40,15 @@ void* mesh_client_thread(void *ctx)
 {
 	mesh_client_t *client = mesh_client_new();
 
-	cw_hash_t facts;
+	hash_t facts;
 	memset(&facts, 0, sizeof(facts));
 
-	cw_hash_set(&facts, "sys.fqdn", FQDN);
-	cw_hash_set(&facts, "sys.os",   "linux");
-	cw_hash_set(&facts, "sys.uuid", UUID1);
+	hash_set(&facts, "sys.fqdn", FQDN);
+	hash_set(&facts, "sys.os",   "linux");
+	hash_set(&facts, "sys.uuid", UUID1);
 
 	int rc;
-	rc = mesh_client_setopt(client, MESH_CLIENT_FACTS, &facts, sizeof(cw_hash_t*));
+	rc = mesh_client_setopt(client, MESH_CLIENT_FACTS, &facts, sizeof(hash_t*));
 	assert(rc == 0);
 
 	FILE *io = tmpfile();
@@ -60,7 +60,7 @@ void* mesh_client_thread(void *ctx)
 	rc = acl_readio(&acl, io);
 	fclose(io);
 
-	rc = mesh_client_setopt(client, MESH_CLIENT_ACL, &acl, sizeof(cw_list_t*));
+	rc = mesh_client_setopt(client, MESH_CLIENT_ACL, &acl, sizeof(list_t*));
 	assert(rc == 0);
 
 	int acl_default = ACL_DENY;
@@ -80,17 +80,17 @@ void* mesh_client_thread(void *ctx)
 	rc = zmq_connect(control, "inproc://mesh.control");
 	assert(rc == 0);
 
-	cw_pdu_t *pdu = cw_pdu_recv(broadcast);
+	pdu_t *pdu = pdu_recv(broadcast);
 	rc = mesh_client_handle(client, control, pdu);
-	cw_pdu_destroy(pdu);
+	pdu_free(pdu);
 
-	cw_hash_done(&facts, 0);
+	hash_done(&facts, 0);
 	acl_t *a, *a_tmp;
 	for_each_object_safe(a, a_tmp, &acl, l)
 		acl_destroy(a);
 
-	cw_zmq_shutdown(broadcast, 0);
-	cw_zmq_shutdown(control,   0);
+	vzmq_shutdown(broadcast, 0);
+	vzmq_shutdown(control,   0);
 	mesh_client_destroy(client);
 
 	return NULL;
@@ -124,112 +124,103 @@ TESTS {
 		rc = zmq_connect(sock, "inproc://ctl.1");
 		is_int(rc, 0, "connected to inproc://ctl.1");
 
-		cw_pdu_t *pdu, *reply;
-		pdu = cw_pdu_make(NULL, 6,
-				"REQUEST", "anonymous", "", "nopassword",
+		pdu_t *pdu, *reply;
+		pdu = pdu_make("REQUEST", 5,
+				"anonymous", "", "nopassword",
 				"show version", "" /* no filter */);
-		rc = cw_pdu_send(sock, pdu);
+		rc = pdu_send_and_free(pdu, sock);
 		is_int(rc, 0, "sent REQUEST PDU to meshd thread");
-		cw_pdu_destroy(pdu);
 
-		reply = cw_pdu_recv(sock);
+		reply = pdu_recv(sock);
 		isnt_null(reply, "Got a reply from meshd thread");
-		is_string(s = cw_pdu_text(reply, 0), "SUBMITTED", "REQUEST -> SUBMITTED"); free(s);
-		is_string(s = cw_pdu_text(reply, 1), "4242", "Serial returned to client"); free(s);
-		is_null(cw_pdu_text(reply, 2), "There is no 3rd frame");
-		cw_pdu_destroy(reply);
+		is_string(s = pdu_string(reply, 0), "SUBMITTED", "REQUEST -> SUBMITTED"); free(s);
+		is_string(s = pdu_string(reply, 1), "4242", "Serial returned to client"); free(s);
+		is_null(pdu_string(reply, 2), "There is no 3rd frame");
+		pdu_free(reply);
 
 		/* simulate back-channel responses */
-		pdu = cw_pdu_make(NULL, 6,
-				"RESULT",
+		pdu = pdu_make("RESULT", 5,
 				"4242",        /* request serial */
 				"host1.fq.dn", /* node FQDN */
 				UUID1,
 				"0",           /* status code */
 				"1.2.3\n");    /* output */
-		rc = cw_pdu_send(sock, pdu);
+		rc = pdu_send_and_free(pdu, sock);
 		is_int(rc, 0, "sent RESULT PDU to meshd thread");
-		cw_pdu_destroy(pdu);
 
 		/* check our data */
-		pdu = cw_pdu_make(NULL, 2, "CHECK", "4242");
-		rc = cw_pdu_send(sock, pdu);
+		pdu = pdu_make("CHECK", 1, "4242");
+		rc = pdu_send_and_free(pdu, sock);
 		is_int(rc, 0, "sent a CHECK PDU");
-		cw_pdu_destroy(pdu);
 
-		reply = cw_pdu_recv(sock);
+		reply = pdu_recv(sock);
 		isnt_null(reply, "Got a reply from meshd thread");
-		is_string(s = cw_pdu_text(reply, 0), "RESULT",      "first reply is a RESULT");    free(s);
-		is_string(s = cw_pdu_text(reply, 1), "host1.fq.dn", "first reply is from host1");  free(s);
-		is_string(s = cw_pdu_text(reply, 2), UUID1,         "host1 UUID in frame 2");      free(s);
-		is_string(s = cw_pdu_text(reply, 3), "0",           "first reply was OK (rc 0)");  free(s);
-		is_string(s = cw_pdu_text(reply, 4), "1.2.3\n",     "first reply output proxied"); free(s);
-		is_null(cw_pdu_text(reply, 5), "there is no 5th frame in a RESULT PDU");
-		cw_pdu_destroy(reply);
+		is_string(s = pdu_string(reply, 0), "RESULT",      "first reply is a RESULT");    free(s);
+		is_string(s = pdu_string(reply, 1), "host1.fq.dn", "first reply is from host1");  free(s);
+		is_string(s = pdu_string(reply, 2), UUID1,         "host1 UUID in frame 2");      free(s);
+		is_string(s = pdu_string(reply, 3), "0",           "first reply was OK (rc 0)");  free(s);
+		is_string(s = pdu_string(reply, 4), "1.2.3\n",     "first reply output proxied"); free(s);
+		is_null(pdu_string(reply, 5), "there is no 5th frame in a RESULT PDU");
+		pdu_free(reply);
 
-		reply = cw_pdu_recv(sock);
+		reply = pdu_recv(sock);
 		isnt_null(reply, "Got a reply from meshd thread");
-		is_string(s = cw_pdu_text(reply, 0), "DONE", "end of transmission"); free(s);
-		is_null(cw_pdu_text(reply, 1), "there is no 2nd frame in a DONE PDU");
-		cw_pdu_destroy(reply);
+		is_string(s = pdu_string(reply, 0), "DONE", "end of transmission"); free(s);
+		is_null(pdu_string(reply, 1), "there is no 2nd frame in a DONE PDU");
+		pdu_free(reply);
 
 		/* send more data from backend nodes */
 
-		pdu = cw_pdu_make(NULL, 6,
-				"RESULT",
+		pdu = pdu_make("RESULT", 5,
 				"4242",
 				"host2.fq.dn",
 				UUID2,
 				"0",
 				"1.2.5\n");
 
-		rc = cw_pdu_send(sock, pdu);
+		rc = pdu_send_and_free(pdu, sock);
 		is_int(rc, 0, "sent another RESULT PDU from host2.fq.dn");
-		cw_pdu_destroy(pdu);
 
-		pdu = cw_pdu_make(NULL, 4, "OPTOUT", "4242", "host3.fq.dn", UUID3);
-		rc = cw_pdu_send(sock, pdu);
+		pdu = pdu_make("OPTOUT", 3, "4242", "host3.fq.dn", UUID3);
+		rc = pdu_send_and_free(pdu, sock);
 		is_int(rc, 0, "sent an OPTOUT PDU from host3.fq.dn");
-		cw_pdu_destroy(pdu);
 
 		/* check our data */
-		pdu = cw_pdu_make(NULL, 2, "CHECK", "4242");
-		rc = cw_pdu_send(sock, pdu);
+		pdu = pdu_make("CHECK", 1, "4242");
+		rc = pdu_send_and_free(pdu, sock);
 		is_int(rc, 0, "sent a CHECK PDU");
-		cw_pdu_destroy(pdu);
 
-		reply = cw_pdu_recv(sock);
+		reply = pdu_recv(sock);
 		isnt_null(reply, "Got a reply from meshd thread");
-		is_string(s = cw_pdu_text(reply, 0), "RESULT",      "first reply is a RESULT");    free(s);
-		is_string(s = cw_pdu_text(reply, 1), "host2.fq.dn", "first reply is from host2");  free(s);
-		is_string(s = cw_pdu_text(reply, 2), UUID2,         "host2 UUID supplied");  free(s);
-		is_string(s = cw_pdu_text(reply, 3), "0",           "first reply was OK (rc 0)");  free(s);
-		is_string(s = cw_pdu_text(reply, 4), "1.2.5\n",     "first reply output proxied"); free(s);
-		is_null(cw_pdu_text(reply, 5), "there is no sixth frame in a RESULT PDU");
-		cw_pdu_destroy(reply);
+		is_string(s = pdu_string(reply, 0), "RESULT",      "first reply is a RESULT");    free(s);
+		is_string(s = pdu_string(reply, 1), "host2.fq.dn", "first reply is from host2");  free(s);
+		is_string(s = pdu_string(reply, 2), UUID2,         "host2 UUID supplied");        free(s);
+		is_string(s = pdu_string(reply, 3), "0",           "first reply was OK (rc 0)");  free(s);
+		is_string(s = pdu_string(reply, 4), "1.2.5\n",     "first reply output proxied"); free(s);
+		is_null(pdu_string(reply, 5), "there is no sixth frame in a RESULT PDU");
+		pdu_free(reply);
 
-		reply = cw_pdu_recv(sock);
+		reply = pdu_recv(sock);
 		isnt_null(reply, "Got a reply from meshd thread");
-		is_string(s = cw_pdu_text(reply, 0), "OPTOUT",      "second reply is a OPTOUT");   free(s);
-		is_string(s = cw_pdu_text(reply, 1), "host3.fq.dn", "second reply is from host3"); free(s);
-		is_string(s = cw_pdu_text(reply, 2), UUID3,         "host3 UUID"); free(s);
-		is_null(cw_pdu_text(reply, 3), "there is no fourth frame in an OPTOUT PDU");
-		cw_pdu_destroy(reply);
+		is_string(s = pdu_string(reply, 0), "OPTOUT",      "second reply is a OPTOUT");   free(s);
+		is_string(s = pdu_string(reply, 1), "host3.fq.dn", "second reply is from host3"); free(s);
+		is_string(s = pdu_string(reply, 2), UUID3,         "host3 UUID"); free(s);
+		is_null(pdu_string(reply, 3), "there is no fourth frame in an OPTOUT PDU");
+		pdu_free(reply);
 
-		reply = cw_pdu_recv(sock);
+		reply = pdu_recv(sock);
 		isnt_null(reply, "Got a reply from meshd thread");
-		is_string(s = cw_pdu_text(reply, 0), "DONE", "end of transmission"); free(s);
-		is_null(cw_pdu_text(reply, 1), "there is no 2nd frame in a DONE PDU");
-		cw_pdu_destroy(reply);
+		is_string(s = pdu_string(reply, 0), "DONE", "end of transmission"); free(s);
+		is_null(pdu_string(reply, 1), "there is no 2nd frame in a DONE PDU");
+		pdu_free(reply);
 
 		/* send the safe word to terminate the meshd thread */
-		pdu = cw_pdu_make(NULL, 1, "TEST_COMPLETE");
-		cw_pdu_send(sock, pdu);
-		cw_pdu_destroy(pdu);
+		pdu = pdu_make("TEST_COMPLETE", 0);
+		pdu_send_and_free(pdu, sock);
 
 		void *_;
 		pthread_join(tid, &_);
-		cw_zmq_shutdown(sock, 0);
+		vzmq_shutdown(sock, 0);
 		mesh_server_destroy(server);
 		zmq_ctx_destroy(ctx);
 	}
@@ -250,36 +241,34 @@ TESTS {
 		pthread_t tid;
 		rc = pthread_create(&tid, NULL, mesh_client_thread, ctx);
 		is_int(rc, 0, "created client thread");
-		cw_sleep_ms(600);
+		sleep_ms(600);
 
 		/* send the command */
-		cw_pdu_t *pdu = cw_pdu_make(NULL, 6,
-				"COMMAND",
+		pdu_t *pdu = pdu_make("COMMAND", 5,
 				"4242",                 /* serial */
 				"user1:group2:group3",  /* credentials */
 				"show version",         /* command string */
 				";; pn\nSHOW version",  /* pendulum code */
 				"");                    /* no filters */
-		rc = cw_pdu_send(broadcast, pdu);
+		rc = pdu_send_and_free(pdu, broadcast);
 		is_int(rc, 0, "sent COMMAND PDU to subscribers");
-		cw_pdu_destroy(pdu);
 
-		cw_pdu_t *reply = cw_pdu_recv(control);
+		pdu_t *reply = pdu_recv(control);
 		isnt_null(reply, "Got a reply from the mesh client thread");
-		is_string(reply->type, "RESULT", "reply was a RESULT");
-		is_string(s = cw_pdu_text(reply, 1), "4242", "serial echoed back in frame 1");   free(s);
-		is_string(s = cw_pdu_text(reply, 2), FQDN,   "mesh node FQDN in frame 2");       free(s);
-		is_string(s = cw_pdu_text(reply, 3), UUID1,  "mesh node UUID in frame 3");       free(s);
-		is_string(s = cw_pdu_text(reply, 4), "0",    "status code is in frame 4");       free(s);
-		is_string(s = cw_pdu_text(reply, 5), PACKAGE_VERSION "\n", "output in frame 5"); free(s);
-		is_null(cw_pdu_text(reply, 6), "there is no sixth frame");
-		cw_pdu_destroy(reply);
+		is_string(pdu_type(reply), "RESULT", "reply was a RESULT");
+		is_string(s = pdu_string(reply, 1), "4242", "serial echoed back in frame 1");   free(s);
+		is_string(s = pdu_string(reply, 2), FQDN,   "mesh node FQDN in frame 2");       free(s);
+		is_string(s = pdu_string(reply, 3), UUID1,  "mesh node UUID in frame 3");       free(s);
+		is_string(s = pdu_string(reply, 4), "0",    "status code is in frame 4");       free(s);
+		is_string(s = pdu_string(reply, 5), PACKAGE_VERSION "\n", "output in frame 5"); free(s);
+		is_null(pdu_string(reply, 6), "there is no sixth frame");
+		pdu_free(reply);
 
 		void *_;
 		pthread_join(tid, &_);
 
-		cw_zmq_shutdown(broadcast, 500);
-		cw_zmq_shutdown(control,   500);
+		vzmq_shutdown(broadcast, 500);
+		vzmq_shutdown(control,   500);
 		zmq_ctx_destroy(ctx);
 	}
 
@@ -315,47 +304,43 @@ TESTS {
 		rc = zmq_connect(sock, "inproc://ctl.1");
 		is_int(rc, 0, "connected to inproc://ctl.1");
 
-		cw_cert_t *authkey = cw_cert_read(authkey_path);
+		cert_t *authkey = cert_read(authkey_path);
 		isnt_null(authkey, "Read authkey from test data");
 
 		unsigned char unsealed[256 - 64];
 		randombytes(unsealed, 256 - 64);
 		uint8_t *sealed;
 		unsigned long long slen;
-		slen = cw_cert_seal(authkey, unsealed, 256 - 64, &sealed);
+		slen = cert_seal(authkey, unsealed, 256 - 64, &sealed);
 		is_int(slen, 256, "sealed message is 256 bytes long");
 
-		cw_pdu_t *pdu, *reply;
-		pdu = cw_pdu_make(NULL, 2, "REQUEST", "jhacker");
-		char *pubkey = cw_cert_public_s(authkey);
-		cw_pdu_extend(pdu, cw_frame_new(pubkey));
-		cw_pdu_extend(pdu, cw_frame_newbuf((const char*)sealed, 256));
-		free(pubkey);
-		free(sealed);
-		cw_pdu_extend(pdu, cw_frame_new("show version"));
-		cw_pdu_extend(pdu, cw_frame_new("")); /* no filter */
+		pdu_t *pdu, *reply;
+		pdu = pdu_make("REQUEST", 1, "jhacker");
+		char *pubkey = cert_public_s(authkey);
+		pdu_extendf(pdu, "%s", pubkey); free(pubkey);
+		pdu_extend( pdu, sealed, 256);  free(sealed);
+		pdu_extendf(pdu, "show version");
+		pdu_extendf(pdu, ""); /* no filter */
 
-		cw_cert_destroy(authkey);
+		cert_free(authkey);
 
-		rc = cw_pdu_send(sock, pdu);
+		rc = pdu_send_and_free(pdu, sock);
 		is_int(rc, 0, "sent REQUEST PDU to meshd thread");
-		cw_pdu_destroy(pdu);
 
-		reply = cw_pdu_recv(sock);
+		reply = pdu_recv(sock);
 		isnt_null(reply, "Got a reply from meshd thread");
-		is_string(s = cw_pdu_text(reply, 0), "SUBMITTED", "REQUEST -> SUBMITTED"); free(s);
-		is_string(s = cw_pdu_text(reply, 1), "4242", "Serial returned to client"); free(s);
-		is_null(cw_pdu_text(reply, 2), "There is no 3rd frame");
-		cw_pdu_destroy(reply);
+		is_string(s = pdu_string(reply, 0), "SUBMITTED", "REQUEST -> SUBMITTED"); free(s);
+		is_string(s = pdu_string(reply, 1), "4242", "Serial returned to client"); free(s);
+		is_null(pdu_string(reply, 2), "There is no 3rd frame");
+		pdu_free(reply);
 
 		/* send the safe word to terminate the meshd thread */
-		pdu = cw_pdu_make(NULL, 1, "TEST_COMPLETE");
-		cw_pdu_send(sock, pdu);
-		cw_pdu_destroy(pdu);
+		pdu = pdu_make("TEST_COMPLETE", 0);
+		pdu_send_and_free(pdu, sock);
 
 		void *_;
 		pthread_join(tid, &_);
-		cw_zmq_shutdown(sock, 0);
+		vzmq_shutdown(sock, 0);
 		mesh_server_destroy(server);
 		zmq_ctx_destroy(ctx);
 		free(authkey_path);
@@ -389,48 +374,44 @@ TESTS {
 		rc = zmq_connect(sock, "inproc://ctl.1");
 		is_int(rc, 0, "connected to inproc://ctl.1");
 
-		cw_cert_t *authkey = cw_cert_read(authkey_path);
+		cert_t *authkey = cert_read(authkey_path);
 		isnt_null(authkey, "Read authkey from test data");
 
 		unsigned char unsealed[256 - 64];
 		randombytes(unsealed, 256 - 64);
 		uint8_t *sealed;
 		unsigned long long slen;
-		slen = cw_cert_seal(authkey, unsealed, 256 - 64, &sealed);
+		slen = cert_seal(authkey, unsealed, 256 - 64, &sealed);
 		is_int(slen, 256, "sealed message is 256 bytes long");
 
-		cw_pdu_t *pdu, *reply;
-		pdu = cw_pdu_make(NULL, 2, "REQUEST", "WrongUser");
-		char *pubkey = cw_cert_public_s(authkey);
-		cw_pdu_extend(pdu, cw_frame_new(pubkey));
-		cw_pdu_extend(pdu, cw_frame_newbuf((const char*)sealed, 256));
-		free(pubkey);
-		free(sealed);
-		cw_pdu_extend(pdu, cw_frame_new("show version"));
-		cw_pdu_extend(pdu, cw_frame_new("")); /* no filter */
+		pdu_t *pdu, *reply;
+		pdu = pdu_make("REQUEST", 1, "WrongUser");
+		char *pubkey = cert_public_s(authkey);
+		pdu_extendf(pdu, "%s", pubkey); free(pubkey);
+		pdu_extend( pdu, sealed, 256);  free(sealed);
+		pdu_extendf(pdu, "show version");
+		pdu_extendf(pdu, ""); /* no filter */
 
-		cw_cert_destroy(authkey);
+		cert_free(authkey);
 
-		rc = cw_pdu_send(sock, pdu);
+		rc = pdu_send_and_free(pdu, sock);
 		is_int(rc, 0, "sent REQUEST PDU to meshd thread");
-		cw_pdu_destroy(pdu);
 
-		reply = cw_pdu_recv(sock);
+		reply = pdu_recv(sock);
 		isnt_null(reply, "Got a reply from meshd thread");
-		is_string(s = cw_pdu_text(reply, 0), "ERROR", "REQUEST -> ERROR"); free(s);
-		is_string(s = cw_pdu_text(reply, 1), "Authentication failed (pubkey)",
+		is_string(s = pdu_string(reply, 0), "ERROR", "REQUEST -> ERROR"); free(s);
+		is_string(s = pdu_string(reply, 1), "Authentication failed (pubkey)",
 				"Authentication failed (username mismatch)"); free(s);
-		is_null(cw_pdu_text(reply, 2), "There is no 3rd frame");
-		cw_pdu_destroy(reply);
+		is_null(pdu_string(reply, 2), "There is no 3rd frame");
+		pdu_free(reply);
 
 		/* send the safe word to terminate the meshd thread */
-		pdu = cw_pdu_make(NULL, 1, "TEST_COMPLETE");
-		cw_pdu_send(sock, pdu);
-		cw_pdu_destroy(pdu);
+		pdu = pdu_make("TEST_COMPLETE", 0);
+		pdu_send_and_free(pdu, sock);
 
 		void *_;
 		pthread_join(tid, &_);
-		cw_zmq_shutdown(sock, 0);
+		vzmq_shutdown(sock, 0);
 		mesh_server_destroy(server);
 		zmq_ctx_destroy(ctx);
 
@@ -465,48 +446,44 @@ TESTS {
 		rc = zmq_connect(sock, "inproc://ctl.1");
 		is_int(rc, 0, "connected to inproc://ctl.1");
 
-		cw_cert_t *authkey = cw_cert_read(authkey_path);
+		cert_t *authkey = cert_read(authkey_path);
 		isnt_null(authkey, "Read authkey from test data");
 
 		unsigned char unsealed[256 - 64];
 		randombytes(unsealed, 256 - 64);
 		uint8_t *sealed;
 		unsigned long long slen;
-		slen = cw_cert_seal(authkey, unsealed, 256 - 64, &sealed);
+		slen = cert_seal(authkey, unsealed, 256 - 64, &sealed);
 		is_int(slen, 256, "sealed message is 256 bytes long");
 
-		cw_pdu_t *pdu, *reply;
-		pdu = cw_pdu_make(NULL, 2, "REQUEST", "rogue");
-		char *pubkey = cw_cert_public_s(authkey);
-		cw_pdu_extend(pdu, cw_frame_new(pubkey));
-		cw_pdu_extend(pdu, cw_frame_newbuf((const char*)sealed, 256));
-		free(pubkey);
-		free(sealed);
-		cw_pdu_extend(pdu, cw_frame_new("show version"));
-		cw_pdu_extend(pdu, cw_frame_new("")); /* no filter */
+		pdu_t *pdu, *reply;
+		pdu = pdu_make("REQUEST", 1, "rogue");
+		char *pubkey = cert_public_s(authkey);
+		pdu_extendf(pdu, "%s", pubkey); free(pubkey);
+		pdu_extend( pdu, sealed, 256);  free(sealed);
+		pdu_extendf(pdu, "show version");
+		pdu_extendf(pdu, ""); /* no filter */
 
-		cw_cert_destroy(authkey);
+		cert_free(authkey);
 
-		rc = cw_pdu_send(sock, pdu);
+		rc = pdu_send_and_free(pdu, sock);
 		is_int(rc, 0, "sent REQUEST PDU to meshd thread");
-		cw_pdu_destroy(pdu);
 
-		reply = cw_pdu_recv(sock);
+		reply = pdu_recv(sock);
 		isnt_null(reply, "Got a reply from meshd thread");
-		is_string(s = cw_pdu_text(reply, 0), "ERROR", "REQUEST -> ERROR"); free(s);
-		is_string(s = cw_pdu_text(reply, 1), "Authentication failed (pubkey)",
+		is_string(s = pdu_string(reply, 0), "ERROR", "REQUEST -> ERROR"); free(s);
+		is_string(s = pdu_string(reply, 1), "Authentication failed (pubkey)",
 				"Authentication failed (untrusted key)"); free(s);
-		is_null(cw_pdu_text(reply, 2), "There is no 3rd frame");
-		cw_pdu_destroy(reply);
+		is_null(pdu_string(reply, 2), "There is no 3rd frame");
+		pdu_free(reply);
 
 		/* send the safe word to terminate the meshd thread */
-		pdu = cw_pdu_make(NULL, 1, "TEST_COMPLETE");
-		cw_pdu_send(sock, pdu);
-		cw_pdu_destroy(pdu);
+		pdu = pdu_make("TEST_COMPLETE", 0);
+		pdu_send_and_free(pdu, sock);
 
 		void *_;
 		pthread_join(tid, &_);
-		cw_zmq_shutdown(sock, 0);
+		vzmq_shutdown(sock, 0);
 		mesh_server_destroy(server);
 		zmq_ctx_destroy(ctx);
 

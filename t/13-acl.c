@@ -189,9 +189,9 @@ TESTS {
 		l2 = acl_parse("deny  %dev   \"show *\"");       isnt_null(l2, "2nd acl");
 		l3 = acl_parse("allow juser  \"show version\""); isnt_null(l3, "3rd acl");
 
-		cw_list_push(&acl, &l1->l);
-		cw_list_push(&acl, &l2->l);
-		cw_list_push(&acl, &l3->l);
+		list_push(&acl, &l1->l);
+		list_push(&acl, &l2->l);
+		list_push(&acl, &l3->l);
 
 		c = cmd_parse("show version", COMMAND_PATTERN);
 		isnt_null(c, "command ok");
@@ -225,9 +225,9 @@ TESTS {
 		l2 = acl_parse("deny  %dev   \"show *\"");       isnt_null(l2, "2nd acl");
 		l3 = acl_parse("allow juser  \"show version\""); isnt_null(l3, "3rd acl");
 
-		cw_list_push(&acl, &l1->l);
-		cw_list_push(&acl, &l2->l);
-		cw_list_push(&acl, &l3->l);
+		list_push(&acl, &l1->l);
+		list_push(&acl, &l2->l);
+		list_push(&acl, &l3->l);
 
 		c = cmd_parse("show version", COMMAND_PATTERN);
 		isnt_null(c, "command ok");
@@ -291,20 +291,20 @@ TESTS {
 		acl_t *a, *tmp;
 
 		isnt_int(acl_read(&acl, "/path/to/nowhere"), 0, "Fail to read ENOENT file");
-		ok(cw_list_isempty(&acl), "acl list is still empty after failed read");
+		ok(list_isempty(&acl), "acl list is still empty after failed read");
 
 		is_int(acl_read(&acl, TEST_TMP "/data/acl/empty.acl"), 0, "read empty.acl");
-		ok(cw_list_isempty(&acl), "acl list is still empty (no acls in file)");
+		ok(list_isempty(&acl), "acl list is still empty (no acls in file)");
 
 		is_int(acl_read(&acl, TEST_TMP "/data/acl/simple.acl"), 0, "read simple.acl");
-		is_int(cw_list_len(&acl), 3, "parsed 3 acls from simple.acl");
+		is_int(list_len(&acl), 3, "parsed 3 acls from simple.acl");
 
 		for_each_object_safe(a, tmp, &acl, l)
 			acl_destroy(a);
-		ok(cw_list_isempty(&acl), "acl is empty after freeing memory via acl_destroy");
+		ok(list_isempty(&acl), "acl is empty after freeing memory via acl_destroy");
 
 		is_int(acl_read(&acl, TEST_TMP "/data/acl/comments.acl"), 0, "read comments.acl");
-		is_int(cw_list_len(&acl), 2, "parsed 2 acls from comments.acl");
+		is_int(list_len(&acl), 2, "parsed 2 acls from comments.acl");
 		for_each_object_safe(a, tmp, &acl, l)
 			acl_destroy(a);
 	}
@@ -317,16 +317,16 @@ TESTS {
 		l2 = acl_parse("deny  %dev   \"show *\"");       isnt_null(l2, "2nd acl");
 		l3 = acl_parse("allow juser  \"show version\""); isnt_null(l3, "3rd acl");
 
-		cw_list_push(&acl, &l1->l);
-		cw_list_push(&acl, &l2->l);
-		cw_list_push(&acl, &l3->l);
+		list_push(&acl, &l1->l);
+		list_push(&acl, &l2->l);
+		list_push(&acl, &l3->l);
 
 		isnt_int(acl_write(&acl, "/path/to/nowhere"), 0, "Fail to write to nonexistent file");
 		is_int(acl_write(&acl, TEST_TMP "/acl.file"), 0, "Wrote to acl file");
 
 		LIST(readback);
 		is_int(acl_read(&readback, TEST_TMP "/acl.file"), 0, "Read the file we wrote");
-		is_int(cw_list_len(&readback), 3, "Read 3 acls that we wrote");
+		is_int(list_len(&readback), 3, "Read 3 acls that we wrote");
 
 		FILE *io = fopen(TEST_TMP "/acl.file", "r");
 		char buf[8192];

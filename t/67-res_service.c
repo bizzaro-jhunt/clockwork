@@ -159,51 +159,51 @@ TESTS {
 
 	subtest {
 		struct res_service *r;
-		cw_hash_t *h;
+		hash_t *h;
 
-		isnt_null(h = cw_alloc(sizeof(cw_hash_t)), "created hash");
+		isnt_null(h = vmalloc(sizeof(hash_t)), "created hash");
 		isnt_null(r = res_service_new("svc"), "created service");
 
 		ok(res_service_attrs(r, h) == 0, "retrieved attrs");
-		is_string(cw_hash_get(h, "name"),    "svc", "h.name");
-		is_string(cw_hash_get(h, "running"), "no",  "h.running"); // default
-		is_string(cw_hash_get(h, "enabled"), "no",  "h.enabled"); // default
+		is_string(hash_get(h, "name"),    "svc", "h.name");
+		is_string(hash_get(h, "running"), "no",  "h.running"); // default
+		is_string(hash_get(h, "enabled"), "no",  "h.enabled"); // default
 
 		res_service_set(r, "running", "yes");
 		res_service_set(r, "enabled", "yes");
 
 		ok(res_service_attrs(r, h) == 0, "retrieved attrs");
-		is_string(cw_hash_get(h, "running"), "yes", "h.running");
-		is_string(cw_hash_get(h, "enabled"), "yes", "h.enabled");
+		is_string(hash_get(h, "running"), "yes", "h.running");
+		is_string(hash_get(h, "enabled"), "yes", "h.enabled");
 
 		res_service_set(r, "service", "httpd");
 		res_service_set(r, "running", "no");
 		res_service_set(r, "enabled", "no");
 
 		ok(res_service_attrs(r, h) == 0, "retrieved attrs");
-		is_string(cw_hash_get(h, "name"),    "httpd", "h.name");
-		is_string(cw_hash_get(h, "running"), "no",    "h.running");
-		is_string(cw_hash_get(h, "enabled"), "no",    "h.enabled");
+		is_string(hash_get(h, "name"),    "httpd", "h.name");
+		is_string(hash_get(h, "running"), "no",    "h.running");
+		is_string(hash_get(h, "enabled"), "no",    "h.enabled");
 
 		res_service_set(r, "stopped",  "no");
 		res_service_set(r, "disabled", "no");
 
 		ok(res_service_attrs(r, h) == 0, "retrieved attrs");
-		is_string(cw_hash_get(h, "running"), "yes", "h.running");
-		is_string(cw_hash_get(h, "enabled"), "yes", "h.enabled");
+		is_string(hash_get(h, "running"), "yes", "h.running");
+		is_string(hash_get(h, "enabled"), "yes", "h.enabled");
 
 		res_service_set(r, "stopped",  "yes");
 		res_service_set(r, "disabled", "yes");
 
 		ok(res_service_attrs(r, h) == 0, "retrieved attrs");
-		is_string(cw_hash_get(h, "running"), "no", "h.running");
-		is_string(cw_hash_get(h, "enabled"), "no", "h.enabled");
+		is_string(hash_get(h, "running"), "no", "h.running");
+		is_string(hash_get(h, "enabled"), "no", "h.enabled");
 
 		ok(res_service_set(r, "xyzyy", "BAD") != 0, "xyzzy is a bad attr");
 		ok(res_service_attrs(r, h) == 0, "retrieved attrs");
-		is_null(cw_hash_get(h, "xyzzy"), "h.xyzzy is unset (bad attr)");
+		is_null(hash_get(h, "xyzzy"), "h.xyzzy is unset (bad attr)");
 
-		cw_hash_done(h, 1);
+		hash_done(h, 1);
 		free(h);
 		res_service_free(r);
 	}

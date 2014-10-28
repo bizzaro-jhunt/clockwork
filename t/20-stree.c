@@ -39,17 +39,17 @@ static struct stree* child_of(struct stree *parent, struct stree *new)
 	return new;
 }
 
-static cw_hash_t* facts_for_prog1(void)
+static hash_t* facts_for_prog1(void)
 {
-	cw_hash_t *h = cw_alloc(sizeof(cw_hash_t));
-	cw_hash_set(h, "test.users", "1");
+	hash_t *h = vmalloc(sizeof(hash_t));
+	hash_set(h, "test.users", "1");
 	return h;
 }
 
-static cw_hash_t* facts_for_prog2(void)
+static hash_t* facts_for_prog2(void)
 {
-	cw_hash_t *h = cw_alloc(sizeof(cw_hash_t));
-	cw_hash_set(h, "test.users", "2");
+	hash_t *h = vmalloc(sizeof(hash_t));
+	hash_set(h, "test.users", "2");
 	return h;
 }
 
@@ -158,19 +158,19 @@ static struct stree* prog_policy()
 	return root;
 }
 
-static cw_hash_t* facts_for_lucid26(void)
+static hash_t* facts_for_lucid26(void)
 {
-	cw_hash_t *h = cw_alloc(sizeof(cw_hash_t));
-	cw_hash_set(h, "lsb.distro.codename", "lucid");
-	cw_hash_set(h, "sys.kernel.major",    "2.6");
+	hash_t *h = vmalloc(sizeof(hash_t));
+	hash_set(h, "lsb.distro.codename", "lucid");
+	hash_set(h, "sys.kernel.major",    "2.6");
 	return h;
 }
 
-static cw_hash_t* facts_for_tikanga24(void)
+static hash_t* facts_for_tikanga24(void)
 {
-	cw_hash_t *h = cw_alloc(sizeof(cw_hash_t));
-	cw_hash_set(h, "sys.kernel.major",    "2.4");
-	cw_hash_set(h, "lsb.distro.codename", "tikanga");
+	hash_t *h = vmalloc(sizeof(hash_t));
+	hash_set(h, "sys.kernel.major",    "2.4");
+	hash_set(h, "lsb.distro.codename", "tikanga");
 	return h;
 }
 
@@ -213,7 +213,7 @@ TESTS {
 		isnt_null(pol = policy_generate(root, NULL), "generated policy");
 		if (!pol) break;
 
-		ok(!cw_list_isempty(&pol->resources), "policy defined has resources");
+		ok(!list_isempty(&pol->resources), "policy defined has resources");
 
 		user_count = group_count = file_count = 0;
 		for_each_resource(r, pol) {
@@ -266,7 +266,7 @@ TESTS {
 	subtest {
 		struct policy *pol;
 		struct stree *root;
-		cw_hash_t *facts;
+		hash_t *facts;
 
 		struct resource *r, *res;
 		struct res_user *user;
@@ -303,7 +303,7 @@ TESTS {
 		is_int(user->gid, 20051, "user GID");
 		is_string(user->dir, "/srv/oper/ubuntu", "user home");
 
-		cw_hash_done(facts, 0);
+		hash_done(facts, 0);
 		free(facts);
 		policy_free_all(pol);
 
@@ -327,7 +327,7 @@ TESTS {
 		is_string(file->source, "std/2.4.conf", "file remote path");
 		is_string(file->path, "snmpd.conf", "file local path");
 
-		cw_hash_done(facts, 0);
+		hash_done(facts, 0);
 		free(facts);
 		policy_free_all(pol);
 	}
@@ -335,7 +335,7 @@ TESTS {
 	subtest {
 		struct policy *pol;
 		struct stree *root;
-		cw_hash_t *facts;
+		hash_t *facts;
 		unsigned int i;
 
 		struct resource *res, *r;
@@ -357,7 +357,7 @@ TESTS {
 		if (!group) break;
 		is_int(group->gid, 101, "group GID");
 
-		cw_hash_done(facts, 0);
+		hash_done(facts, 0);
 		free(facts);
 		policy_free_all(pol);
 
@@ -388,7 +388,7 @@ TESTS {
 		}
 		is_int(i, 2, "tested both groups defined");
 
-		cw_hash_done(facts, 0);
+		hash_done(facts, 0);
 		free(facts);
 		policy_free_all(pol);
 	}

@@ -27,7 +27,7 @@ AM_CFLAGS += @GCOV_CFLAGS@
 AM_LFLAGS = --header-file --yylineno
 AM_YFLAGS = -d
 
-LDADD = -lctap -lzmq -lsodium -lpam -luuid
+LDADD = -lctap -lzmq -lsodium -lpam -luuid -lvigor
 
 ############################################################
 
@@ -55,22 +55,12 @@ gather_SCRIPTS += gather.d/time
 ############################################################
 
 CTAP_TESTS  =
-CTAP_TESTS += t/00-bits
-CTAP_TESTS += t/01-string
-CTAP_TESTS += t/02-pdu
-CTAP_TESTS += t/03-basex
-CTAP_TESTS += t/04-hash
 CTAP_TESTS += t/05-mem
-CTAP_TESTS += t/06-cache
 CTAP_TESTS += t/07-sha1
-CTAP_TESTS += t/08-list
-CTAP_TESTS += t/09-curve
 CTAP_TESTS += t/10-facts
 CTAP_TESTS += t/11-cmd
 CTAP_TESTS += t/12-filter
 CTAP_TESTS += t/13-acl
-CTAP_TESTS += t/15-path
-CTAP_TESTS += t/16-reactor
 CTAP_TESTS += t/20-stree
 CTAP_TESTS += t/25-resource
 CTAP_TESTS += t/30-policy
@@ -155,7 +145,7 @@ TEST_EXTRAS += t/memcheck/verify
 TEST_EXTRAS += $(SHELL_TESTS)
 
 test_source  = t/test.h
-test_source += src/cw.h         src/cw.c
+test_source += src/base.h       src/base.c
 test_source += src/mesh.h       src/mesh.c
 test_source += src/sha1.h       src/sha1.c
 test_source += src/userdb.h     src/userdb.c
@@ -178,22 +168,12 @@ TEST_ps_SOURCES          = t/test-ps.c     $(core_src)
 TEST_lock_SOURCES        = t/test-lock.c   $(core_src)
 TEST_cmd_SOURCES         = t/test-cmd.c    $(core_src)
 
-t_00_bits_SOURCES        = t/00-bits.c          $(test_source)
-t_01_string_SOURCES      = t/01-string.c        $(test_source)
-t_02_pdu_SOURCES         = t/02-pdu.c           $(test_source)
-t_03_basex_SOURCES       = t/03-basex.c         $(test_source)
-t_04_hash_SOURCES        = t/04-hash.c          $(test_source)
 t_05_mem_SOURCES         = t/05-mem.c           $(test_source)
-t_06_cache_SOURCES       = t/06-cache.c         $(test_source)
 t_07_sha1_SOURCES        = t/07-sha1.c          $(test_source)
-t_08_list_SOURCES        = t/08-list.c          $(test_source)
-t_09_curve_SOURCES       = t/09-curve.c         $(test_source)
 t_10_facts_SOURCES       = t/10-facts.c         $(test_source)
 t_11_cmd_SOURCES         = t/11-cmd.c           $(test_source)
 t_12_filter_SOURCES      = t/12-filter.c        $(test_source)
 t_13_acl_SOURCES         = t/13-acl.c           $(test_source)
-t_15_path_SOURCES        = t/15-path.c          $(test_source)
-t_16_reactor_SOURCES     = t/16-reactor.c       $(test_source)
 t_20_stree_SOURCES       = t/20-stree.c         $(test_source)
 t_25_resource_SOURCES    = t/25-resource.c      $(test_source)
 t_30_policy_SOURCES      = t/30-policy.c        $(test_source)
@@ -262,7 +242,7 @@ man/%.8: man/%.8.pod
 
 ############################################################
 
-core_src  = src/clockwork.h src/cw.h src/cw.c
+core_src  = src/clockwork.h src/base.h src/base.c
 core_src += src/mesh.h src/mesh.c
 core_src += src/sha1.h src/sha1.c src/userdb.h src/userdb.c
 core_src += src/policy.h src/policy.c
@@ -282,7 +262,7 @@ authtest_SOURCES    = src/authtest.c $(core_src)
 meshd_SOURCES       = src/meshd.c    $(core_src)
 
 bin_PROGRAMS        = bdfa pn cw
-bdfa_SOURCES        = src/bdfa.c src/cw.h src/cw.c
+bdfa_SOURCES        = src/bdfa.c src/base.h src/base.c
 pn_SOURCES          = src/pn.c    $(core_src)
 cw_SOURCES          = cli/cw.c    $(core_src) $(parser_spec_src)
 

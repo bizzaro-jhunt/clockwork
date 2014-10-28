@@ -37,11 +37,11 @@ void*          res_ ## t ## _clone(const void *res, const char *key); \
 void           res_ ## t ## _free(void *res); \
 char*          res_ ## t ## _key(const void *res); \
 int            res_ ## t ## _gencode(const void *res, FILE *io, unsigned int next, unsigned int serial); \
-int            res_ ## t ## _attrs(const void *res, cw_hash_t *attrs); \
-int            res_ ## t ## _norm(void *res, struct policy *pol, cw_hash_t *facts); \
+int            res_ ## t ## _attrs(const void *res, hash_t *attrs); \
+int            res_ ## t ## _norm(void *res, struct policy *pol, hash_t *facts); \
 int            res_ ## t ## _set(void *res, const char *attr, const char *value); \
 int            res_ ## t ## _match(const void *res, const char *attr, const char *value); \
-FILE*          res_ ## t ## _content(const void *res, cw_hash_t *facts)
+FILE*          res_ ## t ## _content(const void *res, hash_t *facts)
 
 #define RES_NONE 0x00
 
@@ -112,14 +112,14 @@ struct res_group {
 	char *passwd; /* encrypted group password */
 	gid_t gid;    /* numeric group ID */
 
-	cw_strl_t *mem_add;  /* users that should be in this group */
-	cw_strl_t *mem_rm;   /* users that should not be in this group */
+	strings_t *mem_add;  /* users that should be in this group */
+	strings_t *mem_rm;   /* users that should not be in this group */
 
-	cw_strl_t *adm_add;  /* users that should be admins */
-	cw_strl_t *adm_rm;   /* users that should not be admins */
+	strings_t *adm_add;  /* users that should be admins */
+	strings_t *adm_rm;   /* users that should not be admins */
 
-	cw_strl_t *mem;      /* copy of gr_mem (from stat) for fixup */
-	cw_strl_t *adm;      /* copy of sg_adm (from stat) for fixup */
+	strings_t *mem;      /* copy of gr_mem (from stat) for fixup */
+	strings_t *adm;      /* copy of sg_adm (from stat) for fixup */
 
 	struct group *grp;    /* pointer to /etc/group entry */
 	struct sgrp *sg;      /* pointer to /etc/gshadow entry */
@@ -229,7 +229,7 @@ struct res_host {
 
 	char *hostname;
 	char *ip;
-	cw_strl_t *aliases;
+	strings_t *aliases;
 
 	unsigned int enforced;
 

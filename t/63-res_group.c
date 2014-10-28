@@ -146,27 +146,27 @@ TESTS {
 
 	subtest {
 		struct res_group *rg;
-		cw_hash_t *h;
+		hash_t *h;
 
-		isnt_null(h = cw_alloc(sizeof(cw_hash_t)), "created hash");
+		isnt_null(h = vmalloc(sizeof(hash_t)), "created hash");
 		isnt_null(rg = res_group_new("gr1"), "created group");
 
 		ok(res_group_attrs(rg, h) == 0, "retrieved group attrs");
-		is_string(cw_hash_get(h, "name"),    "gr1", "h.name");
-		is_string(cw_hash_get(h, "present"), "yes", "h.present");
-		is_null(cw_hash_get(h, "gid"),      "h.gid is unset");
-		is_null(cw_hash_get(h, "password"), "h.password is unset");
-		is_null(cw_hash_get(h, "members"),  "h.members is unset");
-		is_null(cw_hash_get(h, "admins"),   "h.admins is unset");
+		is_string(hash_get(h, "name"),    "gr1", "h.name");
+		is_string(hash_get(h, "present"), "yes", "h.present");
+		is_null(hash_get(h, "gid"),      "h.gid is unset");
+		is_null(hash_get(h, "password"), "h.password is unset");
+		is_null(hash_get(h, "members"),  "h.members is unset");
+		is_null(hash_get(h, "admins"),   "h.admins is unset");
 
 		res_group_set(rg, "gid",      "707");
 		res_group_set(rg, "password", "secret");
 		res_group_set(rg, "changepw", "yes");
 
 		ok(res_group_attrs(rg, h) == 0, "retrieved group attrs");
-		is_string(cw_hash_get(h, "name"),     "gr1",    "h.name");
-		is_string(cw_hash_get(h, "gid"),      "707",    "h.gid");
-		is_string(cw_hash_get(h, "password"), "secret", "h.password");
+		is_string(hash_get(h, "name"),     "gr1",    "h.name");
+		is_string(hash_get(h, "gid"),      "707",    "h.gid");
+		is_string(hash_get(h, "password"), "secret", "h.password");
 
 		res_group_set(rg, "member",  "u1");
 		res_group_set(rg, "member",  "u2");
@@ -179,16 +179,16 @@ TESTS {
 		res_group_set(rg, "present", "no");
 
 		ok(res_group_attrs(rg, h) == 0, "retrieved group attrs");
-		is_string(cw_hash_get(h, "members"), "u1 u2 !bad !ex",      "h.members");
-		is_string(cw_hash_get(h, "admins"),  "a1 other !bad !them", "h.admins");
-		is_string(cw_hash_get(h, "present"), "no",                  "h.present");
+		is_string(hash_get(h, "members"), "u1 u2 !bad !ex",      "h.members");
+		is_string(hash_get(h, "admins"),  "a1 other !bad !them", "h.admins");
+		is_string(hash_get(h, "present"), "no",                  "h.present");
 
 		ok(res_group_set(rg, "xyzzy", "BAD") != 0, "xyzzy is not a valid attribute");
 		ok(res_group_attrs(rg, h) == 0, "retrieved group attrs");
-		is_null(cw_hash_get(h, "xyzzy"), "h.xyzzy is unset (bad attr)");
+		is_null(hash_get(h, "xyzzy"), "h.xyzzy is unset (bad attr)");
 
 		res_group_free(rg);
-		cw_hash_done(h, 1);
+		hash_done(h, 1);
 		free(h);
 	}
 

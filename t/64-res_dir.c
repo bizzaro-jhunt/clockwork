@@ -97,17 +97,17 @@ TESTS {
 
 	subtest {
 		struct res_dir *rd;
-		cw_hash_t *h;
+		hash_t *h;
 
-		isnt_null(h = cw_alloc(sizeof(cw_hash_t)), "hash created");
+		isnt_null(h = vmalloc(sizeof(hash_t)), "hash created");
 		isnt_null(rd = res_dir_new("/tmp"), "res_dir created");
 
 		ok(res_dir_attrs(rd, h) == 0, "restrieved res_dir attrs");
-		is_string(cw_hash_get(h, "path"),    "/tmp", "h.path");
-		is_string(cw_hash_get(h, "present"), "yes",  "h.present");
-		is_null(cw_hash_get(h, "owner"), "h.owner is NULL");
-		is_null(cw_hash_get(h, "group"), "h.group is NULL");
-		is_null(cw_hash_get(h, "mode"),  "h.mode NULL");
+		is_string(hash_get(h, "path"),    "/tmp", "h.path");
+		is_string(hash_get(h, "present"), "yes",  "h.present");
+		is_null(hash_get(h, "owner"), "h.owner is NULL");
+		is_null(hash_get(h, "group"), "h.group is NULL");
+		is_null(hash_get(h, "mode"),  "h.mode NULL");
 
 		res_dir_set(rd, "owner",   "root");
 		res_dir_set(rd, "group",   "sys");
@@ -115,21 +115,21 @@ TESTS {
 		res_dir_set(rd, "present", "yes");
 
 		ok(res_dir_attrs(rd, h) == 0, "restrieved res_dir attrs");
-		is_string(cw_hash_get(h, "path"),    "/tmp", "h.path");
-		is_string(cw_hash_get(h, "owner"),   "root", "h.owner");
-		is_string(cw_hash_get(h, "group"),   "sys",  "h.group");
-		is_string(cw_hash_get(h, "mode"),    "1777", "h.mode");
-		is_string(cw_hash_get(h, "present"), "yes",  "h.present");
+		is_string(hash_get(h, "path"),    "/tmp", "h.path");
+		is_string(hash_get(h, "owner"),   "root", "h.owner");
+		is_string(hash_get(h, "group"),   "sys",  "h.group");
+		is_string(hash_get(h, "mode"),    "1777", "h.mode");
+		is_string(hash_get(h, "present"), "yes",  "h.present");
 
 		res_dir_set(rd, "present", "no");
 		ok(res_dir_attrs(rd, h) == 0, "restrieved res_dir attrs");
-		is_string(cw_hash_get(h, "present"), "no",   "h.present");
+		is_string(hash_get(h, "present"), "no",   "h.present");
 
 		ok(res_dir_set(rd, "xyzzy", "BAD") != 0, "xyzzy is not a valid attribute");
 		ok(res_dir_attrs(rd, h) == 0, "restrieved res_dir attrs");
-		is_null(cw_hash_get(h, "xyzzy"), "h.xyzzy is unset (bad attr)");
+		is_null(hash_get(h, "xyzzy"), "h.xyzzy is unset (bad attr)");
 
-		cw_hash_done(h, 1);
+		hash_done(h, 1);
 		free(h);
 		res_dir_free(rd);
 	}

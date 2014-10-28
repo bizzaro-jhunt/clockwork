@@ -34,11 +34,11 @@
 typedef struct {
 	char         *attr;
 	struct stree *lhs;
-	cw_list_t     cond;
+	list_t        cond;
 } parser_map;
 
 typedef struct {
-	cw_list_t l;
+	list_t        l;
 	struct stree *rhs;
 	char         *value;
 } parser_map_cond;
@@ -61,7 +61,7 @@ typedef struct {
 	ino_t           st_ino;        /* File Inode number */
 	FILE           *io;            /* Open file handle */
 
-	cw_list_t       ls;            /* For stacking parser_files */
+	list_t          ls;            /* For stacking parser_files */
 } parser_file;
 
 /**
@@ -86,8 +86,8 @@ typedef struct {
 	unsigned int       errors;   /* Number of times spec_parser_error called */
 
 	const char        *file;     /* Name of the current file being parsed */
-	cw_strl_t         *files;    /* "Stack" of file names processed so far */
-	cw_list_t          fseen;    /* List of device ID / inode pairs already include'd */
+	strings_t         *files;    /* "Stack" of file names processed so far */
+	list_t             fseen;    /* List of device ID / inode pairs already include'd */
 
 	struct manifest *root;
 } spec_parser_context;

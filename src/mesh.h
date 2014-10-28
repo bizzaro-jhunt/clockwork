@@ -20,7 +20,8 @@
 #ifndef __MESH_H
 #define __MESH_H
 
-#include "cw.h"
+#include <vigor.h>
+#include "base.h"
 
 /*
      ######  ##     ## ########
@@ -45,7 +46,7 @@
 #define COMMAND_TOKEN_WILDCARD 1
 
 typedef struct {
-	cw_list_t l;
+	list_t l;
 	int   type;
 	char *value;
 } cmd_token_t;
@@ -54,7 +55,7 @@ typedef struct {
 	int        pattern;
 	int        type;
 	char      *string;
-	cw_list_t  tokens;
+	list_t     tokens;
 } cmd_t;
 
 cmd_t* cmd_new(void);
@@ -81,7 +82,7 @@ int cmd_gencode(cmd_t*, FILE*);
 #define ACL_DENY    2
 
 typedef struct {
-	cw_list_t l;
+	list_t l;
 
 	char  *target_user;
 	char  *target_group;
@@ -95,13 +96,13 @@ acl_t* acl_new(void);
 void acl_destroy(acl_t*);
 acl_t* acl_parse(const char*);
 char *acl_string(acl_t*);
-int acl_read(cw_list_t*, const char*);
-int acl_readio(cw_list_t*, FILE*);
-int acl_write(cw_list_t*, const char*);
-int acl_writeio(cw_list_t*, FILE*);
+int acl_read(list_t*, const char*);
+int acl_readio(list_t*, FILE*);
+int acl_write(list_t*, const char*);
+int acl_writeio(list_t*, FILE*);
 int acl_gencode(acl_t*, FILE*);
 int acl_match(acl_t*, const char*, cmd_t*);
-int acl_check(cw_list_t*, const char*, cmd_t*);
+int acl_check(list_t*, const char*, cmd_t*);
 
 /*
 
@@ -121,15 +122,15 @@ typedef struct {
 	pcre *regex;
 	char *literal;
 
-	cw_list_t l;
+	list_t l;
 } filter_t;
 
 filter_t* filter_new(void);
 void filter_destroy(filter_t*);
 filter_t* filter_parse(const char*);
-int filter_parseall(cw_list_t*, const char*);
-int filter_match(filter_t*, cw_hash_t*);
-int filter_matchall(cw_list_t*, cw_hash_t*);
+int filter_parseall(list_t*, const char*);
+int filter_match(filter_t*, hash_t*);
+int filter_matchall(list_t*, hash_t*);
 
 /*
 
@@ -152,12 +153,12 @@ typedef struct {
 
 	uint64_t    serial;
 	char       *pam_service;
-	cw_trustdb_t *trustdb;
+	trustdb_t  *trustdb;
 
-	cw_list_t   acl;
-	cw_cache_t *slots;
+	list_t      acl;
+	cache_t    *slots;
 
-	cw_cert_t  *cert;
+	cert_t     *cert;
 	void       *zap;
 
 	char       *_safe_word;
@@ -167,8 +168,8 @@ typedef struct {
 	char      *fqdn;
 	char      *gatherers;
 
-	cw_hash_t *facts;
-	cw_list_t *acl;
+	hash_t    *facts;
+	list_t    *acl;
 	int        acl_default;
 } mesh_client_t;
 
@@ -187,7 +188,7 @@ int mesh_server_bind_control(mesh_server_t *s, const char *endpoint);
 int mesh_server_bind_broadcast(mesh_server_t *s, const char *endpoint);
 int mesh_server_run(mesh_server_t *s);
 void mesh_server_destroy(mesh_server_t *s);
-int mesh_server_reactor(void *sock, cw_pdu_t *pdu, void *data);
+int mesh_server_reactor(void *sock, pdu_t *pdu, void *data);
 
 #define MESH_CLIENT_FQDN         1
 #define MESH_CLIENT_GATHERERS    2
@@ -198,6 +199,6 @@ int mesh_server_reactor(void *sock, cw_pdu_t *pdu, void *data);
 mesh_client_t* mesh_client_new(void);
 int mesh_client_setopt(mesh_client_t *c, int opt, void *data, size_t len);
 void mesh_client_destroy(mesh_client_t *c);
-int mesh_client_handle(mesh_client_t *c, void *sock, cw_pdu_t *pdu);
+int mesh_client_handle(mesh_client_t *c, void *sock, pdu_t *pdu);
 
 #endif

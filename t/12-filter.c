@@ -89,17 +89,17 @@ TESTS {
 	}
 
 	subtest { /* match - literal value */
-		cw_hash_t *host1 = cw_alloc(sizeof(cw_hash_t));
-		cw_hash_set(host1, "sys.hostname", "host1");
-		cw_hash_set(host1, "sys.fqdn",     "host1.example.com");
-		cw_hash_set(host1, "sys.os",       "Linux");
+		hash_t *host1 = vmalloc(sizeof(hash_t));
+		hash_set(host1, "sys.hostname", "host1");
+		hash_set(host1, "sys.fqdn",     "host1.example.com");
+		hash_set(host1, "sys.os",       "Linux");
 
-		cw_hash_t *host2 = cw_alloc(sizeof(cw_hash_t));
-		cw_hash_set(host2, "sys.hostname", "host2");
-		cw_hash_set(host2, "sys.fqdn",     "host2.example.com");
-		cw_hash_set(host2, "sys.os",       "Linux");
+		hash_t *host2 = vmalloc(sizeof(hash_t));
+		hash_set(host2, "sys.hostname", "host2");
+		hash_set(host2, "sys.fqdn",     "host2.example.com");
+		hash_set(host2, "sys.os",       "Linux");
 
-		cw_hash_t *empty = cw_alloc(sizeof(cw_hash_t));
+		hash_t *empty = vmalloc(sizeof(hash_t));
 
 		filter_t *f = filter_parse("sys.hostname=host1");
 		isnt_null(f, "got a filter for literal value testing");
@@ -109,23 +109,23 @@ TESTS {
 		ok(!filter_match(f, empty), "no match for empty facts (ever)");
 
 		filter_destroy(f);
-		cw_hash_done(host1, 0); free(host1);
-		cw_hash_done(host2, 0); free(host2);
-		cw_hash_done(empty, 0); free(empty);
+		hash_done(host1, 0); free(host1);
+		hash_done(host2, 0); free(host2);
+		hash_done(empty, 0); free(empty);
 	}
 
 	subtest { /* match - negated literal */
-		cw_hash_t *host1 = cw_alloc(sizeof(cw_hash_t));
-		cw_hash_set(host1, "sys.hostname", "host1");
-		cw_hash_set(host1, "sys.fqdn",     "host1.example.com");
-		cw_hash_set(host1, "sys.os",       "Linux");
+		hash_t *host1 = vmalloc(sizeof(hash_t));
+		hash_set(host1, "sys.hostname", "host1");
+		hash_set(host1, "sys.fqdn",     "host1.example.com");
+		hash_set(host1, "sys.os",       "Linux");
 
-		cw_hash_t *host2 = cw_alloc(sizeof(cw_hash_t));
-		cw_hash_set(host2, "sys.hostname", "host2");
-		cw_hash_set(host2, "sys.fqdn",     "host2.example.com");
-		cw_hash_set(host2, "sys.os",       "Linux");
+		hash_t *host2 = vmalloc(sizeof(hash_t));
+		hash_set(host2, "sys.hostname", "host2");
+		hash_set(host2, "sys.fqdn",     "host2.example.com");
+		hash_set(host2, "sys.os",       "Linux");
 
-		cw_hash_t *empty = cw_alloc(sizeof(cw_hash_t));
+		hash_t *empty = vmalloc(sizeof(hash_t));
 
 		filter_t *f = filter_parse("sys.hostname != host1");
 		isnt_null(f, "got a filter for negated literal value testing");
@@ -135,23 +135,23 @@ TESTS {
 		ok(!filter_match(f, empty), "no match for empty facts in negated matches");
 
 		filter_destroy(f);
-		cw_hash_done(host1, 0); free(host1);
-		cw_hash_done(host2, 0); free(host2);
-		cw_hash_done(empty, 0); free(empty);
+		hash_done(host1, 0); free(host1);
+		hash_done(host2, 0); free(host2);
+		hash_done(empty, 0); free(empty);
 	}
 
 	subtest { /* match - regex */
-		cw_hash_t *host1 = cw_alloc(sizeof(cw_hash_t));
-		cw_hash_set(host1, "sys.hostname", "host1");
-		cw_hash_set(host1, "sys.fqdn",     "host1.example.com");
-		cw_hash_set(host1, "sys.os",       "Linux");
+		hash_t *host1 = vmalloc(sizeof(hash_t));
+		hash_set(host1, "sys.hostname", "host1");
+		hash_set(host1, "sys.fqdn",     "host1.example.com");
+		hash_set(host1, "sys.os",       "Linux");
 
-		cw_hash_t *host2 = cw_alloc(sizeof(cw_hash_t));
-		cw_hash_set(host2, "sys.hostname", "host2");
-		cw_hash_set(host2, "sys.fqdn",     "host2.example.com");
-		cw_hash_set(host2, "sys.os",       "Linux");
+		hash_t *host2 = vmalloc(sizeof(hash_t));
+		hash_set(host2, "sys.hostname", "host2");
+		hash_set(host2, "sys.fqdn",     "host2.example.com");
+		hash_set(host2, "sys.os",       "Linux");
 
-		cw_hash_t *empty = cw_alloc(sizeof(cw_hash_t));
+		hash_t *empty = vmalloc(sizeof(hash_t));
 
 		filter_t *f = filter_parse("sys.fqdn=/^host1/");
 		isnt_null(f, "got a filter for regex testing");
@@ -161,23 +161,23 @@ TESTS {
 		ok(!filter_match(f, empty), "no match for empty facts in negated matches");
 
 		filter_destroy(f);
-		cw_hash_done(host1, 0); free(host1);
-		cw_hash_done(host2, 0); free(host2);
-		cw_hash_done(empty, 0); free(empty);
+		hash_done(host1, 0); free(host1);
+		hash_done(host2, 0); free(host2);
+		hash_done(empty, 0); free(empty);
 	}
 
 	subtest { /* match - negated regex */
-		cw_hash_t *host1 = cw_alloc(sizeof(cw_hash_t));
-		cw_hash_set(host1, "sys.hostname", "host1");
-		cw_hash_set(host1, "sys.fqdn",     "host1.example.com");
-		cw_hash_set(host1, "sys.os",       "Linux");
+		hash_t *host1 = vmalloc(sizeof(hash_t));
+		hash_set(host1, "sys.hostname", "host1");
+		hash_set(host1, "sys.fqdn",     "host1.example.com");
+		hash_set(host1, "sys.os",       "Linux");
 
-		cw_hash_t *host2 = cw_alloc(sizeof(cw_hash_t));
-		cw_hash_set(host2, "sys.hostname", "host2");
-		cw_hash_set(host2, "sys.fqdn",     "host2.example.com");
-		cw_hash_set(host2, "sys.os",       "Linux");
+		hash_t *host2 = vmalloc(sizeof(hash_t));
+		hash_set(host2, "sys.hostname", "host2");
+		hash_set(host2, "sys.fqdn",     "host2.example.com");
+		hash_set(host2, "sys.os",       "Linux");
 
-		cw_hash_t *empty = cw_alloc(sizeof(cw_hash_t));
+		hash_t *empty = vmalloc(sizeof(hash_t));
 
 		filter_t *f = filter_parse("sys.fqdn != /^host1/");
 		isnt_null(f, "got a filter for negated regex testing");
@@ -187,23 +187,23 @@ TESTS {
 		ok(!filter_match(f, empty), "no match for empty facts in negated matches");
 
 		filter_destroy(f);
-		cw_hash_done(host1, 0); free(host1);
-		cw_hash_done(host2, 0); free(host2);
-		cw_hash_done(empty, 0); free(empty);
+		hash_done(host1, 0); free(host1);
+		hash_done(host2, 0); free(host2);
+		hash_done(empty, 0); free(empty);
 	}
 
 	subtest { /* match - regex is case-insensitive (always) */
-		cw_hash_t *host1 = cw_alloc(sizeof(cw_hash_t));
-		cw_hash_set(host1, "sys.hostname", "host1");
-		cw_hash_set(host1, "sys.fqdn",     "host1.example.com");
-		cw_hash_set(host1, "sys.os",       "Linux");
+		hash_t *host1 = vmalloc(sizeof(hash_t));
+		hash_set(host1, "sys.hostname", "host1");
+		hash_set(host1, "sys.fqdn",     "host1.example.com");
+		hash_set(host1, "sys.os",       "Linux");
 
-		cw_hash_t *host2 = cw_alloc(sizeof(cw_hash_t));
-		cw_hash_set(host2, "sys.hostname", "host2");
-		cw_hash_set(host2, "sys.fqdn",     "host2.example.com");
-		cw_hash_set(host2, "sys.os",       "Linux");
+		hash_t *host2 = vmalloc(sizeof(hash_t));
+		hash_set(host2, "sys.hostname", "host2");
+		hash_set(host2, "sys.fqdn",     "host2.example.com");
+		hash_set(host2, "sys.os",       "Linux");
 
-		cw_hash_t *empty = cw_alloc(sizeof(cw_hash_t));
+		hash_t *empty = vmalloc(sizeof(hash_t));
 
 		filter_t *f = filter_parse("sys.fqdn=/^HOST1/");
 		isnt_null(f, "got a filter for case-insesntive regex testing");
@@ -213,32 +213,32 @@ TESTS {
 		ok(!filter_match(f, empty), "no match for empty facts in negated matches");
 
 		filter_destroy(f);
-		cw_hash_done(host1, 0); free(host1);
-		cw_hash_done(host2, 0); free(host2);
-		cw_hash_done(empty, 0); free(empty);
+		hash_done(host1, 0); free(host1);
+		hash_done(host2, 0); free(host2);
+		hash_done(empty, 0); free(empty);
 	}
 
 	subtest { /* match all - mix-n-match regex, literal and negation */
-		cw_hash_t *host1 = cw_alloc(sizeof(cw_hash_t));
-		cw_hash_set(host1, "sys.hostname", "host1");
-		cw_hash_set(host1, "sys.fqdn",     "host1.example.com");
-		cw_hash_set(host1, "sys.os",       "Linux");
+		hash_t *host1 = vmalloc(sizeof(hash_t));
+		hash_set(host1, "sys.hostname", "host1");
+		hash_set(host1, "sys.fqdn",     "host1.example.com");
+		hash_set(host1, "sys.os",       "Linux");
 
-		cw_hash_t *host2 = cw_alloc(sizeof(cw_hash_t));
-		cw_hash_set(host2, "sys.hostname", "host2");
-		cw_hash_set(host2, "sys.fqdn",     "host2.example.com");
-		cw_hash_set(host2, "sys.os",       "Linux");
+		hash_t *host2 = vmalloc(sizeof(hash_t));
+		hash_set(host2, "sys.hostname", "host2");
+		hash_set(host2, "sys.fqdn",     "host2.example.com");
+		hash_set(host2, "sys.os",       "Linux");
 
-		cw_hash_t *empty = cw_alloc(sizeof(cw_hash_t));
+		hash_t *empty = vmalloc(sizeof(hash_t));
 
 		filter_t *f1 = filter_parse("sys.os != SunOS");
 		filter_t *f2 = filter_parse("sys.fqdn = /example.com$/");
 		filter_t *f3 = filter_parse("sys.hostname != /host[2468]/");
 
 		LIST(all);
-		isnt_null(f1, "f1 is a filter"); cw_list_push(&all, &f1->l);
-		isnt_null(f2, "f2 is a filter"); cw_list_push(&all, &f2->l);
-		isnt_null(f3, "f3 is a filter"); cw_list_push(&all, &f3->l);
+		isnt_null(f1, "f1 is a filter"); list_push(&all, &f1->l);
+		isnt_null(f2, "f2 is a filter"); list_push(&all, &f2->l);
+		isnt_null(f3, "f3 is a filter"); list_push(&all, &f3->l);
 
 		ok( filter_matchall(&all, host1), "f1 && f2 && f3 should match host1");
 		ok(!filter_matchall(&all, host2), "f1 && f2 && f3 should not match host2");
@@ -252,28 +252,28 @@ TESTS {
 		filter_destroy(f1);
 		filter_destroy(f2);
 		filter_destroy(f3);
-		cw_hash_done(host1, 0); free(host1);
-		cw_hash_done(host2, 0); free(host2);
-		cw_hash_done(empty, 0); free(empty);
+		hash_done(host1, 0); free(host1);
+		hash_done(host2, 0); free(host2);
+		hash_done(empty, 0); free(empty);
 	}
 
 	subtest { /* parse list of filters */
 		LIST(filters);
 
 		filter_parseall(&filters, "sys.fqdn=/^host1/\nsys.os!=SunOS\nsys.os=Linux\n");
-		is_int(cw_list_len(&filters), 3, "parsed three filters");
+		is_int(list_len(&filters), 3, "parsed three filters");
 
-		cw_hash_t *host1 = cw_alloc(sizeof(cw_hash_t));
-		cw_hash_set(host1, "sys.hostname", "host1");
-		cw_hash_set(host1, "sys.fqdn",     "host1.example.com");
-		cw_hash_set(host1, "sys.os",       "Linux");
+		hash_t *host1 = vmalloc(sizeof(hash_t));
+		hash_set(host1, "sys.hostname", "host1");
+		hash_set(host1, "sys.fqdn",     "host1.example.com");
+		hash_set(host1, "sys.os",       "Linux");
 
-		cw_hash_t *host2 = cw_alloc(sizeof(cw_hash_t));
-		cw_hash_set(host2, "sys.hostname", "host2");
-		cw_hash_set(host2, "sys.fqdn",     "host2.example.com");
-		cw_hash_set(host2, "sys.os",       "Linux");
+		hash_t *host2 = vmalloc(sizeof(hash_t));
+		hash_set(host2, "sys.hostname", "host2");
+		hash_set(host2, "sys.fqdn",     "host2.example.com");
+		hash_set(host2, "sys.os",       "Linux");
 
-		cw_hash_t *empty = cw_alloc(sizeof(cw_hash_t));
+		hash_t *empty = vmalloc(sizeof(hash_t));
 
 		ok( filter_matchall(&filters, host1), "should match host1 and os Linux");
 		ok(!filter_matchall(&filters, host2), "should not match host2");
@@ -283,9 +283,9 @@ TESTS {
 		for_each_object_safe(f, tmp, &filters, l)
 			filter_destroy(f);
 
-		cw_hash_done(host1, 0); free(host1);
-		cw_hash_done(host2, 0); free(host2);
-		cw_hash_done(empty, 0); free(empty);
+		hash_done(host1, 0); free(host1);
+		hash_done(host2, 0); free(host2);
+		hash_done(empty, 0); free(empty);
 	}
 
 	done_testing();

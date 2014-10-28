@@ -80,11 +80,11 @@ static const char *FSM_EVENTS[] = {
 	NULL,
 };
 
-static event_t s_pdu_event(cw_pdu_t *pdu)
+static event_t s_pdu_event(pdu_t *pdu)
 {
 	int i;
 	for (i = 0; FSM_EVENTS[i]; i++)
-		if (strcmp(pdu->type, FSM_EVENTS[i]) == 0)
+		if (strcmp(pdu_type(pdu), FSM_EVENTS[i]) == 0)
 			return (event_t)i;
 	return EVENT_UNKNOWN;
 }
@@ -125,7 +125,7 @@ struct __client_t {
 	char             *name;
 	struct stree     *pnode;
 	struct policy    *policy;
-	cw_hash_t        *facts;
+	hash_t           *facts;
 
 	FILE             *io;
 	unsigned long     offset;
@@ -142,13 +142,13 @@ struct __server_t {
 	int mode;
 	int daemonize;
 
-	cw_cache_t       *clients;
+	cache_t          *clients;
 	struct manifest  *manifest;
 	char             *copydown;
 
-	cw_cert_t    *cert;
-	cw_trustdb_t *tdb;
-	void         *zap;
+	cert_t     *cert;
+	trustdb_t  *tdb;
+	void       *zap;
 };
 
 static int s_sha1(client_t *fsm)
@@ -174,9 +174,9 @@ static char * s_gencode(client_t *c)
 	FILE *io = tmpfile();
 	assert(io);
 
-	cw_timer_t t;
+	stopwatch_t t;
 	uint32_t ms = 0;
-	TIMER(&t, ms) {
+	STOPWATCH(&t, ms) {
 		policy_gencode(c->policy, io);
 	}
 
@@ -203,16 +203,16 @@ static char * s_gencode(client_t *c)
 		size = c->maplen;
 		unit = 'b';
 	}
-	cw_log(LOG_INFO, "generated %0.2f%c policy for %s in %lums", size, unit, c->name, ms);
+	logger(LOG_INFO, "generated %0.2f%c policy for %s in %lums", size, unit, c->name, ms);
 
 	return (char *)c->mapped;
 }
 
-static int s_state_machine(client_t *fsm, cw_pdu_t *pdu, cw_pdu_t **reply)
+static int s_state_machine(client_t *fsm, pdu_t *pdu, pdu_t **reply)
 {
-	cw_cache_touch(fsm->server->clients, fsm->id, 0);
+	cache_touch(fsm->server->clients, fsm->id, 0);
 
-	cw_log(LOG_DEBUG, "fsm: transition %s [%i] -> %s [%i]",
+	logger(LOG_DEBUG, "fsm: transition %s [%i] -> %s [%i]",
 			FSM_STATES[fsm->state], fsm->state,
 			FSM_EVENTS[fsm->event], fsm->event);
 
@@ -222,7 +222,7 @@ static int s_state_machine(client_t *fsm, cw_pdu_t *pdu, cw_pdu_t **reply)
 		return 1;
 
 	case EVENT_PING:
-		*reply = cw_pdu_make(pdu->src, 2, "PONG", PROTOCOL_VERSION_STRING);
+		*reply = pdu_reply(pdu, "PONG", 1, PROTOCOL_VERSION_STRING);
 		return 0;
 
 	case EVENT_HELLO:
@@ -234,7 +234,7 @@ static int s_state_machine(client_t *fsm, cw_pdu_t *pdu, cw_pdu_t **reply)
 			fsm->offset = 0;
 
 		case STATE_POLICY:
-			cw_hash_done(fsm->facts, 1);
+			hash_done(fsm->facts, 1);
 			fsm->facts = NULL;
 			policy_free(fsm->policy);
 			fsm->policy = NULL;
@@ -248,8 +248,8 @@ static int s_state_machine(client_t *fsm, cw_pdu_t *pdu, cw_pdu_t **reply)
 			break;
 		}
 
-		fsm->name = cw_pdu_text(pdu, 1);
-		*reply = cw_pdu_make(pdu->src, 1, "OK");
+		fsm->name = pdu_string(pdu, 1);
+		*reply = pdu_reply(pdu, "OK", 0);
 
 		fsm->state = STATE_IDENTIFIED;
 		return 0;
@@ -267,14 +267,14 @@ static int s_state_machine(client_t *fsm, cw_pdu_t *pdu, cw_pdu_t **reply)
 		case STATE_IDENTIFIED:
 			fsm->io = tmpfile();
 			if (!fsm->io) {
-				cw_log(LOG_ERR, "unable to create a temporary file for the copydown archive: %s",
+				logger(LOG_ERR, "unable to create a temporary file for the copydown archive: %s",
 					strerror(errno));
 				fsm->error = FSM_ERR_INTERNAL;
 				return 1;
 			}
 
 			if (cw_bdfa_pack(fileno(fsm->io), fsm->server->copydown) != 0) {
-				cw_log(LOG_ERR, "unable to pack the copydown archive: %s",
+				logger(LOG_ERR, "unable to pack the copydown archive: %s",
 					strerror(errno));
 				fsm->error = FSM_ERR_INTERNAL;
 				return 1;
@@ -282,7 +282,7 @@ static int s_state_machine(client_t *fsm, cw_pdu_t *pdu, cw_pdu_t **reply)
 			rewind(fsm->io);
 			fsm->offset = 0;
 
-			*reply = cw_pdu_make(pdu->src, 1, "OK");
+			*reply = pdu_reply(pdu, "OK", 0);
 			break;
 		}
 
@@ -303,7 +303,7 @@ static int s_state_machine(client_t *fsm, cw_pdu_t *pdu, cw_pdu_t **reply)
 			fsm->offset = 0;
 
 		case STATE_POLICY:
-			cw_hash_done(fsm->facts, 1);
+			hash_done(fsm->facts, 1);
 			fsm->facts = NULL;
 			policy_free(fsm->policy);
 			fsm->policy = NULL;
@@ -313,12 +313,12 @@ static int s_state_machine(client_t *fsm, cw_pdu_t *pdu, cw_pdu_t **reply)
 			break;
 		}
 
-		char *facts = cw_pdu_text(pdu, 2);
-		fsm->facts = cw_alloc(sizeof(cw_hash_t));
+		char *facts = pdu_string(pdu, 2);
+		fsm->facts = vmalloc(sizeof(hash_t));
 		fact_read_string(facts, fsm->facts);
 		free(facts);
 
-		fsm->pnode = cw_hash_get(fsm->server->manifest->hosts, fsm->name);
+		fsm->pnode = hash_get(fsm->server->manifest->hosts, fsm->name);
 		if (!fsm->pnode) fsm->pnode = fsm->server->manifest->fallback;
 		if (!fsm->pnode) {
 			fsm->error = FSM_ERR_NO_POLICY_FOUND;
@@ -327,7 +327,7 @@ static int s_state_machine(client_t *fsm, cw_pdu_t *pdu, cw_pdu_t **reply)
 		fsm->policy = policy_generate(fsm->pnode, fsm->facts);
 
 		char *code = s_gencode(fsm);
-		*reply = cw_pdu_make(pdu->src, 2, "POLICY", code);
+		*reply = pdu_reply(pdu, "POLICY", 1, code);
 		fsm->state = STATE_POLICY;
 		return 0;
 
@@ -351,8 +351,8 @@ static int s_state_machine(client_t *fsm, cw_pdu_t *pdu, cw_pdu_t **reply)
 		}
 
 		/* open the file, calculate the SHA1 */
-		char *key = cw_pdu_text(pdu, 1);
-		struct resource *r = cw_hash_get(fsm->policy->index, key);
+		char *key = pdu_string(pdu, 1);
+		struct resource *r = hash_get(fsm->policy->index, key);
 		free(key);
 
 		if (!r) {
@@ -362,14 +362,14 @@ static int s_state_machine(client_t *fsm, cw_pdu_t *pdu, cw_pdu_t **reply)
 
 		fsm->io = resource_content(r, fsm->facts);
 		if (!fsm->io) {
-			cw_log(LOG_ERR, "failed to generate content for %s (on behalf of %s): %s",
+			logger(LOG_ERR, "failed to generate content for %s (on behalf of %s): %s",
 				r->key, fsm->name, strerror(errno));
 			fsm->error = FSM_ERR_INTERNAL;
 			return 1;
 		}
 
 		s_sha1(fsm);
-		*reply = cw_pdu_make(pdu->src, 2, "SHA1", fsm->sha1.hex);
+		*reply = pdu_reply(pdu, "SHA1", 1, fsm->sha1.hex);
 		fsm->state = STATE_FILE;
 		return 0;
 
@@ -388,7 +388,7 @@ static int s_state_machine(client_t *fsm, cw_pdu_t *pdu, cw_pdu_t **reply)
 			break;
 		}
 
-		char *off = cw_pdu_text(pdu, 1);
+		char *off = pdu_string(pdu, 1);
 		fsm->offset = BLOCK_SIZE * atoi(off);
 		free(off);
 
@@ -399,21 +399,15 @@ static int s_state_machine(client_t *fsm, cw_pdu_t *pdu, cw_pdu_t **reply)
 
 		if (n == 0) {
 			if (feof(fsm->io)) {
-				*reply = cw_pdu_make(pdu->src, 1, "EOF");
+				*reply = pdu_reply(pdu, "EOF", 0);
 			} else {
-				cw_log(LOG_ERR, "Failed to read from cached IO handled: %s", strerror(errno));
-				*reply = cw_pdu_make(pdu->src, 2, "ERROR", "read error");
+				logger(LOG_ERR, "Failed to read from cached IO handled: %s", strerror(errno));
+				*reply = pdu_reply(pdu, "ERROR", 1, "read error");
 			}
 
 		} else {
-			*reply = cw_pdu_make(pdu->src, 1, "BLOCK");
-			assert(*reply);
-
-			/* because block may have embedded NULLs, we have
-			   to manufacture our frame the old fashioned way */
-			cw_frame_t *dframe = cw_frame_newbuf(block, n);
-			assert(dframe);
-			cw_pdu_extend(*reply, dframe);
+			*reply = pdu_reply(pdu, "BLOCK", 0);
+			pdu_extend(*reply, block, n);
 		}
 		return 0;
 
@@ -447,7 +441,7 @@ static int s_state_machine(client_t *fsm, cw_pdu_t *pdu, cw_pdu_t **reply)
 			fsm->offset = 0;
 
 		case STATE_POLICY:
-			cw_hash_done(fsm->facts, 1);
+			hash_done(fsm->facts, 1);
 			free(fsm->facts);
 			fsm->facts = NULL;
 			policy_free_all(fsm->policy);
@@ -463,8 +457,8 @@ static int s_state_machine(client_t *fsm, cw_pdu_t *pdu, cw_pdu_t **reply)
 		}
 
 		fsm->state = STATE_INIT;
-		cw_cache_touch(fsm->server->clients, fsm->id, 1);
-		*reply = cw_pdu_make(pdu->src, 1, "BYE");
+		cache_touch(fsm->server->clients, fsm->id, 1);
+		*reply = pdu_reply(pdu, "BYE", 0);
 		return 0;
 	}
 
@@ -482,7 +476,7 @@ static void s_client_destroy(void *p)
 	free(c->name);
 
 	if (c->facts) {
-		cw_hash_done(c->facts, 1);
+		hash_done(c->facts, 1);
 		free(c->facts);
 	}
 
@@ -496,41 +490,41 @@ static void s_client_destroy(void *p)
 static inline server_t *s_server_new(int argc, char **argv)
 {
 	char *t;
-	server_t *s = cw_alloc(sizeof(server_t));
+	server_t *s = vmalloc(sizeof(server_t));
 	s->daemonize = 1;
 
-	LIST(config);
-	cw_cfg_set(&config, "listen",              "*:2314");
-	cw_cfg_set(&config, "ccache.connections",  "2048");
-	cw_cfg_set(&config, "ccache.expiration",   "600");
-	cw_cfg_set(&config, "manifest",            "/etc/clockwork/manifest.pol");
-	cw_cfg_set(&config, "copydown",            CW_GATHER_DIR);
-	cw_cfg_set(&config, "syslog.ident",        "clockd");
-	cw_cfg_set(&config, "syslog.facility",     "daemon");
-	cw_cfg_set(&config, "syslog.level",        "error");
-	cw_cfg_set(&config, "security.strict",     "yes");
-	cw_cfg_set(&config, "security.trusted",    "/etc/clockwork/certs/trusted");
-	cw_cfg_set(&config, "security.cert",       "/etc/clockwork/certs/clockd");
-	cw_cfg_set(&config, "pidfile",             "/var/run/clockd.pid");
+	CONFIG(config);
+	config_set(&config, "listen",              "*:2314");
+	config_set(&config, "ccache.connections",  "2048");
+	config_set(&config, "ccache.expiration",   "600");
+	config_set(&config, "manifest",            "/etc/clockwork/manifest.pol");
+	config_set(&config, "copydown",            CW_GATHER_DIR);
+	config_set(&config, "syslog.ident",        "clockd");
+	config_set(&config, "syslog.facility",     "daemon");
+	config_set(&config, "syslog.level",        "error");
+	config_set(&config, "security.strict",     "yes");
+	config_set(&config, "security.trusted",    "/etc/clockwork/certs/trusted");
+	config_set(&config, "security.cert",       "/etc/clockwork/certs/clockd");
+	config_set(&config, "pidfile",             "/var/run/clockd.pid");
 
-	cw_log_open(cw_cfg_get(&config, "syslog.ident"), "stderr");
-	cw_log_level(0, (getenv("CLOCKD_DEBUG") ? "debug" : "error"));
-	cw_log(LOG_DEBUG, "default configuration:");
-	cw_log(LOG_DEBUG, "  listen              %s", cw_cfg_get(&config, "listen"));
-	cw_log(LOG_DEBUG, "  ccache.connections  %s", cw_cfg_get(&config, "ccache.connections"));
-	cw_log(LOG_DEBUG, "  ccache.expiration   %s", cw_cfg_get(&config, "ccache.expiration"));
-	cw_log(LOG_DEBUG, "  manifest            %s", cw_cfg_get(&config, "manifest"));
-	cw_log(LOG_DEBUG, "  copydown            %s", cw_cfg_get(&config, "copydown"));
-	cw_log(LOG_DEBUG, "  syslog.ident        %s", cw_cfg_get(&config, "syslog.ident"));
-	cw_log(LOG_DEBUG, "  syslog.facility     %s", cw_cfg_get(&config, "syslog.facility"));
-	cw_log(LOG_DEBUG, "  syslog.level        %s", cw_cfg_get(&config, "syslog.level"));
-	cw_log(LOG_DEBUG, "  security.strict     %s", cw_cfg_get(&config, "security.strict"));
-	cw_log(LOG_DEBUG, "  security.trusted    %s", cw_cfg_get(&config, "security.trusted"));
-	cw_log(LOG_DEBUG, "  security.cert       %s", cw_cfg_get(&config, "security.cert"));
-	cw_log(LOG_DEBUG, "  pidfile             %s", cw_cfg_get(&config, "pidfile"));
+	log_open(config_get(&config, "syslog.ident"), "stderr");
+	log_level(0, (getenv("CLOCKD_DEBUG") ? "debug" : "error"));
+	logger(LOG_DEBUG, "default configuration:");
+	logger(LOG_DEBUG, "  listen              %s", config_get(&config, "listen"));
+	logger(LOG_DEBUG, "  ccache.connections  %s", config_get(&config, "ccache.connections"));
+	logger(LOG_DEBUG, "  ccache.expiration   %s", config_get(&config, "ccache.expiration"));
+	logger(LOG_DEBUG, "  manifest            %s", config_get(&config, "manifest"));
+	logger(LOG_DEBUG, "  copydown            %s", config_get(&config, "copydown"));
+	logger(LOG_DEBUG, "  syslog.ident        %s", config_get(&config, "syslog.ident"));
+	logger(LOG_DEBUG, "  syslog.facility     %s", config_get(&config, "syslog.facility"));
+	logger(LOG_DEBUG, "  syslog.level        %s", config_get(&config, "syslog.level"));
+	logger(LOG_DEBUG, "  security.strict     %s", config_get(&config, "security.strict"));
+	logger(LOG_DEBUG, "  security.trusted    %s", config_get(&config, "security.trusted"));
+	logger(LOG_DEBUG, "  security.cert       %s", config_get(&config, "security.cert"));
+	logger(LOG_DEBUG, "  pidfile             %s", config_get(&config, "pidfile"));
 
 
-	cw_log(LOG_DEBUG, "processing command-line options");
+	logger(LOG_DEBUG, "processing command-line options");
 	const char *short_opts = "?hvqVFSt" "c:";
 	struct option long_opts[] = {
 		{ "help",        no_argument,       NULL, 'h' },
@@ -550,7 +544,7 @@ static inline server_t *s_server_new(int argc, char **argv)
 		switch (opt) {
 		case 'h':
 		case '?':
-			cw_log(LOG_DEBUG, "handling -h/-?/--help");
+			logger(LOG_DEBUG, "handling -h/-?/--help");
 			printf("clockd, part of clockwork v%s runtime %i protocol %i\n",
 				PACKAGE_VERSION, PENDULUM_VERSION, PROTOCOL_VERSION);
 			printf("Usage: clockd [-?hvqVFSt] [-c filename]\n\n");
@@ -568,16 +562,16 @@ static inline server_t *s_server_new(int argc, char **argv)
 		case 'v':
 			if (verbose < 0) verbose = 0;
 			verbose++;
-			cw_log(LOG_DEBUG, "handling -v/--verbose (modifier = %i)", verbose);
+			logger(LOG_DEBUG, "handling -v/--verbose (modifier = %i)", verbose);
 			break;
 
 		case 'q':
 			verbose = 0;
-			cw_log(LOG_DEBUG, "handling -q/--quiet (modifier = %i)", verbose);
+			logger(LOG_DEBUG, "handling -q/--quiet (modifier = %i)", verbose);
 			break;
 
 		case 'V':
-			cw_log(LOG_DEBUG, "handling -V/--version");
+			logger(LOG_DEBUG, "handling -V/--version");
 			printf("clockd (Clockwork) %s runtime v%04x\n"
 			       "Copyright (C) 2014 James Hunt\n",
 			       PACKAGE_VERSION, PENDULUM_VERSION);
@@ -585,40 +579,40 @@ static inline server_t *s_server_new(int argc, char **argv)
 			break;
 
 		case 'c':
-			cw_log(LOG_DEBUG, "handling -c/--config; replacing '%s' with '%s'",
+			logger(LOG_DEBUG, "handling -c/--config; replacing '%s' with '%s'",
 				config_file, optarg);
 			config_file = optarg;
 			break;
 
 		case 'F':
-			cw_log(LOG_DEBUG, "handling -F/--foreground; turning off daemonize behavior");
+			logger(LOG_DEBUG, "handling -F/--foreground; turning off daemonize behavior");
 			s->daemonize = 0;
 			break;
 
 		case 'S':
-			cw_log(LOG_DEBUG, "handling -S/--show-config");
+			logger(LOG_DEBUG, "handling -S/--show-config");
 			s->mode = MODE_DUMP;
 			break;
 
 		case 't':
-			cw_log(LOG_DEBUG, "handling -t/--test");
+			logger(LOG_DEBUG, "handling -t/--test");
 			s->mode = MODE_TEST;
 			break;
 		}
 	}
-	cw_log(LOG_DEBUG, "option processing complete");
+	logger(LOG_DEBUG, "option processing complete");
 
 
-	cw_log(LOG_DEBUG, "parsing clockd configuration file '%s'", config_file);
+	logger(LOG_DEBUG, "parsing clockd configuration file '%s'", config_file);
 	FILE *io = fopen(config_file, "r");
 	if (!io) {
-		cw_log(LOG_WARNING, "Failed to read configuration from %s: %s",
+		logger(LOG_WARNING, "Failed to read configuration from %s: %s",
 			config_file, strerror(errno));
-		cw_log(LOG_WARNING, "Using default configuration");
+		logger(LOG_WARNING, "Using default configuration");
 
 	} else {
-		if (cw_cfg_read(&config, io) != 0) {
-			cw_log(LOG_ERR, "Unable to parse %s");
+		if (config_read(&config, io) != 0) {
+			logger(LOG_ERR, "Unable to parse %s");
 			exit(1);
 		}
 		fclose(io);
@@ -626,87 +620,87 @@ static inline server_t *s_server_new(int argc, char **argv)
 	}
 
 
-	cw_log(LOG_DEBUG, "determining adjusted log level/facility");
+	logger(LOG_DEBUG, "determining adjusted log level/facility");
 	if (verbose < 0) verbose = 0;
-	t = cw_cfg_get(&config, "syslog.level");
-	cw_log(LOG_DEBUG, "configured log level is '%s', verbose modifier is %+i", t, verbose);
-	int level = cw_log_level_number(t);
+	t = config_get(&config, "syslog.level");
+	logger(LOG_DEBUG, "configured log level is '%s', verbose modifier is %+i", t, verbose);
+	int level = log_level_number(t);
 	if (level < 0) {
-		cw_log(LOG_WARNING, "'%s' is not a recognized log level, falling back to 'error'", t);
+		logger(LOG_WARNING, "'%s' is not a recognized log level, falling back to 'error'", t);
 		level = LOG_ERR;
 	}
 	level += verbose;
-	cw_log(LOG_DEBUG, "adjusted log level is %s (%i)",
-		cw_log_level_name(level), level);
+	logger(LOG_DEBUG, "adjusted log level is %s (%i)",
+		log_level_name(level), level);
 	if (!s->daemonize) {
-		cw_log(LOG_DEBUG, "Running in --foreground mode; forcing all logging to stdout");
-		cw_cfg_set(&config, "syslog.facility", "stdout");
+		logger(LOG_DEBUG, "Running in --foreground mode; forcing all logging to stdout");
+		config_set(&config, "syslog.facility", "stdout");
 	}
 	if (s->mode == MODE_DUMP) {
-		cw_log(LOG_DEBUG, "Running in --show-config mode; forcing all logging to stderr");
-		cw_cfg_set(&config, "syslog.facility", "stderr");
+		logger(LOG_DEBUG, "Running in --show-config mode; forcing all logging to stderr");
+		config_set(&config, "syslog.facility", "stderr");
 	}
 	if (s->mode == MODE_TEST) {
-		cw_log(LOG_DEBUG, "Running in --test mode; forcing all logging to stderr");
-		cw_cfg_set(&config, "syslog.facility", "stderr");
+		logger(LOG_DEBUG, "Running in --test mode; forcing all logging to stderr");
+		config_set(&config, "syslog.facility", "stderr");
 	}
-	cw_log(LOG_DEBUG, "redirecting to %s log as %s",
-		cw_cfg_get(&config, "syslog.facility"),
-		cw_cfg_get(&config, "syslog.ident"));
+	logger(LOG_DEBUG, "redirecting to %s log as %s",
+		config_get(&config, "syslog.facility"),
+		config_get(&config, "syslog.ident"));
 
-	cw_log_open(cw_cfg_get(&config, "syslog.ident"),
-	            cw_cfg_get(&config, "syslog.facility"));
-	cw_log_level(level, NULL);
+	log_open(config_get(&config, "syslog.ident"),
+	            config_get(&config, "syslog.facility"));
+	log_level(level, NULL);
 
-	cw_log(LOG_INFO, "clockd starting up");
+	logger(LOG_INFO, "clockd starting up");
 
 
 	if (s->mode == MODE_DUMP) {
-		printf("listen              %s\n", cw_cfg_get(&config, "listen"));
-		printf("ccache.connections  %s\n", cw_cfg_get(&config, "ccache.connections"));
-		printf("ccache.expiration   %s\n", cw_cfg_get(&config, "ccache.expiration"));
-		printf("manifest            %s\n", cw_cfg_get(&config, "manifest"));
-		printf("copydown            %s\n", cw_cfg_get(&config, "copydown"));
-		printf("syslog.ident        %s\n", cw_cfg_get(&config, "syslog.ident"));
-		printf("syslog.facility     %s\n", cw_cfg_get(&config, "syslog.facility"));
-		printf("syslog.level        %s\n", cw_cfg_get(&config, "syslog.level"));
-		printf("security.strict     %s\n", cw_cfg_get(&config, "security.strict"));
-		printf("security.trusted    %s\n", cw_cfg_get(&config, "security.trusted"));
-		printf("security.cert       %s\n", cw_cfg_get(&config, "security.cert"));
-		printf("pidfile             %s\n", cw_cfg_get(&config, "pidfile"));
+		printf("listen              %s\n", config_get(&config, "listen"));
+		printf("ccache.connections  %s\n", config_get(&config, "ccache.connections"));
+		printf("ccache.expiration   %s\n", config_get(&config, "ccache.expiration"));
+		printf("manifest            %s\n", config_get(&config, "manifest"));
+		printf("copydown            %s\n", config_get(&config, "copydown"));
+		printf("syslog.ident        %s\n", config_get(&config, "syslog.ident"));
+		printf("syslog.facility     %s\n", config_get(&config, "syslog.facility"));
+		printf("syslog.level        %s\n", config_get(&config, "syslog.level"));
+		printf("security.strict     %s\n", config_get(&config, "security.strict"));
+		printf("security.trusted    %s\n", config_get(&config, "security.trusted"));
+		printf("security.cert       %s\n", config_get(&config, "security.cert"));
+		printf("pidfile             %s\n", config_get(&config, "pidfile"));
 		exit(0);
 	}
 
 
-	s->cert = cw_cert_read(cw_cfg_get(&config, "security.cert"));
+	s->cert = cert_read(config_get(&config, "security.cert"));
 	if (!s->cert) {
-		cw_log(LOG_ERR, "%s: %s", cw_cfg_get(&config, "security.cert"),
+		logger(LOG_ERR, "%s: %s", config_get(&config, "security.cert"),
 			errno == EINVAL ? "Invalid Clockwork certificate" : strerror(errno));
 		exit(1);
 	}
 	if (!s->cert->seckey) {
-		cw_log(LOG_ERR, "%s: No secret key found in certificate",
-			cw_cfg_get(&config, "security.cert"));
+		logger(LOG_ERR, "%s: No secret key found in certificate",
+			config_get(&config, "security.cert"));
 		exit(1);
 	}
 	if (!s->cert->ident) {
-		cw_log(LOG_ERR, "%s: No identity found in certificate",
-			cw_cfg_get(&config, "security.cert"));
+		logger(LOG_ERR, "%s: No identity found in certificate",
+			config_get(&config, "security.cert"));
 		exit(1);
 	}
 
-	s->tdb = cw_trustdb_read(cw_cfg_get(&config, "security.trusted"));
-	if (!s->tdb) s->tdb = cw_trustdb_new();
-	s->tdb->verify = strcmp(cw_cfg_get(&config, "security.strict"), "no");
-	cw_log(LOG_DEBUG, "%s certificate verification",
+	s->tdb = trustdb_read(config_get(&config, "security.trusted"));
+	if (!s->tdb) s->tdb = trustdb_new();
+	s->tdb->verify = strcmp(config_get(&config, "security.strict"), "no");
+	logger(LOG_DEBUG, "%s certificate verification",
 		s->tdb->verify ? "Enabling" : "Disabling");
 
-	s->copydown = strdup(cw_cfg_get(&config, "copydown"));
-	s->manifest = parse_file(cw_cfg_get(&config, "manifest"));
+	s->copydown = strdup(config_get(&config, "copydown"));
+	s->manifest = parse_file(config_get(&config, "manifest"));
 	if (!s->manifest) {
 		if (errno)
-			cw_log(LOG_CRIT, "Failed to parse %s: %s",
-				cw_cfg_get(&config, "manifest"), strerror(errno));
+			logger(LOG_CRIT, "Failed to parse %s: %s",
+				config_get(&config, "manifest"), strerror(errno));
 		exit(1);
 	}
 	if (s->mode == MODE_TEST) {
@@ -717,46 +711,46 @@ static inline server_t *s_server_new(int argc, char **argv)
 	}
 
 	if (s->daemonize)
-		cw_daemonize(cw_cfg_get(&config, "pidfile"), "root", "root");
-	s->clients = cw_cache_new(atoi(cw_cfg_get(&config, "ccache.connections")),
-	                          atoi(cw_cfg_get(&config, "ccache.expiration")));
+		daemonize(config_get(&config, "pidfile"), "root", "root");
+	s->clients = cache_new(atoi(config_get(&config, "ccache.connections")),
+	                       atoi(config_get(&config, "ccache.expiration")));
 	s->clients->destroy_f = s_client_destroy;
 
 
 	s->zmq = zmq_ctx_new();
-	s->zap = cw_zap_startup(s->zmq, s->tdb);
+	s->zap = zap_startup(s->zmq, s->tdb);
 
-	t = cw_string("tcp://%s", cw_cfg_get(&config, "listen"));
-	cw_log(LOG_DEBUG, "binding to %s", t);
+	t = string("tcp://%s", config_get(&config, "listen"));
+	logger(LOG_DEBUG, "binding to %s", t);
 	s->listener = zmq_socket(s->zmq, ZMQ_ROUTER);
 
 	int rc, optval = 1;
-	cw_log(LOG_DEBUG, "Setting ZMQ_CURVE_SERVER to %i", optval);
+	logger(LOG_DEBUG, "Setting ZMQ_CURVE_SERVER to %i", optval);
 	rc = zmq_setsockopt(s->listener, ZMQ_CURVE_SERVER, &optval, sizeof(optval));
 	assert(rc == 0);
-	cw_log(LOG_DEBUG, "Setting ZMQ_CURVE_SECRETKEY (sec) to %s", s->cert->seckey_b16);
-	rc = zmq_setsockopt(s->listener, ZMQ_CURVE_SECRETKEY, cw_cert_secret(s->cert), 32);
+	logger(LOG_DEBUG, "Setting ZMQ_CURVE_SECRETKEY (sec) to %s", s->cert->seckey_b16);
+	rc = zmq_setsockopt(s->listener, ZMQ_CURVE_SECRETKEY, cert_secret(s->cert), 32);
 	assert(rc == 0);
 
 	rc = zmq_bind(s->listener, t);
 	assert(rc == 0);
 	free(t);
 
-	cw_cfg_done(&config);
+	config_done(&config);
 
-	cw_log(LOG_INFO, "clockd running");
+	logger(LOG_INFO, "clockd running");
 	return s;
 }
 
 static inline void s_server_destroy(server_t *s)
 {
-	cw_cache_free(s->clients);
+	cache_free(s->clients);
 	manifest_free(s->manifest);
-	cw_cert_destroy(s->cert);
-	cw_trustdb_destroy(s->tdb);
+	cert_free(s->cert);
+	trustdb_free(s->tdb);
 	free(s->copydown);
 
-	cw_zap_shutdown(s->zap);
+	zap_shutdown(s->zap);
 	zmq_ctx_destroy(s->zmq);
 
 	free(s);
@@ -773,41 +767,39 @@ int main(int argc, char **argv)
 	if (getenv("TEST_CLOCKD_BAIL_EARLY"))
 		exit(0);
 #endif
-	cw_sig_catch();
-	while (!cw_sig_interrupt()) {
-		cw_log(LOG_DEBUG, "awaiting inbound connection");
-		cw_pdu_t *pdu, *reply;
-		pdu = cw_pdu_recv(s->listener);
+	signal_handlers();
+	while (!signalled()) {
+		logger(LOG_DEBUG, "awaiting inbound connection");
+		pdu_t *pdu, *reply;
+		pdu = pdu_recv(s->listener);
 		if (!pdu) continue;
 
-		cw_log(LOG_DEBUG, "received inbound connection, checking for client details");
-		cw_cache_purge(s->clients, 0);
-		client_t *c = cw_cache_get(s->clients, pdu->client);
+		logger(LOG_DEBUG, "received inbound connection, checking for client details");
+		cache_purge(s->clients, 0);
+		client_t *c = cache_get(s->clients, pdu_peer(pdu));
 		if (!c) {
-			c = cw_alloc(sizeof(client_t));
-			c->id = strdup(pdu->client);
+			c = vmalloc(sizeof(client_t));
+			c->id = strdup(pdu_peer(pdu));
 
-			if (!cw_cache_set(s->clients, pdu->client, c)) {
-				cw_log(LOG_CRIT, "max connections reached!");
-				reply = cw_pdu_make(pdu->src, 2, "ERROR", "Server busy; try again later\n");
-				cw_pdu_send(s->listener, reply);
-				cw_pdu_destroy(pdu);
-				cw_pdu_destroy(reply);
+			if (!cache_set(s->clients, pdu_peer(pdu), c)) {
+				logger(LOG_CRIT, "max connections reached!");
+				reply = pdu_reply(pdu, "ERROR", 1, "Server busy; try again later\n");
+				pdu_send_and_free(reply, s->listener);
+				pdu_free(pdu);
 				s_client_destroy(c);
 				continue;
 			}
 		}
-		cw_log(LOG_DEBUG, "inbound connection for client %p", c);
+		logger(LOG_DEBUG, "inbound connection for client %p", c);
 
 		c->server = s;
 		c->event = s_pdu_event(pdu);
 		int rc = s_state_machine(c, pdu, &reply);
 		if (rc == 0) {
-			cw_log(LOG_DEBUG, "%s: fsm is now at %s [%i]", pdu->client, FSM_STATES[c->state], c->state);
-			cw_log(LOG_DEBUG, "%s: sending back a %s PDU", pdu->client, reply->type);
-			cw_pdu_send(s->listener, reply);
-			cw_pdu_destroy(pdu);
-			cw_pdu_destroy(reply);
+			logger(LOG_DEBUG, "%s: fsm is now at %s [%i]", pdu_peer(pdu), FSM_STATES[c->state], c->state);
+			logger(LOG_DEBUG, "%s: sending back a %s PDU", pdu_peer(pdu), reply->type);
+			pdu_send_and_free(reply, s->listener);
+			pdu_free(pdu);
 
 			if (c->mapped) {
 				munmap(c->mapped, c->maplen);
@@ -821,11 +813,10 @@ int main(int argc, char **argv)
 #endif
 
 		} else {
-			reply = cw_pdu_make(pdu->src, 2, "ERROR", FSM_ERRORS[c->error]);
-			cw_log(LOG_DEBUG, "%s: sending back an ERROR PDU: %s", pdu->client, FSM_ERRORS[c->error]);
-			cw_pdu_send(s->listener, reply);
-			cw_pdu_destroy(pdu);
-			cw_pdu_destroy(reply);
+			reply = pdu_reply(pdu, "ERROR", 1, FSM_ERRORS[c->error]);
+			logger(LOG_DEBUG, "%s: sending back an ERROR PDU: %s", pdu_peer(pdu), FSM_ERRORS[c->error]);
+			pdu_send_and_free(reply, s->listener);
+			pdu_free(pdu);
 
 #ifdef UNIT_TESTS
 			goto unit_tests_finished;
@@ -836,11 +827,11 @@ int main(int argc, char **argv)
 #ifdef UNIT_TESTS
 unit_tests_finished:
 #endif
-	cw_log(LOG_INFO, "shutting down");
+	logger(LOG_INFO, "shutting down");
 
-	cw_zmq_shutdown(s->listener, 500);
+	vzmq_shutdown(s->listener, 500);
 	s_server_destroy(s);
 
-	cw_log_close();
+	log_close();
 	return 0;
 }

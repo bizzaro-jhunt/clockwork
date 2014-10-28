@@ -17,7 +17,7 @@
   along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "../src/cw.h"
+#include "../src/base.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -25,10 +25,10 @@
 
 int main(int argc, char **argv)
 {
-	cw_proc_t ps;
+	proc_t ps;
 	pid_t pid = (argc == 2 ? atoi(argv[1]) : getpid());
-	if (cw_proc_stat(pid, &ps) != 0) {
-		printf("cw_proc_stat(%u) failed: %m", pid);
+	if (proc_stat(pid, &ps) != 0) {
+		printf("proc_stat(%u) failed: %m", pid);
 		exit(1);
 	}
 

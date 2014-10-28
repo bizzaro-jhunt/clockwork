@@ -70,27 +70,27 @@ TESTS {
 
 	subtest {
 		struct res_symlink *r;
-		cw_hash_t *h;
+		hash_t *h;
 
-		isnt_null(h = cw_alloc(sizeof(cw_hash_t)), "created hash");
+		isnt_null(h = vmalloc(sizeof(hash_t)), "created hash");
 		isnt_null(r = res_symlink_new("/etc/sudoers"), "created symlink resource");
 
 		ok(res_symlink_attrs(r, h) == 0, "got raw symlink attrs");
-		is_string(cw_hash_get(h, "path"),    "/etc/sudoers", "h.path");
-		is_string(cw_hash_get(h, "present"), "yes",          "h.present"); // default
+		is_string(hash_get(h, "path"),    "/etc/sudoers", "h.path");
+		is_string(hash_get(h, "present"), "yes",          "h.present"); // default
 
 		res_symlink_set(r, "present", "no");
 		res_symlink_set(r, "target", "/srv/tpl/sudo");
 
 		ok(res_symlink_attrs(r, h) == 0, "got raw symlink attrs");
-		is_string(cw_hash_get(h, "target"), "/srv/tpl/sudo", "h.target");
-		is_string(cw_hash_get(h, "present"),  "no",          "h.present");
+		is_string(hash_get(h, "target"), "/srv/tpl/sudo", "h.target");
+		is_string(hash_get(h, "present"),  "no",          "h.present");
 
 		ok(res_symlink_set(r, "xyzzy", "bad") != 0, "xyzzy is not a valid attr");
 		ok(res_symlink_attrs(r, h) == 0, "got raw symlink attrs");
-		is_null(cw_hash_get(h, "xyzzy"), "h.xyzzy is unset");
+		is_null(hash_get(h, "xyzzy"), "h.xyzzy is unset");
 
-		cw_hash_done(h, 1);
+		hash_done(h, 1);
 		free(h);
 		res_symlink_free(r);
 	}

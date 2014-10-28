@@ -19,7 +19,7 @@ Build-Depends: bison,
                libtest-simple-perl,
                libtext-diff-perl,
                libvigor0,
-               libvigor0-dev,
+               libvigor-dev,
                libzmq3-dev,
                pkg-config,
                uuid-dev

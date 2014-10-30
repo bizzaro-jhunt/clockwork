@@ -53,7 +53,9 @@ file_is "$TEMP/putfile", "0\n", "FS.PUT wrote the file";
 
 unlink "$TEMP/link";
 pendulum_ok "$TESTS/symlink.pn", <<EOF, "symlink.pn";
-OK
+OK - symlink created
+OK - read symlink
+target:decafbad
 EOF
 
 ok -l "$TEMP/link", "symlink created";

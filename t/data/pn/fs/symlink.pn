@@ -6,5 +6,10 @@
 SET %A "t/tmp/pn/fs/link"
 SET %B "decafbad"
 CALL &FS.SYMLINK
-PRINT "OK\n"
+PRINT "OK - symlink created\n"
+
+CALL &FS.READLINK
+PRINT "OK - read symlink\n"
+COPY %S2 %A
+PRINT "target:%s\n"
 HALT

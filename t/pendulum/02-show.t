@@ -5,7 +5,7 @@ use warnings;
 use Test::More;
 use t::common;
 
-my $CW_VERSION = "2.4.0";
+my $CW_VERSION = "2.4.1";
 my $CW_RUNTIME = "1";
 
 my $TESTS = "t/tmp/data/pn/show";

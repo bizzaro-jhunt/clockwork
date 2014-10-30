@@ -491,6 +491,26 @@ static pn_word uf_fs_symlink(pn_machine *m)
 	return symlink((const char *)m->B, (const char *)m->A) == 0 ? 0 : 1;
 }
 
+static pn_word uf_fs_readlink(pn_machine *m)
+{
+	pn_trace(m, "FS.READLINK %s\n", (const char *)m->A);
+
+	struct stat st;
+	if (lstat((const char *)m->A, &st) == -1) return 1;
+
+	char *target = vmalloc(st.st_size + 1);
+
+	size_t n = readlink((const char *)m->A, target, st.st_size + 1);
+	if (n > st.st_size) {
+		free(target);
+		return 1;
+	}
+	target[n] = '\0';
+	pn_heap_add(m, target);
+	m->S2 = (pn_word)target;
+	return 0;
+}
+
 static pn_word uf_fs_link(pn_machine *m)
 {
 	if (uf_fs_exists(m) == 0) return 1;
@@ -2105,6 +2125,7 @@ int pendulum_init(pn_machine *m, void *zconn)
 	pn_func(m,  "FS.PUT",             uf_fs_put);
 	pn_func(m,  "FS.GET",             uf_fs_get);
 	pn_func(m,  "FS.SYMLINK",         uf_fs_symlink);
+	pn_func(m,  "FS.READLINK",        uf_fs_readlink);
 	pn_func(m,  "FS.HARDLINK",        uf_fs_link);
 	pn_func(m,  "FS.COPY_R",          uf_fs_copy_r);
 

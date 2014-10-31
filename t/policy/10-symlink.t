@@ -36,6 +36,14 @@ NOTOK? @create.1
     ERROR "%s exists, but is not a symlink\n"
     JUMP @next.1
   islink.1:
+  CALL &FS.READLINK
+  OK? @readlink.1
+    ERROR "%s: failed to read symlink\n"
+    JUMP @next.1
+  readlink.1
+  COPY %B %T1
+  COPY %S2 %T2
+  CMP? @next.1
   CALL &FS.UNLINK
 CALL &FS.EXISTS?
 NOTOK? @create.1
@@ -62,6 +70,14 @@ NOTOK? @create.1
     ERROR "%s exists, but is not a symlink\n"
     JUMP @next.1
   islink.1:
+  CALL &FS.READLINK
+  OK? @readlink.1
+    ERROR "%s: failed to read symlink\n"
+    JUMP @next.1
+  readlink.1
+  COPY %B %T1
+  COPY %S2 %T2
+  CMP? @next.1
   CALL &FS.UNLINK
 CALL &FS.EXISTS?
 NOTOK? @create.1

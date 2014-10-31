@@ -1019,7 +1019,7 @@ int res_symlink_gencode(const void *res, FILE *io, unsigned int next, unsigned i
 	fprintf(io, "  OK? @readlink.%u\n", next);
 	fprintf(io, "    ERROR \"%%s: failed to read symlink\\n\"\n");
 	fprintf(io, "    JUMP @next.%u\n", next);
-	fprintf(io, "  readlink.%u\n", next);
+	fprintf(io, "  readlink.%u:\n", next);
 	fprintf(io, "  COPY %%B %%T1\n");
 	fprintf(io, "  COPY %%S2 %%T2\n");
 	fprintf(io, "  CMP? @next.%u\n", next);

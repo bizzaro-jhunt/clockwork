@@ -40,7 +40,7 @@ NOTOK? @create.1
   OK? @readlink.1
     ERROR "%s: failed to read symlink\n"
     JUMP @next.1
-  readlink.1
+  readlink.1:
   COPY %B %T1
   COPY %S2 %T2
   CMP? @next.1
@@ -74,7 +74,7 @@ NOTOK? @create.1
   OK? @readlink.1
     ERROR "%s: failed to read symlink\n"
     JUMP @next.1
-  readlink.1
+  readlink.1:
   COPY %B %T1
   COPY %S2 %T2
   CMP? @next.1

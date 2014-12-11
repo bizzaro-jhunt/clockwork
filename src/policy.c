@@ -329,6 +329,8 @@ static int _manifest_validate(struct stree *node)
 	case ACL:
 	case ACL_SUBJECT:
 	case ACL_COMMAND:
+	case LOCAL_DEP:
+	case LOCAL_REVDEP:
 		for (i = 0; i < node->size; i++)
 			if (_manifest_validate(node->nodes[i]) != 0)
 				return 1;
@@ -813,6 +815,46 @@ again:
 
 		policy_add_dependency(pgen->policy, pgen->dep);
 		return 0; /* don't need to traverse the RESOURCE_ID nodes */
+
+	case LOCAL_DEP:
+		if (node->size != 1) {
+			logger(LOG_ERR, "Corrupt dependency: %u constituent(s)", node->size);
+			return -1;
+		}
+
+		if (pgen->res) {
+			dep.a = pgen->res->key;
+			dep.b = string("%s:%s", node->nodes[0]->data1, node->nodes[0]->data2);
+			pgen->dep = dependency_new(dep.a, dep.b);
+			free(dep.b);
+
+			policy_add_dependency(pgen->policy, pgen->dep);
+
+		} else {
+			logger(LOG_WARNING, "Forward dependency on %s(%s) defined for unknown type",
+			       node->nodes[0]->data1, node->nodes[0]->data2);
+		}
+		return 0; /* don't need to traverse the RESOURCE_ID node */
+
+	case LOCAL_REVDEP:
+		if (node->size != 1) {
+			logger(LOG_ERR, "Corrupt dependency: %u constituent(s)", node->size);
+			return -1;
+		}
+
+		if (pgen->res) {
+			dep.a = string("%s:%s", node->nodes[0]->data1, node->nodes[0]->data2);
+			dep.b = pgen->res->key;
+			pgen->dep = dependency_new(dep.a, dep.b);
+			free(dep.a);
+
+			policy_add_dependency(pgen->policy, pgen->dep);
+
+		} else {
+			logger(LOG_WARNING, "Reverse dependency on %s(%s) defined for unknown type",
+			       node->nodes[0]->data1, node->nodes[0]->data2);
+		}
+		return 0; /* don't need to traverse the RESOURCE_ID node */
 
 	case ACL:
 		if (node->size != 2) {

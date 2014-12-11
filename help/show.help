@@ -21,10 +21,16 @@ INVOCATION
    Lists defined hosts.
 
  show resources
-   Lists the resources defined in a policy or a host.
+   Lists the resources defined in a policy or a host.  Resources will
+   be printed in ascending alphabetical order.
    (This command only makes sense after a successful 'use' command.)
 
-show <resource-type> <name>
+ show order
+   Like `show resources`, except that the resources are printed in the
+   order that they would be enforced, based on dependencies.
+   (This command only makes sense after a successful 'use' command.)
+
+ show <resource-type> <name>
    Show the details of a specific resource defined for a policy or host.
 
    <resource-type> should be a type name, like "user" or "file"

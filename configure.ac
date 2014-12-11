@@ -6,7 +6,7 @@ AC_PREREQ(2.68)
 
 # DONT FORGET: change t/pendulum/02-show.t
 #              whenever the version changes!!
-AC_INIT([Clockwork], [2.4.2], [bugs@niftylogic.com])
+AC_INIT([Clockwork], [2.4.3], [bugs@niftylogic.com])
 
 ################################################
 

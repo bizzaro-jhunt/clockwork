@@ -50,9 +50,12 @@ static const char *OP_NAMES[] = {
 	"ACL",
 	"ACL_SUBJECT",
 	"ACL_COMMAND",
+
+	"LOCAL_DEP",
+	"LOCAL_REVDEP",
 	NULL
 };
-#define MAX_OP ACL_COMMAND
+#define MAX_OP LOCAL_REVDEP
 
 #define REDUNDANT_NODE(n) (((n)->op == PROG || (n)->op == NOOP) && (n)->size == 1)
 

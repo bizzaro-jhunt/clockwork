@@ -284,6 +284,12 @@ attribute: T_IDENTIFIER ':' literal_value
 			free($1);
 			free($3);
 		}
+	| T_KEYWORD_DEPENDS_ON resource_id
+		{ $$ = NODE(LOCAL_DEP, NULL, NULL);
+		  stree_add($$, $2); }
+	| T_KEYWORD_AFFECTS    resource_id
+		{ $$ = NODE(LOCAL_REVDEP, NULL, NULL);
+		  stree_add($$, $2); }
 	;
 
 literal_value: qstring | T_NUMERIC

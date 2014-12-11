@@ -61,7 +61,7 @@ static void show_fact(const char *name);
 static void show_hosts(void);
 static void show_policies(void);
 static void show_acls(void);
-static void show_resources(void);
+static void show_resources(int sorted);
 static void show_resource(const char *type, const char *name);
 
 #define COMMAND(x) static int command_ ## x (struct cwsh_opts *o, struct command *c, int interactive)
@@ -292,7 +292,16 @@ COMMAND(show)
 			return 0;
 		}
 
-		show_resources();
+		show_resources(1);
+
+	} else if (c->argc == 1 && strcmp(type, "order") == 0) {
+		if (!CONTEXT.root) {
+			logger(LOG_ERR, "Invalid referential context");
+			logger(LOG_INFO, "Select a host or policy through the 'use' command");
+			return 0;
+		}
+
+		show_resources(0);
 
 	} else if (c->argc == 2) {
 		if (!CONTEXT.root) {
@@ -656,7 +665,7 @@ static void show_acls(void)
 	}
 }
 
-static void show_resources(void)
+static void show_resources(int sorted)
 {
 	strings_t *list;
 	struct resource *r;
@@ -678,7 +687,7 @@ static void show_resources(void)
 		return;
 	}
 
-	strings_sort(list, STRINGS_ASC);
+	if (sorted) strings_sort(list, STRINGS_ASC);
 	for_each_string(list, i) {
 		strncpy(type, slv(list,i), 255); type[255] = '\0';
 

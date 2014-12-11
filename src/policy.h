@@ -50,6 +50,9 @@ enum oper {
 	ACL,
 	ACL_SUBJECT,
 	ACL_COMMAND,
+
+	LOCAL_DEP,
+	LOCAL_REVDEP
 };
 
 /**

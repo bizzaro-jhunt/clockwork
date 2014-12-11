@@ -721,6 +721,27 @@ The two types of dependencies (B<depends on> and B<affects>)
 illustrate the same concept, represented in complementary ways.
 "A depends on B" is quivalent to "B affects A".
 
+To save on typing, you can embed dependency declarations directly
+in the resource definition.  Consider this interpretation of the
+previous example:
+
+    file "/etc/foo.conf" {
+        owner:  "root"
+        group:  "root"
+        mode:   0644
+        source: "/files/foo.conf"
+
+        depends on package("foo-server")
+        affects service("foo")
+    }
+    package "foo-server" {
+        version: "1.2.5"
+    }
+    service "foo" {
+        running: "yes"
+        enabled: "yes"
+    }
+
 Dependencies are activated differently by different resources.
 Refer to the resource-specific man pages for more information.
 

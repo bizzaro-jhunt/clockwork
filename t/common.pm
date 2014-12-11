@@ -11,6 +11,7 @@ our @EXPORT_OK = qw/
 	gencode_ok
 	cw_shell_ok
 	resources_ok
+	dependencies_ok
 	pendulum_ok
 	bdfa_ok
 	command_ok
@@ -178,8 +179,10 @@ EOF
 	return 1;
 }
 
-sub cw_shell_ok
+sub _cw_shell_ok
 {
+	local $Test::Builder::Level = $Test::Builder::Level + 1;
+
 	my ($commands, $expect, $message, %opts) = @_;
 	$message ||= "cw shell run ok";
 	$opts{timeout} ||= 5;
@@ -248,74 +251,21 @@ sub cw_shell_ok
 	return 1;
 }
 
+sub cw_shell_ok
+{
+	_cw_shell_ok(@_);
+}
+
 sub resources_ok
 {
-	my ($commands, $expect, $message, %opts) = @_;
-	$message ||= "cw shell run ok";
-	$opts{timeout} ||= 5;
+	my ($commands, @rest) = @_;
+	_cw_shell_ok("$commands; show resources", @rest);
+}
 
-	my $stdout = tempfile;
-	my $stderr = tempfile;
-
-	my $pid = fork;
-	$T->BAIL_OUT("Failed to fork for cw shell run: $!") if $pid < 0;
-	if ($pid == 0) {
-		open STDOUT, ">&", $stdout
-			or die "Failed to reopen stdout: $!\n";
-		open STDERR, ">&", $stderr
-			or die "Failed to reopen stderr: $!\n";
-		exec $CWSH, '-qvv', '-f', $FACTS, $MANIFEST, '-e', "$commands; show resources"
-			or die "Failed to exec $CWSH: $!\n";
-	}
-
-	local $SIG{ALRM} = sub { die "timed out\n" };
-	alarm($opts{timeout});
-	eval {
-		waitpid $pid, 0;
-		alarm 0;
-	};
-	alarm 0;
-	if ($@) {
-		if ($@ =~ m/^timed out/) {
-			kill 9, $pid;
-			$T->ok(0, "$message: timed out running $CWSH");
-			return 0;
-		}
-		$T->ok(0, "$message: exception raised - $@");
-		return 0;
-	}
-
-	my $rc = $? >> 8;
-
-	seek $stdout, 0, 0;
-	my $actual = do { local $/; <$stdout> };
-
-	seek $stderr, 0, 0;
-	my $errors = do { local $/; <$stderr> };
-
-	if ($rc != 0) {
-		$T->ok(0, "$message: $commands returned non-zero exit code $rc");
-		$T->diag("standard error output was:\n$errors") if $errors;
-		return 0;
-	}
-	$T->diag("standard error output was:\n$errors") if $errors;
-
-	my $diff = diff \$actual, \$expect, {
-		FILENAME_A => 'actual-output',    MTIME_A => time,
-		FILENAME_B => 'expected-output',  MTIME_B => time,
-		STYLE      => 'Unified',
-		CONTEXT    => 8
-	};
-
-	if ($diff) {
-		$T->ok(0, $message);
-		$T->diag("differences follow:\n$diff");
-		$T->diag("standard error output was:\n$errors") if $errors;
-		return 0;
-	}
-
-	$T->ok(1, $message);
-	return 1;
+sub dependencies_ok
+{
+	my ($commands, @rest) = @_;
+	_cw_shell_ok("$commands; show order", @rest);
 }
 
 sub pendulum_ok

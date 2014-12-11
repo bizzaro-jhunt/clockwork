@@ -370,6 +370,40 @@ policy "deps3" {
 }
 host "deps3.host" { enforce "deps3" }
 
+policy "deps4" {
+	package "base" { }
+	service "serviced" {
+		running: "yes"
+		enabled: "yes"
+
+	}
+	file "/etc/base.conf" {
+		source: "/files/$path"
+	}
+
+	service("serviced") depends on package("base")
+	file("/etc/base.conf") depends on package("base")
+	file("/etc/base.conf") affects service("serviced")
+}
+host "deps4.host" { enforce "deps4" }
+
+policy "deps5" {
+	package "base" { }
+	service "serviced" {
+		running: "yes"
+		enabled: "yes"
+
+		depends on package("base")
+	}
+	file "/etc/base.conf" {
+		source: "/files/$path"
+
+		depends on package("base")
+		affects service("serviced")
+	}
+}
+host "deps5.host" { enforce "deps5" }
+
 ####################################################
 ####################################################
 

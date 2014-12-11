@@ -110,5 +110,16 @@ resources_ok "use host deps3.host", <<'EOF', "dangling dependency subject doesn'
   package test
 EOF
 
+dependencies_ok "use host deps4.host", <<'EOF', "explicit external depends on / affects";
+  package base
+     file /etc/base.conf
+  service serviced
+EOF
+
+dependencies_ok "use host deps5.host", <<'EOF', "explicit internal depends on / affects";
+  package base
+     file /etc/base.conf
+  service serviced
+EOF
 
 done_testing;

@@ -43,6 +43,8 @@
 #define PROTOCOL_VERSION_STRING "1"
 
 #define DEFAULT_CONFIG_FILE "/etc/clockwork/cogd.conf"
+#define MINIMUM_INTERVAL 30
+#define MINIMUM_TIMEOUT  5
 
 typedef struct {
 	void *zmq;
@@ -733,10 +735,27 @@ static inline client_t* s_client_new(int argc, char **argv)
 	c->gatherers = strdup(config_get(&config, "gatherers"));
 	c->copydown  = strdup(config_get(&config, "copydown"));
 	c->difftool  = strdup(config_get(&config, "difftool"));
-	c->schedule.interval  = 1000 * atoi(config_get(&config, "interval"));
-	c->timeout            = 1000 * atoi(config_get(&config, "timeout"));
+	c->schedule.interval  = atoi(config_get(&config, "interval"));
+	c->timeout            = atoi(config_get(&config, "timeout"));
 	c->acl_default = strcmp(config_get(&config, "acl.default"), "deny") == 0
 		? ACL_DENY : ACL_ALLOW;
+
+	/* enforce sane defaults, in case we screwed up the config */
+	if (c->schedule.interval <= MINIMUM_INTERVAL) {
+		logger(LOG_WARNING, "invalid interval value %i detected; "
+		                    "falling back to sane default (%i)",
+		                    c->schedule.interval, MINIMUM_INTERVAL);
+		c->schedule.interval = MINIMUM_INTERVAL;
+	}
+	if (c->timeout <= MINIMUM_TIMEOUT) {
+		logger(LOG_WARNING, "invalid timeout value %i detected; "
+		                    "falling back to sane default (%i)",
+		                    c->timeout, MINIMUM_TIMEOUT);
+		c->timeout = MINIMUM_TIMEOUT;
+	}
+
+	c->schedule.interval *= 1000;
+	c->timeout           *= 1000;
 
 	unsetenv("COGD");
 	if (c->daemonize) {

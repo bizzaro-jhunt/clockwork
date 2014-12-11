@@ -741,13 +741,13 @@ static inline client_t* s_client_new(int argc, char **argv)
 		? ACL_DENY : ACL_ALLOW;
 
 	/* enforce sane defaults, in case we screwed up the config */
-	if (c->schedule.interval <= MINIMUM_INTERVAL) {
+	if (c->schedule.interval < MINIMUM_INTERVAL) {
 		logger(LOG_WARNING, "invalid interval value %i detected; "
 		                    "falling back to sane default (%i)",
 		                    c->schedule.interval, MINIMUM_INTERVAL);
 		c->schedule.interval = MINIMUM_INTERVAL;
 	}
-	if (c->timeout <= MINIMUM_TIMEOUT) {
+	if (c->timeout < MINIMUM_TIMEOUT) {
 		logger(LOG_WARNING, "invalid timeout value %i detected; "
 		                    "falling back to sane default (%i)",
 		                    c->timeout, MINIMUM_TIMEOUT);

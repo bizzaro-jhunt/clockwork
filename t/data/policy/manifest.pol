@@ -404,6 +404,20 @@ policy "deps5" {
 }
 host "deps5.host" { enforce "deps5" }
 
+policy "deps6" {
+	package "A" { depends on package("B") }
+	package "B" { depends on package("A") }
+}
+host "deps6.host" { enforce "deps6" }
+
+policy "deps7" {
+	package "A" { depends on package("B") }
+	package "B" { depends on package("C") }
+	package "C" { depends on package("D") }
+	package "D" { depends on package("A") }
+}
+host "deps7.host" { enforce "deps7" }
+
 ####################################################
 ####################################################
 

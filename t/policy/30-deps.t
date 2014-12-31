@@ -122,4 +122,16 @@ dependencies_ok "use host deps5.host", <<'EOF', "explicit internal depends on / 
   service serviced
 EOF
 
+resources_ok "use host deps6.host", <<'EOF', "circular dependency A -> B -> A doesn't crash";
+  package A
+  package B
+EOF
+
+resources_ok "use host deps7.host", <<'EOF', "circular dependency A -> B -> C -> D -> A doesn't crash";
+  package A
+  package B
+  package C
+  package D
+EOF
+
 done_testing;

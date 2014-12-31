@@ -243,8 +243,8 @@ static int _policy_normalize(struct policy *pol, hash_t *facts)
 	}
 
 	if (!list_isempty(&pol->resources)) {
-		logger(LOG_ERR, "Leftover resources after dependency resolution");
-		return -3;
+		logger(LOG_ERR, "Circular dependency detected!");
+		return 0;
 	}
 	list_replace(&deps, &pol->resources);
 

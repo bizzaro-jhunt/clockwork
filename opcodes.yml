@@ -59,12 +59,33 @@
     args:
       - [register, string, number]
 
-- cmp:
-    help: compare two integers
+- eq:
+    help: compare two integers for equality
     args:
       - [register, number]
       - [register, number]
-- strcmp:
+- lt:
+    help: check that operand 1 < operand 2
+    args:
+      - [register, number]
+      - [register, number]
+- lte:
+    help: check that operand 1 <= operand 2
+    args:
+      - [register, number]
+      - [register, number]
+- gt:
+    help: check that operand 1 > operand 2
+    args:
+      - [register, number]
+      - [register, number]
+- gte:
+    help: check that operand 1 >= operand 2
+    args:
+      - [register, number]
+      - [register, number]
+
+- streq:
     help: compare two strings
     args:
       - [register, string]
@@ -82,36 +103,6 @@
     help: jump if accumulator is not 0
     args:
       - [label]
-- je:
-    help: jump if accumulator is equal to first operand
-    args:
-      - [register, number]
-      - [label]
-- jne:
-    help: jump if accumulator is not equal to first operand
-    args:
-      - [register, number]
-      - [label]
-- jgt:
-    help: jump if accumulator is greater than first operand
-    args:
-      - [register, number]
-      - [label]
-- jgte:
-    help: jump if accumulator is greater than or equal to first operand
-    args:
-      - [register, number]
-      - [label]
-- jlt:
-    help: jump if accumulator is less than first operand
-    args:
-      - [register, number]
-      - [label]
-- jlte:
-    help: jump if accumulator is less than or equal to first operand
-    args:
-      - [register, number]
-      - [label]
 
 - str:
     help: format a (heap-allocated) string
@@ -119,11 +110,11 @@
       - [string, register]
       - [register]
 
-- echo:
+- print:
     help: print a message to standard output
     args:
       - [string]
-- err:
+- error:
     help: print an error
     args:
       - [string]

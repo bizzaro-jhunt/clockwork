@@ -41,6 +41,10 @@ int main (int argc, char **argv)
 		perror(argv[1]);
 		return 1;
 	}
+	if (n == 0) {
+		fprintf(stderr, "%s: not a valid pendulum binary image\n", argv[1]);
+		return 1;
+	}
 	byte_t *code = mmap(NULL, n, PROT_READ, MAP_PRIVATE, fd, 0);
 	if (!code) {
 		perror(argv[1]);

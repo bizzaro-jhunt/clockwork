@@ -60,8 +60,9 @@ for my $op (@$lst) {
 		$o->{constant} =~ s/\./_/g;
 		$o->{constant} =~ s/\?$/_P/g;
 	}
-
-	$o->{opcode} = uc($o->{alias} || $o->{constant});
+	$o->{constant} = "OP_".$o->{constant};
+	$o->{alias} = uc("OP_".$o->{alias}) if $o->{alias};
+	$o->{opcode} = $o->{alias} || $o->{constant};
 
 	my ($name, $flags);
 	my $usage;
@@ -112,7 +113,7 @@ print "/** ASM TOKENS **/\n";
 $n = 0x40;
 for my $op (@$lst) {
 	my ($key, $o) = %$op;
-	printf "#define T_OPCODE_%-${len}s  %#04x  /* %s */\n", $o->{constant}, $n++, $o->{help};
+	printf "#define T_%-${len}s  %#04x  /* %s */\n", $o->{constant}, $n++, $o->{help};
 }
 
 print "\n\n";
@@ -120,7 +121,7 @@ print "static const char * ASM[] = {\n";
 $n = 0;
 for my $op (@$lst) {
 	my ($key, $o) = %$op;
-	printf qq(\t%-@{[$len+3]}s /* T_OPCODE_%-${len}s  %2i  %#04x */\n), qq("$key",), $o->{constant}, $n, $n;
+	printf qq(\t%-@{[$len+3]}s /* T_%-${len}s  %2i  %#04x */\n), qq("$key",), $o->{constant}, $n, $n;
 	$n++;
 }
 print "\tNULL,\n";
@@ -144,7 +145,7 @@ EOF
 
 for my $op (@$lst) {
 	my ($key, $o) = %$op;
-	column "T_OPCODE_$o->{constant}", qq("$o->{usage}"), $o->{opcode}, $o->{args}[0], $o->{args}[1];
+	column "T_$o->{constant}", qq("$o->{usage}"), $o->{opcode}, $o->{args}[0], $o->{args}[1];
 }
 table "\t{ %s %s %s { %s %s } },\n";
 print "\t{ 0, 0, 0, { 0, 0 } },\n";

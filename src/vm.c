@@ -221,6 +221,7 @@ static char *_sprintf(vm_t *vm, const char *fmt)
 			ADVANCE;
 			if (*b == '%') {
 				n++;
+				ADVANCE;
 				continue;
 			}
 			if (*b != '[') {
@@ -272,9 +273,10 @@ static char *_sprintf(vm_t *vm, const char *fmt)
 	while (*b) {
 		if (*b == '%') {
 			if (*(b+1) == '%') { /* %% == % */
-				*++b = '\0';
-				a = ++b;
 				*s++ = '%';
+				ADVANCE;
+				ADVANCE;
+				a = b;
 				continue;
 			}
 			*b = '\0';
@@ -413,10 +415,10 @@ int vm_exec(vm_t *vm)
 		}
 
 		switch (op) {
-		case NOOP:
+		case OP_NOOP:
 			break;
 
-		case PUSH:
+		case OP_PUSH:
 			ARG1("push");
 			if (!is_register(f1))
 				B_ERR("push requires a register index for operand 1");
@@ -426,7 +428,7 @@ int vm_exec(vm_t *vm)
 			s_push(&vm->dstack, vm->r[oper1]);
 			break;
 
-		case POP:
+		case OP_POP:
 			ARG1("pop");
 			if (!is_register(f1))
 				B_ERR("pop requires a register index for operand 1");
@@ -436,7 +438,7 @@ int vm_exec(vm_t *vm)
 			vm->r[oper1] = s_pop(&vm->dstack);
 			break;
 
-		case SET:
+		case OP_SET:
 			ARG2("set");
 			if (!is_register(f1))
 				B_ERR("set requires a register index for operand 1");
@@ -446,7 +448,7 @@ int vm_exec(vm_t *vm)
 			vm->r[oper1] = s_val(vm, f2, oper2);
 			break;
 
-		case SWAP:
+		case OP_SWAP:
 			ARG2("swap");
 			if (!is_register(f1))
 				B_ERR("swap requires a register index for operand 1");
@@ -466,7 +468,7 @@ int vm_exec(vm_t *vm)
 			vm->r[oper1] ^= vm->r[oper2];
 			break;
 
-		case ADD:
+		case OP_ADD:
 			ARG2("add");
 			if (!is_register(f1))
 				B_ERR("add requires a register index for operand 1");
@@ -476,7 +478,7 @@ int vm_exec(vm_t *vm)
 			vm->r[oper1] += s_val(vm, f2, oper2);
 			break;
 
-		case SUB:
+		case OP_SUB:
 			ARG2("sub");
 			if (!is_register(f1))
 				B_ERR("sub requires a register index for operand 1");
@@ -486,7 +488,7 @@ int vm_exec(vm_t *vm)
 			vm->r[oper1] -= s_val(vm, f2, oper2);
 			break;
 
-		case MULT:
+		case OP_MULT:
 			ARG2("mult");
 			if (!is_register(f1))
 				B_ERR("mult requires a register index for operand 1");
@@ -496,7 +498,7 @@ int vm_exec(vm_t *vm)
 			vm->r[oper1] *= s_val(vm, f2, oper2);
 			break;
 
-		case DIV:
+		case OP_DIV:
 			ARG2("div");
 			if (!is_register(f1))
 				B_ERR("div requires a register index for operand 1");
@@ -506,7 +508,7 @@ int vm_exec(vm_t *vm)
 			vm->r[oper1] /= s_val(vm, f2, oper2);
 			break;
 
-		case MOD:
+		case OP_MOD:
 			ARG2("mod");
 			if (!is_register(f1))
 				B_ERR("mod requires a register index for operand 1");
@@ -516,7 +518,7 @@ int vm_exec(vm_t *vm)
 			vm->r[oper1] %= s_val(vm, f2, oper2);
 			break;
 
-		case CALL:
+		case OP_CALL:
 			ARG1("call");
 			if (!is_address(f1))
 				B_ERR("call requires an address for operand 1");
@@ -526,7 +528,7 @@ int vm_exec(vm_t *vm)
 			vm->pc = oper1;
 			break;
 
-		case RET:
+		case OP_RET:
 			if (f1) {
 				ARG1("ret");
 				vm->acc = s_val(vm, f1, oper1);
@@ -539,68 +541,52 @@ int vm_exec(vm_t *vm)
 			s_restore_state(vm);
 			break;
 
-		case CMP:
-			ARG2("cmp");
-			vm->acc = s_val(vm, f1, oper1) - s_val(vm, f2, oper2);
+		case OP_EQ:
+			ARG2("eq");
+			vm->acc = (s_val(vm, f1, oper1) == s_val(vm, f2, oper2)) ? 0 : 1;
 			break;
 
-		case STRCMP:
-			ARG2("strcmp");
-			vm->acc = strcmp(s_str(vm, f1, oper1), s_str(vm, f1, oper2));
+		case OP_GT:
+			ARG2("gt");
+			vm->acc = (s_val(vm, f1, oper1) >  s_val(vm, f2, oper2)) ? 0 : 1;
 			break;
 
-		case JMP:
+		case OP_GTE:
+			ARG2("gte");
+			vm->acc = (s_val(vm, f1, oper1) >= s_val(vm, f2, oper2)) ? 0 : 1;
+			break;
+
+		case OP_LT:
+			ARG2("lt");
+			vm->acc = (s_val(vm, f1, oper1) <  s_val(vm, f2, oper2)) ? 0 : 1;
+			break;
+
+		case OP_LTE:
+			ARG2("lte");
+			vm->acc = (s_val(vm, f1, oper1) <= s_val(vm, f2, oper2)) ? 0 : 1;
+			break;
+
+		case OP_STREQ:
+			ARG2("streq");
+			vm->acc = strcmp(s_str(vm, f1, oper1), s_str(vm, f2, oper2)) == 0 ? 0 : 1;
+			break;
+
+		case OP_JMP:
 			ARG1("jmp");
 			vm->pc = oper1;
 			break;
 
-		case JZ:
+		case OP_JZ:
 			ARG1("jz");
 			if (vm->acc == 0) vm->pc = s_val(vm, f1, oper1);
 			break;
 
-		case JNZ:
+		case OP_JNZ:
 			ARG1("jnz");
 			if (vm->acc != 0) vm->pc = s_val(vm, f1, oper1);
 			break;
 
-		case JE:
-			ARG2("je");
-			if (vm->acc == s_val(vm, f1, oper1))
-				vm->pc = s_val(vm, f2, oper2);
-			break;
-
-		case JNE:
-			ARG2("jne");
-			if (vm->acc != s_val(vm, f1, oper1))
-				vm->pc = s_val(vm, f2, oper2);
-			break;
-
-		case JGT:
-			ARG2("jgt");
-			if (vm->acc > s_val(vm, f1, oper1))
-				vm->pc = s_val(vm, f2, oper2);
-			break;
-
-		case JGTE:
-			ARG2("jgte");
-			if (vm->acc >= s_val(vm, f1, oper1))
-				vm->pc = s_val(vm, f2, oper2);
-			break;
-
-		case JLT:
-			ARG2("jlt");
-			if (vm->acc < s_val(vm, f1, oper1))
-				vm->pc = s_val(vm, f2, oper2);
-			break;
-
-		case JLTE:
-			ARG2("jlte");
-			if (vm->acc <= s_val(vm, f1, oper1))
-				vm->pc = s_val(vm, f2, oper2);
-			break;
-
-		case STR:
+		case OP_STR:
 			ARG2("str");
 			if (!is_register(f2))
 				B_ERR("str requires a register index for operand 2");
@@ -610,115 +596,115 @@ int vm_exec(vm_t *vm)
 			vm->r[oper2] = vm_sprintf(vm, s_str(vm, f1, oper1));
 			break;
 
-		case ECHO:
-			ARG1("echo");
+		case OP_PRINT:
+			ARG1("print");
 			vm_fprintf(vm, stdout, s_str(vm, f1, oper1));
 			break;
 
-		case ERR:
-			ARG1("err");
+		case OP_ERROR:
+			ARG1("error");
 			vm_fprintf(vm, stderr, s_str(vm, f1, oper1));
 			fprintf(stderr, "\n");
 			break;
 
-		case PERROR:
+		case OP_PERROR:
 			ARG1("perror");
 			vm_fprintf(vm, stderr, s_str(vm, f1, oper1));
 			fprintf(stderr, ": (%i) %s\n", errno, strerror(errno));
 			break;
 
-		case BAIL:
+		case OP_BAIL:
 			ARG0("bail");
 			printf("bail\n"); /* FIXME: not implemented */
 			break;
 
-		case MARK:
+		case OP_MARK:
 			ARG0("mark");
 			printf("mark\n"); /* FIXME: not implemented */
 			break;
 
-		case FS_STAT:
+		case OP_FS_STAT:
 			ARG1("fs.stat");
 			vm->acc = lstat(s_str(vm, f1, oper1), &vm->stat);
 			break;
 
-		case FS_FILE_P:
+		case OP_FS_FILE_P:
 			ARG1("fs.file?");
 			NEED_STAT("fs.file?");
 			vm->acc = S_ISREG(vm->stat.st_mode) ? 0 : 1;
 			break;
 
-		case FS_SYMLINK_P:
+		case OP_FS_SYMLINK_P:
 			ARG1("fs.symlink?");
 			NEED_STAT("fs.symlink?");
 			vm->acc = S_ISLNK(vm->stat.st_mode) ? 0 : 1;
 			break;
 
-		case FS_DIR_P:
+		case OP_FS_DIR_P:
 			ARG1("fs.dir?");
 			NEED_STAT("fs.dir?");
 			vm->acc = S_ISDIR(vm->stat.st_mode) ? 0 : 1;
 			break;
 
-		case FS_CHARDEV_P:
+		case OP_FS_CHARDEV_P:
 			ARG1("fs.chardev?");
 			NEED_STAT("fs.chardev?");
 			vm->acc = S_ISCHR(vm->stat.st_mode) ? 0 : 1;
 			break;
 
-		case FS_BLOCKDEV_P:
+		case OP_FS_BLOCKDEV_P:
 			ARG1("fs.blockdev?");
 			NEED_STAT("fs.blockdev?");
 			vm->acc = S_ISBLK(vm->stat.st_mode) ? 0 : 1;
 			break;
 
-		case FS_FIFO_P:
+		case OP_FS_FIFO_P:
 			ARG1("fs.fifo?");
 			NEED_STAT("fs.fifo?");
 			vm->acc = S_ISFIFO(vm->stat.st_mode) ? 0 : 1;
 			break;
 
-		case FS_SOCKET_P:
+		case OP_FS_SOCKET_P:
 			ARG1("fs.socket?");
 			NEED_STAT("fs.socket?");
 			vm->acc = S_ISSOCK(vm->stat.st_mode) ? 0 : 1;
 			break;
 
-		case FS_TOUCH:
+		case OP_FS_TOUCH:
 			ARG1("fs.touch");
 			vm->acc = close(open(s_str(vm, f1, oper1), O_CREAT, 0777));
 			break;
 
-		case FS_UNLINK:
+		case OP_FS_UNLINK:
 			ARG1("fs.unlink");
 			vm->acc = unlink(s_str(vm, f1, oper1));
 			break;
 
-		case FS_RENAME:
+		case OP_FS_RENAME:
 			ARG2("fs.rename");
 			vm->acc = rename(s_str(vm, f1, oper1), s_str(vm, f2, oper2));
 			break;
 
-		case FS_CHOWN:
+		case OP_FS_CHOWN:
 			ARG2("fs.chown");
 			vm->acc = lchown(s_str(vm, f1, oper1), s_val(vm, f2, oper2), -1);
 			break;
 
-		case FS_CHGRP:
+		case OP_FS_CHGRP:
 			ARG2("fs.chgrp");
 			vm->acc = lchown(s_str(vm, f1, oper1), -1, s_val(vm, f2, oper2));
 			break;
 
-		case FS_CHMOD:
+		case OP_FS_CHMOD:
 			ARG2("fs.chmod");
 			vm->acc = chmod(s_str(vm, f1, oper1), s_val(vm, f2, oper2) & 0x7777);
 			break;
 
-		case FS_SHA1:
+		case OP_FS_SHA1:
 			printf("fs.sha1\n"); /* FIXME: not implemented */
 			break;
 
-		case FS_DEV:
+		case OP_FS_DEV:
 			ARG2("fs.dev");
 			NEED_STAT("fs.dev");
 			if (!is_register(f2))
@@ -729,7 +715,7 @@ int vm_exec(vm_t *vm)
 			vm->r[oper2] = vm->stat.st_dev;
 			break;
 
-		case FS_INODE:
+		case OP_FS_INODE:
 			ARG2("fs.inode");
 			NEED_STAT("fs.inode");
 			if (!is_register(f2))
@@ -740,7 +726,7 @@ int vm_exec(vm_t *vm)
 			vm->r[oper2] = vm->stat.st_ino;
 			break;
 
-		case FS_MODE:
+		case OP_FS_MODE:
 			ARG2("fs.mode");
 			NEED_STAT("fs.mode");
 			if (!is_register(f2))
@@ -751,7 +737,7 @@ int vm_exec(vm_t *vm)
 			vm->r[oper2] = vm->stat.st_mode;
 			break;
 
-		case FS_NLINK:
+		case OP_FS_NLINK:
 			ARG2("fs.nlink");
 			NEED_STAT("fs.nlink");
 			if (!is_register(f2))
@@ -762,7 +748,7 @@ int vm_exec(vm_t *vm)
 			vm->r[oper2] = vm->stat.st_nlink;
 			break;
 
-		case FS_UID:
+		case OP_FS_UID:
 			ARG2("fs.uid");
 			NEED_STAT("fs.uid");
 			if (!is_register(f2))
@@ -773,7 +759,7 @@ int vm_exec(vm_t *vm)
 			vm->r[oper2] = vm->stat.st_uid;
 			break;
 
-		case FS_GID:
+		case OP_FS_GID:
 			ARG2("fs.gid");
 			NEED_STAT("fs.gid");
 			if (!is_register(f2))
@@ -784,7 +770,7 @@ int vm_exec(vm_t *vm)
 			vm->r[oper2] = vm->stat.st_gid;
 			break;
 
-		case FS_MAJOR:
+		case OP_FS_MAJOR:
 			ARG2("fs.major");
 			NEED_STAT("fs.major");
 			if (!is_register(f2))
@@ -795,7 +781,7 @@ int vm_exec(vm_t *vm)
 			vm->r[oper2] = major(vm->stat.st_rdev);
 			break;
 
-		case FS_MINOR:
+		case OP_FS_MINOR:
 			ARG2("fs.minor");
 			NEED_STAT("fs.minor");
 			if (!is_register(f2))
@@ -806,7 +792,7 @@ int vm_exec(vm_t *vm)
 			vm->r[oper2] = minor(vm->stat.st_rdev);
 			break;
 
-		case FS_SIZE:
+		case OP_FS_SIZE:
 			ARG2("fs.size");
 			NEED_STAT("fs.size");
 			if (!is_register(f2))
@@ -817,7 +803,7 @@ int vm_exec(vm_t *vm)
 			vm->r[oper2] = vm->stat.st_blocks * vm->stat.st_blksize;
 			break;
 
-		case FS_ATIME:
+		case OP_FS_ATIME:
 			ARG2("fs.atime");
 			NEED_STAT("fs.atime");
 			if (!is_register(f2))
@@ -828,7 +814,7 @@ int vm_exec(vm_t *vm)
 			vm->r[oper2] = vm->stat.st_atime;
 			break;
 
-		case FS_MTIME:
+		case OP_FS_MTIME:
 			ARG2("fs.mtime");
 			NEED_STAT("fs.mtime");
 			if (!is_register(f2))
@@ -839,7 +825,7 @@ int vm_exec(vm_t *vm)
 			vm->r[oper2] = vm->stat.st_mtime;
 			break;
 
-		case FS_CTIME:
+		case OP_FS_CTIME:
 			ARG2("fs.ctime");
 			NEED_STAT("fs.ctime");
 			if (!is_register(f2))
@@ -850,119 +836,119 @@ int vm_exec(vm_t *vm)
 			vm->r[oper2] = vm->stat.st_ctime;
 			break;
 
-		case GETFILE:
+		case OP_GETFILE:
 			printf("getfile\n"); /* FIXME: not implemented */
 			break;
 
-		case EXEC:
+		case OP_EXEC:
 			printf("exec\n"); /* FIXME: not implemented */
 			break;
 
-		case PASSWD_OPEN:
+		case OP_PASSWD_OPEN:
 			printf("passwd.open\n"); /* FIXME: not implemented */
 			break;
 
-		case PASSWD_SAVE:
+		case OP_PASSWD_SAVE:
 			printf("passwd.save\n"); /* FIXME: not implemented */
 			break;
 
-		case PASSWD_CLOSE:
+		case OP_PASSWD_CLOSE:
 			printf("passwd.close\n"); /* FIXME: not implemented */
 			break;
 
-		case PASSWD_NEXTUID:
+		case OP_PASSWD_NEXTUID:
 			printf("passwd.nextuid\n"); /* FIXME: not implemented */
 			break;
 
-		case PASSWD_NEXTGID:
+		case OP_PASSWD_NEXTGID:
 			printf("passwd.nextgid\n"); /* FIXME: not implemented */
 			break;
 
-		case USER_FIND:
+		case OP_USER_FIND:
 			printf("user.find\n"); /* FIXME: not implemented */
 			break;
 
-		case USER_GET:
+		case OP_USER_GET:
 			printf("user.get\n"); /* FIXME: not implemented */
 			break;
 
-		case USER_SET:
+		case OP_USER_SET:
 			printf("user.set\n"); /* FIXME: not implemented */
 			break;
 
-		case USER_NEW:
+		case OP_USER_NEW:
 			printf("user.new\n"); /* FIXME: not implemented */
 			break;
 
-		case USER_SAVE:
+		case OP_USER_SAVE:
 			printf("user.save\n"); /* FIXME: not implemented */
 			break;
 
-		case USER_DELETE:
+		case OP_USER_DELETE:
 			printf("user.delete\n"); /* FIXME: not implemented */
 			break;
 
-		case GROUP_FIND:
+		case OP_GROUP_FIND:
 			printf("group.find\n"); /* FIXME: not implemented */
 			break;
 
-		case GROUP_GET:
+		case OP_GROUP_GET:
 			printf("group.get\n"); /* FIXME: not implemented */
 			break;
 
-		case GROUP_SET:
+		case OP_GROUP_SET:
 			printf("group.set\n"); /* FIXME: not implemented */
 			break;
 
-		case GROUP_NEW:
+		case OP_GROUP_NEW:
 			printf("group.new\n"); /* FIXME: not implemented */
 			break;
 
-		case GROUP_SAVE:
+		case OP_GROUP_SAVE:
 			printf("group.save\n"); /* FIXME: not implemented */
 			break;
 
-		case GROUP_DELETE:
+		case OP_GROUP_DELETE:
 			printf("group.delete\n"); /* FIXME: not implemented */
 			break;
 
-		case AUGEAS_INIT:
+		case OP_AUGEAS_INIT:
 			printf("augeas.init\n"); /* FIXME: not implemented */
 			break;
 
-		case AUGEAS_DONE:
+		case OP_AUGEAS_DONE:
 			printf("augeas.done\n"); /* FIXME: not implemented */
 			break;
 
-		case AUGEAS_ERR:
+		case OP_AUGEAS_ERR:
 			printf("augeas.err\n"); /* FIXME: not implemented */
 			break;
 
-		case AUGEAS_WRITE:
+		case OP_AUGEAS_WRITE:
 			printf("augeas.write\n"); /* FIXME: not implemented */
 			break;
 
-		case AUGEAS_SET:
+		case OP_AUGEAS_SET:
 			printf("augeas.set\n"); /* FIXME: not implemented */
 			break;
 
-		case AUGEAS_GET:
+		case OP_AUGEAS_GET:
 			printf("augeas.get\n"); /* FIXME: not implemented */
 			break;
 
-		case AUGEAS_FIND:
+		case OP_AUGEAS_FIND:
 			printf("augeas.find\n"); /* FIXME: not implemented */
 			break;
 
-		case AUGEAS_REMOVE:
+		case OP_AUGEAS_REMOVE:
 			printf("augeas.remove\n"); /* FIXME: not implemented */
 			break;
 
-		case HALT:
+		case OP_HALT:
 			ARG0("halt");
 			return 0;
 
-		case DUMP:
+		case OP_DUMP:
 			ARG0("dump");
 			dump(stderr, vm);
 			break;

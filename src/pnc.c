@@ -209,7 +209,7 @@ getline:
 		for (i = 0; ASM[i]; i++) {
 			if (strcmp(a, ASM[i]) != 0) continue;
 			p->token = T_OPCODE;
-			p->value[0] = T_OPCODE_NOOP + i;
+			p->value[0] = T_OP_NOOP + i;
 			p->value[1] = '\0';
 			break;
 		}
@@ -297,8 +297,8 @@ static int parse(void)
 			break;
 
 		case T_FUNCTION:
-			if (FN && list_tail(&OPS, op_t, l)->op != RET) {
-				op->op = RET;
+			if (FN && list_tail(&OPS, op_t, l)->op != OP_RET) {
+				op->op = OP_RET;
 				list_push(&OPS, &op->l);
 				op = calloc(1, sizeof(op_t));
 			}
@@ -371,9 +371,9 @@ static int parse(void)
 		list_push(&OPS, &op->l);
 	}
 
-	if (FN && list_tail(&OPS, op_t, l)->op != RET) {
+	if (FN && list_tail(&OPS, op_t, l)->op != OP_RET) {
 		op = calloc(1, sizeof(op_t));
-		op->op = RET;
+		op->op = OP_RET;
 		list_push(&OPS, &op->l);
 	}
 	return 0;
@@ -493,7 +493,7 @@ static int compile(void)
 
 	/* phase I: runtime insertion */
 	op = calloc(1, sizeof(op_t));
-	op->op = JMP; /* JMP, don't CALL */
+	op->op = OP_JMP; /* jmp, don't call */
 	op->args[0].type = VALUE_FNLABEL;
 	op->args[0]._.label = strdup("main");
 	list_unshift(&OPS, &op->l);

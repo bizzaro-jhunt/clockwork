@@ -78,6 +78,9 @@ CTAP_TESTS += t/70-res_symlink
 CTAP_TESTS += t/90-meshd
 
 PERL_TESTS  =
+
+PERL_TESTS += t/80-pendulum.t
+
 PERL_TESTS += t/pendulum/01-basics.t
 PERL_TESTS += t/pendulum/02-show.t
 PERL_TESTS += t/pendulum/10-fs.t

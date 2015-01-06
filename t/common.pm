@@ -12,7 +12,7 @@ our @EXPORT_OK = qw/
 	cw_shell_ok
 	resources_ok
 	dependencies_ok
-	pendulum_ok
+	pendulum_ok pn2_ok
 	bdfa_ok
 	command_ok
 
@@ -25,6 +25,8 @@ our @EXPORT = @EXPORT_OK;
 my $T = Test::Builder->new;
 
 my $PN = "./pn";
+my $PNC = "./pnc";
+my $PN2 = "./pn2";
 my $CWSH = "./cw-shell";
 my $BDFA = "./bdfa";
 my $COMMAND = "./TEST_cmd";
@@ -285,6 +287,145 @@ sub pendulum_ok
 		open STDERR, ">&", $stderr
 			or die "Failed to reopen stderr: $!\n";
 		exec $PN, '-q', $script or die "Failed to exec $PN: $!\n";
+	}
+
+	local $SIG{ALRM} = sub { die "timed out\n" };
+	alarm($opts{timeout});
+	eval {
+		waitpid $pid, 0;
+		alarm 0;
+	};
+	alarm 0;
+	if ($@) {
+		if ($@ =~ m/^timed out/) {
+			kill 9, $pid;
+			$T->ok(0, "$message: timed out running pendulum script");
+			return 0;
+		}
+		$T->ok(0, "$message: exception raised - $@");
+		return 0;
+	}
+
+	my $rc = $? >> 8;
+
+	seek $stdout, 0, 0;
+	my $actual = do { local $/; <$stdout> };
+
+	seek $stderr, 0, 0;
+	my $errors = do { local $/; <$stderr> };
+
+	if ($rc != 0) {
+		$T->ok(0, "$message: $script returned non-zero exit code $rc");
+		$T->diag("standard error output was:\n$errors") if $errors;
+		return 0;
+	}
+	$T->diag("standard error output was:\n$errors") if $errors;
+
+	my $diff = diff \$actual, \$expect, {
+		FILENAME_A => 'actual-output',    MTIME_A => time,
+		FILENAME_B => 'expected-output',  MTIME_B => time,
+		STYLE      => 'Unified',
+		CONTEXT    => 8
+	};
+
+	if ($diff) {
+		$T->ok(0, $message);
+		$T->diag("differences follow:\n$diff");
+		$T->diag("standard error output was:\n$errors") if $errors;
+		return 0;
+	}
+
+	if ($errors) {
+		$T->ok(0, "$message: $script printed to standard error");
+		$T->diag($errors);
+		return 0;
+	}
+
+	$T->ok(1, $message);
+	return 1;
+}
+
+sub pn2_compile_ok
+{
+	my ($asm, $target, $message, %opts) = @_;
+	$message ||= "compile";
+	$opts{timeout} ||= 5;
+
+	my $stdout = tempfile;
+	my $stderr = tempfile;
+	my $stdin  = tempfile;
+	print $stdin $asm;
+	seek $stdin, 0, 0;
+
+	my $pid = fork;
+	$T->BAIL_OUT("Failed to fork for pendulum compiler: $!") if $pid < 0;
+	if ($pid == 0) {
+		open STDOUT, ">&", $stdout
+			or die "Failed to reopen stdout: $!\n";
+		open STDERR, ">&", $stderr
+			or die "Failed to reopen stderr: $!\n";
+		open STDIN,  "<&", $stdin
+			or die "Failed to reopen stdin: $!\n";
+		exec $PNC or die "Failed to exec $PNC: $!\n";
+	}
+	local $SIG{ALRM} = sub { die "timed out\n" };
+	alarm($opts{timeout});
+	eval {
+		waitpid $pid, 0;
+		alarm 0;
+	};
+	alarm 0;
+	if ($@) {
+		if ($@ =~ m/^timed out/) {
+			kill 9, $pid;
+			$T->ok(0, "$message: timed out running pendulum compiler");
+			return 0;
+		}
+		$T->ok(0, "$message: exception raised - $@");
+		return 0;
+	}
+
+	my $rc = $?;
+
+	seek $stderr, 0, 0;
+	my $errors = do { local $/; <$stderr> };
+	if ($rc != 0 and defined $errors) {
+		$T->diag("Standard error:");
+		$T->diag($errors);
+	}
+
+	open my $fh, ">", $target
+		or $T->BAIL_OUT("Failed to open target '$target' for writing: $!");
+
+	seek $stdout, 0, 0;
+	print $fh do { local $/; <$stdout> };
+	close $fh;
+
+	$T->ok($rc == 0, $message);
+	return $rc == 0;
+}
+
+sub pn2_ok
+{
+	my ($asm, $expect, $message, %opts) = @_;
+	$message ||= "run ok";
+	$opts{timeout} ||= 5;
+
+	my (undef, $target) = tempfile;
+	pn2_compile_ok($asm, $target, "compile asm")
+		or return 0;
+
+	my $stdout = tempfile;
+	my $stderr = tempfile;
+
+	my $pid = fork;
+	$T->BAIL_OUT("Failed to fork for pendulum interpreter run: $!") if $pid < 0;
+	if ($pid == 0) {
+		open STDOUT, ">&", $stdout
+			or die "Failed to reopen stdout: $!\n";
+		open STDERR, ">&", $stderr
+			or die "Failed to reopen stderr: $!\n";
+		exec $PN2, $target or die "Failed to exec $PN2: $!\n";
 	}
 
 	local $SIG{ALRM} = sub { die "timed out\n" };

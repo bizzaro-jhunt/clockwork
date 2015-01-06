@@ -66,36 +66,34 @@
 #define FS_GET          0x3e  /* retrieve the contents of a local file */
 #define FS_PUT          0x3f  /* update the contents of a local file */
 #define GETFILE         0x40  /* retrieve a file from the server */
-#define GETUID          0x41  /* look up a user's UID, by name */
-#define GETGID          0x42  /* look up a group's GID, by name */
-#define PASSWD_OPEN     0x43  /* open the passwd/shadow (and group) databases for reading or writing */
-#define PASSWD_SAVE     0x44  /* writes the passwd/shadow (and group) databases to disk */
-#define PASSWD_CLOSE    0x45  /* closes the passwd/shadow (and group) databases, without writing them to disk */
-#define PASSWD_NEXTUID  0x46  /* return the next available UID into a register */
-#define PASSWD_NEXTGID  0x47  /* return the next available GID into a register */
-#define USER_FIND       0x48  /* find a user by username, storing the UID into a register */
-#define USER_GET        0x49  /* retrieve the value of an attribute from the last found user */
-#define USER_SET        0x4a  /* set an attribute on the last found user */
-#define USER_NEW        0x4b  /* allocate a new (unsaved) user object */
-#define USER_SAVE       0x4c  /* commit changes to the current user object (in-memory only) */
-#define USER_DELETE     0x4d  /* remove the current user from the (in-memory) database */
-#define GROUP_FIND      0x4e  /* find a group by name, storing the GID into a register */
-#define GROUP_GET       0x4f  /* retrieve the value of an attribute from the last found group */
-#define GROUP_SET       0x50  /* set an attribute on the last found group */
-#define GROUP_NEW       0x51  /* allocate a new (unsaved) group object */
-#define GROUP_SAVE      0x52  /* commit changes to the current group object (in-memory only) */
-#define GROUP_DELETE    0x53  /* remove the current group from the (in-memory) database */
-#define AUGEAS_INIT     0x54  /* initialize the augeas system */
-#define AUGEAS_DONE     0x55  /* de-initializes the augeas system */
-#define AUGEAS_ERR      0x56  /* print a helpful augeas error message */
-#define AUGEAS_WRITE    0x57  /* write all pending changes to disk */
-#define AUGEAS_SET      0x58  /* set the value of a file/key */
-#define AUGEAS_GET      0x59  /* retrieve the value of a file/key */
-#define AUGEAS_FIND     0x5a  /* search for and retrieve the value of file/key */
-#define AUGEAS_REMOVE   0x5b  /* remove a file/key */
-#define EXEC            0x5c  /* execute a command */
-#define DUMP            0x5d  /* dump virtual machine state for debugging */
-#define HALT            0x5e  /* halt the virtual machine */
+#define PASSWD_OPEN     0x41  /* open the passwd/shadow (and group) databases for reading or writing */
+#define PASSWD_SAVE     0x42  /* writes the passwd/shadow (and group) databases to disk */
+#define PASSWD_CLOSE    0x43  /* closes the passwd/shadow (and group) databases, without writing them to disk */
+#define PASSWD_NEXTUID  0x44  /* return the next available UID into a register */
+#define PASSWD_NEXTGID  0x45  /* return the next available GID into a register */
+#define USER_FIND       0x46  /* find a user by username, storing the UID into a register */
+#define USER_GET        0x47  /* retrieve the value of an attribute from the last found user */
+#define USER_SET        0x48  /* set an attribute on the last found user */
+#define USER_NEW        0x49  /* allocate a new (unsaved) user object */
+#define USER_SAVE       0x4a  /* commit changes to the current user object (in-memory only) */
+#define USER_DELETE     0x4b  /* remove the current user from the (in-memory) database */
+#define GROUP_FIND      0x4c  /* find a group by name, storing the GID into a register */
+#define GROUP_GET       0x4d  /* retrieve the value of an attribute from the last found group */
+#define GROUP_SET       0x4e  /* set an attribute on the last found group */
+#define GROUP_NEW       0x4f  /* allocate a new (unsaved) group object */
+#define GROUP_SAVE      0x50  /* commit changes to the current group object (in-memory only) */
+#define GROUP_DELETE    0x51  /* remove the current group from the (in-memory) database */
+#define AUGEAS_INIT     0x52  /* initialize the augeas system */
+#define AUGEAS_DONE     0x53  /* de-initializes the augeas system */
+#define AUGEAS_ERR      0x54  /* print a helpful augeas error message */
+#define AUGEAS_WRITE    0x55  /* write all pending changes to disk */
+#define AUGEAS_SET      0x56  /* set the value of a file/key */
+#define AUGEAS_GET      0x57  /* retrieve the value of a file/key */
+#define AUGEAS_FIND     0x58  /* search for and retrieve the value of file/key */
+#define AUGEAS_REMOVE   0x59  /* remove a file/key */
+#define EXEC            0x5a  /* execute a command */
+#define DUMP            0x5b  /* dump virtual machine state for debugging */
+#define HALT            0x5c  /* halt the virtual machine */
 
 
 #ifdef OPCODES_EXTENDED
@@ -166,36 +164,34 @@ static const char * OPCODES[] = {
 	"fs.get",         /* FS_GET          62  0x3e */
 	"fs.put",         /* FS_PUT          63  0x3f */
 	"getfile",        /* GETFILE         64  0x40 */
-	"getuid",         /* GETUID          65  0x41 */
-	"getgid",         /* GETGID          66  0x42 */
-	"passwd.open",    /* PASSWD_OPEN     67  0x43 */
-	"passwd.save",    /* PASSWD_SAVE     68  0x44 */
-	"passwd.close",   /* PASSWD_CLOSE    69  0x45 */
-	"passwd.nextuid", /* PASSWD_NEXTUID  70  0x46 */
-	"passwd.nextgid", /* PASSWD_NEXTGID  71  0x47 */
-	"user.find",      /* USER_FIND       72  0x48 */
-	"user.get",       /* USER_GET        73  0x49 */
-	"user.set",       /* USER_SET        74  0x4a */
-	"user.new",       /* USER_NEW        75  0x4b */
-	"user.save",      /* USER_SAVE       76  0x4c */
-	"user.delete",    /* USER_DELETE     77  0x4d */
-	"group.find",     /* GROUP_FIND      78  0x4e */
-	"group.get",      /* GROUP_GET       79  0x4f */
-	"group.set",      /* GROUP_SET       80  0x50 */
-	"group.new",      /* GROUP_NEW       81  0x51 */
-	"group.save",     /* GROUP_SAVE      82  0x52 */
-	"group.delete",   /* GROUP_DELETE    83  0x53 */
-	"augeas.init",    /* AUGEAS_INIT     84  0x54 */
-	"augeas.done",    /* AUGEAS_DONE     85  0x55 */
-	"augeas.err",     /* AUGEAS_ERR      86  0x56 */
-	"augeas.write",   /* AUGEAS_WRITE    87  0x57 */
-	"augeas.set",     /* AUGEAS_SET      88  0x58 */
-	"augeas.get",     /* AUGEAS_GET      89  0x59 */
-	"augeas.find",    /* AUGEAS_FIND     90  0x5a */
-	"augeas.remove",  /* AUGEAS_REMOVE   91  0x5b */
-	"exec",           /* EXEC            92  0x5c */
-	"dump",           /* DUMP            93  0x5d */
-	"halt",           /* HALT            94  0x5e */
+	"passwd.open",    /* PASSWD_OPEN     65  0x41 */
+	"passwd.save",    /* PASSWD_SAVE     66  0x42 */
+	"passwd.close",   /* PASSWD_CLOSE    67  0x43 */
+	"passwd.nextuid", /* PASSWD_NEXTUID  68  0x44 */
+	"passwd.nextgid", /* PASSWD_NEXTGID  69  0x45 */
+	"user.find",      /* USER_FIND       70  0x46 */
+	"user.get",       /* USER_GET        71  0x47 */
+	"user.set",       /* USER_SET        72  0x48 */
+	"user.new",       /* USER_NEW        73  0x49 */
+	"user.save",      /* USER_SAVE       74  0x4a */
+	"user.delete",    /* USER_DELETE     75  0x4b */
+	"group.find",     /* GROUP_FIND      76  0x4c */
+	"group.get",      /* GROUP_GET       77  0x4d */
+	"group.set",      /* GROUP_SET       78  0x4e */
+	"group.new",      /* GROUP_NEW       79  0x4f */
+	"group.save",     /* GROUP_SAVE      80  0x50 */
+	"group.delete",   /* GROUP_DELETE    81  0x51 */
+	"augeas.init",    /* AUGEAS_INIT     82  0x52 */
+	"augeas.done",    /* AUGEAS_DONE     83  0x53 */
+	"augeas.err",     /* AUGEAS_ERR      84  0x54 */
+	"augeas.write",   /* AUGEAS_WRITE    85  0x55 */
+	"augeas.set",     /* AUGEAS_SET      86  0x56 */
+	"augeas.get",     /* AUGEAS_GET      87  0x57 */
+	"augeas.find",    /* AUGEAS_FIND     88  0x58 */
+	"augeas.remove",  /* AUGEAS_REMOVE   89  0x59 */
+	"exec",           /* EXEC            90  0x5a */
+	"dump",           /* DUMP            91  0x5b */
+	"halt",           /* HALT            92  0x5c */
 	NULL,
 };
 
@@ -267,36 +263,34 @@ static const char * OPCODES[] = {
 #define T_OPCODE_FS_GET          0x7f  /* retrieve the contents of a local file */
 #define T_OPCODE_FS_PUT          0x80  /* update the contents of a local file */
 #define T_OPCODE_GETFILE         0x81  /* retrieve a file from the server */
-#define T_OPCODE_GETUID          0x82  /* look up a user's UID, by name */
-#define T_OPCODE_GETGID          0x83  /* look up a group's GID, by name */
-#define T_OPCODE_PASSWD_OPEN     0x84  /* open the passwd/shadow (and group) databases for reading or writing */
-#define T_OPCODE_PASSWD_SAVE     0x85  /* writes the passwd/shadow (and group) databases to disk */
-#define T_OPCODE_PASSWD_CLOSE    0x86  /* closes the passwd/shadow (and group) databases, without writing them to disk */
-#define T_OPCODE_PASSWD_NEXTUID  0x87  /* return the next available UID into a register */
-#define T_OPCODE_PASSWD_NEXTGID  0x88  /* return the next available GID into a register */
-#define T_OPCODE_USER_FIND       0x89  /* find a user by username, storing the UID into a register */
-#define T_OPCODE_USER_GET        0x8a  /* retrieve the value of an attribute from the last found user */
-#define T_OPCODE_USER_SET        0x8b  /* set an attribute on the last found user */
-#define T_OPCODE_USER_NEW        0x8c  /* allocate a new (unsaved) user object */
-#define T_OPCODE_USER_SAVE       0x8d  /* commit changes to the current user object (in-memory only) */
-#define T_OPCODE_USER_DELETE     0x8e  /* remove the current user from the (in-memory) database */
-#define T_OPCODE_GROUP_FIND      0x8f  /* find a group by name, storing the GID into a register */
-#define T_OPCODE_GROUP_GET       0x90  /* retrieve the value of an attribute from the last found group */
-#define T_OPCODE_GROUP_SET       0x91  /* set an attribute on the last found group */
-#define T_OPCODE_GROUP_NEW       0x92  /* allocate a new (unsaved) group object */
-#define T_OPCODE_GROUP_SAVE      0x93  /* commit changes to the current group object (in-memory only) */
-#define T_OPCODE_GROUP_DELETE    0x94  /* remove the current group from the (in-memory) database */
-#define T_OPCODE_AUGEAS_INIT     0x95  /* initialize the augeas system */
-#define T_OPCODE_AUGEAS_DONE     0x96  /* de-initializes the augeas system */
-#define T_OPCODE_AUGEAS_ERR      0x97  /* print a helpful augeas error message */
-#define T_OPCODE_AUGEAS_WRITE    0x98  /* write all pending changes to disk */
-#define T_OPCODE_AUGEAS_SET      0x99  /* set the value of a file/key */
-#define T_OPCODE_AUGEAS_GET      0x9a  /* retrieve the value of a file/key */
-#define T_OPCODE_AUGEAS_FIND     0x9b  /* search for and retrieve the value of file/key */
-#define T_OPCODE_AUGEAS_REMOVE   0x9c  /* remove a file/key */
-#define T_OPCODE_EXEC            0x9d  /* execute a command */
-#define T_OPCODE_DUMP            0x9e  /* dump virtual machine state for debugging */
-#define T_OPCODE_HALT            0x9f  /* halt the virtual machine */
+#define T_OPCODE_PASSWD_OPEN     0x82  /* open the passwd/shadow (and group) databases for reading or writing */
+#define T_OPCODE_PASSWD_SAVE     0x83  /* writes the passwd/shadow (and group) databases to disk */
+#define T_OPCODE_PASSWD_CLOSE    0x84  /* closes the passwd/shadow (and group) databases, without writing them to disk */
+#define T_OPCODE_PASSWD_NEXTUID  0x85  /* return the next available UID into a register */
+#define T_OPCODE_PASSWD_NEXTGID  0x86  /* return the next available GID into a register */
+#define T_OPCODE_USER_FIND       0x87  /* find a user by username, storing the UID into a register */
+#define T_OPCODE_USER_GET        0x88  /* retrieve the value of an attribute from the last found user */
+#define T_OPCODE_USER_SET        0x89  /* set an attribute on the last found user */
+#define T_OPCODE_USER_NEW        0x8a  /* allocate a new (unsaved) user object */
+#define T_OPCODE_USER_SAVE       0x8b  /* commit changes to the current user object (in-memory only) */
+#define T_OPCODE_USER_DELETE     0x8c  /* remove the current user from the (in-memory) database */
+#define T_OPCODE_GROUP_FIND      0x8d  /* find a group by name, storing the GID into a register */
+#define T_OPCODE_GROUP_GET       0x8e  /* retrieve the value of an attribute from the last found group */
+#define T_OPCODE_GROUP_SET       0x8f  /* set an attribute on the last found group */
+#define T_OPCODE_GROUP_NEW       0x90  /* allocate a new (unsaved) group object */
+#define T_OPCODE_GROUP_SAVE      0x91  /* commit changes to the current group object (in-memory only) */
+#define T_OPCODE_GROUP_DELETE    0x92  /* remove the current group from the (in-memory) database */
+#define T_OPCODE_AUGEAS_INIT     0x93  /* initialize the augeas system */
+#define T_OPCODE_AUGEAS_DONE     0x94  /* de-initializes the augeas system */
+#define T_OPCODE_AUGEAS_ERR      0x95  /* print a helpful augeas error message */
+#define T_OPCODE_AUGEAS_WRITE    0x96  /* write all pending changes to disk */
+#define T_OPCODE_AUGEAS_SET      0x97  /* set the value of a file/key */
+#define T_OPCODE_AUGEAS_GET      0x98  /* retrieve the value of a file/key */
+#define T_OPCODE_AUGEAS_FIND     0x99  /* search for and retrieve the value of file/key */
+#define T_OPCODE_AUGEAS_REMOVE   0x9a  /* remove a file/key */
+#define T_OPCODE_EXEC            0x9b  /* execute a command */
+#define T_OPCODE_DUMP            0x9c  /* dump virtual machine state for debugging */
+#define T_OPCODE_HALT            0x9d  /* halt the virtual machine */
 
 
 static const char * ASM[] = {
@@ -366,36 +360,34 @@ static const char * ASM[] = {
 	"fs.get",         /* T_OPCODE_FS_GET          63  0x3f */
 	"fs.put",         /* T_OPCODE_FS_PUT          64  0x40 */
 	"getfile",        /* T_OPCODE_GETFILE         65  0x41 */
-	"getuid",         /* T_OPCODE_GETUID          66  0x42 */
-	"getgid",         /* T_OPCODE_GETGID          67  0x43 */
-	"passwd.open",    /* T_OPCODE_PASSWD_OPEN     68  0x44 */
-	"passwd.save",    /* T_OPCODE_PASSWD_SAVE     69  0x45 */
-	"passwd.close",   /* T_OPCODE_PASSWD_CLOSE    70  0x46 */
-	"passwd.nextuid", /* T_OPCODE_PASSWD_NEXTUID  71  0x47 */
-	"passwd.nextgid", /* T_OPCODE_PASSWD_NEXTGID  72  0x48 */
-	"user.find",      /* T_OPCODE_USER_FIND       73  0x49 */
-	"user.get",       /* T_OPCODE_USER_GET        74  0x4a */
-	"user.set",       /* T_OPCODE_USER_SET        75  0x4b */
-	"user.new",       /* T_OPCODE_USER_NEW        76  0x4c */
-	"user.save",      /* T_OPCODE_USER_SAVE       77  0x4d */
-	"user.delete",    /* T_OPCODE_USER_DELETE     78  0x4e */
-	"group.find",     /* T_OPCODE_GROUP_FIND      79  0x4f */
-	"group.get",      /* T_OPCODE_GROUP_GET       80  0x50 */
-	"group.set",      /* T_OPCODE_GROUP_SET       81  0x51 */
-	"group.new",      /* T_OPCODE_GROUP_NEW       82  0x52 */
-	"group.save",     /* T_OPCODE_GROUP_SAVE      83  0x53 */
-	"group.delete",   /* T_OPCODE_GROUP_DELETE    84  0x54 */
-	"augeas.init",    /* T_OPCODE_AUGEAS_INIT     85  0x55 */
-	"augeas.done",    /* T_OPCODE_AUGEAS_DONE     86  0x56 */
-	"augeas.err",     /* T_OPCODE_AUGEAS_ERR      87  0x57 */
-	"augeas.write",   /* T_OPCODE_AUGEAS_WRITE    88  0x58 */
-	"augeas.set",     /* T_OPCODE_AUGEAS_SET      89  0x59 */
-	"augeas.get",     /* T_OPCODE_AUGEAS_GET      90  0x5a */
-	"augeas.find",    /* T_OPCODE_AUGEAS_FIND     91  0x5b */
-	"augeas.remove",  /* T_OPCODE_AUGEAS_REMOVE   92  0x5c */
-	"exec",           /* T_OPCODE_EXEC            93  0x5d */
-	"dump",           /* T_OPCODE_DUMP            94  0x5e */
-	"halt",           /* T_OPCODE_HALT            95  0x5f */
+	"passwd.open",    /* T_OPCODE_PASSWD_OPEN     66  0x42 */
+	"passwd.save",    /* T_OPCODE_PASSWD_SAVE     67  0x43 */
+	"passwd.close",   /* T_OPCODE_PASSWD_CLOSE    68  0x44 */
+	"passwd.nextuid", /* T_OPCODE_PASSWD_NEXTUID  69  0x45 */
+	"passwd.nextgid", /* T_OPCODE_PASSWD_NEXTGID  70  0x46 */
+	"user.find",      /* T_OPCODE_USER_FIND       71  0x47 */
+	"user.get",       /* T_OPCODE_USER_GET        72  0x48 */
+	"user.set",       /* T_OPCODE_USER_SET        73  0x49 */
+	"user.new",       /* T_OPCODE_USER_NEW        74  0x4a */
+	"user.save",      /* T_OPCODE_USER_SAVE       75  0x4b */
+	"user.delete",    /* T_OPCODE_USER_DELETE     76  0x4c */
+	"group.find",     /* T_OPCODE_GROUP_FIND      77  0x4d */
+	"group.get",      /* T_OPCODE_GROUP_GET       78  0x4e */
+	"group.set",      /* T_OPCODE_GROUP_SET       79  0x4f */
+	"group.new",      /* T_OPCODE_GROUP_NEW       80  0x50 */
+	"group.save",     /* T_OPCODE_GROUP_SAVE      81  0x51 */
+	"group.delete",   /* T_OPCODE_GROUP_DELETE    82  0x52 */
+	"augeas.init",    /* T_OPCODE_AUGEAS_INIT     83  0x53 */
+	"augeas.done",    /* T_OPCODE_AUGEAS_DONE     84  0x54 */
+	"augeas.err",     /* T_OPCODE_AUGEAS_ERR      85  0x55 */
+	"augeas.write",   /* T_OPCODE_AUGEAS_WRITE    86  0x56 */
+	"augeas.set",     /* T_OPCODE_AUGEAS_SET      87  0x57 */
+	"augeas.get",     /* T_OPCODE_AUGEAS_GET      88  0x58 */
+	"augeas.find",    /* T_OPCODE_AUGEAS_FIND     89  0x59 */
+	"augeas.remove",  /* T_OPCODE_AUGEAS_REMOVE   90  0x5a */
+	"exec",           /* T_OPCODE_EXEC            91  0x5b */
+	"dump",           /* T_OPCODE_DUMP            92  0x5c */
+	"halt",           /* T_OPCODE_HALT            93  0x5d */
 	NULL,
 };
 
@@ -478,8 +470,6 @@ static struct {
 	{ T_OPCODE_FS_GET,         "fs.get (%a|<string>) %b",                        FS_GET,         { ARG_REGISTER|ARG_STRING,            ARG_REGISTER,                       } },
 	{ T_OPCODE_FS_PUT,         "fs.put (%a|<string>) (%b|<string>)",             FS_PUT,         { ARG_REGISTER|ARG_STRING,            ARG_REGISTER|ARG_STRING,            } },
 	{ T_OPCODE_GETFILE,        "getfile (%a|<string>) (%b|<string>)",            GETFILE,        { ARG_REGISTER|ARG_STRING,            ARG_REGISTER|ARG_STRING,            } },
-	{ T_OPCODE_GETUID,         "getuid (%a|<string>) %b",                        GETUID,         { ARG_REGISTER|ARG_STRING,            ARG_REGISTER,                       } },
-	{ T_OPCODE_GETGID,         "getgid (%a|<string>) %b",                        GETGID,         { ARG_REGISTER|ARG_STRING,            ARG_REGISTER,                       } },
 	{ T_OPCODE_PASSWD_OPEN,    "passwd.open",                                    PASSWD_OPEN,    { ARG_NONE,                           ARG_NONE,                           } },
 	{ T_OPCODE_PASSWD_SAVE,    "passwd.save",                                    PASSWD_SAVE,    { ARG_NONE,                           ARG_NONE,                           } },
 	{ T_OPCODE_PASSWD_CLOSE,   "passwd.close",                                   PASSWD_CLOSE,   { ARG_NONE,                           ARG_NONE,                           } },

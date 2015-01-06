@@ -310,17 +310,6 @@
       - [register, string]
       - [register, string]
 
-- getuid:
-    help: look up a user's UID, by name
-    args:
-      - [register, string]
-      - [register]
-- getgid:
-    help: look up a group's GID, by name
-    args:
-      - [register, string]
-      - [register]
-
 - passwd.open:
     help: open the passwd/shadow (and group) databases for reading or writing
 - passwd.save:

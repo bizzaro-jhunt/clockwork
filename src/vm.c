@@ -854,16 +854,108 @@ int vm_exec(vm_t *vm)
 			printf("getfile\n"); /* FIXME: not implemented */
 			break;
 
-		case GETUID:
-			printf("getuid\n"); /* FIXME: not implemented */
-			break;
-
-		case GETGID:
-			printf("getgid\n"); /* FIXME: not implemented */
-			break;
-
 		case EXEC:
 			printf("exec\n"); /* FIXME: not implemented */
+			break;
+
+		case PASSWD_OPEN:
+			printf("passwd.open\n"); /* FIXME: not implemented */
+			break;
+
+		case PASSWD_SAVE:
+			printf("passwd.save\n"); /* FIXME: not implemented */
+			break;
+
+		case PASSWD_CLOSE:
+			printf("passwd.close\n"); /* FIXME: not implemented */
+			break;
+
+		case PASSWD_NEXTUID:
+			printf("passwd.nextuid\n"); /* FIXME: not implemented */
+			break;
+
+		case PASSWD_NEXTGID:
+			printf("passwd.nextgid\n"); /* FIXME: not implemented */
+			break;
+
+		case USER_FIND:
+			printf("user.find\n"); /* FIXME: not implemented */
+			break;
+
+		case USER_GET:
+			printf("user.get\n"); /* FIXME: not implemented */
+			break;
+
+		case USER_SET:
+			printf("user.set\n"); /* FIXME: not implemented */
+			break;
+
+		case USER_NEW:
+			printf("user.new\n"); /* FIXME: not implemented */
+			break;
+
+		case USER_SAVE:
+			printf("user.save\n"); /* FIXME: not implemented */
+			break;
+
+		case USER_DELETE:
+			printf("user.delete\n"); /* FIXME: not implemented */
+			break;
+
+		case GROUP_FIND:
+			printf("group.find\n"); /* FIXME: not implemented */
+			break;
+
+		case GROUP_GET:
+			printf("group.get\n"); /* FIXME: not implemented */
+			break;
+
+		case GROUP_SET:
+			printf("group.set\n"); /* FIXME: not implemented */
+			break;
+
+		case GROUP_NEW:
+			printf("group.new\n"); /* FIXME: not implemented */
+			break;
+
+		case GROUP_SAVE:
+			printf("group.save\n"); /* FIXME: not implemented */
+			break;
+
+		case GROUP_DELETE:
+			printf("group.delete\n"); /* FIXME: not implemented */
+			break;
+
+		case AUGEAS_INIT:
+			printf("augeas.init\n"); /* FIXME: not implemented */
+			break;
+
+		case AUGEAS_DONE:
+			printf("augeas.done\n"); /* FIXME: not implemented */
+			break;
+
+		case AUGEAS_ERR:
+			printf("augeas.err\n"); /* FIXME: not implemented */
+			break;
+
+		case AUGEAS_WRITE:
+			printf("augeas.write\n"); /* FIXME: not implemented */
+			break;
+
+		case AUGEAS_SET:
+			printf("augeas.set\n"); /* FIXME: not implemented */
+			break;
+
+		case AUGEAS_GET:
+			printf("augeas.get\n"); /* FIXME: not implemented */
+			break;
+
+		case AUGEAS_FIND:
+			printf("augeas.find\n"); /* FIXME: not implemented */
+			break;
+
+		case AUGEAS_REMOVE:
+			printf("augeas.remove\n"); /* FIXME: not implemented */
 			break;
 
 		case HALT:

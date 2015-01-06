@@ -101,7 +101,7 @@ only in instances where the source file is updated:
         command:  "/usr/bin/postmap -r /etc/postfix/some-map"
         ondemand: "yes"
     }
-    file "/etc/postfix/some-map" depends on exec("regen some-map")
+    exec("regen some-map") depends on file "/etc/postfix/some-map"
 
 Without the B<ondemand> option, Clockwork would continually re-run
 the postmap command on every single run, regardless of whether it was

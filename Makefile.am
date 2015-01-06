@@ -145,6 +145,7 @@ TEST_EXTRAS += t/memcheck/verify
 TEST_EXTRAS += $(SHELL_TESTS)
 
 test_source  = t/test.h
+test_source += src/opcodes.h
 test_source += src/base.h       src/base.c
 test_source += src/mesh.h       src/mesh.c
 test_source += src/sha1.h       src/sha1.c
@@ -153,6 +154,7 @@ test_source += src/policy.h     src/policy.c
 test_source += src/resource.h   src/resource.c
 test_source += src/resources.h  src/resources.c
 test_source += src/pendulum.h   src/pendulum.c
+test_source += src/vm.h         src/vm.c
 test_source += src/pendulum_funcs.h src/pendulum_funcs.c
 
 test_source += src/spec/grammar.y
@@ -243,11 +245,13 @@ man/%.8: man/%.8.pod
 ############################################################
 
 core_src  = src/clockwork.h src/base.h src/base.c
+core_src += src/opcodes.h
 core_src += src/mesh.h src/mesh.c
 core_src += src/sha1.h src/sha1.c src/userdb.h src/userdb.c
 core_src += src/policy.h src/policy.c
 core_src += src/resource.h src/resource.c src/resources.h src/resources.c
 core_src += src/pendulum.h src/pendulum.c
+core_src += src/vm.h src/vm.c
 core_src += src/pendulum_funcs.h src/pendulum_funcs.c
 
 parser_spec_src  = src/spec/parser.c src/spec/parser.h src/spec/private.h
@@ -261,9 +265,11 @@ cogd_SOURCES        = src/cogd.c     $(core_src) $(parser_spec_src)
 authtest_SOURCES    = src/authtest.c $(core_src)
 meshd_SOURCES       = src/meshd.c    $(core_src)
 
-bin_PROGRAMS        = bdfa pn cw
+bin_PROGRAMS        = bdfa pn pn2 pnc cw
 bdfa_SOURCES        = src/bdfa.c src/base.h src/base.c
 pn_SOURCES          = src/pn.c    $(core_src)
+pn2_SOURCES         = src/pn2.c   $(core_src)
+pnc_SOURCES         = src/pnc.c   $(core_src)
 cw_SOURCES          = cli/cw.c    $(core_src) $(parser_spec_src)
 
 clidir=$(pkglibdir)/cli
@@ -347,6 +353,11 @@ src/spec/lexer.c: src/spec/lexer.l src/spec/grammar.h src/spec/lexer_impl.h src/
 
 src/spec/grammar.c: src/spec/grammar.y src/spec/parser.c src/spec/parser.h src/spec/private.h
 	$(YACCCOMPILE) --output-file=src/spec/grammar.c $<
+
+############################################################
+# Opcodes
+src/opcodes.h: opcodes.yml gencode
+	./gencode $< > $@
 
 .PHONY: coverage-clean coverage-report coverage clean-local-check clean-local-cov
 clean-local: clean-local-check clean-local-gcda

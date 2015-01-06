@@ -18,6 +18,8 @@ stamp-h?
 *.tmp
 
 /pn
+/pn2
+/pnc
 /clockd
 /cogd
 /authtest

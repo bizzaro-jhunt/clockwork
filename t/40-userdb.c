@@ -202,7 +202,7 @@ TESTS {
 		struct pwdb *db;
 		// Next UID out of order (not just last(UID)+1
 		isnt_null(db = pwdb_init(PWFILE_UID), "read passwd");
-		is_int(pwdb_next_uid(db), 8192, "Next UUID == max(UID)+1");
+		is_int(pwdb_next_uid(db, 1000), 8192, "Next UUID == max(UID)+1");
 		pwdb_free(db);
 	}
 

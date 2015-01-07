@@ -39,7 +39,10 @@ sub arg
 		if (m/register/) {
 			push @names, $reg;
 			push @flags, "ARG_REGISTER";
-		} elsif (m/(number|string|function|label)/) {
+		} elsif (m/^(identifier)$/) {
+			push @names, "identifier";
+			push @flags, "ARG_IDENTIFIER";
+		} elsif (m/^(number|string|function|label)$/) {
 			push @names, "<$1>";
 			push @flags, uc("ARG_$1");
 		} else {
@@ -128,12 +131,13 @@ print "\tNULL,\n";
 print "};\n\n";
 
 print <<EOF;
-#define ARG_NONE      0x00
-#define ARG_REGISTER  0x01
-#define ARG_NUMBER    0x02
-#define ARG_STRING    0x04
-#define ARG_LABEL     0x08
-#define ARG_FUNCTION  0x10
+#define ARG_NONE        0x00
+#define ARG_REGISTER    0x01
+#define ARG_NUMBER      0x02
+#define ARG_STRING      0x04
+#define ARG_LABEL       0x08
+#define ARG_FUNCTION    0x10
+#define ARG_IDENTIFIER  0x20
 
 static struct {
 	byte_t      token;

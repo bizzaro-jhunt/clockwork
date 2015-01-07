@@ -65,18 +65,18 @@
 #define OP_FS_GET          0x3d  /* retrieve the contents of a local file */
 #define OP_FS_PUT          0x3e  /* update the contents of a local file */
 #define OP_GETFILE         0x3f  /* retrieve a file from the server */
-#define OP_PASSWD_OPEN     0x40  /* open the passwd/shadow (and group) databases for reading or writing */
-#define OP_PASSWD_SAVE     0x41  /* writes the passwd/shadow (and group) databases to disk */
-#define OP_PASSWD_CLOSE    0x42  /* closes the passwd/shadow (and group) databases, without writing them to disk */
-#define OP_PASSWD_NEXTUID  0x43  /* return the next available UID into a register */
-#define OP_PASSWD_NEXTGID  0x44  /* return the next available GID into a register */
-#define OP_USER_FIND       0x45  /* find a user by username, storing the UID into a register */
+#define OP_AUTHDB_OPEN     0x40  /* open the passwd/shadow (and group) databases for reading or writing */
+#define OP_AUTHDB_SAVE     0x41  /* writes the passwd/shadow (and group) databases to disk */
+#define OP_AUTHDB_CLOSE    0x42  /* closes the passwd/shadow (and group) databases, without writing them to disk */
+#define OP_AUTHDB_NEXTUID  0x43  /* return the next available UID (> operand 1) into a register */
+#define OP_AUTHDB_NEXTGID  0x44  /* return the next available GID (> operand 1) into a register */
+#define OP_USER_FIND       0x45  /* find a user by username */
 #define OP_USER_GET        0x46  /* retrieve the value of an attribute from the last found user */
 #define OP_USER_SET        0x47  /* set an attribute on the last found user */
 #define OP_USER_NEW        0x48  /* allocate a new (unsaved) user object */
 #define OP_USER_SAVE       0x49  /* commit changes to the current user object (in-memory only) */
 #define OP_USER_DELETE     0x4a  /* remove the current user from the (in-memory) database */
-#define OP_GROUP_FIND      0x4b  /* find a group by name, storing the GID into a register */
+#define OP_GROUP_FIND      0x4b  /* find a group by name */
 #define OP_GROUP_GET       0x4c  /* retrieve the value of an attribute from the last found group */
 #define OP_GROUP_SET       0x4d  /* set an attribute on the last found group */
 #define OP_GROUP_NEW       0x4e  /* allocate a new (unsaved) group object */
@@ -95,6 +95,7 @@
 #define OP_EXEC            0x5b  /* execute a command */
 #define OP_DUMP            0x5c  /* dump virtual machine state for debugging */
 #define OP_HALT            0x5d  /* halt the virtual machine */
+#define OP_PRAGMA          0x5e  /* set a compiler pragma */
 
 
 #ifdef OPCODES_EXTENDED
@@ -164,11 +165,11 @@ static const char * OPCODES[] = {
 	"fs.get",            /* OP_FS_GET          61  0x3d */
 	"fs.put",            /* OP_FS_PUT          62  0x3e */
 	"getfile",           /* OP_GETFILE         63  0x3f */
-	"passwd.open",       /* OP_PASSWD_OPEN     64  0x40 */
-	"passwd.save",       /* OP_PASSWD_SAVE     65  0x41 */
-	"passwd.close",      /* OP_PASSWD_CLOSE    66  0x42 */
-	"passwd.nextuid",    /* OP_PASSWD_NEXTUID  67  0x43 */
-	"passwd.nextgid",    /* OP_PASSWD_NEXTGID  68  0x44 */
+	"authdb.open",       /* OP_AUTHDB_OPEN     64  0x40 */
+	"authdb.save",       /* OP_AUTHDB_SAVE     65  0x41 */
+	"authdb.close",      /* OP_AUTHDB_CLOSE    66  0x42 */
+	"authdb.nextuid",    /* OP_AUTHDB_NEXTUID  67  0x43 */
+	"authdb.nextgid",    /* OP_AUTHDB_NEXTGID  68  0x44 */
 	"user.find",         /* OP_USER_FIND       69  0x45 */
 	"user.get",          /* OP_USER_GET        70  0x46 */
 	"user.set",          /* OP_USER_SET        71  0x47 */
@@ -194,6 +195,7 @@ static const char * OPCODES[] = {
 	"exec",              /* OP_EXEC            91  0x5b */
 	"dump",              /* OP_DUMP            92  0x5c */
 	"halt",              /* OP_HALT            93  0x5d */
+	"pragma",            /* OP_PRAGMA          94  0x5e */
 	NULL,
 };
 
@@ -264,18 +266,18 @@ static const char * OPCODES[] = {
 #define T_OP_FS_GET          0x7e  /* retrieve the contents of a local file */
 #define T_OP_FS_PUT          0x7f  /* update the contents of a local file */
 #define T_OP_GETFILE         0x80  /* retrieve a file from the server */
-#define T_OP_PASSWD_OPEN     0x81  /* open the passwd/shadow (and group) databases for reading or writing */
-#define T_OP_PASSWD_SAVE     0x82  /* writes the passwd/shadow (and group) databases to disk */
-#define T_OP_PASSWD_CLOSE    0x83  /* closes the passwd/shadow (and group) databases, without writing them to disk */
-#define T_OP_PASSWD_NEXTUID  0x84  /* return the next available UID into a register */
-#define T_OP_PASSWD_NEXTGID  0x85  /* return the next available GID into a register */
-#define T_OP_USER_FIND       0x86  /* find a user by username, storing the UID into a register */
+#define T_OP_AUTHDB_OPEN     0x81  /* open the passwd/shadow (and group) databases for reading or writing */
+#define T_OP_AUTHDB_SAVE     0x82  /* writes the passwd/shadow (and group) databases to disk */
+#define T_OP_AUTHDB_CLOSE    0x83  /* closes the passwd/shadow (and group) databases, without writing them to disk */
+#define T_OP_AUTHDB_NEXTUID  0x84  /* return the next available UID (> operand 1) into a register */
+#define T_OP_AUTHDB_NEXTGID  0x85  /* return the next available GID (> operand 1) into a register */
+#define T_OP_USER_FIND       0x86  /* find a user by username */
 #define T_OP_USER_GET        0x87  /* retrieve the value of an attribute from the last found user */
 #define T_OP_USER_SET        0x88  /* set an attribute on the last found user */
 #define T_OP_USER_NEW        0x89  /* allocate a new (unsaved) user object */
 #define T_OP_USER_SAVE       0x8a  /* commit changes to the current user object (in-memory only) */
 #define T_OP_USER_DELETE     0x8b  /* remove the current user from the (in-memory) database */
-#define T_OP_GROUP_FIND      0x8c  /* find a group by name, storing the GID into a register */
+#define T_OP_GROUP_FIND      0x8c  /* find a group by name */
 #define T_OP_GROUP_GET       0x8d  /* retrieve the value of an attribute from the last found group */
 #define T_OP_GROUP_SET       0x8e  /* set an attribute on the last found group */
 #define T_OP_GROUP_NEW       0x8f  /* allocate a new (unsaved) group object */
@@ -294,6 +296,7 @@ static const char * OPCODES[] = {
 #define T_OP_EXEC            0x9c  /* execute a command */
 #define T_OP_DUMP            0x9d  /* dump virtual machine state for debugging */
 #define T_OP_HALT            0x9e  /* halt the virtual machine */
+#define T_OP_PRAGMA          0x9f  /* set a compiler pragma */
 
 
 static const char * ASM[] = {
@@ -362,11 +365,11 @@ static const char * ASM[] = {
 	"fs.get",            /* T_OP_FS_GET          62  0x3e */
 	"fs.put",            /* T_OP_FS_PUT          63  0x3f */
 	"getfile",           /* T_OP_GETFILE         64  0x40 */
-	"passwd.open",       /* T_OP_PASSWD_OPEN     65  0x41 */
-	"passwd.save",       /* T_OP_PASSWD_SAVE     66  0x42 */
-	"passwd.close",      /* T_OP_PASSWD_CLOSE    67  0x43 */
-	"passwd.nextuid",    /* T_OP_PASSWD_NEXTUID  68  0x44 */
-	"passwd.nextgid",    /* T_OP_PASSWD_NEXTGID  69  0x45 */
+	"authdb.open",       /* T_OP_AUTHDB_OPEN     65  0x41 */
+	"authdb.save",       /* T_OP_AUTHDB_SAVE     66  0x42 */
+	"authdb.close",      /* T_OP_AUTHDB_CLOSE    67  0x43 */
+	"authdb.nextuid",    /* T_OP_AUTHDB_NEXTUID  68  0x44 */
+	"authdb.nextgid",    /* T_OP_AUTHDB_NEXTGID  69  0x45 */
 	"user.find",         /* T_OP_USER_FIND       70  0x46 */
 	"user.get",          /* T_OP_USER_GET        71  0x47 */
 	"user.set",          /* T_OP_USER_SET        72  0x48 */
@@ -392,15 +395,17 @@ static const char * ASM[] = {
 	"exec",              /* T_OP_EXEC            92  0x5c */
 	"dump",              /* T_OP_DUMP            93  0x5d */
 	"halt",              /* T_OP_HALT            94  0x5e */
+	"pragma",            /* T_OP_PRAGMA          95  0x5f */
 	NULL,
 };
 
-#define ARG_NONE      0x00
-#define ARG_REGISTER  0x01
-#define ARG_NUMBER    0x02
-#define ARG_STRING    0x04
-#define ARG_LABEL     0x08
-#define ARG_FUNCTION  0x10
+#define ARG_NONE        0x00
+#define ARG_REGISTER    0x01
+#define ARG_NUMBER      0x02
+#define ARG_STRING      0x04
+#define ARG_LABEL       0x08
+#define ARG_FUNCTION    0x10
+#define ARG_IDENTIFIER  0x20
 
 static struct {
 	byte_t      token;
@@ -473,18 +478,18 @@ static struct {
 	{ T_OP_FS_GET,         "fs.get (%a|<string>) %b",                        OP_FS_GET,         { ARG_REGISTER|ARG_STRING,            ARG_REGISTER,                       } },
 	{ T_OP_FS_PUT,         "fs.put (%a|<string>) (%b|<string>)",             OP_FS_PUT,         { ARG_REGISTER|ARG_STRING,            ARG_REGISTER|ARG_STRING,            } },
 	{ T_OP_GETFILE,        "getfile (%a|<string>) (%b|<string>)",            OP_GETFILE,        { ARG_REGISTER|ARG_STRING,            ARG_REGISTER|ARG_STRING,            } },
-	{ T_OP_PASSWD_OPEN,    "passwd.open",                                    OP_PASSWD_OPEN,    { ARG_NONE,                           ARG_NONE,                           } },
-	{ T_OP_PASSWD_SAVE,    "passwd.save",                                    OP_PASSWD_SAVE,    { ARG_NONE,                           ARG_NONE,                           } },
-	{ T_OP_PASSWD_CLOSE,   "passwd.close",                                   OP_PASSWD_CLOSE,   { ARG_NONE,                           ARG_NONE,                           } },
-	{ T_OP_PASSWD_NEXTUID, "passwd.nextuid %a",                              OP_PASSWD_NEXTUID, { ARG_REGISTER,                       ARG_NONE,                           } },
-	{ T_OP_PASSWD_NEXTGID, "passwd.nextgid %a",                              OP_PASSWD_NEXTGID, { ARG_REGISTER,                       ARG_NONE,                           } },
-	{ T_OP_USER_FIND,      "user.find (%a|<string>) %b",                     OP_USER_FIND,      { ARG_REGISTER|ARG_STRING,            ARG_REGISTER,                       } },
+	{ T_OP_AUTHDB_OPEN,    "authdb.open",                                    OP_AUTHDB_OPEN,    { ARG_NONE,                           ARG_NONE,                           } },
+	{ T_OP_AUTHDB_SAVE,    "authdb.save",                                    OP_AUTHDB_SAVE,    { ARG_NONE,                           ARG_NONE,                           } },
+	{ T_OP_AUTHDB_CLOSE,   "authdb.close",                                   OP_AUTHDB_CLOSE,   { ARG_NONE,                           ARG_NONE,                           } },
+	{ T_OP_AUTHDB_NEXTUID, "authdb.nextuid (%a|<number>) %b",                OP_AUTHDB_NEXTUID, { ARG_REGISTER|ARG_NUMBER,            ARG_REGISTER,                       } },
+	{ T_OP_AUTHDB_NEXTGID, "authdb.nextgid (%a|<number>) %b",                OP_AUTHDB_NEXTGID, { ARG_REGISTER|ARG_NUMBER,            ARG_REGISTER,                       } },
+	{ T_OP_USER_FIND,      "user.find (%a|<string>)",                        OP_USER_FIND,      { ARG_REGISTER|ARG_STRING,            ARG_NONE,                           } },
 	{ T_OP_USER_GET,       "user.get (%a|<string>) (%b|<string>|<number>)",  OP_USER_GET,       { ARG_REGISTER|ARG_STRING,            ARG_REGISTER|ARG_STRING|ARG_NUMBER, } },
 	{ T_OP_USER_SET,       "user.set (%a|<string>) (%b|<string>|<number>)",  OP_USER_SET,       { ARG_REGISTER|ARG_STRING,            ARG_REGISTER|ARG_STRING|ARG_NUMBER, } },
 	{ T_OP_USER_NEW,       "user.new (%a|<number>) (%b|<string>)",           OP_USER_NEW,       { ARG_REGISTER|ARG_NUMBER,            ARG_REGISTER|ARG_STRING,            } },
 	{ T_OP_USER_SAVE,      "user.save",                                      OP_USER_SAVE,      { ARG_NONE,                           ARG_NONE,                           } },
 	{ T_OP_USER_DELETE,    "user.delete",                                    OP_USER_DELETE,    { ARG_NONE,                           ARG_NONE,                           } },
-	{ T_OP_GROUP_FIND,     "group.find (%a|<string>) %b",                    OP_GROUP_FIND,     { ARG_REGISTER|ARG_STRING,            ARG_REGISTER,                       } },
+	{ T_OP_GROUP_FIND,     "group.find (%a|<string>)",                       OP_GROUP_FIND,     { ARG_REGISTER|ARG_STRING,            ARG_NONE,                           } },
 	{ T_OP_GROUP_GET,      "group.get (%a|<string>) (%b|<string>|<number>)", OP_GROUP_GET,      { ARG_REGISTER|ARG_STRING,            ARG_REGISTER|ARG_STRING|ARG_NUMBER, } },
 	{ T_OP_GROUP_SET,      "group.set (%a|<string>) (%b|<string>|<number>)", OP_GROUP_SET,      { ARG_REGISTER|ARG_STRING,            ARG_REGISTER|ARG_STRING|ARG_NUMBER, } },
 	{ T_OP_GROUP_NEW,      "group.new (%a|<number>) (%b|<string>)",          OP_GROUP_NEW,      { ARG_REGISTER|ARG_NUMBER,            ARG_REGISTER|ARG_STRING,            } },
@@ -503,6 +508,7 @@ static struct {
 	{ T_OP_EXEC,           "exec (%a|<string>) %b",                          OP_EXEC,           { ARG_REGISTER|ARG_STRING,            ARG_REGISTER,                       } },
 	{ T_OP_DUMP,           "dump",                                           OP_DUMP,           { ARG_NONE,                           ARG_NONE,                           } },
 	{ T_OP_HALT,           "halt",                                           OP_HALT,           { ARG_NONE,                           ARG_NONE,                           } },
+	{ T_OP_PRAGMA,         "pragma identifier (<string>|<number>)",          OP_PRAGMA,         { ARG_IDENTIFIER,                     ARG_STRING|ARG_NUMBER,              } },
 	{ 0, 0, 0, { 0, 0 } },
 };
 

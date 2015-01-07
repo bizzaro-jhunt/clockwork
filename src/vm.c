@@ -30,6 +30,7 @@
 #include <fcntl.h>
 
 #include "opcodes.h"
+#include "userdb.h"
 
 static int s_empty(stack_t *st)
 {
@@ -138,12 +139,22 @@ static char *bin(byte_t *data, size_t size)
 static heap_t *vm_heap_alloc(vm_t *vm, size_t n)
 {
 	heap_t *h = calloc(1, sizeof(heap_t));
-	h->addr   = vm->heaptop++ | HEAP_ADDRMASK;
-	h->size   = n;
+	h->addr = vm->heaptop++ | HEAP_ADDRMASK;
+	h->size = n;
 	if (n)
 		h->data = calloc(n, sizeof(byte_t));
 	list_push(&vm->heap, &h->l);
 	return h;
+}
+
+static dword_t vm_heap_strdup(vm_t *vm, const char *s)
+{
+	heap_t *h = calloc(1, sizeof(heap_t));
+	h->addr = vm->heaptop++ | HEAP_ADDRMASK;
+	h->size = strlen(s) + 1;
+	h->data = (byte_t*)strdup(s);
+	list_push(&vm->heap, &h->l);
+	return h->addr;
 }
 
 static void dump(FILE *io, vm_t *vm)
@@ -351,6 +362,9 @@ int vm_prime(vm_t *vm, byte_t *code, size_t len)
 	assert(code);
 	assert(len > 1);
 
+	/* default pragmas */
+	hash_set(&vm->pragma, "authdb.root", strdup("/etc"));
+
 	vm->code = code;
 	vm->codesize = len;
 	return 0;
@@ -389,6 +403,8 @@ int vm_exec(vm_t *vm)
 {
 	byte_t op, f1, f2;
 	dword_t oper1, oper2;
+	char *s;
+	const char *v;
 	vm->pc = 0;
 
 	for (;;) {
@@ -601,49 +617,49 @@ int vm_exec(vm_t *vm)
 
 		case OP_FS_STAT:
 			ARG1("fs.stat");
-			vm->acc = lstat(s_str(vm, f1, oper1), &vm->stat);
+			vm->acc = lstat(s_str(vm, f1, oper1), &vm->aux.stat);
 			break;
 
 		case OP_FS_FILE_P:
 			ARG1("fs.file?");
-			vm->acc = lstat(s_str(vm, f1, oper1), &vm->stat);
-			if (vm->acc == 0) vm->acc = S_ISREG(vm->stat.st_mode) ? 0 : 1;
+			vm->acc = lstat(s_str(vm, f1, oper1), &vm->aux.stat);
+			if (vm->acc == 0) vm->acc = S_ISREG(vm->aux.stat.st_mode) ? 0 : 1;
 			break;
 
 		case OP_FS_SYMLINK_P:
 			ARG1("fs.symlink?");
-			vm->acc = lstat(s_str(vm, f1, oper1), &vm->stat);
-			if (vm->acc == 0) vm->acc = S_ISLNK(vm->stat.st_mode) ? 0 : 1;
+			vm->acc = lstat(s_str(vm, f1, oper1), &vm->aux.stat);
+			if (vm->acc == 0) vm->acc = S_ISLNK(vm->aux.stat.st_mode) ? 0 : 1;
 			break;
 
 		case OP_FS_DIR_P:
 			ARG1("fs.dir?");
-			vm->acc = lstat(s_str(vm, f1, oper1), &vm->stat);
-			if (vm->acc == 0) vm->acc = S_ISDIR(vm->stat.st_mode) ? 0 : 1;
+			vm->acc = lstat(s_str(vm, f1, oper1), &vm->aux.stat);
+			if (vm->acc == 0) vm->acc = S_ISDIR(vm->aux.stat.st_mode) ? 0 : 1;
 			break;
 
 		case OP_FS_CHARDEV_P:
 			ARG1("fs.chardev?");
-			vm->acc = lstat(s_str(vm, f1, oper1), &vm->stat);
-			if (vm->acc == 0) vm->acc = S_ISCHR(vm->stat.st_mode) ? 0 : 1;
+			vm->acc = lstat(s_str(vm, f1, oper1), &vm->aux.stat);
+			if (vm->acc == 0) vm->acc = S_ISCHR(vm->aux.stat.st_mode) ? 0 : 1;
 			break;
 
 		case OP_FS_BLOCKDEV_P:
 			ARG1("fs.blockdev?");
-			vm->acc = lstat(s_str(vm, f1, oper1), &vm->stat);
-			if (vm->acc == 0) vm->acc = S_ISBLK(vm->stat.st_mode) ? 0 : 1;
+			vm->acc = lstat(s_str(vm, f1, oper1), &vm->aux.stat);
+			if (vm->acc == 0) vm->acc = S_ISBLK(vm->aux.stat.st_mode) ? 0 : 1;
 			break;
 
 		case OP_FS_FIFO_P:
 			ARG1("fs.fifo?");
-			vm->acc = lstat(s_str(vm, f1, oper1), &vm->stat);
-			if (vm->acc == 0) vm->acc = S_ISFIFO(vm->stat.st_mode) ? 0 : 1;
+			vm->acc = lstat(s_str(vm, f1, oper1), &vm->aux.stat);
+			if (vm->acc == 0) vm->acc = S_ISFIFO(vm->aux.stat.st_mode) ? 0 : 1;
 			break;
 
 		case OP_FS_SOCKET_P:
 			ARG1("fs.socket?");
-			vm->acc = lstat(s_str(vm, f1, oper1), &vm->stat);
-			if (vm->acc == 0) vm->acc = S_ISSOCK(vm->stat.st_mode) ? 0 : 1;
+			vm->acc = lstat(s_str(vm, f1, oper1), &vm->aux.stat);
+			if (vm->acc == 0) vm->acc = S_ISSOCK(vm->aux.stat.st_mode) ? 0 : 1;
 			break;
 
 		case OP_FS_TOUCH:
@@ -684,96 +700,96 @@ int vm_exec(vm_t *vm)
 			ARG2("fs.dev");
 			REGISTER2("fs.dev");
 
-			vm->acc = lstat(s_str(vm, f1, oper1), &vm->stat);
-			if (vm->acc == 0) vm->r[oper2] = vm->stat.st_dev;
+			vm->acc = lstat(s_str(vm, f1, oper1), &vm->aux.stat);
+			if (vm->acc == 0) vm->r[oper2] = vm->aux.stat.st_dev;
 			break;
 
 		case OP_FS_INODE:
 			ARG2("fs.inode");
 			REGISTER2("fs.inode");
 
-			vm->acc = lstat(s_str(vm, f1, oper1), &vm->stat);
-			if (vm->acc == 0) vm->r[oper2] = vm->stat.st_ino;
+			vm->acc = lstat(s_str(vm, f1, oper1), &vm->aux.stat);
+			if (vm->acc == 0) vm->r[oper2] = vm->aux.stat.st_ino;
 			break;
 
 		case OP_FS_MODE:
 			ARG2("fs.mode");
 			REGISTER2("fs.mode");
 
-			vm->acc = lstat(s_str(vm, f1, oper1), &vm->stat);
-			if (vm->acc == 0) vm->r[oper2] = vm->stat.st_mode & 07777;
+			vm->acc = lstat(s_str(vm, f1, oper1), &vm->aux.stat);
+			if (vm->acc == 0) vm->r[oper2] = vm->aux.stat.st_mode & 07777;
 			break;
 
 		case OP_FS_NLINK:
 			ARG2("fs.nlink");
 			REGISTER2("fs.nlink");
 
-			vm->acc = lstat(s_str(vm, f1, oper1), &vm->stat);
-			if (vm->acc == 0) vm->r[oper2] = vm->stat.st_nlink;
+			vm->acc = lstat(s_str(vm, f1, oper1), &vm->aux.stat);
+			if (vm->acc == 0) vm->r[oper2] = vm->aux.stat.st_nlink;
 			break;
 
 		case OP_FS_UID:
 			ARG2("fs.uid");
 			REGISTER2("fs.uid");
 
-			vm->acc = lstat(s_str(vm, f1, oper1), &vm->stat);
-			if (vm->acc == 0) vm->r[oper2] = vm->stat.st_uid;
+			vm->acc = lstat(s_str(vm, f1, oper1), &vm->aux.stat);
+			if (vm->acc == 0) vm->r[oper2] = vm->aux.stat.st_uid;
 			break;
 
 		case OP_FS_GID:
 			ARG2("fs.gid");
 			REGISTER2("fs.gid");
 
-			vm->acc = lstat(s_str(vm, f1, oper1), &vm->stat);
-			if (vm->acc == 0) vm->r[oper2] = vm->stat.st_gid;
+			vm->acc = lstat(s_str(vm, f1, oper1), &vm->aux.stat);
+			if (vm->acc == 0) vm->r[oper2] = vm->aux.stat.st_gid;
 			break;
 
 		case OP_FS_MAJOR:
 			ARG2("fs.major");
 			REGISTER2("fs.major");
 
-			vm->acc = lstat(s_str(vm, f1, oper1), &vm->stat);
-			if (vm->acc == 0) vm->r[oper2] = major(vm->stat.st_rdev);
+			vm->acc = lstat(s_str(vm, f1, oper1), &vm->aux.stat);
+			if (vm->acc == 0) vm->r[oper2] = major(vm->aux.stat.st_rdev);
 			break;
 
 		case OP_FS_MINOR:
 			ARG2("fs.minor");
 			REGISTER2("fs.minor");
 
-			vm->acc = lstat(s_str(vm, f1, oper1), &vm->stat);
-			if (vm->acc == 0) vm->r[oper2] = minor(vm->stat.st_rdev);
+			vm->acc = lstat(s_str(vm, f1, oper1), &vm->aux.stat);
+			if (vm->acc == 0) vm->r[oper2] = minor(vm->aux.stat.st_rdev);
 			break;
 
 		case OP_FS_SIZE:
 			ARG2("fs.size");
 			REGISTER2("fs.size");
 
-			vm->acc = lstat(s_str(vm, f1, oper1), &vm->stat);
-			if (vm->acc == 0) vm->r[oper2] = vm->stat.st_size;
+			vm->acc = lstat(s_str(vm, f1, oper1), &vm->aux.stat);
+			if (vm->acc == 0) vm->r[oper2] = vm->aux.stat.st_size;
 			break;
 
 		case OP_FS_ATIME:
 			ARG2("fs.atime");
 			REGISTER2("fs.atime");
 
-			vm->acc = lstat(s_str(vm, f1, oper1), &vm->stat);
-			if (vm->acc == 0) vm->r[oper2] = vm->stat.st_atime;
+			vm->acc = lstat(s_str(vm, f1, oper1), &vm->aux.stat);
+			if (vm->acc == 0) vm->r[oper2] = vm->aux.stat.st_atime;
 			break;
 
 		case OP_FS_MTIME:
 			ARG2("fs.mtime");
 			REGISTER2("fs.mtime");
 
-			vm->acc = lstat(s_str(vm, f1, oper1), &vm->stat);
-			if (vm->acc == 0) vm->r[oper2] = vm->stat.st_mtime;
+			vm->acc = lstat(s_str(vm, f1, oper1), &vm->aux.stat);
+			if (vm->acc == 0) vm->r[oper2] = vm->aux.stat.st_mtime;
 			break;
 
 		case OP_FS_CTIME:
 			ARG2("fs.ctime");
 			REGISTER2("fs.ctime");
 
-			vm->acc = lstat(s_str(vm, f1, oper1), &vm->stat);
-			if (vm->acc == 0) vm->r[oper2] = vm->stat.st_ctime;
+			vm->acc = lstat(s_str(vm, f1, oper1), &vm->aux.stat);
+			if (vm->acc == 0) vm->r[oper2] = vm->aux.stat.st_ctime;
 			break;
 
 		case OP_GETFILE:
@@ -784,36 +800,213 @@ int vm_exec(vm_t *vm)
 			printf("exec\n"); /* FIXME: not implemented */
 			break;
 
-		case OP_PASSWD_OPEN:
-			printf("passwd.open\n"); /* FIXME: not implemented */
+		case OP_AUTHDB_OPEN:
+			ARG0("authdb.open");
+
+			s = string("%s/passwd", hash_get(&vm->pragma, "authdb.root"));
+			vm->aux.pwdb = pwdb_init(s); free(s);
+
+			s = string("%s/shadow", hash_get(&vm->pragma, "authdb.root"));
+			vm->aux.spdb = spdb_init(s); free(s);
+
+			s = string("%s/group", hash_get(&vm->pragma, "authdb.root"));
+			vm->aux.grdb = grdb_init(s); free(s);
+
+			s = string("%s/gshadow", hash_get(&vm->pragma, "authdb.root"));
+			vm->aux.sgdb = sgdb_init(s); free(s);
+
+			if (vm->aux.pwdb && vm->aux.grdb
+			 && vm->aux.spdb && vm->aux.sgdb) {
+				vm->acc = 0;
+			} else {
+				if (vm->aux.pwdb) pwdb_free(vm->aux.pwdb); vm->aux.pwdb = NULL;
+				if (vm->aux.grdb) grdb_free(vm->aux.grdb); vm->aux.grdb = NULL;
+				if (vm->aux.spdb) spdb_free(vm->aux.spdb); vm->aux.spdb = NULL;
+				if (vm->aux.sgdb) sgdb_free(vm->aux.sgdb); vm->aux.sgdb = NULL;
+				vm->acc = 1;
+			}
 			break;
 
-		case OP_PASSWD_SAVE:
-			printf("passwd.save\n"); /* FIXME: not implemented */
+		case OP_AUTHDB_SAVE:
+			ARG0("authdb.save");
+
+			s = string("%s/passwd", hash_get(&vm->pragma, "authdb.root"));
+			pwdb_write( vm->aux.pwdb, s); free(s);
+
+			s = string("%s/shadow", hash_get(&vm->pragma, "authdb.root"));
+			spdb_write( vm->aux.spdb, s); free(s);
+
+			s = string("%s/group", hash_get(&vm->pragma, "authdb.root"));
+			grdb_write( vm->aux.grdb, s); free(s);
+
+			s = string("%s/gshadow", hash_get(&vm->pragma, "authdb.root"));
+			sgdb_write( vm->aux.sgdb, s); free(s);
+
+			pwdb_free(vm->aux.pwdb);
+			spdb_free(vm->aux.spdb);
+			grdb_free(vm->aux.grdb);
+			sgdb_free(vm->aux.sgdb);
+			vm->acc = 0;
 			break;
 
-		case OP_PASSWD_CLOSE:
-			printf("passwd.close\n"); /* FIXME: not implemented */
+		case OP_AUTHDB_CLOSE:
+			ARG0("authdb.close");
+			pwdb_free(vm->aux.pwdb);
+			spdb_free(vm->aux.spdb);
+			grdb_free(vm->aux.grdb);
+			sgdb_free(vm->aux.sgdb);
+			vm->acc = 0;
 			break;
 
-		case OP_PASSWD_NEXTUID:
-			printf("passwd.nextuid\n"); /* FIXME: not implemented */
+		case OP_AUTHDB_NEXTUID:
+			ARG2("authdb.nextuid");
+			REGISTER2("authdb.nextuid");
+			vm->acc = pwdb_next_uid(vm->aux.pwdb, s_val(vm, f1, oper1));
+			if (vm->acc < 65536) {
+				vm->r[oper2] = vm->acc;
+				vm->acc = 0;
+			}
 			break;
 
-		case OP_PASSWD_NEXTGID:
-			printf("passwd.nextgid\n"); /* FIXME: not implemented */
+		case OP_AUTHDB_NEXTGID:
+			ARG2("authdb.nextgid");
+			REGISTER2("authdb.nextuid");
+			vm->acc = grdb_next_gid(vm->aux.grdb, s_val(vm, f1, oper1));
+			if (vm->acc < 65536) {
+				vm->r[oper2] = vm->acc;
+				vm->acc = 0;
+			}
 			break;
 
 		case OP_USER_FIND:
-			printf("user.find\n"); /* FIXME: not implemented */
+			ARG1("user.find");
+			v = s_str(vm, f1, oper1);
+			vm->aux.passwd = pwdb_get_by_name(vm->aux.pwdb, v);
+			vm->aux.shadow = spdb_get_by_name(vm->aux.spdb, v);
+			vm->acc = (vm->aux.passwd && vm->aux.shadow) ? 0 : 1;
 			break;
 
 		case OP_USER_GET:
-			printf("user.get\n"); /* FIXME: not implemented */
+			ARG2("user.get");
+			REGISTER2("user.get");
+			if (!vm->aux.passwd || !vm->aux.shadow) {
+				vm->acc = 1;
+				break;
+			}
+
+			vm->acc = 0;
+			v = s_str(vm, f1, oper1);
+
+			if (strcmp(v, "uid") == 0) {
+				vm->r[oper2] = vm->aux.passwd->pw_uid;
+
+			} else if (strcmp(v, "gid") == 0) {
+				vm->r[oper2] = vm->aux.passwd->pw_gid;
+
+			} else if (strcmp(v, "username") == 0) {
+				vm->r[oper2] = vm_heap_strdup(vm, vm->aux.passwd->pw_name);
+
+			} else if (strcmp(v, "gecos") == 0) {
+				vm->r[oper2] = vm_heap_strdup(vm, vm->aux.passwd->pw_gecos);
+
+			} else if (strcmp(v, "home") == 0) {
+				vm->r[oper2] = vm_heap_strdup(vm, vm->aux.passwd->pw_dir);
+
+			} else if (strcmp(v, "shell") == 0) {
+				vm->r[oper2] = vm_heap_strdup(vm, vm->aux.passwd->pw_shell);
+
+			} else if (strcmp(v, "password") == 0) {
+				vm->r[oper2] = vm_heap_strdup(vm, vm->aux.passwd->pw_passwd);
+
+			} else if (strcmp(v, "pwhash") == 0) {
+				vm->r[oper2] = vm_heap_strdup(vm, vm->aux.shadow->sp_pwdp);
+
+			} else if (strcmp(v, "changed") == 0) {
+				vm->r[oper2] = vm->aux.shadow->sp_lstchg;
+
+			} else if (strcmp(v, "pwmin") == 0) {
+				vm->r[oper2] = vm->aux.shadow->sp_min;
+
+			} else if (strcmp(v, "pwmax") == 0) {
+				vm->r[oper2] = vm->aux.shadow->sp_max;
+
+			} else if (strcmp(v, "pwwarn") == 0) {
+				vm->r[oper2] = vm->aux.shadow->sp_warn;
+
+			} else if (strcmp(v, "inact") == 0) {
+				vm->r[oper2] = vm->aux.shadow->sp_inact;
+
+			} else if (strcmp(v, "expiry") == 0) {
+				vm->r[oper2] = vm->aux.shadow->sp_expire;
+
+			} else {
+				vm->acc = 1;
+			}
 			break;
 
 		case OP_USER_SET:
-			printf("user.set\n"); /* FIXME: not implemented */
+			ARG2("user.set");
+			if (!vm->aux.passwd || !vm->aux.shadow) {
+				vm->acc = 1;
+				break;
+			}
+
+			vm->acc = 0;
+			v = s_str(vm, f1, oper1);
+
+			if (strcmp(v, "uid") == 0) {
+				vm->aux.passwd->pw_uid = s_val(vm, f2, oper2);
+
+			} else if (strcmp(v, "gid") == 0) {
+				vm->aux.passwd->pw_gid = s_val(vm, f2, oper2);
+
+			} else if (strcmp(v, "username") == 0) {
+				free(vm->aux.passwd->pw_name);
+				vm->aux.passwd->pw_name = strdup(s_str(vm, f2, oper2));
+				free(vm->aux.shadow->sp_namp);
+				vm->aux.shadow->sp_namp = strdup(s_str(vm, f2, oper2));
+
+			} else if (strcmp(v, "gecos") == 0) {
+				free(vm->aux.passwd->pw_gecos);
+				vm->aux.passwd->pw_gecos = strdup(s_str(vm, f2, oper2));
+
+			} else if (strcmp(v, "home") == 0) {
+				free(vm->aux.passwd->pw_dir);
+				vm->aux.passwd->pw_dir = strdup(s_str(vm, f2, oper2));
+
+			} else if (strcmp(v, "shell") == 0) {
+				free(vm->aux.passwd->pw_shell);
+				vm->aux.passwd->pw_shell = strdup(s_str(vm, f2, oper2));
+
+			} else if (strcmp(v, "password") == 0) {
+				free(vm->aux.passwd->pw_passwd);
+				vm->aux.passwd->pw_passwd = strdup(s_str(vm, f2, oper2));
+
+			} else if (strcmp(v, "pwhash") == 0) {
+				free(vm->aux.shadow->sp_pwdp);
+				vm->aux.shadow->sp_pwdp = strdup(s_str(vm, f2, oper2));
+
+			} else if (strcmp(v, "changed") == 0) {
+				vm->aux.shadow->sp_lstchg = s_val(vm, f2, oper2);
+
+			} else if (strcmp(v, "pwmin") == 0) {
+				vm->aux.shadow->sp_min = s_val(vm, f2, oper2);
+
+			} else if (strcmp(v, "pwmax") == 0) {
+				vm->aux.shadow->sp_max = s_val(vm, f2, oper2);
+
+			} else if (strcmp(v, "pwwarn") == 0) {
+				vm->aux.shadow->sp_warn = s_val(vm, f2, oper2);
+
+			} else if (strcmp(v, "inact") == 0) {
+				vm->aux.shadow->sp_inact = s_val(vm, f2, oper2);
+
+			} else if (strcmp(v, "expiry") == 0) {
+				vm->aux.shadow->sp_expire = s_val(vm, f2, oper2);
+
+			} else {
+				vm->acc = 1;
+			}
 			break;
 
 		case OP_USER_NEW:
@@ -825,19 +1018,82 @@ int vm_exec(vm_t *vm)
 			break;
 
 		case OP_USER_DELETE:
-			printf("user.delete\n"); /* FIXME: not implemented */
+			ARG0("user.delete");
+			if (!vm->aux.passwd || !vm->aux.shadow) {
+				vm->acc = 1;
+				break;
+			}
+			pwdb_rm(vm->aux.pwdb, vm->aux.passwd);
+			spdb_rm(vm->aux.spdb, vm->aux.shadow);
+			vm->acc = 0;
 			break;
 
 		case OP_GROUP_FIND:
-			printf("group.find\n"); /* FIXME: not implemented */
+			ARG1("group.find");
+			v = s_str(vm, f1, oper1);
+			vm->aux.group   = grdb_get_by_name(vm->aux.grdb, v);
+			vm->aux.gshadow = sgdb_get_by_name(vm->aux.sgdb, v);
+			vm->acc = (vm->aux.group && vm->aux.gshadow) ? 0 : 1;
 			break;
 
 		case OP_GROUP_GET:
-			printf("group.get\n"); /* FIXME: not implemented */
+			ARG2("group.get");
+			REGISTER2("group.get");
+			if (!vm->aux.group || !vm->aux.gshadow) {
+				vm->acc = 1;
+				break;
+			}
+
+			vm->acc = 0;
+			v = s_str(vm, f1, oper1);
+
+			if (strcmp(v, "gid") == 0) {
+				vm->r[oper2] = vm->aux.group->gr_gid;
+
+			} else if (strcmp(v, "name") == 0) {
+				vm->r[oper2] = vm_heap_strdup(vm, vm->aux.group->gr_name);
+
+			} else if (strcmp(v, "password") == 0) {
+				vm->r[oper2] = vm_heap_strdup(vm, vm->aux.group->gr_passwd);
+
+			} else if (strcmp(v, "pwhash") == 0) {
+				vm->r[oper2] = vm_heap_strdup(vm, vm->aux.gshadow->sg_passwd);
+
+			} else {
+				vm->acc = 1;
+			}
 			break;
 
 		case OP_GROUP_SET:
-			printf("group.set\n"); /* FIXME: not implemented */
+			ARG2("group.get");
+			if (!vm->aux.group || !vm->aux.gshadow) {
+				vm->acc = 1;
+				break;
+			}
+
+			vm->acc = 0;
+			v = s_str(vm, f1, oper1);
+
+			if (strcmp(v, "gid") == 0) {
+				vm->aux.group->gr_gid = s_val(vm, f2, oper2);
+
+			} else if (strcmp(v, "name") == 0) {
+				free(vm->aux.group->gr_name);
+				vm->aux.group->gr_name = strdup(s_str(vm, f2, oper2));
+				free(vm->aux.gshadow->sg_namp);
+				vm->aux.gshadow->sg_namp = strdup(s_str(vm, f2, oper2));
+
+			} else if (strcmp(v, "password") == 0) {
+				free(vm->aux.group->gr_passwd);
+				vm->aux.group->gr_passwd = strdup(s_str(vm, f2, oper2));
+
+			} else if (strcmp(v, "pwhash") == 0) {
+				free(vm->aux.gshadow->sg_passwd);
+				vm->aux.gshadow->sg_passwd = strdup(s_str(vm, f2, oper2));
+
+			} else {
+				vm->acc = 1;
+			}
 			break;
 
 		case OP_GROUP_NEW:
@@ -849,7 +1105,14 @@ int vm_exec(vm_t *vm)
 			break;
 
 		case OP_GROUP_DELETE:
-			printf("group.delete\n"); /* FIXME: not implemented */
+			ARG0("group.delete");
+			if (!vm->aux.group || !vm->aux.gshadow) {
+				vm->acc = 1;
+				break;
+			}
+			grdb_rm(vm->aux.grdb, vm->aux.group);
+			sgdb_rm(vm->aux.sgdb, vm->aux.gshadow);
+			vm->acc = 0;
 			break;
 
 		case OP_AUGEAS_INIT:
@@ -893,6 +1156,11 @@ int vm_exec(vm_t *vm)
 			dump(stdout, vm);
 			break;
 
+		case OP_PRAGMA:
+			ARG2("pragma");
+			hash_set(&vm->pragma, s_str(vm, f1, oper1), strdup(s_str(vm, f2, oper2)));
+			break;
+
 		default:
 			B_ERR("unknown operand %02x", op);
 			return -1;
@@ -908,5 +1176,7 @@ int vm_done(vm_t *vm)
 		free(h->data);
 		free(h);
 	}
+
+	hash_done(&vm->pragma, 1);
 	return 0;
 }

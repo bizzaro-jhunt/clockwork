@@ -55,15 +55,25 @@ typedef struct {
 
 #define NREGS 16
 typedef struct {
-	dword_t   r[16];  /* generic registers */
-	dword_t   acc;    /* accumulator register */
-	dword_t   pc;     /* program counter register */
+	dword_t  r[16];  /* generic registers */
+	dword_t  acc;    /* accumulator register */
+	dword_t  pc;     /* program counter register */
 
 	stack_t  dstack; /* data stack */
 	stack_t  istack; /* instruction stack */
 
+	hash_t   pragma; /* compiler/runtime pragma settings */
+
 	/* auxiliary */
-	struct stat   stat;
+	struct {
+		struct stat   stat;
+
+		struct pwdb  *pwdb; struct passwd *passwd;
+		struct spdb  *spdb; struct spwd   *shadow;
+		struct grdb  *grdb; struct group  *group;
+		struct sgdb  *sgdb; struct sgrp   *gshadow;
+
+	} aux;
 
 	list_t   heap;
 	dword_t  heaptop;

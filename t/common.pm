@@ -16,6 +16,8 @@ our @EXPORT_OK = qw/
 	bdfa_ok
 	command_ok
 
+	put_file
+
 	string_is
 	file_is
 	bdfa_file_is
@@ -616,6 +618,17 @@ sub bdfa_ok
 
 	$T->ok(1, $message);
 	$T->diag("standard error output was:\n$errors") if $errors;
+	return 1;
+}
+
+sub put_file
+{
+	my ($file, $contents) = @_;
+	open my $fh, ">", $file
+		or $T->BAIL_OUT("failed to create $file: $!");
+
+	print $fh $contents;
+	close $fh;
 	return 1;
 }
 

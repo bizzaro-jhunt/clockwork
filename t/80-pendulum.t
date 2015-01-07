@@ -698,4 +698,332 @@ subtest "fs operators" => sub {
 	}
 };
 
+subtest "user management" => sub {
+	mkdir "t/tmp/auth";
+	put_file "t/tmp/auth/passwd", <<EOF;
+root:x:0:0:root:/root:/bin/bash
+daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin
+bin:x:2:2:bin:/bin:/usr/sbin/nologin
+sys:x:3:3:sys:/dev:/usr/sbin/nologin
+user1:x:1000:1100:Some User:/home/user1:/bin/bash
+user2:x:1001:1101:Some User:/home/user2:/bin/bash
+EOF
+	put_file "t/tmp/auth/shadow", <<EOF;
+root:HASH:15390:0:99999:7:::
+daemon:*:15259:0:99999:7:::
+bin:*:15259:0:99999:7:::
+sys:*:15259:0:99999:7:::
+user1:PWHASH:15259:0:99999:7:::
+user2:PWHASH:15259:0:99999:7:::
+EOF
+
+	put_file "t/tmp/auth/group", <<EOF;
+root:x:0:
+daemon:x:1:
+bin:x:2:
+sys:x:3:
+user1:x:1100:
+user2:x:1101:user1,sys
+EOF
+
+	put_file "t/tmp/auth/gshadow", <<EOF;
+root:*::
+daemon:*::
+bin:*::
+sys:*::
+user1:*::user2
+user2:*::sys
+EOF
+
+	pn2_ok(qq(
+	fn main
+		pragma authdb.root "t/tmp/auth"
+		authdb.open
+		jz +2
+			perror "failed to open auth databases"
+			halt
+
+		authdb.close
+		jz +2
+			perror "failed to close auth databases"
+			halt
+
+		print "ok"),
+
+	"ok",
+	"open/close auth databases");
+
+	pn2_ok(qq(
+	fn main
+		pragma authdb.root "t/tmp/auth"
+		authdb.open
+
+		authdb.nextuid 1000 %a
+		authdb.nextgid 1100 %b
+
+		print "uid=%[a]d\\n"
+		print "gid=%[b]d\\n"
+
+		authdb.close),
+
+	"uid=1002\ngid=1102\n",
+	"nextuid / nextgid");
+
+	pn2_ok(qq(
+	fn main
+		pragma authdb.root "t/tmp/auth"
+		authdb.open
+
+		authdb.nextuid 0 %a
+		authdb.nextgid 0 %b
+
+		print "uid=%[a]d\\n"
+		print "gid=%[b]d\\n"
+
+		authdb.close),
+
+	"uid=4\ngid=4\n",
+	"nextuid / nextgid (starting at 0)");
+
+	pn2_ok(qq(
+	fn main
+		pragma authdb.root "t/tmp/auth"
+		authdb.open
+
+		user.find "user1"
+		jz +2
+			print "user 'user1' not found"
+			ret
+
+		user.get "bogus" %c
+		jnz +1
+			print "bogus attribute didnt fail as expected\\n"
+
+		user.get "uid"      %a    print "uid=%[a]d\\n"
+		user.get "gid"      %a    print "gid=%[a]d\\n"
+		user.get "username" %a    print "username=%[a]s\\n"
+		user.get "gecos"    %a    print "gecos=%[a]s\\n"
+		user.get "home"     %a    print "home=%[a]s\\n"
+		user.get "shell"    %a    print "shell=%[a]s\\n"
+		user.get "password" %a    print "password=%[a]s\\n"
+		user.get "pwhash"   %a    print "pwhash=%[a]s\\n"
+		user.get "changed"  %a    print "changed=%[a]d\\n"
+		user.get "pwmin"    %a    print "pwmin=%[a]d\\n"
+		user.get "pwmax"    %a    print "pwmax=%[a]d\\n"
+		user.get "pwwarn"   %a    print "pwwarn=%[a]d\\n"
+		user.get "inact"    %a    print "inact=%[a]d\\n"
+		user.get "expiry"   %a    print "expiry=%[a]d\\n"
+
+		authdb.close
+		print "ok\\n"
+		ret),
+
+	"uid=1000\n".
+	"gid=1100\n".
+	"username=user1\n".
+	"gecos=Some User\n".
+	"home=/home/user1\n".
+	"shell=/bin/bash\n".
+	"password=x\n".
+	"pwhash=PWHASH\n".
+	"changed=15259\n".
+	"pwmin=0\n".
+	"pwmax=99999\n".
+	"pwwarn=7\n".
+	"inact=-1\n".
+	"expiry=-1\n".
+	"ok\n",
+	"user find / attribute retrieval");
+
+	pn2_ok(qq(
+	fn main
+		pragma authdb.root "t/tmp/auth"
+		authdb.open
+
+		user.find "user1"
+		jz +2
+			print "user 'user1' not found"
+			ret
+
+		user.set "bogus" 42
+		jnz +1
+			print "bogus attribute didnt fail as expected\\n"
+
+		user.set "uid"        999
+		user.set "gid"        999
+		user.set "username"  "user99"
+		user.set "gecos"     "Comment"
+		user.set "home"      "/path/to/home"
+		user.set "shell"     "/bin/false"
+		user.set "password"  "<secret>"
+		user.set "pwhash"    "decafbad"
+		user.set "changed"    89818
+		user.set "pwmin"      1010
+		user.set "pwmax"      1212
+		user.set "pwwarn"     4242
+		user.set "inact"      12345
+		user.set "expiry"     54321
+
+		authdb.save
+		authdb.open
+
+		user.find "user99"
+		jz +2
+			print "user 'user99' not found"
+			ret
+
+		user.get "uid"      %a    print "uid=%[a]d\\n"
+		user.get "gid"      %a    print "gid=%[a]d\\n"
+		user.get "username" %a    print "username=%[a]s\\n"
+		user.get "gecos"    %a    print "gecos=%[a]s\\n"
+		user.get "home"     %a    print "home=%[a]s\\n"
+		user.get "shell"    %a    print "shell=%[a]s\\n"
+		user.get "password" %a    print "password=%[a]s\\n"
+		user.get "pwhash"   %a    print "pwhash=%[a]s\\n"
+		user.get "changed"  %a    print "changed=%[a]d\\n"
+		user.get "pwmin"    %a    print "pwmin=%[a]d\\n"
+		user.get "pwmax"    %a    print "pwmax=%[a]d\\n"
+		user.get "pwwarn"   %a    print "pwwarn=%[a]d\\n"
+		user.get "inact"    %a    print "inact=%[a]d\\n"
+		user.get "expiry"   %a    print "expiry=%[a]d\\n"
+
+		authdb.close
+		print "ok\\n"
+		ret),
+
+	"uid=999\n".
+	"gid=999\n".
+	"username=user99\n".
+	"gecos=Comment\n".
+	"home=/path/to/home\n".
+	"shell=/bin/false\n".
+	"password=<secret>\n".
+	"pwhash=decafbad\n".
+	"changed=89818\n".
+	"pwmin=1010\n".
+	"pwmax=1212\n".
+	"pwwarn=4242\n".
+	"inact=12345\n".
+	"expiry=54321\n".
+	"ok\n",
+	"user attribute update/retrieval");
+
+	pn2_ok(qq(
+	fn main
+		pragma authdb.root "t/tmp/auth"
+		authdb.open
+
+		group.find "sys"
+		jz +2
+			print "group 'sys' not found"
+			ret
+
+		group.get "bogus" %c
+		jnz +1
+			print "bogus attribute didnt fail as expected\\n"
+
+		group.get "gid"      %a    print "gid=%[a]d\\n"
+		group.get "name"     %a    print "name=%[a]s\\n"
+		group.get "password" %a    print "password=%[a]s\\n"
+		group.get "pwhash"   %a    print "pwhash=%[a]s\\n"
+
+		print "ok\\n"),
+
+	"gid=3\n".
+	"name=sys\n".
+	"password=x\n".
+	"pwhash=*\n".
+	"ok\n",
+	"group find / attribute retreival");
+
+	pn2_ok(qq(
+	fn main
+		pragma authdb.root "t/tmp/auth"
+		authdb.open
+
+		group.find "sys"
+		jz +2
+			print "group 'sys' not found"
+			ret
+
+		group.set "bogus" 42
+		jnz +1
+			print "bogus attribute didnt fail as expected\\n"
+
+		group.set "gid"       845
+		group.set "name"     "systems"
+		group.set "password" "SeCrEt!"
+		group.set "pwhash"   "deadbeef"
+
+		authdb.save
+		authdb.open
+
+		group.find "systems"
+		jz +2
+			print "group 'systems' not found"
+			ret
+
+		group.get "gid"      %a    print "gid=%[a]d\\n"
+		group.get "name"     %a    print "name=%[a]s\\n"
+		group.get "password" %a    print "password=%[a]s\\n"
+		group.get "pwhash"   %a    print "pwhash=%[a]s\\n"
+
+		print "ok\\n"),
+
+	"gid=845\n".
+	"name=systems\n".
+	"password=SeCrEt!\n".
+	"pwhash=deadbeef\n".
+	"ok\n",
+	"group find / attribute retreival");
+
+	pn2_ok(qq(
+	fn main
+		pragma authdb.root "t/tmp/auth"
+		authdb.open
+
+		user.find "bin"
+		jz +2
+			error "user 'bin' not found"
+			ret
+
+		user.delete
+		authdb.save
+
+		authdb.open
+		user.find "bin"
+		jnz +2
+			error "user 'bin' not removed"
+			ret
+
+		print "ok"),
+
+	"ok",
+	"user.remove");
+
+	pn2_ok(qq(
+	fn main
+		pragma authdb.root "t/tmp/auth"
+		authdb.open
+
+		group.find "bin"
+		jz +2
+			error "group 'bin' not found"
+			ret
+
+		group.delete
+		authdb.save
+
+		authdb.open
+		group.find "bin"
+		jnz +2
+			error "group 'bin' not removed"
+			ret
+
+		print "ok"),
+
+	"ok",
+	"group.remove");
+};
+
 done_testing;

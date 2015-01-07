@@ -422,23 +422,17 @@ int pwdb_lookup_uid(struct pwdb *db, const char *name, uid_t *uid)
   Find next unused UID in $db
 
   Useful for creating "auto-increment" UIDs, pwdb_next_uid
-  starts at UID 1000 and tries to find the next available
-  user ID, based on what IDs have already been handed out.
-
-  It emulates the automatic UID generation of the standard
-  useradd command (i.e. highest in use + 1)
+  finds the next unused UID that is greater than or equal
+  to a given UID.
  */
-uid_t pwdb_next_uid(struct pwdb *db)
+uid_t pwdb_next_uid(struct pwdb *db, uid_t uid)
 {
-	uid_t next = 1000;
+	struct pwdb *ent;
 
-	for (; db; db = db->next) {
-		if (db->passwd && db->passwd->pw_uid > next) {
-			next = db->passwd->pw_uid+1;
-		}
-	}
-
-	return next;
+	NEXT:
+	for (uid++, ent = db; ent && uid < 65536; ent = ent->next)
+		if (ent->passwd && ent->passwd->pw_uid == uid) goto NEXT;
+	return uid;
 }
 
 /**
@@ -481,7 +475,7 @@ struct passwd* pwdb_new_entry(struct pwdb *db, const char *name, uid_t uid, gid_
 	/* shallow pointers are ok; _pwdb_entry strdup's them */
 	pw->pw_name = (char *)name;
 	pw->pw_passwd = "x";
-	pw->pw_uid = (uid == -1 ? pwdb_next_uid(db) : uid);
+	pw->pw_uid = (uid < 0 ? pwdb_next_uid(db, -1 * uid) : uid);
 	pw->pw_gid = gid;
 	pw->pw_gecos = "";
 	pw->pw_dir = "/";
@@ -861,6 +855,23 @@ int grdb_lookup_gid(struct grdb *db, const char *name, gid_t *gid)
 
 	*gid = g->gr_gid;
 	return 0;
+}
+
+/**
+  Find next unused GID in $db
+
+  Useful for creating "auto-increment" GIDs, grdb_next_gid
+  finds the next unused GID that is greater than or equal
+  to a given GID.
+ */
+gid_t grdb_next_gid(struct grdb *db, gid_t gid)
+{
+	struct grdb *ent;
+
+	NEXT:
+	for (gid++, ent = db; ent && gid < 65536; ent = ent->next)
+		if (ent->group && ent->group->gr_gid == gid) goto NEXT;
+	return gid;
 }
 
 /**

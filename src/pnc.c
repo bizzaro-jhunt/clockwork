@@ -344,6 +344,10 @@ static int parse(void)
 						op->args[j].type = VALUE_FNLABEL;
 						op->args[j]._.fnlabel = strdup(p.value);
 
+					} else if (p.token == T_IDENTIFIER && ASM_SYNTAX[i].args[j] & ARG_IDENTIFIER) {
+						op->args[j].type = VALUE_STRING;
+						op->args[j]._.string = strdup(p.value);
+
 					} else if (p.token == T_OFFSET && ASM_SYNTAX[i].args[j] & ARG_LABEL) {
 						op->args[j].type = VALUE_OFFSET;
 						op->args[j]._.offset = strtol(p.value, NULL, 10);

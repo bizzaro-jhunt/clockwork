@@ -305,26 +305,27 @@
       - [register, string]
       - [register, string]
 
-- passwd.open:
+- authdb.open:
     help: open the passwd/shadow (and group) databases for reading or writing
-- passwd.save:
+- authdb.save:
     help: writes the passwd/shadow (and group) databases to disk
-- passwd.close:
+- authdb.close:
     help: closes the passwd/shadow (and group) databases, without writing them to disk
-- passwd.nextuid:
-    help: return the next available UID into a register
+- authdb.nextuid:
+    help: return the next available UID (> operand 1) into a register
     args:
+      - [register, number]
       - [register]
-- passwd.nextgid:
-    help: return the next available GID into a register
+- authdb.nextgid:
+    help: return the next available GID (> operand 1) into a register
     args:
+      - [register, number]
       - [register]
 
 - user.find:
-    help: find a user by username, storing the UID into a register
+    help: find a user by username
     args:
       - [register, string]
-      - [register]
 - user.get:
     help: retrieve the value of an attribute from the last found user
     args:
@@ -346,10 +347,9 @@
     help: remove the current user from the (in-memory) database
 
 - group.find:
-    help: find a group by name, storing the GID into a register
+    help: find a group by name
     args:
       - [register, string]
-      - [register]
 - group.get:
     help: retrieve the value of an attribute from the last found group
     args:
@@ -419,5 +419,11 @@
     help: dump virtual machine state for debugging
 - halt:
     help: halt the virtual machine
+
+- pragma:
+    help: set a compiler pragma
+    args:
+      - [identifier]
+      - [string, number]
 
 # vim:ft=yaml:et:ts=2:sts=2:sw=2

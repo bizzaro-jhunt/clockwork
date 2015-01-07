@@ -108,7 +108,7 @@
     args:
       - [label]
 
-- str:
+- string:
     help: format a (heap-allocated) string
     args:
       - [string, register]

@@ -23,7 +23,7 @@
 #define OP_JMP             0x13  /* unconditional jump */
 #define OP_JZ              0x14  /* jump if accumulator is 0 */
 #define OP_JNZ             0x15  /* jump if accumulator is not 0 */
-#define OP_STR             0x16  /* format a (heap-allocated) string */
+#define OP_STRING          0x16  /* format a (heap-allocated) string */
 #define OP_PRINT           0x17  /* print a message to standard output */
 #define OP_ERROR           0x18  /* print an error */
 #define OP_PERROR          0x19  /* print an error (with system error message) */
@@ -122,7 +122,7 @@ static const char * OPCODES[] = {
 	"jmp",               /* OP_JMP             19  0x13 */
 	"jz",                /* OP_JZ              20  0x14 */
 	"jnz",               /* OP_JNZ             21  0x15 */
-	"str",               /* OP_STR             22  0x16 */
+	"string",            /* OP_STRING          22  0x16 */
 	"print",             /* OP_PRINT           23  0x17 */
 	"error",             /* OP_ERROR           24  0x18 */
 	"perror",            /* OP_PERROR          25  0x19 */
@@ -222,7 +222,7 @@ static const char * OPCODES[] = {
 #define T_OP_JMP             0x54  /* unconditional jump */
 #define T_OP_JZ              0x55  /* jump if accumulator is 0 */
 #define T_OP_JNZ             0x56  /* jump if accumulator is not 0 */
-#define T_OP_STR             0x57  /* format a (heap-allocated) string */
+#define T_OP_STRING          0x57  /* format a (heap-allocated) string */
 #define T_OP_PRINT           0x58  /* print a message to standard output */
 #define T_OP_ERROR           0x59  /* print an error */
 #define T_OP_PERROR          0x5a  /* print an error (with system error message) */
@@ -320,7 +320,7 @@ static const char * ASM[] = {
 	"jmp",               /* T_OP_JMP             20  0x14 */
 	"jz",                /* T_OP_JZ              21  0x15 */
 	"jnz",               /* T_OP_JNZ             22  0x16 */
-	"str",               /* T_OP_STR             23  0x17 */
+	"string",            /* T_OP_STRING          23  0x17 */
 	"print",             /* T_OP_PRINT           24  0x18 */
 	"error",             /* T_OP_ERROR           25  0x19 */
 	"perror",            /* T_OP_PERROR          26  0x1a */
@@ -431,7 +431,7 @@ static struct {
 	{ T_OP_JMP,            "jmp <label>",                                    OP_JMP,            { ARG_LABEL,                          ARG_NONE,                           } },
 	{ T_OP_JZ,             "jz <label>",                                     OP_JZ,             { ARG_LABEL,                          ARG_NONE,                           } },
 	{ T_OP_JNZ,            "jnz <label>",                                    OP_JNZ,            { ARG_LABEL,                          ARG_NONE,                           } },
-	{ T_OP_STR,            "str (<string>|%a) %b",                           OP_STR,            { ARG_STRING|ARG_REGISTER,            ARG_REGISTER,                       } },
+	{ T_OP_STRING,         "string (<string>|%a) %b",                        OP_STRING,         { ARG_STRING|ARG_REGISTER,            ARG_REGISTER,                       } },
 	{ T_OP_PRINT,          "print <string>",                                 OP_PRINT,          { ARG_STRING,                         ARG_NONE,                           } },
 	{ T_OP_ERROR,          "error <string>",                                 OP_ERROR,          { ARG_STRING,                         ARG_NONE,                           } },
 	{ T_OP_PERROR,         "perror <string>",                                OP_PERROR,         { ARG_STRING,                         ARG_NONE,                           } },

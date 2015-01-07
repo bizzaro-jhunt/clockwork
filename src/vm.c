@@ -565,7 +565,7 @@ int vm_exec(vm_t *vm)
 			if (vm->acc != 0) vm->pc = s_val(vm, f1, oper1);
 			break;
 
-		case OP_STR:
+		case OP_STRING:
 			ARG2("str");
 			REGISTER2("str");
 
@@ -749,7 +749,7 @@ int vm_exec(vm_t *vm)
 			REGISTER2("fs.size");
 
 			vm->acc = lstat(s_str(vm, f1, oper1), &vm->stat);
-			if (vm->acc == 0) vm->r[oper2] = vm->stat.st_blocks * vm->stat.st_blksize;
+			if (vm->acc == 0) vm->r[oper2] = vm->stat.st_size;
 			break;
 
 		case OP_FS_ATIME:

@@ -1,6 +1,19 @@
 #!perl
 use Test::More;
 use t::common;
+use POSIX qw/mkfifo/;
+use IO::Socket::UNIX;
+
+subtest "halt" => sub {
+	pn2_ok(qq(
+	fn main
+		print "ok"
+		halt
+		print "fail"),
+
+	"ok",
+	"halt stops execution immediately");
+};
 
 subtest "comparison operators" => sub {
 	pn2_ok(qq(
@@ -242,6 +255,19 @@ subtest "print operators" => sub {
 
 	"[     str]",
 	"width-modifiers in print format specifier");
+};
+
+subtest "string operator" => sub {
+	pn2_ok(qq(
+	fn main
+		set %a 1
+		set %b 2
+		set %c 3
+		string "easy as %[a]i-%[b]i-%[c]i" %d
+		print "%[d]s"),
+
+	"easy as 1-2-3",
+	"string formatting");
 };
 
 subtest "register operators" => sub {
@@ -584,6 +610,28 @@ subtest "fs operators" => sub {
 	"ok",
 	"t/tmp/syml is a symbolic link");
 
+	mkfifo "t/tmp/fifo", 0644;
+	pn2_ok(qq(
+	fn main
+		fs.fifo? "t/tmp/fifo"
+		jz +1
+		print "fail"
+		print "ok"),
+
+	"ok",
+	"t/tmp/fifo is a FIFO pipe");
+
+	IO::Socket::UNIX->new(Type => SOCK_STREAM, Local => "t/tmp/socket");
+	pn2_ok(qq(
+	fn main
+		fs.socket? "t/tmp/socket"
+		jz +1
+		print "fail"
+		print "ok"),
+
+	"ok",
+	"t/tmp/socket is a UNIX domain socket");
+
 	SKIP: {
 		skip "must be run as root for chown/chgrp tests", 2
 			unless $< == 0;
@@ -616,6 +664,38 @@ subtest "fs operators" => sub {
 
 	"0627",
 	"chmod operation");
+
+	SKIP: {
+		skip "/etc/issue not found for stat tests", 1
+			unless -e "/etc/issue";
+
+		my @st = stat "/etc/issue";
+		pn2_ok(qq(
+		fn main
+			set %p "/etc/issue"
+			fs.dev   %p %a
+			fs.inode %p %b
+			fs.nlink %p %c
+			fs.size  %p %d
+			fs.atime %p %e
+			fs.ctime %p %f
+			fs.mtime %p %g
+			fs.uid   %p %h
+			fs.gid   %p %i
+			print "dev=%[a]d\\n"
+			print "ino=%[b]d\\n"
+			print "n=%[c]d\\n"
+			print "size=%[d]d\\n"
+			print "atime=%[e]d\\n"
+			print "ctime=%[f]d\\n"
+			print "mtime=%[g]d\\n"
+			print "uid=%[h]d\\n"
+			print "gid=%[i]d\\n"),
+
+		"dev=$st[0]\nino=$st[1]\nn=$st[3]\nsize=$st[7]\n".
+		"atime=$st[8]\nctime=$st[10]\nmtime=$st[9]\nuid=$st[4]\ngid=$st[5]\n",
+		"stat-based accessor opcodes");
+	}
 };
 
 done_testing;

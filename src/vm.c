@@ -380,6 +380,10 @@ int vm_args(vm_t *vm, int argc, char **argv)
 #define ARG0(s) do { if ( f1 ||  f2) B_ERR(s " takes no operands");            } while (0)
 #define ARG1(s) do { if (!f1 ||  f2) B_ERR(s " requires exactly one operand"); } while (0)
 #define ARG2(s) do { if (!f1 || !f2) B_ERR(s " requires two operands");        } while (0)
+#define REGISTER1(s) do { if (!is_register(f1)) B_ERR(s " must be given a register as its first operand"); \
+	if (oper1 > NREGS) B_ERR("register index %i out of bounds", oper1); } while (0)
+#define REGISTER2(s) do { if (!is_register(f2)) B_ERR(s " must be given a register as its second operand"); \
+	if (oper2 > NREGS) B_ERR("register index %i out of bounds", oper2); } while (0)
 #define NEED_STAT(s) do { if (!vm->stat.st_ino) B_ERR(s " called without a prior fs.stat\n"); } while (0)
 
 int vm_exec(vm_t *vm)
@@ -420,45 +424,29 @@ int vm_exec(vm_t *vm)
 
 		case OP_PUSH:
 			ARG1("push");
-			if (!is_register(f1))
-				B_ERR("push requires a register index for operand 1");
-			if (oper1 > NREGS)
-				B_ERR("register %08x is out of bounds", oper1);
+			REGISTER1("push");
 
 			s_push(&vm->dstack, vm->r[oper1]);
 			break;
 
 		case OP_POP:
 			ARG1("pop");
-			if (!is_register(f1))
-				B_ERR("pop requires a register index for operand 1");
-			if (oper1 > NREGS)
-				B_ERR("register %08x is out of bounds", oper1);
+			REGISTER1("pop");
 
 			vm->r[oper1] = s_pop(&vm->dstack);
 			break;
 
 		case OP_SET:
 			ARG2("set");
-			if (!is_register(f1))
-				B_ERR("set requires a register index for operand 1");
-			if (oper1 > NREGS)
-				B_ERR("register %08x is out of bounds", oper1);
+			REGISTER1("set");
 
 			vm->r[oper1] = s_val(vm, f2, oper2);
 			break;
 
 		case OP_SWAP:
 			ARG2("swap");
-			if (!is_register(f1))
-				B_ERR("swap requires a register index for operand 1");
-			if (oper1 > NREGS)
-				B_ERR("register %08x is out of bounds", oper1);
-
-			if (!is_register(f2))
-				B_ERR("swap requires a register index for operand 2");
-			if (oper2 > NREGS)
-				B_ERR("register %08x is out of bounds", oper2);
+			REGISTER1("swap");
+			REGISTER2("swap");
 
 			if (oper1 == oper2)
 				B_ERR("swap requires distinct registers for operands");
@@ -470,60 +458,42 @@ int vm_exec(vm_t *vm)
 
 		case OP_ACC:
 			ARG1("acc");
-			if (!is_register(f1))
-				B_ERR("acc requires a register index for operand 1");
-			if (oper1 > NREGS)
-				B_ERR("register %08x is out of bounds", oper1);
+			REGISTER1("acc");
 
 			vm->r[oper1] = vm->acc;
 			break;
 
 		case OP_ADD:
 			ARG2("add");
-			if (!is_register(f1))
-				B_ERR("add requires a register index for operand 1");
-			if (oper1 > NREGS)
-				B_ERR("register %08x is out of bounds", oper1);
+			REGISTER1("add");
 
 			vm->r[oper1] += s_val(vm, f2, oper2);
 			break;
 
 		case OP_SUB:
 			ARG2("sub");
-			if (!is_register(f1))
-				B_ERR("sub requires a register index for operand 1");
-			if (oper1 > NREGS)
-				B_ERR("register %08x is out of bounds", oper1);
+			REGISTER1("sub");
 
 			vm->r[oper1] -= s_val(vm, f2, oper2);
 			break;
 
 		case OP_MULT:
 			ARG2("mult");
-			if (!is_register(f1))
-				B_ERR("mult requires a register index for operand 1");
-			if (oper1 > NREGS)
-				B_ERR("register %08x is out of bounds", oper1);
+			REGISTER1("mult");
 
 			vm->r[oper1] *= s_val(vm, f2, oper2);
 			break;
 
 		case OP_DIV:
 			ARG2("div");
-			if (!is_register(f1))
-				B_ERR("div requires a register index for operand 1");
-			if (oper1 > NREGS)
-				B_ERR("register %08x is out of bounds", oper1);
+			REGISTER1("div");
 
 			vm->r[oper1] /= s_val(vm, f2, oper2);
 			break;
 
 		case OP_MOD:
 			ARG2("mod");
-			if (!is_register(f1))
-				B_ERR("mod requires a register index for operand 1");
-			if (oper1 > NREGS)
-				B_ERR("register %08x is out of bounds", oper1);
+			REGISTER1("mod");
 
 			vm->r[oper1] %= s_val(vm, f2, oper2);
 			break;
@@ -598,10 +568,7 @@ int vm_exec(vm_t *vm)
 
 		case OP_STR:
 			ARG2("str");
-			if (!is_register(f2))
-				B_ERR("str requires a register index for operand 2");
-			if (oper2 > NREGS)
-				B_ERR("register %08x is out of bounds", oper2);
+			REGISTER2("str");
 
 			vm->r[oper2] = vm_sprintf(vm, s_str(vm, f1, oper1));
 			break;
@@ -717,10 +684,7 @@ int vm_exec(vm_t *vm)
 		case OP_FS_DEV:
 			ARG2("fs.dev");
 			NEED_STAT("fs.dev");
-			if (!is_register(f2))
-				B_ERR("fs.dev requires a register index for operand 2");
-			if (oper2 > NREGS)
-				B_ERR("register %08x is out of bounds", oper2);
+			REGISTER2("fs.dev");
 
 			vm->r[oper2] = vm->stat.st_dev;
 			break;
@@ -728,10 +692,7 @@ int vm_exec(vm_t *vm)
 		case OP_FS_INODE:
 			ARG2("fs.inode");
 			NEED_STAT("fs.inode");
-			if (!is_register(f2))
-				B_ERR("fs.inode requires a register index for operand 2");
-			if (oper2 > NREGS)
-				B_ERR("register %08x is out of bounds", oper2);
+			REGISTER2("fs.inode");
 
 			vm->r[oper2] = vm->stat.st_ino;
 			break;
@@ -739,10 +700,7 @@ int vm_exec(vm_t *vm)
 		case OP_FS_MODE:
 			ARG2("fs.mode");
 			NEED_STAT("fs.mode");
-			if (!is_register(f2))
-				B_ERR("fs.mode requires a register index for operand 2");
-			if (oper2 > NREGS)
-				B_ERR("register %08x is out of bounds", oper2);
+			REGISTER2("fs.mode");
 
 			vm->r[oper2] = vm->stat.st_mode;
 			break;
@@ -750,10 +708,7 @@ int vm_exec(vm_t *vm)
 		case OP_FS_NLINK:
 			ARG2("fs.nlink");
 			NEED_STAT("fs.nlink");
-			if (!is_register(f2))
-				B_ERR("fs.nlink requires a register index for operand 2");
-			if (oper2 > NREGS)
-				B_ERR("register %08x is out of bounds", oper2);
+			REGISTER2("fs.nlink");
 
 			vm->r[oper2] = vm->stat.st_nlink;
 			break;
@@ -761,10 +716,7 @@ int vm_exec(vm_t *vm)
 		case OP_FS_UID:
 			ARG2("fs.uid");
 			NEED_STAT("fs.uid");
-			if (!is_register(f2))
-				B_ERR("fs.uid requires a register index for operand 2");
-			if (oper2 > NREGS)
-				B_ERR("register %08x is out of bounds", oper2);
+			REGISTER2("fs.uid");
 
 			vm->r[oper2] = vm->stat.st_uid;
 			break;
@@ -772,10 +724,7 @@ int vm_exec(vm_t *vm)
 		case OP_FS_GID:
 			ARG2("fs.gid");
 			NEED_STAT("fs.gid");
-			if (!is_register(f2))
-				B_ERR("fs.gid requires a register index for operand 2");
-			if (oper2 > NREGS)
-				B_ERR("register %08x is out of bounds", oper2);
+			REGISTER2("fs.gid");
 
 			vm->r[oper2] = vm->stat.st_gid;
 			break;
@@ -783,10 +732,7 @@ int vm_exec(vm_t *vm)
 		case OP_FS_MAJOR:
 			ARG2("fs.major");
 			NEED_STAT("fs.major");
-			if (!is_register(f2))
-				B_ERR("fs.major requires a register index for operand 2");
-			if (oper2 > NREGS)
-				B_ERR("register %08x is out of bounds", oper2);
+			REGISTER2("fs.major");
 
 			vm->r[oper2] = major(vm->stat.st_rdev);
 			break;
@@ -794,10 +740,7 @@ int vm_exec(vm_t *vm)
 		case OP_FS_MINOR:
 			ARG2("fs.minor");
 			NEED_STAT("fs.minor");
-			if (!is_register(f2))
-				B_ERR("fs.minor requires a register index for operand 2");
-			if (oper2 > NREGS)
-				B_ERR("register %08x is out of bounds", oper2);
+			REGISTER2("fs.minor");
 
 			vm->r[oper2] = minor(vm->stat.st_rdev);
 			break;
@@ -805,10 +748,7 @@ int vm_exec(vm_t *vm)
 		case OP_FS_SIZE:
 			ARG2("fs.size");
 			NEED_STAT("fs.size");
-			if (!is_register(f2))
-				B_ERR("fs.size requires a register index for operand 2");
-			if (oper2 > NREGS)
-				B_ERR("register %08x is out of bounds", oper2);
+			REGISTER2("fs.size");
 
 			vm->r[oper2] = vm->stat.st_blocks * vm->stat.st_blksize;
 			break;
@@ -816,10 +756,7 @@ int vm_exec(vm_t *vm)
 		case OP_FS_ATIME:
 			ARG2("fs.atime");
 			NEED_STAT("fs.atime");
-			if (!is_register(f2))
-				B_ERR("fs.atime requires a register index for operand 2");
-			if (oper2 > NREGS)
-				B_ERR("register %08x is out of bounds", oper2);
+			REGISTER2("fs.atime");
 
 			vm->r[oper2] = vm->stat.st_atime;
 			break;
@@ -827,10 +764,7 @@ int vm_exec(vm_t *vm)
 		case OP_FS_MTIME:
 			ARG2("fs.mtime");
 			NEED_STAT("fs.mtime");
-			if (!is_register(f2))
-				B_ERR("fs.mtime requires a register index for operand 2");
-			if (oper2 > NREGS)
-				B_ERR("register %08x is out of bounds", oper2);
+			REGISTER2("fs.mtime");
 
 			vm->r[oper2] = vm->stat.st_mtime;
 			break;
@@ -838,10 +772,7 @@ int vm_exec(vm_t *vm)
 		case OP_FS_CTIME:
 			ARG2("fs.ctime");
 			NEED_STAT("fs.ctime");
-			if (!is_register(f2))
-				B_ERR("fs.ctime requires a register index for operand 2");
-			if (oper2 > NREGS)
-				B_ERR("register %08x is out of bounds", oper2);
+			REGISTER2("fs.ctime");
 
 			vm->r[oper2] = vm->stat.st_ctime;
 			break;

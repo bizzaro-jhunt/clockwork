@@ -960,7 +960,7 @@ int vm_exec(vm_t *vm)
 
 		case OP_DUMP:
 			ARG0("dump");
-			dump(stderr, vm);
+			dump(stdout, vm);
 			break;
 
 		default:

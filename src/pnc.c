@@ -317,8 +317,8 @@ static int parse(void)
 
 		case T_OPCODE:
 			for (i = 0; ASM_SYNTAX[i].token; i++) {
-				if (p.value[0] != ASM_SYNTAX[i].token) continue;
-				op->op = ASM_SYNTAX[i].opcode;
+				if ((byte_t)p.value[0] != ASM_SYNTAX[i].token) continue;
+				op->op = (byte_t)ASM_SYNTAX[i].opcode;
 
 				for (j = 0; j < 2; j++) {
 					if (ASM_SYNTAX[i].args[j] == ARG_NONE) break;

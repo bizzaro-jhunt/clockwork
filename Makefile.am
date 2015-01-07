@@ -374,7 +374,7 @@ clean-local-check:
 if GCOV_ENABLED
 coverage-clean:
 	@rm -fr coverage
-	@find . -name "*.gcda" -exec rm {} \;
+	@find . -name "*.gc??" -exec rm {} \;
 	@lcov --directory . --zerocounters
 
 coverage-report:

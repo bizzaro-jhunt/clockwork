@@ -19,6 +19,10 @@
     args:
       - [register]
       - [register]
+- acc:
+    help: copy the accumulator value into a register
+    args:
+      - [register]
 
 - add:
     help: add the second operand to the first

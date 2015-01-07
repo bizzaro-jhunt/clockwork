@@ -468,6 +468,16 @@ int vm_exec(vm_t *vm)
 			vm->r[oper1] ^= vm->r[oper2];
 			break;
 
+		case OP_ACC:
+			ARG1("acc");
+			if (!is_register(f1))
+				B_ERR("acc requires a register index for operand 1");
+			if (oper1 > NREGS)
+				B_ERR("register %08x is out of bounds", oper1);
+
+			vm->r[oper1] = vm->acc;
+			break;
+
 		case OP_ADD:
 			ARG2("add");
 			if (!is_register(f1))

@@ -6,92 +6,93 @@
 #define OP_POP             0x02  /* pop data stack top into a register */
 #define OP_SET             0x03  /* set register value */
 #define OP_SWAP            0x04  /* swap two register values */
-#define OP_ADD             0x05  /* add the second operand to the first */
-#define OP_SUB             0x06  /* subtract the second operand from the first */
-#define OP_MULT            0x07  /* multiply the first operand by the second */
-#define OP_DIV             0x08  /* divide the first operand by the second */
-#define OP_MOD             0x09  /* modulo the first operand by the second */
-#define OP_CALL            0x0a  /* call a user-defined function */
-#define OP_RET             0x0b  /* return to caller */
-#define OP_EQ              0x0c  /* compare two integers for equality */
-#define OP_LT              0x0d  /* check that operand 1 < operand 2 */
-#define OP_LTE             0x0e  /* check that operand 1 <= operand 2 */
-#define OP_GT              0x0f  /* check that operand 1 > operand 2 */
-#define OP_GTE             0x10  /* check that operand 1 >= operand 2 */
-#define OP_STREQ           0x11  /* compare two strings */
-#define OP_JMP             0x12  /* unconditional jump */
-#define OP_JZ              0x13  /* jump if accumulator is 0 */
-#define OP_JNZ             0x14  /* jump if accumulator is not 0 */
-#define OP_STR             0x15  /* format a (heap-allocated) string */
-#define OP_PRINT           0x16  /* print a message to standard output */
-#define OP_ERROR           0x17  /* print an error */
-#define OP_PERROR          0x18  /* print an error (with system error message) */
-#define OP_BAIL            0x19  /* ... */
-#define OP_MARK            0x1a  /* ... */
-#define OP_FS_STAT         0x1b  /* check to see if a file exists */
-#define OP_FS_FILE_P       0x1c  /* is a path a regular file? */
-#define OP_FS_SYMLINK_P    0x1d  /* is a path a symbolic link? */
-#define OP_FS_DIR_P        0x1e  /* is a path a directory? */
-#define OP_FS_CHARDEV_P    0x1f  /* is a path a character device? */
-#define OP_FS_BLOCKDEV_P   0x20  /* is a path a block device? */
-#define OP_FS_FIFO_P       0x21  /* is a path a FIFO queue? */
-#define OP_FS_SOCKET_P     0x22  /* is a path a socket? */
-#define OP_FS_READLINK     0x23  /* get the value of a symbolic link */
-#define OP_FS_DEV          0x24  /* get the ID of the device containing a file */
-#define OP_FS_INODE        0x25  /* get the inode of a file */
-#define OP_FS_MODE         0x26  /* get the mode (permissions) of a file */
-#define OP_FS_NLINK        0x27  /* get the number of hard links to a file */
-#define OP_FS_UID          0x28  /* get the UID of the file's owner */
-#define OP_FS_GID          0x29  /* get the GID of the file's group */
-#define OP_FS_MAJOR        0x2a  /* get the device major number (char/block devices only) */
-#define OP_FS_MINOR        0x2b  /* get the device minor number (char/block devices only) */
-#define OP_FS_SIZE         0x2c  /* get the size of a file */
-#define OP_FS_ATIME        0x2d  /* get the access time of a file */
-#define OP_FS_MTIME        0x2e  /* get the modification time of a file */
-#define OP_FS_CTIME        0x2f  /* get the inode change time of a file */
-#define OP_FS_TOUCH        0x30  /* touch a file (create or update its utime) */
-#define OP_FS_MKDIR        0x31  /* create a new (empty) directory */
-#define OP_FS_LINK         0x32  /* create a file link */
-#define OP_FS_SYMLINK      0x33  /* create a symbolic link */
-#define OP_FS_UNLINK       0x34  /* remove a file */
-#define OP_FS_RMDIR        0x35  /* remove an empty directory */
-#define OP_FS_RENAME       0x36  /* rename a file */
-#define OP_FS_COPY         0x37  /* copy a file from one name to another */
-#define OP_FS_CHOWN        0x38  /* change file ownership */
-#define OP_FS_CHGRP        0x39  /* change file group ownership */
-#define OP_FS_CHMOD        0x3a  /* change file permissions */
-#define OP_FS_SHA1         0x3b  /* calculate SHA1 of a file's contents */
-#define OP_FS_GET          0x3c  /* retrieve the contents of a local file */
-#define OP_FS_PUT          0x3d  /* update the contents of a local file */
-#define OP_GETFILE         0x3e  /* retrieve a file from the server */
-#define OP_PASSWD_OPEN     0x3f  /* open the passwd/shadow (and group) databases for reading or writing */
-#define OP_PASSWD_SAVE     0x40  /* writes the passwd/shadow (and group) databases to disk */
-#define OP_PASSWD_CLOSE    0x41  /* closes the passwd/shadow (and group) databases, without writing them to disk */
-#define OP_PASSWD_NEXTUID  0x42  /* return the next available UID into a register */
-#define OP_PASSWD_NEXTGID  0x43  /* return the next available GID into a register */
-#define OP_USER_FIND       0x44  /* find a user by username, storing the UID into a register */
-#define OP_USER_GET        0x45  /* retrieve the value of an attribute from the last found user */
-#define OP_USER_SET        0x46  /* set an attribute on the last found user */
-#define OP_USER_NEW        0x47  /* allocate a new (unsaved) user object */
-#define OP_USER_SAVE       0x48  /* commit changes to the current user object (in-memory only) */
-#define OP_USER_DELETE     0x49  /* remove the current user from the (in-memory) database */
-#define OP_GROUP_FIND      0x4a  /* find a group by name, storing the GID into a register */
-#define OP_GROUP_GET       0x4b  /* retrieve the value of an attribute from the last found group */
-#define OP_GROUP_SET       0x4c  /* set an attribute on the last found group */
-#define OP_GROUP_NEW       0x4d  /* allocate a new (unsaved) group object */
-#define OP_GROUP_SAVE      0x4e  /* commit changes to the current group object (in-memory only) */
-#define OP_GROUP_DELETE    0x4f  /* remove the current group from the (in-memory) database */
-#define OP_AUGEAS_INIT     0x50  /* initialize the augeas system */
-#define OP_AUGEAS_DONE     0x51  /* de-initializes the augeas system */
-#define OP_AUGEAS_ERR      0x52  /* print a helpful augeas error message */
-#define OP_AUGEAS_WRITE    0x53  /* write all pending changes to disk */
-#define OP_AUGEAS_SET      0x54  /* set the value of a file/key */
-#define OP_AUGEAS_GET      0x55  /* retrieve the value of a file/key */
-#define OP_AUGEAS_FIND     0x56  /* search for and retrieve the value of file/key */
-#define OP_AUGEAS_REMOVE   0x57  /* remove a file/key */
-#define OP_EXEC            0x58  /* execute a command */
-#define OP_DUMP            0x59  /* dump virtual machine state for debugging */
-#define OP_HALT            0x5a  /* halt the virtual machine */
+#define OP_ACC             0x05  /* copy the accumulator value into a register */
+#define OP_ADD             0x06  /* add the second operand to the first */
+#define OP_SUB             0x07  /* subtract the second operand from the first */
+#define OP_MULT            0x08  /* multiply the first operand by the second */
+#define OP_DIV             0x09  /* divide the first operand by the second */
+#define OP_MOD             0x0a  /* modulo the first operand by the second */
+#define OP_CALL            0x0b  /* call a user-defined function */
+#define OP_RET             0x0c  /* return to caller */
+#define OP_EQ              0x0d  /* compare two integers for equality */
+#define OP_LT              0x0e  /* check that operand 1 < operand 2 */
+#define OP_LTE             0x0f  /* check that operand 1 <= operand 2 */
+#define OP_GT              0x10  /* check that operand 1 > operand 2 */
+#define OP_GTE             0x11  /* check that operand 1 >= operand 2 */
+#define OP_STREQ           0x12  /* compare two strings */
+#define OP_JMP             0x13  /* unconditional jump */
+#define OP_JZ              0x14  /* jump if accumulator is 0 */
+#define OP_JNZ             0x15  /* jump if accumulator is not 0 */
+#define OP_STR             0x16  /* format a (heap-allocated) string */
+#define OP_PRINT           0x17  /* print a message to standard output */
+#define OP_ERROR           0x18  /* print an error */
+#define OP_PERROR          0x19  /* print an error (with system error message) */
+#define OP_BAIL            0x1a  /* ... */
+#define OP_MARK            0x1b  /* ... */
+#define OP_FS_STAT         0x1c  /* check to see if a file exists */
+#define OP_FS_FILE_P       0x1d  /* is a path a regular file? */
+#define OP_FS_SYMLINK_P    0x1e  /* is a path a symbolic link? */
+#define OP_FS_DIR_P        0x1f  /* is a path a directory? */
+#define OP_FS_CHARDEV_P    0x20  /* is a path a character device? */
+#define OP_FS_BLOCKDEV_P   0x21  /* is a path a block device? */
+#define OP_FS_FIFO_P       0x22  /* is a path a FIFO queue? */
+#define OP_FS_SOCKET_P     0x23  /* is a path a socket? */
+#define OP_FS_READLINK     0x24  /* get the value of a symbolic link */
+#define OP_FS_DEV          0x25  /* get the ID of the device containing a file */
+#define OP_FS_INODE        0x26  /* get the inode of a file */
+#define OP_FS_MODE         0x27  /* get the mode (permissions) of a file */
+#define OP_FS_NLINK        0x28  /* get the number of hard links to a file */
+#define OP_FS_UID          0x29  /* get the UID of the file's owner */
+#define OP_FS_GID          0x2a  /* get the GID of the file's group */
+#define OP_FS_MAJOR        0x2b  /* get the device major number (char/block devices only) */
+#define OP_FS_MINOR        0x2c  /* get the device minor number (char/block devices only) */
+#define OP_FS_SIZE         0x2d  /* get the size of a file */
+#define OP_FS_ATIME        0x2e  /* get the access time of a file */
+#define OP_FS_MTIME        0x2f  /* get the modification time of a file */
+#define OP_FS_CTIME        0x30  /* get the inode change time of a file */
+#define OP_FS_TOUCH        0x31  /* touch a file (create or update its utime) */
+#define OP_FS_MKDIR        0x32  /* create a new (empty) directory */
+#define OP_FS_LINK         0x33  /* create a file link */
+#define OP_FS_SYMLINK      0x34  /* create a symbolic link */
+#define OP_FS_UNLINK       0x35  /* remove a file */
+#define OP_FS_RMDIR        0x36  /* remove an empty directory */
+#define OP_FS_RENAME       0x37  /* rename a file */
+#define OP_FS_COPY         0x38  /* copy a file from one name to another */
+#define OP_FS_CHOWN        0x39  /* change file ownership */
+#define OP_FS_CHGRP        0x3a  /* change file group ownership */
+#define OP_FS_CHMOD        0x3b  /* change file permissions */
+#define OP_FS_SHA1         0x3c  /* calculate SHA1 of a file's contents */
+#define OP_FS_GET          0x3d  /* retrieve the contents of a local file */
+#define OP_FS_PUT          0x3e  /* update the contents of a local file */
+#define OP_GETFILE         0x3f  /* retrieve a file from the server */
+#define OP_PASSWD_OPEN     0x40  /* open the passwd/shadow (and group) databases for reading or writing */
+#define OP_PASSWD_SAVE     0x41  /* writes the passwd/shadow (and group) databases to disk */
+#define OP_PASSWD_CLOSE    0x42  /* closes the passwd/shadow (and group) databases, without writing them to disk */
+#define OP_PASSWD_NEXTUID  0x43  /* return the next available UID into a register */
+#define OP_PASSWD_NEXTGID  0x44  /* return the next available GID into a register */
+#define OP_USER_FIND       0x45  /* find a user by username, storing the UID into a register */
+#define OP_USER_GET        0x46  /* retrieve the value of an attribute from the last found user */
+#define OP_USER_SET        0x47  /* set an attribute on the last found user */
+#define OP_USER_NEW        0x48  /* allocate a new (unsaved) user object */
+#define OP_USER_SAVE       0x49  /* commit changes to the current user object (in-memory only) */
+#define OP_USER_DELETE     0x4a  /* remove the current user from the (in-memory) database */
+#define OP_GROUP_FIND      0x4b  /* find a group by name, storing the GID into a register */
+#define OP_GROUP_GET       0x4c  /* retrieve the value of an attribute from the last found group */
+#define OP_GROUP_SET       0x4d  /* set an attribute on the last found group */
+#define OP_GROUP_NEW       0x4e  /* allocate a new (unsaved) group object */
+#define OP_GROUP_SAVE      0x4f  /* commit changes to the current group object (in-memory only) */
+#define OP_GROUP_DELETE    0x50  /* remove the current group from the (in-memory) database */
+#define OP_AUGEAS_INIT     0x51  /* initialize the augeas system */
+#define OP_AUGEAS_DONE     0x52  /* de-initializes the augeas system */
+#define OP_AUGEAS_ERR      0x53  /* print a helpful augeas error message */
+#define OP_AUGEAS_WRITE    0x54  /* write all pending changes to disk */
+#define OP_AUGEAS_SET      0x55  /* set the value of a file/key */
+#define OP_AUGEAS_GET      0x56  /* retrieve the value of a file/key */
+#define OP_AUGEAS_FIND     0x57  /* search for and retrieve the value of file/key */
+#define OP_AUGEAS_REMOVE   0x58  /* remove a file/key */
+#define OP_EXEC            0x59  /* execute a command */
+#define OP_DUMP            0x5a  /* dump virtual machine state for debugging */
+#define OP_HALT            0x5b  /* halt the virtual machine */
 
 
 #ifdef OPCODES_EXTENDED
@@ -102,92 +103,93 @@ static const char * OPCODES[] = {
 	"pop",               /* OP_POP              2  0x02 */
 	"set",               /* OP_SET              3  0x03 */
 	"swap",              /* OP_SWAP             4  0x04 */
-	"add",               /* OP_ADD              5  0x05 */
-	"sub",               /* OP_SUB              6  0x06 */
-	"mult",              /* OP_MULT             7  0x07 */
-	"div",               /* OP_DIV              8  0x08 */
-	"mod",               /* OP_MOD              9  0x09 */
-	"call",              /* OP_CALL            10  0x0a */
-	"ret",               /* OP_RET             11  0x0b */
-	"eq",                /* OP_EQ              12  0x0c */
-	"lt",                /* OP_LT              13  0x0d */
-	"lte",               /* OP_LTE             14  0x0e */
-	"gt",                /* OP_GT              15  0x0f */
-	"gte",               /* OP_GTE             16  0x10 */
-	"streq",             /* OP_STREQ           17  0x11 */
-	"jmp",               /* OP_JMP             18  0x12 */
-	"jz",                /* OP_JZ              19  0x13 */
-	"jnz",               /* OP_JNZ             20  0x14 */
-	"str",               /* OP_STR             21  0x15 */
-	"print",             /* OP_PRINT           22  0x16 */
-	"error",             /* OP_ERROR           23  0x17 */
-	"perror",            /* OP_PERROR          24  0x18 */
-	"bail",              /* OP_BAIL            25  0x19 */
-	"mark",              /* OP_MARK            26  0x1a */
-	"fs.stat",           /* OP_FS_STAT         27  0x1b */
-	"fs.file?",          /* OP_FS_FILE_P       28  0x1c */
-	"fs.symlink?",       /* OP_FS_SYMLINK_P    29  0x1d */
-	"fs.dir?",           /* OP_FS_DIR_P        30  0x1e */
-	"fs.chardev?",       /* OP_FS_CHARDEV_P    31  0x1f */
-	"fs.blockdev?",      /* OP_FS_BLOCKDEV_P   32  0x20 */
-	"fs.fifo?",          /* OP_FS_FIFO_P       33  0x21 */
-	"fs.socket?",        /* OP_FS_SOCKET_P     34  0x22 */
-	"fs.readlink",       /* OP_FS_READLINK     35  0x23 */
-	"fs.dev",            /* OP_FS_DEV          36  0x24 */
-	"fs.inode",          /* OP_FS_INODE        37  0x25 */
-	"fs.mode",           /* OP_FS_MODE         38  0x26 */
-	"fs.nlink",          /* OP_FS_NLINK        39  0x27 */
-	"fs.uid",            /* OP_FS_UID          40  0x28 */
-	"fs.gid",            /* OP_FS_GID          41  0x29 */
-	"fs.major",          /* OP_FS_MAJOR        42  0x2a */
-	"fs.minor",          /* OP_FS_MINOR        43  0x2b */
-	"fs.size",           /* OP_FS_SIZE         44  0x2c */
-	"fs.atime",          /* OP_FS_ATIME        45  0x2d */
-	"fs.mtime",          /* OP_FS_MTIME        46  0x2e */
-	"fs.ctime",          /* OP_FS_CTIME        47  0x2f */
-	"fs.touch",          /* OP_FS_TOUCH        48  0x30 */
-	"fs.mkdir",          /* OP_FS_MKDIR        49  0x31 */
-	"fs.link",           /* OP_FS_LINK         50  0x32 */
-	"fs.symlink",        /* OP_FS_SYMLINK      51  0x33 */
-	"fs.unlink",         /* OP_FS_UNLINK       52  0x34 */
-	"fs.rmdir",          /* OP_FS_RMDIR        53  0x35 */
-	"fs.rename",         /* OP_FS_RENAME       54  0x36 */
-	"fs.copy",           /* OP_FS_COPY         55  0x37 */
-	"fs.chown",          /* OP_FS_CHOWN        56  0x38 */
-	"fs.chgrp",          /* OP_FS_CHGRP        57  0x39 */
-	"fs.chmod",          /* OP_FS_CHMOD        58  0x3a */
-	"fs.sha1",           /* OP_FS_SHA1         59  0x3b */
-	"fs.get",            /* OP_FS_GET          60  0x3c */
-	"fs.put",            /* OP_FS_PUT          61  0x3d */
-	"getfile",           /* OP_GETFILE         62  0x3e */
-	"passwd.open",       /* OP_PASSWD_OPEN     63  0x3f */
-	"passwd.save",       /* OP_PASSWD_SAVE     64  0x40 */
-	"passwd.close",      /* OP_PASSWD_CLOSE    65  0x41 */
-	"passwd.nextuid",    /* OP_PASSWD_NEXTUID  66  0x42 */
-	"passwd.nextgid",    /* OP_PASSWD_NEXTGID  67  0x43 */
-	"user.find",         /* OP_USER_FIND       68  0x44 */
-	"user.get",          /* OP_USER_GET        69  0x45 */
-	"user.set",          /* OP_USER_SET        70  0x46 */
-	"user.new",          /* OP_USER_NEW        71  0x47 */
-	"user.save",         /* OP_USER_SAVE       72  0x48 */
-	"user.delete",       /* OP_USER_DELETE     73  0x49 */
-	"group.find",        /* OP_GROUP_FIND      74  0x4a */
-	"group.get",         /* OP_GROUP_GET       75  0x4b */
-	"group.set",         /* OP_GROUP_SET       76  0x4c */
-	"group.new",         /* OP_GROUP_NEW       77  0x4d */
-	"group.save",        /* OP_GROUP_SAVE      78  0x4e */
-	"group.delete",      /* OP_GROUP_DELETE    79  0x4f */
-	"augeas.init",       /* OP_AUGEAS_INIT     80  0x50 */
-	"augeas.done",       /* OP_AUGEAS_DONE     81  0x51 */
-	"augeas.err",        /* OP_AUGEAS_ERR      82  0x52 */
-	"augeas.write",      /* OP_AUGEAS_WRITE    83  0x53 */
-	"augeas.set",        /* OP_AUGEAS_SET      84  0x54 */
-	"augeas.get",        /* OP_AUGEAS_GET      85  0x55 */
-	"augeas.find",       /* OP_AUGEAS_FIND     86  0x56 */
-	"augeas.remove",     /* OP_AUGEAS_REMOVE   87  0x57 */
-	"exec",              /* OP_EXEC            88  0x58 */
-	"dump",              /* OP_DUMP            89  0x59 */
-	"halt",              /* OP_HALT            90  0x5a */
+	"acc",               /* OP_ACC              5  0x05 */
+	"add",               /* OP_ADD              6  0x06 */
+	"sub",               /* OP_SUB              7  0x07 */
+	"mult",              /* OP_MULT             8  0x08 */
+	"div",               /* OP_DIV              9  0x09 */
+	"mod",               /* OP_MOD             10  0x0a */
+	"call",              /* OP_CALL            11  0x0b */
+	"ret",               /* OP_RET             12  0x0c */
+	"eq",                /* OP_EQ              13  0x0d */
+	"lt",                /* OP_LT              14  0x0e */
+	"lte",               /* OP_LTE             15  0x0f */
+	"gt",                /* OP_GT              16  0x10 */
+	"gte",               /* OP_GTE             17  0x11 */
+	"streq",             /* OP_STREQ           18  0x12 */
+	"jmp",               /* OP_JMP             19  0x13 */
+	"jz",                /* OP_JZ              20  0x14 */
+	"jnz",               /* OP_JNZ             21  0x15 */
+	"str",               /* OP_STR             22  0x16 */
+	"print",             /* OP_PRINT           23  0x17 */
+	"error",             /* OP_ERROR           24  0x18 */
+	"perror",            /* OP_PERROR          25  0x19 */
+	"bail",              /* OP_BAIL            26  0x1a */
+	"mark",              /* OP_MARK            27  0x1b */
+	"fs.stat",           /* OP_FS_STAT         28  0x1c */
+	"fs.file?",          /* OP_FS_FILE_P       29  0x1d */
+	"fs.symlink?",       /* OP_FS_SYMLINK_P    30  0x1e */
+	"fs.dir?",           /* OP_FS_DIR_P        31  0x1f */
+	"fs.chardev?",       /* OP_FS_CHARDEV_P    32  0x20 */
+	"fs.blockdev?",      /* OP_FS_BLOCKDEV_P   33  0x21 */
+	"fs.fifo?",          /* OP_FS_FIFO_P       34  0x22 */
+	"fs.socket?",        /* OP_FS_SOCKET_P     35  0x23 */
+	"fs.readlink",       /* OP_FS_READLINK     36  0x24 */
+	"fs.dev",            /* OP_FS_DEV          37  0x25 */
+	"fs.inode",          /* OP_FS_INODE        38  0x26 */
+	"fs.mode",           /* OP_FS_MODE         39  0x27 */
+	"fs.nlink",          /* OP_FS_NLINK        40  0x28 */
+	"fs.uid",            /* OP_FS_UID          41  0x29 */
+	"fs.gid",            /* OP_FS_GID          42  0x2a */
+	"fs.major",          /* OP_FS_MAJOR        43  0x2b */
+	"fs.minor",          /* OP_FS_MINOR        44  0x2c */
+	"fs.size",           /* OP_FS_SIZE         45  0x2d */
+	"fs.atime",          /* OP_FS_ATIME        46  0x2e */
+	"fs.mtime",          /* OP_FS_MTIME        47  0x2f */
+	"fs.ctime",          /* OP_FS_CTIME        48  0x30 */
+	"fs.touch",          /* OP_FS_TOUCH        49  0x31 */
+	"fs.mkdir",          /* OP_FS_MKDIR        50  0x32 */
+	"fs.link",           /* OP_FS_LINK         51  0x33 */
+	"fs.symlink",        /* OP_FS_SYMLINK      52  0x34 */
+	"fs.unlink",         /* OP_FS_UNLINK       53  0x35 */
+	"fs.rmdir",          /* OP_FS_RMDIR        54  0x36 */
+	"fs.rename",         /* OP_FS_RENAME       55  0x37 */
+	"fs.copy",           /* OP_FS_COPY         56  0x38 */
+	"fs.chown",          /* OP_FS_CHOWN        57  0x39 */
+	"fs.chgrp",          /* OP_FS_CHGRP        58  0x3a */
+	"fs.chmod",          /* OP_FS_CHMOD        59  0x3b */
+	"fs.sha1",           /* OP_FS_SHA1         60  0x3c */
+	"fs.get",            /* OP_FS_GET          61  0x3d */
+	"fs.put",            /* OP_FS_PUT          62  0x3e */
+	"getfile",           /* OP_GETFILE         63  0x3f */
+	"passwd.open",       /* OP_PASSWD_OPEN     64  0x40 */
+	"passwd.save",       /* OP_PASSWD_SAVE     65  0x41 */
+	"passwd.close",      /* OP_PASSWD_CLOSE    66  0x42 */
+	"passwd.nextuid",    /* OP_PASSWD_NEXTUID  67  0x43 */
+	"passwd.nextgid",    /* OP_PASSWD_NEXTGID  68  0x44 */
+	"user.find",         /* OP_USER_FIND       69  0x45 */
+	"user.get",          /* OP_USER_GET        70  0x46 */
+	"user.set",          /* OP_USER_SET        71  0x47 */
+	"user.new",          /* OP_USER_NEW        72  0x48 */
+	"user.save",         /* OP_USER_SAVE       73  0x49 */
+	"user.delete",       /* OP_USER_DELETE     74  0x4a */
+	"group.find",        /* OP_GROUP_FIND      75  0x4b */
+	"group.get",         /* OP_GROUP_GET       76  0x4c */
+	"group.set",         /* OP_GROUP_SET       77  0x4d */
+	"group.new",         /* OP_GROUP_NEW       78  0x4e */
+	"group.save",        /* OP_GROUP_SAVE      79  0x4f */
+	"group.delete",      /* OP_GROUP_DELETE    80  0x50 */
+	"augeas.init",       /* OP_AUGEAS_INIT     81  0x51 */
+	"augeas.done",       /* OP_AUGEAS_DONE     82  0x52 */
+	"augeas.err",        /* OP_AUGEAS_ERR      83  0x53 */
+	"augeas.write",      /* OP_AUGEAS_WRITE    84  0x54 */
+	"augeas.set",        /* OP_AUGEAS_SET      85  0x55 */
+	"augeas.get",        /* OP_AUGEAS_GET      86  0x56 */
+	"augeas.find",       /* OP_AUGEAS_FIND     87  0x57 */
+	"augeas.remove",     /* OP_AUGEAS_REMOVE   88  0x58 */
+	"exec",              /* OP_EXEC            89  0x59 */
+	"dump",              /* OP_DUMP            90  0x5a */
+	"halt",              /* OP_HALT            91  0x5b */
 	NULL,
 };
 
@@ -198,93 +200,94 @@ static const char * OPCODES[] = {
 #define T_OP_POP             0x42  /* pop data stack top into a register */
 #define T_OP_SET             0x43  /* set register value */
 #define T_OP_SWAP            0x44  /* swap two register values */
-#define T_OP_ADD             0x45  /* add the second operand to the first */
-#define T_OP_SUB             0x46  /* subtract the second operand from the first */
-#define T_OP_MULT            0x47  /* multiply the first operand by the second */
-#define T_OP_DIV             0x48  /* divide the first operand by the second */
-#define T_OP_MOD             0x49  /* modulo the first operand by the second */
-#define T_OP_CALL            0x4a  /* call a user-defined function */
-#define T_OP_RET             0x4b  /* return to caller */
-#define T_OP_RETV            0x4c  /* return to caller (with value) */
-#define T_OP_EQ              0x4d  /* compare two integers for equality */
-#define T_OP_LT              0x4e  /* check that operand 1 < operand 2 */
-#define T_OP_LTE             0x4f  /* check that operand 1 <= operand 2 */
-#define T_OP_GT              0x50  /* check that operand 1 > operand 2 */
-#define T_OP_GTE             0x51  /* check that operand 1 >= operand 2 */
-#define T_OP_STREQ           0x52  /* compare two strings */
-#define T_OP_JMP             0x53  /* unconditional jump */
-#define T_OP_JZ              0x54  /* jump if accumulator is 0 */
-#define T_OP_JNZ             0x55  /* jump if accumulator is not 0 */
-#define T_OP_STR             0x56  /* format a (heap-allocated) string */
-#define T_OP_PRINT           0x57  /* print a message to standard output */
-#define T_OP_ERROR           0x58  /* print an error */
-#define T_OP_PERROR          0x59  /* print an error (with system error message) */
-#define T_OP_BAIL            0x5a  /* ... */
-#define T_OP_MARK            0x5b  /* ... */
-#define T_OP_FS_STAT         0x5c  /* check to see if a file exists */
-#define T_OP_FS_FILE_P       0x5d  /* is a path a regular file? */
-#define T_OP_FS_SYMLINK_P    0x5e  /* is a path a symbolic link? */
-#define T_OP_FS_DIR_P        0x5f  /* is a path a directory? */
-#define T_OP_FS_CHARDEV_P    0x60  /* is a path a character device? */
-#define T_OP_FS_BLOCKDEV_P   0x61  /* is a path a block device? */
-#define T_OP_FS_FIFO_P       0x62  /* is a path a FIFO queue? */
-#define T_OP_FS_SOCKET_P     0x63  /* is a path a socket? */
-#define T_OP_FS_READLINK     0x64  /* get the value of a symbolic link */
-#define T_OP_FS_DEV          0x65  /* get the ID of the device containing a file */
-#define T_OP_FS_INODE        0x66  /* get the inode of a file */
-#define T_OP_FS_MODE         0x67  /* get the mode (permissions) of a file */
-#define T_OP_FS_NLINK        0x68  /* get the number of hard links to a file */
-#define T_OP_FS_UID          0x69  /* get the UID of the file's owner */
-#define T_OP_FS_GID          0x6a  /* get the GID of the file's group */
-#define T_OP_FS_MAJOR        0x6b  /* get the device major number (char/block devices only) */
-#define T_OP_FS_MINOR        0x6c  /* get the device minor number (char/block devices only) */
-#define T_OP_FS_SIZE         0x6d  /* get the size of a file */
-#define T_OP_FS_ATIME        0x6e  /* get the access time of a file */
-#define T_OP_FS_MTIME        0x6f  /* get the modification time of a file */
-#define T_OP_FS_CTIME        0x70  /* get the inode change time of a file */
-#define T_OP_FS_TOUCH        0x71  /* touch a file (create or update its utime) */
-#define T_OP_FS_MKDIR        0x72  /* create a new (empty) directory */
-#define T_OP_FS_LINK         0x73  /* create a file link */
-#define T_OP_FS_SYMLINK      0x74  /* create a symbolic link */
-#define T_OP_FS_UNLINK       0x75  /* remove a file */
-#define T_OP_FS_RMDIR        0x76  /* remove an empty directory */
-#define T_OP_FS_RENAME       0x77  /* rename a file */
-#define T_OP_FS_COPY         0x78  /* copy a file from one name to another */
-#define T_OP_FS_CHOWN        0x79  /* change file ownership */
-#define T_OP_FS_CHGRP        0x7a  /* change file group ownership */
-#define T_OP_FS_CHMOD        0x7b  /* change file permissions */
-#define T_OP_FS_SHA1         0x7c  /* calculate SHA1 of a file's contents */
-#define T_OP_FS_GET          0x7d  /* retrieve the contents of a local file */
-#define T_OP_FS_PUT          0x7e  /* update the contents of a local file */
-#define T_OP_GETFILE         0x7f  /* retrieve a file from the server */
-#define T_OP_PASSWD_OPEN     0x80  /* open the passwd/shadow (and group) databases for reading or writing */
-#define T_OP_PASSWD_SAVE     0x81  /* writes the passwd/shadow (and group) databases to disk */
-#define T_OP_PASSWD_CLOSE    0x82  /* closes the passwd/shadow (and group) databases, without writing them to disk */
-#define T_OP_PASSWD_NEXTUID  0x83  /* return the next available UID into a register */
-#define T_OP_PASSWD_NEXTGID  0x84  /* return the next available GID into a register */
-#define T_OP_USER_FIND       0x85  /* find a user by username, storing the UID into a register */
-#define T_OP_USER_GET        0x86  /* retrieve the value of an attribute from the last found user */
-#define T_OP_USER_SET        0x87  /* set an attribute on the last found user */
-#define T_OP_USER_NEW        0x88  /* allocate a new (unsaved) user object */
-#define T_OP_USER_SAVE       0x89  /* commit changes to the current user object (in-memory only) */
-#define T_OP_USER_DELETE     0x8a  /* remove the current user from the (in-memory) database */
-#define T_OP_GROUP_FIND      0x8b  /* find a group by name, storing the GID into a register */
-#define T_OP_GROUP_GET       0x8c  /* retrieve the value of an attribute from the last found group */
-#define T_OP_GROUP_SET       0x8d  /* set an attribute on the last found group */
-#define T_OP_GROUP_NEW       0x8e  /* allocate a new (unsaved) group object */
-#define T_OP_GROUP_SAVE      0x8f  /* commit changes to the current group object (in-memory only) */
-#define T_OP_GROUP_DELETE    0x90  /* remove the current group from the (in-memory) database */
-#define T_OP_AUGEAS_INIT     0x91  /* initialize the augeas system */
-#define T_OP_AUGEAS_DONE     0x92  /* de-initializes the augeas system */
-#define T_OP_AUGEAS_ERR      0x93  /* print a helpful augeas error message */
-#define T_OP_AUGEAS_WRITE    0x94  /* write all pending changes to disk */
-#define T_OP_AUGEAS_SET      0x95  /* set the value of a file/key */
-#define T_OP_AUGEAS_GET      0x96  /* retrieve the value of a file/key */
-#define T_OP_AUGEAS_FIND     0x97  /* search for and retrieve the value of file/key */
-#define T_OP_AUGEAS_REMOVE   0x98  /* remove a file/key */
-#define T_OP_EXEC            0x99  /* execute a command */
-#define T_OP_DUMP            0x9a  /* dump virtual machine state for debugging */
-#define T_OP_HALT            0x9b  /* halt the virtual machine */
+#define T_OP_ACC             0x45  /* copy the accumulator value into a register */
+#define T_OP_ADD             0x46  /* add the second operand to the first */
+#define T_OP_SUB             0x47  /* subtract the second operand from the first */
+#define T_OP_MULT            0x48  /* multiply the first operand by the second */
+#define T_OP_DIV             0x49  /* divide the first operand by the second */
+#define T_OP_MOD             0x4a  /* modulo the first operand by the second */
+#define T_OP_CALL            0x4b  /* call a user-defined function */
+#define T_OP_RET             0x4c  /* return to caller */
+#define T_OP_RETV            0x4d  /* return to caller (with value) */
+#define T_OP_EQ              0x4e  /* compare two integers for equality */
+#define T_OP_LT              0x4f  /* check that operand 1 < operand 2 */
+#define T_OP_LTE             0x50  /* check that operand 1 <= operand 2 */
+#define T_OP_GT              0x51  /* check that operand 1 > operand 2 */
+#define T_OP_GTE             0x52  /* check that operand 1 >= operand 2 */
+#define T_OP_STREQ           0x53  /* compare two strings */
+#define T_OP_JMP             0x54  /* unconditional jump */
+#define T_OP_JZ              0x55  /* jump if accumulator is 0 */
+#define T_OP_JNZ             0x56  /* jump if accumulator is not 0 */
+#define T_OP_STR             0x57  /* format a (heap-allocated) string */
+#define T_OP_PRINT           0x58  /* print a message to standard output */
+#define T_OP_ERROR           0x59  /* print an error */
+#define T_OP_PERROR          0x5a  /* print an error (with system error message) */
+#define T_OP_BAIL            0x5b  /* ... */
+#define T_OP_MARK            0x5c  /* ... */
+#define T_OP_FS_STAT         0x5d  /* check to see if a file exists */
+#define T_OP_FS_FILE_P       0x5e  /* is a path a regular file? */
+#define T_OP_FS_SYMLINK_P    0x5f  /* is a path a symbolic link? */
+#define T_OP_FS_DIR_P        0x60  /* is a path a directory? */
+#define T_OP_FS_CHARDEV_P    0x61  /* is a path a character device? */
+#define T_OP_FS_BLOCKDEV_P   0x62  /* is a path a block device? */
+#define T_OP_FS_FIFO_P       0x63  /* is a path a FIFO queue? */
+#define T_OP_FS_SOCKET_P     0x64  /* is a path a socket? */
+#define T_OP_FS_READLINK     0x65  /* get the value of a symbolic link */
+#define T_OP_FS_DEV          0x66  /* get the ID of the device containing a file */
+#define T_OP_FS_INODE        0x67  /* get the inode of a file */
+#define T_OP_FS_MODE         0x68  /* get the mode (permissions) of a file */
+#define T_OP_FS_NLINK        0x69  /* get the number of hard links to a file */
+#define T_OP_FS_UID          0x6a  /* get the UID of the file's owner */
+#define T_OP_FS_GID          0x6b  /* get the GID of the file's group */
+#define T_OP_FS_MAJOR        0x6c  /* get the device major number (char/block devices only) */
+#define T_OP_FS_MINOR        0x6d  /* get the device minor number (char/block devices only) */
+#define T_OP_FS_SIZE         0x6e  /* get the size of a file */
+#define T_OP_FS_ATIME        0x6f  /* get the access time of a file */
+#define T_OP_FS_MTIME        0x70  /* get the modification time of a file */
+#define T_OP_FS_CTIME        0x71  /* get the inode change time of a file */
+#define T_OP_FS_TOUCH        0x72  /* touch a file (create or update its utime) */
+#define T_OP_FS_MKDIR        0x73  /* create a new (empty) directory */
+#define T_OP_FS_LINK         0x74  /* create a file link */
+#define T_OP_FS_SYMLINK      0x75  /* create a symbolic link */
+#define T_OP_FS_UNLINK       0x76  /* remove a file */
+#define T_OP_FS_RMDIR        0x77  /* remove an empty directory */
+#define T_OP_FS_RENAME       0x78  /* rename a file */
+#define T_OP_FS_COPY         0x79  /* copy a file from one name to another */
+#define T_OP_FS_CHOWN        0x7a  /* change file ownership */
+#define T_OP_FS_CHGRP        0x7b  /* change file group ownership */
+#define T_OP_FS_CHMOD        0x7c  /* change file permissions */
+#define T_OP_FS_SHA1         0x7d  /* calculate SHA1 of a file's contents */
+#define T_OP_FS_GET          0x7e  /* retrieve the contents of a local file */
+#define T_OP_FS_PUT          0x7f  /* update the contents of a local file */
+#define T_OP_GETFILE         0x80  /* retrieve a file from the server */
+#define T_OP_PASSWD_OPEN     0x81  /* open the passwd/shadow (and group) databases for reading or writing */
+#define T_OP_PASSWD_SAVE     0x82  /* writes the passwd/shadow (and group) databases to disk */
+#define T_OP_PASSWD_CLOSE    0x83  /* closes the passwd/shadow (and group) databases, without writing them to disk */
+#define T_OP_PASSWD_NEXTUID  0x84  /* return the next available UID into a register */
+#define T_OP_PASSWD_NEXTGID  0x85  /* return the next available GID into a register */
+#define T_OP_USER_FIND       0x86  /* find a user by username, storing the UID into a register */
+#define T_OP_USER_GET        0x87  /* retrieve the value of an attribute from the last found user */
+#define T_OP_USER_SET        0x88  /* set an attribute on the last found user */
+#define T_OP_USER_NEW        0x89  /* allocate a new (unsaved) user object */
+#define T_OP_USER_SAVE       0x8a  /* commit changes to the current user object (in-memory only) */
+#define T_OP_USER_DELETE     0x8b  /* remove the current user from the (in-memory) database */
+#define T_OP_GROUP_FIND      0x8c  /* find a group by name, storing the GID into a register */
+#define T_OP_GROUP_GET       0x8d  /* retrieve the value of an attribute from the last found group */
+#define T_OP_GROUP_SET       0x8e  /* set an attribute on the last found group */
+#define T_OP_GROUP_NEW       0x8f  /* allocate a new (unsaved) group object */
+#define T_OP_GROUP_SAVE      0x90  /* commit changes to the current group object (in-memory only) */
+#define T_OP_GROUP_DELETE    0x91  /* remove the current group from the (in-memory) database */
+#define T_OP_AUGEAS_INIT     0x92  /* initialize the augeas system */
+#define T_OP_AUGEAS_DONE     0x93  /* de-initializes the augeas system */
+#define T_OP_AUGEAS_ERR      0x94  /* print a helpful augeas error message */
+#define T_OP_AUGEAS_WRITE    0x95  /* write all pending changes to disk */
+#define T_OP_AUGEAS_SET      0x96  /* set the value of a file/key */
+#define T_OP_AUGEAS_GET      0x97  /* retrieve the value of a file/key */
+#define T_OP_AUGEAS_FIND     0x98  /* search for and retrieve the value of file/key */
+#define T_OP_AUGEAS_REMOVE   0x99  /* remove a file/key */
+#define T_OP_EXEC            0x9a  /* execute a command */
+#define T_OP_DUMP            0x9b  /* dump virtual machine state for debugging */
+#define T_OP_HALT            0x9c  /* halt the virtual machine */
 
 
 static const char * ASM[] = {
@@ -293,93 +296,94 @@ static const char * ASM[] = {
 	"pop",               /* T_OP_POP              2  0x02 */
 	"set",               /* T_OP_SET              3  0x03 */
 	"swap",              /* T_OP_SWAP             4  0x04 */
-	"add",               /* T_OP_ADD              5  0x05 */
-	"sub",               /* T_OP_SUB              6  0x06 */
-	"mult",              /* T_OP_MULT             7  0x07 */
-	"div",               /* T_OP_DIV              8  0x08 */
-	"mod",               /* T_OP_MOD              9  0x09 */
-	"call",              /* T_OP_CALL            10  0x0a */
-	"ret",               /* T_OP_RET             11  0x0b */
-	"retv",              /* T_OP_RETV            12  0x0c */
-	"eq",                /* T_OP_EQ              13  0x0d */
-	"lt",                /* T_OP_LT              14  0x0e */
-	"lte",               /* T_OP_LTE             15  0x0f */
-	"gt",                /* T_OP_GT              16  0x10 */
-	"gte",               /* T_OP_GTE             17  0x11 */
-	"streq",             /* T_OP_STREQ           18  0x12 */
-	"jmp",               /* T_OP_JMP             19  0x13 */
-	"jz",                /* T_OP_JZ              20  0x14 */
-	"jnz",               /* T_OP_JNZ             21  0x15 */
-	"str",               /* T_OP_STR             22  0x16 */
-	"print",             /* T_OP_PRINT           23  0x17 */
-	"error",             /* T_OP_ERROR           24  0x18 */
-	"perror",            /* T_OP_PERROR          25  0x19 */
-	"bail",              /* T_OP_BAIL            26  0x1a */
-	"mark",              /* T_OP_MARK            27  0x1b */
-	"fs.stat",           /* T_OP_FS_STAT         28  0x1c */
-	"fs.file?",          /* T_OP_FS_FILE_P       29  0x1d */
-	"fs.symlink?",       /* T_OP_FS_SYMLINK_P    30  0x1e */
-	"fs.dir?",           /* T_OP_FS_DIR_P        31  0x1f */
-	"fs.chardev?",       /* T_OP_FS_CHARDEV_P    32  0x20 */
-	"fs.blockdev?",      /* T_OP_FS_BLOCKDEV_P   33  0x21 */
-	"fs.fifo?",          /* T_OP_FS_FIFO_P       34  0x22 */
-	"fs.socket?",        /* T_OP_FS_SOCKET_P     35  0x23 */
-	"fs.readlink",       /* T_OP_FS_READLINK     36  0x24 */
-	"fs.dev",            /* T_OP_FS_DEV          37  0x25 */
-	"fs.inode",          /* T_OP_FS_INODE        38  0x26 */
-	"fs.mode",           /* T_OP_FS_MODE         39  0x27 */
-	"fs.nlink",          /* T_OP_FS_NLINK        40  0x28 */
-	"fs.uid",            /* T_OP_FS_UID          41  0x29 */
-	"fs.gid",            /* T_OP_FS_GID          42  0x2a */
-	"fs.major",          /* T_OP_FS_MAJOR        43  0x2b */
-	"fs.minor",          /* T_OP_FS_MINOR        44  0x2c */
-	"fs.size",           /* T_OP_FS_SIZE         45  0x2d */
-	"fs.atime",          /* T_OP_FS_ATIME        46  0x2e */
-	"fs.mtime",          /* T_OP_FS_MTIME        47  0x2f */
-	"fs.ctime",          /* T_OP_FS_CTIME        48  0x30 */
-	"fs.touch",          /* T_OP_FS_TOUCH        49  0x31 */
-	"fs.mkdir",          /* T_OP_FS_MKDIR        50  0x32 */
-	"fs.link",           /* T_OP_FS_LINK         51  0x33 */
-	"fs.symlink",        /* T_OP_FS_SYMLINK      52  0x34 */
-	"fs.unlink",         /* T_OP_FS_UNLINK       53  0x35 */
-	"fs.rmdir",          /* T_OP_FS_RMDIR        54  0x36 */
-	"fs.rename",         /* T_OP_FS_RENAME       55  0x37 */
-	"fs.copy",           /* T_OP_FS_COPY         56  0x38 */
-	"fs.chown",          /* T_OP_FS_CHOWN        57  0x39 */
-	"fs.chgrp",          /* T_OP_FS_CHGRP        58  0x3a */
-	"fs.chmod",          /* T_OP_FS_CHMOD        59  0x3b */
-	"fs.sha1",           /* T_OP_FS_SHA1         60  0x3c */
-	"fs.get",            /* T_OP_FS_GET          61  0x3d */
-	"fs.put",            /* T_OP_FS_PUT          62  0x3e */
-	"getfile",           /* T_OP_GETFILE         63  0x3f */
-	"passwd.open",       /* T_OP_PASSWD_OPEN     64  0x40 */
-	"passwd.save",       /* T_OP_PASSWD_SAVE     65  0x41 */
-	"passwd.close",      /* T_OP_PASSWD_CLOSE    66  0x42 */
-	"passwd.nextuid",    /* T_OP_PASSWD_NEXTUID  67  0x43 */
-	"passwd.nextgid",    /* T_OP_PASSWD_NEXTGID  68  0x44 */
-	"user.find",         /* T_OP_USER_FIND       69  0x45 */
-	"user.get",          /* T_OP_USER_GET        70  0x46 */
-	"user.set",          /* T_OP_USER_SET        71  0x47 */
-	"user.new",          /* T_OP_USER_NEW        72  0x48 */
-	"user.save",         /* T_OP_USER_SAVE       73  0x49 */
-	"user.delete",       /* T_OP_USER_DELETE     74  0x4a */
-	"group.find",        /* T_OP_GROUP_FIND      75  0x4b */
-	"group.get",         /* T_OP_GROUP_GET       76  0x4c */
-	"group.set",         /* T_OP_GROUP_SET       77  0x4d */
-	"group.new",         /* T_OP_GROUP_NEW       78  0x4e */
-	"group.save",        /* T_OP_GROUP_SAVE      79  0x4f */
-	"group.delete",      /* T_OP_GROUP_DELETE    80  0x50 */
-	"augeas.init",       /* T_OP_AUGEAS_INIT     81  0x51 */
-	"augeas.done",       /* T_OP_AUGEAS_DONE     82  0x52 */
-	"augeas.err",        /* T_OP_AUGEAS_ERR      83  0x53 */
-	"augeas.write",      /* T_OP_AUGEAS_WRITE    84  0x54 */
-	"augeas.set",        /* T_OP_AUGEAS_SET      85  0x55 */
-	"augeas.get",        /* T_OP_AUGEAS_GET      86  0x56 */
-	"augeas.find",       /* T_OP_AUGEAS_FIND     87  0x57 */
-	"augeas.remove",     /* T_OP_AUGEAS_REMOVE   88  0x58 */
-	"exec",              /* T_OP_EXEC            89  0x59 */
-	"dump",              /* T_OP_DUMP            90  0x5a */
-	"halt",              /* T_OP_HALT            91  0x5b */
+	"acc",               /* T_OP_ACC              5  0x05 */
+	"add",               /* T_OP_ADD              6  0x06 */
+	"sub",               /* T_OP_SUB              7  0x07 */
+	"mult",              /* T_OP_MULT             8  0x08 */
+	"div",               /* T_OP_DIV              9  0x09 */
+	"mod",               /* T_OP_MOD             10  0x0a */
+	"call",              /* T_OP_CALL            11  0x0b */
+	"ret",               /* T_OP_RET             12  0x0c */
+	"retv",              /* T_OP_RETV            13  0x0d */
+	"eq",                /* T_OP_EQ              14  0x0e */
+	"lt",                /* T_OP_LT              15  0x0f */
+	"lte",               /* T_OP_LTE             16  0x10 */
+	"gt",                /* T_OP_GT              17  0x11 */
+	"gte",               /* T_OP_GTE             18  0x12 */
+	"streq",             /* T_OP_STREQ           19  0x13 */
+	"jmp",               /* T_OP_JMP             20  0x14 */
+	"jz",                /* T_OP_JZ              21  0x15 */
+	"jnz",               /* T_OP_JNZ             22  0x16 */
+	"str",               /* T_OP_STR             23  0x17 */
+	"print",             /* T_OP_PRINT           24  0x18 */
+	"error",             /* T_OP_ERROR           25  0x19 */
+	"perror",            /* T_OP_PERROR          26  0x1a */
+	"bail",              /* T_OP_BAIL            27  0x1b */
+	"mark",              /* T_OP_MARK            28  0x1c */
+	"fs.stat",           /* T_OP_FS_STAT         29  0x1d */
+	"fs.file?",          /* T_OP_FS_FILE_P       30  0x1e */
+	"fs.symlink?",       /* T_OP_FS_SYMLINK_P    31  0x1f */
+	"fs.dir?",           /* T_OP_FS_DIR_P        32  0x20 */
+	"fs.chardev?",       /* T_OP_FS_CHARDEV_P    33  0x21 */
+	"fs.blockdev?",      /* T_OP_FS_BLOCKDEV_P   34  0x22 */
+	"fs.fifo?",          /* T_OP_FS_FIFO_P       35  0x23 */
+	"fs.socket?",        /* T_OP_FS_SOCKET_P     36  0x24 */
+	"fs.readlink",       /* T_OP_FS_READLINK     37  0x25 */
+	"fs.dev",            /* T_OP_FS_DEV          38  0x26 */
+	"fs.inode",          /* T_OP_FS_INODE        39  0x27 */
+	"fs.mode",           /* T_OP_FS_MODE         40  0x28 */
+	"fs.nlink",          /* T_OP_FS_NLINK        41  0x29 */
+	"fs.uid",            /* T_OP_FS_UID          42  0x2a */
+	"fs.gid",            /* T_OP_FS_GID          43  0x2b */
+	"fs.major",          /* T_OP_FS_MAJOR        44  0x2c */
+	"fs.minor",          /* T_OP_FS_MINOR        45  0x2d */
+	"fs.size",           /* T_OP_FS_SIZE         46  0x2e */
+	"fs.atime",          /* T_OP_FS_ATIME        47  0x2f */
+	"fs.mtime",          /* T_OP_FS_MTIME        48  0x30 */
+	"fs.ctime",          /* T_OP_FS_CTIME        49  0x31 */
+	"fs.touch",          /* T_OP_FS_TOUCH        50  0x32 */
+	"fs.mkdir",          /* T_OP_FS_MKDIR        51  0x33 */
+	"fs.link",           /* T_OP_FS_LINK         52  0x34 */
+	"fs.symlink",        /* T_OP_FS_SYMLINK      53  0x35 */
+	"fs.unlink",         /* T_OP_FS_UNLINK       54  0x36 */
+	"fs.rmdir",          /* T_OP_FS_RMDIR        55  0x37 */
+	"fs.rename",         /* T_OP_FS_RENAME       56  0x38 */
+	"fs.copy",           /* T_OP_FS_COPY         57  0x39 */
+	"fs.chown",          /* T_OP_FS_CHOWN        58  0x3a */
+	"fs.chgrp",          /* T_OP_FS_CHGRP        59  0x3b */
+	"fs.chmod",          /* T_OP_FS_CHMOD        60  0x3c */
+	"fs.sha1",           /* T_OP_FS_SHA1         61  0x3d */
+	"fs.get",            /* T_OP_FS_GET          62  0x3e */
+	"fs.put",            /* T_OP_FS_PUT          63  0x3f */
+	"getfile",           /* T_OP_GETFILE         64  0x40 */
+	"passwd.open",       /* T_OP_PASSWD_OPEN     65  0x41 */
+	"passwd.save",       /* T_OP_PASSWD_SAVE     66  0x42 */
+	"passwd.close",      /* T_OP_PASSWD_CLOSE    67  0x43 */
+	"passwd.nextuid",    /* T_OP_PASSWD_NEXTUID  68  0x44 */
+	"passwd.nextgid",    /* T_OP_PASSWD_NEXTGID  69  0x45 */
+	"user.find",         /* T_OP_USER_FIND       70  0x46 */
+	"user.get",          /* T_OP_USER_GET        71  0x47 */
+	"user.set",          /* T_OP_USER_SET        72  0x48 */
+	"user.new",          /* T_OP_USER_NEW        73  0x49 */
+	"user.save",         /* T_OP_USER_SAVE       74  0x4a */
+	"user.delete",       /* T_OP_USER_DELETE     75  0x4b */
+	"group.find",        /* T_OP_GROUP_FIND      76  0x4c */
+	"group.get",         /* T_OP_GROUP_GET       77  0x4d */
+	"group.set",         /* T_OP_GROUP_SET       78  0x4e */
+	"group.new",         /* T_OP_GROUP_NEW       79  0x4f */
+	"group.save",        /* T_OP_GROUP_SAVE      80  0x50 */
+	"group.delete",      /* T_OP_GROUP_DELETE    81  0x51 */
+	"augeas.init",       /* T_OP_AUGEAS_INIT     82  0x52 */
+	"augeas.done",       /* T_OP_AUGEAS_DONE     83  0x53 */
+	"augeas.err",        /* T_OP_AUGEAS_ERR      84  0x54 */
+	"augeas.write",      /* T_OP_AUGEAS_WRITE    85  0x55 */
+	"augeas.set",        /* T_OP_AUGEAS_SET      86  0x56 */
+	"augeas.get",        /* T_OP_AUGEAS_GET      87  0x57 */
+	"augeas.find",       /* T_OP_AUGEAS_FIND     88  0x58 */
+	"augeas.remove",     /* T_OP_AUGEAS_REMOVE   89  0x59 */
+	"exec",              /* T_OP_EXEC            90  0x5a */
+	"dump",              /* T_OP_DUMP            91  0x5b */
+	"halt",              /* T_OP_HALT            92  0x5c */
 	NULL,
 };
 
@@ -401,6 +405,7 @@ static struct {
 	{ T_OP_POP,            "pop %a",                                         OP_POP,            { ARG_REGISTER,                       ARG_NONE,                           } },
 	{ T_OP_SET,            "set %a (%b|<string>|<number>)",                  OP_SET,            { ARG_REGISTER,                       ARG_REGISTER|ARG_STRING|ARG_NUMBER, } },
 	{ T_OP_SWAP,           "swap %a %b",                                     OP_SWAP,           { ARG_REGISTER,                       ARG_REGISTER,                       } },
+	{ T_OP_ACC,            "acc %a",                                         OP_ACC,            { ARG_REGISTER,                       ARG_NONE,                           } },
 	{ T_OP_ADD,            "add %a (%b|<number>)",                           OP_ADD,            { ARG_REGISTER,                       ARG_REGISTER|ARG_NUMBER,            } },
 	{ T_OP_SUB,            "sub %a (%b|<number>)",                           OP_SUB,            { ARG_REGISTER,                       ARG_REGISTER|ARG_NUMBER,            } },
 	{ T_OP_MULT,           "mult %a (%b|<number>)",                          OP_MULT,           { ARG_REGISTER,                       ARG_REGISTER|ARG_NUMBER,            } },

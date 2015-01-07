@@ -384,7 +384,6 @@ int vm_args(vm_t *vm, int argc, char **argv)
 	if (oper1 > NREGS) B_ERR("register index %i out of bounds", oper1); } while (0)
 #define REGISTER2(s) do { if (!is_register(f2)) B_ERR(s " must be given a register as its second operand"); \
 	if (oper2 > NREGS) B_ERR("register index %i out of bounds", oper2); } while (0)
-#define NEED_STAT(s) do { if (!vm->stat.st_ino) B_ERR(s " called without a prior fs.stat\n"); } while (0)
 
 int vm_exec(vm_t *vm)
 {
@@ -607,44 +606,44 @@ int vm_exec(vm_t *vm)
 
 		case OP_FS_FILE_P:
 			ARG1("fs.file?");
-			NEED_STAT("fs.file?");
-			vm->acc = S_ISREG(vm->stat.st_mode) ? 0 : 1;
+			vm->acc = lstat(s_str(vm, f1, oper1), &vm->stat);
+			if (vm->acc == 0) vm->acc = S_ISREG(vm->stat.st_mode) ? 0 : 1;
 			break;
 
 		case OP_FS_SYMLINK_P:
 			ARG1("fs.symlink?");
-			NEED_STAT("fs.symlink?");
-			vm->acc = S_ISLNK(vm->stat.st_mode) ? 0 : 1;
+			vm->acc = lstat(s_str(vm, f1, oper1), &vm->stat);
+			if (vm->acc == 0) vm->acc = S_ISLNK(vm->stat.st_mode) ? 0 : 1;
 			break;
 
 		case OP_FS_DIR_P:
 			ARG1("fs.dir?");
-			NEED_STAT("fs.dir?");
-			vm->acc = S_ISDIR(vm->stat.st_mode) ? 0 : 1;
+			vm->acc = lstat(s_str(vm, f1, oper1), &vm->stat);
+			if (vm->acc == 0) vm->acc = S_ISDIR(vm->stat.st_mode) ? 0 : 1;
 			break;
 
 		case OP_FS_CHARDEV_P:
 			ARG1("fs.chardev?");
-			NEED_STAT("fs.chardev?");
-			vm->acc = S_ISCHR(vm->stat.st_mode) ? 0 : 1;
+			vm->acc = lstat(s_str(vm, f1, oper1), &vm->stat);
+			if (vm->acc == 0) vm->acc = S_ISCHR(vm->stat.st_mode) ? 0 : 1;
 			break;
 
 		case OP_FS_BLOCKDEV_P:
 			ARG1("fs.blockdev?");
-			NEED_STAT("fs.blockdev?");
-			vm->acc = S_ISBLK(vm->stat.st_mode) ? 0 : 1;
+			vm->acc = lstat(s_str(vm, f1, oper1), &vm->stat);
+			if (vm->acc == 0) vm->acc = S_ISBLK(vm->stat.st_mode) ? 0 : 1;
 			break;
 
 		case OP_FS_FIFO_P:
 			ARG1("fs.fifo?");
-			NEED_STAT("fs.fifo?");
-			vm->acc = S_ISFIFO(vm->stat.st_mode) ? 0 : 1;
+			vm->acc = lstat(s_str(vm, f1, oper1), &vm->stat);
+			if (vm->acc == 0) vm->acc = S_ISFIFO(vm->stat.st_mode) ? 0 : 1;
 			break;
 
 		case OP_FS_SOCKET_P:
 			ARG1("fs.socket?");
-			NEED_STAT("fs.socket?");
-			vm->acc = S_ISSOCK(vm->stat.st_mode) ? 0 : 1;
+			vm->acc = lstat(s_str(vm, f1, oper1), &vm->stat);
+			if (vm->acc == 0) vm->acc = S_ISSOCK(vm->stat.st_mode) ? 0 : 1;
 			break;
 
 		case OP_FS_TOUCH:
@@ -674,7 +673,7 @@ int vm_exec(vm_t *vm)
 
 		case OP_FS_CHMOD:
 			ARG2("fs.chmod");
-			vm->acc = chmod(s_str(vm, f1, oper1), s_val(vm, f2, oper2) & 0x7777);
+			vm->acc = chmod(s_str(vm, f1, oper1), s_val(vm, f2, oper2) & 07777);
 			break;
 
 		case OP_FS_SHA1:
@@ -683,98 +682,98 @@ int vm_exec(vm_t *vm)
 
 		case OP_FS_DEV:
 			ARG2("fs.dev");
-			NEED_STAT("fs.dev");
 			REGISTER2("fs.dev");
 
-			vm->r[oper2] = vm->stat.st_dev;
+			vm->acc = lstat(s_str(vm, f1, oper1), &vm->stat);
+			if (vm->acc == 0) vm->r[oper2] = vm->stat.st_dev;
 			break;
 
 		case OP_FS_INODE:
 			ARG2("fs.inode");
-			NEED_STAT("fs.inode");
 			REGISTER2("fs.inode");
 
-			vm->r[oper2] = vm->stat.st_ino;
+			vm->acc = lstat(s_str(vm, f1, oper1), &vm->stat);
+			if (vm->acc == 0) vm->r[oper2] = vm->stat.st_ino;
 			break;
 
 		case OP_FS_MODE:
 			ARG2("fs.mode");
-			NEED_STAT("fs.mode");
 			REGISTER2("fs.mode");
 
-			vm->r[oper2] = vm->stat.st_mode;
+			vm->acc = lstat(s_str(vm, f1, oper1), &vm->stat);
+			if (vm->acc == 0) vm->r[oper2] = vm->stat.st_mode & 07777;
 			break;
 
 		case OP_FS_NLINK:
 			ARG2("fs.nlink");
-			NEED_STAT("fs.nlink");
 			REGISTER2("fs.nlink");
 
-			vm->r[oper2] = vm->stat.st_nlink;
+			vm->acc = lstat(s_str(vm, f1, oper1), &vm->stat);
+			if (vm->acc == 0) vm->r[oper2] = vm->stat.st_nlink;
 			break;
 
 		case OP_FS_UID:
 			ARG2("fs.uid");
-			NEED_STAT("fs.uid");
 			REGISTER2("fs.uid");
 
-			vm->r[oper2] = vm->stat.st_uid;
+			vm->acc = lstat(s_str(vm, f1, oper1), &vm->stat);
+			if (vm->acc == 0) vm->r[oper2] = vm->stat.st_uid;
 			break;
 
 		case OP_FS_GID:
 			ARG2("fs.gid");
-			NEED_STAT("fs.gid");
 			REGISTER2("fs.gid");
 
-			vm->r[oper2] = vm->stat.st_gid;
+			vm->acc = lstat(s_str(vm, f1, oper1), &vm->stat);
+			if (vm->acc == 0) vm->r[oper2] = vm->stat.st_gid;
 			break;
 
 		case OP_FS_MAJOR:
 			ARG2("fs.major");
-			NEED_STAT("fs.major");
 			REGISTER2("fs.major");
 
-			vm->r[oper2] = major(vm->stat.st_rdev);
+			vm->acc = lstat(s_str(vm, f1, oper1), &vm->stat);
+			if (vm->acc == 0) vm->r[oper2] = major(vm->stat.st_rdev);
 			break;
 
 		case OP_FS_MINOR:
 			ARG2("fs.minor");
-			NEED_STAT("fs.minor");
 			REGISTER2("fs.minor");
 
-			vm->r[oper2] = minor(vm->stat.st_rdev);
+			vm->acc = lstat(s_str(vm, f1, oper1), &vm->stat);
+			if (vm->acc == 0) vm->r[oper2] = minor(vm->stat.st_rdev);
 			break;
 
 		case OP_FS_SIZE:
 			ARG2("fs.size");
-			NEED_STAT("fs.size");
 			REGISTER2("fs.size");
 
-			vm->r[oper2] = vm->stat.st_blocks * vm->stat.st_blksize;
+			vm->acc = lstat(s_str(vm, f1, oper1), &vm->stat);
+			if (vm->acc == 0) vm->r[oper2] = vm->stat.st_blocks * vm->stat.st_blksize;
 			break;
 
 		case OP_FS_ATIME:
 			ARG2("fs.atime");
-			NEED_STAT("fs.atime");
 			REGISTER2("fs.atime");
 
-			vm->r[oper2] = vm->stat.st_atime;
+			vm->acc = lstat(s_str(vm, f1, oper1), &vm->stat);
+			if (vm->acc == 0) vm->r[oper2] = vm->stat.st_atime;
 			break;
 
 		case OP_FS_MTIME:
 			ARG2("fs.mtime");
-			NEED_STAT("fs.mtime");
 			REGISTER2("fs.mtime");
 
-			vm->r[oper2] = vm->stat.st_mtime;
+			vm->acc = lstat(s_str(vm, f1, oper1), &vm->stat);
+			if (vm->acc == 0) vm->r[oper2] = vm->stat.st_mtime;
 			break;
 
 		case OP_FS_CTIME:
 			ARG2("fs.ctime");
-			NEED_STAT("fs.ctime");
 			REGISTER2("fs.ctime");
 
-			vm->r[oper2] = vm->stat.st_ctime;
+			vm->acc = lstat(s_str(vm, f1, oper1), &vm->stat);
+			if (vm->acc == 0) vm->r[oper2] = vm->stat.st_ctime;
 			break;
 
 		case OP_GETFILE:

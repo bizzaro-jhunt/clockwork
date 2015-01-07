@@ -465,6 +465,39 @@ subtest "fs operators" => sub {
 
 	pn2_ok(qq(
 	fn main
+		set %a "t/tmp/oldname"
+		fs.touch %a
+		fs.stat %a
+		jz +2
+			perror "touch oldname"
+			ret
+
+		set %b "t/tmp/newname"
+		fs.unlink %b
+		fs.stat %b
+		jnz +2
+			error "unlink failed"
+			ret
+
+		fs.rename %a %b
+
+		fs.stat %a
+		jnz +2
+			error "rename didnt remove oldname"
+			ret
+
+		fs.stat %b
+		jz +2
+			error "rename didnt create newname"
+			ret
+
+		print "ok"),
+
+	"ok",
+	"fs.rename renames files");
+
+	pn2_ok(qq(
+	fn main
 		set %a "t/tmp/file"
 		fs.unlink %a
 		fs.touch %a
@@ -482,28 +515,45 @@ subtest "fs operators" => sub {
 	"ok",
 	"retrieved inode from file");
 
-	pn2_ok(qq(
-	fn main
-		fs.stat "/dev/null"
-		jz +2
-			print "ok"  ; without /dev/null this test is
-			ret         ; kind of pointless.
+	SKIP: {
+		skip "No /dev/null device found", 2
+			unless -e "/dev/null";
 
-		fs.chardev? "/dev/null"
-		jz +1
-		print "fail"
-		print "ok"),
-
-	"ok",
-	"/dev/null is a character device");
-
-	pn2_ok(qq(
-	fn main
-		fs.stat "t/tmp"
-		jz +2
+		pn2_ok(qq(
+		fn main
+			fs.chardev? "/dev/null"
+			jz +1
 			print "fail"
-			ret
+			print "ok"),
 
+		"ok",
+		"/dev/null is a character device");
+
+		pn2_ok(qq(
+		fn main
+			set %c "/dev/null"
+			fs.major %c %a
+			fs.minor %c %b
+			print "%[a]d:%[b]d"),
+
+		"1:3",
+		"retrieved major/minor number for /dev/null");
+	};
+
+	SKIP: {
+		pn2_ok(qq(
+		fn main
+			fs.blockdev? "/dev/loop0"
+			jz +1
+			print "fail"
+			print "ok"),
+
+		"ok",
+		"/dev/loop0 is a block device");
+	};
+
+	pn2_ok(qq(
+	fn main
 		fs.dir? "t/tmp"
 		jz +1
 		print "fail"
@@ -511,6 +561,61 @@ subtest "fs operators" => sub {
 
 	"ok",
 	"t/tmp is a directory");
+
+	pn2_ok(qq(
+	fn main
+		fs.touch "t/tmp/file"
+		fs.file? "t/tmp/file"
+		jz +1
+		print "fail"
+		print "ok"),
+
+	"ok",
+	"t/tmp/file is a file");
+
+	symlink "t/tmp/file", "t/tmp/syml";
+	pn2_ok(qq(
+	fn main
+		fs.symlink? "t/tmp/syml"
+		jz +1
+		print "fail"
+		print "ok"),
+
+	"ok",
+	"t/tmp/syml is a symbolic link");
+
+	SKIP: {
+		skip "must be run as root for chown/chgrp tests", 2
+			unless $< == 0;
+
+		my ($uid, $gid) = ($> + 12, $) + 13);
+		pn2_ok(qq(
+		fn main
+			set %a "t/tmp/chown"
+			fs.touch %a
+
+			fs.chgrp %a $gid
+			fs.chown %a $uid
+
+			fs.uid %a %b
+			fs.gid %a %c
+			print "%[b]d:%[c]d"),
+
+		"$uid:$gid",
+		"file ownership change / retrieval");
+	};
+
+	pn2_ok(qq(
+	fn main
+		set %a "t/tmp/chmod"
+		fs.touch %a
+
+		fs.chmod %a 0627
+		fs.mode %a %b
+		print "%[b]04o"),
+
+	"0627",
+	"chmod operation");
 };
 
 done_testing;

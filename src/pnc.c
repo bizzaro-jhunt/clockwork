@@ -129,6 +129,11 @@ getline:
 	while (*b && isspace(*b)) b++;
 	a = b;
 
+#define SHIFTLINE do { \
+	while (*b && isspace(*b)) b++; \
+	memmove(p->buffer, b, LINE_BUF_SIZE - (b - p->buffer)); \
+} while (0)
+
 	if (*b == '%') { /* register */
 		while (!isspace(*b)) b++;
 		if (!*b || isspace(*b)) {
@@ -145,8 +150,8 @@ getline:
 			p->value[0] = reg;
 			p->value[1] = '\0';
 
-			b++; while (*b && isspace(*b)) b++;
-			memmove(p->buffer, b, strlen(b)+1);
+			b++;
+			SHIFTLINE;
 			return 1;
 		}
 		b = a;
@@ -161,11 +166,10 @@ getline:
 			p->token = T_OFFSET;
 			memcpy(p->value, p->buffer, b-p->buffer);
 
-			while (*b && isspace(*b)) b++;
-			memmove(p->buffer, b, strlen(b)+1);
+			SHIFTLINE;
 			return 1;
 		}
-		a = b;
+		b = a;
 	}
 
 	if (isdigit(*b)) {
@@ -181,11 +185,10 @@ getline:
 			p->token = T_NUMBER;
 			memcpy(p->value, p->buffer, b-p->buffer);
 
-			while (*b && isspace(*b)) b++;
-			memmove(p->buffer, b, strlen(b)+1);
+			SHIFTLINE;
 			return 1;
 		}
-		a = b;
+		b = a;
 	}
 
 	if (isalpha(*b)) {
@@ -195,8 +198,7 @@ getline:
 			*b++ = '\0';
 			p->token = T_LABEL;
 			memcpy(p->value, p->buffer, b-p->buffer);
-			while (*b && isspace(*b)) b++;
-			memmove(p->buffer, b, strlen(b)+1);
+			SHIFTLINE;
 			return 1;
 		}
 		b = a;
@@ -221,8 +223,7 @@ getline:
 			memcpy(p->value, p->buffer, b-p->buffer);
 		}
 
-		while (*b && isspace(*b)) b++;
-		memmove(p->buffer, b, strlen(b)+1);
+		SHIFTLINE;
 		return 1;
 	}
 
@@ -245,8 +246,7 @@ getline:
 		else logger(LOG_WARNING, "%s:%i: unterminated string literal", p->file, p->line);
 
 		p->token = T_STRING;
-		while (*b && isspace(*b)) b++;
-		memmove(p->buffer, b, strlen(b)+1);
+		SHIFTLINE;
 		return 1;
 	}
 
@@ -261,8 +261,7 @@ getline:
 			*b++ = '\0';
 			memcpy(p->value, a, b-a);
 
-			while (*b && isspace(*b)) b++;
-			memmove(p->buffer, b, strlen(b)+1);
+			SHIFTLINE;
 			return 1;
 		}
 		b = a;
@@ -285,6 +284,7 @@ static int parse(void)
 
 #define NEXT if (!lex(&p)) { logger(LOG_CRIT, "%s:%i: unexpected end of configuration\n", p.file, p.line); goto bail; }
 #define ERROR(s) do { logger(LOG_CRIT, "%s:%i: syntax error: %s", p.file, p.line, s); goto bail; } while (0)
+#define BADTOKEN(s) do { logger(LOG_CRIT, "%s:%i: unexpected " s " '%s'", p.file, p.line, p.value); goto bail; } while (0)
 
 	int i, j;
 	op_t *op;
@@ -358,11 +358,11 @@ static int parse(void)
 			}
 			break;
 
-		case T_REGISTER:   ERROR("unexpected register reference found at top-level");
-		case T_IDENTIFIER: ERROR("unexpected identifier found at top-level");
-		case T_OFFSET:     ERROR("unexpected offset found at top-level");
-		case T_NUMBER:     ERROR("unexpected numeric literal found at top-level");
-		case T_STRING:     ERROR("unexpected string literal found at top-level");
+		case T_REGISTER:   BADTOKEN("register reference");
+		case T_IDENTIFIER: BADTOKEN("identifier");
+		case T_OFFSET:     BADTOKEN("offset");
+		case T_NUMBER:     BADTOKEN("numeric literal");
+		case T_STRING:     BADTOKEN("string literal");
 
 		default:
 			ERROR("unhandled token type");

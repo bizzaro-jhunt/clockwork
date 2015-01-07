@@ -90,9 +90,11 @@
 #define OP_AUGEAS_GET      0x56  /* retrieve the value of a file/key */
 #define OP_AUGEAS_FIND     0x57  /* search for and retrieve the value of file/key */
 #define OP_AUGEAS_REMOVE   0x58  /* remove a file/key */
-#define OP_EXEC            0x59  /* execute a command */
-#define OP_DUMP            0x5a  /* dump virtual machine state for debugging */
-#define OP_HALT            0x5b  /* halt the virtual machine */
+#define OP_ENV_GET         0x59  /* retrieve the value of an environment variable */
+#define OP_ENV_SET         0x5a  /* set the value of an environment variable */
+#define OP_EXEC            0x5b  /* execute a command */
+#define OP_DUMP            0x5c  /* dump virtual machine state for debugging */
+#define OP_HALT            0x5d  /* halt the virtual machine */
 
 
 #ifdef OPCODES_EXTENDED
@@ -187,9 +189,11 @@ static const char * OPCODES[] = {
 	"augeas.get",        /* OP_AUGEAS_GET      86  0x56 */
 	"augeas.find",       /* OP_AUGEAS_FIND     87  0x57 */
 	"augeas.remove",     /* OP_AUGEAS_REMOVE   88  0x58 */
-	"exec",              /* OP_EXEC            89  0x59 */
-	"dump",              /* OP_DUMP            90  0x5a */
-	"halt",              /* OP_HALT            91  0x5b */
+	"env.get",           /* OP_ENV_GET         89  0x59 */
+	"env.set",           /* OP_ENV_SET         90  0x5a */
+	"exec",              /* OP_EXEC            91  0x5b */
+	"dump",              /* OP_DUMP            92  0x5c */
+	"halt",              /* OP_HALT            93  0x5d */
 	NULL,
 };
 
@@ -285,9 +289,11 @@ static const char * OPCODES[] = {
 #define T_OP_AUGEAS_GET      0x97  /* retrieve the value of a file/key */
 #define T_OP_AUGEAS_FIND     0x98  /* search for and retrieve the value of file/key */
 #define T_OP_AUGEAS_REMOVE   0x99  /* remove a file/key */
-#define T_OP_EXEC            0x9a  /* execute a command */
-#define T_OP_DUMP            0x9b  /* dump virtual machine state for debugging */
-#define T_OP_HALT            0x9c  /* halt the virtual machine */
+#define T_OP_ENV_GET         0x9a  /* retrieve the value of an environment variable */
+#define T_OP_ENV_SET         0x9b  /* set the value of an environment variable */
+#define T_OP_EXEC            0x9c  /* execute a command */
+#define T_OP_DUMP            0x9d  /* dump virtual machine state for debugging */
+#define T_OP_HALT            0x9e  /* halt the virtual machine */
 
 
 static const char * ASM[] = {
@@ -381,9 +387,11 @@ static const char * ASM[] = {
 	"augeas.get",        /* T_OP_AUGEAS_GET      87  0x57 */
 	"augeas.find",       /* T_OP_AUGEAS_FIND     88  0x58 */
 	"augeas.remove",     /* T_OP_AUGEAS_REMOVE   89  0x59 */
-	"exec",              /* T_OP_EXEC            90  0x5a */
-	"dump",              /* T_OP_DUMP            91  0x5b */
-	"halt",              /* T_OP_HALT            92  0x5c */
+	"env.get",           /* T_OP_ENV_GET         90  0x5a */
+	"env.set",           /* T_OP_ENV_SET         91  0x5b */
+	"exec",              /* T_OP_EXEC            92  0x5c */
+	"dump",              /* T_OP_DUMP            93  0x5d */
+	"halt",              /* T_OP_HALT            94  0x5e */
 	NULL,
 };
 
@@ -490,6 +498,8 @@ static struct {
 	{ T_OP_AUGEAS_GET,     "augeas.get (%a|<string>) %b",                    OP_AUGEAS_GET,     { ARG_REGISTER|ARG_STRING,            ARG_REGISTER,                       } },
 	{ T_OP_AUGEAS_FIND,    "augeas.find (%a|<string>) %b",                   OP_AUGEAS_FIND,    { ARG_REGISTER|ARG_STRING,            ARG_REGISTER,                       } },
 	{ T_OP_AUGEAS_REMOVE,  "augeas.remove (%a|<string>)",                    OP_AUGEAS_REMOVE,  { ARG_REGISTER|ARG_STRING,            ARG_NONE,                           } },
+	{ T_OP_ENV_GET,        "env.get (%a|<string>) %b",                       OP_ENV_GET,        { ARG_REGISTER|ARG_STRING,            ARG_REGISTER,                       } },
+	{ T_OP_ENV_SET,        "env.set (%a|<string>) (%b|<string>)",            OP_ENV_SET,        { ARG_REGISTER|ARG_STRING,            ARG_REGISTER|ARG_STRING,            } },
 	{ T_OP_EXEC,           "exec (%a|<string>) %b",                          OP_EXEC,           { ARG_REGISTER|ARG_STRING,            ARG_REGISTER,                       } },
 	{ T_OP_DUMP,           "dump",                                           OP_DUMP,           { ARG_NONE,                           ARG_NONE,                           } },
 	{ T_OP_HALT,           "halt",                                           OP_HALT,           { ARG_NONE,                           ARG_NONE,                           } },

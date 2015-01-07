@@ -398,6 +398,17 @@
     args:
       - [register, string]
 
+- env.get:
+    help: retrieve the value of an environment variable
+    args:
+      - [register, string]
+      - [register]
+- env.set:
+    help: set the value of an environment variable
+    args:
+      - [register, string]
+      - [register, string]
+
 - exec:
     help: execute a command
     args:

@@ -460,6 +460,9 @@ sub pn2_ok
 	}
 	$T->diag("standard error output was:\n$errors") if $errors;
 
+	$actual = $opts{postprocess}->($actual)
+		if ($opts{postprocess});
+
 	my $diff = diff \$actual, \$expect, {
 		FILENAME_A => 'actual-output',    MTIME_A => time,
 		FILENAME_B => 'expected-output',  MTIME_B => time,

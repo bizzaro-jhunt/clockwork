@@ -295,6 +295,29 @@ subtest "functions" => sub {
 
 	"ok",
 	"ret short-circuits function execution flow-control");
+
+	pn2_ok(qq(
+	fn main
+		call func
+		jnz +1
+		print "fail"
+		print "ok"
+	fn func
+		retv 3),
+
+	"ok",
+	"user-defined functions can return values");
+
+	pn2_ok(qq(
+	fn main
+		call func
+		acc %a
+		print "func() == %[a]d"
+	fn func
+		retv 42),
+
+	"func() == 42",
+	"use acc opcode to get return value");
 };
 
 done_testing;

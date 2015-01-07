@@ -244,6 +244,29 @@ subtest "print operators" => sub {
 	"width-modifiers in print format specifier");
 };
 
+subtest "register operators" => sub {
+	pn2_ok(qq(
+	fn main
+		set %a 2
+		push %a
+		set %a 3
+		pop %a
+		print "a == %[a]d"),
+
+	"a == 2",
+	"push / pop");
+
+	pn2_ok(qq(
+	fn main
+		set %a 1
+		set %b 2
+		swap %a %b
+		print "a/b = %[a]d/%[b]d"),
+
+	"a/b = 2/1",
+	"swap");
+};
+
 subtest "math operators" => sub {
 	pn2_ok(qq(
 	fn main
@@ -401,7 +424,8 @@ subtest "dump operator" => sub {
 };
 
 subtest "fs operators" => sub {
-	unlink "t/tmp/enoent";
+	mkdir "t/tmp";
+
 	pn2_ok(qq(
 	fn main
 		fs.stat "t/tmp/enoent"
@@ -411,6 +435,82 @@ subtest "fs operators" => sub {
 
 	"ok",
 	"fs.stat for non-existent file");
+
+	pn2_ok(qq(
+	fn main
+		fs.touch "t/tmp/newfile"
+		jz +1
+		print "touch-failed;"
+
+		fs.stat "t/tmp/newfile"
+		jz +1
+		print "fail"
+		print "ok"),
+
+	"ok",
+	"fs.touch can create new files");
+
+	pn2_ok(qq(
+	fn main
+		fs.unlink "t/tmp/newfile"
+		jz +1
+		print "FAIL"
+		fs.stat "t/tmp/newfile"
+		jnz +1
+		print "fail"
+		print "ok"),
+
+	"ok",
+	"fs.unlink can remove files");
+
+	pn2_ok(qq(
+	fn main
+		set %a "t/tmp/file"
+		fs.unlink %a
+		fs.touch %a
+		fs.stat %a
+		jz +2
+		perror "stat failed"
+		ret
+
+		fs.inode %a %b
+		gt %b 0
+		jz +1
+		print "fail"
+		print "ok"),
+
+	"ok",
+	"retrieved inode from file");
+
+	pn2_ok(qq(
+	fn main
+		fs.stat "/dev/null"
+		jz +2
+			print "ok"  ; without /dev/null this test is
+			ret         ; kind of pointless.
+
+		fs.chardev? "/dev/null"
+		jz +1
+		print "fail"
+		print "ok"),
+
+	"ok",
+	"/dev/null is a character device");
+
+	pn2_ok(qq(
+	fn main
+		fs.stat "t/tmp"
+		jz +2
+			print "fail"
+			ret
+
+		fs.dir? "t/tmp"
+		jz +1
+		print "fail"
+		print "ok"),
+
+	"ok",
+	"t/tmp is a directory");
 };
 
 done_testing;

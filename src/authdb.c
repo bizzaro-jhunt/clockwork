@@ -30,58 +30,113 @@
 
 #define LINEMAX 8192
 
+#define GROUP_MEMBER 0
+#define GROUP_ADMIN  1
+
+static void s_membership(authdb_t *db, int type, group_t *group, user_t *user)
+{
+	if (!group || !user) return;
+	assert(type == GROUP_MEMBER || type == GROUP_ADMIN);
+
+	list_t *group_list, *user_list;
+	if (type == GROUP_MEMBER) {
+		group_list = &group->members;
+		user_list = &user->member_of;
+	} else {
+		group_list = &group->admins;
+		user_list = &user->admin_of;
+	}
+
+	member_t *member = vmalloc(sizeof(member_t));
+	member->user  = user;  list_init(&member->on_user);
+	member->group = group; list_init(&member->on_group);
+	                       list_init(&member->l);
+
+	member_t *needle;
+	for_each_object(needle, group_list, on_group)
+		if (needle->group == group && needle->user == user)
+			goto check_user;
+
+	list_push(group_list, &member->on_group);
+	member->refs++;
+
+check_user:
+	for_each_object(needle, user_list, on_user)
+		if (needle->group == group && needle->user == user)
+			goto done;
+
+	list_push(user_list, &member->on_user);
+	member->refs++;
+
+done:
+	if (member->refs == 0)
+		free(member);
+	else
+		list_push(&db->memberships, &member->l);
+}
+
 authdb_t* authdb_read(const char *root, int dbs)
 {
 	user_t *user;
 	group_t *group;
 	FILE *io;
+	size_t line, field;
 	char *file, *a, *b, LINE[LINEMAX];
 
 	authdb_t *db = vmalloc(sizeof(authdb_t));
 	list_init(&db->users);
 	list_init(&db->groups);
+	list_init(&db->memberships);
 	db->dbs = dbs;
 	db->root = strdup(root);
+
+#define FIELD(d,n) do { \
+	field++; \
+	while (*b && *b != ':') b++; \
+	if (!*b) { \
+		fprintf(stderr, "authdb_read encountered an error on line %li of the "d" database: " \
+	                    "line ended prematurely while reading the '"n"' field (#%li)\n", \
+	                    (long)line, (long)field); \
+		goto bail; \
+	} \
+	*b = '\0'; \
+} while (0)
 
 	if (db->dbs & AUTHDB_PASSWD) {
 		file = string("%s/passwd",  db->root);
 		io = fopen(file, "r"); free(file);
 		if (!io) goto bail;
 
+		line = 0;
 		while ((fgets(LINE, LINEMAX - 1, io)) != NULL) {
-			a = b = LINE;
-			while (*b && *b != ':') b++; if (!*b) goto bail; *b = '\0';
+			if ((a = strrchr(LINE, '\n')) != NULL) *a = '\0';
+			line++; field = 0; a = b = LINE;
+
+			FIELD("passwd", "username");
 			user = user_find(db, a, -1);
 			if (!user) {
-				user = vmalloc(sizeof(user_t));
-				list_push(&db->users, &user->l);
+				user = user_add(db);
 				user->name = strdup(a);
 			}
 			user->state |= AUTHDB_PASSWD;
 
-			a = ++b;
-			while (*b && *b != ':') b++; if (!*b) goto bail; *b = '\0';
+			a = ++b; FIELD("passwd", "cleartext password");
 			user->clear_pass = strdup(a);
 
-			a = ++b;
-			while (*b && *b != ':') b++; if (!*b) goto bail; *b = '\0';
+			a = ++b; FIELD("passwd", "UID number");
 			user->uid = atoi(a); /* FIXME: use strtol + errno */
 
-			a = ++b;
-			while (*b && *b != ':') b++; if (!*b) goto bail; *b = '\0';
+			a = ++b; FIELD("passwd", "GID number");
 			user->gid = atoi(a); /* FIXME: use strtol + errno */
 
-			a = ++b;
-			while (*b && *b != ':') b++; if (!*b) goto bail; *b = '\0';
+			a = ++b; FIELD("passwd", "comment");
 			user->comment = strdup(a);
 
-			a = ++b;
-			while (*b && *b != ':') b++; if (!*b) goto bail; *b = '\0';
+			a = ++b; FIELD("passwd", "home directory");
 			user->home = strdup(a);
 
-			a = ++b; /*                       LAST field */
-			while (*b && *b != ':') b++; if (*b) goto bail;
-			user->shell = strdup(a);
+			/* last field */
+			user->shell = strdup(++b);
 		}
 
 		fclose(io);
@@ -93,8 +148,10 @@ authdb_t* authdb_read(const char *root, int dbs)
 		if (!io) goto bail;
 
 		while ((fgets(LINE, LINEMAX - 1, io)) != NULL) {
-			a = b = LINE;
-			while (*b && *b != ':') b++; if (!*b) goto bail; *b = '\0';
+			if ((a = strrchr(LINE, '\n')) != NULL) *a = '\0';
+			line++; field = 0; a = b = LINE;
+
+			FIELD("shadow", "usernae");
 			user = user_find(db, a, -1);
 			if (!user) {
 				user = user_add(db);
@@ -102,33 +159,31 @@ authdb_t* authdb_read(const char *root, int dbs)
 			}
 			user->state |= AUTHDB_SHADOW;
 
-			a = ++b;
-			while (*b && *b != ':') b++; if (!*b) goto bail; *b = '\0';
+			a = ++b; FIELD("shadow", "encrypted password");
 			user->crypt_pass = strdup(a);
 
-			a = ++b;
-			while (*b && *b != ':') b++; if (!*b) goto bail; *b = '\0';
+			a = ++b; FIELD("shadow", "date of last password change");
 			user->creds.last_changed = atoi(a); /* FIXME: use strtol + errno */
 
-			a = ++b;
-			while (*b && *b != ':') b++; if (!*b) goto bail; *b = '\0';
+			a = ++b; FIELD("shadow", "minimum password age");
 			user->creds.min_days = atoi(a); /* FIXME: use strtol + errno */
 
-			a = ++b;
-			while (*b && *b != ':') b++; if (!*b) goto bail; *b = '\0';
+			a = ++b; FIELD("shadow", "maximum password age");
 			user->creds.max_days = atoi(a); /* FIXME: use strtol + errno */
 
-			a = ++b;
-			while (*b && *b != ':') b++; if (!*b) goto bail; *b = '\0';
-			user->creds.grace_period = atoi(a); /* FIXME: use strtol + errno */
+			a = ++b; FIELD("shadow", "password warning period");
+			user->creds.warn_days = atoi(a); /* FIXME: use strtol + errno */
 
-			a = ++b;
-			while (*b && *b != ':') b++; if (!*b) goto bail; *b = '\0';
-			user->creds.expiration = atoi(a); /* FIXME: use strtol + errno */
+			a = ++b; FIELD("shadow", "password inactivity period");
+			if (!*a) user->creds.grace_period = -1;
+			else     user->creds.grace_period = atoi(a); /* FIXME: use strtol + errno */
 
-			a = ++b; /*                       LAST field */
-			while (*b && *b != ':') b++; if (*b) goto bail;
-			user->creds.flags = atoi(a); /* FIXME: use strtoul + errno */
+			a = ++b; FIELD("shadow", "expiration date");
+			if (!*a) user->creds.expiration = -1;
+			else     user->creds.expiration = atoi(a); /* FIXME: use strtol + errno */
+
+			/* last field */
+			user->creds.flags = atoi(++b); /* FIXME: use strtoul + errno */
 		}
 
 		fclose(io);
@@ -140,8 +195,10 @@ authdb_t* authdb_read(const char *root, int dbs)
 		if (!io) goto bail;
 
 		while ((fgets(LINE, LINEMAX - 1, io)) != NULL) {
-			a = b = LINE;
-			while (*b && *b != ':') b++; if (!*b) goto bail; *b = '\0';
+			if ((a = strrchr(LINE, '\n')) != NULL) *a = '\0';
+			line++; field = 0; a = b = LINE;
+
+			FIELD("group", "group name");
 			group = group_find(db, a, -1);
 			if (!group) {
 				group = group_add(db);
@@ -149,17 +206,14 @@ authdb_t* authdb_read(const char *root, int dbs)
 			}
 			group->state |= AUTHDB_GROUP;
 
-			a = ++b;
-			while (*b && *b != ':') b++; if (!*b) goto bail; *b = '\0';
+			a = ++b; FIELD("group", "cleartext password");
 			group->clear_pass = strdup(a);
 
-			a = ++b;
-			while (*b && *b != ':') b++; if (!*b) goto bail; *b = '\0';
+			a = ++b; FIELD("group", "GID number");
 			group->gid = atoi(a); /* FIXME: use strtol + errno */
 
-			a = ++b; /*                       LAST field */
-			while (*b && *b != ':') b++; if (*b) goto bail;
-			group->raw_members = strdup(a);
+			/* last field */
+			group->raw_members = strdup(++b);
 		}
 
 		fclose(io);
@@ -171,8 +225,10 @@ authdb_t* authdb_read(const char *root, int dbs)
 		if (!io) goto bail;
 
 		while ((fgets(LINE, LINEMAX - 1, io)) != NULL) {
-			a = b = LINE;
-			while (*b && *b != ':') b++; if (!*b) goto bail; *b = '\0';
+			if ((a = strrchr(LINE, '\n')) != NULL) *a = '\0';
+			line++; field = 0; a = b = LINE;
+
+			FIELD("gshadow", "group name");
 			group = group_find(db, a, -1);
 			if (!group) {
 				group = group_add(db);
@@ -180,27 +236,46 @@ authdb_t* authdb_read(const char *root, int dbs)
 			}
 			group->state |= AUTHDB_GSHADOW;
 
-			a = ++b;
-			while (*b && *b != ':') b++; if (!*b) goto bail; *b = '\0';
+			a = ++b; FIELD("gshadow","encrypted password");
 			group->crypt_pass = strdup(a);
 
-			a = ++b;
-			while (*b && *b != ':') b++; if (!*b) goto bail; *b = '\0';
+			a = ++b; FIELD("gshadow", "administrator list");
 			group->raw_admins = strdup(a);
 
-			a = ++b; /*                       LAST field */
-			while (*b && *b != ':') b++; if (*b) goto bail;
+			/* last field */
 			free(group->raw_members);
-			group->raw_members = strdup(a);
+			group->raw_members = strdup(++b);
 		}
 
 		fclose(io);
 	}
 
+	/* set up membership / adminhood lists */
+	for_each_object(group, &db->groups, l) {
+		if (group->raw_members && *group->raw_members) {
+			strings_t *lst = strings_split(group->raw_members,
+					strlen(group->raw_members), ",", SPLIT_NORMAL);
+			int i;
+			for_each_string(lst,  i)
+				s_membership(db, GROUP_MEMBER, group, user_find(db, lst->strings[i], -1));
+			strings_free(lst);
+		}
+
+		if (group->raw_admins && *group->raw_admins) {
+			strings_t *lst = strings_split(group->raw_admins,
+					strlen(group->raw_admins), ",", SPLIT_NORMAL);
+			int i;
+			for_each_string(lst,  i)
+				s_membership(db, GROUP_ADMIN, group, user_find(db, lst->strings[i], -1));
+			strings_free(lst);
+		}
+	}
+
 	return db;
 
 bail:
-	fclose(io);
+	fprintf(stderr, "authdb_open failed\n");
+	if (io) fclose(io);
 	authdb_close(db);
 	return NULL;
 }
@@ -227,11 +302,12 @@ int authdb_write(authdb_t *db)
 		}
 
 		fclose(io);
-		rc = rename(tmpfile, file);
+		rc = rename(tmpfile, file); free(file);
 		if (rc != 0) {
-			unlink(tmpfile);
+			unlink(tmpfile); free(tmpfile);
 			goto bail;
 		}
+		free(tmpfile);
 	}
 
 	if (db->dbs & AUTHDB_SHADOW) {
@@ -241,7 +317,7 @@ int authdb_write(authdb_t *db)
 		if (!io) goto bail;
 
 		for_each_object(user, &db->users, l) {
-#define null_string(f,s) !user->creds.f ? string("") : string(s, user->creds.f)
+#define null_string(f,s) user->creds.f <= 0 ? string("") : string(s, user->creds.f)
 			char *pwmin  = null_string(min_days,     "%li");
 			char *pwmax  = null_string(max_days,     "%li");
 			char *pwwarn = null_string(warn_days,    "%li");
@@ -259,11 +335,12 @@ int authdb_write(authdb_t *db)
 		}
 
 		fclose(io);
-		rc = rename(tmpfile, file);
+		rc = rename(tmpfile, file); free(file);
 		if (rc != 0) {
-			unlink(tmpfile);
+			unlink(tmpfile); free(tmpfile);
 			goto bail;
 		}
+		free(tmpfile);
 	}
 
 	if (db->dbs & AUTHDB_GROUP) {
@@ -279,11 +356,12 @@ int authdb_write(authdb_t *db)
 		}
 
 		fclose(io);
-		rc = rename(tmpfile, file);
+		rc = rename(tmpfile, file); free(file);
 		if (rc != 0) {
-			unlink(tmpfile);
+			unlink(tmpfile); free(tmpfile);
 			goto bail;
 		}
+		free(tmpfile);
 	}
 
 	if (db->dbs & AUTHDB_GSHADOW) {
@@ -300,21 +378,54 @@ int authdb_write(authdb_t *db)
 		}
 
 		fclose(io);
-		rc = rename(tmpfile, file);
+		rc = rename(tmpfile, file); free(file);
 		if (rc != 0) {
-			unlink(tmpfile);
+			unlink(tmpfile); free(tmpfile);
 			goto bail;
 		}
+		free(tmpfile);
 	}
 
 	return 0;
 bail:
-	fclose(io);
+	if (io) fclose(io);
 	return 1;
 }
 
 void authdb_close(authdb_t *db)
 {
+	if (!db) return;
+	user_t *user, *utmp;
+	for_each_object_safe(user, utmp, &db->users, l) {
+		list_delete(&user->l);
+		free(user->name);
+		free(user->clear_pass);
+		free(user->crypt_pass);
+		free(user->comment);
+		free(user->home);
+		free(user->shell);
+		free(user);
+	}
+
+	group_t *group, *gtmp;
+	for_each_object_safe(group, gtmp, &db->groups, l) {
+		list_delete(&group->l);
+		free(group->name);
+		free(group->clear_pass);
+		free(group->crypt_pass);
+		free(group->raw_members);
+		free(group->raw_admins);
+		free(group);
+	}
+
+	member_t *member, *mtmp;
+	for_each_object_safe(member, mtmp, &db->memberships, l) {
+		list_delete(&member->l);
+		free(member);
+	}
+
+	free(db->root);
+	free(db);
 }
 
 
@@ -331,8 +442,9 @@ char* authdb_creds(authdb_t *db, const char *username)
 	strings_add(creds, group->name);
 
 	member_t *member;
-	for_each_object(member, &user->member_of, l)
-		strings_add(creds, member->name);
+	for_each_object(member, &user->member_of, on_user)
+		if (member->group)
+			strings_add(creds, member->group->name);
 
 	char *list = strings_join(creds, ":");
 	strings_free(creds);
@@ -383,6 +495,8 @@ user_t* user_add(authdb_t *db)
 {
 	user_t *user = vmalloc(sizeof(user_t));
 	list_push(&db->users, &user->l);
+	list_init(&user->member_of);
+	list_init(&user->admin_of);
 	return user;
 }
 
@@ -420,6 +534,8 @@ group_t* group_add(authdb_t *db)
 {
 	group_t *group = vmalloc(sizeof(group_t));
 	list_push(&db->groups, &group->l);
+	list_init(&group->members);
+	list_init(&group->admins);
 	return group;
 }
 

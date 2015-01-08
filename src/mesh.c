@@ -21,7 +21,7 @@
 #include <ctype.h>
 #include <assert.h>
 #include "mesh.h"
-#include "userdb.h"
+#include "authdb.h"
 #include "policy.h"
 #include "pendulum.h"
 #include "pendulum_funcs.h"
@@ -154,16 +154,12 @@ static void s_mesh_slot_free(void *p)
 static char* s_user_lookup(const char *username)
 {
 	char *s = NULL;
-	struct pwdb *pdb = pwdb_init(SYS_PASSWD);
-	struct grdb *gdb = grdb_init(SYS_GROUP);
+	authdb_t *db = authdb_read(SYS_AUTHDB_ROOT, AUTHDB_ALL);
 
-	if (pdb && gdb)
-		s = userdb_lookup(pdb, gdb, username);
-	if (!s)
-		s = strdup("");
+	if (db) s = authdb_creds(db, username);
+	if (!s) s = strdup("");
 
-	grdb_free(gdb);
-	pwdb_free(pdb);
+	authdb_close(db);
 	return s;
 }
 

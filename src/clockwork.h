@@ -34,6 +34,10 @@
 #  define PREFIX
 #endif
 
+#ifndef SYS_AUTHDB_ROOT
+#  define SYS_AUTHDB_ROOT PREFIX "/etc"
+#endif
+
 /* cleartext system password database **/
 #ifndef SYS_PASSWD
 #  define SYS_PASSWD PREFIX "/etc/passwd"

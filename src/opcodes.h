@@ -74,29 +74,28 @@
 #define OP_USER_GET        0x46  /* retrieve the value of an attribute from the last found user */
 #define OP_USER_SET        0x47  /* set an attribute on the last found user */
 #define OP_USER_NEW        0x48  /* allocate a new (unsaved) user object */
-#define OP_USER_SAVE       0x49  /* commit changes to the current user object (in-memory only) */
-#define OP_USER_DELETE     0x4a  /* remove the current user from the (in-memory) database */
-#define OP_GROUP_FIND      0x4b  /* find a group by name */
-#define OP_GROUP_GET       0x4c  /* retrieve the value of an attribute from the last found group */
-#define OP_GROUP_SET       0x4d  /* set an attribute on the last found group */
-#define OP_GROUP_NEW       0x4e  /* allocate a new (unsaved) group object */
-#define OP_GROUP_SAVE      0x4f  /* commit changes to the current group object (in-memory only) */
-#define OP_GROUP_DELETE    0x50  /* remove the current group from the (in-memory) database */
-#define OP_AUGEAS_INIT     0x51  /* initialize the augeas system */
-#define OP_AUGEAS_DONE     0x52  /* de-initializes the augeas system */
-#define OP_AUGEAS_PERROR   0x53  /* print a helpful augeas error message */
-#define OP_AUGEAS_WRITE    0x54  /* write all pending changes to disk */
-#define OP_AUGEAS_SET      0x55  /* set the value of a file/key */
-#define OP_AUGEAS_GET      0x56  /* retrieve the value of a file/key */
-#define OP_AUGEAS_FIND     0x57  /* search for and retrieve the value of file/key */
-#define OP_AUGEAS_REMOVE   0x58  /* remove a file/key */
-#define OP_ENV_GET         0x59  /* retrieve the value of an environment variable */
-#define OP_ENV_SET         0x5a  /* set the value of an environment variable */
-#define OP_ENV_UNSET       0x5b  /* unset an environment variable */
-#define OP_EXEC            0x5c  /* execute a command */
-#define OP_DUMP            0x5d  /* dump virtual machine state for debugging */
-#define OP_HALT            0x5e  /* halt the virtual machine */
-#define OP_PRAGMA          0x5f  /* set a compiler pragma */
+#define OP_USER_DELETE     0x49  /* remove the current user from the (in-memory) database */
+#define OP_GROUP_FIND      0x4a  /* find a group by name */
+#define OP_GROUP_GET       0x4b  /* retrieve the value of an attribute from the last found group */
+#define OP_GROUP_SET       0x4c  /* set an attribute on the last found group */
+#define OP_GROUP_NEW       0x4d  /* allocate a new (unsaved) group object */
+#define OP_GROUP_SAVE      0x4e  /* commit changes to the current group object (in-memory only) */
+#define OP_GROUP_DELETE    0x4f  /* remove the current group from the (in-memory) database */
+#define OP_AUGEAS_INIT     0x50  /* initialize the augeas system */
+#define OP_AUGEAS_DONE     0x51  /* de-initializes the augeas system */
+#define OP_AUGEAS_PERROR   0x52  /* print a helpful augeas error message */
+#define OP_AUGEAS_WRITE    0x53  /* write all pending changes to disk */
+#define OP_AUGEAS_SET      0x54  /* set the value of a file/key */
+#define OP_AUGEAS_GET      0x55  /* retrieve the value of a file/key */
+#define OP_AUGEAS_FIND     0x56  /* search for and retrieve the value of file/key */
+#define OP_AUGEAS_REMOVE   0x57  /* remove a file/key */
+#define OP_ENV_GET         0x58  /* retrieve the value of an environment variable */
+#define OP_ENV_SET         0x59  /* set the value of an environment variable */
+#define OP_ENV_UNSET       0x5a  /* unset an environment variable */
+#define OP_EXEC            0x5b  /* execute a command */
+#define OP_DUMP            0x5c  /* dump virtual machine state for debugging */
+#define OP_HALT            0x5d  /* halt the virtual machine */
+#define OP_PRAGMA          0x5e  /* set a compiler pragma */
 
 
 #ifdef OPCODES_EXTENDED
@@ -175,29 +174,28 @@ static const char * OPCODES[] = {
 	"user.get",          /* OP_USER_GET        70  0x46 */
 	"user.set",          /* OP_USER_SET        71  0x47 */
 	"user.new",          /* OP_USER_NEW        72  0x48 */
-	"user.save",         /* OP_USER_SAVE       73  0x49 */
-	"user.delete",       /* OP_USER_DELETE     74  0x4a */
-	"group.find",        /* OP_GROUP_FIND      75  0x4b */
-	"group.get",         /* OP_GROUP_GET       76  0x4c */
-	"group.set",         /* OP_GROUP_SET       77  0x4d */
-	"group.new",         /* OP_GROUP_NEW       78  0x4e */
-	"group.save",        /* OP_GROUP_SAVE      79  0x4f */
-	"group.delete",      /* OP_GROUP_DELETE    80  0x50 */
-	"augeas.init",       /* OP_AUGEAS_INIT     81  0x51 */
-	"augeas.done",       /* OP_AUGEAS_DONE     82  0x52 */
-	"augeas.perror",     /* OP_AUGEAS_PERROR   83  0x53 */
-	"augeas.write",      /* OP_AUGEAS_WRITE    84  0x54 */
-	"augeas.set",        /* OP_AUGEAS_SET      85  0x55 */
-	"augeas.get",        /* OP_AUGEAS_GET      86  0x56 */
-	"augeas.find",       /* OP_AUGEAS_FIND     87  0x57 */
-	"augeas.remove",     /* OP_AUGEAS_REMOVE   88  0x58 */
-	"env.get",           /* OP_ENV_GET         89  0x59 */
-	"env.set",           /* OP_ENV_SET         90  0x5a */
-	"env.unset",         /* OP_ENV_UNSET       91  0x5b */
-	"exec",              /* OP_EXEC            92  0x5c */
-	"dump",              /* OP_DUMP            93  0x5d */
-	"halt",              /* OP_HALT            94  0x5e */
-	"pragma",            /* OP_PRAGMA          95  0x5f */
+	"user.delete",       /* OP_USER_DELETE     73  0x49 */
+	"group.find",        /* OP_GROUP_FIND      74  0x4a */
+	"group.get",         /* OP_GROUP_GET       75  0x4b */
+	"group.set",         /* OP_GROUP_SET       76  0x4c */
+	"group.new",         /* OP_GROUP_NEW       77  0x4d */
+	"group.save",        /* OP_GROUP_SAVE      78  0x4e */
+	"group.delete",      /* OP_GROUP_DELETE    79  0x4f */
+	"augeas.init",       /* OP_AUGEAS_INIT     80  0x50 */
+	"augeas.done",       /* OP_AUGEAS_DONE     81  0x51 */
+	"augeas.perror",     /* OP_AUGEAS_PERROR   82  0x52 */
+	"augeas.write",      /* OP_AUGEAS_WRITE    83  0x53 */
+	"augeas.set",        /* OP_AUGEAS_SET      84  0x54 */
+	"augeas.get",        /* OP_AUGEAS_GET      85  0x55 */
+	"augeas.find",       /* OP_AUGEAS_FIND     86  0x56 */
+	"augeas.remove",     /* OP_AUGEAS_REMOVE   87  0x57 */
+	"env.get",           /* OP_ENV_GET         88  0x58 */
+	"env.set",           /* OP_ENV_SET         89  0x59 */
+	"env.unset",         /* OP_ENV_UNSET       90  0x5a */
+	"exec",              /* OP_EXEC            91  0x5b */
+	"dump",              /* OP_DUMP            92  0x5c */
+	"halt",              /* OP_HALT            93  0x5d */
+	"pragma",            /* OP_PRAGMA          94  0x5e */
 	NULL,
 };
 
@@ -277,29 +275,28 @@ static const char * OPCODES[] = {
 #define T_OP_USER_GET        0x87  /* retrieve the value of an attribute from the last found user */
 #define T_OP_USER_SET        0x88  /* set an attribute on the last found user */
 #define T_OP_USER_NEW        0x89  /* allocate a new (unsaved) user object */
-#define T_OP_USER_SAVE       0x8a  /* commit changes to the current user object (in-memory only) */
-#define T_OP_USER_DELETE     0x8b  /* remove the current user from the (in-memory) database */
-#define T_OP_GROUP_FIND      0x8c  /* find a group by name */
-#define T_OP_GROUP_GET       0x8d  /* retrieve the value of an attribute from the last found group */
-#define T_OP_GROUP_SET       0x8e  /* set an attribute on the last found group */
-#define T_OP_GROUP_NEW       0x8f  /* allocate a new (unsaved) group object */
-#define T_OP_GROUP_SAVE      0x90  /* commit changes to the current group object (in-memory only) */
-#define T_OP_GROUP_DELETE    0x91  /* remove the current group from the (in-memory) database */
-#define T_OP_AUGEAS_INIT     0x92  /* initialize the augeas system */
-#define T_OP_AUGEAS_DONE     0x93  /* de-initializes the augeas system */
-#define T_OP_AUGEAS_PERROR   0x94  /* print a helpful augeas error message */
-#define T_OP_AUGEAS_WRITE    0x95  /* write all pending changes to disk */
-#define T_OP_AUGEAS_SET      0x96  /* set the value of a file/key */
-#define T_OP_AUGEAS_GET      0x97  /* retrieve the value of a file/key */
-#define T_OP_AUGEAS_FIND     0x98  /* search for and retrieve the value of file/key */
-#define T_OP_AUGEAS_REMOVE   0x99  /* remove a file/key */
-#define T_OP_ENV_GET         0x9a  /* retrieve the value of an environment variable */
-#define T_OP_ENV_SET         0x9b  /* set the value of an environment variable */
-#define T_OP_ENV_UNSET       0x9c  /* unset an environment variable */
-#define T_OP_EXEC            0x9d  /* execute a command */
-#define T_OP_DUMP            0x9e  /* dump virtual machine state for debugging */
-#define T_OP_HALT            0x9f  /* halt the virtual machine */
-#define T_OP_PRAGMA          0xa0  /* set a compiler pragma */
+#define T_OP_USER_DELETE     0x8a  /* remove the current user from the (in-memory) database */
+#define T_OP_GROUP_FIND      0x8b  /* find a group by name */
+#define T_OP_GROUP_GET       0x8c  /* retrieve the value of an attribute from the last found group */
+#define T_OP_GROUP_SET       0x8d  /* set an attribute on the last found group */
+#define T_OP_GROUP_NEW       0x8e  /* allocate a new (unsaved) group object */
+#define T_OP_GROUP_SAVE      0x8f  /* commit changes to the current group object (in-memory only) */
+#define T_OP_GROUP_DELETE    0x90  /* remove the current group from the (in-memory) database */
+#define T_OP_AUGEAS_INIT     0x91  /* initialize the augeas system */
+#define T_OP_AUGEAS_DONE     0x92  /* de-initializes the augeas system */
+#define T_OP_AUGEAS_PERROR   0x93  /* print a helpful augeas error message */
+#define T_OP_AUGEAS_WRITE    0x94  /* write all pending changes to disk */
+#define T_OP_AUGEAS_SET      0x95  /* set the value of a file/key */
+#define T_OP_AUGEAS_GET      0x96  /* retrieve the value of a file/key */
+#define T_OP_AUGEAS_FIND     0x97  /* search for and retrieve the value of file/key */
+#define T_OP_AUGEAS_REMOVE   0x98  /* remove a file/key */
+#define T_OP_ENV_GET         0x99  /* retrieve the value of an environment variable */
+#define T_OP_ENV_SET         0x9a  /* set the value of an environment variable */
+#define T_OP_ENV_UNSET       0x9b  /* unset an environment variable */
+#define T_OP_EXEC            0x9c  /* execute a command */
+#define T_OP_DUMP            0x9d  /* dump virtual machine state for debugging */
+#define T_OP_HALT            0x9e  /* halt the virtual machine */
+#define T_OP_PRAGMA          0x9f  /* set a compiler pragma */
 
 
 static const char * ASM[] = {
@@ -377,29 +374,28 @@ static const char * ASM[] = {
 	"user.get",          /* T_OP_USER_GET        71  0x47 */
 	"user.set",          /* T_OP_USER_SET        72  0x48 */
 	"user.new",          /* T_OP_USER_NEW        73  0x49 */
-	"user.save",         /* T_OP_USER_SAVE       74  0x4a */
-	"user.delete",       /* T_OP_USER_DELETE     75  0x4b */
-	"group.find",        /* T_OP_GROUP_FIND      76  0x4c */
-	"group.get",         /* T_OP_GROUP_GET       77  0x4d */
-	"group.set",         /* T_OP_GROUP_SET       78  0x4e */
-	"group.new",         /* T_OP_GROUP_NEW       79  0x4f */
-	"group.save",        /* T_OP_GROUP_SAVE      80  0x50 */
-	"group.delete",      /* T_OP_GROUP_DELETE    81  0x51 */
-	"augeas.init",       /* T_OP_AUGEAS_INIT     82  0x52 */
-	"augeas.done",       /* T_OP_AUGEAS_DONE     83  0x53 */
-	"augeas.perror",     /* T_OP_AUGEAS_PERROR   84  0x54 */
-	"augeas.write",      /* T_OP_AUGEAS_WRITE    85  0x55 */
-	"augeas.set",        /* T_OP_AUGEAS_SET      86  0x56 */
-	"augeas.get",        /* T_OP_AUGEAS_GET      87  0x57 */
-	"augeas.find",       /* T_OP_AUGEAS_FIND     88  0x58 */
-	"augeas.remove",     /* T_OP_AUGEAS_REMOVE   89  0x59 */
-	"env.get",           /* T_OP_ENV_GET         90  0x5a */
-	"env.set",           /* T_OP_ENV_SET         91  0x5b */
-	"env.unset",         /* T_OP_ENV_UNSET       92  0x5c */
-	"exec",              /* T_OP_EXEC            93  0x5d */
-	"dump",              /* T_OP_DUMP            94  0x5e */
-	"halt",              /* T_OP_HALT            95  0x5f */
-	"pragma",            /* T_OP_PRAGMA          96  0x60 */
+	"user.delete",       /* T_OP_USER_DELETE     74  0x4a */
+	"group.find",        /* T_OP_GROUP_FIND      75  0x4b */
+	"group.get",         /* T_OP_GROUP_GET       76  0x4c */
+	"group.set",         /* T_OP_GROUP_SET       77  0x4d */
+	"group.new",         /* T_OP_GROUP_NEW       78  0x4e */
+	"group.save",        /* T_OP_GROUP_SAVE      79  0x4f */
+	"group.delete",      /* T_OP_GROUP_DELETE    80  0x50 */
+	"augeas.init",       /* T_OP_AUGEAS_INIT     81  0x51 */
+	"augeas.done",       /* T_OP_AUGEAS_DONE     82  0x52 */
+	"augeas.perror",     /* T_OP_AUGEAS_PERROR   83  0x53 */
+	"augeas.write",      /* T_OP_AUGEAS_WRITE    84  0x54 */
+	"augeas.set",        /* T_OP_AUGEAS_SET      85  0x55 */
+	"augeas.get",        /* T_OP_AUGEAS_GET      86  0x56 */
+	"augeas.find",       /* T_OP_AUGEAS_FIND     87  0x57 */
+	"augeas.remove",     /* T_OP_AUGEAS_REMOVE   88  0x58 */
+	"env.get",           /* T_OP_ENV_GET         89  0x59 */
+	"env.set",           /* T_OP_ENV_SET         90  0x5a */
+	"env.unset",         /* T_OP_ENV_UNSET       91  0x5b */
+	"exec",              /* T_OP_EXEC            92  0x5c */
+	"dump",              /* T_OP_DUMP            93  0x5d */
+	"halt",              /* T_OP_HALT            94  0x5e */
+	"pragma",            /* T_OP_PRAGMA          95  0x5f */
 	NULL,
 };
 
@@ -490,8 +486,7 @@ static struct {
 	{ T_OP_USER_FIND,      "user.find (%a|<string>)",                        OP_USER_FIND,      { ARG_REGISTER|ARG_STRING,            ARG_NONE,                           } },
 	{ T_OP_USER_GET,       "user.get (%a|<string>) (%b|<string>|<number>)",  OP_USER_GET,       { ARG_REGISTER|ARG_STRING,            ARG_REGISTER|ARG_STRING|ARG_NUMBER, } },
 	{ T_OP_USER_SET,       "user.set (%a|<string>) (%b|<string>|<number>)",  OP_USER_SET,       { ARG_REGISTER|ARG_STRING,            ARG_REGISTER|ARG_STRING|ARG_NUMBER, } },
-	{ T_OP_USER_NEW,       "user.new (%a|<number>) (%b|<string>)",           OP_USER_NEW,       { ARG_REGISTER|ARG_NUMBER,            ARG_REGISTER|ARG_STRING,            } },
-	{ T_OP_USER_SAVE,      "user.save",                                      OP_USER_SAVE,      { ARG_NONE,                           ARG_NONE,                           } },
+	{ T_OP_USER_NEW,       "user.new",                                       OP_USER_NEW,       { ARG_NONE,                           ARG_NONE,                           } },
 	{ T_OP_USER_DELETE,    "user.delete",                                    OP_USER_DELETE,    { ARG_NONE,                           ARG_NONE,                           } },
 	{ T_OP_GROUP_FIND,     "group.find (%a|<string>)",                       OP_GROUP_FIND,     { ARG_REGISTER|ARG_STRING,            ARG_NONE,                           } },
 	{ T_OP_GROUP_GET,      "group.get (%a|<string>) (%b|<string>|<number>)", OP_GROUP_GET,      { ARG_REGISTER|ARG_STRING,            ARG_REGISTER|ARG_STRING|ARG_NUMBER, } },

@@ -21,23 +21,67 @@
 
 #include "test.h"
 #include "../src/authdb.h"
-#include "../src/userdb.h"
 
-/*********************************************************/
+static void reset(const char *root)
+{
+	FILE *io;
+	char *file;
 
-/* test /etc/passwd file */
-#define PWFILE      TEST_DATA "/userdb/passwd"
+	mkdir(root, 0777);
+	file = string("%s/passwd", root); io = fopen(file, "w"); free(file);
+	if (!io) BAIL_OUT("test setup: failed to open %s/passwd database for reset");
+	fprintf(io, "root:x:0:0:root:/root:/bin/bash\n");
+	fprintf(io, "daemon:x:1:1:daemon:/usr/sbin:/bin/sh\n");
+	fprintf(io, "bin:x:2:2:bin:/bin:/bin/sh\n");
+	fprintf(io, "sys:x:3:3:sys:/dev:/bin/sh\n");
+	fprintf(io, "user:x:100:20:User Account,,,:/home/user:/bin/bash\n");
+	fprintf(io, "account1:x:901:20:Account One:/home/acct1:/sbin/nologin\n");
+	fprintf(io, "account2:x:902:20:Account Two:/home/acct2:/sbin/nologin\n");
+	fprintf(io, "account3:x:903:20:Account Three:/home/acct3:/sbin/nologin\n");
+	fprintf(io, "account4:x:904:20:Account Four:/home/acct4:/sbin/nologin\n");
+	fprintf(io, "admin1:x:911:20:Admin One:/home/adm1:/sbin/nologin\n");
+	fprintf(io, "admin2:x:912:20:Admin Two:/home/adm2:/sbin/nologin\n");
+	fprintf(io, "admin3:x:913:20:Admin Three:/home/adm3:/sbin/nologin\n");
+	fprintf(io, "svc:x:999:909:service account:/tmp/nonexistent:/sbin/nologin\n");
+	fclose(io);
 
-/* test /etc/group file */
-#define GRFILE      TEST_DATA "/userdb/group"
+	file = string("%s/shadow", root); io = fopen(file, "w"); free(file);
+	if (!io) BAIL_OUT("test setup: failed to open %s/shadow database for reset");
+	fprintf(io, "root:!:14009:0:99999:7:::\n");
+	fprintf(io, "daemon:*:13991:0:99999:7:::\n");
+	fprintf(io, "bin:*:13991:0:99999:7:::\n");
+	fprintf(io, "sys:*:13991:0:99999:7:::\n");
+	fprintf(io, "user:$6$nahablHe$1qen4PePmYtEIC6aCTYoQFLgMp//snQY7nDGU7.9iVzXrmmCYLDsOKc22J6MPRUuH/X4XJ7w.JaEXjofw9h1d/:14871:0:99999:7:::\n");
+	fprintf(io, "svc:*:13991:0:99999:7:::\n");
+	fclose(io);
 
-/* test /etc/gshadow file */
-#define SGFILE      TEST_DATA "/userdb/gshadow"
+	file = string("%s/group", root); io = fopen(file, "w"); free(file);
+	if (!io) BAIL_OUT("test setup: failed to open %s/group database for reset");
+	fprintf(io, "root:x:0:\n");
+	fprintf(io, "daemon:x:1:\n");
+	fprintf(io, "bin:x:2:\n");
+	fprintf(io, "sys:x:3:\n");
+	fprintf(io, "members:x:4:account1,account2,account3\n");
+	fprintf(io, "users:x:20:\n");
+	fprintf(io, "service:x:909:account1,account2\n");
+	fclose(io);
 
-/*********************************************************/
+	file = string("%s/gshadow", root); io = fopen(file, "w"); free(file);
+	if (!io) BAIL_OUT("test setup: failed to open %s/gshadow database for reset");
+	fprintf(io, "root:*::\n");
+	fprintf(io, "daemon:*::\n");
+	fprintf(io, "bin:*::\n");
+	fprintf(io, "sys:*::\n");
+	fprintf(io, "members:*:admin1,admin2:account1,account2,account3\n");
+	fprintf(io, "users:*::\n");
+	fprintf(io, "service:!:admin2:account1,account2\n");
+	fclose(io);
+}
 
 TESTS {
 	subtest {
+		reset("t/tmp");
+
 		authdb_t *db;
 		user_t *user;
 		group_t *group;
@@ -45,8 +89,8 @@ TESTS {
 		db = authdb_read("/path/to/nowhere", AUTHDB_ALL);
 		is_null(db, "failed to read non-existent root path");
 
-		db = authdb_read(TEST_DATA "/userdb", AUTHDB_ALL);
-		isnt_null(db, "opened all four databases in " TEST_DATA "/userdb");
+		db = authdb_read("t/tmp", AUTHDB_ALL);
+		isnt_null(db, "opened all four databases in " "t/tmp");
 
 		// 'root' is the first entry
 		user = user_find(db, "root", -1);
@@ -122,11 +166,13 @@ TESTS {
 	}
 
 	subtest {
+		reset("t/tmp");
+
 		authdb_t *db;
 		user_t *user;
 		group_t *group;
 
-		db = authdb_read(TEST_DATA "/userdb", AUTHDB_ALL);
+		db = authdb_read("t/tmp", AUTHDB_ALL);
 		is_null(user_find(db, "new_user", -1), "new_user does not exist yet");
 		is_null(group_find(db, "new_group", -1), "new_group does not exist yet");
 
@@ -158,7 +204,7 @@ TESTS {
 		authdb_write(db);
 		authdb_close(db);
 
-		db = authdb_read(TEST_DATA "/userdb", AUTHDB_ALL);
+		db = authdb_read("t/tmp", AUTHDB_ALL);
 
 		isnt_null(user = user_find(db, "new_user", -1), "new_user exists on disk");
 
@@ -174,8 +220,8 @@ TESTS {
 		is_int(    user->creds.min_days,      1,                "min password age");
 		is_int(    user->creds.max_days,      6,                "max password age");
 		is_int(    user->creds.warn_days,     4,                "pw change warning");
-		is_int(    user->creds.grace_period,  0,                "account inactivity deadline");
-		is_int(    user->creds.expiration,    0,                "account expiry");
+		is_int(    user->creds.grace_period,  -1,               "account inactivity deadline");
+		is_int(    user->creds.expiration,    -1,               "account expiry");
 
 		isnt_null(group = group_find(db, "new_group", -1), "new_group exists on disk");
 		is_string(group->name,       "new_group", "group name");
@@ -187,11 +233,13 @@ TESTS {
 	}
 
 	subtest {
+		reset("t/tmp");
+
 		authdb_t *db;
 		user_t *user;
 		group_t *group;
 
-		db = authdb_read(TEST_DATA "/userdb", AUTHDB_ALL);
+		db = authdb_read("t/tmp", AUTHDB_ALL);
 
 		user = user_find(db, "sys", -1);
 		isnt_null(user, "found 'sys' user (for deletion)");
@@ -204,65 +252,71 @@ TESTS {
 		is_null(group_find(db, "sys", -1), "'sys' group no longer in memory");
 
 		authdb_write(db);
-		db = authdb_read(TEST_DATA "/userdb", AUTHDB_ALL);
+		authdb_close(db);
+
+		db = authdb_read("t/tmp", AUTHDB_ALL);
 
 		is_null(user_find(db, "sys", -1), "'sys' user no longer on disk");
 		is_null(group_find(db, "sys", -1), "'sys' group no longer on disk");
-	}
 
-	subtest {
-		authdb_t *db = authdb_read(TEST_DATA "/userdb", AUTHDB_ALL);
-		is_int(authdb_nextuid(db, 1000), 8192, "Next UUID == max(UID)+1");
 		authdb_close(db);
 	}
 
 	subtest {
-		struct grdb *db;
-		struct group *gr;
+		reset("t/tmp");
 
-		isnt_null(db = grdb_init(GRFILE), "read group db");
-		isnt_null(gr = grdb_get_by_name(db, "members"), "found 'members' group");
-		isnt_null(gr->gr_mem, "'members' group has a gr_mem array");
-
-		is_string(gr->gr_mem[0], "account1", "gr_mem[0]");
-		is_string(gr->gr_mem[1], "account2", "gr_mem[1]");
-		is_string(gr->gr_mem[2], "account3", "gr_mem[2]");
-		is_null(gr->gr_mem[3], "no more members");
-
-		grdb_free(db);
+		authdb_t *db = authdb_read("t/tmp", AUTHDB_ALL);
+		is_int(authdb_nextuid(db, 800), 800, "nextuid finds first unused uid");
+		is_int(authdb_nextuid(db,   1),   4, "nextuid finds holes");
+		is_int(authdb_nextgid(db, 900), 900, "nextgid finds first unused gid");
+		is_int(authdb_nextgid(db,   1),   5, "nextgid finds holes");
+		authdb_close(db);
 	}
 
 	subtest {
-		struct sgdb *db;
-		struct sgrp *sg;
+		reset("t/tmp");
 
-		isnt_null(db = sgdb_init(SGFILE), "read gshadow db");
-		isnt_null(sg = sgdb_get_by_name(db, "members"), "found the 'members' gshadow entry");
+		authdb_t *db = authdb_read("t/tmp", AUTHDB_ALL);
+		group_t *group = group_find(db, "members", -1);
+		isnt_null(group, "found 'members' group for membership test");
 
-		isnt_null(sg->sg_mem, "'members' gshadow entry has list of members");
-		is_string(sg->sg_mem[0], "account1", "sg_mem[0]");
-		is_string(sg->sg_mem[1], "account2", "sg_mem[1]");
-		is_string(sg->sg_mem[2], "account3", "sg_mem[2]");
-		is_null(sg->sg_mem[3], "no more members");
+		static const char *members[] = { "account1", "account2", "account3", NULL };
+		static const char *admins[] = { "admin1", "admin2", NULL };
+		size_t i; member_t *member;
 
-		isnt_null(sg->sg_adm, "'members' gshadow entry has list of admins");
-		is_string(sg->sg_adm[0], "admin1", "sg_adm[0]");
-		is_string(sg->sg_adm[1], "admin2", "sg_adm[1]");
-		is_null(sg->sg_adm[2], "no more admins");
+		i = 0;
+		for_each_object(member, &group->members, on_group) {
+			if (!members[i]) BAIL_OUT("ran out of group members to expect!");
+			isnt_null(member->user, "membership record %i has a user object", i);
+			is_string(member->user->name, members[i], "membership record %i == %s", i, members[i]);
+			i++;
+		}
+		is_null(members[i], "saw all of the expected group members");
 
-		sgdb_free(db);
+		i = 0;
+		for_each_object(member, &group->admins, on_group) {
+			if (!admins[i]) BAIL_OUT("ran out of group admins to expect!");
+			isnt_null(member->user, "adminhood record %i has a user object", i);
+			is_string(member->user->name, admins[i], "adminhood record %i == %s", i, members[i]);
+			i++;
+		}
+		is_null(admins[i], "saw all of the expected group admins");
+
+		authdb_close(db);
 	}
 
 	subtest {
-		authdb_t *db = authdb_read(TEST_DATA "/userdb", AUTHDB_ALL);
+		reset("t/tmp");
+
+		authdb_t *db = authdb_read("t/tmp", AUTHDB_ALL);
 
 		char *s = authdb_creds(db, "account1");
 		is_string(s, "account1:users:members:service",
 				"Generated user and groups list");
 		free(s);
 
-		s = authdb_creds(db, "account2");
-		is_null(s, "No records for account2");
+		s = authdb_creds(db, "enoent");
+		is_null(s, "no record for enoent");
 
 		authdb_close(db);
 	}

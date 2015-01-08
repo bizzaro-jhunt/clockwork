@@ -8,6 +8,7 @@
 #include <vigor.h>
 
 #include <augeas.h>
+#include "authdb.h"
 
 /*
 
@@ -74,11 +75,9 @@ typedef struct {
 
 		augeas       *augeas;
 
-		struct pwdb  *pwdb; struct passwd *passwd;
-		struct spdb  *spdb; struct spwd   *shadow;
-		struct grdb  *grdb; struct group  *group;
-		struct sgdb  *sgdb; struct sgrp   *gshadow;
-
+		authdb_t     *authdb;
+		user_t       *user;
+		group_t      *group;
 	} aux;
 
 	list_t   heap;

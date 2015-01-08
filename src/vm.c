@@ -32,7 +32,7 @@
 #include <augeas.h>
 
 #include "opcodes.h"
-#include "userdb.h"
+#include "authdb.h"
 
 static int s_empty(stack_t *st)
 {
@@ -837,65 +837,27 @@ int vm_exec(vm_t *vm)
 		case OP_AUTHDB_OPEN:
 			ARG0("authdb.open");
 
-			s = string("%s/passwd", hash_get(&vm->pragma, "authdb.root"));
-			vm->aux.pwdb = pwdb_init(s); free(s);
-
-			s = string("%s/shadow", hash_get(&vm->pragma, "authdb.root"));
-			vm->aux.spdb = spdb_init(s); free(s);
-
-			s = string("%s/group", hash_get(&vm->pragma, "authdb.root"));
-			vm->aux.grdb = grdb_init(s); free(s);
-
-			s = string("%s/gshadow", hash_get(&vm->pragma, "authdb.root"));
-			vm->aux.sgdb = sgdb_init(s); free(s);
-
-			if (vm->aux.pwdb && vm->aux.grdb
-			 && vm->aux.spdb && vm->aux.sgdb) {
-				vm->acc = 0;
-			} else {
-				if (vm->aux.pwdb) pwdb_free(vm->aux.pwdb); vm->aux.pwdb = NULL;
-				if (vm->aux.grdb) grdb_free(vm->aux.grdb); vm->aux.grdb = NULL;
-				if (vm->aux.spdb) spdb_free(vm->aux.spdb); vm->aux.spdb = NULL;
-				if (vm->aux.sgdb) sgdb_free(vm->aux.sgdb); vm->aux.sgdb = NULL;
-				vm->acc = 1;
-			}
+			authdb_close(vm->aux.authdb);
+			vm->aux.authdb = authdb_read(hash_get(&vm->pragma, "authdb.root"), AUTHDB_ALL);
+			vm->acc = vm->aux.authdb != NULL ? 0 : 1;
 			break;
 
 		case OP_AUTHDB_SAVE:
 			ARG0("authdb.save");
-
-			s = string("%s/passwd", hash_get(&vm->pragma, "authdb.root"));
-			pwdb_write( vm->aux.pwdb, s); free(s);
-
-			s = string("%s/shadow", hash_get(&vm->pragma, "authdb.root"));
-			spdb_write( vm->aux.spdb, s); free(s);
-
-			s = string("%s/group", hash_get(&vm->pragma, "authdb.root"));
-			grdb_write( vm->aux.grdb, s); free(s);
-
-			s = string("%s/gshadow", hash_get(&vm->pragma, "authdb.root"));
-			sgdb_write( vm->aux.sgdb, s); free(s);
-
-			pwdb_free(vm->aux.pwdb);
-			spdb_free(vm->aux.spdb);
-			grdb_free(vm->aux.grdb);
-			sgdb_free(vm->aux.sgdb);
-			vm->acc = 0;
+			vm->acc = authdb_write(vm->aux.authdb);
 			break;
 
 		case OP_AUTHDB_CLOSE:
 			ARG0("authdb.close");
-			pwdb_free(vm->aux.pwdb);
-			spdb_free(vm->aux.spdb);
-			grdb_free(vm->aux.grdb);
-			sgdb_free(vm->aux.sgdb);
+			authdb_close(vm->aux.authdb);
+			vm->aux.authdb = NULL;
 			vm->acc = 0;
 			break;
 
 		case OP_AUTHDB_NEXTUID:
 			ARG2("authdb.nextuid");
 			REGISTER2("authdb.nextuid");
-			vm->acc = pwdb_next_uid(vm->aux.pwdb, s_val(vm, f1, oper1));
+			vm->acc = authdb_nextuid(vm->aux.authdb, s_val(vm, f1, oper1));
 			if (vm->acc < 65536) {
 				vm->r[oper2] = vm->acc;
 				vm->acc = 0;
@@ -905,7 +867,7 @@ int vm_exec(vm_t *vm)
 		case OP_AUTHDB_NEXTGID:
 			ARG2("authdb.nextgid");
 			REGISTER2("authdb.nextuid");
-			vm->acc = grdb_next_gid(vm->aux.grdb, s_val(vm, f1, oper1));
+			vm->acc = authdb_nextgid(vm->aux.authdb, s_val(vm, f1, oper1));
 			if (vm->acc < 65536) {
 				vm->r[oper2] = vm->acc;
 				vm->acc = 0;
@@ -914,16 +876,14 @@ int vm_exec(vm_t *vm)
 
 		case OP_USER_FIND:
 			ARG1("user.find");
-			v = s_str(vm, f1, oper1);
-			vm->aux.passwd = pwdb_get_by_name(vm->aux.pwdb, v);
-			vm->aux.shadow = spdb_get_by_name(vm->aux.spdb, v);
-			vm->acc = (vm->aux.passwd && vm->aux.shadow) ? 0 : 1;
+			vm->aux.user = user_find(vm->aux.authdb, s_str(vm, f1, oper1), -1);
+			vm->acc = vm->aux.user ? 0 : 1;
 			break;
 
 		case OP_USER_GET:
 			ARG2("user.get");
 			REGISTER2("user.get");
-			if (!vm->aux.passwd || !vm->aux.shadow) {
+			if (!vm->aux.user) {
 				vm->acc = 1;
 				break;
 			}
@@ -932,46 +892,46 @@ int vm_exec(vm_t *vm)
 			v = s_str(vm, f1, oper1);
 
 			if (strcmp(v, "uid") == 0) {
-				vm->r[oper2] = vm->aux.passwd->pw_uid;
+				vm->r[oper2] = vm->aux.user->uid;
 
 			} else if (strcmp(v, "gid") == 0) {
-				vm->r[oper2] = vm->aux.passwd->pw_gid;
+				vm->r[oper2] = vm->aux.user->gid;
 
 			} else if (strcmp(v, "username") == 0) {
-				vm->r[oper2] = vm_heap_strdup(vm, vm->aux.passwd->pw_name);
+				vm->r[oper2] = vm_heap_strdup(vm, vm->aux.user->name);
 
-			} else if (strcmp(v, "gecos") == 0) {
-				vm->r[oper2] = vm_heap_strdup(vm, vm->aux.passwd->pw_gecos);
+			} else if (strcmp(v, "comment") == 0) {
+				vm->r[oper2] = vm_heap_strdup(vm, vm->aux.user->comment);
 
 			} else if (strcmp(v, "home") == 0) {
-				vm->r[oper2] = vm_heap_strdup(vm, vm->aux.passwd->pw_dir);
+				vm->r[oper2] = vm_heap_strdup(vm, vm->aux.user->home);
 
 			} else if (strcmp(v, "shell") == 0) {
-				vm->r[oper2] = vm_heap_strdup(vm, vm->aux.passwd->pw_shell);
+				vm->r[oper2] = vm_heap_strdup(vm, vm->aux.user->shell);
 
 			} else if (strcmp(v, "password") == 0) {
-				vm->r[oper2] = vm_heap_strdup(vm, vm->aux.passwd->pw_passwd);
+				vm->r[oper2] = vm_heap_strdup(vm, vm->aux.user->clear_pass);
 
 			} else if (strcmp(v, "pwhash") == 0) {
-				vm->r[oper2] = vm_heap_strdup(vm, vm->aux.shadow->sp_pwdp);
+				vm->r[oper2] = vm_heap_strdup(vm, vm->aux.user->crypt_pass);
 
 			} else if (strcmp(v, "changed") == 0) {
-				vm->r[oper2] = vm->aux.shadow->sp_lstchg;
+				vm->r[oper2] = vm->aux.user->creds.last_changed;
 
 			} else if (strcmp(v, "pwmin") == 0) {
-				vm->r[oper2] = vm->aux.shadow->sp_min;
+				vm->r[oper2] = vm->aux.user->creds.min_days;
 
 			} else if (strcmp(v, "pwmax") == 0) {
-				vm->r[oper2] = vm->aux.shadow->sp_max;
+				vm->r[oper2] = vm->aux.user->creds.max_days;
 
 			} else if (strcmp(v, "pwwarn") == 0) {
-				vm->r[oper2] = vm->aux.shadow->sp_warn;
+				vm->r[oper2] = vm->aux.user->creds.warn_days;
 
 			} else if (strcmp(v, "inact") == 0) {
-				vm->r[oper2] = vm->aux.shadow->sp_inact;
+				vm->r[oper2] = vm->aux.user->creds.grace_period;
 
 			} else if (strcmp(v, "expiry") == 0) {
-				vm->r[oper2] = vm->aux.shadow->sp_expire;
+				vm->r[oper2] = vm->aux.user->creds.expiration;
 
 			} else {
 				vm->acc = 1;
@@ -980,7 +940,7 @@ int vm_exec(vm_t *vm)
 
 		case OP_USER_SET:
 			ARG2("user.set");
-			if (!vm->aux.passwd || !vm->aux.shadow) {
+			if (!vm->aux.user) {
 				vm->acc = 1;
 				break;
 			}
@@ -989,54 +949,52 @@ int vm_exec(vm_t *vm)
 			v = s_str(vm, f1, oper1);
 
 			if (strcmp(v, "uid") == 0) {
-				vm->aux.passwd->pw_uid = s_val(vm, f2, oper2);
+				vm->aux.user->uid = s_val(vm, f2, oper2);
 
 			} else if (strcmp(v, "gid") == 0) {
-				vm->aux.passwd->pw_gid = s_val(vm, f2, oper2);
+				vm->aux.user->gid = s_val(vm, f2, oper2);
 
 			} else if (strcmp(v, "username") == 0) {
-				free(vm->aux.passwd->pw_name);
-				vm->aux.passwd->pw_name = strdup(s_str(vm, f2, oper2));
-				free(vm->aux.shadow->sp_namp);
-				vm->aux.shadow->sp_namp = strdup(s_str(vm, f2, oper2));
+				free(vm->aux.user->name);
+				vm->aux.user->name = strdup(s_str(vm, f2, oper2));
 
-			} else if (strcmp(v, "gecos") == 0) {
-				free(vm->aux.passwd->pw_gecos);
-				vm->aux.passwd->pw_gecos = strdup(s_str(vm, f2, oper2));
+			} else if (strcmp(v, "comment") == 0) {
+				free(vm->aux.user->comment);
+				vm->aux.user->comment = strdup(s_str(vm, f2, oper2));
 
 			} else if (strcmp(v, "home") == 0) {
-				free(vm->aux.passwd->pw_dir);
-				vm->aux.passwd->pw_dir = strdup(s_str(vm, f2, oper2));
+				free(vm->aux.user->home);
+				vm->aux.user->home = strdup(s_str(vm, f2, oper2));
 
 			} else if (strcmp(v, "shell") == 0) {
-				free(vm->aux.passwd->pw_shell);
-				vm->aux.passwd->pw_shell = strdup(s_str(vm, f2, oper2));
+				free(vm->aux.user->shell);
+				vm->aux.user->shell = strdup(s_str(vm, f2, oper2));
 
 			} else if (strcmp(v, "password") == 0) {
-				free(vm->aux.passwd->pw_passwd);
-				vm->aux.passwd->pw_passwd = strdup(s_str(vm, f2, oper2));
+				free(vm->aux.user->clear_pass);
+				vm->aux.user->clear_pass = strdup(s_str(vm, f2, oper2));
 
 			} else if (strcmp(v, "pwhash") == 0) {
-				free(vm->aux.shadow->sp_pwdp);
-				vm->aux.shadow->sp_pwdp = strdup(s_str(vm, f2, oper2));
+				free(vm->aux.user->crypt_pass);
+				vm->aux.user->crypt_pass = strdup(s_str(vm, f2, oper2));
 
 			} else if (strcmp(v, "changed") == 0) {
-				vm->aux.shadow->sp_lstchg = s_val(vm, f2, oper2);
+				vm->aux.user->creds.last_changed = s_val(vm, f2, oper2);
 
 			} else if (strcmp(v, "pwmin") == 0) {
-				vm->aux.shadow->sp_min = s_val(vm, f2, oper2);
+				vm->aux.user->creds.min_days = s_val(vm, f2, oper2);
 
 			} else if (strcmp(v, "pwmax") == 0) {
-				vm->aux.shadow->sp_max = s_val(vm, f2, oper2);
+				vm->aux.user->creds.max_days = s_val(vm, f2, oper2);
 
 			} else if (strcmp(v, "pwwarn") == 0) {
-				vm->aux.shadow->sp_warn = s_val(vm, f2, oper2);
+				vm->aux.user->creds.warn_days = s_val(vm, f2, oper2);
 
 			} else if (strcmp(v, "inact") == 0) {
-				vm->aux.shadow->sp_inact = s_val(vm, f2, oper2);
+				vm->aux.user->creds.grace_period = s_val(vm, f2, oper2);
 
 			} else if (strcmp(v, "expiry") == 0) {
-				vm->aux.shadow->sp_expire = s_val(vm, f2, oper2);
+				vm->aux.user->creds.expiration = s_val(vm, f2, oper2);
 
 			} else {
 				vm->acc = 1;
@@ -1044,36 +1002,31 @@ int vm_exec(vm_t *vm)
 			break;
 
 		case OP_USER_NEW:
-			printf("user.new\n"); /* FIXME: not implemented */
-			break;
-
-		case OP_USER_SAVE:
-			printf("user.save\n"); /* FIXME: not implemented */
+			ARG0("user.new");
+			vm->aux.user = user_add(vm->aux.authdb);
+			vm->acc = vm->aux.user ? 0 : 1;
 			break;
 
 		case OP_USER_DELETE:
 			ARG0("user.delete");
-			if (!vm->aux.passwd || !vm->aux.shadow) {
+			if (!vm->aux.user) {
 				vm->acc = 1;
 				break;
 			}
-			pwdb_rm(vm->aux.pwdb, vm->aux.passwd);
-			spdb_rm(vm->aux.spdb, vm->aux.shadow);
+			user_remove(vm->aux.user);
 			vm->acc = 0;
 			break;
 
 		case OP_GROUP_FIND:
 			ARG1("group.find");
-			v = s_str(vm, f1, oper1);
-			vm->aux.group   = grdb_get_by_name(vm->aux.grdb, v);
-			vm->aux.gshadow = sgdb_get_by_name(vm->aux.sgdb, v);
-			vm->acc = (vm->aux.group && vm->aux.gshadow) ? 0 : 1;
+			vm->aux.group = group_find(vm->aux.authdb, s_str(vm, f1, oper1), -1);
+			vm->acc = vm->aux.group ? 0 : 1;
 			break;
 
 		case OP_GROUP_GET:
 			ARG2("group.get");
 			REGISTER2("group.get");
-			if (!vm->aux.group || !vm->aux.gshadow) {
+			if (!vm->aux.group) {
 				vm->acc = 1;
 				break;
 			}
@@ -1082,16 +1035,16 @@ int vm_exec(vm_t *vm)
 			v = s_str(vm, f1, oper1);
 
 			if (strcmp(v, "gid") == 0) {
-				vm->r[oper2] = vm->aux.group->gr_gid;
+				vm->r[oper2] = vm->aux.group->gid;
 
 			} else if (strcmp(v, "name") == 0) {
-				vm->r[oper2] = vm_heap_strdup(vm, vm->aux.group->gr_name);
+				vm->r[oper2] = vm_heap_strdup(vm, vm->aux.group->name);
 
 			} else if (strcmp(v, "password") == 0) {
-				vm->r[oper2] = vm_heap_strdup(vm, vm->aux.group->gr_passwd);
+				vm->r[oper2] = vm_heap_strdup(vm, vm->aux.group->clear_pass);
 
 			} else if (strcmp(v, "pwhash") == 0) {
-				vm->r[oper2] = vm_heap_strdup(vm, vm->aux.gshadow->sg_passwd);
+				vm->r[oper2] = vm_heap_strdup(vm, vm->aux.group->crypt_pass);
 
 			} else {
 				vm->acc = 1;
@@ -1100,7 +1053,7 @@ int vm_exec(vm_t *vm)
 
 		case OP_GROUP_SET:
 			ARG2("group.get");
-			if (!vm->aux.group || !vm->aux.gshadow) {
+			if (!vm->aux.group) {
 				vm->acc = 1;
 				break;
 			}
@@ -1109,21 +1062,19 @@ int vm_exec(vm_t *vm)
 			v = s_str(vm, f1, oper1);
 
 			if (strcmp(v, "gid") == 0) {
-				vm->aux.group->gr_gid = s_val(vm, f2, oper2);
+				vm->aux.group->gid = s_val(vm, f2, oper2);
 
 			} else if (strcmp(v, "name") == 0) {
-				free(vm->aux.group->gr_name);
-				vm->aux.group->gr_name = strdup(s_str(vm, f2, oper2));
-				free(vm->aux.gshadow->sg_namp);
-				vm->aux.gshadow->sg_namp = strdup(s_str(vm, f2, oper2));
+				free(vm->aux.group->name);
+				vm->aux.group->name = strdup(s_str(vm, f2, oper2));
 
 			} else if (strcmp(v, "password") == 0) {
-				free(vm->aux.group->gr_passwd);
-				vm->aux.group->gr_passwd = strdup(s_str(vm, f2, oper2));
+				free(vm->aux.group->clear_pass);
+				vm->aux.group->clear_pass = strdup(s_str(vm, f2, oper2));
 
 			} else if (strcmp(v, "pwhash") == 0) {
-				free(vm->aux.gshadow->sg_passwd);
-				vm->aux.gshadow->sg_passwd = strdup(s_str(vm, f2, oper2));
+				free(vm->aux.group->crypt_pass);
+				vm->aux.group->crypt_pass = strdup(s_str(vm, f2, oper2));
 
 			} else {
 				vm->acc = 1;
@@ -1140,12 +1091,11 @@ int vm_exec(vm_t *vm)
 
 		case OP_GROUP_DELETE:
 			ARG0("group.delete");
-			if (!vm->aux.group || !vm->aux.gshadow) {
+			if (!vm->aux.group) {
 				vm->acc = 1;
 				break;
 			}
-			grdb_rm(vm->aux.grdb, vm->aux.group);
-			sgdb_rm(vm->aux.sgdb, vm->aux.gshadow);
+			group_remove(vm->aux.group);
 			vm->acc = 0;
 			break;
 

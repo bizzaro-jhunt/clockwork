@@ -1,4 +1,4 @@
-#!perl
+#!/usr/bin/perl
 use Test::More;
 use t::common;
 use POSIX qw/mkfifo/;
@@ -965,7 +965,7 @@ EOF
 		user.get "uid"      %a    print "uid=%[a]d\\n"
 		user.get "gid"      %a    print "gid=%[a]d\\n"
 		user.get "username" %a    print "username=%[a]s\\n"
-		user.get "gecos"    %a    print "gecos=%[a]s\\n"
+		user.get "comment"  %a    print "comment=%[a]s\\n"
 		user.get "home"     %a    print "home=%[a]s\\n"
 		user.get "shell"    %a    print "shell=%[a]s\\n"
 		user.get "password" %a    print "password=%[a]s\\n"
@@ -984,7 +984,7 @@ EOF
 	"uid=1000\n".
 	"gid=1100\n".
 	"username=user1\n".
-	"gecos=Some User\n".
+	"comment=Some User\n".
 	"home=/home/user1\n".
 	"shell=/bin/bash\n".
 	"password=x\n".
@@ -1015,7 +1015,7 @@ EOF
 		user.set "uid"        999
 		user.set "gid"        999
 		user.set "username"  "user99"
-		user.set "gecos"     "Comment"
+		user.set "comment"   "Comment"
 		user.set "home"      "/path/to/home"
 		user.set "shell"     "/bin/false"
 		user.set "password"  "<secret>"
@@ -1038,7 +1038,7 @@ EOF
 		user.get "uid"      %a    print "uid=%[a]d\\n"
 		user.get "gid"      %a    print "gid=%[a]d\\n"
 		user.get "username" %a    print "username=%[a]s\\n"
-		user.get "gecos"    %a    print "gecos=%[a]s\\n"
+		user.get "comment"  %a    print "comment=%[a]s\\n"
 		user.get "home"     %a    print "home=%[a]s\\n"
 		user.get "shell"    %a    print "shell=%[a]s\\n"
 		user.get "password" %a    print "password=%[a]s\\n"
@@ -1057,7 +1057,7 @@ EOF
 	"uid=999\n".
 	"gid=999\n".
 	"username=user99\n".
-	"gecos=Comment\n".
+	"comment=Comment\n".
 	"home=/path/to/home\n".
 	"shell=/bin/false\n".
 	"password=<secret>\n".
@@ -1194,7 +1194,9 @@ EOF
 		authdb.open
 
 		authdb.nextuid 1000 %a
-		user.new %a "joe"
+		user.new
+		user.set "username" "joe"
+		user.set "uid"      %a
 
 		authdb.save
 		authdb.close

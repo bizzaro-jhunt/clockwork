@@ -38,7 +38,6 @@ typedef struct {
 	char  *comment;
 	char  *home;
 	char  *shell;
-	char *tmpfile;
 
 	struct {
 		long last_changed;
@@ -73,9 +72,13 @@ typedef struct {
 } group_t;
 
 typedef struct {
-	int     id; /* uid or gid */
-	char   *name;
-	list_t  l;
+	user_t  *user;
+	group_t *group;
+	uint8_t  refs;
+
+	list_t   on_user;
+	list_t   on_group;
+	list_t   l;
 } member_t;
 
 #define AUTHDB_PASSWD    0x01
@@ -91,6 +94,7 @@ typedef struct {
 
 	list_t users;
 	list_t groups;
+	list_t memberships;
 } authdb_t;
 
 authdb_t* authdb_read(const char *root, int dbs);

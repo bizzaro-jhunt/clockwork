@@ -338,11 +338,6 @@
       - [register, string, number]
 - user.new:
     help: allocate a new (unsaved) user object
-    args:
-      - [register, number]
-      - [register, string]
-- user.save:
-    help: commit changes to the current user object (in-memory only)
 - user.delete:
     help: remove the current user from the (in-memory) database
 

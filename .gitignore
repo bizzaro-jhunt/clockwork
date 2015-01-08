@@ -108,7 +108,7 @@ t/22-job
 t/25-resource
 t/30-policy
 t/31-template
-t/40-userdb
+t/41-authdb
 t/50-proto
 t/55-cert
 t/61-res_user

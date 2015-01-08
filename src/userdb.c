@@ -315,34 +315,6 @@ static void _sgdb_entry_free(struct sgdb *entry)
 
 /**********************************************************/
 
-char* userdb_lookup(struct pwdb *pdb, struct grdb *gdb, const char *name)
-{
-	struct passwd *pw = pwdb_get_by_name(pdb, name);
-	if (!pw) return NULL;
-
-	struct group *gr = grdb_get_by_gid(gdb, pw->pw_gid);
-	if (!gr) return NULL;
-
-	strings_t *creds = strings_new(NULL);
-	strings_add(creds, pw->pw_name);
-	strings_add(creds, gr->gr_name);
-
-	struct grdb *next = gdb;
-	while (next) {
-		int i;
-		for (i = 0; next->group->gr_mem[i]; i++)
-			if (strcmp(next->group->gr_mem[i], pw->pw_name) == 0)
-				strings_add(creds, next->group->gr_name);
-		next = next->next;
-	}
-
-	char *list = strings_join(creds, ":");
-	strings_free(creds);
-	return list;
-}
-
-/**********************************************************/
-
 /**
   Open the user database at $path
 

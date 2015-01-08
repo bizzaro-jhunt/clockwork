@@ -22,6 +22,8 @@
 
 #include <ctap.h>
 #include <stdlib.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include "../src/resource.h"
 #include "../src/policy.h"
 

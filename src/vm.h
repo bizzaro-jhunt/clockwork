@@ -67,7 +67,12 @@ typedef struct {
 	stack_t  istack; /* instruction stack */
 	stack_t  tstack; /* "try" nesting stack */
 
+	hash_t   flags;  /* flags (see flag/unflag/flagged? opcodes */
 	hash_t   pragma; /* compiler/runtime pragma settings */
+	hash_t   props;  /* named properties (version, runtime, etc) */
+
+	list_t   acl;    /* access control list */
+
 	FILE    *stderr; /* where to direct error messages */
 	byte_t   abort;  /* signal to the main vm thread to abort */
 

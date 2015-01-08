@@ -33,6 +33,7 @@
 
 #include "opcodes.h"
 #include "authdb.h"
+#include "mesh.h"
 
 static int s_empty(stack_t *st)
 {
@@ -397,6 +398,13 @@ int vm_prime(vm_t *vm, byte_t *code, size_t len)
 	hash_set(&vm->pragma, "authdb.root", strdup("/etc"));
 	hash_set(&vm->pragma, "augeas.root", strdup("/"));
 	hash_set(&vm->pragma, "augeas.libs", strdup("/lib/clockwork/augeas/lenses"));
+
+	/* default properties */
+	hash_set(&vm->props, "runtime", "20150108");
+	hash_set(&vm->props, "version", "2.0");
+
+	list_init(&vm->acl);
+
 	vm->stderr = stderr;
 	s_push(vm, &vm->tstack, 0);
 
@@ -440,6 +448,8 @@ int vm_exec(vm_t *vm)
 	dword_t oper1, oper2;
 	char *s;
 	const char *v;
+	acl_t *acl;
+
 	vm->pc = 0;
 
 	while (!vm->abort) {
@@ -670,12 +680,19 @@ int vm_exec(vm_t *vm)
 
 		case OP_FLAG:
 			ARG1("flag");
-			printf("flag\n"); /* FIXME: not implemented */
+			hash_set(&vm->flags, s_str(vm, f1, oper1), "Y");
+			vm->acc = 0;
+			break;
+
+		case OP_UNFLAG:
+			ARG1("unflag");
+			hash_set(&vm->flags, s_str(vm, f1, oper1), NULL);
+			vm->acc = 0;
 			break;
 
 		case OP_FLAGGED_P:
 			ARG1("flagged?");
-			printf("flagged?\n"); /* FIXME: not implemented */
+			vm->acc = hash_get(&vm->flags, s_str(vm, f1, oper1)) ? 0 : 1;
 			break;
 
 		case OP_FS_STAT:
@@ -1233,6 +1250,43 @@ int vm_exec(vm_t *vm)
 			}
 			break;
 
+		case OP_PROPERTY:
+			ARG2("property");
+			REGISTER2("property");
+			v = hash_get(&vm->props, s_str(vm, f1, oper1));
+			if (v) {
+				vm->r[oper2] = vm_heap_strdup(vm, v);
+				vm->acc = 0;
+			} else {
+				vm->acc = 1;
+			}
+			break;
+
+		case OP_ACL:
+			ARG1("acl");
+			acl = acl_parse(s_str(vm, f1, oper1));
+			list_push(&vm->acl, &acl->l);
+			vm->acc = 0;
+			break;
+
+		case OP_SHOW_ACLS:
+			ARG0("show.acls");
+			for_each_object(acl, &vm->acl, l) {
+				fprintf(stdout, "%s\n", s = acl_string(acl));
+				free(s);
+			}
+			break;
+
+		case OP_SHOW_ACL:
+			ARG1("show.acls");
+			v = s_str(vm, f1, oper1);
+			for_each_object(acl, &vm->acl, l) {
+				if (!acl_match(acl, v, NULL)) continue;
+				fprintf(stdout, "%s\n", s = acl_string(acl));
+				free(s);
+			}
+			break;
+
 		default:
 			B_ERR("unknown operand %02x", op);
 			return -1;
@@ -1252,5 +1306,6 @@ int vm_done(vm_t *vm)
 	}
 
 	hash_done(&vm->pragma, 1);
+	hash_done(&vm->flags,  0);
 	return 0;
 }

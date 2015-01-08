@@ -139,6 +139,10 @@
     help: set a flag in the runtime
     args:
       - [register, string]
+- unflag:
+    help: unset a flag in the runtime
+    args:
+      - [register, string]
 - flagged?:
     help: see if a flag is set in the runtime
     args:
@@ -430,5 +434,21 @@
       - [identifier]
       - [string, number]
 
+- property:
+    help: retrieve a property into a register
+    args:
+      - [register, string]
+      - [register]
+
+- acl:
+    help: store a mech ACL
+    args:
+      - [register, string]
+- show.acls:
+    help: print ACL entries
+- show.acl:
+    help: print ACL entries that match the query
+    args:
+      - [register, string]
 
 # vim:ft=yaml:et:ts=2:sts=2:sw=2

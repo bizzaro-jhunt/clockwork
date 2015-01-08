@@ -1613,4 +1613,86 @@ subtest "try / bail" => sub {
 	"bail sets acc, which can be used to re-bail after a try");
 };
 
+subtest "flags" => sub {
+	pn2_ok(qq(
+	fn doflags
+		flag "red"
+		flag "green"
+
+	fn main
+		flagged? "red"
+		jnz +1
+			print "early"
+
+		call doflags
+		flagged? "red"
+		jz +1
+			print "fail"
+		print "ok"),
+
+	"ok",
+	"flag / flagged?");
+
+	pn2_ok(qq(
+	fn main
+		flag "red"
+		flagged? "red"
+		jz +1
+			print "early"
+
+		unflag "red"
+		unflag "blue"
+
+		flagged? "red"
+		jnz +1
+			print "fail"
+		print "ok"),
+
+	"ok",
+	"unflag / flagged?");
+};
+
+subtest "properies" => sub {
+	pn2_ok(qq(
+	fn main
+		property "runtime" %a
+		property "version" %b
+		print "pendulum v%[b]s runtime %[a]s"),
+
+	"pendulum v2.0 runtime 20150108",
+	"property retrieval");
+
+	pn2_ok(qq(
+	fn main
+		set %c "ok"
+		property "nonexistent" %c
+		jnz +1
+		print "fail"
+		print "%[c]s"),
+
+	"ok",
+	"property handles non-existent properties properly");
+};
+
+subtest "acl" => sub {
+	pn2_ok(qq(
+	fn main
+		acl allow %sys "show version" final
+		acl allow * show
+		show.acls),
+
+	"allow %sys \"show version\" final\n".
+	"allow * \"show\"\n",
+	"acl / show.acls");
+
+	pn2_ok(qq(
+	fn main
+		acl allow %sys "show version" final
+		acl allow * show
+		show.acl "user:sys:users"),
+
+	"allow %sys \"show version\" final\n",
+	"acl / show.acls");
+};
+
 done_testing;

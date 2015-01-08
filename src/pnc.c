@@ -100,6 +100,7 @@ typedef struct {
 #define T_STRING          0x06
 #define T_OPCODE          0x07
 #define T_FUNCTION        0x08
+#define T_ACL             0x09
 
 static int lex(parser_t *p)
 {
@@ -204,6 +205,16 @@ getline:
 			b++;
 		*b++ = '\0';
 
+		if (strcmp(a, "acl") == 0) {
+			p->token = T_ACL;
+			a = b;
+			while (*b && *b != '\n') b++;
+			*b = '\0';
+			memcpy(p->value, a, b - a + 1);
+			memset(p->buffer, 0, LINE_BUF_SIZE);
+			return 1;
+		}
+
 		int i;
 		for (i = 0; ASM[i]; i++) {
 			if (strcmp(a, ASM[i]) != 0) continue;
@@ -285,6 +296,12 @@ static int parse(void)
 			if (p.token != T_IDENTIFIER)
 				ERROR("unacceptable name for function");
 			op->label = strdup(p.value);
+			break;
+
+		case T_ACL:
+			op->op = OP_ACL;
+			op->args[0].type = VALUE_STRING;
+			op->args[0]._.string = strdup(p.value);
 			break;
 
 		case T_LABEL:

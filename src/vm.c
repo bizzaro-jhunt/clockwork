@@ -398,6 +398,7 @@ int vm_prime(vm_t *vm, byte_t *code, size_t len)
 	hash_set(&vm->pragma, "augeas.root", strdup("/"));
 	hash_set(&vm->pragma, "augeas.libs", strdup("/lib/clockwork/augeas/lenses"));
 	vm->stderr = stderr;
+	s_push(vm, &vm->tstack, 0);
 
 	vm->code = code;
 	vm->codesize = len;
@@ -557,6 +558,18 @@ int vm_exec(vm_t *vm)
 			vm->pc = oper1;
 			break;
 
+		case OP_TRY:
+			ARG1("try");
+			if (!is_address(f1))
+				B_ERR("try requires an address for operand 1");
+
+			s_save_state(vm);
+			s_push(vm, &vm->tstack, vm->tryc);
+			vm->tryc = vm->pc;
+			s_push(vm, &vm->istack, vm->pc);
+			vm->pc = oper1;
+			break;
+
 		case OP_RET:
 			if (f1) {
 				ARG1("ret");
@@ -567,7 +580,23 @@ int vm_exec(vm_t *vm)
 			if (s_empty(&vm->istack))
 				return 0; /* last RET == HALT */
 			vm->pc = s_pop(vm, &vm->istack);
+			if (vm->tryc == vm->pc)
+				vm->tryc = s_pop(vm, &vm->tstack);
 			s_restore_state(vm);
+			break;
+
+		case OP_BAIL:
+			ARG1("bail");
+			vm->acc = s_val(vm, f1, oper1);
+
+			if (vm->tryc == 0)
+				return 0; /* last BAIL == HALT */
+
+			while (vm->pc != vm->tryc) {
+				vm->pc = s_pop(vm, &vm->istack);
+				s_restore_state(vm);
+			}
+			vm->tryc = s_pop(vm, &vm->tstack);
 			break;
 
 		case OP_EQ:
@@ -639,14 +668,14 @@ int vm_exec(vm_t *vm)
 			fprintf(vm->stderr, ": (%i) %s\n", errno, strerror(errno));
 			break;
 
-		case OP_BAIL:
-			ARG0("bail");
-			printf("bail\n"); /* FIXME: not implemented */
+		case OP_FLAG:
+			ARG1("flag");
+			printf("flag\n"); /* FIXME: not implemented */
 			break;
 
-		case OP_MARK:
-			ARG0("mark");
-			printf("mark\n"); /* FIXME: not implemented */
+		case OP_FLAGGED_P:
+			ARG1("flagged?");
+			printf("flagged?\n"); /* FIXME: not implemented */
 			break;
 
 		case OP_FS_STAT:
@@ -824,10 +853,6 @@ int vm_exec(vm_t *vm)
 
 			vm->acc = lstat(s_str(vm, f1, oper1), &vm->aux.stat);
 			if (vm->acc == 0) vm->r[oper2] = vm->aux.stat.st_ctime;
-			break;
-
-		case OP_GETFILE:
-			printf("getfile\n"); /* FIXME: not implemented */
 			break;
 
 		case OP_EXEC:
@@ -1082,11 +1107,9 @@ int vm_exec(vm_t *vm)
 			break;
 
 		case OP_GROUP_NEW:
-			printf("group.new\n"); /* FIXME: not implemented */
-			break;
-
-		case OP_GROUP_SAVE:
-			printf("group.save\n"); /* FIXME: not implemented */
+			ARG0("group.new");
+			vm->aux.group = group_add(vm->aux.authdb);
+			vm->acc = vm->aux.group ? 0 : 1;
 			break;
 
 		case OP_GROUP_DELETE:

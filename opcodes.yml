@@ -54,7 +54,10 @@
     help: call a user-defined function
     args:
       - [function]
-
+- try:
+    help: call a user-defined function, as a die-return point
+    args:
+      - [function]
 - ret:
     help: return to caller
 - retv:
@@ -62,7 +65,12 @@
     alias: ret
     args:
       - [register, string, number]
+- bail:
+    help: return, unwinding the stack back to inner most try opcode
+    args:
+      - [register, number]
 
+# FIXME: these should end in '?'
 - eq:
     help: compare two integers for equality
     args:
@@ -126,10 +134,15 @@
     help: print an error (with system error message)
     args:
       - [string]
-- bail:
-    help: ...
-- mark:
-    help: ...
+
+- flag:
+    help: set a flag in the runtime
+    args:
+      - [register, string]
+- flagged?:
+    help: see if a flag is set in the runtime
+    args:
+      - [register, string]
 
 - fs.stat:
     help: check to see if a file exists
@@ -299,11 +312,6 @@
     args:
       - [register, string]
       - [register, string]
-- getfile:
-    help: retrieve a file from the server
-    args:
-      - [register, string]
-      - [register, string]
 
 - authdb.open:
     help: open the passwd/shadow (and group) databases for reading or writing
@@ -357,11 +365,6 @@
       - [register, string, number]
 - group.new:
     help: allocate a new (unsaved) group object
-    args:
-      - [register, number]
-      - [register, string]
-- group.save:
-    help: commit changes to the current group object (in-memory only)
 - group.delete:
     help: remove the current group from the (in-memory) database
 
@@ -426,5 +429,6 @@
     args:
       - [identifier]
       - [string, number]
+
 
 # vim:ft=yaml:et:ts=2:sts=2:sw=2

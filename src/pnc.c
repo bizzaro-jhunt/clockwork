@@ -100,7 +100,6 @@ typedef struct {
 #define T_STRING          0x06
 #define T_OPCODE          0x07
 #define T_FUNCTION        0x08
-#define T_TOPIC           0x09
 
 static int lex(parser_t *p)
 {
@@ -248,23 +247,6 @@ getline:
 		return 1;
 	}
 
-	if (*b == '@') {
-		int n = 0;
-		while (*b == '@') { n++; b++; }
-		if (n > 2) {
-			p->token = T_TOPIC;
-			while (*b && isspace(*b)) b++;
-			a = b;
-			while (*b && !isspace(*b)) b++;
-			*b++ = '\0';
-			memcpy(p->value, a, b-a);
-
-			SHIFTLINE;
-			return 1;
-		}
-		b = a;
-	}
-
 
 	logger(LOG_ERR, "%s:%i: failed to parse '%s'", p->file, p->line, p->buffer);
 	return 0;
@@ -291,9 +273,6 @@ static int parse(void)
 		op->fn = FN;
 
 		switch (p.token) {
-		case T_TOPIC:
-			break;
-
 		case T_FUNCTION:
 			if (FN && list_tail(&OPS, op_t, l)->op != OP_RET) {
 				op->op = OP_RET;

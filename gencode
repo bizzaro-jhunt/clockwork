@@ -54,7 +54,7 @@ sub arg
 }
 
 my $lst = eval { LoadFile "opcodes.yml" }
-	or die "Failed to load opcoes.yml: $!\n";
+	or die "Failed to load opcodes.yml: $!\n";
 
 for my $op (@$lst) {
 	my ($key, $o) = %$op;

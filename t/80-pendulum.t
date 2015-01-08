@@ -1243,6 +1243,28 @@ EOF
 
 	pn2_ok(qq(
 	fn main
+		pragma authdb.root "t/tmp/auth"
+		authdb.open
+
+		authdb.nextgid 1000 %a
+		group.new
+		group.set "name" "ppl"
+		group.set "uid"  %a
+
+		authdb.save
+		authdb.close
+
+		authdb.open
+		group.find "ppl"
+		jz +1
+		print "fail"
+		print "ok"),
+
+		"ok",
+	"group.new");
+
+	pn2_ok(qq(
+	fn main
 		set %b "B"
 		group.get "groupname" %b
 		jnz +1
@@ -1483,6 +1505,112 @@ subtest "env operators" => sub {
 
 	"ok",
 	"env.unset");
+};
+
+subtest "try / bail" => sub {
+	pn2_ok(qq(
+	fn main
+		print "ok"
+		bail 0
+		print "fail"),
+
+	"ok",
+	"bail with no try == halt");
+
+	pn2_ok(qq(
+	fn inner
+		print "ok"
+		bail 0
+		print "fail"
+
+	fn main
+		call inner
+		print "fail"),
+
+	"ok",
+	"nested bail with no try == halt");
+
+	pn2_ok(qq(
+	fn inner
+		print "O"
+		bail 0
+		print "fail"
+
+	fn main
+		try inner
+		print "K"),
+
+	"OK",
+	"immediate bail with try == retv");
+
+	pn2_ok(qq(
+	fn bailout
+		print "bailing\\n"
+		bail 1
+		print "ERROR: fell-through (bailout)!\\n"
+
+	fn middle
+		print "in middle()\\n"
+		call bailout
+		print "ERROR: fell-through (middle)!\\n"
+
+	fn main
+		print "starting\\n"
+		try middle
+		print "ok\\n"),
+
+	"starting\n".
+	"in middle()\n".
+	"bailing\n".
+	"ok\n",
+	"bail will unwind stack until it finds a try call");
+
+	pn2_ok(qq(
+	fn bailout
+		print "bailing\\n"
+		bail 1
+		print "ERROR: fell-through (middle)!\\n"
+
+	fn middle
+		print "in middle()\\n"
+		try bailout
+		print "exiting middle()\\n"
+
+	fn main
+		print "starting\\n"
+		try middle
+		print "ok\\n"),
+
+	"starting\n".
+	"in middle()\n".
+	"bailing\n".
+	"exiting middle()\n".
+	"ok\n",
+	"bail only unwinds to first (innermost) try call");
+
+	pn2_ok(qq(
+	fn bailout
+		print "bailing\\n"
+		bail 1
+		print "ERROR: fell-through (middle)!\\n"
+
+	fn middle
+		print "in middle()\\n"
+		try bailout
+		jz +1
+			bail 1
+		print "exiting middle()\\n"
+
+	fn main
+		print "starting\\n"
+		try middle
+		print "ok\\n"),
+
+	"starting\n".
+	"in middle()\n".
+	"bailing\n".
+	"ok\n",
+	"bail sets acc, which can be used to re-bail after a try");
 };
 
 done_testing;

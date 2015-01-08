@@ -61,9 +61,11 @@ typedef struct {
 	dword_t  r[16];  /* generic registers */
 	dword_t  acc;    /* accumulator register */
 	dword_t  pc;     /* program counter register */
+	dword_t  tryc;   /* try counter register */
 
 	stack_t  dstack; /* data stack */
 	stack_t  istack; /* instruction stack */
+	stack_t  tstack; /* "try" nesting stack */
 
 	hash_t   pragma; /* compiler/runtime pragma settings */
 	FILE    *stderr; /* where to direct error messages */

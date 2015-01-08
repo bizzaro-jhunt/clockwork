@@ -7,6 +7,8 @@
 #include <unistd.h>
 #include <vigor.h>
 
+#include <augeas.h>
+
 /*
 
    a BIT is a 0 or a 1
@@ -67,6 +69,8 @@ typedef struct {
 	/* auxiliary */
 	struct {
 		struct stat   stat;
+
+		augeas       *augeas;
 
 		struct pwdb  *pwdb; struct passwd *passwd;
 		struct spdb  *spdb; struct spwd   *shadow;

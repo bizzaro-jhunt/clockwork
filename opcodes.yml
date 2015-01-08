@@ -374,8 +374,10 @@
     help: initialize the augeas system
 - augeas.done:
     help: de-initializes the augeas system
-- augeas.err:
+- augeas.perror:
     help: print a helpful augeas error message
+    args:
+      - [register, string]
 - augeas.write:
     help: write all pending changes to disk
 - augeas.set:

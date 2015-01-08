@@ -84,7 +84,7 @@
 #define OP_GROUP_DELETE    0x50  /* remove the current group from the (in-memory) database */
 #define OP_AUGEAS_INIT     0x51  /* initialize the augeas system */
 #define OP_AUGEAS_DONE     0x52  /* de-initializes the augeas system */
-#define OP_AUGEAS_ERR      0x53  /* print a helpful augeas error message */
+#define OP_AUGEAS_PERROR   0x53  /* print a helpful augeas error message */
 #define OP_AUGEAS_WRITE    0x54  /* write all pending changes to disk */
 #define OP_AUGEAS_SET      0x55  /* set the value of a file/key */
 #define OP_AUGEAS_GET      0x56  /* retrieve the value of a file/key */
@@ -184,7 +184,7 @@ static const char * OPCODES[] = {
 	"group.delete",      /* OP_GROUP_DELETE    80  0x50 */
 	"augeas.init",       /* OP_AUGEAS_INIT     81  0x51 */
 	"augeas.done",       /* OP_AUGEAS_DONE     82  0x52 */
-	"augeas.err",        /* OP_AUGEAS_ERR      83  0x53 */
+	"augeas.perror",     /* OP_AUGEAS_PERROR   83  0x53 */
 	"augeas.write",      /* OP_AUGEAS_WRITE    84  0x54 */
 	"augeas.set",        /* OP_AUGEAS_SET      85  0x55 */
 	"augeas.get",        /* OP_AUGEAS_GET      86  0x56 */
@@ -285,7 +285,7 @@ static const char * OPCODES[] = {
 #define T_OP_GROUP_DELETE    0x91  /* remove the current group from the (in-memory) database */
 #define T_OP_AUGEAS_INIT     0x92  /* initialize the augeas system */
 #define T_OP_AUGEAS_DONE     0x93  /* de-initializes the augeas system */
-#define T_OP_AUGEAS_ERR      0x94  /* print a helpful augeas error message */
+#define T_OP_AUGEAS_PERROR   0x94  /* print a helpful augeas error message */
 #define T_OP_AUGEAS_WRITE    0x95  /* write all pending changes to disk */
 #define T_OP_AUGEAS_SET      0x96  /* set the value of a file/key */
 #define T_OP_AUGEAS_GET      0x97  /* retrieve the value of a file/key */
@@ -384,7 +384,7 @@ static const char * ASM[] = {
 	"group.delete",      /* T_OP_GROUP_DELETE    81  0x51 */
 	"augeas.init",       /* T_OP_AUGEAS_INIT     82  0x52 */
 	"augeas.done",       /* T_OP_AUGEAS_DONE     83  0x53 */
-	"augeas.err",        /* T_OP_AUGEAS_ERR      84  0x54 */
+	"augeas.perror",     /* T_OP_AUGEAS_PERROR   84  0x54 */
 	"augeas.write",      /* T_OP_AUGEAS_WRITE    85  0x55 */
 	"augeas.set",        /* T_OP_AUGEAS_SET      86  0x56 */
 	"augeas.get",        /* T_OP_AUGEAS_GET      87  0x57 */
@@ -497,7 +497,7 @@ static struct {
 	{ T_OP_GROUP_DELETE,   "group.delete",                                   OP_GROUP_DELETE,   { ARG_NONE,                           ARG_NONE,                           } },
 	{ T_OP_AUGEAS_INIT,    "augeas.init",                                    OP_AUGEAS_INIT,    { ARG_NONE,                           ARG_NONE,                           } },
 	{ T_OP_AUGEAS_DONE,    "augeas.done",                                    OP_AUGEAS_DONE,    { ARG_NONE,                           ARG_NONE,                           } },
-	{ T_OP_AUGEAS_ERR,     "augeas.err",                                     OP_AUGEAS_ERR,     { ARG_NONE,                           ARG_NONE,                           } },
+	{ T_OP_AUGEAS_PERROR,  "augeas.perror (%a|<string>)",                    OP_AUGEAS_PERROR,  { ARG_REGISTER|ARG_STRING,            ARG_NONE,                           } },
 	{ T_OP_AUGEAS_WRITE,   "augeas.write",                                   OP_AUGEAS_WRITE,   { ARG_NONE,                           ARG_NONE,                           } },
 	{ T_OP_AUGEAS_SET,     "augeas.set (%a|<string>) (%b|<string>)",         OP_AUGEAS_SET,     { ARG_REGISTER|ARG_STRING,            ARG_REGISTER|ARG_STRING,            } },
 	{ T_OP_AUGEAS_GET,     "augeas.get (%a|<string>) %b",                    OP_AUGEAS_GET,     { ARG_REGISTER|ARG_STRING,            ARG_REGISTER,                       } },

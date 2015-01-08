@@ -1026,4 +1026,129 @@ EOF
 	"group.remove");
 };
 
+subtest "augeas operators" => sub {
+	mkdir "t/tmp/root";
+	mkdir "t/tmp/root/etc";
+	put_file "t/tmp/root/etc/hosts", <<EOF;
+127.0.0.1 localhost localhost.localdomain
+
+# The following lines are desirable for IPv6 capable hosts
+::1     ip6-localhost ip6-loopback
+fe00::0 ip6-localnet
+ff00::0 ip6-mcastprefix
+ff02::1 ip6-allnodes
+ff02::2 ip6-allrouters
+
+10.10.0.1 host.remove-me
+EOF
+
+	pn2_ok(qq(
+	fn main
+		pragma augeas.root "t/tmp/root"
+		pragma augeas.libs "t/tmp/augeas/lenses"
+
+		augeas.init
+		jz +1
+		print "fail"
+
+		augeas.done
+		jz +1
+		print "fail"
+		print "ok"),
+
+	"ok",
+	"augeas.init initializes");
+
+	pn2_ok(qq(
+	fn main
+		pragma augeas.root "t/tmp/root"
+		pragma augeas.libs "t/tmp/augeas/lenses"
+
+		augeas.init
+		jz +2
+			print "init failed"
+			ret
+
+		augeas.get "/files/etc/hosts/4/canonical" %a
+		jz +2
+			augeas.perror "failed to get host #3 entry"
+			ret
+
+		print "canonical=%[a]s\\n"
+
+		augeas.get "/files/etc/hosts/3/ipaddr" %a
+		jz +2
+			augeas.perror "failed to get host #3 entry"
+			ret
+
+		print "ip=%[a]s\\n"
+
+		augeas.find "/files/etc/hosts/*[ipaddr = \\"127.0.0.1\\" and canonical = \\"localhost\\"]" %a
+		jz +2
+			augeas.perror "failed to find localhost"
+			ret
+
+		print "localhost=%[a]s\\n"
+		augeas.done
+		jz +2
+			print "augeas.done failed"
+			ret
+
+		print "ok"),
+
+	"canonical=ip6-mcastprefix\n".
+	"ip=fe00::0\n".
+	"localhost=/files/etc/hosts/1\n".
+	"ok",
+	"augeas.get");
+
+	pn2_ok(qq(
+	fn main
+		pragma augeas.root "t/tmp/root"
+		pragma augeas.libs "t/tmp/augeas/lenses"
+
+		augeas.init
+		jz +2
+			print "init failed"
+			ret
+
+		augeas.set "/files/etc/hosts/9999/ipaddr" "10.8.7.9"
+		jz +2
+			print "augeas.set #1 failed"
+			ret
+
+		augeas.set "/files/etc/hosts/9999/canonical" "new.host.example"
+		jz +2
+			print "augeas.set #2 failed"
+			ret
+
+		augeas.remove "/files/etc/hosts/7"
+		jz +2
+			print "augeas.remove failed"
+			ret
+
+		augeas.write
+		jz +2
+			print "write failed"
+			ret
+
+		print "ok"),
+
+	"ok",
+	"destructive augeas operations (remove + set + write)");
+
+	file_is "t/tmp/root/etc/hosts", <<'EOF', "etc/hosts changed";
+127.0.0.1 localhost localhost.localdomain
+
+# The following lines are desirable for IPv6 capable hosts
+::1     ip6-localhost ip6-loopback
+fe00::0 ip6-localnet
+ff00::0 ip6-mcastprefix
+ff02::1 ip6-allnodes
+ff02::2 ip6-allrouters
+
+10.8.7.9	new.host.example
+EOF
+};
+
 done_testing;

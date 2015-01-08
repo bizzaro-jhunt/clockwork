@@ -29,6 +29,8 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#include <augeas.h>
+
 #include "opcodes.h"
 #include "userdb.h"
 
@@ -346,6 +348,36 @@ static void vm_fprintf(vm_t *vm, FILE *out, const char *fmt)
 	return;
 }
 
+static void s_aug_perror(FILE *io, augeas *aug)
+{
+	char **err = NULL;
+	const char *value;
+	int rc = aug_match(aug, "/augeas//error", &err);
+	if (!rc) return;
+
+	int i;
+	fprintf(io, ": found %u problem%s:\n", rc, rc == 1 ? "" : "s");
+	for (i = 0; i < rc; i++) {
+		aug_get(aug, err[i], &value);
+		fprintf(io, "  %s: %s\n", err[i], value);
+	}
+	free(err);
+}
+
+static char * s_aug_find(augeas *aug, const char *needle)
+{
+	char **r = NULL, *v;
+	int rc = aug_match(aug, needle, &r);
+	if (rc == 1) {
+		v = r[0];
+		free(r);
+		return v;
+	}
+	while (rc) free(r[--rc]);
+	free(r);
+	return NULL;
+}
+
 /************************************************************************/
 
 int vm_reset(vm_t *vm)
@@ -364,6 +396,8 @@ int vm_prime(vm_t *vm, byte_t *code, size_t len)
 
 	/* default pragmas */
 	hash_set(&vm->pragma, "authdb.root", strdup("/etc"));
+	hash_set(&vm->pragma, "augeas.root", strdup("/"));
+	hash_set(&vm->pragma, "augeas.libs", strdup("/lib/clockwork/augeas/lenses"));
 
 	vm->code = code;
 	vm->codesize = len;
@@ -1116,35 +1150,70 @@ int vm_exec(vm_t *vm)
 			break;
 
 		case OP_AUGEAS_INIT:
-			printf("augeas.init\n"); /* FIXME: not implemented */
+			ARG0("augeas.init");
+			vm->aux.augeas = aug_init(
+				hash_get(&vm->pragma, "augeas.root"),
+				hash_get(&vm->pragma, "augeas.libs"),
+				AUG_NO_STDINC|AUG_NO_LOAD|AUG_NO_MODL_AUTOLOAD);
+
+			if (aug_set(vm->aux.augeas, "/augeas/load/Hosts/lens", "Hosts.lns") < 0
+			 || aug_set(vm->aux.augeas, "/augeas/load/Hosts/incl", "/etc/hosts") < 0
+			 || aug_load(vm->aux.augeas) != 0) {
+				vm->acc = 1;
+			} else {
+				vm->acc = 0;
+			}
 			break;
 
 		case OP_AUGEAS_DONE:
-			printf("augeas.done\n"); /* FIXME: not implemented */
+			ARG0("augeas.done");
+			aug_close(vm->aux.augeas);
+			vm->aux.augeas = NULL;
+			vm->acc = 0;
 			break;
 
-		case OP_AUGEAS_ERR:
-			printf("augeas.err\n"); /* FIXME: not implemented */
+		case OP_AUGEAS_PERROR:
+			ARG1("augeas.perror");
+			vm_fprintf(vm, stderr, s_str(vm, f1, oper1));
+			s_aug_perror(stderr, vm->aux.augeas);
 			break;
 
 		case OP_AUGEAS_WRITE:
-			printf("augeas.write\n"); /* FIXME: not implemented */
+			ARG0("augeas.write");
+			vm->acc = aug_save(vm->aux.augeas);
 			break;
 
 		case OP_AUGEAS_SET:
-			printf("augeas.set\n"); /* FIXME: not implemented */
+			ARG2("augeas.set");
+			vm->acc = aug_set(vm->aux.augeas, s_str(vm, f1, oper1), s_str(vm, f2, oper2));
 			break;
 
 		case OP_AUGEAS_GET:
-			printf("augeas.get\n"); /* FIXME: not implemented */
+			ARG2("augeas.get");
+			REGISTER2("augeas.get");
+			if (aug_get(vm->aux.augeas, s_str(vm, f1, oper1), &v) == 1 && v) {
+				vm->r[oper2] = vm_heap_strdup(vm, v);
+				vm->acc = 0;
+			} else {
+				vm->acc = 1;
+			}
 			break;
 
 		case OP_AUGEAS_FIND:
-			printf("augeas.find\n"); /* FIXME: not implemented */
+			ARG2("augeas.find");
+			REGISTER2("augeas.find");
+			s = s_aug_find(vm->aux.augeas, s_str(vm, f1, oper1));
+			if (s) {
+				vm->acc = 0;
+				vm->r[oper2] = vm_heap_strdup(vm, s); free(s);
+			} else {
+				vm->acc = 1;
+			}
 			break;
 
 		case OP_AUGEAS_REMOVE:
-			printf("augeas.remove\n"); /* FIXME: not implemented */
+			ARG1("augeas.remove");
+			vm->acc = aug_rm(vm->aux.augeas, s_str(vm, f1, oper1)) > 1 ? 0 : 1;
 			break;
 
 		case OP_HALT:
@@ -1158,7 +1227,7 @@ int vm_exec(vm_t *vm)
 
 		case OP_PRAGMA:
 			ARG2("pragma");
-			hash_set(&vm->pragma, s_str(vm, f1, oper1), strdup(s_str(vm, f2, oper2)));
+			free(hash_set(&vm->pragma, s_str(vm, f1, oper1), strdup(s_str(vm, f2, oper2))));
 			break;
 
 		default:

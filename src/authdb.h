@@ -97,6 +97,8 @@ authdb_t* authdb_read(const char *root, int dbs);
 int authdb_write(authdb_t *db);
 void authdb_close(authdb_t *db);
 
+char* authdb_creds(authdb_t *db, const char *user);
+
 uid_t authdb_nextuid(authdb_t *db, uid_t start);
 gid_t authdb_nextgid(authdb_t *db, gid_t start);
 

@@ -318,6 +318,28 @@ void authdb_close(authdb_t *db)
 }
 
 
+char* authdb_creds(authdb_t *db, const char *username)
+{
+	user_t *user = user_find(db, username, -1);
+	if (!user) return NULL;
+
+	group_t *group = group_find(db, NULL, user->gid);
+	if (!group) return NULL;
+
+	strings_t *creds = strings_new(NULL);
+	strings_add(creds, user->name);
+	strings_add(creds, group->name);
+
+	member_t *member;
+	for_each_object(member, &user->member_of, l)
+		strings_add(creds, member->name);
+
+	char *list = strings_join(creds, ":");
+	strings_free(creds);
+	return list;
+}
+
+
 uid_t authdb_nextuid(authdb_t *db, uid_t uid)
 {
 	user_t *user;

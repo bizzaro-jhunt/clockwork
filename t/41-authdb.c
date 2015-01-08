@@ -25,24 +25,14 @@
 
 /*********************************************************/
 
-#define ABORT_CODE 42
-
 /* test /etc/passwd file */
 #define PWFILE      TEST_DATA "/userdb/passwd"
-#define PWFILE_UID  TEST_DATA "/userdb/passwd-uid"
-#define PWFILE_NEW  TEST_TMP  "/passwd"
-
-/* test /etc/shadow file */
-#define SPFILE      TEST_DATA "/userdb/shadow"
-#define SPFILE_NEW  TEST_TMP  "/shadow"
 
 /* test /etc/group file */
 #define GRFILE      TEST_DATA "/userdb/group"
-#define GRFILE_NEW  TEST_TMP  "/group"
 
 /* test /etc/gshadow file */
 #define SGFILE      TEST_DATA "/userdb/gshadow"
-#define SGFILE_NEW  TEST_TMP  "/gshadow"
 
 /*********************************************************/
 
@@ -132,308 +122,98 @@ TESTS {
 	}
 
 	subtest {
-		struct pwdb *db;
-		struct passwd pw, *ent;
+		authdb_t *db;
+		user_t *user;
+		group_t *group;
 
-		db = pwdb_init(PWFILE);
+		db = authdb_read(TEST_DATA "/userdb", AUTHDB_ALL);
+		is_null(user_find(db, "new_user", -1), "new_user does not exist yet");
+		is_null(group_find(db, "new_group", -1), "new_group does not exist yet");
 
-		memset(&pw, 0, sizeof(pw));
-		pw.pw_name   = "new_user";
-		pw.pw_passwd = "x";
-		pw.pw_uid    = 500;
-		pw.pw_gid    = 500;
-		pw.pw_gecos  = "New User,,,";
-		pw.pw_dir    = "/home/new_user";
-		pw.pw_shell  = "/bin/bash";
+		user = user_add(db);
+		isnt_null(user, "user_add() returned a new user");
+		user->name = strdup("new_user");
+		user->clear_pass = strdup("x");
+		user->crypt_pass = strdup("$6$pwhash");
+		user->uid        = 500;
+		user->gid        = 500;
+		user->comment    = strdup("New User,,,");
+		user->home       = strdup("/home/new_user");
+		user->shell      = strdup("/bin/bash");
+		user->creds.last_changed = 14800;
+		user->creds.min_days     = 1;
+		user->creds.max_days     = 6;
+		user->creds.warn_days    = 4;
+		user->creds.grace_period = 0;
+		user->creds.expiration   = 0;
+		isnt_null(user_find(db, "new_user", -1), "new_user exists in memory");
 
-		is_null(pwdb_get_by_name(db, pw.pw_name), "doesnt exist yet");
-		ok(pwdb_add(db, &pw) == 0, "created user account");
-		isnt_null(pwdb_get_by_name(db, pw.pw_name), "new entry exists in memory");
-		ok(pwdb_write(db, PWFILE_NEW) == 0, "wrote new passwd db to " PWFILE_NEW);
+		group = group_add(db);
+		isnt_null(group, "group_add() returns a new group");
+		group->name       = strdup("new_group");
+		group->clear_pass = strdup("x");
+		group->crypt_pass = strdup("$6$pwhash");
+		group->gid        = 500;
 
-		pwdb_free(db);
-		db = pwdb_init(PWFILE_NEW);
-		isnt_null(ent = pwdb_get_by_name(db, pw.pw_name), "reread entry");
+		authdb_write(db);
+		authdb_close(db);
 
-		is_string( ent->pw_name,   "new_user",       "new user username");
-		is_string( ent->pw_passwd, "x",              "new user password field");
-		is_int(    ent->pw_uid,    500,              "new user UID");
-		is_int(    ent->pw_gid,    500,              "new user GID");
-		is_string( ent->pw_gecos,  "New User,,,",    "new user GECOS/comment");
-		is_string( ent->pw_dir,    "/home/new_user", "new user home directory");
-		is_string( ent->pw_shell,  "/bin/bash",      "new user shell");
+		db = authdb_read(TEST_DATA "/userdb", AUTHDB_ALL);
 
-		sys("rm -f " PWFILE_NEW);
+		isnt_null(user = user_find(db, "new_user", -1), "new_user exists on disk");
 
-		pwdb_free(db);
+		is_string( user->name,               "new_user",        "new user username");
+		is_string( user->clear_pass,         "x",               "new user password field");
+		is_string( user->crypt_pass,         "$6$pwhash",       "new user password hash");
+		is_int(    user->uid,                500,               "new user UID");
+		is_int(    user->gid,                500,               "new user GID");
+		is_string( user->comment,            "New User,,,",     "new user GECOS/comment");
+		is_string( user->home,                "/home/new_user", "new user home directory");
+		is_string( user->shell,               "/bin/bash",      "new user shell");
+		is_int(    user->creds.last_changed,  14800,            "last-changed value");
+		is_int(    user->creds.min_days,      1,                "min password age");
+		is_int(    user->creds.max_days,      6,                "max password age");
+		is_int(    user->creds.warn_days,     4,                "pw change warning");
+		is_int(    user->creds.grace_period,  0,                "account inactivity deadline");
+		is_int(    user->creds.expiration,    0,                "account expiry");
+
+		isnt_null(group = group_find(db, "new_group", -1), "new_group exists on disk");
+		is_string(group->name,       "new_group", "group name");
+		is_string(group->clear_pass, "x",         "group name");
+		is_string(group->crypt_pass, "$6$pwhash", "group name");
+		is_int(   group->gid,        500,         "group GID");
+
+		authdb_close(db);
 	}
 
 	subtest {
-		struct pwdb *db;
-		struct passwd *pw;
-		const char *rm_user = "sys";
+		authdb_t *db;
+		user_t *user;
+		group_t *group;
 
-		isnt_null(db = pwdb_init(PWFILE), "read passwd");
+		db = authdb_read(TEST_DATA "/userdb", AUTHDB_ALL);
 
-		// Remove an entry from passwd database
-		isnt_null(pw = pwdb_get_by_name(db, rm_user), "found user to remove");
-		ok(pwdb_rm(db, pw) == 0, "removed account");
-		is_null(pwdb_get_by_name(db, rm_user), "removed user no longer exists");
-		ok(pwdb_write(db, PWFILE_NEW) == 0, "saved passwd");
+		user = user_find(db, "sys", -1);
+		isnt_null(user, "found 'sys' user (for deletion)");
+		user_remove(user);
+		is_null(user_find(db, "sys", -1), "'sys' user no longer in memory");
 
-		pwdb_free(db);
+		group = group_find(db, "sys", -1);
+		isnt_null(group, "found 'sys' group (for deletion)");
+		group_remove(group);
+		is_null(group_find(db, "sys", -1), "'sys' group no longer in memory");
 
-		isnt_null(db = pwdb_init(PWFILE_NEW), "read passwd");
-		is_null(pwdb_get_by_name(db, rm_user), "removal reflected on-disk");
+		authdb_write(db);
+		db = authdb_read(TEST_DATA "/userdb", AUTHDB_ALL);
 
-		pwdb_free(db);
+		is_null(user_find(db, "sys", -1), "'sys' user no longer on disk");
+		is_null(group_find(db, "sys", -1), "'sys' group no longer on disk");
 	}
 
 	subtest {
-		struct pwdb *db;
-		struct passwd *pw;
-		char *name;
-
-		isnt_null(db = pwdb_init(PWFILE), "read passwd");
-
-		// Removal of list head (first entry)
-
-		pw = db->passwd; // list head
-		name = strdup(pw->pw_name);
-
-		ok(pwdb_rm(db, pw) == 0, "removed first account in list");
-		is_null(pwdb_get_by_name(db, name), "removed account does not exist in memory");
-		ok(pwdb_write(db, PWFILE_NEW) == 0, "saved passwd");
-		pwdb_free(db);
-
-		isnt_null(db = pwdb_init(PWFILE_NEW), "read passwd");
-		is_null(pwdb_get_by_name(db, name), "removal reflected on-disk");
-
-		free(name);
-		pwdb_free(db);
-	}
-
-	subtest {
-		struct pwdb *db;
-		struct passwd *pw;
-
-		// Test entry default values
-		isnt_null(db = pwdb_init(PWFILE), "read passwd");
-		isnt_null(pw = pwdb_new_entry(db, "new_pwuser", 1001, 1002), "created new passwd entry");
-
-		is_string(pw->pw_name,   "new_pwuser",    "explicitly set username");
-		is_int(   pw->pw_uid,    1001,            "explicitly set UID");
-		is_int(   pw->pw_gid,    1002,            "explicitly set GID");
-		is_string(pw->pw_passwd, "x",             "default password");
-		is_string(pw->pw_gecos,  "",              "default GECOS/comment");
-		is_string(pw->pw_dir,    "/",             "default home directory");
-		is_string(pw->pw_shell,  "/sbin/nologin", "default shell");
-
-		pwdb_free(db);
-	}
-
-	subtest {
-		struct pwdb *db;
-		// Next UID out of order (not just last(UID)+1
-		isnt_null(db = pwdb_init(PWFILE_UID), "read passwd");
-		is_int(pwdb_next_uid(db, 1000), 8192, "Next UUID == max(UID)+1");
-		pwdb_free(db);
-	}
-
-	subtest {
-		struct pwdb *db;
-		uid_t uid = 42;
-
-		isnt_null(db = pwdb_init(PWFILE_UID), "read passwd");
-
-		is_int(pwdb_lookup_uid(db, NULL, &uid), -1, "lookup UID with NULL username");
-		is_int(uid, 42, "uid value-result arg is untouched");
-
-		is_int(pwdb_lookup_uid(db, "notauser", &uid), -1, "lookup UID with username");
-		is_int(uid, 42, "uid value-result arg is untouched");
-
-		// see test/data/passwd-uid for valid users
-		is_int(pwdb_lookup_uid(db, "jrh1", &uid), 0, "lookup UID for jrh1 account");
-		is_int(uid, 2048, "UID for jrh1 account");
-
-		pwdb_free(db);
-	}
-
-
-	subtest {
-		struct spdb *db;
-		struct spwd sp, *ent;
-
-		isnt_null(db = spdb_init(SPFILE), "read shadow db");
-
-		memset(&sp, 0, sizeof(sp));
-		sp.sp_namp   = "new_user";
-		sp.sp_pwdp   = "$6$pwhash";
-		sp.sp_lstchg = 14800;
-		sp.sp_min    = 1;
-		sp.sp_max    = 6;
-		sp.sp_warn   = 4;
-		sp.sp_inact  = 0;
-		sp.sp_expire = 0;
-
-		is_null(spdb_get_by_name(db, "new_user"), "new_user doesnt exist yet");
-		ok(spdb_add(db, &sp) == 0, "created new shadow entry");
-		isnt_null(spdb_get_by_name(db, "new_user"), "new_user exists now");
-		ok(spdb_write(db, SPFILE_NEW) == 0, "saved shadow db to " SPFILE_NEW);
-
-		spdb_free(db);
-		isnt_null(db = spdb_init(SPFILE_NEW), "read shadow db");
-
-		isnt_null(ent = spdb_get_by_name(db, "new_user"), "re-read new shadow entry");
-		is_string(ent->sp_namp,   "new_user",  "new user username");
-		is_string(ent->sp_pwdp,   "$6$pwhash", "new user password hash");
-		is_int(   ent->sp_lstchg, 14800,       "last-changed value");
-		is_int(   ent->sp_min,    1,           "min password age");
-		is_int(   ent->sp_max,    6,           "max password age");
-		is_int(   ent->sp_warn,   4,           "pw change warning");
-		is_int(   ent->sp_inact,  0,           "account inactivity deadline");
-		is_int(   ent->sp_expire, 0,           "account expiry");
-
-		sys("rm -f " SPFILE_NEW);
-		spdb_free(db);
-	}
-
-	subtest {
-		struct spdb *db;
-		struct spwd *sp;
-		const char *rm_user = "sys";
-
-		isnt_null(db = spdb_init(SPFILE), "read shadow db");
-		isnt_null(sp = spdb_get_by_name(db, rm_user), "user account exists");
-		ok(spdb_rm(db, sp) == 0, "removed account");
-		is_null(spdb_get_by_name(db, rm_user), "user account not found in-memory");
-		ok(spdb_write(db, SPFILE_NEW) == 0, "saved shadow db");
-		spdb_free(db);
-
-		isnt_null(db = spdb_init(SPFILE_NEW), "read shadow db");
-		is_null(spdb_get_by_name(db, rm_user), "removal reflected on-disk");
-		spdb_free(db);
-	}
-
-	subtest {
-		struct spdb *db;
-		struct spwd *sp;
-		char *name;
-
-		isnt_null(db = spdb_init(SPFILE), "read shadow db");
-		sp = db->spwd;
-		name = strdup(sp->sp_namp);
-
-		ok(spdb_rm(db, sp) == 0, "removed first account");
-		is_null(spdb_get_by_name(db, name), "user account not found in-memory");
-		ok(spdb_write(db, SPFILE_NEW) == 0, "saved shadow db");
-		spdb_free(db);
-
-		isnt_null(db = spdb_init(SPFILE_NEW), "read shadow db");
-		is_null(spdb_get_by_name(db, name), "removal reflected on-disk");
-		free(name);
-		spdb_free(db);
-	}
-
-	subtest {
-		struct spdb *db;
-		struct spwd *sp;
-
-		isnt_null(db = spdb_init(SPFILE), "read shadow db");
-		isnt_null(sp = spdb_new_entry(db, "new_spuser"), "created new shadow entry");
-
-		is_string(sp->sp_namp, "new_spuser", "explicitly set username");
-		is_string(sp->sp_pwdp,          "!", "default hashed password");
-		is_int(   sp->sp_min,            -1, "default min password age");
-		is_int(   sp->sp_max,         99999, "default min password age");
-		is_int(   sp->sp_warn,            7, "default pw change warning");
-		is_int(   sp->sp_inact,          -1, "default inactivity deadline");
-		is_int(   sp->sp_expire,         -1, "default account expiry");
-		is_unsigned(sp->sp_flag,          0, "default flags");
-
-		spdb_free(db);
-	}
-
-
-	subtest {
-		struct grdb *db;
-		struct group gr, *ent;
-
-		isnt_null(db = grdb_init(GRFILE), "read group db");
-
-		memset(&gr, 0, sizeof(gr));
-		gr.gr_name = "new_group";
-		gr.gr_gid  = 500;
-
-		is_null(grdb_get_by_name(db, "new_group"), "group doesnt exist yet");
-		ok(grdb_add(db, &gr) == 0, "created group");
-		isnt_null(grdb_get_by_name(db, "new_group"), "group exists now");
-		ok(grdb_write(db, GRFILE_NEW) == 0, "saved group db");
-		grdb_free(db);
-
-		isnt_null(db = grdb_init(GRFILE_NEW), "read group db");
-		isnt_null(ent = grdb_get_by_name(db, "new_group"), "found group account");
-
-		is_string(ent->gr_name, "new_group", "group name");
-		is_int(   ent->gr_gid,  500,         "group GID");
-
-		sys("rm -f " GRFILE_NEW);
-		grdb_free(db);
-	}
-
-	subtest {
-		struct grdb *db;
-		struct group *gr;
-
-		isnt_null(db = grdb_init(GRFILE), "read group db");
-
-		isnt_null(gr = grdb_get_by_name(db, "sys"), "group exists");
-		ok(grdb_rm(db, gr) == 0, "removed group");
-		is_null(gr = grdb_get_by_name(db, "sys"), "group no longer exists");
-		ok(grdb_write(db, GRFILE_NEW) == 0, "wrote group db");
-		grdb_free(db);
-
-		isnt_null(db = grdb_init(GRFILE_NEW), "read group db");
-		is_null(grdb_get_by_name(db, "sys"), "removal reflected on-disk");
-
-		sys("rm -f " GRFILE_NEW);
-		grdb_free(db);
-	}
-
-	subtest {
-		struct grdb *db;
-		struct group *gr;
-		char *name;
-
-		isnt_null(db = grdb_init(GRFILE), "read group db");
-		isnt_null(gr = db->group, "found first group");
-		name = strdup(gr->gr_name);
-
-		ok(grdb_rm(db, gr) == 0, "removed first group");
-		is_null(grdb_get_by_name(db, name), "removed group does not exist in-memory");
-		ok(grdb_write(db, GRFILE_NEW) == 0, "wrote group db");
-		grdb_free(db);
-
-		isnt_null(db = grdb_init(GRFILE_NEW), "read group db");
-		is_null(grdb_get_by_name(db, name), "removal reflected on-disk");
-
-		sys("rm -f " GRFILE_NEW);
-		free(name);
-		grdb_free(db);
-	}
-
-	subtest {
-		struct grdb *db;
-		struct group *gr;
-
-		isnt_null(db = grdb_init(GRFILE), "read group db");
-		isnt_null(gr = grdb_new_entry(db, "new_group", 2002), "created new group entry");
-
-		is_string(gr->gr_name,   "new_group", "explicitly set group name");
-		is_int(   gr->gr_gid,           2002, "explicitly set group GID");
-		is_string(gr->gr_passwd,         "x", "default group password");
-
-		grdb_free(db);
+		authdb_t *db = authdb_read(TEST_DATA "/userdb", AUTHDB_ALL);
+		is_int(authdb_nextuid(db, 1000), 8192, "Next UUID == max(UID)+1");
+		authdb_close(db);
 	}
 
 	subtest {
@@ -450,98 +230,6 @@ TESTS {
 		is_null(gr->gr_mem[3], "no more members");
 
 		grdb_free(db);
-	}
-
-	subtest {
-		struct grdb *db;
-		gid_t gid = 42;
-
-		isnt_null(db = grdb_init(GRFILE), "read group db");
-
-		is_int(grdb_lookup_gid(db, NULL, &gid), -1, "lookup group with NULL group name");
-		is_int(gid, 42, "gid value-result arg is untouched");
-
-		is_int(grdb_lookup_gid(db, "notagroup", &gid), -1, "lookup GID with bad group name");
-		is_int(gid, 42, "gid value-result arg is untouched");
-
-		// see test/data/group for group definitions
-		is_int(grdb_lookup_gid(db, "service", &gid), 0, "lookup group 'service'");
-		is_int(gid, 909, "GID for group 'service'");
-
-		grdb_free(db);
-	}
-
-	subtest {
-		struct sgdb *db;
-		struct sgrp sp, *ent;
-
-		isnt_null(db = sgdb_init(SGFILE), "read gshadow db");
-
-		memset(&sp, 0, sizeof(sp));
-		sp.sg_namp   = "new_group";
-		sp.sg_passwd = "$6$pwhash";
-
-		is_null(sgdb_get_by_name(db, "new_group"), "gshadow entry does exist yet");
-		ok(sgdb_add(db, &sp) == 0, "added gshadow entry");
-		isnt_null(sgdb_get_by_name(db, "new_group"), "gshadow entry exists now");
-		ok(sgdb_write(db, SGFILE_NEW) == 0, "wrote gshadow to " SGFILE_NEW);
-		sgdb_free(db);
-
-		isnt_null(db = sgdb_init(SGFILE_NEW), "read gshadow db");
-		isnt_null(ent = sgdb_get_by_name(db, "new_group"), "found new gshadow entry");
-		is_string(ent->sg_namp,   "new_group", "gshadow entry group name");
-		is_string(ent->sg_passwd, "$6$pwhash", "gshadow entry password hash");
-
-		sys("rm -f " SGFILE_NEW);
-		sgdb_free(db);
-	}
-
-	subtest {
-		struct sgdb *db;
-		struct sgrp *sp;
-
-		isnt_null(db = sgdb_init(SGFILE), "read gshadow db");
-		isnt_null(sp = sgdb_get_by_name(db, "sys"), "gshadow entry 'sys' does not exist yet");
-		ok(sgdb_rm(db, sp) == 0, "removed account");
-		is_null(sp = sgdb_get_by_name(db, "sys"), "gshadow entry 'sys' no longer exists");
-		ok(sgdb_write(db, SGFILE_NEW) == 0, "wrote gshadow db");
-		sgdb_free(db);
-
-		isnt_null(db = sgdb_init(SGFILE_NEW), "read gshadow db");
-		is_null(sp = sgdb_get_by_name(db, "sys"), "removal of entry reflected on-disk");
-
-		sgdb_free(db);
-	}
-
-	subtest {
-		struct sgdb *db;
-		struct sgrp *sp;
-		char *name;
-
-		isnt_null(db = sgdb_init(SGFILE), "read gshadow db");
-		isnt_null(sp = db->sgrp, "found first gshadow entry");
-		name = strdup(sp->sg_namp);
-
-		ok(sgdb_rm(db, sp) == 0, "removed first account");
-		ok(sgdb_write(db, SGFILE_NEW) == 0, "wrote gshadow db");
-		sgdb_free(db);
-
-		isnt_null(db = sgdb_init(SGFILE_NEW), "read gshadow db");
-		is_null(sp = sgdb_get_by_name(db, name), "removal of entry reflected on-disk");
-
-		free(name);
-		sgdb_free(db);
-	}
-
-	subtest {
-		struct sgdb *db;
-		struct sgrp *sg;
-
-		isnt_null(db = sgdb_init(SGFILE), "read gshadow db");
-		isnt_null(sg = sgdb_new_entry(db, "new_group"), "created new entry");
-		is_string(sg->sg_namp, "new_group", "explicitly set gshadow group name");
-
-		sgdb_free(db);
 	}
 
 	subtest {
@@ -566,22 +254,17 @@ TESTS {
 	}
 
 	subtest {
-		struct pwdb *pdb;
-		struct grdb *gdb;
+		authdb_t *db = authdb_read(TEST_DATA "/userdb", AUTHDB_ALL);
 
-		isnt_null(pdb = pwdb_init(PWFILE), "read passwd db");
-		isnt_null(gdb = grdb_init(GRFILE), "read group db");
-
-		char *s = userdb_lookup(pdb, gdb, "account1");
+		char *s = authdb_creds(db, "account1");
 		is_string(s, "account1:users:members:service",
 				"Generated user and groups list");
 		free(s);
 
-		s = userdb_lookup(pdb, gdb, "account2");
+		s = authdb_creds(db, "account2");
 		is_null(s, "No records for account2");
 
-		pwdb_free(pdb);
-		grdb_free(gdb);
+		authdb_close(db);
 	}
 
 	done_testing();

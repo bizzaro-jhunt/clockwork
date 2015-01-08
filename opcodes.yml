@@ -410,6 +410,10 @@
     args:
       - [register, string]
       - [register, string]
+- env.unset:
+    help: unset an environment variable
+    args:
+      - [register, string]
 
 - exec:
     help: execute a command

@@ -1216,6 +1216,28 @@ int vm_exec(vm_t *vm)
 			vm->acc = aug_rm(vm->aux.augeas, s_str(vm, f1, oper1)) > 1 ? 0 : 1;
 			break;
 
+		case OP_ENV_GET:
+			ARG2("env.get");
+			REGISTER2("env.get");
+			s = getenv(s_str(vm, f1, oper1));
+			if (s) {
+				vm->r[oper2] = vm_heap_strdup(vm, s);
+				vm->acc = 0;
+			} else {
+				vm->acc = 1;
+			}
+			break;
+
+		case OP_ENV_SET:
+			ARG2("env.set");
+			vm->acc = setenv(s_str(vm, f1, oper1), s_str(vm, f2, oper2), 1);
+			break;
+
+		case OP_ENV_UNSET:
+			ARG1("env.unset");
+			vm->acc = unsetenv(s_str(vm, f1, oper1));
+			break;
+
 		case OP_HALT:
 			ARG0("halt");
 			return 0;

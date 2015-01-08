@@ -319,6 +319,38 @@ subtest "register operators" => sub {
 
 	pn2_ok(qq(
 	fn main
+		pragma test "on"
+		set %a 300
+
+	again:
+		push %b
+		sub %a 1
+		eq %a 0
+		jnz again
+
+		print "bye"),
+
+	"stack overflow!\n",
+	"stack should overflow at ~256");
+
+	pn2_ok(qq(
+	fn main
+		pragma test "on"
+		set %a 300
+
+	again:
+		pop %b
+		sub %a 1
+		eq %a 0
+		jnz again
+
+		print "bye"),
+
+	"stack underflow!\n",
+	"stack should underflow very soon");
+
+	pn2_ok(qq(
+	fn main
 		set %a 1
 		set %b 2
 		swap %a %b
@@ -326,6 +358,14 @@ subtest "register operators" => sub {
 
 	"a/b = 2/1",
 	"swap");
+
+	pn2_ok(qq(
+	fn main
+		pragma test "on"
+		swap %a %a),
+
+	"pendulum bytecode error: swap requires distinct registers\n",
+	"`swap %a %a` is invalid");
 };
 
 subtest "math operators" => sub {
@@ -1378,48 +1418,49 @@ EOF
 	"augeas.perror explains the augeas-level problems");
 };
 
-subtest "stack errors" => sub {
+subtest "env operators" => sub {
+	$ENV{OPERATOR} = "smooth";
 	pn2_ok(qq(
 	fn main
-		pragma test "on"
-		set %a 300
+		env.get "OPERATOR" %o
+		jz +1
+		print "FAIL\\n"
+		print "a %[o]s operator"),
 
-	again:
-		push %b
-		sub %a 1
-		eq %a 0
-		jnz again
+	"a smooth operator",
+	"env.get");
 
-		print "bye"),
+	delete $ENV{XYZZY};
+	pn2_ok(qq(
+	fn main
+		env.get "XYZZY" %o
+		jnz +1
+		print "fail"
+		print "ok"),
 
-	"stack overflow!\n",
-	"stack should overflow at ~256");
+	"ok",
+	"env.get");
 
 	pn2_ok(qq(
 	fn main
-		pragma test "on"
-		set %a 300
+		env.set "XYZZY" "fool!"
+		env.get "XYZZY" %f
+		print "a hollow voice says: %[f]s"),
 
-	again:
-		pop %b
-		sub %a 1
-		eq %a 0
-		jnz again
+	"a hollow voice says: fool!",
+	"env.set");
 
-		print "bye"),
-
-	"stack underflow!\n",
-	"stack should underflow very soon");
-};
-
-subtest "operand violations" => sub {
+	$ENV{XYZZY} = "zork";
 	pn2_ok(qq(
 	fn main
-		pragma test "on"
-		swap %a %a),
+		env.unset "XYZZY"
+		env.get "XYZZY" %o
+		jnz +1
+		print "fail"
+		print "ok"),
 
-	"pendulum bytecode error: swap requires distinct registers\n",
-	"`swap %a %a` is invalid");
+	"ok",
+	"env.unset");
 };
 
 done_testing;

@@ -1178,6 +1178,37 @@ EOF
 
 	"ok",
 	"user.delete without a user.find returns non-zero to accumulator");
+
+	pn2_ok(qq(
+	fn main
+		set %b "B"
+		group.get "groupname" %b
+		jnz +1
+		print "fail"
+		print "ok:%[b]s"),
+
+	"ok:B",
+	"group.get without a group.find returns non-zero to accumulator");
+
+	pn2_ok(qq(
+	fn main
+		group.set "groupname" "WHAT"
+		jnz +1
+		print "fail"
+		print "ok"),
+
+	"ok",
+	"group.set without a group.find returns non-zero to accumulator");
+
+	pn2_ok(qq(
+	fn main
+		group.delete
+		jnz +1
+		print "fail"
+		print "ok"),
+
+	"ok",
+	"group.delete without a group.find returns non-zero to accumulator");
 };
 
 subtest "augeas operators" => sub {

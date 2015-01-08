@@ -1190,6 +1190,26 @@ EOF
 
 	pn2_ok(qq(
 	fn main
+		pragma authdb.root "t/tmp/auth"
+		authdb.open
+
+		authdb.nextuid 1000 %a
+		user.new %a "joe"
+
+		authdb.save
+		authdb.close
+
+		authdb.open
+		user.find "joe"
+		jz +1
+		print "fail"
+		print "ok"),
+
+		"ok",
+	"user.new");
+
+	pn2_ok(qq(
+	fn main
 		set %b "B"
 		user.get "username" %b
 		jnz +1

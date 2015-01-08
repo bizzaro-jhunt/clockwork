@@ -395,13 +395,13 @@ int vm_prime(vm_t *vm, byte_t *code, size_t len)
 	assert(len > 1);
 
 	/* default pragmas */
-	hash_set(&vm->pragma, "authdb.root", strdup("/etc"));
-	hash_set(&vm->pragma, "augeas.root", strdup("/"));
-	hash_set(&vm->pragma, "augeas.libs", strdup("/lib/clockwork/augeas/lenses"));
+	hash_set(&vm->pragma, "authdb.root", strdup(AUTHDB_ROOT));
+	hash_set(&vm->pragma, "augeas.root", strdup(AUGEAS_ROOT));
+	hash_set(&vm->pragma, "augeas.libs", strdup(AUGEAS_LIBS));
 
 	/* default properties */
-	hash_set(&vm->props, "runtime", "20150108");
-	hash_set(&vm->props, "version", "2.0");
+	hash_set(&vm->props, "version", CLOCKWORK_VERSION);
+	hash_set(&vm->props, "runtime", CLOCKWORK_RUNTIME);
 
 	list_init(&vm->acl);
 
@@ -676,6 +676,12 @@ int vm_exec(vm_t *vm)
 			ARG1("perror");
 			vm_fprintf(vm, vm->stderr, s_str(vm, f1, oper1));
 			fprintf(vm->stderr, ": (%i) %s\n", errno, strerror(errno));
+			break;
+
+		case OP_SYSLOG:
+			ARG2("syslog");
+			s = _sprintf(vm, s_str(vm, f2, oper2));
+			logger(log_level_number(s_str(vm, f1, oper1)), s); free(s);
 			break;
 
 		case OP_FLAG:

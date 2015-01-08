@@ -23,13 +23,72 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <getopt.h>
 
 int main (int argc, char **argv)
 {
-	if (argc < 2) {
-		fprintf(stderr, "USAGE: %s asm.b\n", argv[0]);
-		return 1;
+	int trace = 0, debug = 0;
+	int level = LOG_WARNING;
+	const char *ident = "pn", *facility = "stdout";
+
+	const char *short_opts = "h?vqDVTc";
+	struct option long_opts[] = {
+		{ "help",     no_argument,       NULL, 'h' },
+		{ "verbose",  no_argument,       NULL, 'v' },
+		{ "quiet",    no_argument,       NULL, 'q' },
+		{ "debug",    no_argument,       NULL, 'D' },
+		{ "version",  no_argument,       NULL, 'V' },
+		{ "trace",    no_argument,       NULL, 'T' },
+		{ "syslog",   required_argument, NULL,  0  },
+
+		{ 0, 0, 0, 0 },
+	};
+
+	int opt, idx = 0;
+	while ( (opt = getopt_long(argc, argv, short_opts, long_opts, &idx)) != -1) {
+		switch (opt) {
+		case 'h':
+		case '?':
+			printf("USAGE: pn [OPTIONS] bin.b\n");
+			exit(0);
+
+		case 'v':
+			level++;
+			break;
+
+		case 'q':
+			level = 0;
+			debug = 0;
+			break;
+
+		case 'D':
+			debug = 1;
+			break;
+
+		case 'V':
+			printf("pn (Clockwork) v%s runtime %s\n"
+			       "Copyright (C) 2015 James Hunt\n",
+			       CLOCKWORK_VERSION, CLOCKWORK_RUNTIME);
+			exit(0);
+
+		case 'T':
+			trace = 1;
+			break;
+
+		case 0: /* --syslog */
+			facility = argv[optind];
+			break;
+		}
 	}
+
+	if (optind != argc - 1) {
+		printf("USAGE: pn [OPTIONS] bin.b\n");
+		exit(0);
+	}
+
+	if (debug) level = LOG_DEBUG;
+	log_open(ident, facility);
+	log_level(level, NULL);
 
 	int rc, fd = open(argv[1], O_RDONLY);
 	if (fd < 0) {

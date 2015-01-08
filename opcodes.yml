@@ -125,15 +125,20 @@
 - print:
     help: print a message to standard output
     args:
-      - [string]
+      - [register, string]
 - error:
     help: print an error
     args:
-      - [string]
+      - [register, string]
 - perror:
     help: print an error (with system error message)
     args:
-      - [string]
+      - [register, string]
+- syslog:
+    help: log a message to syslog
+    args:
+      - [register, identifier]
+      - [register, string]
 
 - flag:
     help: set a flag in the runtime

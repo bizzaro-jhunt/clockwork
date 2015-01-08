@@ -20,51 +20,26 @@
 #ifndef CLOCKWORK_H
 #define CLOCKWORK_H
 
-#include "config.h"
-#ifndef VERSION
-#define VERSION PACKAGE_VERSION
-#endif
-
 #define _GNU_SOURCE
 
-/* in development mode, don't touch the local system */
-#ifdef DEVEL
-#  define PREFIX "dev"
-#else
-#  define PREFIX
+#include "config.h"
+
+#define CLOCKWORK_VERSION  PACKAGE_VERSION
+#define CLOCKWORK_RUNTIME  "2015018"
+#define CLOCKWORK_PROTOCOL 1
+
+#ifndef AUTHDB_ROOT
+#  define AUTHDB_ROOT "/etc"
 #endif
 
-#ifndef SYS_AUTHDB_ROOT
-#  define SYS_AUTHDB_ROOT PREFIX "/etc"
-#endif
-
-/* cleartext system password database **/
-#ifndef SYS_PASSWD
-#  define SYS_PASSWD PREFIX "/etc/passwd"
-#endif
-
-/* encrypted system password database **/
-#ifndef SYS_SHADOW
-#  define SYS_SHADOW PREFIX "/etc/shadow"
-#endif
-
-/* cleartext system group database **/
-#ifndef SYS_GROUP
-#  define SYS_GROUP PREFIX "/etc/group"
-#endif
-
-/* encrypted system group database **/
-#ifndef SYS_GSHADOW
-#  define SYS_GSHADOW PREFIX "/etc/gshadow"
-#endif
-
-#ifdef DEVEL
-#  define AUGEAS_ROOT "test/augeas"
-#else
+#ifndef AUGEAS_ROOT
 #  define AUGEAS_ROOT "/"
 #endif
+#ifndef AUGEAS_LIBS
+#  define AUGEAS_LIBS "/lib/clockwork/augeas/lenses"
+#endif
 
-#define CACHED_FACTS_DIR            CW_CACHE_DIR "/facts"
+#define CACHED_FACTS_DIR CW_CACHE_DIR "/facts"
 
 #ifndef CW_PAM_SERVICE
 #  define CW_PAM_SERVICE "clockwork"

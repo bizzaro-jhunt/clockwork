@@ -36,6 +36,8 @@
 #include "base.h"
 #include "mesh.h"
 
+#define PENDULUM_VERSION 1
+
 #define  PN_OP_NOOP     0x0000
 #define  PN_OP_OK       0x0001
 #define  PN_OP_NOTOK    0x0002

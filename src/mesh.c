@@ -154,7 +154,7 @@ static void s_mesh_slot_free(void *p)
 static char* s_user_lookup(const char *username)
 {
 	char *s = NULL;
-	authdb_t *db = authdb_read(SYS_AUTHDB_ROOT, AUTHDB_ALL);
+	authdb_t *db = authdb_read(AUTHDB_ROOT, AUTHDB_ALL);
 
 	if (db) s = authdb_creds(db, username);
 	if (!s) s = strdup("");

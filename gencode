@@ -105,7 +105,7 @@ $n = 0;
 for my $op (@$lst) {
 	my ($key, $o) = %$op;
 	next if $o->{alias};
-	printf qq(\t%-@{[$len+3]}s /* %-${len}s  %2i  %#04x */\n), qq("$key",), $o->{constant}, $n, $n;
+	printf qq(\t%-@{[$len+3]}s /* %-${len}s  %3i  %#04x */\n), qq("$key",), $o->{constant}, $n, $n;
 	$n++;
 }
 print "\tNULL,\n";

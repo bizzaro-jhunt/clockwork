@@ -31,9 +31,6 @@
 
 #define BLOCK_SIZE 8192
 
-#define PROTOCOL_VERSION         1
-#define PROTOCOL_VERSION_STRING "1"
-
 #define DEFAULT_CONFIG_FILE "/etc/clockwork/clockd.conf"
 
 typedef enum {
@@ -222,7 +219,8 @@ static int s_state_machine(client_t *fsm, pdu_t *pdu, pdu_t **reply)
 		return 1;
 
 	case EVENT_PING:
-		*reply = pdu_reply(pdu, "PONG", 1, PROTOCOL_VERSION_STRING);
+		*reply = pdu_reply(pdu, "PONG", 0);
+		pdu_extendf(*reply, "%lu", CLOCKWORK_PROTOCOL);
 		return 0;
 
 	case EVENT_HELLO:
@@ -545,8 +543,8 @@ static inline server_t *s_server_new(int argc, char **argv)
 		case 'h':
 		case '?':
 			logger(LOG_DEBUG, "handling -h/-?/--help");
-			printf("clockd, part of clockwork v%s runtime %i protocol %i\n",
-				PACKAGE_VERSION, PENDULUM_VERSION, PROTOCOL_VERSION);
+			printf("clockd, part of clockwork v%s runtime %s protocol %i\n",
+				CLOCKWORK_VERSION, CLOCKWORK_RUNTIME, CLOCKWORK_PROTOCOL);
 			printf("Usage: clockd [-?hvqVFSt] [-c filename]\n\n");
 			printf("Options:\n");
 			printf("  -?, -h               show this help screen\n");
@@ -572,9 +570,9 @@ static inline server_t *s_server_new(int argc, char **argv)
 
 		case 'V':
 			logger(LOG_DEBUG, "handling -V/--version");
-			printf("clockd (Clockwork) %s runtime v%04x\n"
+			printf("clockd (Clockwork) v%s runtime %s\n"
 			       "Copyright (C) 2014 James Hunt\n",
-			       PACKAGE_VERSION, PENDULUM_VERSION);
+			       CLOCKWORK_VERSION, CLOCKWORK_RUNTIME);
 			exit(0);
 			break;
 

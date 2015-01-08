@@ -39,9 +39,6 @@
 #define MODE_CODE 2
 #define MODE_ONCE 3
 
-#define PROTOCOL_VERSION         1
-#define PROTOCOL_VERSION_STRING "1"
-
 #define DEFAULT_CONFIG_FILE "/etc/clockwork/cogd.conf"
 #define MINIMUM_INTERVAL 30
 #define MINIMUM_TIMEOUT  5
@@ -117,7 +114,8 @@ static void *s_connect(client_t *c)
 	rc = zmq_setsockopt(client, ZMQ_CURVE_PUBLICKEY, cert_public(c->cert), 32);
 	assert(rc == 0);
 
-	pdu_t *ping = pdu_make("PING", 1, PROTOCOL_VERSION_STRING);
+	pdu_t *ping = pdu_make("PING", 0);
+	pdu_extendf(ping, "%lu", CLOCKWORK_PROTOCOL);
 	pdu_t *pong;
 
 	char endpoint[256] = "tcp://";
@@ -147,9 +145,9 @@ static void *s_connect(client_t *c)
 				int vers = atoi(vframe);
 				free(vframe);
 
-				if (vers != PROTOCOL_VERSION) {
+				if (vers != CLOCKWORK_PROTOCOL) {
 					logger(LOG_ERR, "Upstream server speaks protocol %i (we want %i)",
-					vers, PROTOCOL_VERSION);
+					vers, CLOCKWORK_PROTOCOL);
 				} else break;
 			}
 
@@ -466,8 +464,8 @@ static inline client_t* s_client_new(int argc, char **argv)
 		case '?':
 			logger(LOG_DEBUG, "handling -h/-?/--help");
 			logger(LOG_DEBUG, "handling -h/-?/--help");
-			printf("cogd, part of clockwork v%s runtime %i protocol %i\n",
-				PACKAGE_VERSION, PENDULUM_VERSION, PROTOCOL_VERSION);
+			printf("cogd, part of clockwork v%s runtime %s protocol %i\n",
+				CLOCKWORK_VERSION, CLOCKWORK_RUNTIME, CLOCKWORK_PROTOCOL);
 			printf("Usage: cogd [-?hvVqFdT] [-c filename]\n\n");
 			printf("Options:\n");
 			printf("  -?, -h               show this help screen\n");
@@ -496,9 +494,9 @@ static inline client_t* s_client_new(int argc, char **argv)
 
 		case 'V':
 			logger(LOG_DEBUG, "handling -V/--version");
-			printf("cogd (Clockwork) %s runtime v%04x\n"
+			printf("cogd (Clockwork) %s runtime %s\n"
 			       "Copyright (C) 2014 James Hunt\n",
-			       PACKAGE_VERSION, PENDULUM_VERSION);
+			       CLOCKWORK_VERSION, CLOCKWORK_RUNTIME);
 			exit(0);
 			break;
 

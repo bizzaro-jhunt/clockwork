@@ -20,8 +20,6 @@
 #ifndef PENDULUM_H
 #define PENDULUM_H
 
-#define PENDULUM_VERSION  1
-
 #include <stdint.h>
 #include "base.h"
 

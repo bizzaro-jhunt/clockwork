@@ -85,8 +85,8 @@ static inline mesh_server_t *s_server_new(int argc, char **argv)
 		case 'h':
 		case '?':
 			logger(LOG_DEBUG, "handling -h/-?/--help");
-			printf("meshd, part of clockwork v%s runtime %i\n",
-				PACKAGE_VERSION, PENDULUM_VERSION);
+			printf("meshd, part of clockwork v%s runtime %s\n",
+				CLOCKWORK_VERSION, CLOCKWORK_RUNTIME);
 			printf("Usage: meshd [-?hvqVFSt] [-c filename]\n\n");
 			printf("Options:\n");
 			printf("  -?, -h               show this help screen\n");
@@ -112,9 +112,9 @@ static inline mesh_server_t *s_server_new(int argc, char **argv)
 
 		case 'V':
 			logger(LOG_DEBUG, "handling -V/--version");
-			printf("meshd (Clockwork) %s runtime v%04x\n"
+			printf("meshd (Clockwork) v%s runtime %s\n"
 			       "Copyright (C) 2014 James Hunt\n",
-			       PACKAGE_VERSION, PENDULUM_VERSION);
+			       CLOCKWORK_VERSION, CLOCKWORK_RUNTIME);
 			exit(0);
 			break;
 

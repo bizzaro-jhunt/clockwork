@@ -70,9 +70,9 @@ int main(int argc, char **argv)
 			break;
 
 		case 'V':
-			printf("pn (Clockwork) %s runtime v%04x\n"
-			       "Copyright (C) 2014 James Hunt\n",
-			       PACKAGE_VERSION, PENDULUM_VERSION);
+			printf("pn - Clockwork v%s runtime %s\n"
+			       "Copyright (C) 2015 James Hunt\n",
+			       CLOCKWORK_VERSION, CLOCKWORK_RUNTIME);
 			exit(0);
 
 		case 'T':

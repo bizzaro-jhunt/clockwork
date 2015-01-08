@@ -65,6 +65,8 @@ typedef struct {
 	stack_t  istack; /* instruction stack */
 
 	hash_t   pragma; /* compiler/runtime pragma settings */
+	FILE    *stderr; /* where to direct error messages */
+	byte_t   abort;  /* signal to the main vm thread to abort */
 
 	/* auxiliary */
 	struct {

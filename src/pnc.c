@@ -135,12 +135,10 @@ getline:
 } while (0)
 
 	if (*b == '%') { /* register */
-		while (!isspace(*b)) b++;
+		while (*b && !isspace(*b)) b++;
 		if (!*b || isspace(*b)) {
 			*b = '\0';
-			char reg = 0;
-			if (b - a == 2)
-				reg = *(a + 1);
+			char reg = b - a - 2 ? '0' : *(a+1);
 			if (reg < 'a' || reg >= 'a'+NREGS) {
 				logger(LOG_ERR, "%s:%i: unrecognized register address %s (%i)", p->file, p->line, a, reg);
 				return 0;

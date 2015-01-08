@@ -39,24 +39,26 @@ static int s_empty(stack_t *st)
 	return st->top == 0;
 }
 
-static int s_push(stack_t *st, dword_t value)
+static int s_push(vm_t *vm, stack_t *st, dword_t value)
 {
 	assert(st);
 	if (st->top == 254) {
-		fprintf(stderr, "stack overflow!\n");
-		abort();
+		fprintf(vm->stderr, "stack overflow!\n");
+		vm->abort = 1;
+		return 0;
 	}
 
 	st->val[st->top++] = value;
 	return 0;
 }
 
-static dword_t s_pop(stack_t *st)
+static dword_t s_pop(vm_t *vm, stack_t *st)
 {
 	assert(st);
 	if (s_empty(st)) {
-		fprintf(stderr, "stack underflow!\n");
-		abort();
+		fprintf(vm->stderr, "stack underflow!\n");
+		vm->abort = 1;
+		return 0;
 	}
 
 	return st->val[--st->top];
@@ -112,14 +114,14 @@ static void s_save_state(vm_t *vm)
 {
 	int i;
 	for (i = 0; i < NREGS; i++)
-		s_push(&vm->dstack, vm->r[i]);
+		s_push(vm, &vm->dstack, vm->r[i]);
 }
 
 static void s_restore_state(vm_t *vm)
 {
 	int i;
 	for (i = NREGS - 1; i >= 0; i--)
-		vm->r[i] = s_pop(&vm->dstack);
+		vm->r[i] = s_pop(vm, &vm->dstack);
 }
 
 static char HEX[] = "0123456789abcdef";
@@ -352,10 +354,7 @@ static void s_aug_perror(FILE *io, augeas *aug)
 {
 	char **err = NULL;
 	const char *value;
-	int rc = aug_match(aug, "/augeas//error", &err);
-	if (!rc) return;
-
-	int i;
+	int i, rc = aug_match(aug, "/augeas//error", &err);
 	fprintf(io, ": found %u problem%s:\n", rc, rc == 1 ? "" : "s");
 	for (i = 0; i < rc; i++) {
 		aug_get(aug, err[i], &value);
@@ -398,6 +397,7 @@ int vm_prime(vm_t *vm, byte_t *code, size_t len)
 	hash_set(&vm->pragma, "authdb.root", strdup("/etc"));
 	hash_set(&vm->pragma, "augeas.root", strdup("/"));
 	hash_set(&vm->pragma, "augeas.libs", strdup("/lib/clockwork/augeas/lenses"));
+	vm->stderr = stderr;
 
 	vm->code = code;
 	vm->codesize = len;
@@ -412,17 +412,17 @@ int vm_args(vm_t *vm, int argc, char **argv)
 		size_t n = strlen(argv[i]) + 1;
 		heap_t *h = vm_heap_alloc(vm, n);
 		memcpy(h->data, argv[i], n);
-		s_push(&vm->dstack, h->addr);
+		s_push(vm, &vm->dstack, h->addr);
 	}
-	s_push(&vm->dstack, argc - 1);
+	s_push(vm, &vm->dstack, argc - 1);
 	return 0;
 }
 
 #define B_ERR(...) do { \
-	fprintf(stderr, "regm bytecode error: "); \
-	fprintf(stderr, __VA_ARGS__); \
-	fprintf(stderr, "\n"); \
-	return -1; \
+	fprintf(vm->stderr, "pendulum bytecode error: "); \
+	fprintf(vm->stderr, __VA_ARGS__); \
+	fprintf(vm->stderr, "\n"); \
+	return 1; \
 } while (0)
 
 #define ARG0(s) do { if ( f1 ||  f2) B_ERR(s " takes no operands");            } while (0)
@@ -441,7 +441,7 @@ int vm_exec(vm_t *vm)
 	const char *v;
 	vm->pc = 0;
 
-	for (;;) {
+	while (!vm->abort) {
 		oper1 = oper2 = 0;
 		op = vm->code[vm->pc++];
 		f1 = HI_NYBLE(vm->code[vm->pc]);
@@ -475,14 +475,14 @@ int vm_exec(vm_t *vm)
 			ARG1("push");
 			REGISTER1("push");
 
-			s_push(&vm->dstack, vm->r[oper1]);
+			s_push(vm, &vm->dstack, vm->r[oper1]);
 			break;
 
 		case OP_POP:
 			ARG1("pop");
 			REGISTER1("pop");
 
-			vm->r[oper1] = s_pop(&vm->dstack);
+			vm->r[oper1] = s_pop(vm, &vm->dstack);
 			break;
 
 		case OP_SET:
@@ -498,7 +498,7 @@ int vm_exec(vm_t *vm)
 			REGISTER2("swap");
 
 			if (oper1 == oper2)
-				B_ERR("swap requires distinct registers for operands");
+				B_ERR("swap requires distinct registers");
 
 			vm->r[oper1] ^= vm->r[oper2];
 			vm->r[oper2] ^= vm->r[oper1];
@@ -553,7 +553,7 @@ int vm_exec(vm_t *vm)
 				B_ERR("call requires an address for operand 1");
 
 			s_save_state(vm);
-			s_push(&vm->istack, vm->pc);
+			s_push(vm, &vm->istack, vm->pc);
 			vm->pc = oper1;
 			break;
 
@@ -566,7 +566,7 @@ int vm_exec(vm_t *vm)
 			}
 			if (s_empty(&vm->istack))
 				return 0; /* last RET == HALT */
-			vm->pc = s_pop(&vm->istack);
+			vm->pc = s_pop(vm, &vm->istack);
 			s_restore_state(vm);
 			break;
 
@@ -629,14 +629,14 @@ int vm_exec(vm_t *vm)
 
 		case OP_ERROR:
 			ARG1("error");
-			vm_fprintf(vm, stderr, s_str(vm, f1, oper1));
-			fprintf(stderr, "\n");
+			vm_fprintf(vm, vm->stderr, s_str(vm, f1, oper1));
+			fprintf(vm->stderr, "\n");
 			break;
 
 		case OP_PERROR:
 			ARG1("perror");
-			vm_fprintf(vm, stderr, s_str(vm, f1, oper1));
-			fprintf(stderr, ": (%i) %s\n", errno, strerror(errno));
+			vm_fprintf(vm, vm->stderr, s_str(vm, f1, oper1));
+			fprintf(vm->stderr, ": (%i) %s\n", errno, strerror(errno));
 			break;
 
 		case OP_BAIL:
@@ -1174,8 +1174,8 @@ int vm_exec(vm_t *vm)
 
 		case OP_AUGEAS_PERROR:
 			ARG1("augeas.perror");
-			vm_fprintf(vm, stderr, s_str(vm, f1, oper1));
-			s_aug_perror(stderr, vm->aux.augeas);
+			vm_fprintf(vm, vm->stderr, s_str(vm, f1, oper1));
+			s_aug_perror(vm->stderr, vm->aux.augeas);
 			break;
 
 		case OP_AUGEAS_WRITE:
@@ -1227,7 +1227,15 @@ int vm_exec(vm_t *vm)
 
 		case OP_PRAGMA:
 			ARG2("pragma");
-			free(hash_set(&vm->pragma, s_str(vm, f1, oper1), strdup(s_str(vm, f2, oper2))));
+			v = s_str(vm, f1, oper1);
+
+			if (strcmp(v, "test") == 0) {
+				vm->stderr = strcmp(s_str(vm, f2, oper2), "on") == 0 ? stdout : stderr;
+
+			} else {
+				/* set the value in the pragma hash */
+				free(hash_set(&vm->pragma, v, strdup(s_str(vm, f2, oper2))));
+			}
 			break;
 
 		default:
@@ -1235,6 +1243,8 @@ int vm_exec(vm_t *vm)
 			return -1;
 		}
 	}
+
+	return 1;
 }
 
 int vm_done(vm_t *vm)

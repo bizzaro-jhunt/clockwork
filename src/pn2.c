@@ -61,8 +61,7 @@ int main (int argc, char **argv)
 	rc = vm_args(&vm, argc, argv);
 	assert(rc == 0);
 
-	rc = vm_exec(&vm);
-	assert(rc == 0);
+	vm_exec(&vm);
 
 	rc = vm_done(&vm);
 	assert(rc == 0);

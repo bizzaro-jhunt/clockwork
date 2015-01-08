@@ -4,6 +4,22 @@ use t::common;
 use POSIX qw/mkfifo/;
 use IO::Socket::UNIX;
 
+subtest "noop" => sub {
+	pn2_ok(qq(
+	fn main
+		noop noop noop noop noop noop noop noop noop
+		noop noop noop noop noop noop noop noop noop
+		noop noop noop noop noop noop noop noop noop
+		noop noop noop noop noop noop noop noop noop
+		noop noop noop noop noop noop noop noop noop
+		noop noop noop noop noop noop noop noop noop
+		noop noop noop noop noop noop noop noop noop
+		print "ok"),
+
+	"ok",
+	"noop");
+};
+
 subtest "halt" => sub {
 	pn2_ok(qq(
 	fn main
@@ -257,6 +273,25 @@ subtest "print operators" => sub {
 	"width-modifiers in print format specifier");
 };
 
+subtest "error operators" => sub {
+	pn2_ok(qq(
+	fn main
+		pragma test "on"
+		error "danger!"),
+
+	"danger!\n", # you get the newline for free!
+	"error prints to stderr (with pragma test)");
+
+	pn2_ok(qq(
+	fn main
+		pragma test "on"
+		fs.stat "/path/to/nowhere"
+		perror "system error"),
+
+	"system error: (2) No such file or directory\n",
+	"perror invokes perror/strerror for us");
+};
+
 subtest "string operator" => sub {
 	pn2_ok(qq(
 	fn main
@@ -400,6 +435,31 @@ subtest "dump operator" => sub {
     ---------------------------------------------------------------------
 
 ),
+	"dump a fresh VM", %opts);
+
+	pn2_ok(qq(
+	fn main
+		pop %b
+		pop %a
+		dump),
+
+	qq(
+    ---------------------------------------------------------------------
+    %a [ 80000000 ]   %b [ 00000001 ]   %c [ 00000000 ]   %d [ 00000000 ]
+    %e [ 00000000 ]   %f [ 00000000 ]   %g [ 00000000 ]   %h [ 00000000 ]
+    %i [ 00000000 ]   %j [ 00000000 ]   %k [ 00000000 ]   %l [ 00000000 ]
+    %m [ 00000000 ]   %n [ 00000000 ]   %o [ 00000000 ]   %p [ 00000000 ]
+
+    acc: 00000000
+     pc: 00000014
+
+    data: <s_empty>
+    inst: <s_empty>
+    heap:
+          <program name> 0
+    ---------------------------------------------------------------------
+
+),
 	"dump a clean VM", %opts);
 
 	pn2_ok(qq(
@@ -441,6 +501,69 @@ subtest "dump operator" => sub {
           | 00000000 | 16
           | 00000024 | 17
     inst: | 00000020 | 0
+    heap:
+          <program name> 0
+    ---------------------------------------------------------------------
+
+),
+	"dump a not-so-clean VM", %opts);
+
+	pn2_ok(qq(
+	fn main
+		call func1
+
+	fn func1
+		call func2
+
+	fn func2
+		dump),
+
+	qq(
+    ---------------------------------------------------------------------
+    %a [ 00000000 ]   %b [ 00000000 ]   %c [ 00000000 ]   %d [ 00000000 ]
+    %e [ 00000000 ]   %f [ 00000000 ]   %g [ 00000000 ]   %h [ 00000000 ]
+    %i [ 00000000 ]   %j [ 00000000 ]   %k [ 00000000 ]   %l [ 00000000 ]
+    %m [ 00000000 ]   %n [ 00000000 ]   %o [ 00000000 ]   %p [ 00000000 ]
+
+    acc: 00000000
+     pc: 00000018
+
+    data: | 80000000 | 0
+          | 00000001 | 1
+          | 00000000 | 2
+          | 00000000 | 3
+          | 00000000 | 4
+          | 00000000 | 5
+          | 00000000 | 6
+          | 00000000 | 7
+          | 00000000 | 8
+          | 00000000 | 9
+          | 00000000 | 10
+          | 00000000 | 11
+          | 00000000 | 12
+          | 00000000 | 13
+          | 00000000 | 14
+          | 00000000 | 15
+          | 00000000 | 16
+          | 00000000 | 17
+          | 00000000 | 18
+          | 00000000 | 19
+          | 00000000 | 20
+          | 00000000 | 21
+          | 00000000 | 22
+          | 00000000 | 23
+          | 00000000 | 24
+          | 00000000 | 25
+          | 00000000 | 26
+          | 00000000 | 27
+          | 00000000 | 28
+          | 00000000 | 29
+          | 00000000 | 30
+          | 00000000 | 31
+          | 00000000 | 32
+          | 00000000 | 33
+    inst: | 0000000c | 0
+          | 00000014 | 1
     heap:
           <program name> 0
     ---------------------------------------------------------------------
@@ -999,7 +1122,7 @@ EOF
 		print "ok"),
 
 	"ok",
-	"user.remove");
+	"user.delete");
 
 	pn2_ok(qq(
 	fn main
@@ -1023,7 +1146,38 @@ EOF
 		print "ok"),
 
 	"ok",
-	"group.remove");
+	"group.delete");
+
+	pn2_ok(qq(
+	fn main
+		set %b "B"
+		user.get "username" %b
+		jnz +1
+		print "fail"
+		print "ok:%[b]s"),
+
+	"ok:B",
+	"user.get without a user.find returns non-zero to accumulator");
+
+	pn2_ok(qq(
+	fn main
+		user.set "username" "WHAT"
+		jnz +1
+		print "fail"
+		print "ok"),
+
+	"ok",
+	"user.set without a user.find returns non-zero to accumulator");
+
+	pn2_ok(qq(
+	fn main
+		user.delete
+		jnz +1
+		print "fail"
+		print "ok"),
+
+	"ok",
+	"user.delete without a user.find returns non-zero to accumulator");
 };
 
 subtest "augeas operators" => sub {
@@ -1149,6 +1303,92 @@ ff02::2 ip6-allrouters
 
 10.8.7.9	new.host.example
 EOF
+
+	pn2_ok(qq(
+	fn main
+		pragma augeas.root "t/tmp/root"
+		pragma augeas.libs "t/tmp/augeas/lenses"
+		augeas.init
+
+		set %b "B"
+		augeas.get "/etc/hosts/80/ipaddr" %b
+		jnz +1
+		print "fail"
+		print "ok:%[b]s"),
+
+	"ok:B",
+	"augeas.get returns non-zero to accumulator on failure");
+
+	pn2_ok(qq(
+	fn main
+		pragma augeas.root "t/tmp/root"
+		pragma augeas.libs "t/tmp/augeas/lenses"
+		augeas.init
+
+		set %b "B"
+		augeas.find "/etc/hosts/80" %b
+		jnz +1
+		print "fail"
+		print "ok:%[b]s"),
+
+	"ok:B",
+	"augeas.find returns non-zero to accumulator on failure");
+
+	pn2_ok(qq(
+	fn main
+		pragma test        "on"
+		pragma augeas.root "t/tmp/root"
+		pragma augeas.libs "t/tmp/augeas/nowhere"
+		augeas.init
+		augeas.perror "init"),
+
+	"init: found 1 problem:\n".
+	"  /augeas/load/Hosts/error: Can not find lens Hosts.lns\n",
+	"augeas.perror explains the augeas-level problems");
+};
+
+subtest "stack errors" => sub {
+	pn2_ok(qq(
+	fn main
+		pragma test "on"
+		set %a 300
+
+	again:
+		push %b
+		sub %a 1
+		eq %a 0
+		jnz again
+
+		print "bye"),
+
+	"stack overflow!\n",
+	"stack should overflow at ~256");
+
+	pn2_ok(qq(
+	fn main
+		pragma test "on"
+		set %a 300
+
+	again:
+		pop %b
+		sub %a 1
+		eq %a 0
+		jnz again
+
+		print "bye"),
+
+	"stack underflow!\n",
+	"stack should underflow very soon");
+};
+
+subtest "operand violations" => sub {
+	pn2_ok(qq(
+	fn main
+		pragma test "on"
+		swap %a %a),
+
+	"pendulum bytecode error: swap requires distinct registers\n",
+	"`swap %a %a` is invalid");
 };
 
 done_testing;

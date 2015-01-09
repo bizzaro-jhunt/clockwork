@@ -12,7 +12,7 @@ our @EXPORT_OK = qw/
 	cw_shell_ok
 	resources_ok
 	dependencies_ok
-	pn2_ok
+	pendulum_ok
 	bdfa_ok
 	command_ok
 
@@ -271,7 +271,7 @@ sub dependencies_ok
 	_cw_shell_ok("$commands; show order", @rest);
 }
 
-sub pn2_compile_ok
+sub pendulum_compile_ok
 {
 	my ($asm, $target, $message, %opts) = @_;
 	$message ||= "compile";
@@ -331,14 +331,14 @@ sub pn2_compile_ok
 	return $rc == 0;
 }
 
-sub pn2_ok
+sub pendulum_ok
 {
 	my ($asm, $expect, $message, %opts) = @_;
 	$message ||= "run ok";
 	$opts{timeout} ||= 5;
 
 	my (undef, $target) = tempfile;
-	pn2_compile_ok($asm, $target, "compile asm")
+	pendulum_compile_ok($asm, $target, "compile asm")
 		or return 0;
 
 	my $stdout = tempfile;

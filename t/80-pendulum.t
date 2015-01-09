@@ -6,7 +6,7 @@ use IO::Socket::UNIX;
 require "t/vars.pl";
 
 subtest "noop" => sub {
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		noop noop noop noop noop noop noop noop noop
 		noop noop noop noop noop noop noop noop noop
@@ -22,7 +22,7 @@ subtest "noop" => sub {
 };
 
 subtest "halt" => sub {
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		print "ok"
 		halt
@@ -33,7 +33,7 @@ subtest "halt" => sub {
 };
 
 subtest "comparison operators" => sub {
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		eq 0 0
 		jz +1
@@ -43,7 +43,7 @@ subtest "comparison operators" => sub {
 	"ok",
 	"eq 0 0");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		eq 0 1
 		jnz +1
@@ -53,7 +53,7 @@ subtest "comparison operators" => sub {
 	"ok",
 	"eq 0 1");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		eq 1 0
 		jnz +1
@@ -63,7 +63,7 @@ subtest "comparison operators" => sub {
 	"ok",
 	"eq 1 0");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		set %a 42
 		set %b 42
@@ -75,7 +75,7 @@ subtest "comparison operators" => sub {
 	"ok",
 	"eq %a %b");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		set %a 42
 		eq %a 42
@@ -87,7 +87,7 @@ subtest "comparison operators" => sub {
 	"a == 42",
 	"eq %a 42");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		set %a 42
 		eq 42 %a
@@ -99,7 +99,7 @@ subtest "comparison operators" => sub {
 	"42 == a",
 	"eq 42 %a");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		streq "foo" "foo"
 		jnz +2
@@ -110,7 +110,7 @@ subtest "comparison operators" => sub {
 	"foo == foo",
 	'streq "foo" "foo"');
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		set %a "foo"
 		set %b "foo"
@@ -123,7 +123,7 @@ subtest "comparison operators" => sub {
 	"a == b",
 	'streq %a %b');
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		set %a "foo"
 		streq %a "foo"
@@ -135,7 +135,7 @@ subtest "comparison operators" => sub {
 	"a == foo",
 	'streq %a "foo"');
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		set %b "foo"
 		streq "foo" %b
@@ -147,7 +147,7 @@ subtest "comparison operators" => sub {
 	"foo == b",
 	'streq "foo" %b');
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		streq "foo" "FOO"
 		jnz +2
@@ -160,7 +160,7 @@ subtest "comparison operators" => sub {
 };
 
 subtest "jump operators" => sub {
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		jmp +1
 		print "fail"
@@ -169,7 +169,7 @@ subtest "jump operators" => sub {
 	"ok",
 	"unconditional jump with an offset");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		jmp over
 		print "fail"
@@ -179,7 +179,7 @@ subtest "jump operators" => sub {
 	"ok",
 	"unconditional jump with a label");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		eq 0 0
 		jz +1
@@ -189,7 +189,7 @@ subtest "jump operators" => sub {
 	"ok",
 	"jz (jump-if-zero)");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		eq 0 1
 		jnz +1
@@ -199,7 +199,7 @@ subtest "jump operators" => sub {
 	"ok",
 	"jnz (jump-if-not-zero)");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		gt 42 0
 		jz +1
@@ -209,7 +209,7 @@ subtest "jump operators" => sub {
 	"ok",
 	"gt 42 0");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		gte 42 0
 		jz +1
@@ -219,7 +219,7 @@ subtest "jump operators" => sub {
 	"ok",
 	"gte 42 0");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		lt 0 42
 		jz +1
@@ -229,7 +229,7 @@ subtest "jump operators" => sub {
 	"ok",
 	"lt 0 42");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		lte 0 42
 		jz +1
@@ -241,14 +241,14 @@ subtest "jump operators" => sub {
 };
 
 subtest "print operators" => sub {
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		print "hello, world"),
 
 	"hello, world",
 	"simple print statement, no format specifiers");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		set %a 42
 		set %b "bugs"
@@ -258,14 +258,14 @@ subtest "print operators" => sub {
 	"found 42 bugs",
 	"print statement with basic format specifiers");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		print "110%%!"),
 
 	"110%!",
 	"literal '%' escape");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		set %c "str"
 		print "[%[c]8s]"),
@@ -275,7 +275,7 @@ subtest "print operators" => sub {
 };
 
 subtest "error operators" => sub {
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		pragma test "on"
 		error "danger!"),
@@ -283,7 +283,7 @@ subtest "error operators" => sub {
 	"danger!\n", # you get the newline for free!
 	"error prints to stderr (with pragma test)");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		pragma test "on"
 		fs.stat "/path/to/nowhere"
@@ -294,7 +294,7 @@ subtest "error operators" => sub {
 };
 
 subtest "string operator" => sub {
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		set %a 1
 		set %b 2
@@ -307,7 +307,7 @@ subtest "string operator" => sub {
 };
 
 subtest "register operators" => sub {
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		set %a 2
 		push %a
@@ -318,7 +318,7 @@ subtest "register operators" => sub {
 	"a == 2",
 	"push / pop");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		pragma test "on"
 		set %a 300
@@ -334,7 +334,7 @@ subtest "register operators" => sub {
 	"stack overflow!\n",
 	"stack should overflow at ~256");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		pragma test "on"
 		set %a 300
@@ -350,7 +350,7 @@ subtest "register operators" => sub {
 	"stack underflow!\n",
 	"stack should underflow very soon");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		set %a 1
 		set %b 2
@@ -360,7 +360,7 @@ subtest "register operators" => sub {
 	"a/b = 2/1",
 	"swap");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		pragma test "on"
 		swap %a %a),
@@ -370,7 +370,7 @@ subtest "register operators" => sub {
 };
 
 subtest "math operators" => sub {
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		set  %a 1
 		add  %a 4
@@ -382,7 +382,7 @@ subtest "math operators" => sub {
 	"6",
 	"arithmetic");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		set %a 17
 		mod %a 10
@@ -393,7 +393,7 @@ subtest "math operators" => sub {
 };
 
 subtest "functions" => sub {
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		call print.a
 
@@ -409,7 +409,7 @@ subtest "functions" => sub {
 	"abba",
 	"nested function calls");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		call func
 
@@ -421,7 +421,7 @@ subtest "functions" => sub {
 	"ok",
 	"ret short-circuits function execution flow-control");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		call func
 		jnz +1
@@ -433,7 +433,7 @@ subtest "functions" => sub {
 	"ok",
 	"user-defined functions can return values");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		call func
 		acc %a
@@ -454,7 +454,7 @@ subtest "dump operator" => sub {
 		},
 	);
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		dump),
 
@@ -478,7 +478,7 @@ subtest "dump operator" => sub {
 ),
 	"dump a fresh VM", %opts);
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		pop %b
 		pop %a
@@ -503,7 +503,7 @@ subtest "dump operator" => sub {
 ),
 	"dump a clean VM", %opts);
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		set %a 0x42
 		set %p 0x24
@@ -549,7 +549,7 @@ subtest "dump operator" => sub {
 ),
 	"dump a not-so-clean VM", %opts);
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		call func1
 
@@ -616,7 +616,7 @@ subtest "dump operator" => sub {
 subtest "fs operators" => sub {
 	mkdir "t/tmp";
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		fs.stat "t/tmp/enoent"
 		jnz +1
@@ -626,7 +626,7 @@ subtest "fs operators" => sub {
 	"ok",
 	"fs.stat for non-existent file");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		fs.touch "t/tmp/newfile"
 		jz +1
@@ -640,7 +640,7 @@ subtest "fs operators" => sub {
 	"ok",
 	"fs.touch can create new files");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		fs.unlink "t/tmp/newfile"
 		jz +1
@@ -653,7 +653,7 @@ subtest "fs operators" => sub {
 	"ok",
 	"fs.unlink can remove files");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		set %a "t/tmp/oldname"
 		fs.touch %a
@@ -686,7 +686,7 @@ subtest "fs operators" => sub {
 	"ok",
 	"fs.rename renames files");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		set %a "t/tmp/file"
 		fs.unlink %a
@@ -709,7 +709,7 @@ subtest "fs operators" => sub {
 		skip "No /dev/null device found", 2
 			unless -e "/dev/null";
 
-		pn2_ok(qq(
+		pendulum_ok(qq(
 		fn main
 			fs.chardev? "/dev/null"
 			jz +1
@@ -719,7 +719,7 @@ subtest "fs operators" => sub {
 		"ok",
 		"/dev/null is a character device");
 
-		pn2_ok(qq(
+		pendulum_ok(qq(
 		fn main
 			set %c "/dev/null"
 			fs.major %c %a
@@ -731,7 +731,7 @@ subtest "fs operators" => sub {
 	};
 
 	SKIP: {
-		pn2_ok(qq(
+		pendulum_ok(qq(
 		fn main
 			fs.blockdev? "/dev/loop0"
 			jz +1
@@ -742,7 +742,7 @@ subtest "fs operators" => sub {
 		"/dev/loop0 is a block device");
 	};
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		fs.dir? "t/tmp"
 		jz +1
@@ -752,7 +752,7 @@ subtest "fs operators" => sub {
 	"ok",
 	"t/tmp is a directory");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		fs.touch "t/tmp/file"
 		fs.file? "t/tmp/file"
@@ -764,7 +764,7 @@ subtest "fs operators" => sub {
 	"t/tmp/file is a file");
 
 	symlink "t/tmp/file", "t/tmp/syml";
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		fs.symlink? "t/tmp/syml"
 		jz +1
@@ -775,7 +775,7 @@ subtest "fs operators" => sub {
 	"t/tmp/syml is a symbolic link");
 
 	mkfifo "t/tmp/fifo", 0644;
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		fs.fifo? "t/tmp/fifo"
 		jz +1
@@ -786,7 +786,7 @@ subtest "fs operators" => sub {
 	"t/tmp/fifo is a FIFO pipe");
 
 	IO::Socket::UNIX->new(Type => SOCK_STREAM, Local => "t/tmp/socket");
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		fs.socket? "t/tmp/socket"
 		jz +1
@@ -801,7 +801,7 @@ subtest "fs operators" => sub {
 			unless $< == 0;
 
 		my ($uid, $gid) = ($> + 12, $) + 13);
-		pn2_ok(qq(
+		pendulum_ok(qq(
 		fn main
 			set %a "t/tmp/chown"
 			fs.touch %a
@@ -817,7 +817,7 @@ subtest "fs operators" => sub {
 		"file ownership change / retrieval");
 	};
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		set %a "t/tmp/chmod"
 		fs.touch %a
@@ -834,7 +834,7 @@ subtest "fs operators" => sub {
 			unless -e "/etc/issue";
 
 		my @st = stat "/etc/issue";
-		pn2_ok(qq(
+		pendulum_ok(qq(
 		fn main
 			set %p "/etc/issue"
 			fs.dev   %p %a
@@ -866,7 +866,7 @@ This is a haiku.
 You could write a better one.
 Go ahead and try.
 EOF
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		fs.sha1 "t/tmp/sha1" %d
 		jz +2
@@ -915,7 +915,7 @@ user1:*::user2
 user2:*::sys
 EOF
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		pragma authdb.root "t/tmp/auth"
 		authdb.open
@@ -933,7 +933,7 @@ EOF
 	"ok",
 	"open/close auth databases");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		pragma authdb.root "t/tmp/auth"
 		authdb.open
@@ -949,7 +949,7 @@ EOF
 	"uid=1002\ngid=1102\n",
 	"nextuid / nextgid");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		pragma authdb.root "t/tmp/auth"
 		authdb.open
@@ -965,7 +965,7 @@ EOF
 	"uid=4\ngid=4\n",
 	"nextuid / nextgid (starting at 0)");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		pragma authdb.root "t/tmp/auth"
 		authdb.open
@@ -1015,7 +1015,7 @@ EOF
 	"ok\n",
 	"user find / attribute retrieval");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		pragma authdb.root "t/tmp/auth"
 		authdb.open
@@ -1088,7 +1088,7 @@ EOF
 	"ok\n",
 	"user attribute update/retrieval");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		pragma authdb.root "t/tmp/auth"
 		authdb.open
@@ -1116,7 +1116,7 @@ EOF
 	"ok\n",
 	"group find / attribute retreival");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		pragma authdb.root "t/tmp/auth"
 		authdb.open
@@ -1157,7 +1157,7 @@ EOF
 	"ok\n",
 	"group find / attribute retreival");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		pragma authdb.root "t/tmp/auth"
 		authdb.open
@@ -1181,7 +1181,7 @@ EOF
 	"ok",
 	"user.delete");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		pragma authdb.root "t/tmp/auth"
 		authdb.open
@@ -1205,7 +1205,7 @@ EOF
 	"ok",
 	"group.delete");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		pragma authdb.root "t/tmp/auth"
 		authdb.open
@@ -1227,7 +1227,7 @@ EOF
 		"ok",
 	"user.new");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		set %b "B"
 		user.get "username" %b
@@ -1238,7 +1238,7 @@ EOF
 	"ok:B",
 	"user.get without a user.find returns non-zero to accumulator");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		user.set "username" "WHAT"
 		jnz +1
@@ -1248,7 +1248,7 @@ EOF
 	"ok",
 	"user.set without a user.find returns non-zero to accumulator");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		user.delete
 		jnz +1
@@ -1258,7 +1258,7 @@ EOF
 	"ok",
 	"user.delete without a user.find returns non-zero to accumulator");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		pragma authdb.root "t/tmp/auth"
 		authdb.open
@@ -1280,7 +1280,7 @@ EOF
 		"ok",
 	"group.new");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		set %b "B"
 		group.get "groupname" %b
@@ -1291,7 +1291,7 @@ EOF
 	"ok:B",
 	"group.get without a group.find returns non-zero to accumulator");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		group.set "groupname" "WHAT"
 		jnz +1
@@ -1301,7 +1301,7 @@ EOF
 	"ok",
 	"group.set without a group.find returns non-zero to accumulator");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		group.delete
 		jnz +1
@@ -1328,7 +1328,7 @@ ff02::2 ip6-allrouters
 10.10.0.1 host.remove-me
 EOF
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		pragma augeas.root "t/tmp/root"
 		pragma augeas.libs "t/tmp/augeas/lenses"
@@ -1345,7 +1345,7 @@ EOF
 	"ok",
 	"augeas.init initializes");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		pragma augeas.root "t/tmp/root"
 		pragma augeas.libs "t/tmp/augeas/lenses"
@@ -1388,7 +1388,7 @@ EOF
 	"ok",
 	"augeas.get");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		pragma augeas.root "t/tmp/root"
 		pragma augeas.libs "t/tmp/augeas/lenses"
@@ -1436,7 +1436,7 @@ ff02::2 ip6-allrouters
 10.8.7.9	new.host.example
 EOF
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		pragma augeas.root "t/tmp/root"
 		pragma augeas.libs "t/tmp/augeas/lenses"
@@ -1451,7 +1451,7 @@ EOF
 	"ok:B",
 	"augeas.get returns non-zero to accumulator on failure");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		pragma augeas.root "t/tmp/root"
 		pragma augeas.libs "t/tmp/augeas/lenses"
@@ -1466,7 +1466,7 @@ EOF
 	"ok:B",
 	"augeas.find returns non-zero to accumulator on failure");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		pragma test        "on"
 		pragma augeas.root "t/tmp/root"
@@ -1481,7 +1481,7 @@ EOF
 
 subtest "env operators" => sub {
 	$ENV{OPERATOR} = "smooth";
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		env.get "OPERATOR" %o
 		jz +1
@@ -1492,7 +1492,7 @@ subtest "env operators" => sub {
 	"env.get");
 
 	delete $ENV{XYZZY};
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		env.get "XYZZY" %o
 		jnz +1
@@ -1502,7 +1502,7 @@ subtest "env operators" => sub {
 	"ok",
 	"env.get");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		env.set "XYZZY" "fool!"
 		env.get "XYZZY" %f
@@ -1512,7 +1512,7 @@ subtest "env operators" => sub {
 	"env.set");
 
 	$ENV{XYZZY} = "zork";
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		env.unset "XYZZY"
 		env.get "XYZZY" %o
@@ -1525,7 +1525,7 @@ subtest "env operators" => sub {
 };
 
 subtest "try / bail" => sub {
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		print "ok"
 		bail 0
@@ -1534,7 +1534,7 @@ subtest "try / bail" => sub {
 	"ok",
 	"bail with no try == halt");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn inner
 		print "ok"
 		bail 0
@@ -1547,7 +1547,7 @@ subtest "try / bail" => sub {
 	"ok",
 	"nested bail with no try == halt");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn inner
 		print "O"
 		bail 0
@@ -1560,7 +1560,7 @@ subtest "try / bail" => sub {
 	"OK",
 	"immediate bail with try == retv");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn bailout
 		print "bailing\\n"
 		bail 1
@@ -1582,7 +1582,7 @@ subtest "try / bail" => sub {
 	"ok\n",
 	"bail will unwind stack until it finds a try call");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn bailout
 		print "bailing\\n"
 		bail 1
@@ -1605,7 +1605,7 @@ subtest "try / bail" => sub {
 	"ok\n",
 	"bail only unwinds to first (innermost) try call");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn bailout
 		print "bailing\\n"
 		bail 1
@@ -1631,7 +1631,7 @@ subtest "try / bail" => sub {
 };
 
 subtest "flags" => sub {
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn doflags
 		flag "red"
 		flag "green"
@@ -1650,7 +1650,7 @@ subtest "flags" => sub {
 	"ok",
 	"flag / flagged?");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		flag "red"
 		flagged? "red"
@@ -1670,7 +1670,7 @@ subtest "flags" => sub {
 };
 
 subtest "properies" => sub {
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		property "runtime" %a
 		property "version" %b
@@ -1679,7 +1679,7 @@ subtest "properies" => sub {
 	"v$VERSION runtime $RUNTIME",
 	"property retrieval");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		set %c "ok"
 		property "nonexistent" %c
@@ -1692,7 +1692,7 @@ subtest "properies" => sub {
 };
 
 subtest "acl" => sub {
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		acl allow %sys "show version" final
 		acl allow * show
@@ -1702,7 +1702,7 @@ subtest "acl" => sub {
 	"allow * \"show\"\n",
 	"acl / show.acls");
 
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		acl allow %sys "show version" final
 		acl allow * show
@@ -1713,7 +1713,7 @@ subtest "acl" => sub {
 };
 
 subtest "tracing" => sub {
-	pn2_ok(qq(
+	pendulum_ok(qq(
 	fn main
 		pragma test "on"
 		pragma trace "on"

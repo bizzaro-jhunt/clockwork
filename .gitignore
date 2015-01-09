@@ -85,6 +85,8 @@ build/
 
 dev/
 
+src/clockwork.h
+
 t/tmp
 t/vars.pl
 t/00-bits

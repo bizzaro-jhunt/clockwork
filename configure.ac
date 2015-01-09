@@ -5,7 +5,8 @@
 AC_PREREQ(2.68)
 
 AC_INIT([Clockwork], [2.4.5], [bugs@niftylogic.com])
-AC_SUBST([PACKAGE_RUNTIME], [20150108])
+AC_SUBST([PACKAGE_RUNTIME],  [20150108])
+AC_SUBST([PACKAGE_PROTOCOL], [1])
 
 ################################################
 
@@ -174,5 +175,5 @@ AC_CHECK_FUNCS([\
 
 ################################################
 
-AC_CONFIG_FILES([Makefile t/vars.pl])
+AC_CONFIG_FILES([Makefile src/clockwork.h t/vars.pl])
 AC_OUTPUT

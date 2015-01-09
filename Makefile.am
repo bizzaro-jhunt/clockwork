@@ -81,14 +81,6 @@ PERL_TESTS  =
 
 PERL_TESTS += t/80-pendulum.t
 
-PERL_TESTS += t/pendulum/01-basics.t
-PERL_TESTS += t/pendulum/02-show.t
-PERL_TESTS += t/pendulum/10-fs.t
-PERL_TESTS += t/pendulum/11-users.t
-PERL_TESTS += t/pendulum/12-groups.t
-PERL_TESTS += t/pendulum/13-exec.t
-PERL_TESTS += t/pendulum/14-augeas.t
-
 PERL_TESTS += t/cmd/01-show.t
 
 PERL_TESTS += t/policy/01-files.t

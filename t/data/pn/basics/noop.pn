@@ -1,9 +1,0 @@
-;;
-;; t/data/pn/noop.pn
-;; Pendulum Test Script
-;;
-
-NOOP
-PRINT "NOOPs are okay by me\n"
-NOOP
-HALT

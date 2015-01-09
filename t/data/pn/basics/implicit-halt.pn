@@ -1,7 +1,0 @@
-;;
-;; t/data/pn/implicit-halt.pn
-;; Pendulum Test Script
-;;
-
-PRINT "Falling off the end of the program...\n"
-;; there is explicitly no HALT call

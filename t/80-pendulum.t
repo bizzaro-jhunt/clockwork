@@ -1327,6 +1327,49 @@ ff02::2 ip6-allrouters
 
 10.10.0.1 host.remove-me
 EOF
+	mkdir "t/tmp/augeas";
+	mkdir "t/tmp/augeas/lenses";
+	put_file "t/tmp/augeas/lenses/hosts.aug", <<'EOF';
+(* Parsing /etc/hosts *)
+module Hosts =
+  autoload xfm
+  let sep_tab = Util.del_ws_tab
+  let sep_spc = Util.del_ws_spc
+  let eol = del /[ \t]*\n/ "\n"
+  let indent = del /[ \t]*/ ""
+  let comment = Util.comment
+  let empty   = [ del /[ \t]*#?[ \t]*\n/ "\n" ]
+  let word = /[^# \n\t]+/
+  let record = [ seq "host" . indent .
+                              [ label "ipaddr" . store  word ] . sep_tab .
+                              [ label "canonical" . store word ] .
+                              [ label "alias" . sep_spc . store word ]*
+                 . (comment|eol) ]
+  let lns = ( empty | comment | record ) *
+  let xfm = transform lns (incl "/etc/hosts")
+EOF
+	put_file "t/tmp/augeas/lenses/util.aug", <<'EOF';
+module Util =
+  let del_str (s:string) = del s s
+  let del_ws = del /[ \t]+/
+  let del_ws_spc = del_ws " "
+  let del_ws_tab = del_ws "\t"
+  let del_opt_ws = del /[ \t]*/
+  let eol = del /[ \t]*\n/ "\n"
+  let indent = del /[ \t]*/ ""
+  let comment =
+    [ indent . label "#comment" . del /#[ \t]*/ "# "
+        . store /([^ \t\n].*[^ \t\n]|[^ \t\n])/ . eol ]
+  let empty   = [ del /[ \t]*#?[ \t]*\n/ "\n" ]
+  let split (elt:lens) (sep:lens) =
+    let sym = gensym "split" in
+    counter sym . ( [ seq sym . sep . elt ] ) *
+  let stdexcl = (excl "*~") .
+    (excl "*.rpmnew") .
+    (excl "*.rpmsave") .
+    (excl "*.augsave") .
+    (excl "*.augnew")
+EOF
 
 	pendulum_ok(qq(
 	fn main
@@ -1739,6 +1782,27 @@ subtest "exec" => sub {
 	"this is a test". # exec removes the newline
 	"ok",
 	"exec + echo");
+
+	pendulum_ok(qq(
+	fn main
+		exec "test 0 == 1" %a
+		jnz +1
+		print "fail"
+		print "ok"),
+
+	"ok",
+	"exec passes return code via accumulator");
+
+	pendulum_ok(qq(
+	fn main
+		set %a "ok"
+		exec "/no/such/binary" %a
+		jnz +1
+		print "fail"
+		print %a),
+
+	"ok",
+	"exec with a bad binary");
 };
 
 done_testing;

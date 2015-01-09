@@ -130,7 +130,6 @@ check_DATA     = t/tmp/check-data-install.stamp
 t/tmp/check-data-install.stamp:
 	mkdir -p t/tmp
 	cp -a $(srcdir)/t/data t/tmp
-	cp -a $(srcdir)/augeas t/tmp
 	find t/tmp -type d ! -perm -200 -exec chmod u+w {} ';'
 	touch $@
 

@@ -1,0 +1,46 @@
+;;
+;; Clockwork Pendulum Standard Library
+;;   stdlib/pkg.pn
+;;   Package Resource Functionality
+;;
+;;  author:  James Hunt <james@niftylogic.com>
+;;  created: 2015-01-08
+;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; res.package.install
+;;
+;;   %a = package name
+;;   %b = version (or "latest")
+;;
+fn res.package.install
+
+    ;;
+    ;; generate a string that explains what we are up to,
+    ;; i.e. installing a specific version, latest, etc.
+    ;;
+    streq %b "latest"
+    jz +2
+    string "version %[b]s" %c
+    jmp +1
+    set %c "latest version"
+
+    exec.run1 "cw localsys pkg-version %[a]s"
+              %d
+    jz +2
+    print "installing %[c]s of %[a]s"
+    jmp +1
+    print "upgrading 
+
+    streq %b "latest"
+    jnz version
+        exec.run1 "cw localsys pkg-version %[a]s"
+                  %b
+        jz +1
+        bail
+
+  version:
+    ;; START HERE
+
+;; vim:et:ts=4:sw=4

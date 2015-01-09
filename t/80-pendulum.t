@@ -860,6 +860,22 @@ subtest "fs operators" => sub {
 		"atime=$st[8]\nctime=$st[10]\nmtime=$st[9]\nuid=$st[4]\ngid=$st[5]\n",
 		"stat-based accessor opcodes");
 	}
+
+	put_file "t/tmp/sha1", <<EOF;
+This is a haiku.
+You could write a better one.
+Go ahead and try.
+EOF
+	pn2_ok(qq(
+	fn main
+		fs.sha1 "t/tmp/sha1" %d
+		jz +2
+			print "fail"
+			ret
+		print "SHA1:%[d]s\\n"),
+
+	"SHA1:9b032ba6005e483b9e33706a8e9e3f17e4c3d1fc\n",
+	"fs.sha1");
 };
 
 subtest "user management" => sub {

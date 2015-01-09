@@ -789,7 +789,10 @@ int vm_exec(vm_t *vm)
 			break;
 
 		case OP_FS_SHA1:
-			printf("fs.sha1\n"); /* FIXME: not implemented */
+			ARG2("fs.sha1");
+			REGISTER2("fs.sha1");
+			vm->acc = sha1_file(s_str(vm, f1, oper1), &vm->aux.sha1);
+			vm->r[oper2] = vm_heap_strdup(vm, vm->aux.sha1.hex);
 			break;
 
 		case OP_FS_DEV:

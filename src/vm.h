@@ -86,6 +86,8 @@ typedef struct {
 		authdb_t     *authdb;
 		user_t       *user;
 		group_t      *group;
+
+		struct SHA1   sha1;
 	} aux;
 
 	list_t   heap;

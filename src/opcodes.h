@@ -210,8 +210,10 @@ static const char * OPCODES[] = {
 	"show.acl",          /* OP_SHOW_ACL        100  0x64 */
 	NULL,
 };
+#endif
 
 
+#ifdef OPCODES_ASM
 /** ASM TOKENS **/
 #define T_OP_NOOP            0x40  /* does nothing */
 #define T_OP_PUSH            0x41  /* push a register onto data stack */

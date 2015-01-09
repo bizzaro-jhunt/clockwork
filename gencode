@@ -110,8 +110,10 @@ for my $op (@$lst) {
 }
 print "\tNULL,\n";
 print "};\n";
+print "#endif\n";
 
 print "\n\n";
+print "#ifdef OPCODES_ASM\n";
 print "/** ASM TOKENS **/\n";
 $n = 0x40;
 for my $op (@$lst) {

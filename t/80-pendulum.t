@@ -1696,4 +1696,19 @@ subtest "acl" => sub {
 	"acl / show.acls");
 };
 
+subtest "tracing" => sub {
+	pn2_ok(qq(
+	fn main
+		pragma test "on"
+		pragma trace "on"
+		set %a 42
+		push %a
+		ret),
+
+	"+set [21] 00000000 0000002a\n".
+	"+push [20] 00000000\n".
+	"+ret [00]\n",
+	"trace output");
+};
+
 done_testing;

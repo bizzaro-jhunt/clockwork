@@ -7,6 +7,7 @@
 #include "vm.h"
 
 #define OPCODES_EXTENDED
+#define OPCODES_ASM
 #include "opcodes.h"
 
 static const char * VTYPES[] = {

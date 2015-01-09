@@ -120,6 +120,8 @@ int main (int argc, char **argv)
 	rc = vm_args(&vm, argc, argv);
 	assert(rc == 0);
 
+	vm.trace = trace;
+
 	vm_exec(&vm);
 
 	rc = vm_done(&vm);

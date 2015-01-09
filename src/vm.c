@@ -31,6 +31,7 @@
 
 #include <augeas.h>
 
+#define OPCODES_EXTENDED
 #include "opcodes.h"
 #include "authdb.h"
 #include "mesh.h"
@@ -457,6 +458,9 @@ int vm_exec(vm_t *vm)
 		op = vm->code[vm->pc++];
 		f1 = HI_NYBLE(vm->code[vm->pc]);
 		f2 = LO_NYBLE(vm->code[vm->pc]);
+
+		if (vm->trace)
+			fprintf(vm->stderr, "+%s [%02x]", OPCODES[op], vm->code[vm->pc]);
 		vm->pc++;
 
 		if (f2 && !f1)
@@ -468,6 +472,8 @@ int vm_exec(vm_t *vm)
 			              vm->code[vm->pc + 2],
 			              vm->code[vm->pc + 3]);
 			vm->pc += 4;
+			if (vm->trace)
+				fprintf(vm->stderr, " %08x", oper1);
 		}
 
 		if (f2) {
@@ -476,7 +482,11 @@ int vm_exec(vm_t *vm)
 			              vm->code[vm->pc + 2],
 			              vm->code[vm->pc + 3]);
 			vm->pc += 4;
+			if (vm->trace)
+				fprintf(vm->stderr, " %08x", oper2);
 		}
+		if (vm->trace)
+			fprintf(vm->stderr, "\n");
 
 		switch (op) {
 		case OP_NOOP:
@@ -1249,6 +1259,9 @@ int vm_exec(vm_t *vm)
 
 			if (strcmp(v, "test") == 0) {
 				vm->stderr = strcmp(s_str(vm, f2, oper2), "on") == 0 ? stdout : stderr;
+
+			} else if (strcmp(v, "trace") == 0) {
+				vm->trace = strcmp(s_str(vm, f2, oper2), "on") == 0;
 
 			} else {
 				/* set the value in the pragma hash */

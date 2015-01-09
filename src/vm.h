@@ -73,6 +73,7 @@ typedef struct {
 
 	list_t   acl;    /* access control list */
 
+	byte_t   trace;  /* whether or not to print trace messages */
 	FILE    *stderr; /* where to direct error messages */
 	byte_t   abort;  /* signal to the main vm thread to abort */
 

@@ -451,6 +451,9 @@ int vm_exec(vm_t *vm)
 	const char *v;
 	acl_t *acl;
 
+	runner_t runner;
+	char execline[8192];
+
 	vm->pc = 0;
 
 	while (!vm->abort) {
@@ -892,7 +895,20 @@ int vm_exec(vm_t *vm)
 			break;
 
 		case OP_EXEC:
-			printf("exec\n"); /* FIXME: not implemented */
+			ARG2("exec");
+			REGISTER2("exec");
+			runner.in  = NULL;
+			runner.out = tmpfile();
+			runner.err = tmpfile();
+			runner.uid = geteuid();
+			runner.gid = getegid();
+			vm->acc = run2(&runner, "/bin/sh", "-c", s_str(vm, f1, oper1), NULL);
+			if (fgets(execline, sizeof(execline), runner.out)) {
+				s = strchr(execline, '\n'); if (s) *s = '\0';
+				vm->r[oper2] = vm_heap_strdup(vm, execline);
+			}
+			fclose(runner.out); runner.out = NULL;
+			fclose(runner.err); runner.err = NULL;
 			break;
 
 		case OP_AUTHDB_OPEN:

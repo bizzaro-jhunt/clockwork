@@ -1727,4 +1727,18 @@ subtest "tracing" => sub {
 	"trace output");
 };
 
+subtest "exec" => sub {
+	pendulum_ok(qq(
+	fn main
+		exec "/bin/echo this is a test" %a
+		jz +1
+		print "fail"
+		print %a
+		print "ok"),
+
+	"this is a test". # exec removes the newline
+	"ok",
+	"exec + echo");
+};
+
 done_testing;

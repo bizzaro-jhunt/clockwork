@@ -1785,7 +1785,7 @@ subtest "exec" => sub {
 
 	pendulum_ok(qq(
 	fn main
-		exec "test 0 == 1" %a
+		exec "/usr/bin/test 0 == 1" %a
 		jnz +1
 		print "fail"
 		print "ok"),
@@ -1803,6 +1803,20 @@ subtest "exec" => sub {
 
 	"ok",
 	"exec with a bad binary");
+};
+
+subtest "localsys" => sub {
+	pendulum_ok(qq(
+	fn main
+		;; cheat - don't test the actual localsys
+		pragma localsys.cmd "/bin/echo"
+		localsys "ok" %b
+		jz +1
+		print "fail"
+		print %b),
+
+	"ok",
+	"localsys");
 };
 
 done_testing;

@@ -94,14 +94,15 @@
 #define OP_ENV_GET         0x5a  /* retrieve the value of an environment variable */
 #define OP_ENV_SET         0x5b  /* set the value of an environment variable */
 #define OP_ENV_UNSET       0x5c  /* unset an environment variable */
-#define OP_EXEC            0x5d  /* execute a command */
-#define OP_DUMP            0x5e  /* dump virtual machine state for debugging */
-#define OP_HALT            0x5f  /* halt the virtual machine */
-#define OP_PRAGMA          0x60  /* set a compiler pragma */
-#define OP_PROPERTY        0x61  /* retrieve a property into a register */
-#define OP_ACL             0x62  /* store a mech ACL */
-#define OP_SHOW_ACLS       0x63  /* print ACL entries */
-#define OP_SHOW_ACL        0x64  /* print ACL entries that match the query */
+#define OP_LOCALSYS        0x5d  /* execute `cw localsys` with arguments */
+#define OP_EXEC            0x5e  /* execute a command */
+#define OP_DUMP            0x5f  /* dump virtual machine state for debugging */
+#define OP_HALT            0x60  /* halt the virtual machine */
+#define OP_PRAGMA          0x61  /* set a compiler pragma */
+#define OP_PROPERTY        0x62  /* retrieve a property into a register */
+#define OP_ACL             0x63  /* store a mech ACL */
+#define OP_SHOW_ACLS       0x64  /* print ACL entries */
+#define OP_SHOW_ACL        0x65  /* print ACL entries that match the query */
 
 
 #ifdef OPCODES_EXTENDED
@@ -200,14 +201,15 @@ static const char * OPCODES[] = {
 	"env.get",           /* OP_ENV_GET          90  0x5a */
 	"env.set",           /* OP_ENV_SET          91  0x5b */
 	"env.unset",         /* OP_ENV_UNSET        92  0x5c */
-	"exec",              /* OP_EXEC             93  0x5d */
-	"dump",              /* OP_DUMP             94  0x5e */
-	"halt",              /* OP_HALT             95  0x5f */
-	"pragma",            /* OP_PRAGMA           96  0x60 */
-	"property",          /* OP_PROPERTY         97  0x61 */
-	"acl",               /* OP_ACL              98  0x62 */
-	"show.acls",         /* OP_SHOW_ACLS        99  0x63 */
-	"show.acl",          /* OP_SHOW_ACL        100  0x64 */
+	"localsys",          /* OP_LOCALSYS         93  0x5d */
+	"exec",              /* OP_EXEC             94  0x5e */
+	"dump",              /* OP_DUMP             95  0x5f */
+	"halt",              /* OP_HALT             96  0x60 */
+	"pragma",            /* OP_PRAGMA           97  0x61 */
+	"property",          /* OP_PROPERTY         98  0x62 */
+	"acl",               /* OP_ACL              99  0x63 */
+	"show.acls",         /* OP_SHOW_ACLS       100  0x64 */
+	"show.acl",          /* OP_SHOW_ACL        101  0x65 */
 	NULL,
 };
 #endif
@@ -309,14 +311,15 @@ static const char * OPCODES[] = {
 #define T_OP_ENV_GET         0x9b  /* retrieve the value of an environment variable */
 #define T_OP_ENV_SET         0x9c  /* set the value of an environment variable */
 #define T_OP_ENV_UNSET       0x9d  /* unset an environment variable */
-#define T_OP_EXEC            0x9e  /* execute a command */
-#define T_OP_DUMP            0x9f  /* dump virtual machine state for debugging */
-#define T_OP_HALT            0xa0  /* halt the virtual machine */
-#define T_OP_PRAGMA          0xa1  /* set a compiler pragma */
-#define T_OP_PROPERTY        0xa2  /* retrieve a property into a register */
-#define T_OP_ACL             0xa3  /* store a mech ACL */
-#define T_OP_SHOW_ACLS       0xa4  /* print ACL entries */
-#define T_OP_SHOW_ACL        0xa5  /* print ACL entries that match the query */
+#define T_OP_LOCALSYS        0x9e  /* execute `cw localsys` with arguments */
+#define T_OP_EXEC            0x9f  /* execute a command */
+#define T_OP_DUMP            0xa0  /* dump virtual machine state for debugging */
+#define T_OP_HALT            0xa1  /* halt the virtual machine */
+#define T_OP_PRAGMA          0xa2  /* set a compiler pragma */
+#define T_OP_PROPERTY        0xa3  /* retrieve a property into a register */
+#define T_OP_ACL             0xa4  /* store a mech ACL */
+#define T_OP_SHOW_ACLS       0xa5  /* print ACL entries */
+#define T_OP_SHOW_ACL        0xa6  /* print ACL entries that match the query */
 
 
 static const char * ASM[] = {
@@ -414,14 +417,15 @@ static const char * ASM[] = {
 	"env.get",           /* T_OP_ENV_GET         91  0x5b */
 	"env.set",           /* T_OP_ENV_SET         92  0x5c */
 	"env.unset",         /* T_OP_ENV_UNSET       93  0x5d */
-	"exec",              /* T_OP_EXEC            94  0x5e */
-	"dump",              /* T_OP_DUMP            95  0x5f */
-	"halt",              /* T_OP_HALT            96  0x60 */
-	"pragma",            /* T_OP_PRAGMA          97  0x61 */
-	"property",          /* T_OP_PROPERTY        98  0x62 */
-	"acl",               /* T_OP_ACL             99  0x63 */
-	"show.acls",         /* T_OP_SHOW_ACLS       100  0x64 */
-	"show.acl",          /* T_OP_SHOW_ACL        101  0x65 */
+	"localsys",          /* T_OP_LOCALSYS        94  0x5e */
+	"exec",              /* T_OP_EXEC            95  0x5f */
+	"dump",              /* T_OP_DUMP            96  0x60 */
+	"halt",              /* T_OP_HALT            97  0x61 */
+	"pragma",            /* T_OP_PRAGMA          98  0x62 */
+	"property",          /* T_OP_PROPERTY        99  0x63 */
+	"acl",               /* T_OP_ACL             100  0x64 */
+	"show.acls",         /* T_OP_SHOW_ACLS       101  0x65 */
+	"show.acl",          /* T_OP_SHOW_ACL        102  0x66 */
 	NULL,
 };
 
@@ -533,6 +537,7 @@ static struct {
 	{ T_OP_ENV_GET,        "env.get (%a|<string>) %b",                       OP_ENV_GET,        { ARG_REGISTER|ARG_STRING,            ARG_REGISTER,                       } },
 	{ T_OP_ENV_SET,        "env.set (%a|<string>) (%b|<string>)",            OP_ENV_SET,        { ARG_REGISTER|ARG_STRING,            ARG_REGISTER|ARG_STRING,            } },
 	{ T_OP_ENV_UNSET,      "env.unset (%a|<string>)",                        OP_ENV_UNSET,      { ARG_REGISTER|ARG_STRING,            ARG_NONE,                           } },
+	{ T_OP_LOCALSYS,       "localsys (%a|<string>) %b",                      OP_LOCALSYS,       { ARG_REGISTER|ARG_STRING,            ARG_REGISTER,                       } },
 	{ T_OP_EXEC,           "exec (%a|<string>) %b",                          OP_EXEC,           { ARG_REGISTER|ARG_STRING,            ARG_REGISTER,                       } },
 	{ T_OP_DUMP,           "dump",                                           OP_DUMP,           { ARG_NONE,                           ARG_NONE,                           } },
 	{ T_OP_HALT,           "halt",                                           OP_HALT,           { ARG_NONE,                           ARG_NONE,                           } },

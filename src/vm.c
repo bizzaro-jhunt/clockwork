@@ -396,9 +396,10 @@ int vm_prime(vm_t *vm, byte_t *code, size_t len)
 	assert(len > 1);
 
 	/* default pragmas */
-	hash_set(&vm->pragma, "authdb.root", strdup(AUTHDB_ROOT));
-	hash_set(&vm->pragma, "augeas.root", strdup(AUGEAS_ROOT));
-	hash_set(&vm->pragma, "augeas.libs", strdup(AUGEAS_LIBS));
+	hash_set(&vm->pragma, "authdb.root",  strdup(AUTHDB_ROOT));
+	hash_set(&vm->pragma, "augeas.root",  strdup(AUGEAS_ROOT));
+	hash_set(&vm->pragma, "augeas.libs",  strdup(AUGEAS_LIBS));
+	hash_set(&vm->pragma, "localsys.cmd", strdup("cw localsys"));
 
 	/* default properties */
 	hash_set(&vm->props, "version", CLOCKWORK_VERSION);
@@ -892,6 +893,28 @@ int vm_exec(vm_t *vm)
 
 			vm->acc = lstat(s_str(vm, f1, oper1), &vm->aux.stat);
 			if (vm->acc == 0) vm->r[oper2] = vm->aux.stat.st_ctime;
+			break;
+
+		case OP_LOCALSYS:
+			ARG2("localsys");
+			REGISTER2("localsys");
+			runner.in  = NULL;
+			runner.out = tmpfile();
+			runner.err = tmpfile();
+			runner.uid = geteuid();
+			runner.gid = getegid();
+
+			s = string("%s %s",
+				hash_get(&vm->pragma, "localsys.cmd"),
+				s_str(vm, f1, oper1));
+			vm->acc = run2(&runner, "/bin/sh", "-c", s, NULL); free(s);
+
+			if (fgets(execline, sizeof(execline), runner.out)) {
+				s = strchr(execline, '\n'); if (s) *s = '\0';
+				vm->r[oper2] = vm_heap_strdup(vm, execline);
+			}
+			fclose(runner.out); runner.out = NULL;
+			fclose(runner.err); runner.err = NULL;
 			break;
 
 		case OP_EXEC:

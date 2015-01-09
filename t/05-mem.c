@@ -20,7 +20,6 @@
 #include "test.h"
 
 TESTS {
-	char *s;
 	char *original[4] = {
 		"string1",
 		"another string",

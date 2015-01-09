@@ -5,3 +5,4 @@ extras/vim/syntax/clockwork.vim         usr/share/vim/addons/syntax
 extras/vim/syntax/cogd.vim              usr/share/vim/addons/syntax
 extras/vim/syntax/cwrc.vim              usr/share/vim/addons/syntax
 extras/vim/syntax/meshd.vim             usr/share/vim/addons/syntax
+extras/vim/syntax/pnasm.vim             usr/share/vim/addons/syntax

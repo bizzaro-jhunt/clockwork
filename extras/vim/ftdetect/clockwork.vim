@@ -13,3 +13,6 @@ au BufNewFile,BufRead cw.conf set ft=cwrc
 
 " *.pol       - Clockwork Policy Manifest files
 au BufNewFile,BufRead *.pol set ft=clockwork
+
+" *.pn        - Clockwork Pendulum Assembler
+au BufNewFile,BufRead *.pn set ft=pnasm

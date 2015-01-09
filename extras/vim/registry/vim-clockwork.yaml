@@ -7,3 +7,4 @@ files:
   - syntax/cogd.vim
   - syntax/cwrc.vim
   - syntax/meshd.vim
+  - syntax/pnasm.vim

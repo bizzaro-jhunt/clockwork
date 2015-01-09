@@ -1,5 +1,5 @@
 /*
-  Copyright 2011-2014 James Hunt <james@jameshunt.us>
+  Copyright 2011-2015 James Hunt <james@jameshunt.us>
 
   This file is part of Clockwork.
 
@@ -17,19 +17,17 @@
   along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdio.h>
-#include <string.h>
-#include <errno.h>
-#include <syslog.h>
+#include "vm.h"
+#include <assert.h>
+#include <sys/mman.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <getopt.h>
 
-#include "clockwork.h"
-#include "pendulum.h"
-#include "pendulum_funcs.h"
-
-int main(int argc, char **argv)
+int main (int argc, char **argv)
 {
-	int trace = 0, check = 0, debug = 0, saferun = 0;
+	int trace = 0, debug = 0;
 	int level = LOG_WARNING;
 	const char *ident = "pn", *facility = "stdout";
 
@@ -41,9 +39,7 @@ int main(int argc, char **argv)
 		{ "debug",    no_argument,       NULL, 'D' },
 		{ "version",  no_argument,       NULL, 'V' },
 		{ "trace",    no_argument,       NULL, 'T' },
-		{ "check",    no_argument,       NULL, 'c' },
-		{ "syslog",   required_argument, NULL, '0' },
-		{ "nofork",   no_argument,       NULL, '1' },
+		{ "syslog",   required_argument, NULL,  0  },
 
 		{ 0, 0, 0, 0 },
 	};
@@ -53,7 +49,7 @@ int main(int argc, char **argv)
 		switch (opt) {
 		case 'h':
 		case '?':
-			printf("USAGE: pn [OPTIONS] script.pn\n");
+			printf("USAGE: pn [OPTIONS] bin.b\n");
 			exit(0);
 
 		case 'v':
@@ -70,7 +66,7 @@ int main(int argc, char **argv)
 			break;
 
 		case 'V':
-			printf("pn - Clockwork v%s runtime %s\n"
+			printf("pn (Clockwork) v%s runtime %s\n"
 			       "Copyright (C) 2015 James Hunt\n",
 			       CLOCKWORK_VERSION, CLOCKWORK_RUNTIME);
 			exit(0);
@@ -79,22 +75,14 @@ int main(int argc, char **argv)
 			trace = 1;
 			break;
 
-		case 'c':
-			check = 1;
-			break;
-
-		case '0': /* --syslog */
+		case 0: /* --syslog */
 			facility = argv[optind];
-			break;
-
-		case '1': /* --nofork */
-			saferun = 0;
 			break;
 		}
 	}
 
 	if (optind != argc - 1) {
-		printf("USAGE: pn [OPTIONS] script.pn\n");
+		printf("USAGE: pn [OPTIONS] bin.b\n");
 		exit(0);
 	}
 
@@ -102,63 +90,42 @@ int main(int argc, char **argv)
 	log_open(ident, facility);
 	log_level(level, NULL);
 
-	FILE *io;
-	if (strcmp(argv[optind], "-") == 0) {
-		logger(LOG_INFO, "reading from standard input");
-		io = tmpfile();
-		if (!io) {
-			logger(LOG_ERR, "failed to create temporary file: %s", strerror(errno));
-			return 2;
-		}
-		char buf[8192];
-		size_t nread, nwrit;
-		for (;;) {
-			nread = fread(buf, 1, 8192, stdin);
-			logger(LOG_DEBUG, "read %li bytes from stdin", nread);
-			if (nread <= 0) {
-				if (feof(stdin)) break;
-				logger(LOG_ERR, "read failed: %s", strerror(errno));
-				fclose(io);
-				return 2;
-			}
-
-			nwrit = fwrite(buf, 1, nread, io);
-			logger(LOG_DEBUG, "wrote %li bytes to temporary file", nwrit);
-			if (nwrit != nread) {
-				logger(LOG_ERR, "failed to write to temp file: %s", strerror(errno));
-				fclose(io);
-				return 2;
-			}
-		}
-	} else {
-		logger(LOG_INFO, "reading from %s", argv[optind]);
-		io = fopen(argv[optind], "r");
-		if (!io) {
-			fprintf(stderr, "Failed to open %s: %s\n",
-					argv[optind], strerror(errno));
-			return 2;
-		}
-	}
-
-	pn_machine m;
-	pn_init(&m);
-	m.trace = trace;
-
-	/* register clockwork pendulum functions */
-	pendulum_init(&m, NULL);
-
-	/* parse and run the input script */
-	int rc = pn_parse(&m, io);
-	if (rc != 0) {
-		fprintf(stderr, "Syntax error: %s\n", strerror(errno));
+	int rc, fd = open(argv[1], O_RDONLY);
+	if (fd < 0) {
+		perror(argv[1]);
 		return 1;
 	}
-	if (check)
-		printf("Syntax OK\n");
-	else
-		rc = saferun ? pn_run_safe(&m) : pn_run(&m);
+	off_t n = lseek(fd, 0, SEEK_END);
+	if (n < 0) {
+		perror(argv[1]);
+		return 1;
+	}
+	if (n == 0) {
+		fprintf(stderr, "%s: not a valid pendulum binary image\n", argv[1]);
+		return 1;
+	}
+	byte_t *code = mmap(NULL, n, PROT_READ, MAP_PRIVATE, fd, 0);
+	if (!code) {
+		perror(argv[1]);
+		return 1;
+	}
 
-	pendulum_destroy(&m);
-	pn_destroy(&m);
-	return rc;
+	vm_t vm;
+	rc = vm_reset(&vm);
+	assert(rc == 0);
+
+	rc = vm_prime(&vm, code, n);
+	assert(rc == 0);
+
+	rc = vm_args(&vm, argc, argv);
+	assert(rc == 0);
+
+	vm.trace = trace;
+
+	vm_exec(&vm);
+
+	rc = vm_done(&vm);
+	assert(rc == 0);
+
+	return 0;
 }

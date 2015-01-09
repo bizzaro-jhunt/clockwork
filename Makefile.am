@@ -270,10 +270,9 @@ cogd_SOURCES        = src/cogd.c     $(core_src) $(parser_spec_src)
 authtest_SOURCES    = src/authtest.c $(core_src)
 meshd_SOURCES       = src/meshd.c    $(core_src)
 
-bin_PROGRAMS        = bdfa pn pn2 pnc cw
+bin_PROGRAMS        = bdfa pn pnc cw
 bdfa_SOURCES        = src/bdfa.c src/base.h src/base.c
 pn_SOURCES          = src/pn.c    $(core_src)
-pn2_SOURCES         = src/pn2.c   $(core_src)
 pnc_SOURCES         = src/pnc.c   $(core_src)
 cw_SOURCES          = cli/cw.c    $(core_src) $(parser_spec_src)
 

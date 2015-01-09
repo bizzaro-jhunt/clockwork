@@ -86,6 +86,7 @@ build/
 dev/
 
 t/tmp
+t/vars.pl
 t/00-bits
 t/01-string
 t/02-pdu

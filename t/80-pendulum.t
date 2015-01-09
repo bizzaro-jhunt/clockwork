@@ -3,6 +3,7 @@ use Test::More;
 use t::common;
 use POSIX qw/mkfifo/;
 use IO::Socket::UNIX;
+require "t/vars.pl";
 
 subtest "noop" => sub {
 	pn2_ok(qq(
@@ -1657,9 +1658,9 @@ subtest "properies" => sub {
 	fn main
 		property "runtime" %a
 		property "version" %b
-		print "pendulum v%[b]s runtime %[a]s"),
+		print "v%[b]s runtime %[a]s"),
 
-	"pendulum v2.0 runtime 20150108",
+	"v$VERSION runtime $RUNTIME",
 	"property retrieval");
 
 	pn2_ok(qq(

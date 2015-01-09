@@ -4,9 +4,8 @@
 
 AC_PREREQ(2.68)
 
-# DONT FORGET: change t/pendulum/02-show.t
-#              whenever the version changes!!
 AC_INIT([Clockwork], [2.4.5], [bugs@niftylogic.com])
+AC_SUBST([PACKAGE_RUNTIME], [20150108])
 
 ################################################
 
@@ -175,5 +174,5 @@ AC_CHECK_FUNCS([\
 
 ################################################
 
-AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([Makefile t/vars.pl])
 AC_OUTPUT

@@ -1,0 +1,699 @@
+;;
+;; Clockwork Pendulum Standard Library
+;;   stdlib.pn
+;;
+;; author:  James Hunt <james@niftylogic.com>
+;; created: 2015-01-08
+;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; res.file.absent
+;;
+fn res.file.absent
+    fs.stat %a
+    jz +1
+    retv 0
+
+    fs.file? %a
+    jz rm
+
+    fs.symlink? %a
+    jz rm
+
+    error "%[a]s exists, but is not a regular file"
+    bail 1
+
+  rm:
+    fs.unlink %a
+    jnz +1 ret
+
+    perror "failed to remove %[a]s"
+    bail 1
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; res.dir.absent
+;;
+fn res.dir.absent
+    fs.stat %a
+    jz +1
+    retv 0
+
+    fs.dir? %a
+    jz rm
+
+    fs.symlink? %a
+    jz rm
+
+    error "%[a]s exists, but is not a directory"
+    bail 1
+
+  rm:
+    fs.rmdir %a
+    jnz +1 ret
+
+    perror "failed to remove %[a]s"
+    bail 1
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; res.file.present
+;;
+fn res.file.present
+    fs.stat %a
+    jnz create
+
+    fs.symlink? %a
+    jz remove
+
+    error "%[a]s exists, but is not a regular file"
+    bail 1
+
+  remove:
+    fs.unlink %a
+    jz create
+
+    perror "failed to replace %[a]s with a regular file"
+    bail 1
+
+  create:
+    fs.touch %a
+    jnz +2
+    ;;mark ;; FIXME
+    retv 0
+
+    perror "failed to create regular file %[a]s"
+    bail 1
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; res.file.chown
+;;
+
+fn res.file.chown
+    authdb.open
+    jz +2
+      perror "failed to open authdb"
+      bail 1
+
+    user.find %b
+    user.get "uid" %c
+    jz +3
+      error "failed to find user %[b]s"
+      authdb.close
+      bail 1
+
+    authdb.close
+    fs.chown %a %c
+    jz +2
+      perror "failed to change ownership of %[a]s to %[b]s"
+      bail 1
+
+    ;;mark ;; FIXME
+    retv 0
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; res.file.chgrp
+;;
+fn res.file.chgrp
+    authdb.open
+    jz +2
+      perror "failed to open authdb"
+      bail 1
+
+    group.find %b
+    group.get "gid" %c
+    jz +3
+      error "failed to find group %[b]s"
+      authdb.close
+      bail 1
+
+    authdb.close
+    fs.chgrp %a %c
+    jz +2
+      perror "failed to change group ownership of %[a]s to %[b]s"
+      bail 1
+
+    ;mark ;; FIXME
+    retv 0
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; res.file.chmod
+;;
+fn res.file.chmod
+    fs.chmod %a %b
+    jz +2
+      perror "failed to set mode of %[a]s to %[b]04o"
+      bail 1
+
+    ;mark ;; FIXME
+    retv 0
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; res.file.contents
+;;
+fn res.file.contents
+    ; %a is path
+    ; %b is temp file (which may be equal to path)
+    ; %c is resource key
+    ; %d is verify command
+    ; %e is expected return code of `%d`
+
+    remote.sha1 %c %o
+    jz +2
+      perror "failed to retrieve remote SHA1 for %[a]s"
+      bail 1
+
+    fs.sha1 %a %p
+    jz +2
+      perror "failed to calculate SHA1 for local copy of %[a]s"
+      bail 1
+
+    streq %o %p
+    jnz +1
+      ret
+
+    syslog notice "Updating local content of %[a]s (%[p]s) from remote copy (%[o]s)"
+    remote.file %c %b
+    jz +2
+      perror "failed to write to %[b]s"
+      bail 1
+
+    streq %a %b
+    jnz +1
+      ret ;; if path (%a) == tempfile (%b), nothing more to be done here
+
+    ;; otherwise, we have to verify via %d and %e
+    exec %d %m
+    jz +2
+      perror "Failed to exec pre-change verification check `%[d]s`"
+      bail 1
+
+    eq %m %e ;; actual return code == expected return code?
+    jz +2
+      error "Pre-change verification check `%[d]s` failed; returned %[m]u (not %[e]u)\n"
+      bail 1
+
+    fs.rename %b %a
+    jz +3
+      perror "Failed to rename %[b]s -> %[a]s"
+      fs.unlink %b
+      bail 1
+
+    retv 0
+
+
+
+fn res.symlink.absent
+    fs.stat %a
+    jz +1 ret
+
+    fs.symlink? %a
+    jnz +2
+      error "%[a]s exists, but is not a symbolic link"
+      bail 1
+
+    fs.unlink %a
+    jz +1 bail 1
+    ret
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; res.symlink.ensure
+;;
+fn res.symlink.ensure
+    fs.stat %a
+    jnz create
+
+    fs.symlink? %a
+    jz +2
+      error "%[a]s exists, but is not a symbolic link\n"
+      bail 1
+
+    fs.readlink %a %e
+    jz +2
+      perror "failed to read target of symbolic link %[a]s"
+      bail 1
+
+    streq %b %e
+    jnz +1
+      retv 0
+
+    fs.unlink %a
+    jz +2
+      perror "failed to remove %[a]s"
+      bail 1
+
+  create:
+    fs.symlink %a %b
+    ret
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; util.authdb.open
+;;
+fn util.authdb.open
+    authdb.open
+    jz +1
+      perror "Failed to open authentication databases"
+      bail 1
+    ret
+
+fn util.authdb.save
+    authdb.save
+    jz +2
+      perror "Failed to write changes to authentication databases"
+      bail 1
+    authdb.close
+    ret
+
+fn util.runuser
+    user.find %a
+    jz +2
+      perror "Failed to find user '%s'"
+      bail 1
+
+    user.get "uid" %b
+    runas.uid %b
+    ret
+
+fn util.findgroup
+    group.find %a
+    jz +2
+      perror "Failed to find group '%s'"
+      bail 1
+
+    group.get "gid" %b
+    runas.gid %b
+    ret
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; res.user.absent
+;;
+fn res.user.absent
+    user.find %a
+    jz +1 ret
+
+    user.delete
+    user.find %a
+    jz +1 ret
+
+    error "failed to delete group '%[a]s'"
+    bail 1
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; res.user.present
+;;
+;;   %a = username
+;;   %b = uid
+;;   %c = gid
+;;   %d = home
+;;   %e = shell
+;;
+fn res.user.present
+    user.find %a
+    jz exists
+      user.new
+      user.set "username"  %a
+      user.set "passwd"   "x"
+      user.set "pwhash"   "*"
+      user.set "pwmin"     0
+      user.set "pwmax"     9999
+      user.set "pwwarn"    7
+      user.set "inact"     0
+      user.set "expiry"    0
+
+  exists:
+    eq %b 0
+    jnz ok
+      authdb.nextuid 1000 %b
+      jz ok
+        perror "failed to lookup next available GID"
+        bail 1
+
+  ok:
+    user.set "uid"   %b
+    user.set "gid"   %c
+    user.set "home"  %d
+    user.set "shell" %e
+    ret
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; res.group.absent
+;;
+fn res.group.absent
+    group.find %a
+    jz +1 ret
+
+    group.delete
+    group.find %a
+    jz +1 ret
+
+    error "failed to delete group '%[a]s'"
+    bail 1
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; res.group.present
+;;
+;;   %a = group name
+;;   %b = gid
+;;
+fn res.group.present
+    group.find %a
+    jz exists
+      group.new
+      group.set "name"    %a
+      group.set "passwd" "x"
+
+  exists:
+    eq %b 0
+    jnz ok
+      authdb.nextgid 1000 %b
+      jz ok
+        perror "failed to lookup next available GID"
+        bail 1
+
+  ok:
+    group.set "gid" %b
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; res.package.absent
+;;
+;;   %a = package name
+;;
+fn res.package.absent
+    localsys "pkg-version %[a]s" %b
+    acc %d
+    eq %d 1
+    jnz +1  ;; return code 1 == not installed
+      ret
+
+    eq %d 0
+    jz +2
+      perror "Failed to detect installed version of %[a]s"
+      bail 1
+
+    localsys "pkg-remove %[a]s" %c
+    acc %d
+    eq %d 0
+    jnz +1 ret
+
+    perror "Failed to remove package %[a]s"
+    bail 1
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; res.package.install
+;;
+;;   %a = package name
+;;   %b = version, with the following caveats:
+;;          ""       = install any version
+;;          "latest" = install the most recent version
+;;          "x.y.z"  = install a specific version
+;;
+fn res.package.install
+    set %c ""
+    localsys "pkg-version %[a]s" %c
+    jz update
+
+    acc %d eq %d 1
+    jz install
+
+    perror "Failed to detect installed version of %[a]s"
+    bail 1
+
+  install:
+    streq %b ""         jz install.latest
+    streq %b "latest"   jz install.latest
+
+    syslog notice "installing %[a]s version %[b]s"
+    localsys "pkg-install %[a]s %[b]s" %c
+    jnz +1 ret
+
+    perror "Package installation failed"
+    bail 1
+
+  install.latest:
+    syslog notice "installing latest version of %[a]s"
+    localsys "pkg-install %[a]s latest" %p
+    jnz +1 ret
+
+    perror "Package installation failed"
+    bail 1
+
+  update:
+    streq %b ""         jz update.latest
+    streq %b "latest"   jz update.latest
+
+    streq %b %c
+    jnz +1 ret
+
+    syslog notice "upgrading package %[a]s to version %[b]s"
+    localsys "pkg-install %[a]s %[b]s" %p
+    jnz +1 ret
+
+    perror "Package installation failed"
+    bail 1
+
+  update.latest:
+    localsys "pkg-latest %[a]s" %d
+    jz +2
+      error "Failed to determine latest version of %[a]s"
+      bail 1
+
+    streq %c %d
+    jnz +1 ret
+
+    syslog notice "updgraind package %[a]s from version %[c]s to (latest) %[d]s"
+    localsys "pkg-install %[a]s %[d]s" %p
+    jnz +1 ret
+
+    perror "Package installation failed"
+    bail 1
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; res.service.enable
+;;
+;;   %a = service name
+;;
+fn res.service.enable
+    localsys "svc-boot-status %[a]s" %b
+    jnz +1 ret
+
+    syslog notice "enabling service %[a]s to start at boot"
+    localsys "svc-enable %[a]s" %b
+    jnz +1 ret
+
+    error "Failed to enable service %[a]s to start at boot"
+    bail 1
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; res.service.disable
+;;
+;;   %a = service name
+;;
+fn res.service.disable
+    localsys "svc-boot-status %[a]s" %b
+    jz +1 ret
+
+    syslog notice "disabling service %[a]s"
+    localsys "svc-disable %[a]s" %b
+    jnz +1 ret
+
+    error "Failed to disable service %[a]s"
+    bail 1
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; res.service.start
+;;
+;;   %a = service name
+;;
+fn res.service.start
+    localsys "svc-run-status %[a]s" %b
+    jnz +1 ret
+
+    syslog notice "starting service %[a]s"
+    localsys "svc-init %[a]s start" %b
+    jnz +1 ret
+
+    error "Failed to start service %[a]s"
+    bail 1
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; res.service.restart
+;;
+;;   %a = service name
+;;
+fn res.service.restart
+    localsys "svc-run-status %[a]s" %b
+    jz restart
+
+      syslog notice "starting service %[a]s"
+      localsys "svc-init %[a]s start" %b
+      jnz +1 ret
+
+      error "Failed to start service %[a]s"
+      bail 1
+
+  restart:
+      syslog notice "restarting service %[a]s"
+      localsys "svc-init %[a]s restart" %b
+      jnz +1 ret
+
+      error "Failed to restart service %[a]s"
+      bail 1
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; res.service.stop
+;;
+;;   %a = service name
+;;
+fn res.service.stop
+    localsys "svc-run-status %[a]s" %b
+    jz +1 ret
+
+    syslog notice "stopping service %[a]s"
+    localsys "svc-init %[a]s stop" %b
+    jnz +1 ret
+
+    error "Failed to stop service %[a]s"
+    bail 1
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; res.host.absent
+;;
+;;   %a = address
+;;   %b = hostname
+;;
+fn res.host.absent
+    string "/files/etc/hosts/*[ipaddr = \"%[a]s\" and canonical = \"%[b]s\"" %p
+    augeas.find %p %o ;; FIXME augeas.exists?
+    jz +1 ret
+    augeas.remove %p
+    jnz +1 ret
+
+    augeas.perror "Failed to remove host record for %[a]s/%[b]s"
+    bail 1
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; res.host.present
+;;
+;;   %a = address
+;;   %b = hostname
+;;
+fn res.host.present
+    string "/files/etc/hosts/*[ipaddr = \"%[a]s\" and canonical = \"%[b]s\"" %p
+    augeas.find %p %o ;; FIXME augeas.exists?
+    jnz +1 ret
+
+    augeas.set "/files/etc/hosts/9999/ipaddr" %a
+    jz +2
+      augeas.perror "Failed to create new host record for %[a]s/%[b]s"
+      bail 1
+
+    augeas.set "/files/etc/hosts/9999/canonical" %b
+    jz +2
+      augeas.perror "Failed to create new host record for %[a]s/%[b]s"
+      bail 1
+
+    ret
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; res.host.clear-aliases
+;;
+;;   %a = address
+;;   %b = hostname
+;;
+fn res.host.clear-aliases
+    string "/files/etc/hosts/*[ipaddr = \"%[a]s\" and canonical = \"%[b]s\"" %p
+    augeas.find %p %o
+
+    jz +2
+      augeas.perror "Failed to find host record %[a]s/%[b]s"
+      bail 1
+
+    string "%[o]s/alias" %n
+    augeas.remove %n
+    jnz +1 ret
+
+    augeas.perror "Failed to clear host aliases for %[a]s/%[b]s"
+    bail 1
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; res.host.add-alias
+;;
+;;   %a = address
+;;   %b = hostname
+;;   %c = index (for augeas, starts at 0)
+;;   %d = alias name
+;;
+fn res.host.add-alias
+    string "/files/etc/hosts/*[ipaddr = \"%[a]s\" and canonical = \"%[b]s\"" %p
+    augeas.find %p %o
+
+    jz +2
+      augeas.perror "Failed to find host record %[a]s/%[b]s"
+      bail 1
+
+    string "%[o]s/alias/%[c]u" %n
+    augeas.set %n %d
+    jnz +1 ret
+
+    augeas.perror "Failed to add alias '%[d]s' (at index %[c]u) to host record %[a]s/%[b]s"
+    bail 1
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; res.sysctl.set
+;;
+;;   %a = /-separated path
+;;   %b = .-separated parameter name
+;;   %c = value
+;;   %d = persist to file (1) or not (0)
+;;
+fn res.sysctl.set
+    string "/proc/sys/%[a]s" %e
+    fs.get %e %f
+    streq %f %c
+    jz persist
+
+    fs.put %e %c
+    jz persist
+
+    perror "Failed to update %[a]s with desired value"
+    bail 1
+
+  persist:
+    eq %d 1 jz +1 ret   ;;  no persistence
+    set %a "/files/etc/sysctl.conf/%[b]s"
+    augeas.set %a %c
+    jnz +1 ret
+
+    perror "Failed to update /etc/sysctl.conf for %[b]s = %[c]s"
+    bail 1
+
+;; vim:et:ts=4:sw=4

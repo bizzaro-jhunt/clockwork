@@ -443,6 +443,13 @@ subtest "functions" => sub {
 
 	"func() == 42",
 	"use acc opcode to get return value");
+
+	pendulum_ok(qq(
+	fn a:b-c.d_e?  print "ok"
+	fn main        call a:b-c.d_e?),
+
+	"ok",
+	"function names can contain funky characters");
 };
 
 subtest "dump operator" => sub {

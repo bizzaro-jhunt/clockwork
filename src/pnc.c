@@ -191,10 +191,10 @@ getline:
 	}
 
 	if (isalpha(*b)) {
-		while (*b && !isspace(*b) && *b != ':')
+		while (*b && !isspace(*b))
 			b++;
-		if (*b == ':') {
-			*b++ = '\0';
+		if (b > a && *(b-1) == ':') {
+			*(b-1) = '\0';
 			p->token = T_LABEL;
 			memcpy(p->value, p->buffer, b-p->buffer);
 			SHIFTLINE;
@@ -202,7 +202,7 @@ getline:
 		}
 		b = a;
 
-		while (*b && (isalnum(*b) || *b == '.' || *b == '_' || *b == '?' || *b == '-'))
+		while (*b && (isalnum(*b) || *b == '.' || *b == '_' || *b == '?' || *b == '-' || *b == ':'))
 			b++;
 		*b++ = '\0';
 

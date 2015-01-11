@@ -74,6 +74,7 @@ COMMAND(fact);
 COMMAND(load);
 COMMAND(clear);
 COMMAND(gencode);
+COMMAND(gencode2);
 COMMAND(log);
 
 #define CONTEXT_NONE   0
@@ -486,6 +487,16 @@ COMMAND(gencode)
 	return 0;
 }
 
+COMMAND(gencode2)
+{
+	if (CONTEXT.type != CONTEXT_HOST) {
+		logger(LOG_ERR, "gencode2 should only be used in a 'host' context\n");
+	} else {
+		policy_gencode2(CONTEXT.policy, stdout);
+	}
+	return 0;
+}
+
 COMMAND(log)
 {
 	static const char *levels[] = {
@@ -840,6 +851,7 @@ static void setup(void)
 	hash_set(DISPATCH, "clear",   command_clear);
 
 	hash_set(DISPATCH, "gencode", command_gencode);
+	hash_set(DISPATCH, "gencode2", command_gencode2);
 
 	hash_set(DISPATCH, "log",     command_log);
 

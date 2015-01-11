@@ -113,6 +113,7 @@ hash_t* resource_attrs(const struct resource *r);
 int resource_norm(struct resource *r, struct policy *pol, hash_t *facts);
 int resource_set(struct resource *r, const char *attr, const char *value);
 int resource_match(const struct resource *r, const char *attr, const char *value);
+int resource_gencode2(const struct resource *r, FILE *io);
 int resource_gencode(const struct resource *r, FILE *io, unsigned int next);
 FILE* resource_content(const struct resource *r, hash_t *facts);
 

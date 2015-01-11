@@ -1146,3 +1146,45 @@ int policy_gencode(const struct policy *pol, FILE *io)
 	fprintf(io, "HALT\n");
 	return 0;
 }
+
+int policy_gencode2(const struct policy *pol, FILE *io)
+{
+	acl_t *a;
+	for_each_acl(a, pol)
+		acl_gencode(a, io);
+
+	struct resource *r;
+	struct dependency *d;
+	for_each_resource(r, pol) {
+		fprintf(io, "fn res:%08x\n"
+		            "  unflag changed\n"
+		            "  call fix:%08x\n", r->serial, r->serial);
+
+		int n = 0;
+		for_each_dependency(d, pol)
+			if (r == d->resource_b)
+				n++;
+
+		if (n) {
+			fprintf(io, "  flagged? changed\n"
+			            "  jz +1 ret\n");
+			for_each_dependency(d, pol)
+				if (r == d->resource_b)
+					fprintf(io, "  flag \"%s\"\n", r->key);
+			fprintf(io, "  ret\n");
+
+		} else {
+			fprintf(io, "  ;; no dependencies\n");
+		}
+
+		fprintf(io, "\n"
+		            "fn fix:%08x\n", r->serial);
+		resource_gencode2(r, io);
+	}
+
+	fprintf(io, "\nfn main\n");
+	for_each_resource(r, pol)
+		fprintf(io, "  ;; %s\n"
+		            "  try res:%08x\n", r->key, r->serial);
+	return 0;
+}

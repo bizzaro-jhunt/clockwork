@@ -160,5 +160,6 @@ struct resource* policy_find_resource(struct policy *pol, enum restype type, con
 int policy_add_dependency(struct policy *pol, struct dependency *dep);
 
 int policy_gencode(const struct policy *pol, FILE *io);
+int policy_gencode2(const struct policy *pol, FILE *io);
 
 #endif

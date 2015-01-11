@@ -320,11 +320,13 @@ fn res.user.absent
 ;;   %c = gid
 ;;   %d = home
 ;;   %e = shell
+;;   %f = password
 ;;
 fn res.user.present
     user.find %a
     jz exists
       user.new
+      flag mkhome
       user.set "username"  %a
       user.set "passwd"   "x"
       user.set "pwhash"   "*"
@@ -343,10 +345,14 @@ fn res.user.present
         bail 1
 
   ok:
-    user.set "uid"   %b
-    user.set "gid"   %c
-    user.set "home"  %d
-    user.set "shell" %e
+    streq %e ""
+    jnz +1 set %e "/bin/false"  ;; set default shell
+
+    user.set "uid"    %b
+    user.set "gid"    %c
+    user.set "home"   %d
+    user.set "shell"  %e
+    user.set "pwhash" %f
     ret
 
 

@@ -306,6 +306,99 @@ int res_user_match(const void *res, const char *name, const char *value)
 	return rc;
 }
 
+int res_user_gencode2(const void *res, FILE *io)
+{
+	struct res_user *r = (struct res_user*)(res);
+	assert(r); // LCOV_EXCL_LINE
+
+	fprintf(io, "  call util.authdb.open\n"
+	            "  set %%a \"%s\"\n", r->name);
+
+	if (ENFORCED(r, RES_USER_ABSENT)) {
+		fprintf(io, "  call res.user.absent\n"
+		            "  call util.authdb.save\n");
+		return 0;
+	}
+
+	char *s = string("/home/%s", r->name);
+	fprintf(io, "  set %%b %u ; uid\n"
+	            "  set %%c %u ; gid\n"
+	            "  set %%d \"%s\" ; home\n"
+	            "  set %%e \"%s\" ; shell\n"
+	            "  set %%f \"%s\" ; password\n"
+	            "  call res.user.present\n",
+	            ENFORCED(r, RES_USER_UID)   ? r->uid   : 0,
+	            ENFORCED(r, RES_USER_GID)   ? r->gid   : 0,
+	            ENFORCED(r, RES_USER_DIR)   ? r->dir   : s,
+	            ENFORCED(r, RES_USER_SHELL) ? r->shell : "",
+	            r->passwd ? r->passwd : "*");
+
+	if (ENFORCED(r, RES_USER_DIR))
+		fprintf(io, "  ;;; home\n"
+		            "  set %%b \"%s\"\n"
+		            "  user.set \"home\" %%b\n"
+		            "  jz +2\n"
+		            "    error \"Failed to set %%[a]s' home directory to %%[b]s\""
+		            "    bail\n", r->dir);
+	if (ENFORCED(r, RES_USER_GECOS))
+		fprintf(io, "  ;;; comment\n"
+		            "  set %%b \"%s\"\n"
+		            "  user.set \"comment\" %%b\n"
+		            "  jz +2\n"
+		            "    error \"Failed to set %%[a]s' GECOS comment to %%[b]s\""
+		            "    bail\n", r->gecos);
+	if (ENFORCED(r, RES_USER_SHELL))
+		fprintf(io, "  ;;; login shell\n"
+		            "  set %%b \"%s\"\n"
+		            "  user.set \"shell\" %%b\n"
+		            "  jz +2\n"
+		            "    error \"Failed to set %%[a]s' login shell to %%[b]s\""
+		            "    bail\n", r->shell);
+	if (ENFORCED(r, RES_USER_PWMIN))
+		fprintf(io, "  ;;; minimum password age\n"
+		            "  set %%b \"%li\"\n"
+		            "  user.set \"pwmin\" %%b\n"
+		            "  jz +2\n"
+		            "    error \"Failed to set %%[a]s' minimum password age to %%[b]li\""
+		            "    bail\n", r->pwmin);
+	if (ENFORCED(r, RES_USER_PWMAX))
+		fprintf(io, "  ;;; maximum password age\n"
+		            "  set %%b \"%li\"\n"
+		            "  user.set \"pwmax\" %%b\n"
+		            "  jz +2\n"
+		            "    error \"Failed to set %%[a]s' maximum password age to %%[b]li\""
+		            "    bail\n", r->pwmax);
+	if (ENFORCED(r, RES_USER_PWWARN))
+		fprintf(io, "  ;;; password warning period\n"
+		            "  set %%b \"%li\"\n"
+		            "  user.set \"pwwarn\" %%b\n"
+		            "  jz +2\n"
+		            "    error \"Failed to set %%[a]s' password warning period to %%[b]li\""
+		            "    bail\n", r->pwwarn);
+	if (ENFORCED(r, RES_USER_INACT))
+		fprintf(io, "  ;;; password inactivity period\n"
+		            "  set %%b \"%li\"\n"
+		            "  user.set \"inact\" %%b\n"
+		            "  jz +2\n"
+		            "    error \"Failed to set %%[a]s' password inactivity period to %%[b]li\""
+		            "    bail\n", r->inact);
+	if (ENFORCED(r, RES_USER_EXPIRE))
+		fprintf(io, "  ;;; account expiration\n"
+		            "  set %%b \"%s\"\n"
+		            "  user.set \"expiry\" %%b\n"
+		            "  jz +2\n"
+		            "    error \"Failed to set %%[a]s' account expiration to %%[b]li\""
+		            "    bail\n", r->shell);
+	if (ENFORCED(r, RES_USER_MKHOME))
+		fprintf(io, "  flagged? mkhome\n"
+		            "  jz +2\n"
+		            "  user.get \"home\" %%b\n"
+		            "  call res.user.mkhome\n");
+
+	fprintf(io, "  call util.authdb.save\n");
+	return 0;
+}
+
 int res_user_gencode(const void *res, FILE *io, unsigned int next, unsigned int serial)
 {
 	struct res_user *r = (struct res_user*)(res);
@@ -706,6 +799,39 @@ int res_file_match(const void *res, const char *name, const char *value)
 	return rc;
 }
 
+int res_file_gencode2(const void *res, FILE *io)
+{
+	struct res_file *r = (struct res_file*)(res);
+	assert(r); // LCOV_EXCL_LINE
+
+	fprintf(io, "  set %%a \"%s\"\n", r->path);
+
+	if (ENFORCED(r, RES_FILE_ABSENT)) {
+		fprintf(io, "  call res.file.absent\n");
+		return 0;
+	}
+
+	fprintf(io, "  call res.file.present\n");
+	if (ENFORCED(r, RES_FILE_UID))
+		fprintf(io, "  set %%b \"%s\"\n"
+		            "  call res.file.chown\n", r->owner);
+	if (ENFORCED(r, RES_FILE_GID))
+		fprintf(io, "  set %%b \"%s\"\n"
+		            "  call res.file.chgrp\n", r->group);
+	if (ENFORCED(r, RES_FILE_MODE))
+		fprintf(io, "  set %%b 0%o\n"
+		            "  call res.file.chmod\n", r->mode);
+	if (ENFORCED(r, RES_FILE_SHA1)) {
+		if (r->verify)
+			fprintf(io, "  set %%d \"%s\"\n"
+			            "  set %%e %u\n", r->verify, r->expectrc);
+
+		fprintf(io, "  set %%b \"%s\"\n"
+		            "  call res.file.contents\n", r->key);
+	}
+	return 0;
+}
+
 int res_file_gencode(const void *res, FILE *io, unsigned int next, unsigned int serial)
 {
 	struct res_file *r = (struct res_file*)(res);
@@ -988,6 +1114,21 @@ int res_symlink_match(const void *res, const char *name, const char *value)
 	return rc;
 }
 
+int res_symlink_gencode2(const void *res, FILE *io)
+{
+	struct res_symlink *r = (struct res_symlink*)(res);
+	assert(r); // LCOV_EXCL_LINE
+
+	fprintf(io, "  set %%a \"%s\"\n", r->path);
+
+	if (r->absent)
+		fprintf(io, "  call res.symlink.absent\n");
+	else
+		fprintf(io, "  set %%b \"%s\"\n"
+		            "  call res.symlink.ensure\n", r->target);
+	return 0;
+}
+
 int res_symlink_gencode(const void *res, FILE *io, unsigned int next, unsigned int serial)
 {
 	struct res_symlink *r = (struct res_symlink*)(res);
@@ -1262,6 +1403,36 @@ int res_group_match(const void *res, const char *name, const char *value)
 	rc = strcmp(test_value, value);
 	free(test_value);
 	return rc;
+}
+
+int res_group_gencode2(const void *res, FILE *io)
+{
+	struct res_group *r = (struct res_group*)(res);
+	assert(r); // LCOV_EXCL_LINE
+
+	fprintf(io, "  call util.authdb.open\n"
+	            "  set %%a \"%s\"\n", r->name);
+
+	if (ENFORCED(r, RES_GROUP_ABSENT)) {
+		fprintf(io, "  call res.group.absent\n"
+		            "  call util.authdb.save\n");
+		return 0;
+	}
+
+	fprintf(io, "  set %%b %u\n"
+	            "  call res.group.present\n",
+		ENFORCED(r, RES_GROUP_GID)? r->gid : 0);
+	if (ENFORCED(r, RES_GROUP_PASSWD))
+		fprintf(io, "  set %%b \"%s\"\n"
+		            "  call res.group.passwd\n", r->passwd);
+	if (ENFORCED(r, RES_GROUP_MEMBERS)) {
+		fprintf(io, "  ;; FIXME: manage group membership!\n");
+	}
+	if (ENFORCED(r, RES_GROUP_ADMINS)) {
+		fprintf(io, "  ;; FIXME: manage group adminhood!\n");
+	}
+	fprintf(io, "  call util.authdb.save\n");
+	return 0;
 }
 
 int res_group_gencode(const void *res, FILE *io, unsigned int next, unsigned int serial)
@@ -1553,6 +1724,24 @@ int res_package_match(const void *res, const char *name, const char *value)
 	return rc;
 }
 
+int res_package_gencode2(const void *res, FILE *io)
+{
+	struct res_package *r = (struct res_package*)(res);
+	assert(r); // LCOV_EXCL_LINE
+
+	fprintf(io, "  set %%a \"%s\"\n", r->name);
+	if (ENFORCED(r, RES_PACKAGE_ABSENT)) {
+		fprintf(io, "  call res.package.absent\n");
+		return 0;
+	}
+
+	if (r->version)     fprintf(io, "  set %%b \"%s\"\n", r->version);
+	else if (r->latest) fprintf(io, "  set %%b \"latest\"\n");
+	else                fprintf(io, "  set %%b \"\"\n");
+	fprintf(io, "  call res.package.install\n");
+	return 0;
+}
+
 int res_package_gencode(const void *res, FILE *io, unsigned int next, unsigned int serial)
 {
 	struct res_package *r = (struct res_package*)(res);
@@ -1749,6 +1938,32 @@ int res_service_match(const void *res, const char *name, const char *value)
 	rc = strcmp(test_value, value);
 	free(test_value);
 	return rc;
+}
+
+int res_service_gencode2(const void *res, FILE *io)
+{
+	struct res_service *r = (struct res_service*)(res);
+	assert(r); // LCOV_EXCL_LINE
+	fprintf(io, "  set %%a \"%s\"\n", r->service);
+
+	if (ENFORCED(r, RES_SERVICE_ENABLED))
+		fprintf(io, "  call res.service.enable\n");
+	else if (ENFORCED(r, RES_SERVICE_DISABLED))
+		fprintf(io, "  call res.service.disable\n");
+
+	if (ENFORCED(r, RES_SERVICE_RUNNING))
+		fprintf(io, "  call res.service.start\n");
+	else if (ENFORCED(r, RES_SERVICE_STOPPED))
+		fprintf(io, "  call res.service.stop\n");
+
+	fprintf(io, "  flagged? \"%s\"\n"
+	            "  jz +1 ret\n", r->key);
+
+	if (ENFORCED(r, RES_SERVICE_RUNNING))
+		fprintf(io, "  call res.service.restart\n");
+	else if (ENFORCED(r, RES_SERVICE_STOPPED))
+		fprintf(io, "  call res.service.stop\n");
+	return 0;
 }
 
 int res_service_gencode(const void *res, FILE *io, unsigned int next, unsigned int serial)
@@ -1952,6 +2167,31 @@ int res_host_match(const void *res, const char *name, const char *value)
 	return rc;
 }
 
+int res_host_gencode2(const void *res, FILE *io)
+{
+	struct res_host *r = (struct res_host*)(res);
+	assert(r); // LCOV_EXCL_LINE
+
+	fprintf(io, "  set %%a \"%s\"\n"
+	            "  set %%b \"%s\"\n", r->ip, r->hostname);
+
+	if (ENFORCED(r, RES_HOST_ABSENT)) {
+		fprintf(io, "  call res.host.absent\n");
+	} else {
+		fprintf(io, "  call res.host.present\n");
+
+		if (ENFORCED(r, RES_HOST_ALIASES)) {
+			fprintf(io, "  call res.host.clear-aliases\n"
+			            "  set %%c 0\n");
+			int i;
+			for (i = 0; i < r->aliases->num; i++)
+				fprintf(io, "  set %%d \"%s\"\n"
+				            "  call res.host.add-alias\n", r->aliases->strings[i]);
+		}
+	}
+	return 0;
+}
+
 int res_host_gencode(const void *res, FILE *io, unsigned int next, unsigned int serial)
 {
 	struct res_host *r = (struct res_host*)(res);
@@ -2108,6 +2348,27 @@ int res_sysctl_match(const void *res, const char *name, const char *value)
 	rc = strcmp(test_value, value);
 	free(test_value);
 	return rc;
+}
+
+int res_sysctl_gencode2(const void *res, FILE *io)
+{
+	struct res_sysctl *r = (struct res_sysctl*)(res);
+	assert(r); // LCOV_EXCL_LINE
+
+	char *p, *path = strdup(r->param);
+	for (p = path; *p; p++)
+		if (*p == '.') *p = '/';
+
+	if (ENFORCED(r, RES_SYSCTL_VALUE))
+		fprintf(io, "  set %%a \"%s\"\n"
+		            "  set %%b \"%s\"\n"
+		            "  set %%c \"%s\"\n"
+		            "  set %%d %u\n"
+		            "  call res.sysctl.set\n", path, r->param, r->value,
+		              ENFORCED(r, RES_SYSCTL_PERSIST) ? 1 : 0); 
+	else
+		fprintf(io, "  noop\n");
+	return 0;
 }
 
 int res_sysctl_gencode(const void *res, FILE *io, unsigned int next, unsigned int serial)
@@ -2307,6 +2568,30 @@ int res_dir_match(const void *res, const char *name, const char *value)
 	rc = strcmp(test_value, value);
 	free(test_value);
 	return rc;
+}
+
+int res_dir_gencode2(const void *res, FILE *io)
+{
+	struct res_dir *r = (struct res_dir*)(res);
+	assert(r); // LCOV_EXCL_LINE
+
+	fprintf(io, "  set %%a \"%s\"\n", r->path);
+	if (ENFORCED(r, RES_DIR_ABSENT)) {
+		fprintf(io, "  call res.dir.absent\n");
+		return 0;
+	}
+
+	fprintf(io, "  call res.dir.present\n");
+	if (ENFORCED(r, RES_DIR_UID))
+		fprintf(io, "  set %%b \"%s\"\n"
+		            "  call res.file.chown\n", r->owner);
+	if (ENFORCED(r, RES_DIR_GID))
+		fprintf(io, "  set %%b \"%s\"\n"
+		            "  call res.file.chgrp\n", r->group);
+	if (ENFORCED(r, RES_DIR_MODE))
+		fprintf(io, "  set %%b 0%o\n"
+		            "  call res.file.chmod\n", r->mode);
+	return 0;
 }
 
 int res_dir_gencode(const void *res, FILE *io, unsigned int next, unsigned int serial)
@@ -2573,6 +2858,38 @@ int res_exec_match(const void *res, const char *name, const char *value)
 	rc = strcmp(test_value, value);
 	free(test_value);
 	return rc;
+}
+
+int res_exec_gencode2(const void *res, FILE *io)
+{
+	struct res_exec *r = (struct res_exec*)(res);
+	assert(r); // LCOV_EXCL_LINE
+
+	fprintf(io, "  set %%b \"%s\"\n"
+	            "  runas.uid 0\n"
+	            "  runas.gid 0\n", r->command);
+	if (ENFORCED(r, RES_EXEC_UID) || ENFORCED(r, RES_EXEC_GID)) {
+		fprintf(io, "  call util.authdb.open\n");
+		if (ENFORCED(r, RES_EXEC_UID))
+			fprintf(io, "  set %%a \"%s\"\n"
+			            "  call util.runuser\n", r->user);
+		if (ENFORCED(r, RES_EXEC_GID))
+			fprintf(io, "  set %%a \"%s\"\n"
+			            "  call util.rungroup\n", r->group);
+		fprintf(io, "  call util.authdb.close\n");
+	}
+
+	if (ENFORCED(r, RES_EXEC_TEST))
+		fprintf(io, "  set %%c \"%s\"\n"
+		            "  exec %%c %%d\n"
+		            "  jnz +1 ret\n", r->test);
+
+	if (ENFORCED(r, RES_EXEC_ONDEMAND))
+		fprintf(io, "  flagged? \"%s\"\n"
+		            "  jz +1 ret\n", r->key);
+
+	fprintf(io, "  exec %%b %%d\n");
+	return 0;
 }
 
 int res_exec_gencode(const void *res, FILE *io, unsigned int next, unsigned int serial)

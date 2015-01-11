@@ -570,6 +570,31 @@ fn res.service.restart
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
+;; res.service.reload
+;;
+;;   %a = service name
+;;
+fn res.service.reload
+    localsys "svc-run-status %[a]s" %b
+    jz reload
+
+      syslog notice "starting service %[a]s"
+      localsys "svc-init %[a]s start" %b
+      jnz +1 ret
+
+      error "Failed to start service %[a]s"
+      bail 1
+
+  reload:
+      syslog notice "reloading service %[a]s"
+      localsys "svc-init %[a]s reload" %b
+      jnz +1 ret
+
+      error "Failed to reload service %[a]s"
+      bail 1
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
 ;; res.service.stop
 ;;
 ;;   %a = service name

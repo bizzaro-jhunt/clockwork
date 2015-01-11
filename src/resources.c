@@ -338,62 +338,62 @@ int res_user_gencode2(const void *res, FILE *io)
 		            "  set %%b \"%s\"\n"
 		            "  user.set \"home\" %%b\n"
 		            "  jz +2\n"
-		            "    error \"Failed to set %%[a]s' home directory to %%[b]s\""
+		            "    error \"Failed to set %%[a]s' home directory to %%[b]s\"\n"
 		            "    bail\n", r->dir);
 	if (ENFORCED(r, RES_USER_GECOS))
 		fprintf(io, "  ;;; comment\n"
 		            "  set %%b \"%s\"\n"
 		            "  user.set \"comment\" %%b\n"
 		            "  jz +2\n"
-		            "    error \"Failed to set %%[a]s' GECOS comment to %%[b]s\""
+		            "    error \"Failed to set %%[a]s' GECOS comment to %%[b]s\"\n"
 		            "    bail\n", r->gecos);
 	if (ENFORCED(r, RES_USER_SHELL))
 		fprintf(io, "  ;;; login shell\n"
 		            "  set %%b \"%s\"\n"
 		            "  user.set \"shell\" %%b\n"
 		            "  jz +2\n"
-		            "    error \"Failed to set %%[a]s' login shell to %%[b]s\""
+		            "    error \"Failed to set %%[a]s' login shell to %%[b]s\"\n"
 		            "    bail\n", r->shell);
 	if (ENFORCED(r, RES_USER_PWMIN))
 		fprintf(io, "  ;;; minimum password age\n"
 		            "  set %%b \"%li\"\n"
 		            "  user.set \"pwmin\" %%b\n"
 		            "  jz +2\n"
-		            "    error \"Failed to set %%[a]s' minimum password age to %%[b]li\""
+		            "    error \"Failed to set %%[a]s' minimum password age to %%[b]li\"\n"
 		            "    bail\n", r->pwmin);
 	if (ENFORCED(r, RES_USER_PWMAX))
 		fprintf(io, "  ;;; maximum password age\n"
 		            "  set %%b \"%li\"\n"
 		            "  user.set \"pwmax\" %%b\n"
 		            "  jz +2\n"
-		            "    error \"Failed to set %%[a]s' maximum password age to %%[b]li\""
+		            "    error \"Failed to set %%[a]s' maximum password age to %%[b]li\"\n"
 		            "    bail\n", r->pwmax);
 	if (ENFORCED(r, RES_USER_PWWARN))
 		fprintf(io, "  ;;; password warning period\n"
 		            "  set %%b \"%li\"\n"
 		            "  user.set \"pwwarn\" %%b\n"
 		            "  jz +2\n"
-		            "    error \"Failed to set %%[a]s' password warning period to %%[b]li\""
+		            "    error \"Failed to set %%[a]s' password warning period to %%[b]li\"\n"
 		            "    bail\n", r->pwwarn);
 	if (ENFORCED(r, RES_USER_INACT))
 		fprintf(io, "  ;;; password inactivity period\n"
 		            "  set %%b \"%li\"\n"
 		            "  user.set \"inact\" %%b\n"
 		            "  jz +2\n"
-		            "    error \"Failed to set %%[a]s' password inactivity period to %%[b]li\""
+		            "    error \"Failed to set %%[a]s' password inactivity period to %%[b]li\"\n"
 		            "    bail\n", r->inact);
 	if (ENFORCED(r, RES_USER_EXPIRE))
 		fprintf(io, "  ;;; account expiration\n"
 		            "  set %%b \"%s\"\n"
 		            "  user.set \"expiry\" %%b\n"
 		            "  jz +2\n"
-		            "    error \"Failed to set %%[a]s' account expiration to %%[b]li\""
+		            "    error \"Failed to set %%[a]s' account expiration to %%[b]li\"\n"
 		            "    bail\n", r->shell);
 	if (ENFORCED(r, RES_USER_MKHOME))
 		fprintf(io, "  flagged? mkhome\n"
-		            "  jz +2\n"
-		            "  user.get \"home\" %%b\n"
-		            "  call res.user.mkhome\n");
+		            "  jnz +2\n"
+		            "    user.get \"home\" %%b\n"
+		            "    call res.user.mkhome\n");
 
 	fprintf(io, "  call util.authdb.save\n");
 	return 0;
@@ -823,10 +823,14 @@ int res_file_gencode2(const void *res, FILE *io)
 		            "  call res.file.chmod\n", r->mode);
 	if (ENFORCED(r, RES_FILE_SHA1)) {
 		if (r->verify)
-			fprintf(io, "  set %%d \"%s\"\n"
-			            "  set %%e %u\n", r->verify, r->expectrc);
+			fprintf(io, "  set %%b \"%s\"\n"
+			            "  set %%d \"%s\"\n"
+			            "  set %%e %u\n",
+			            r->tmpfile, r->verify, r->expectrc);
+		else
+			fprintf(io, "  set %%b \"%s\"\n", r->path);
 
-		fprintf(io, "  set %%b \"%s\"\n"
+		fprintf(io, "  set %%c \"file:%s\"\n"
 		            "  call res.file.contents\n", r->key);
 	}
 	return 0;
@@ -1956,13 +1960,11 @@ int res_service_gencode2(const void *res, FILE *io)
 	else if (ENFORCED(r, RES_SERVICE_STOPPED))
 		fprintf(io, "  call res.service.stop\n");
 
-	fprintf(io, "  flagged? \"%s\"\n"
-	            "  jz +1 ret\n", r->key);
-
 	if (ENFORCED(r, RES_SERVICE_RUNNING))
-		fprintf(io, "  call res.service.restart\n");
-	else if (ENFORCED(r, RES_SERVICE_STOPPED))
-		fprintf(io, "  call res.service.stop\n");
+		fprintf(io, "  flagged? \"service:%s\"\n"
+		            "  jz +1 ret\n"
+		            "  call res.service.%s\n",
+		            r->key, r->notify ? r->notify : "restart");
 	return 0;
 }
 

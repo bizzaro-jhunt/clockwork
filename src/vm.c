@@ -352,6 +352,29 @@ static void vm_fprintf(vm_t *vm, FILE *out, const char *fmt)
 	return;
 }
 
+static int s_copyfile(FILE *src, FILE *dst)
+{
+	rewind(src);
+	char buf[8192];
+	for (;;) {
+		size_t nread = fread(buf, 1, 8192, src);
+		if (nread == 0) {
+			if (feof(src)) break;
+			logger(LOG_ERR, "read error: %s", strerror(errno));
+			fclose(dst);
+			return 1;
+		}
+
+		size_t nwritten = fwrite(buf, 1, nread, dst);
+		if (nwritten != nread) {
+			logger(LOG_ERR, "read error: %s", strerror(errno));
+			fclose(dst);
+			return 1;
+		}
+	}
+
+	return 0;
+}
 static void s_aug_perror(FILE *io, augeas *aug)
 {
 	char **err = NULL;
@@ -377,6 +400,140 @@ static char * s_aug_find(augeas *aug, const char *needle)
 	while (rc) free(r[--rc]);
 	free(r);
 	return NULL;
+}
+
+static char* s_remote_sha1(vm_t *vm, const char *key)
+{
+	if (!vm->aux.remote) return NULL;
+
+	int rc;
+	pdu_t *pdu;
+	char *s;
+
+	rc = pdu_send_and_free(pdu_make("FILE", 1, key), vm->aux.remote);
+	if (rc != 0) return NULL;
+
+	pdu = pdu_recv(vm->aux.remote);
+	if (!pdu) {
+		logger(LOG_ERR, "remote.sh1 - failed: %s", zmq_strerror(errno));
+		return NULL;
+	}
+	if (strcmp(pdu_type(pdu), "ERROR") == 0) {
+		s = pdu_string(pdu, 1);
+		logger(LOG_ERR, "remote.sha1 - protocol violation: %s", s);
+		free(s); pdu_free(pdu);
+		return NULL;
+	}
+	if (strcmp(pdu_type(pdu), "SHA1") == 0) {
+		s = pdu_string(pdu, 1);
+		pdu_free(pdu);
+		return s;
+	}
+
+	logger(LOG_ERR, "remote.sha1 - unexpected reply PDU [%s]", pdu_type(pdu));
+	pdu_free(pdu);
+	return NULL;
+}
+
+static int s_remote_file(vm_t *vm, const char *target, const char *temp)
+{
+	int rc, n = 0;
+	char *s;
+	pdu_t *reply;
+
+	FILE *tmpf = tmpfile();
+	if (!tmpf) {
+		logger(LOG_ERR, "remote.file failed to create temporary file: %s",
+			strerror(errno));
+		return 1;
+	}
+
+	for (;;) {
+		s = string("%i", n++);
+		rc = pdu_send_and_free(pdu_make("DATA", 1, s), vm->aux.remote);
+		free(s);
+		if (rc != 0) return 1;
+
+		reply = pdu_recv(vm->aux.remote);
+		if (!reply) {
+			logger(LOG_ERR, "remote.file failed: %s", zmq_strerror(errno));
+			if (tmpf) fclose(tmpf);
+			return 1;
+		}
+		logger(LOG_DEBUG, "remote.file received a %s PDU", pdu_type(reply));
+
+		if (strcmp(pdu_type(reply), "EOF") == 0) {
+			pdu_free(reply);
+			break;
+		}
+		if (strcmp(pdu_type(reply), "BLOCK") != 0) {
+			pdu_free(reply);
+			logger(LOG_ERR, "remote.file - protocol violation: received a %s PDU (expected a BLOCK)", pdu_type(reply));
+			if (tmpf) fclose(tmpf);
+			return 1;
+		}
+
+		char *data = pdu_string(reply, 1);
+		fprintf(tmpf, "%s", data);
+		free(data);
+		pdu_free(reply);
+	}
+
+	char *difftool = hash_get(&vm->pragma, "difftool");
+	if (difftool) {
+		rewind(tmpf);
+		logger(LOG_DEBUG, "Running diff.tool: `%s NEWFILE OLDFILE'", difftool);
+		FILE *out = tmpfile();
+		if (!out) {
+			logger(LOG_ERR, "Failed to open a temporary file difftool output: %s", strerror(errno));
+		} else {
+			FILE *err = tmpfile();
+			runner_t runner = {
+				.in  = tmpf,
+				.out = out,
+				.err = err,
+				.uid = 0,
+				.gid = 0,
+			};
+
+			char *diffcmd = string("%s %s -", difftool, target);
+			rc = run2(&runner, "/bin/sh", "-c", diffcmd, NULL);
+			if (rc < 0)
+				logger(LOG_ERR, "`%s' killed or otherwise terminated abnormally");
+			else if (rc == 127)
+				logger(LOG_ERR, "`%s': command not found");
+			else
+				logger(LOG_DEBUG, "`%s' exited %i", diffcmd, rc);
+
+			if (cw_logio(LOG_INFO, "%s", out) != 0)
+				logger(LOG_ERR, "Failed to read standard output from difftool `%s': %s", diffcmd, strerror(errno));
+			if (cw_logio(LOG_ERR, "diftool: %s", err) != 0)
+				logger(LOG_ERR, "Failed to read standard error from difftool `%s': %s", diffcmd, strerror(errno));
+
+			fclose(out);
+			fclose(err);
+			free(diffcmd);
+		}
+	}
+	FILE *dst = fopen(temp, "w");
+	if (!dst) {
+		logger(LOG_ERR, "copyfile failed: %s", strerror(errno));
+		fclose(tmpf);
+		return 1;
+	}
+
+	if (strcmp(target, temp) != 0) {
+		struct stat st;
+		if (lstat(target, &st) == 0) {
+			rc = fchown(fileno(dst), st.st_uid, st.st_gid);
+			rc = fchmod(fileno(dst), st.st_mode);
+		}
+	}
+
+	rc = s_copyfile(tmpf, dst);
+	fclose(dst);
+	fclose(tmpf);
+	return rc;
 }
 
 /************************************************************************/
@@ -917,14 +1074,28 @@ int vm_exec(vm_t *vm)
 			fclose(runner.err); runner.err = NULL;
 			break;
 
+		case OP_RUNAS_UID:
+			ARG1("runas.uid");
+			vm->aux.runas_uid = s_val(vm, f1, oper1);
+			if (vm->aux.runas_uid < 0 || vm->aux.runas_uid > 65535)
+				vm->aux.runas_uid = 0;
+			break;
+
+		case OP_RUNAS_GID:
+			ARG1("runas.gid");
+			vm->aux.runas_gid = s_val(vm, f1, oper1);
+			if (vm->aux.runas_gid < 0 || vm->aux.runas_gid > 65535)
+				vm->aux.runas_gid = 0;
+			break;
+
 		case OP_EXEC:
 			ARG2("exec");
 			REGISTER2("exec");
 			runner.in  = NULL;
 			runner.out = tmpfile();
 			runner.err = tmpfile();
-			runner.uid = geteuid();
-			runner.gid = getegid();
+			runner.uid = vm->aux.runas_uid;
+			runner.gid = vm->aux.runas_gid;
 			vm->acc = run2(&runner, "/bin/sh", "-c", s_str(vm, f1, oper1), NULL);
 			if (fgets(execline, sizeof(execline), runner.out)) {
 				s = strchr(execline, '\n'); if (s) *s = '\0';
@@ -1346,6 +1517,27 @@ int vm_exec(vm_t *vm)
 				fprintf(stdout, "%s\n", s = acl_string(acl));
 				free(s);
 			}
+			break;
+
+		case OP_REMOTE_LIVE_P:
+			ARG0("remote.live?");
+			vm->acc = vm->aux.remote ? 0 : 1;
+			break;
+
+		case OP_REMOTE_SHA1:
+			ARG2("remote.sha1");
+			REGISTER2("remote.sha1");
+			s = s_remote_sha1(vm, s_str(vm, f1, oper1));
+			vm->acc = 1;
+			if (s) {
+				vm->r[oper2] = vm_heap_strdup(vm, s);
+				vm->acc = 0;
+			}
+			break;
+
+		case OP_REMOTE_FILE:
+			ARG2("remote.file");
+			vm->acc = s_remote_file(vm, s_str(vm, f1, oper1), s_str(vm, f2, oper2));
 			break;
 
 		default:

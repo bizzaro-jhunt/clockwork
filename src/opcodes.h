@@ -95,14 +95,19 @@
 #define OP_ENV_SET         0x5b  /* set the value of an environment variable */
 #define OP_ENV_UNSET       0x5c  /* unset an environment variable */
 #define OP_LOCALSYS        0x5d  /* execute `cw localsys` with arguments */
-#define OP_EXEC            0x5e  /* execute a command */
-#define OP_DUMP            0x5f  /* dump virtual machine state for debugging */
-#define OP_HALT            0x60  /* halt the virtual machine */
-#define OP_PRAGMA          0x61  /* set a compiler pragma */
-#define OP_PROPERTY        0x62  /* retrieve a property into a register */
-#define OP_ACL             0x63  /* store a mech ACL */
-#define OP_SHOW_ACLS       0x64  /* print ACL entries */
-#define OP_SHOW_ACL        0x65  /* print ACL entries that match the query */
+#define OP_RUNAS_UID       0x5e  /* Set the run-as UID */
+#define OP_RUNAS_GID       0x5f  /* Set the run-as GID */
+#define OP_EXEC            0x60  /* execute a command */
+#define OP_DUMP            0x61  /* dump virtual machine state for debugging */
+#define OP_HALT            0x62  /* halt the virtual machine */
+#define OP_PRAGMA          0x63  /* set a compiler pragma */
+#define OP_PROPERTY        0x64  /* retrieve a property into a register */
+#define OP_ACL             0x65  /* store a mech ACL */
+#define OP_SHOW_ACLS       0x66  /* print ACL entries */
+#define OP_SHOW_ACL        0x67  /* print ACL entries that match the query */
+#define OP_REMOTE_LIVE_P   0x68  /* Determine if we are connected to a clockd server */
+#define OP_REMOTE_SHA1     0x69  /* Retrieve the remote SHA1 based on a resource key */
+#define OP_REMOTE_FILE     0x6a  /* Retrieve the contents of a file based on a resource key */
 
 
 #ifdef OPCODES_EXTENDED
@@ -202,14 +207,19 @@ static const char * OPCODES[] = {
 	"env.set",           /* OP_ENV_SET          91  0x5b */
 	"env.unset",         /* OP_ENV_UNSET        92  0x5c */
 	"localsys",          /* OP_LOCALSYS         93  0x5d */
-	"exec",              /* OP_EXEC             94  0x5e */
-	"dump",              /* OP_DUMP             95  0x5f */
-	"halt",              /* OP_HALT             96  0x60 */
-	"pragma",            /* OP_PRAGMA           97  0x61 */
-	"property",          /* OP_PROPERTY         98  0x62 */
-	"acl",               /* OP_ACL              99  0x63 */
-	"show.acls",         /* OP_SHOW_ACLS       100  0x64 */
-	"show.acl",          /* OP_SHOW_ACL        101  0x65 */
+	"runas.uid",         /* OP_RUNAS_UID        94  0x5e */
+	"runas.gid",         /* OP_RUNAS_GID        95  0x5f */
+	"exec",              /* OP_EXEC             96  0x60 */
+	"dump",              /* OP_DUMP             97  0x61 */
+	"halt",              /* OP_HALT             98  0x62 */
+	"pragma",            /* OP_PRAGMA           99  0x63 */
+	"property",          /* OP_PROPERTY        100  0x64 */
+	"acl",               /* OP_ACL             101  0x65 */
+	"show.acls",         /* OP_SHOW_ACLS       102  0x66 */
+	"show.acl",          /* OP_SHOW_ACL        103  0x67 */
+	"remote.live?",      /* OP_REMOTE_LIVE_P   104  0x68 */
+	"remote.sha1",       /* OP_REMOTE_SHA1     105  0x69 */
+	"remote.file",       /* OP_REMOTE_FILE     106  0x6a */
 	NULL,
 };
 #endif
@@ -312,14 +322,19 @@ static const char * OPCODES[] = {
 #define T_OP_ENV_SET         0x9c  /* set the value of an environment variable */
 #define T_OP_ENV_UNSET       0x9d  /* unset an environment variable */
 #define T_OP_LOCALSYS        0x9e  /* execute `cw localsys` with arguments */
-#define T_OP_EXEC            0x9f  /* execute a command */
-#define T_OP_DUMP            0xa0  /* dump virtual machine state for debugging */
-#define T_OP_HALT            0xa1  /* halt the virtual machine */
-#define T_OP_PRAGMA          0xa2  /* set a compiler pragma */
-#define T_OP_PROPERTY        0xa3  /* retrieve a property into a register */
-#define T_OP_ACL             0xa4  /* store a mech ACL */
-#define T_OP_SHOW_ACLS       0xa5  /* print ACL entries */
-#define T_OP_SHOW_ACL        0xa6  /* print ACL entries that match the query */
+#define T_OP_RUNAS_UID       0x9f  /* Set the run-as UID */
+#define T_OP_RUNAS_GID       0xa0  /* Set the run-as GID */
+#define T_OP_EXEC            0xa1  /* execute a command */
+#define T_OP_DUMP            0xa2  /* dump virtual machine state for debugging */
+#define T_OP_HALT            0xa3  /* halt the virtual machine */
+#define T_OP_PRAGMA          0xa4  /* set a compiler pragma */
+#define T_OP_PROPERTY        0xa5  /* retrieve a property into a register */
+#define T_OP_ACL             0xa6  /* store a mech ACL */
+#define T_OP_SHOW_ACLS       0xa7  /* print ACL entries */
+#define T_OP_SHOW_ACL        0xa8  /* print ACL entries that match the query */
+#define T_OP_REMOTE_LIVE_P   0xa9  /* Determine if we are connected to a clockd server */
+#define T_OP_REMOTE_SHA1     0xaa  /* Retrieve the remote SHA1 based on a resource key */
+#define T_OP_REMOTE_FILE     0xab  /* Retrieve the contents of a file based on a resource key */
 
 
 static const char * ASM[] = {
@@ -418,14 +433,19 @@ static const char * ASM[] = {
 	"env.set",           /* T_OP_ENV_SET         92  0x5c */
 	"env.unset",         /* T_OP_ENV_UNSET       93  0x5d */
 	"localsys",          /* T_OP_LOCALSYS        94  0x5e */
-	"exec",              /* T_OP_EXEC            95  0x5f */
-	"dump",              /* T_OP_DUMP            96  0x60 */
-	"halt",              /* T_OP_HALT            97  0x61 */
-	"pragma",            /* T_OP_PRAGMA          98  0x62 */
-	"property",          /* T_OP_PROPERTY        99  0x63 */
-	"acl",               /* T_OP_ACL             100  0x64 */
-	"show.acls",         /* T_OP_SHOW_ACLS       101  0x65 */
-	"show.acl",          /* T_OP_SHOW_ACL        102  0x66 */
+	"runas.uid",         /* T_OP_RUNAS_UID       95  0x5f */
+	"runas.gid",         /* T_OP_RUNAS_GID       96  0x60 */
+	"exec",              /* T_OP_EXEC            97  0x61 */
+	"dump",              /* T_OP_DUMP            98  0x62 */
+	"halt",              /* T_OP_HALT            99  0x63 */
+	"pragma",            /* T_OP_PRAGMA          100  0x64 */
+	"property",          /* T_OP_PROPERTY        101  0x65 */
+	"acl",               /* T_OP_ACL             102  0x66 */
+	"show.acls",         /* T_OP_SHOW_ACLS       103  0x67 */
+	"show.acl",          /* T_OP_SHOW_ACL        104  0x68 */
+	"remote.live?",      /* T_OP_REMOTE_LIVE_P   105  0x69 */
+	"remote.sha1",       /* T_OP_REMOTE_SHA1     106  0x6a */
+	"remote.file",       /* T_OP_REMOTE_FILE     107  0x6b */
 	NULL,
 };
 
@@ -538,6 +558,8 @@ static struct {
 	{ T_OP_ENV_SET,        "env.set (%a|<string>) (%b|<string>)",            OP_ENV_SET,        { ARG_REGISTER|ARG_STRING,            ARG_REGISTER|ARG_STRING,            } },
 	{ T_OP_ENV_UNSET,      "env.unset (%a|<string>)",                        OP_ENV_UNSET,      { ARG_REGISTER|ARG_STRING,            ARG_NONE,                           } },
 	{ T_OP_LOCALSYS,       "localsys (%a|<string>) %b",                      OP_LOCALSYS,       { ARG_REGISTER|ARG_STRING,            ARG_REGISTER,                       } },
+	{ T_OP_RUNAS_UID,      "runas.uid (%a|<number>)",                        OP_RUNAS_UID,      { ARG_REGISTER|ARG_NUMBER,            ARG_NONE,                           } },
+	{ T_OP_RUNAS_GID,      "runas.gid (%a|<number>)",                        OP_RUNAS_GID,      { ARG_REGISTER|ARG_NUMBER,            ARG_NONE,                           } },
 	{ T_OP_EXEC,           "exec (%a|<string>) %b",                          OP_EXEC,           { ARG_REGISTER|ARG_STRING,            ARG_REGISTER,                       } },
 	{ T_OP_DUMP,           "dump",                                           OP_DUMP,           { ARG_NONE,                           ARG_NONE,                           } },
 	{ T_OP_HALT,           "halt",                                           OP_HALT,           { ARG_NONE,                           ARG_NONE,                           } },
@@ -546,6 +568,9 @@ static struct {
 	{ T_OP_ACL,            "acl (%a|<string>)",                              OP_ACL,            { ARG_REGISTER|ARG_STRING,            ARG_NONE,                           } },
 	{ T_OP_SHOW_ACLS,      "show.acls",                                      OP_SHOW_ACLS,      { ARG_NONE,                           ARG_NONE,                           } },
 	{ T_OP_SHOW_ACL,       "show.acl (%a|<string>)",                         OP_SHOW_ACL,       { ARG_REGISTER|ARG_STRING,            ARG_NONE,                           } },
+	{ T_OP_REMOTE_LIVE_P,  "remote.live?",                                   OP_REMOTE_LIVE_P,  { ARG_NONE,                           ARG_NONE,                           } },
+	{ T_OP_REMOTE_SHA1,    "remote.sha1 (%a|<string>) %b",                   OP_REMOTE_SHA1,    { ARG_REGISTER|ARG_STRING,            ARG_REGISTER,                       } },
+	{ T_OP_REMOTE_FILE,    "remote.file (%a|<string>) (%b|<string>)",        OP_REMOTE_FILE,    { ARG_REGISTER|ARG_STRING,            ARG_REGISTER|ARG_STRING,            } },
 	{ 0, 0, 0, { 0, 0 } },
 };
 

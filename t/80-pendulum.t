@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 use Test::More;
 use t::common;
-use POSIX qw/mkfifo/;
+use POSIX qw/mkfifo geteuid getegid/;
 use IO::Socket::UNIX;
 require "t/vars.pl";
 
@@ -1803,6 +1803,49 @@ subtest "exec" => sub {
 
 	"ok",
 	"exec with a bad binary");
+
+	SKIP: {
+		skip "must be run as root for run-as UID/GID tests", 2
+			unless $< == 0;
+
+		mkdir "t/tmp";
+		put_file "t/tmp/exec.pl", <<'EOF';
+use POSIX;
+my $uid = geteuid();
+my $gid = getegid();
+print "$uid:$gid\n"
+EOF
+
+		my @st = stat($0);
+		my ($uid, $gid) = @st[4,5];
+
+		pendulum_ok(qq(
+		fn main
+			runas.uid $uid
+			runas.gid $gid
+
+			exec "/usr/bin/perl t/tmp/exec.pl" %b
+			jz +1
+			print "fail"
+			print "%[b]s\\n"),
+
+		"$uid:$gid\n",
+		"exec honors runas.* values");
+
+		($uid, $gid) = (geteuid(), getegid());
+		pendulum_ok(qq(
+		fn main
+			runas.uid 165536
+			runas.gid 265536
+
+			exec "/usr/bin/perl t/tmp/exec.pl" %b
+			jz +1
+			print "fail"
+			print "%[b]s\\n"),
+
+		"$uid:$gid\n",
+		"out-of-bounds runas.* values are ignored");
+	};
 };
 
 subtest "localsys" => sub {
@@ -1817,6 +1860,31 @@ subtest "localsys" => sub {
 
 	"ok",
 	"localsys");
+
+	pendulum_ok(qq(
+	fn main
+		;; cheat - don't test the actual localsys
+		pragma localsys.cmd "/bin/echo"
+		set %a "ok"
+		localsys "{{%[a]s}}" %b
+		jz +1
+		print "fail"
+		print %b),
+
+	"{{ok}}",
+	"localsys deals in format strings");
+};
+
+subtest "remote" => sub {
+	pendulum_ok(qq(
+	fn main
+		remote.live?
+		jnz +1
+		print "fail"
+		print "ok"),
+
+	"ok",
+	"remote.live?");
 };
 
 done_testing;

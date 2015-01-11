@@ -88,6 +88,11 @@ typedef struct {
 		group_t      *group;
 
 		struct SHA1   sha1;
+
+		void         *remote;
+
+		uid_t         runas_uid;
+		gid_t         runas_gid;
 	} aux;
 
 	list_t   heap;

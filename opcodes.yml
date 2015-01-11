@@ -428,6 +428,15 @@
       - [register, string]
       - [register]
 
+- runas.uid:
+    help: Set the run-as UID
+    args:
+      - [register, number]
+- runas.gid:
+    help: Set the run-as GID
+    args:
+      - [register, number]
+
 - exec:
     help: execute a command
     args:
@@ -460,6 +469,19 @@
 - show.acl:
     help: print ACL entries that match the query
     args:
+      - [register, string]
+
+- remote.live?:
+    help: Determine if we are connected to a clockd server
+- remote.sha1:
+    help: Retrieve the remote SHA1 based on a resource key
+    args:
+      - [register, string]
+      - [register]
+- remote.file:
+    help: Retrieve the contents of a file based on a resource key
+    args:
+      - [register, string]
       - [register, string]
 
 # vim:ft=yaml:et:ts=2:sts=2:sw=2

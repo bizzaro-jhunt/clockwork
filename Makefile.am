@@ -82,15 +82,12 @@ PERL_TESTS  =
 PERL_TESTS += t/80-pendulum.t
 PERL_TESTS += t/81-gencode.t
 PERL_TESTS += t/82-security.t
+PERL_TESTS += t/83-bdfa.t
 
 PERL_TESTS += t/cmd/01-show.t
 
-PERL_TESTS += t/bdfa/01-basics.t
-
 PERL_TESTS += t/cw/01-ps.t
 PERL_TESTS += t/cw/02-lock.t
-
-PERL_TESTS += t/security/04-trustdb.t
 
 SHELL_TESTS  =
 SHELL_TESTS += t/memcheck/21-cwcc.t

@@ -268,7 +268,7 @@ EOF
 ##########################################################################
 
 subtest "strict verification failure" => sub {
-	mkdir "t/tmp";
+	mkdir $_ for qw(t/tmp t/tmp/gather.d);
 	put_file "t/tmp/clockd.conf", <<EOF;
 listen *:2313
 security.cert    t/tmp/master
@@ -497,5 +497,68 @@ STATS(ms): connect=X, hello=X, preinit=X, copydown=X, facts=X, getpolicy=X, pars
 EOF
 	kill 9, $pid;
 };
+
+##########################################################################
+
+subtest "trustdb management via cw-trust" => sub {
+	unlink "t/tmp/trustdb";
+	my ($stdout, $stderr);
+
+	put_file "t/tmp/test1.host", <<EOF;
+id  test1.host
+pub 132638e39475fdae2765c43436fa03a4581ef9ccdb4b73cad5db41be67510f0d
+EOF
+	put_file "t/tmp/test2.host", <<EOF;
+id  test2.host
+pub ddc0bcdaf1a7847a8364162c429e7c3ad6361970ef5166e1cede1536525ab56f
+EOF
+	put_file "t/tmp/test3.host", <<EOF;
+id  test3.host
+pub e0c84bfd7db975343faeca05ea6b4427fbc028ed926d9c9b600c1523b6f01238
+sec 95df16500db877fc08ce111e15632d2e10e643a268c0bc88b95478d548d6debc
+EOF
+
+	run_ok "./cw-trust --database t/tmp/trustdb --trust t/tmp/test1.host", 0, \$stdout, \$stderr,
+		"Trust test1.host cert";
+	string_is $stdout, <<EOF, "standard output from trusting test1.host";
+TRUST 132638e39475fdae2765c43436fa03a4581ef9ccdb4b73cad5db41be67510f0d test1.host
+Processed 1 certificate
+Wrote t/tmp/trustdb
+EOF
+	string_is $stderr, '', "no standard error";
+	file_is "t/tmp/trustdb", <<EOF, "wrote t/tmp/trustdb after trusting test1.host";
+132638e39475fdae2765c43436fa03a4581ef9ccdb4b73cad5db41be67510f0d test1.host
+EOF
+
+	run_ok "./cw-trust -d t/tmp/trustdb -t t/tmp/test2.host t/tmp/test3.host", 0, \$stdout, \$stderr,
+		"Trust test2.host and test3.host (both keys)";
+	string_is $stdout, <<EOF, "standard output from multi-trust op";
+TRUST ddc0bcdaf1a7847a8364162c429e7c3ad6361970ef5166e1cede1536525ab56f test2.host
+TRUST e0c84bfd7db975343faeca05ea6b4427fbc028ed926d9c9b600c1523b6f01238 test3.host
+Processed 2 certificates
+Wrote t/tmp/trustdb
+EOF
+	string_is $stderr, '', "no standard error";
+	file_is "t/tmp/trustdb", <<EOF, "wrote t/tmp/trustdb after multi-trust op";
+e0c84bfd7db975343faeca05ea6b4427fbc028ed926d9c9b600c1523b6f01238 test3.host
+ddc0bcdaf1a7847a8364162c429e7c3ad6361970ef5166e1cede1536525ab56f test2.host
+132638e39475fdae2765c43436fa03a4581ef9ccdb4b73cad5db41be67510f0d test1.host
+EOF
+
+	run_ok "./cw-trust -d t/tmp/trustdb -r t/tmp/test2.host", 0, \$stdout, \$stderr,
+		"Revoke test2.host";
+	string_is $stdout, <<EOF, "standard output from revoke op";
+REVOKE ddc0bcdaf1a7847a8364162c429e7c3ad6361970ef5166e1cede1536525ab56f test2.host
+Processed 1 certificate
+Wrote t/tmp/trustdb
+EOF
+	string_is $stderr, '', "no standard error";
+	file_is "t/tmp/trustdb", <<EOF, "wrote t/tmp/trustdb after revoking test2.host";
+132638e39475fdae2765c43436fa03a4581ef9ccdb4b73cad5db41be67510f0d test1.host
+e0c84bfd7db975343faeca05ea6b4427fbc028ed926d9c9b600c1523b6f01238 test3.host
+EOF
+};
+
+##########################################################################
 
 done_testing;

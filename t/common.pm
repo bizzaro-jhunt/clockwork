@@ -401,6 +401,7 @@ sub command_ok
 
 sub bdfa_ok
 {
+	local $Test::Builder::Level = $Test::Builder::Level + 1;
 	my ($args, $message, %opts) = @_;
 	$message ||= "bdfa run ok";
 	$opts{timeout} ||= 5;
@@ -517,6 +518,7 @@ sub file_is
 
 sub bdfa_file_is
 {
+	local $Test::Builder::Level = $Test::Builder::Level + 1;
 	my ($path, $expect, $message) = @_;
 	$message ||= "$path contents";
 

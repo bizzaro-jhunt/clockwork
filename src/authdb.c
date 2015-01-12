@@ -147,6 +147,7 @@ authdb_t* authdb_read(const char *root, int dbs)
 		io = fopen(file, "r"); free(file);
 		if (!io) goto bail;
 
+		line = 0;
 		while ((fgets(LINE, LINEMAX - 1, io)) != NULL) {
 			if ((a = strrchr(LINE, '\n')) != NULL) *a = '\0';
 			line++; field = 0; a = b = LINE;
@@ -194,6 +195,7 @@ authdb_t* authdb_read(const char *root, int dbs)
 		io = fopen(file, "r"); free(file);
 		if (!io) goto bail;
 
+		line = 0;
 		while ((fgets(LINE, LINEMAX - 1, io)) != NULL) {
 			if ((a = strrchr(LINE, '\n')) != NULL) *a = '\0';
 			line++; field = 0; a = b = LINE;
@@ -224,6 +226,7 @@ authdb_t* authdb_read(const char *root, int dbs)
 		io = fopen(file, "r"); free(file);
 		if (!io) goto bail;
 
+		line = 0;
 		while ((fgets(LINE, LINEMAX - 1, io)) != NULL) {
 			if ((a = strrchr(LINE, '\n')) != NULL) *a = '\0';
 			line++; field = 0; a = b = LINE;

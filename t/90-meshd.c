@@ -275,8 +275,8 @@ TESTS {
 	subtest { /* key-based authentication */
 		mkdir("t/tmp", 0777);
 
-		char *trustdb_path = strdup("t/tmp/trustdb");
-		char *authkey_path = strdup("t/tmp/key.trusted");
+		const char *trustdb_path = "t/tmp/trustdb";
+		const char *authkey_path = "t/tmp/key.trusted";
 
 		put_file(trustdb_path, 0644,
 		         "cf1fc3e3117ec452e216e8559ac5076f1586cf4e81b674e4428e5c3ced409169 jhacker\n");
@@ -355,15 +355,13 @@ TESTS {
 		vzmq_shutdown(sock, 0);
 		mesh_server_destroy(server);
 		zmq_ctx_destroy(ctx);
-		free(authkey_path);
-		free(trustdb_path);
 	}
 
 	subtest { /* key-based authentication (username mismatch fail) */
 		mkdir("t/tmp", 0777);
 
-		char *trustdb_path = strdup("t/tmp/trustdb");
-		char *authkey_path = strdup("t/tmp/key.trusted");
+		const char *trustdb_path = "t/tmp/trustdb";
+		const char *authkey_path = "t/tmp/key.trusted";
 
 		put_file(trustdb_path, 0644,
 		         "cf1fc3e3117ec452e216e8559ac5076f1586cf4e81b674e4428e5c3ced409169 jhacker\n");
@@ -437,9 +435,6 @@ TESTS {
 		vzmq_shutdown(sock, 0);
 		mesh_server_destroy(server);
 		zmq_ctx_destroy(ctx);
-
-		free(authkey_path);
-		free(trustdb_path);
 	}
 
 	subtest { /* key-based authentication (untrusted key) */
@@ -452,8 +447,8 @@ TESTS {
 		         "pub 66b5d91fa49d59dbe32e9b3d0f964634805ec01c2174cc0fdc9ace14ca41e83f\n"
 		         "sec d4ec9da13262abf0cd98d50b918ae928891b950deed976589a39ef7c154dde8766b5d91fa49d59dbe32e9b3d0f964634805ec01c2174cc0fdc9ace14ca41e83f\n");
 
-		char *trustdb_path = strdup("t/tmp/trustdb");
-		char *authkey_path = strdup("t/tmp/key.trusted");
+		const char *trustdb_path = "t/tmp/trustdb";
+		const char *authkey_path = "t/tmp/key.trusted";
 
 		char *s; int rc;
 
@@ -519,9 +514,6 @@ TESTS {
 		vzmq_shutdown(sock, 0);
 		mesh_server_destroy(server);
 		zmq_ctx_destroy(ctx);
-
-		free(authkey_path);
-		free(trustdb_path);
 	}
 
 	done_testing();

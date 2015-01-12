@@ -564,6 +564,7 @@ int vm_prime(vm_t *vm, byte_t *code, size_t len)
 
 	list_init(&vm->acl);
 
+	vm->stdout = stdout;
 	vm->stderr = stderr;
 	s_push(vm, &vm->tstack, 0);
 
@@ -834,7 +835,7 @@ int vm_exec(vm_t *vm)
 
 		case OP_PRINT:
 			ARG1("print");
-			vm_fprintf(vm, stdout, s_str(vm, f1, oper1));
+			vm_fprintf(vm, vm->stdout, s_str(vm, f1, oper1));
 			break;
 
 		case OP_ERROR:

@@ -1,6 +1,5 @@
-#ifndef PN_H
-#define PN_H
-#define _BSD_SOURCE
+#ifndef VM_H
+#define VM_H
 #include <stdint.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -75,6 +74,7 @@ typedef struct {
 
 	byte_t   trace;  /* whether or not to print trace messages */
 	FILE    *stderr; /* where to direct error messages */
+	FILE    *stdout; /* where to send normal error messages */
 	byte_t   abort;  /* signal to the main vm thread to abort */
 
 	/* auxiliary */

@@ -18,7 +18,7 @@
  */
 
 #include "clockwork.h"
-#include "pendulum.h"
+#include "vm.h"
 #include "mesh.h"
 #include <getopt.h>
 

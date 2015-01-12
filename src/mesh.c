@@ -23,8 +23,7 @@
 #include "mesh.h"
 #include "authdb.h"
 #include "policy.h"
-#include "pendulum.h"
-#include "pendulum_funcs.h"
+#include "vm.h"
 
 typedef struct {
 	list_t      l;
@@ -1187,17 +1186,15 @@ int mesh_client_handle(mesh_client_t *c, void *sock, pdu_t *pdu)
 
 	logger(LOG_INFO, "inbound %s packet", pdu_type(pdu));
 	if (strcmp(pdu_type(pdu), "COMMAND") == 0) {
-		char *serial  = pdu_string(pdu, 1),
-		     *creds   = pdu_string(pdu, 2),
-		     *command = pdu_string(pdu, 3),
-		     *code    = pdu_string(pdu, 4),
-		     *filters = pdu_string(pdu, 5);
+		char *serial  = pdu_string(pdu, 1); assert(serial);
+		char *creds   = pdu_string(pdu, 2); assert(creds);
+		char *command = pdu_string(pdu, 3); assert(command);
+		char *filters = pdu_string(pdu, 5); assert(filters);
 
-		assert(serial);
-		assert(creds);
-		assert(command);
+		size_t n;
+		uint8_t *code = pdu_segment(pdu, 4, &n);
 		assert(code);
-		assert(filters);
+		assert(n > 1);
 
 		cmd_t *cmd = cmd_parse(command, COMMAND_LITERAL);
 		assert(cmd);
@@ -1235,22 +1232,24 @@ int mesh_client_handle(mesh_client_t *c, void *sock, pdu_t *pdu)
 			goto bail;
 		}
 
-		pn_machine m;
-		pn_init(&m);
-		pendulum_init(&m, NULL);
-		m.output = tmpfile();
+		vm_t vm;
+		int rc = vm_reset(&vm);
+		assert(rc == 0);
 
-		pn_parse_s(&m, code);
-		pn_run(&m);
+		rc = vm_prime(&vm, code, n);
+		assert(rc == 0);
 
-		rewind(m.output);
+		vm.stdout = tmpfile();
+		vm_exec(&vm);
+
+		rewind(vm.stdout);
 		char output[8192] = {0};
-		if (!fgets(output, 8192, m.output))
+		if (!fgets(output, 8192, vm.stdout))
 			output[0] = '\0';
-		fclose(m.output);
+		fclose(vm.stdout);
 
-		pendulum_destroy(&m);
-		pn_destroy(&m);
+		rc = vm_done(&vm);
+		assert(rc == 0);
 
 		reply = pdu_make("RESULT", 5,
 				serial,

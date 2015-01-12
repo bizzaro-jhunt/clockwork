@@ -96,6 +96,16 @@ void* mesh_client_thread(void *ctx)
 	return NULL;
 }
 
+/* pendulum code for 'show version' */
+#define CODE_LEN 39
+static char *CODE = "\x15\x30" "\0\0\0\x06"               /* jmp main              */
+                    "\x64\x32" "\0\0\0\x18" "\0\0\0\x04"  /* property "version" %e */
+                    "\x19\x30" "\0\0\0\x20"               /* print "%[e]s"         */
+                    "\x0d\x00"                            /* ret                   */
+                    /* --------[[ static ]]----------*/
+                    "version\0"
+                    "%[e]s\n\0";
+
 TESTS {
 	subtest { /* server reactor */
 		char *s; int rc;
@@ -244,12 +254,12 @@ TESTS {
 		sleep_ms(600);
 
 		/* send the command */
-		pdu_t *pdu = pdu_make("COMMAND", 5,
-				"4242",                 /* serial */
-				"user1:group2:group3",  /* credentials */
-				"show version",         /* command string */
-				";; pn\nSHOW version",  /* pendulum code */
-				"");                    /* no filters */
+		pdu_t *pdu = pdu_make("COMMAND", 3,
+				"4242",                  /* serial */
+				"user1:group2:group3",   /* credentials */
+				"show version");         /* command string */
+		pdu_extend(pdu, CODE, CODE_LEN); /* compiled pendulum bytecode */
+		pdu_extendf(pdu, "");            /* no filters */
 		rc = pdu_send_and_free(pdu, broadcast);
 		is_int(rc, 0, "sent COMMAND PDU to subscribers");
 

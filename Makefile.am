@@ -114,9 +114,7 @@ test_source += src/authdb.h     src/authdb.c
 test_source += src/policy.h     src/policy.c
 test_source += src/resource.h   src/resource.c
 test_source += src/resources.h  src/resources.c
-test_source += src/pendulum.h   src/pendulum.c
 test_source += src/vm.h         src/vm.c
-test_source += src/pendulum_funcs.h src/pendulum_funcs.c
 
 test_source += src/spec/grammar.y
 test_source += src/spec/lexer.l
@@ -213,9 +211,7 @@ core_src += src/sha1.h src/sha1.c src/userdb.h src/userdb.c
 core_src += src/authdb.h src/authdb.c
 core_src += src/policy.h src/policy.c
 core_src += src/resource.h src/resource.c src/resources.h src/resources.c
-core_src += src/pendulum.h src/pendulum.c
 core_src += src/vm.h src/vm.c
-core_src += src/pendulum_funcs.h src/pendulum_funcs.c
 
 parser_spec_src  = src/spec/parser.c src/spec/parser.h src/spec/private.h
 parser_spec_src += src/spec/lexer.l src/spec/lexer_impl.h

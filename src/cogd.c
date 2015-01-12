@@ -18,8 +18,7 @@
  */
 
 #include "clockwork.h"
-#include "pendulum.h"
-#include "pendulum_funcs.h"
+#include "vm.h"
 
 #include <zmq.h>
 #include <time.h>
@@ -360,7 +359,8 @@ static void s_cfm_run(client_t *c)
 		goto shut_it_down;
 	}
 
-	char *code = pdu_string(reply, 1);
+	size_t n;
+	uint8_t *code = pdu_segment(reply, 1, &n);
 	pdu_free(reply);
 
 	if (c->mode == MODE_CODE) {
@@ -369,28 +369,23 @@ static void s_cfm_run(client_t *c)
 		free(code);
 
 	} else {
-		pn_machine m;
+		vm_t vm;
 		STOPWATCH(&t, ms_parse) {
-			pn_init(&m);
-			pendulum_init(&m, client);
-			pn_pragma(&m, "diff.tool", c->difftool);
+			rc = vm_reset(&vm);
+			assert(rc == 0);
 
-			io = tmpfile();
-			fprintf(io, "%s", code);
-			fseek(io, 0, SEEK_SET);
-			free(code);
+			rc = vm_prime(&vm, code, n);
+			assert(rc == 0);
 
-			pn_parse(&m, io);
+			hash_set(&vm.pragma, "diff.tool", c->difftool);
 		}
 		STOPWATCH(&t, ms_enforce) {
-			m.trace = c->trace;
-			pn_run(&m);
-			fclose(io);
+			vm.trace = c->trace;
+			vm_exec(&vm);
 		}
-		count = m.topics;
-
-		pendulum_destroy(&m);
-		pn_destroy(&m);
+		count = 0; /* FIXME: count number of topics! */
+		rc = vm_done(&vm);
+		assert(rc == 0);
 	}
 
 	STOPWATCH(&t, ms_cleanup) {

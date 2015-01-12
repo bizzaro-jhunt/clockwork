@@ -27,7 +27,7 @@
 
 #include "spec/parser.h"
 #include "resources.h"
-#include "pendulum.h"
+#include "vm.h"
 
 #define BLOCK_SIZE 8192
 

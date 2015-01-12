@@ -74,13 +74,11 @@ AC_HAVE_LIBRARY(zmq,,
 ##
 AC_LANG(C)
 AC_RUN_IFELSE(
-	[AC_LANG_PROGRAM([#include <zmq.h>], [
-		char p[41]; char s[41];
-		return crypto_box_keypair(p, s) != ENOTSUPP;
-	])],
+	[AC_LANG_PROGRAM([[#include <zmq.h>]],
+	                 [[char p[41], s[41]; return zmq_curve_keypair(p, s);]])],
 
 	[AC_MSG_RESULT([OK])],
-	[AC_MSG_FAILURE([0MQ doesn not have crypto/CURVE support])])
+	[AC_MSG_FAILURE([0MQ does not have crypto/CURVE support])])
 
 
 ################################################

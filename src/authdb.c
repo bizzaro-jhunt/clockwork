@@ -274,7 +274,6 @@ authdb_t* authdb_read(const char *root, int dbs)
 	return db;
 
 bail:
-	fprintf(stderr, "authdb_open failed\n");
 	if (io) fclose(io);
 	authdb_close(db);
 	return NULL;

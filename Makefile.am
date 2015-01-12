@@ -81,29 +81,19 @@ PERL_TESTS  =
 
 PERL_TESTS += t/80-pendulum.t
 PERL_TESTS += t/81-gencode.t
+PERL_TESTS += t/82-security.t
 
 PERL_TESTS += t/cmd/01-show.t
-
-PERL_TESTS += t/policy/99-fail.t
 
 PERL_TESTS += t/bdfa/01-basics.t
 
 PERL_TESTS += t/cw/01-ps.t
 PERL_TESTS += t/cw/02-lock.t
 
-PERL_TESTS += t/security/01-cogd-invalid.t
-PERL_TESTS += t/security/02-clockd-invalid.t
 PERL_TESTS += t/security/03-trust.t
 PERL_TESTS += t/security/04-trustdb.t
 
 SHELL_TESTS  =
-SHELL_TESTS += t/memcheck/00-pn-usage.t
-SHELL_TESTS += t/memcheck/01-pn-basics.t
-SHELL_TESTS += t/memcheck/02-pn-fs.t
-SHELL_TESTS += t/memcheck/03-pn-users.t
-SHELL_TESTS += t/memcheck/04-pn-groups.t
-SHELL_TESTS += t/memcheck/05-pn-exec.t
-SHELL_TESTS += t/memcheck/06-pn-augeas.t
 SHELL_TESTS += t/memcheck/21-cwcc.t
 SHELL_TESTS += t/memcheck/22-units.t
 SHELL_TESTS += t/memcheck/31-cogd.t

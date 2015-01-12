@@ -273,8 +273,19 @@ TESTS {
 	}
 
 	subtest { /* key-based authentication */
-		char *trustdb_path = strdup(TEST_TMP "/data/mesh/trustdb");
-		char *authkey_path = strdup(TEST_TMP "/data/mesh/key.trusted");
+		mkdir("t/tmp", 0777);
+
+		char *trustdb_path = strdup("t/tmp/trustdb");
+		char *authkey_path = strdup("t/tmp/key.trusted");
+
+		put_file(trustdb_path, 0644,
+		         "cf1fc3e3117ec452e216e8559ac5076f1586cf4e81b674e4428e5c3ced409169 jhacker\n");
+		put_file(authkey_path, 0644,
+		         "%signing v1\n"
+		         "id  jhacker\n"
+		         "pub cf1fc3e3117ec452e216e8559ac5076f1586cf4e81b674e4428e5c3ced409169\n"
+		         "sec dddb0ae13f19fcb697a5f69334fa326de5af8e87a72bfc5a19793137a3aa5526cf1fc3e3117ec452e216e8559ac5076f1586cf4e81b674e4428e5c3ced409169\n");
+
 
 		char *s; int rc;
 
@@ -306,6 +317,7 @@ TESTS {
 
 		cert_t *authkey = cert_read(authkey_path);
 		isnt_null(authkey, "Read authkey from test data");
+		if (!authkey) BAIL_OUT("failed to read authkey");
 
 		unsigned char unsealed[256 - 64];
 		randombytes(unsealed, 256 - 64);
@@ -348,8 +360,18 @@ TESTS {
 	}
 
 	subtest { /* key-based authentication (username mismatch fail) */
-		char *trustdb_path = strdup(TEST_TMP "/data/mesh/trustdb");
-		char *authkey_path = strdup(TEST_TMP "/data/mesh/key.trusted");
+		mkdir("t/tmp", 0777);
+
+		char *trustdb_path = strdup("t/tmp/trustdb");
+		char *authkey_path = strdup("t/tmp/key.trusted");
+
+		put_file(trustdb_path, 0644,
+		         "cf1fc3e3117ec452e216e8559ac5076f1586cf4e81b674e4428e5c3ced409169 jhacker\n");
+		put_file(authkey_path, 0644,
+		         "%signing v1\n"
+		         "id  jhacker\n"
+		         "pub cf1fc3e3117ec452e216e8559ac5076f1586cf4e81b674e4428e5c3ced409169\n"
+		         "sec dddb0ae13f19fcb697a5f69334fa326de5af8e87a72bfc5a19793137a3aa5526cf1fc3e3117ec452e216e8559ac5076f1586cf4e81b674e4428e5c3ced409169\n");
 
 		char *s; int rc;
 
@@ -376,6 +398,7 @@ TESTS {
 
 		cert_t *authkey = cert_read(authkey_path);
 		isnt_null(authkey, "Read authkey from test data");
+		if (!authkey) BAIL_OUT("failed to read authkey");
 
 		unsigned char unsealed[256 - 64];
 		randombytes(unsealed, 256 - 64);
@@ -420,8 +443,17 @@ TESTS {
 	}
 
 	subtest { /* key-based authentication (untrusted key) */
-		char *trustdb_path = strdup(TEST_TMP "/data/mesh/trustdb");
-		char *authkey_path = strdup(TEST_TMP "/data/mesh/key.untrusted");
+		mkdir("t/tmp", 0777);
+		put_file("t/tmp/trustdb", 0644,
+		         "cf1fc3e3117ec452e216e8559ac5076f1586cf4e81b674e4428e5c3ced409169 jhacker\n");
+		put_file("t/tmp/key.trusted", 0644,
+		         "%signing v1\n"
+		         "id  rogue\n"
+		         "pub 66b5d91fa49d59dbe32e9b3d0f964634805ec01c2174cc0fdc9ace14ca41e83f\n"
+		         "sec d4ec9da13262abf0cd98d50b918ae928891b950deed976589a39ef7c154dde8766b5d91fa49d59dbe32e9b3d0f964634805ec01c2174cc0fdc9ace14ca41e83f\n");
+
+		char *trustdb_path = strdup("t/tmp/trustdb");
+		char *authkey_path = strdup("t/tmp/key.trusted");
 
 		char *s; int rc;
 
@@ -448,6 +480,7 @@ TESTS {
 
 		cert_t *authkey = cert_read(authkey_path);
 		isnt_null(authkey, "Read authkey from test data");
+		if (!authkey) BAIL_OUT("failed to read authkey");
 
 		unsigned char unsealed[256 - 64];
 		randombytes(unsealed, 256 - 64);

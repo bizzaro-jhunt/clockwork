@@ -1,4 +1,0 @@
-policy "default" {
-	file "/tmp/xyzzy-clockwork-memcheck.test" { }
-}
-host fallback { enforce "default" }

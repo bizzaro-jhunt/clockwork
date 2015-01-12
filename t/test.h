@@ -33,14 +33,6 @@
 #define TEST_HELPER
 #endif
 
-#ifndef TEST_DATA
-#define TEST_DATA "t/data"
-#endif
-
-#ifndef TEST_TMP
-#define TEST_TMP  "t/tmp"
-#endif
-
 TEST_HELPER
 static int num_res(const struct policy *pol, enum restype t)
 {
@@ -71,5 +63,28 @@ static void sys(const char *cmd)
 	rc++;
 }
 
+TEST_HELPER
+static void put_file(const char *path, int mode, const char *contents)
+{
+	FILE *io;
+
+	if (!(io = fopen(path, "w")))
+		BAIL_OUT(string("Unable to open %s for writing: %s", path, strerror(errno)));
+	fprintf(io, "%s", contents);
+	fchmod(fileno(io), mode);
+	fclose(io);
+}
+
+TEST_HELPER
+static FILE* temp_file(const char *contents)
+{
+	FILE *io;
+
+	if (!(io = tmpfile()))
+		BAIL_OUT(string("Unable to open temp file for writing: %s", strerror(errno)));
+	fprintf(io, "%s", contents);
+	rewind(io);
+	return io;
+}
 
 #endif

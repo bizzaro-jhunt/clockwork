@@ -1,4 +1,0 @@
-#!/bin/bash
-
-echo "sys.os=linux"
-echo "sys.version=3.2"

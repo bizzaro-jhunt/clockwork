@@ -8,7 +8,24 @@ if [[ ! -x $VG ]]; then
 	exit 77;
 fi
 
-SUPPS="t/tmp/data/vg/clockwork.supp"
+SUPPS="t/tmp/clockwork.supp"
+cat >$SUPPS <<EOF
+{
+   <libzmq3_socketcall_sendto>
+   Memcheck:Param
+   socketcall.sendto(msg)
+   fun:send
+   ...
+}
+{
+   <libzmq3_socketcall_sendto>
+   Memcheck:Param
+   socketcall.send(msg)
+   fun:send
+   ...
+}
+EOF
+
 TEMPFILE=$(mktemp);
 trap "rm -f $TEMPFILE" INT TERM EXIT
 $VG --tool=memcheck --leak-check=full --show-leak-kinds=all --error-exitcode=$EFAIL --suppressions=$SUPPS 2>$TEMPFILE >/dev/null -- "$@"

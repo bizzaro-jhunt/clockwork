@@ -293,23 +293,41 @@ TESTS {
 		isnt_int(acl_read(&acl, "/path/to/nowhere"), 0, "Fail to read ENOENT file");
 		ok(list_isempty(&acl), "acl list is still empty after failed read");
 
-		is_int(acl_read(&acl, TEST_TMP "/data/acl/empty.acl"), 0, "read empty.acl");
+		mkdir("t/tmp", 0777);
+		put_file("t/tmp/acl", 0644, "");
+		is_int(acl_read(&acl, "t/tmp/acl"), 0, "read empty acl");
 		ok(list_isempty(&acl), "acl list is still empty (no acls in file)");
 
-		is_int(acl_read(&acl, TEST_TMP "/data/acl/simple.acl"), 0, "read simple.acl");
-		is_int(list_len(&acl), 3, "parsed 3 acls from simple.acl");
+		put_file("t/tmp/acl", 0644,
+		         "allow user \"user things\"\n"
+		         "allow %%group \"group things\"\n"
+		         "deny user *\n");
+		is_int(acl_read(&acl, "t/tmp/acl"), 0, "read simple acl");
+		is_int(list_len(&acl), 3, "parsed 3 acls from simple acl");
 
 		for_each_object_safe(a, tmp, &acl, l)
 			acl_destroy(a);
 		ok(list_isempty(&acl), "acl is empty after freeing memory via acl_destroy");
 
-		is_int(acl_read(&acl, TEST_TMP "/data/acl/comments.acl"), 0, "read comments.acl");
-		is_int(list_len(&acl), 2, "parsed 2 acls from comments.acl");
+		put_file("t/tmp/acl", 0644,
+		         "#\n"
+		         "# comments.acl - show off commenting in the ACL file format\n"
+		         "#\n"
+		         "\n"
+		         "\n"
+		         "# (oh yeah, blank lines too!)\n"
+		         "\n"
+		         "allow user \"*\"\n"
+		         "deny user \"show *\"\n");
+		is_int(acl_read(&acl, "t/tmp/acl"), 0, "read comments acl");
+		is_int(list_len(&acl), 2, "parsed 2 acls from comments acl");
 		for_each_object_safe(a, tmp, &acl, l)
 			acl_destroy(a);
 	}
 
 	subtest { /* write acl files */
+		mkdir("t/tmp", 0777);
+
 		LIST(acl);
 		acl_t *l1, *l2, *l3;
 
@@ -322,13 +340,13 @@ TESTS {
 		list_push(&acl, &l3->l);
 
 		isnt_int(acl_write(&acl, "/path/to/nowhere"), 0, "Fail to write to nonexistent file");
-		is_int(acl_write(&acl, TEST_TMP "/acl.file"), 0, "Wrote to acl file");
+		is_int(acl_write(&acl, "t/tmp/acl"), 0, "Wrote to acl file");
 
 		LIST(readback);
-		is_int(acl_read(&readback, TEST_TMP "/acl.file"), 0, "Read the file we wrote");
+		is_int(acl_read(&readback, "t/tmp/acl"), 0, "Read the file we wrote");
 		is_int(list_len(&readback), 3, "Read 3 acls that we wrote");
 
-		FILE *io = fopen(TEST_TMP "/acl.file", "r");
+		FILE *io = fopen("t/tmp/acl", "r");
 		char buf[8192];
 		isnt_null(fgets(buf, 8191, io), "Read line from acl.file");
 		is_string(buf, "# clockwork acl\n", "1st line is the identifiying comment");

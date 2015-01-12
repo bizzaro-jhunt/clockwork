@@ -48,8 +48,8 @@ TESTS {
 
 		isnt_null(r = res_symlink_new("sudoers"), "created a symlink resource");
 
-		res_symlink_set(r, "path", TEST_TMP "/symlink");
-		is_string(r->path, TEST_TMP "/symlink", "target symlink to enforce");
+		res_symlink_set(r, "path", "t/tmp/symlink");
+		is_string(r->path, "t/tmp/symlink", "target symlink to enforce");
 
 		res_symlink_free(r);
 	}

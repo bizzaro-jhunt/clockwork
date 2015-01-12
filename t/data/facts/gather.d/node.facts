@@ -1,5 +1,0 @@
-#!/bin/bash
-
-echo "sys.type=agent"
-echo "sys.hostname=host22"
-echo "sys.fqdn=host22.example.com"

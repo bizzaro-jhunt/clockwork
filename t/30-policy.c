@@ -72,8 +72,44 @@ TESTS {
 		struct policy *pol;
 		hash_t *facts;
 
+		mkdir("t/tmp", 0777);
+		FILE *io = fopen("t/tmp/manifest.pol", "w");
+		if (!io) BAIL_OUT("failed to create test file 't/tmp/manifest.pol'");
+
+		fprintf(io, "policy \"base\" {\n");
+		fprintf(io, "\tuser \"james\" {\n");
+		fprintf(io, "\t\tuid: 1009\n");
+		fprintf(io, "\t\tgid: 2001\n");
+		fprintf(io, "\t}\n");
+		fprintf(io, "\n");
+		fprintf(io, "\tgroup \"staff\" {\n");
+		fprintf(io, "\t\tgid: 2001\n");
+		fprintf(io, "\t}\n");
+		fprintf(io, "\n");
+		fprintf(io, "\tfile \"test-file\" {\n");
+		fprintf(io, "\t\tpath:  \"policy/norm/file\"\n");
+		fprintf(io, "\t\towner: \"james\"\n");
+		fprintf(io, "\t\tgroup: \"staff\"\n");
+		fprintf(io, "\t}\n");
+		fprintf(io, "\n");
+		fprintf(io, "\tdir \"parent\" {\n");
+		fprintf(io, "\t\tpath:  \"policy/norm\"\n");
+		fprintf(io, "\t\towner: \"james\"\n");
+		fprintf(io, "\t\tgroup: \"staff\"\n");
+		fprintf(io, "\t\tmode:  0750\n");
+		fprintf(io, "\t}\n");
+		fprintf(io, "\n");
+		fprintf(io, "\tdir \"test-dir\" {\n");
+		fprintf(io, "\t\tpath:  \"policy/norm/dir\"\n");
+		fprintf(io, "\t\towner: \"james\"\n");
+		fprintf(io, "\t\tgroup: \"staff\"\n");
+		fprintf(io, "\t\tmode:  0750\n");
+		fprintf(io, "\t}\n");
+		fprintf(io, "}\n");
+		fclose(io);
+
 		facts = vmalloc(sizeof(hash_t));
-		isnt_null(m = parse_file(TEST_DATA "/policy/parse.pol"),
+		isnt_null(m = parse_file("t/tmp/manifest.pol"),
 				"manifest parsed");
 		isnt_null(pol = policy_generate(hash_get(m->policies, "base"), facts),
 				"policy 'base' found");
@@ -107,8 +143,22 @@ TESTS {
 		struct policy *pol;
 		hash_t *facts;
 
+		mkdir("t/tmp", 0777);
+		FILE *io = fopen("t/tmp/manifest.pol", "w");
+		if (!io) BAIL_OUT("failed to create test file 't/tmp/manifest.pol'");
+
+		fprintf(io, "policy \"base\" {\n");
+		fprintf(io, "\tuser \"james\" {\n");
+		fprintf(io, "\t\tuid: 1009\n");
+		fprintf(io, "\t\tgid: 2001\n");
+		fprintf(io, "\t\tawesomeness: 11\n");
+		fprintf(io, "\t}\n");
+		fprintf(io, "}\n");
+
+		fclose(io);
+
 		facts = vmalloc(sizeof(hash_t));
-		isnt_null(m = parse_file(TEST_DATA "/policy/fail-unknown-attr.pol"),
+		isnt_null(m = parse_file("t/tmp/manifest.pol"),
 				"manifest parsed");
 		isnt_null(pol = policy_generate(hash_get(m->policies, "base"), facts),
 				"policy 'base' found");

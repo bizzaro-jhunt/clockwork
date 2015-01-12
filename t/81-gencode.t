@@ -1943,4 +1943,36 @@ EOF
 	#######################################################
 };
 
+subtest "unknown resource type" => sub {
+	mkdir "t/tmp";
+
+	put_file "t/tmp/manifest.pol", <<EOF;
+policy "baseline" {
+  dir  "dir" { }
+  file "file" { }
+  package "package" { }
+  user "user" { }
+  group "group" { }
+
+  blah "unknown" { }
+}
+host fallback {
+  enforce "baseline"
+}
+EOF
+
+	put_file "t/tmp/unknown.conf", <<EOF;
+security.cert t/tmp/cert.pub
+manifest t/tmp/manifest.pol
+EOF
+
+	put_file "t/tmp/cert.pub", <<EOF;
+id  test.box
+pub 417b7f7946b6c65db58e86c5a66cbc698dbd1b15492e29372f927cf91620947e
+sec 86ebac601b5b5b858886d223ab14dd9a1c0f8c0154fea416452b6afedca6db29
+EOF
+	note qx(./clockd -tvvvvvvvvv -c t/tmp/unknown.conf 2>&1);
+	is $? >> 8, 2, "policy with unknown type 'blah' failed validation";
+};
+
 done_testing;

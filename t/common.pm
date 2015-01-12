@@ -8,14 +8,18 @@ use base 'Exporter';
 our @EXPORT_OK = qw/
 	run_ok
 	background_ok
-	gencode_ok gencode2_ok
+
 	cw_shell_ok
+	gencode_ok
+	acls_ok
 	resources_ok
 	dependencies_ok
+
 	pendulum_ok
 	bdfa_ok
 	command_ok
 
+	set_facts
 	put_file
 
 	string_is
@@ -31,8 +35,6 @@ my $PNC = "./pnc";
 my $CWSH = "./cw-shell";
 my $BDFA = "./bdfa";
 my $COMMAND = "./TEST_cmd";
-our $MANIFEST = "t/tmp/data/policy/manifest.pol";
-my $FACTS = "t/tmp/data/policy/facts.lst";
 
 sub run_ok
 {
@@ -99,8 +101,10 @@ sub background_ok
 	return $pid;
 }
 
-sub gencode2_ok
+sub _cw_shell_ok
 {
+	local $Test::Builder::Level = $Test::Builder::Level + 1;
+
 	my ($expect, $message, %opts) = @_;
 	$message ||= "cw shell run ok";
 	$opts{timeout}  ||= 5;
@@ -118,7 +122,7 @@ sub gencode2_ok
 			or die "Failed to reopen stdout: $!\n";
 		open STDERR, ">&", $stderr
 			or die "Failed to reopen stderr: $!\n";
-		exec $CWSH, '-qvv', $opts{manifest}, '-f', $opts{facts}, '-e', "$opts{command}; gencode2"
+		exec $CWSH, '-qvv', '-f', $opts{facts}, $opts{manifest}, '-e', $opts{command}
 			or die "Failed to exec $CWSH: $!\n";
 	}
 
@@ -172,177 +176,11 @@ sub gencode2_ok
 	return 1;
 }
 
-sub gencode_ok
-{
-	my ($commands, $expect, $message, %opts) = @_;
-	$message ||= "cw shell run ok";
-	$opts{timeout} ||= 5;
-
-	my $stdout = tempfile;
-	my $stderr = tempfile;
-
-	my $pid = fork;
-	$T->BAIL_OUT("Failed to fork for cw shell run: $!") if $pid < 0;
-	if ($pid == 0) {
-		open STDOUT, ">&", $stdout
-			or die "Failed to reopen stdout: $!\n";
-		open STDERR, ">&", $stderr
-			or die "Failed to reopen stderr: $!\n";
-		exec $CWSH, '-qvv', $MANIFEST, '-f', $FACTS, '-e', "$commands; gencode"
-			or die "Failed to exec $CWSH: $!\n";
-	}
-
-	local $SIG{ALRM} = sub { die "timed out\n" };
-	alarm($opts{timeout});
-	eval {
-		waitpid $pid, 0;
-		alarm 0;
-	};
-	alarm 0;
-	if ($@) {
-		if ($@ =~ m/^timed out/) {
-			kill 9, $pid;
-			$T->ok(0, "$message: timed out running $CWSH");
-			return 0;
-		}
-		$T->ok(0, "$message: exception raised - $@");
-		return 0;
-	}
-
-	my $rc = $? >> 8;
-
-	seek $stdout, 0, 0;
-	my $actual = do { local $/; <$stdout> };
-
-	seek $stderr, 0, 0;
-	my $errors = do { local $/; <$stderr> };
-
-	# sneakily add the postamble:
-	$expect .= <<'EOF';
-GETENV %F $COGD
-NOTOK? @exit
-SET %A "/var/lock/cogd/.needs-restart"
-CALL &FS.EXISTS?
-NOTOK? @exit
-SET %A "cw localsys svc-init-force cogd restart"
-CALL &EXEC.CHECK
-exit:
-HALT
-EOF
-
-	if ($rc != 0) {
-		$T->ok(0, "$message: $commands returned non-zero exit code $rc");
-		$T->diag("standard error output was:\n$errors") if $errors;
-		return 0;
-	}
-	$T->diag("standard error output was:\n$errors") if $errors;
-
-	my $diff = diff \$actual, \$expect, {
-		FILENAME_A => 'actual-output',    MTIME_A => time,
-		FILENAME_B => 'expected-output',  MTIME_B => time,
-		STYLE      => 'Unified',
-		CONTEXT    => 8
-	};
-
-	if ($diff) {
-		$T->ok(0, $message);
-		$T->diag("differences follow:\n$diff");
-		$T->diag("standard error output was:\n$errors") if $errors;
-		return 0;
-	}
-
-	$T->ok(1, $message);
-	return 1;
-}
-
-sub _cw_shell_ok
-{
-	local $Test::Builder::Level = $Test::Builder::Level + 1;
-
-	my ($commands, $expect, $message, %opts) = @_;
-	$message ||= "cw shell run ok";
-	$opts{timeout} ||= 5;
-
-	my $stdout = tempfile;
-	my $stderr = tempfile;
-
-	my $pid = fork;
-	$T->BAIL_OUT("Failed to fork for cw shell run: $!") if $pid < 0;
-	if ($pid == 0) {
-		open STDOUT, ">&", $stdout
-			or die "Failed to reopen stdout: $!\n";
-		open STDERR, ">&", $stderr
-			or die "Failed to reopen stderr: $!\n";
-		exec $CWSH, '-qvv', '-f', $FACTS, $MANIFEST, '-e', "$commands"
-			or die "Failed to exec $CWSH: $!\n";
-	}
-
-	local $SIG{ALRM} = sub { die "timed out\n" };
-	alarm($opts{timeout});
-	eval {
-		waitpid $pid, 0;
-		alarm 0;
-	};
-	alarm 0;
-	if ($@) {
-		if ($@ =~ m/^timed out/) {
-			kill 9, $pid;
-			$T->ok(0, "$message: timed out running $CWSH");
-			return 0;
-		}
-		$T->ok(0, "$message: exception raised - $@");
-		return 0;
-	}
-
-	my $rc = $? >> 8;
-
-	seek $stdout, 0, 0;
-	my $actual = do { local $/; <$stdout> };
-
-	seek $stderr, 0, 0;
-	my $errors = do { local $/; <$stderr> };
-
-	if ($rc != 0) {
-		$T->ok(0, "$message: $commands returned non-zero exit code $rc");
-		$T->diag("standard error output was:\n$errors") if $errors;
-		return 0;
-	}
-	$T->diag("standard error output was:\n$errors") if $errors;
-
-	my $diff = diff \$actual, \$expect, {
-		FILENAME_A => 'actual-output',    MTIME_A => time,
-		FILENAME_B => 'expected-output',  MTIME_B => time,
-		STYLE      => 'Unified',
-		CONTEXT    => 8
-	};
-
-	if ($diff) {
-		$T->ok(0, $message);
-		$T->diag("differences follow:\n$diff");
-		$T->diag("standard error output was:\n$errors") if $errors;
-		return 0;
-	}
-
-	$T->ok(1, $message);
-	return 1;
-}
-
-sub cw_shell_ok
-{
-	_cw_shell_ok(@_);
-}
-
-sub resources_ok
-{
-	my ($commands, @rest) = @_;
-	_cw_shell_ok("$commands; show resources", @rest);
-}
-
-sub dependencies_ok
-{
-	my ($commands, @rest) = @_;
-	_cw_shell_ok("$commands; show order", @rest);
-}
+sub cw_shell_ok     { _cw_shell_ok(@_); }
+sub gencode_ok      { _cw_shell_ok(@_, command => "use host example; gencode2"); }
+sub acls_ok         { _cw_shell_ok(@_, command => "use host example; show acls"); }
+sub resources_ok    { _cw_shell_ok(@_, command => "use host example; show resources"); }
+sub dependencies_ok { _cw_shell_ok(@_, command => "use host example; show order"); }
 
 sub pendulum_compile_ok
 {
@@ -627,6 +465,12 @@ sub put_file
 	print $fh $contents;
 	close $fh;
 	return 1;
+}
+
+sub set_facts
+{
+	my ($file, %facts) = @_;
+	put_file $file, join('', map { "$_=$facts{$_}\n" } keys %facts);
 }
 
 sub string_is

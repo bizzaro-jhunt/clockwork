@@ -80,23 +80,10 @@ CTAP_TESTS += t/90-meshd
 PERL_TESTS  =
 
 PERL_TESTS += t/80-pendulum.t
+PERL_TESTS += t/81-gencode.t
 
 PERL_TESTS += t/cmd/01-show.t
 
-PERL_TESTS += t/policy/01-files.t
-PERL_TESTS += t/policy/02-users.t
-PERL_TESTS += t/policy/02-users.t
-PERL_TESTS += t/policy/03-groups.t
-PERL_TESTS += t/policy/04-dirs.t
-PERL_TESTS += t/policy/05-services.t
-PERL_TESTS += t/policy/06-packages.t
-PERL_TESTS += t/policy/07-hosts.t
-PERL_TESTS += t/policy/08-sysctl.t
-PERL_TESTS += t/policy/09-exec.t
-PERL_TESTS += t/policy/10-symlink.t
-PERL_TESTS += t/policy/20-if.t
-PERL_TESTS += t/policy/30-deps.t
-PERL_TESTS += t/policy/31-acls.t
 PERL_TESTS += t/policy/99-fail.t
 
 PERL_TESTS += t/bdfa/01-basics.t

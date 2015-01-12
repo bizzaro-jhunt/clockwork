@@ -20,7 +20,7 @@ policy "example" {
 host "example" { enforce "example" }
 EOF
 
-	gencode2_ok(<<'EOF',
+	gencode_ok(<<'EOF',
 fn res:00000001
   unflag changed
   call fix:00000001
@@ -52,7 +52,7 @@ policy "example" {
 }
 host "example" { enforce "example" }
 EOF
-	gencode2_ok(<<'EOF',
+	gencode_ok(<<'EOF',
 fn res:00000001
   unflag changed
   call fix:00000001
@@ -80,7 +80,7 @@ policy "example" {
 host "example" { enforce "example" }
 EOF
 
-	gencode2_ok(<<'EOF',
+	gencode_ok(<<'EOF',
 fn res:00000001
   unflag changed
   call fix:00000001
@@ -111,7 +111,7 @@ policy "example" {
 host "example" { enforce "example" }
 EOF
 
-	gencode2_ok(<<'EOF',
+	gencode_ok(<<'EOF',
 fn res:00000001
   unflag changed
   call fix:00000001
@@ -144,7 +144,7 @@ policy "example" {
 host "example" { enforce "example" }
 EOF
 
-	gencode2_ok(<<'EOF',
+	gencode_ok(<<'EOF',
 fn res:00000001
   unflag changed
   call fix:00000001
@@ -178,7 +178,7 @@ policy "example" {
 host "example" { enforce "example" }
 EOF
 
-	gencode2_ok(<<'EOF',
+	gencode_ok(<<'EOF',
 fn res:00000001
   unflag changed
   call fix:00000001
@@ -213,7 +213,7 @@ policy "example" {
 host "example" { enforce "example" }
 EOF
 
-	gencode2_ok(<<'EOF',
+	gencode_ok(<<'EOF',
 fn res:00000001
   unflag changed
   call fix:00000001
@@ -251,7 +251,7 @@ policy "example" {
 host "example" { enforce "example" }
 EOF
 
-	gencode2_ok(<<'EOF',
+	gencode_ok(<<'EOF',
 fn res:00000001
   unflag changed
   call fix:00000001
@@ -283,7 +283,7 @@ policy "example" {
 host "example" { enforce "example" }
 EOF
 
-	gencode2_ok(<<'EOF',
+	gencode_ok(<<'EOF',
 fn res:00000001
   unflag changed
   call fix:00000001
@@ -325,7 +325,7 @@ policy "example" {
 host "example" { enforce "example" }
 EOF
 
-	gencode2_ok(<<'EOF',
+	gencode_ok(<<'EOF',
 fn res:00000001
   unflag changed
   call fix:00000001
@@ -380,7 +380,7 @@ policy "example" {
 host "example" { enforce "example" }
 EOF
 
-	gencode2_ok(<<'EOF',
+	gencode_ok(<<'EOF',
 fn res:00000001
   unflag changed
   call fix:00000001
@@ -467,7 +467,7 @@ policy "example" {
 host "example" { enforce "example" }
 EOF
 
-	gencode2_ok(<<'EOF',
+	gencode_ok(<<'EOF',
 fn res:00000001
   unflag changed
   call fix:00000001
@@ -496,7 +496,7 @@ policy "example" {
 host "example" { enforce "example" }
 EOF
 
-	gencode2_ok(<<'EOF',
+	gencode_ok(<<'EOF',
 fn res:00000001
   unflag changed
   call fix:00000001
@@ -524,7 +524,7 @@ policy "example" {
 host "example" { enforce "example" }
 EOF
 
-	gencode2_ok(<<'EOF',
+	gencode_ok(<<'EOF',
 fn res:00000001
   unflag changed
   call fix:00000001
@@ -558,7 +558,7 @@ policy "example" {
 host "example" { enforce "example" }
 EOF
 
-	gencode2_ok(<<'EOF',
+	gencode_ok(<<'EOF',
 fn res:00000001
   unflag changed
   call fix:00000001
@@ -599,7 +599,7 @@ policy "example" {
 host "example" { enforce "example" }
 EOF
 
-	gencode2_ok(<<'EOF',
+	gencode_ok(<<'EOF',
 fn res:00000001
   unflag changed
   call fix:00000001
@@ -632,7 +632,7 @@ policy "example" {
 host "example" { enforce "example" }
 EOF
 
-	gencode2_ok(<<'EOF',
+	gencode_ok(<<'EOF',
 fn res:00000001
   unflag changed
   call fix:00000001
@@ -660,7 +660,7 @@ policy "example" {
 host "example" { enforce "example" }
 EOF
 
-	gencode2_ok(<<'EOF',
+	gencode_ok(<<'EOF',
 fn res:00000001
   unflag changed
   call fix:00000001
@@ -692,7 +692,7 @@ policy "example" {
 host "example" { enforce "example" }
 EOF
 
-	gencode2_ok(<<'EOF',
+	gencode_ok(<<'EOF',
 fn res:00000001
   unflag changed
   call fix:00000001
@@ -731,7 +731,7 @@ policy "example" {
 host "example" { enforce "example" }
 EOF
 
-	gencode2_ok(<<'EOF',
+	gencode_ok(<<'EOF',
 fn res:00000001
   unflag changed
   call fix:00000001
@@ -762,7 +762,7 @@ policy "example" {
 host "example" { enforce "example" }
 EOF
 
-	gencode2_ok(<<'EOF',
+	gencode_ok(<<'EOF',
 fn res:00000001
   unflag changed
   call fix:00000001
@@ -793,7 +793,7 @@ policy "example" {
 host "example" { enforce "example" }
 EOF
 
-	gencode2_ok(<<'EOF',
+	gencode_ok(<<'EOF',
 fn res:00000001
   unflag changed
   call fix:00000001
@@ -823,7 +823,7 @@ policy "example" {
 host "example" { enforce "example" }
 EOF
 
-	gencode2_ok(<<'EOF',
+	gencode_ok(<<'EOF',
 fn res:00000001
   unflag changed
   call fix:00000001
@@ -857,7 +857,7 @@ policy "example" {
 host "example" { enforce "example" }
 EOF
 
-	gencode2_ok(<<'EOF',
+	gencode_ok(<<'EOF',
 fn res:00000001
   unflag changed
   call fix:00000001
@@ -885,7 +885,7 @@ policy "example" {
 host "example" { enforce "example" }
 EOF
 
-	gencode2_ok(<<'EOF',
+	gencode_ok(<<'EOF',
 fn res:00000001
   unflag changed
   call fix:00000001
@@ -913,7 +913,7 @@ policy "example" {
 host "example" { enforce "example" }
 EOF
 
-	gencode2_ok(<<'EOF',
+	gencode_ok(<<'EOF',
 fn res:00000001
   unflag changed
   call fix:00000001
@@ -942,7 +942,7 @@ policy "example" {
 host "example" { enforce "example" }
 EOF
 
-	gencode2_ok(<<'EOF',
+	gencode_ok(<<'EOF',
 fn res:00000001
   unflag changed
   call fix:00000001
@@ -971,7 +971,7 @@ policy "example" {
 host "example" { enforce "example" }
 EOF
 
-	gencode2_ok(<<'EOF',
+	gencode_ok(<<'EOF',
 fn res:00000001
   unflag changed
   call fix:00000001
@@ -1005,7 +1005,7 @@ policy "example" {
 host "example" { enforce "example" }
 EOF
 
-	gencode2_ok(<<'EOF',
+	gencode_ok(<<'EOF',
 fn res:00000001
   unflag changed
   call fix:00000001
@@ -1040,7 +1040,7 @@ policy "example" {
 host "example" { enforce "example" }
 EOF
 
-	gencode2_ok(<<'EOF',
+	gencode_ok(<<'EOF',
 fn res:00000001
   unflag changed
   call fix:00000001
@@ -1073,7 +1073,7 @@ policy "example" {
 host "example" { enforce "example" }
 EOF
 
-	gencode2_ok(<<'EOF',
+	gencode_ok(<<'EOF',
 fn res:00000001
   unflag changed
   call fix:00000001
@@ -1104,7 +1104,7 @@ policy "example" {
 host "example" { enforce "example" }
 EOF
 
-	gencode2_ok(<<'EOF',
+	gencode_ok(<<'EOF',
 fn res:00000001
   unflag changed
   call fix:00000001
@@ -1137,7 +1137,7 @@ policy "example" {
 host "example" { enforce "example" }
 EOF
 
-	gencode2_ok(<<'EOF',
+	gencode_ok(<<'EOF',
 fn res:00000001
   unflag changed
   call fix:00000001
@@ -1166,7 +1166,7 @@ policy "example" {
 host "example" { enforce "example" }
 EOF
 
-	gencode2_ok(<<'EOF',
+	gencode_ok(<<'EOF',
 fn res:00000001
   unflag changed
   call fix:00000001
@@ -1186,6 +1186,7 @@ fn main
 EOF
 		"ondemand exec resource");
 
+	#######################################################
 
 	put_file "t/tmp/manifest.pol", <<'EOF';
 policy "example" {
@@ -1197,7 +1198,7 @@ policy "example" {
 host "example" { enforce "example" }
 EOF
 
-	gencode2_ok(<<'EOF',
+	gencode_ok(<<'EOF',
 fn res:00000001
   unflag changed
   call fix:00000001
@@ -1218,6 +1219,7 @@ fn main
 EOF
 		"conditional exec resource");
 
+	#######################################################
 
 	put_file "t/tmp/manifest.pol", <<'EOF';
 policy "example" {
@@ -1231,7 +1233,7 @@ policy "example" {
 host "example" { enforce "example" }
 EOF
 
-	gencode2_ok(<<'EOF',
+	gencode_ok(<<'EOF',
 fn res:00000001
   unflag changed
   call fix:00000001
@@ -1258,6 +1260,687 @@ fn main
 EOF
 		"runas user/group exec resource");
 
+	#######################################################
+};
+
+subtest "if conditionals" => sub {
+	mkdir "t/tmp";
+
+	#######################################################
+
+	put_file "t/tmp/manifest.pol", <<EOF;
+policy "example" {
+	package "00:always-there" { }
+
+	if (sys.fqdn == "host.example.net") {
+		package "01:double-equals" { }
+	} else {
+		package "01:double-equals-FAIL" { }
+	}
+	if (sys.fqdn is "host.example.net") {
+		package "02:is" { }
+	} else {
+		package "02:is-FAIL" { }
+	}
+
+	if (sys.fqdn != "not-a-thing") {
+		package "03:not-equals" { }
+	} else {
+		package "03:not-equals-FAIL" { }
+	}
+
+	if (sys.fqdn is not "not-a-thing") {
+		package "04:is-not" { }
+	} else {
+		package "04:is-not-FAIL" { }
+	}
+}
+host "example" { enforce "example" }
+EOF
+	set_facts "t/tmp/facts.lst",
+		'sys.fqdn' => 'host.example.net';
+
+	resources_ok <<'EOF', "basic IF tests";
+  package 00:always-there
+  package 01:double-equals
+  package 02:is
+  package 03:not-equals
+  package 04:is-not
+EOF
+
+	#######################################################
+
+	put_file "t/tmp/manifest.pol", <<EOF;
+policy "example" {
+	package "00:always-there" { }
+
+	if (sys.fqdn == "host.example.net" and sys.platform != "HPUX") {
+		package "01:and" { }
+	} else {
+		package "01:and-FAIL" { }
+	}
+	if (sys.arch == "i386" or sys.arch == "x86_64") {
+		package "02:or" { }
+	} else {
+		package "02:or-FAIL" { }
+	}
+}
+host "example" { enforce "example" }
+EOF
+	set_facts "t/tmp/facts.lst",
+		'sys.platform' => "Linux",
+		'sys.fqdn'     => 'host.example.net',
+		'sys.arch'     => 'x86_64';
+
+	resources_ok <<'EOF', "compound IF";
+  package 00:always-there
+  package 01:and
+  package 02:or
+EOF
+
+	#######################################################
+
+	put_file "t/tmp/manifest.pol", <<EOF;
+policy "example" {
+	package "00:always-there" { }
+
+	if (sys.arch == lsb.arch) {
+		package "01:fact-equality" { }
+	} else {
+		package "01:fact-equality-FAIL" { }
+	}
+	if (sys.arch != sys.kernel.verson) {
+		package "02:fact-inequality" { }
+	} else {
+		package "02:fact-inequality-FAIL" { }
+	}
+	if ("test" == "test") {
+		package "03:literal-to-literal" { }
+	} else {
+		package "03:literal-to-literal-FAIL" { }
+	}
+
+	if ("trusty" == lsb.distro.codename) {
+		package "04:literal-to-fact" { }
+	} else {
+		package "04:literal-to-fact-FAIL" { }
+	}
+}
+host "example" { enforce "example" }
+EOF
+	set_facts "t/tmp/facts.lst",
+		'sys.arch'            => 'x86_64',
+		'lsb.arch'            => 'x86_64',
+		'sys.kernel.version'  => '3.13.0-24-generic',
+		'lsb.distro.codename' => 'trusty';
+
+	resources_ok <<'EOF', "fact <=> fact";
+  package 00:always-there
+  package 01:fact-equality
+  package 02:fact-inequality
+  package 03:literal-to-literal
+  package 04:literal-to-fact
+EOF
+
+	#######################################################
+
+	put_file "t/tmp/manifest.pol", <<EOF;
+policy "example" {
+	package "00:always-there" { }
+
+	if (lsb.distro.codename like m/lucid|trusty/) {
+		package "01:like" { }
+	} else {
+		package "01:like-FAIL" { }
+	}
+
+	if (lsb.distro.codename !~ /lucid|trusty/) {
+		package "03:unlike-FAIL" { }
+	} else {
+		package "03:unlike" { }
+	}
+
+	if (lsb.distro.codename =~ m|trusty|) {
+		package "04:alt-delimiters" { }
+	} else {
+		package "04:alt-delimiters-FAIL" { }
+	}
+
+	# case-sensitive match with bad case...
+	if (lsb.distro.codename not like m/TRUSTY|LUCID/) {
+		package "05:case-sensitive" { }
+	} else {
+		package "05:case-sensitive-FAIL" { }
+	}
+
+	if (lsb.distro.codename like m/TRUSTY|LUCID/i) {
+		package "06:case-insensitive" { }
+	} else {
+		package "06:case-insensitive-FAIL" { }
+	}
+
+	if (1 == 2) {
+		package "07:multi-fail1" { }
+	} else if (2 == 1) {
+		package "07:multi-fail2" { }
+	} else {
+		package "07:multi"
+	}
+}
+host "example" { enforce "example" }
+EOF
+	set_facts "t/tmp/facts.lst",
+		'lsb.distro.codename' => 'trusty';
+
+	resources_ok <<'EOF', "regex conditionals";
+  package 00:always-there
+  package 01:like
+  package 03:unlike
+  package 04:alt-delimiters
+  package 05:case-sensitive
+  package 06:case-insensitive
+  package 07:multi
+EOF
+
+	#######################################################
+
+	put_file "t/tmp/manifest.pol", <<'EOF';
+policy "example" {
+	package "00:always-there" { }
+
+	if (sys.kernel.major =~ m/\d\.\d+$/) {
+		package "01:slash-d" { }
+	} else {
+		package "01:slash-d-FAIL" { }
+	}
+
+	if (test.passwd =~ m/\/etc\/passwd/) {
+		package "02:path-check" { }
+	} else {
+		package "02:path-check-FAIL" { }
+	}
+
+	if (test.passwd =~ m|/etc/passwd|) {
+		package "03:alt-delim" { }
+	} else {
+		package "03:alt-delim-FAIL" { }
+	}
+
+	if (test.pipes =~ m/a\|b/) {
+		package "04:pipes" { }
+	} else {
+		package "04:pipes-FAIL" { }
+	}
+}
+host "example" { enforce "example" }
+EOF
+	set_facts "t/tmp/facts.lst",
+		'sys.kernel.major' => '3.13',
+		'test.passwd'      => '/etc/passwd',
+		'test.pipes'       => 'a|b|c|d|e';
+
+	resources_ok <<'EOF', "advanced regexes";
+  package 00:always-there
+  package 01:slash-d
+  package 02:path-check
+  package 03:alt-delim
+  package 04:pipes
+EOF
+
+	#######################################################
+
+	put_file "t/tmp/manifest.pol", <<EOF;
+policy "host-a" { package "host-a" { } }
+policy "host-b" { package "host-b" { } }
+policy "host-c" { package "host-c" { } }
+host "example" {
+	enforce "host-a"
+	if (lsb.distro.codename =~ m/trusty|lucid/) {
+		enforce "host-b"
+	}
+	if (sys.arch is "sparc") {
+		enforce "host-c" # not enforced
+	}
+}
+EOF
+	set_facts "t/tmp/facts.lst",
+		'lsb.distro.codename' => 'trusty',
+		'sys.arch'            => 'x86_64';
+
+	resources_ok <<'EOF', "regex enforcement";
+  package host-a
+  package host-b
+EOF
+
+	#######################################################
+
+	put_file "t/tmp/manifest.pol", <<EOF;
+policy "example" {
+	package "literals" {
+		installed: "yes"
+		version: map(sys.fqdn) {
+			"host.example.net": "1.2.3"
+			"other.host":       "1.FAIL"
+			else:               "default.FAIL"
+		}
+	}
+}
+host "example" { enforce "example" }
+EOF
+	set_facts "t/tmp/facts.lst",
+		'sys.fqdn' => 'host.example.net';
+
+	cw_shell_ok <<'EOF', "simple map conditional",
+
+package "literals" {
+  installed : "yes"
+  name      : "literals"
+  version   : "1.2.3"
+}
+EOF
+	command => 'use host example; show package literals';
+
+	#######################################################
+
+	put_file "t/tmp/manifest.pol", <<EOF;
+policy "example" {
+	package "facts" {
+		installed: "yes"
+		version: map(sys.arch) {
+			lsb.arch:           "correct"
+			"x86_64":           "x86_64 fall-through"
+			"i386":             "i386 fall-through"
+			else:               "default fail"
+		}
+	}
+}
+host "example" { enforce "example" }
+EOF
+	set_facts "t/tmp/facts.lst",
+		'lsb.arch' => 'harvard',
+		'sys.arch' => 'harvard';
+
+	cw_shell_ok <<'EOF', "fact == fact map conditional",
+
+package "facts" {
+  installed : "yes"
+  name      : "facts"
+  version   : "correct"
+}
+EOF
+	command => 'use host example; show package facts';
+
+	#######################################################
+
+	put_file "t/tmp/manifest.pol", <<EOF;
+policy "example" {
+	package "regex" {
+		installed: "yes"
+		version: map(sys.fqdn) {
+			/example.com/:       "example.com"
+			m/ietf.org/:         "ietf"
+			/example.net/:       "correct"
+			"host.example.net":  "exact match fall-through"
+			default:             "default fail"
+		}
+	}
+}
+host "example" { enforce "example" }
+EOF
+	set_facts "t/tmp/facts.lst",
+		'sys.fqdn' => "host.example.net";
+
+	cw_shell_ok <<'EOF', "regexes as rhs in map",
+
+package "regex" {
+  installed : "yes"
+  name      : "regex"
+  version   : "correct"
+}
+EOF
+	command => "use host example; show package regex";
+
+	#######################################################
+
+	put_file "t/tmp/manifest.pol", <<EOF;
+policy "example" {
+	package "fallthrough" {
+		installed: "yes"
+		version: map(sys.arch) {
+			"x86_64":           "x86_64 fail"
+			"i386":             "i386 fail"
+			else:               "default correct"
+		}
+	}
+}
+host "example" { enforce "example" }
+EOF
+	set_facts "t/tmp/facts.lst",
+		'sys.arch' => 'pa-risc';
+
+	cw_shell_ok <<'EOF', "fact == value map conditional",
+
+package "fallthrough" {
+  installed : "yes"
+  name      : "fallthrough"
+  version   : "default correct"
+}
+EOF
+	command => "use host example; show package fallthrough";
+
+	#######################################################
+};
+
+subtest "dependencies" => sub {
+	mkdir "t/tmp";
+
+	#######################################################
+
+	put_file "t/tmp/manifest.pol", <<EOF;
+policy "example" {
+	dir "/tmp" { }
+	file "/tmp/inner/file" { }
+	dir "/tmp/inner" { }
+}
+host "example" { enforce "example" }
+EOF
+	gencode_ok <<'EOF', "implict deps";
+fn res:00000001
+  unflag changed
+  call fix:00000001
+  flagged? changed
+  jz +1 ret
+  flag "dir:/tmp"
+  flag "dir:/tmp"
+  ret
+
+fn fix:00000001
+  set %a "/tmp"
+  call res.dir.present
+
+fn res:00000003
+  unflag changed
+  call fix:00000003
+  flagged? changed
+  jz +1 ret
+  flag "dir:/tmp/inner"
+  ret
+
+fn fix:00000003
+  set %a "/tmp/inner"
+  call res.dir.present
+
+fn res:00000002
+  unflag changed
+  call fix:00000002
+  ;; no dependencies
+
+fn fix:00000002
+  set %a "/tmp/inner/file"
+  call res.file.present
+
+fn main
+  ;; dir:/tmp
+  try res:00000001
+  ;; dir:/tmp/inner
+  try res:00000003
+  ;; file:/tmp/inner/file
+  try res:00000002
+EOF
+
+	#######################################################
+
+	put_file "t/tmp/manifest.pol", <<EOF;
+policy "example" {
+	package "test" { }
+	# dangling dependency
+	package("test") depends on file("test.conf")
+}
+host "example" { enforce "example" }
+EOF
+	resources_ok <<'EOF', "dangling dependency target doesn't crash";
+  package test
+EOF
+
+	#######################################################
+
+	put_file "t/tmp/manifest.pol", <<EOF;
+policy "example" {
+	package "test" { }
+	# dangling dependency
+	package("test") affects file("test.conf")
+}
+host "example" { enforce "example" }
+EOF
+	resources_ok <<'EOF', "dangling dependency subject doesn't crash";
+  package test
+EOF
+
+	#######################################################
+
+	put_file "t/tmp/manifest.pol", <<EOF;
+policy "example" {
+	package "base" { }
+	service "serviced" {
+		running: "yes"
+		enabled: "yes"
+
+	}
+	file "/etc/base.conf" {
+		source: "/files/\$path"
+	}
+
+	service("serviced") depends on package("base")
+	file("/etc/base.conf") depends on package("base")
+	file("/etc/base.conf") affects service("serviced")
+}
+host "example" { enforce "example" }
+EOF
+	dependencies_ok <<'EOF', "explicit external depends on / affects";
+  package base
+     file /etc/base.conf
+  service serviced
+EOF
+
+	#######################################################
+
+	put_file "t/tmp/manifest.pol", <<EOF;
+policy "example" {
+	package "base" { }
+	service "serviced" {
+		running: "yes"
+		enabled: "yes"
+
+		depends on package("base")
+	}
+	file "/etc/base.conf" {
+		source: "/files/\$path"
+
+		depends on package("base")
+		affects service("serviced")
+	}
+}
+host "example" { enforce "example" }
+EOF
+	dependencies_ok <<'EOF', "explicit internal depends on / affects";
+  package base
+     file /etc/base.conf
+  service serviced
+EOF
+
+	#######################################################
+
+	put_file "t/tmp/manifest.pol", <<EOF;
+policy "example" {
+	package "A" { depends on package("B") }
+	package "B" { depends on package("A") }
+}
+host "example" { enforce "example" }
+EOF
+	resources_ok <<'EOF', "circular dependency A -> B -> A doesn't crash";
+  package A
+  package B
+EOF
+
+	#######################################################
+
+	put_file "t/tmp/manifest.pol", <<EOF;
+policy "example" {
+	package "A" { depends on package("B") }
+	package "B" { depends on package("C") }
+	package "C" { depends on package("D") }
+	package "D" { depends on package("A") }
+}
+host "example" { enforce "example" }
+EOF
+	resources_ok <<'EOF', "circular dependency A -> B -> C -> D -> A doesn't crash";
+  package A
+  package B
+  package C
+  package D
+EOF
+
+	#######################################################
+};
+
+subtest "acl parsing" => sub {
+	mkdir "t/tmp";
+
+	#######################################################
+
+	put_file "t/tmp/manifest.pol", <<EOF;
+policy "example" {
+	allow %systems "*"      final
+	allow %dev     "show *"
+	allow juser    "service restart *"
+	deny  %probate "*"
+}
+host "example" { enforce "example" }
+EOF
+
+	acls_ok <<'EOF', "global ACLs";
+  allow %systems "*" final
+  allow %dev "show *"
+  allow juser "service restart *"
+  deny %probate "*"
+EOF
+
+	# FIXME: run gencode_ok to get ACL data
+
+	#######################################################
+
+	put_file "t/tmp/manifest.pol", <<EOF;
+policy "example" {
+	allow %systems "*" final
+
+	if (sys.fqdn =~ m/example.net/) {
+		allow %example "show *"
+	}
+	if (sys.platform == "HPUX") {
+		allow %hpux "*"
+	} else {
+		allow %hpux "show *" final
+		deny %hpux "*"
+	}
+}
+host "example" { enforce "example" }
+EOF
+	set_facts "t/tmp/facts.lst",
+		'sys.platform' => 'Linux',
+		'sys.fqdn'     => 'host.example.net';
+
+	acls_ok <<'EOF', "conditional ACLs";
+  allow %systems "*" final
+  allow %example "show *"
+  allow %hpux "show *" final
+  deny %hpux "*"
+EOF
+
+	#######################################################
+
+	put_file "t/tmp/manifest.pol", <<EOF;
+policy "example1" {
+	allow %systems "*"      final
+	allow %dev     "show *"
+	allow juser    "service restart *"
+	deny  %probate "*"
+}
+policy "example2" {
+	allow %systems "*" final
+
+	if (sys.fqdn =~ m/example.net/) {
+		allow %example "show *"
+	}
+	if (sys.platform == "HPUX") {
+		allow %hpux "*"
+	} else {
+		allow %hpux "show *" final
+		deny %hpux "*"
+	}
+}
+host "example" { enforce "example1" enforce "example2" }
+EOF
+	set_facts "t/tmp/facts.lst",
+		'sys.platform' => "Linux",
+		'sys.fqdn'     => "host.example.net";
+
+	acls_ok <<'EOF', "multi-policy ACLs";
+  allow %systems "*" final
+  allow %dev "show *"
+  allow juser "service restart *"
+  deny %probate "*"
+  allow %systems "*" final
+  allow %example "show *"
+  allow %hpux "show *" final
+  deny %hpux "*"
+EOF
+
+	#######################################################
+
+	put_file "t/tmp/manifest.pol", <<EOF;
+policy "baseline" {
+  allow %base "query package *"
+}
+policy "example" {
+  allow %pre "show version"
+  extend "baseline"
+  allow %level1 "exec netstat" final
+  allow %systems "*"
+}
+host "example" { enforce "example" }
+EOF
+	acls_ok <<'EOF', "inherited ACLs";
+  allow %pre "show version"
+  allow %base "query package *"
+  allow %level1 "exec netstat" final
+  allow %systems "*"
+EOF
+
+	#######################################################
+
+	put_file "t/tmp/manifest.pol", <<EOF;
+policy "example" {
+  allow %group ALL
+}
+host "example" { enforce "example" }
+EOF
+	acls_ok <<'EOF', "ALL keyword";
+  allow %group "*"
+EOF
+
+	#######################################################
+
+	put_file "t/tmp/manifest.pol", <<EOF;
+policy "example" {
+  allow user ping
+}
+host "example" { enforce "example" }
+EOF
+	acls_ok <<'EOF', "unquoted strings";
+  allow user "ping"
+EOF
+
+	#######################################################
 };
 
 done_testing;

@@ -1171,18 +1171,18 @@ int policy_gencode2(const struct policy *pol, FILE *io)
 			for_each_dependency(d, pol)
 				if (r == d->resource_b)
 					fprintf(io, "  flag \"%s\"\n", r->key);
-			fprintf(io, "  ret\n");
+			fprintf(io, "  ret\n\n");
 
 		} else {
-			fprintf(io, "  ;; no dependencies\n");
+			fprintf(io, "  ;; no dependencies\n\n");
 		}
 
-		fprintf(io, "\n"
-		            "fn fix:%08x\n", r->serial);
+		fprintf(io, "fn fix:%08x\n", r->serial);
 		resource_gencode2(r, io);
+		fprintf(io, "\n");
 	}
 
-	fprintf(io, "\nfn main\n");
+	fprintf(io, "fn main\n");
 	for_each_resource(r, pol)
 		fprintf(io, "  ;; %s\n"
 		            "  try res:%08x\n", r->key, r->serial);

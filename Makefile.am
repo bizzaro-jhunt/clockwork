@@ -16,7 +16,6 @@ sharedir      = $(datarootdir)/share
 pkgsharedir   = $(sharedir)/$(PACKAGE)
 
 AM_CFLAGS  = -Wall $(DEPS_CFLAGS)
-AM_CFLAGS += -DTEST_DATA=\"$(srcdir)/t/data\"
 AM_CFLAGS += -DCW_CACHE_DIR=\"$(pkgcachedir)\"
 AM_CFLAGS += -DCW_GATHER_DIR=\"$(gatherdir)\"
 AM_CFLAGS += -DCW_CLI_DIR=\"$(clidir)\"
@@ -99,14 +98,8 @@ SHELL_TESTS += t/memcheck/33-cwtrust.t
 TESTS          = $(CTAP_TESTS) $(PERL_TESTS) $(SHELL_TESTS)
 BUILT_TESTS    = $(CTAP_TESTS)
 check_PROGRAMS = $(CTAP_TESTS) TEST_cogd TEST_clockd TEST_ps TEST_lock TEST_meshd TEST_cmd
-check_DATA     = t/tmp/check-data-install.stamp
-t/tmp/check-data-install.stamp:
-	mkdir -p t/tmp
-	cp -a $(srcdir)/t/data t/tmp
-	find t/tmp -type d ! -perm -200 -exec chmod u+w {} ';'
-	touch $@
 
-TEST_EXTRAS  = t/data t/common.pm
+TEST_EXTRAS  = t/common.pm
 TEST_EXTRAS += $(PERL_TESTS)
 TEST_EXTRAS += t/memcheck/verify
 TEST_EXTRAS += $(SHELL_TESTS)
@@ -308,19 +301,15 @@ manifest:
 	@echo >&2 "nothin doin"
 
 test: check
-check-local: test-data
-test-data:
-	rm -f t/tmp/check-data-install.stamp
-	make t/tmp/check-data-install.stamp
 
 ############################################################
 # Lex/YACC Parsers
 
-src/spec/lexer.c: src/spec/lexer.l src/spec/grammar.h src/spec/lexer_impl.h src/spec/parser.h src/spec/private.h
-	$(LEXCOMPILE) --outfile=$@ $<
+#src/spec/lexer.c: src/spec/lexer.l src/spec/grammar.h src/spec/lexer_impl.h src/spec/parser.h src/spec/private.h
+#	$(LEXCOMPILE) --outfile=$@ $<
 
-src/spec/grammar.c: src/spec/grammar.y src/spec/parser.c src/spec/parser.h src/spec/private.h
-	$(YACCCOMPILE) --output-file=src/spec/grammar.c $<
+#src/spec/grammar.c: src/spec/grammar.y src/spec/parser.c src/spec/parser.h src/spec/private.h
+#	$(YACCCOMPILE) --output-file=src/spec/grammar.c $<
 
 ############################################################
 # Opcodes
@@ -333,8 +322,7 @@ clean-local-gcda:
 	touch sac.gcda
 	find . -name '*.gc??' | xargs rm
 clean-local-check:
-	rm -fr t/tmp/*
-	rm -f check-data-install.stamp
+	rm -fr t/tmp
 
 if GCOV_ENABLED
 coverage-clean:

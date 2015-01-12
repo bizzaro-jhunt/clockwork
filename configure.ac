@@ -10,7 +10,7 @@ AC_SUBST([PACKAGE_PROTOCOL], [1])
 
 ################################################
 
-AC_CONFIG_SRCDIR([src/clockwork.h])
+AC_CONFIG_SRCDIR([src/clockd.c])
 AC_CONFIG_AUX_DIR([build])
 AC_CONFIG_MACRO_DIR([build])
 AC_CONFIG_HEADERS(config.h)

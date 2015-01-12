@@ -156,6 +156,7 @@ t_90_meshd_SOURCES       = t/90-meshd.c         $(test_source)
 CLEANFILES       = $(BUILT_SOURCES)
 
 EXTRA_DIST       = HACKING CHANGELOG
+EXTRA_DIST      += opcodes.yml gencode
 EXTRA_DIST      += bootstrap
 EXTRA_DIST      += augeas gather.d
 EXTRA_DIST      += examples extras

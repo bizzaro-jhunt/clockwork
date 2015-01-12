@@ -90,7 +90,6 @@ PERL_TESTS += t/bdfa/01-basics.t
 PERL_TESTS += t/cw/01-ps.t
 PERL_TESTS += t/cw/02-lock.t
 
-PERL_TESTS += t/security/03-trust.t
 PERL_TESTS += t/security/04-trustdb.t
 
 SHELL_TESTS  =

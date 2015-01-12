@@ -5,7 +5,7 @@ use warnings;
 use Test::More;
 use t::common;
 
-$ENV{TEST_CLOCKD_BAIL_EARLY} = 1;
+##########################################################################
 
 subtest "cogd: invalid configuration" => sub {
 	mkdir "t/tmp";
@@ -35,6 +35,8 @@ EOF
 	string_is $stdout, '', "invalid: No standard output";
 };
 
+##########################################################################
+
 subtest "cogd: missing certificate" => sub {
 	mkdir "t/tmp";
 	put_file "t/tmp/cogd.conf", <<EOF;
@@ -58,6 +60,8 @@ EOF
 
 	string_is $stdout, '', "nocert: No standard output";
 };
+
+##########################################################################
 
 subtest "cogd: cert with no private certificate" => sub {
 	mkdir "t/tmp";
@@ -87,6 +91,8 @@ EOF
 	string_is $stdout, '', "pubonly: No standard output";
 };
 
+##########################################################################
+
 subtest "cogd: missing identity" => sub {
 	mkdir "t/tmp";
 	put_file "t/tmp/cogd.conf", <<EOF;
@@ -115,6 +121,8 @@ EOF
 	string_is $stdout, '', "noident: No standard output";
 };
 
+##########################################################################
+
 subtest "cogd: no master certificate" => sub {
 	mkdir "t/tmp";
 	put_file "t/tmp/cogd.conf", <<EOF;
@@ -139,6 +147,8 @@ EOF
 	string_is $stdout, '', "nomastercert: No standard output";
 };
 
+##########################################################################
+
 subtest "cogd: invalid master certificate" => sub {
 	mkdir "t/tmp";
 	put_file "t/tmp/cogd.conf", <<EOF;
@@ -162,6 +172,8 @@ EOF
 	string_is $stdout, '', "badmastercert: No standard output";
 };
 
+##########################################################################
+
 subtest "clockd: invalid certificate" => sub {
 	mkdir "t/tmp";
 	put_file "t/tmp/clockd.conf", <<EOF;
@@ -173,6 +185,7 @@ it is instead a text file
 have fun with that!
 EOF
 	my ($stdout, $stderr);
+	local $ENV{TEST_CLOCKD_BAIL_EARLY} = 1;
 	run_ok "./TEST_clockd -Fvc t/tmp/clockd.conf", 1, \$stdout, \$stderr,
 		"Run clockd with an invalid certificate";
 
@@ -184,12 +197,15 @@ EOF
 	string_is $stderr, '', "invalid: No standard error output";
 };
 
+##########################################################################
+
 subtest "clockd: missing certificate" => sub {
 	mkdir "t/tmp";
 	put_file "t/tmp/clockd.conf", <<EOF;
 security.cert /path/to/nowhere
 EOF
 	my ($stdout, $stderr);
+	local $ENV{TEST_CLOCKD_BAIL_EARLY} = 1;
 	run_ok "./TEST_clockd -Fvc t/tmp/clockd.conf", 1, \$stdout, \$stderr,
 		"Run clockd with an invalid certificate";
 
@@ -201,6 +217,8 @@ EOF
 	string_is $stderr, '', "nocert: No standard error output";
 };
 
+##########################################################################
+
 subtest "clockd: missing private key component of certificate" => sub {
 	mkdir "t/tmp";
 	put_file "t/tmp/clockd.conf", <<EOF;
@@ -211,6 +229,7 @@ id  pubonly.test
 pub aea625f90ac478b9bc9649f6ab74e5f095bab8522f107b1a6d701e83c41cfc4b
 EOF
 	my ($stdout, $stderr);
+	local $ENV{TEST_CLOCKD_BAIL_EARLY} = 1;
 	run_ok "./TEST_clockd -Fvc t/tmp/clockd.conf", 1, \$stdout, \$stderr,
 		"Run clockd with pub-only certificate";
 
@@ -222,6 +241,8 @@ EOF
 	string_is $stderr, '', "pubonly: No standard error output";
 };
 
+##########################################################################
+
 subtest "clockd: anonymous certificate" => sub {
 	mkdir "t/tmp";
 	put_file "t/tmp/clockd.conf", <<EOF;
@@ -232,6 +253,7 @@ pub aea625f90ac478b9bc9649f6ab74e5f095bab8522f107b1a6d701e83c41cfc4b
 sec aea625f90ac478b9bc9649f6ab74e5f095bab8522f107b1a6d701e83c41cfc4b
 EOF
 	my ($stdout, $stderr);
+	local $ENV{TEST_CLOCKD_BAIL_EARLY} = 1;
 	run_ok "./TEST_clockd -Fvc t/tmp/clockd.conf", 1, \$stdout, \$stderr,
 		"Run clockd with anonymous certificate";
 
@@ -243,9 +265,9 @@ EOF
 	string_is $stderr, '', "noident: No standard error output";
 };
 
-subtest "strict verification failure" => sub {
-	plan skip_all => "skipping slow tests" if $ENV{NO_SLOW} or $ENV{VIMRUNTIME};
+##########################################################################
 
+subtest "strict verification failure" => sub {
 	mkdir "t/tmp";
 	put_file "t/tmp/clockd.conf", <<EOF;
 listen *:2313
@@ -260,11 +282,17 @@ id  master.host.fq.dn
 pub d3043ed5285b3cfbaaf3dace0ee9d68c7e3e01d4dc6aa092d90a55b7dfd4fb57
 sec 39594d56e97c363dd179205f64112339533500740706c160f4c0ab1303f97328
 EOF
+	put_file "t/tmp/trusted", <<EOF;
+bd60ed6d2daabaaa3d120c1c3269b40df6f8fa8219c538d7ee3f5d47c87abf66 client.host.fq.dn
+EOF
 	put_file "t/tmp/cogd.conf", <<EOF;
-master.1 localhost:2313
+master.1 127.0.0.1:2313
 cert.1   t/tmp/altmaster.pub
 
 security.cert t/tmp/client
+lockdir       t/tmp
+copydown      t/tmp/local
+gatherers     t/tmp/gather.d/*
 EOF
 	put_file "t/tmp/client", <<EOF;
 id  client.host.fq.dn
@@ -275,6 +303,11 @@ EOF
 id  altmaster.fq.dn
 pub e083e126f5edfbce563906892552f8f0b11ab47bb62f3b23f1bfcb2b650d6f7e
 EOF
+	put_file "t/tmp/gather.d/core", <<EOF;
+#/bin/sh
+echo "test=yes"
+EOF
+	chmod 0755, "t/tmp/gather.d/core";
 
 	my $pid = background_ok "./TEST_clockd -Fc t/tmp/clockd.conf",
 		"run clockd in the background";
@@ -284,14 +317,16 @@ EOF
 	$stderr =~ s/^cogd\[\d+\]\s*//mg;
 	string_is $stderr, <<EOF, "Standard error output";
 Starting configuration run
-No response from master 1 (localhost:2313): possible certificate mismatch
+No response from master 1 (127.0.0.1:2313): possible certificate mismatch
 No masters were reachable; giving up
 EOF
 	kill 9, $pid;
 };
 
+##########################################################################
+
 subtest "strict verification success" => sub {
-	mkdir "t/tmp"; mkdir "t/tmp/copydown";
+	mkdir $_ for qw(t/tmp t/tmp/copydown t/tmp/gather.d);
 	put_file "t/tmp/clockd.conf", <<EOF;
 listen *:2313
 security.cert    t/tmp/master
@@ -317,7 +352,7 @@ EOF
 bd60ed6d2daabaaa3d120c1c3269b40df6f8fa8219c538d7ee3f5d47c87abf66 client.host.fq.dn
 EOF
 	put_file "t/tmp/cogd.conf", <<EOF;
-master.1 localhost:2313
+master.1 127.0.0.1:2313
 cert.1   t/tmp/master.pub
 timeout  90
 
@@ -331,12 +366,127 @@ id  client.host.fq.dn
 pub bd60ed6d2daabaaa3d120c1c3269b40df6f8fa8219c538d7ee3f5d47c87abf66
 sec e9e78788351c307705fa25eb318349fb77cdd6be5299b365ca27a6c6044761ee
 EOF
+	put_file "t/tmp/gather.d/core", <<EOF;
+#/bin/sh
+echo "test=yes"
+EOF
+	chmod 0755, "t/tmp/gather.d/core";
 
-	my $pid = background_ok "./TEST_clockd -Fvvvvvvvvvvvvc t/tmp/clockd.conf",
+	my $pid = background_ok "./TEST_clockd -Fc t/tmp/clockd.conf",
 		"run clockd in the background";
 	my ($stdout, $stderr);
 	run_ok "./TEST_cogd -Xc t/tmp/cogd.conf", 0, \$stdout, \$stderr,
 		"run cogd that is trusted by clockd in security.strict = yes";
+	$stderr =~ s/^cogd\[\d+\]\s*//mg;
+	$stderr =~ s/=\d+/=X/g;
+	$stderr =~ s/in \d\.\d+s/in #.##s/;
+	string_is $stderr, <<EOF, "Standard error output";
+Starting configuration run
+complete. enforced 0 resources in #.##s
+STATS(ms): connect=X, hello=X, preinit=X, copydown=X, facts=X, getpolicy=X, parse=X, enforce=X, cleanup=X
+EOF
+	kill 9, $pid;
+};
+
+##########################################################################
+
+subtest "non-strict verification failure" => sub {
+	mkdir $_ for qw(t/tmp t/tmp/copydown t/tmp/gather.d);
+	put_file "t/tmp/clockd.conf", <<EOF;
+listen *:2313
+security.cert    t/tmp/master
+security.strict  no
+copydown t/tmp/copydown
+manifest t/tmp/manifest.pol
+EOF
+	put_file "t/tmp/master", <<EOF;
+id  master.host.fq.dn
+pub d3043ed5285b3cfbaaf3dace0ee9d68c7e3e01d4dc6aa092d90a55b7dfd4fb57
+sec 39594d56e97c363dd179205f64112339533500740706c160f4c0ab1303f97328
+EOF
+	put_file "t/tmp/cogd.conf", <<EOF;
+master.1 127.0.0.1:2313
+cert.1   t/tmp/altmaster.pub
+
+security.cert t/tmp/client
+lockdir       t/tmp
+copydown      t/tmp/local
+gatherers     t/tmp/gather.d/*
+EOF
+	put_file "t/tmp/client", <<EOF;
+id  client.host.fq.dn
+pub bd60ed6d2daabaaa3d120c1c3269b40df6f8fa8219c538d7ee3f5d47c87abf66
+sec e9e78788351c307705fa25eb318349fb77cdd6be5299b365ca27a6c6044761ee
+EOF
+	put_file "t/tmp/altmaster.pub", <<EOF;
+id  altmaster.fq.dn
+pub e083e126f5edfbce563906892552f8f0b11ab47bb62f3b23f1bfcb2b650d6f7e
+EOF
+	put_file "t/tmp/gather.d/core", <<EOF;
+#/bin/sh
+echo "test=yes"
+EOF
+	chmod 0755, "t/tmp/gather.d/core";
+
+	my $pid = background_ok "./TEST_clockd -Fc t/tmp/clockd.conf",
+		"run clockd in the background";
+	my ($stdout, $stderr);
+	run_ok "./TEST_cogd -Xc t/tmp/cogd.conf", 0, \$stdout, \$stderr,
+		"run cogd that isn't trusted by clockd in security.strict = yes";
+	$stderr =~ s/^cogd\[\d+\]\s*//mg;
+	string_is $stderr, <<EOF, "Standard error output";
+Starting configuration run
+No response from master 1 (127.0.0.1:2313): possible certificate mismatch
+No masters were reachable; giving up
+EOF
+	kill 9, $pid;
+};
+
+##########################################################################
+
+subtest "non-strict verification success" => sub {
+	mkdir $_ for qw(t/tmp t/tmp/copydown t/tmp/gather.d);
+	put_file "t/tmp/clockd.conf", <<EOF;
+listen *:2313
+security.cert    t/tmp/master
+security.strict  no
+copydown t/tmp/copydown
+manifest t/tmp/manifest.pol
+EOF
+	put_file "t/tmp/master", <<EOF;
+id  master.host.fq.dn
+pub d3043ed5285b3cfbaaf3dace0ee9d68c7e3e01d4dc6aa092d90a55b7dfd4fb57
+sec 39594d56e97c363dd179205f64112339533500740706c160f4c0ab1303f97328
+EOF
+	put_file "t/tmp/master.pub", <<EOF;
+id  master.host.fq.dn
+pub d3043ed5285b3cfbaaf3dace0ee9d68c7e3e01d4dc6aa092d90a55b7dfd4fb57
+EOF
+	put_file "t/tmp/cogd.conf", <<EOF;
+master.1 127.0.0.1:2313
+cert.1   t/tmp/master.pub
+
+security.cert t/tmp/client
+lockdir       t/tmp
+copydown      t/tmp/local
+gatherers     t/tmp/gather.d/*
+EOF
+	put_file "t/tmp/client", <<EOF;
+id  client.host.fq.dn
+pub bd60ed6d2daabaaa3d120c1c3269b40df6f8fa8219c538d7ee3f5d47c87abf66
+sec e9e78788351c307705fa25eb318349fb77cdd6be5299b365ca27a6c6044761ee
+EOF
+	put_file "t/tmp/gather.d/core", <<EOF;
+#/bin/sh
+echo "test=yes"
+EOF
+	chmod 0755, "t/tmp/gather.d/core";
+
+	my $pid = background_ok "./TEST_clockd -Fc t/tmp/clockd.conf",
+		"run clockd in the background";
+	my ($stdout, $stderr);
+	run_ok "./TEST_cogd -Xc t/tmp/cogd.conf", 0, \$stdout, \$stderr,
+		"run cogd that is trusted by clockd in security.strict = no";
 	$stderr =~ s/^cogd\[\d+\]\s*//mg;
 	$stderr =~ s/=\d+/=X/g;
 	$stderr =~ s/in \d\.\d+s/in #.##s/;

@@ -183,7 +183,7 @@ typedef struct {
 #define MESH_SERVER_TRUSTDB      8
 
 mesh_server_t* mesh_server_new(void *zmq);
-int mesh_server_setopt(mesh_server_t *s, int opt, void *data, size_t len);
+int mesh_server_setopt(mesh_server_t *s, int opt, const void *data, size_t len);
 int mesh_server_bind_control(mesh_server_t *s, const char *endpoint);
 int mesh_server_bind_broadcast(mesh_server_t *s, const char *endpoint);
 int mesh_server_run(mesh_server_t *s);
@@ -197,7 +197,7 @@ int mesh_server_reactor(void *sock, pdu_t *pdu, void *data);
 #define MESH_CLIENT_ACL_DEFAULT  5
 
 mesh_client_t* mesh_client_new(void);
-int mesh_client_setopt(mesh_client_t *c, int opt, void *data, size_t len);
+int mesh_client_setopt(mesh_client_t *c, int opt, const void *data, size_t len);
 void mesh_client_destroy(mesh_client_t *c);
 int mesh_client_handle(mesh_client_t *c, void *sock, pdu_t *pdu);
 

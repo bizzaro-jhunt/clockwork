@@ -786,7 +786,7 @@ mesh_server_t* mesh_server_new(void *zmq)
 	return s;
 }
 
-int mesh_server_setopt(mesh_server_t *s, int opt, void *data, size_t len)
+int mesh_server_setopt(mesh_server_t *s, int opt, const void *data, size_t len)
 {
 	assert(s);
 	errno = EINVAL;
@@ -1125,7 +1125,7 @@ mesh_client_t* mesh_client_new(void)
 	return c;
 }
 
-int mesh_client_setopt(mesh_client_t *c, int opt, void *data, size_t len)
+int mesh_client_setopt(mesh_client_t *c, int opt, const void *data, size_t len)
 {
 	assert(c);
 	errno = EINVAL;

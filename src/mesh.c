@@ -870,7 +870,17 @@ int mesh_server_bind_control(mesh_server_t *s, const char *endpoint)
 	if (s->cert) {
 		int rc, optval = 1;
 		rc = zmq_setsockopt(s->control, ZMQ_CURVE_SERVER, &optval, sizeof(optval));
-		assert(rc == 0);
+		if (rc != 0) {
+			logger(LOG_CRIT, "Failed to set ZMQ_CURVE_SERVER option on control socket: %s",
+				zmq_strerror(errno));
+			if (errno == EINVAL) {
+				int maj, min, rev;
+				zmq_version(&maj, &min, &rev);
+				logger(LOG_CRIT, "Perhaps the local libzmq (%u.%u.%u) doesn't support CURVE security?",
+					maj, min, rev);
+			}
+			exit(4);
+		}
 
 		rc = zmq_setsockopt(s->control, ZMQ_CURVE_SECRETKEY, cert_secret(s->cert), 32);
 		assert(rc == 0);

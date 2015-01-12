@@ -725,7 +725,17 @@ static inline server_t *s_server_new(int argc, char **argv)
 	int rc, optval = 1;
 	logger(LOG_DEBUG, "Setting ZMQ_CURVE_SERVER to %i", optval);
 	rc = zmq_setsockopt(s->listener, ZMQ_CURVE_SERVER, &optval, sizeof(optval));
-	assert(rc == 0);
+	if (rc != 0) {
+		logger(LOG_CRIT, "Failed to set ZMQ_CURVE_SERVER option on listening socket: %s",
+			zmq_strerror(errno));
+		if (errno == EINVAL) {
+			int maj, min, rev;
+			zmq_version(&maj, &min, &rev);
+			logger(LOG_CRIT, "Perhaps the local libzmq (%u.%u.%u) doesn't support CURVE security?",
+				maj, min, rev);
+		}
+		exit(4);
+	}
 	logger(LOG_DEBUG, "Setting ZMQ_CURVE_SECRETKEY (sec) to %s", s->cert->seckey_b16);
 	rc = zmq_setsockopt(s->listener, ZMQ_CURVE_SECRETKEY, cert_secret(s->cert), 32);
 	assert(rc == 0);

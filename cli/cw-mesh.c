@@ -518,7 +518,17 @@ int main(int argc, char **argv)
 	void *client = zmq_socket(zmq, ZMQ_DEALER);
 
 	rc = zmq_setsockopt(client, ZMQ_CURVE_SECRETKEY, cert_secret(c->client_cert), 32);
-	assert(rc == 0);
+	if (rc != 0) {
+		logger(LOG_CRIT, "Failed to set ZMQ_CURVE_SECRETKEY option on client socket: %s",
+			zmq_strerror(errno));
+		if (errno == EINVAL) {
+			int maj, min, rev;
+			zmq_version(&maj, &min, &rev);
+			logger(LOG_CRIT, "Perhaps the local libzmq (%u.%u.%u) doesn't support CURVE security?",
+				maj, min, rev);
+		}
+		exit(4);
+	}
 	rc = zmq_setsockopt(client, ZMQ_CURVE_PUBLICKEY, cert_public(c->client_cert), 32);
 	assert(rc == 0);
 	rc = zmq_setsockopt(client, ZMQ_CURVE_SERVERKEY, cert_public(c->master_cert), 32);

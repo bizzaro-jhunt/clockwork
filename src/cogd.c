@@ -109,7 +109,17 @@ static void *s_connect(client_t *c)
 	int rc;
 	logger(LOG_DEBUG, "Setting ZMQ_CURVE_SECRETKEY (sec) to %s", c->cert->seckey_b16);
 	rc = zmq_setsockopt(client, ZMQ_CURVE_SECRETKEY, cert_secret(c->cert), 32);
-	assert(rc == 0);
+	if (rc != 0) {
+		logger(LOG_CRIT, "Failed to set ZMQ_CURVE_SECRETKEY option on client socket: %s",
+			zmq_strerror(errno));
+		if (errno == EINVAL) {
+			int maj, min, rev;
+			zmq_version(&maj, &min, &rev);
+			logger(LOG_CRIT, "Perhaps the local libzmq (%u.%u.%u) doesn't support CURVE security?",
+				maj, min, rev);
+		}
+		exit(4);
+	}
 	logger(LOG_DEBUG, "Setting ZMQ_CURVE_PUBLICKEY (pub) to %s", c->cert->pubkey_b16);
 	rc = zmq_setsockopt(client, ZMQ_CURVE_PUBLICKEY, cert_public(c->cert), 32);
 	assert(rc == 0);

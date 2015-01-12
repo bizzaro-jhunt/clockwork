@@ -4,12 +4,12 @@ if [ -f Makefile ]; then
 	make distclean
 fi
 
-./autogen.sh
+./bootrap
 export CFLAGS=-g
 ./configure --prefix /cw
 make
 make DESTDIR=_nightly install
-cp -R t/data/lxc _nightly/cw/cfm
+cp -R t/lxc _nightly/cw/cfm
 cd _nightly;
 tar -czf ../nightly.tar.gz *
 cd ..

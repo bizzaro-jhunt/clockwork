@@ -326,7 +326,7 @@ fn res.user.present
     user.find %a
     jz exists
       user.new
-      flag mkhome
+      flag "mkhome"
       user.set "username"  %a
       user.set "passwd"   "x"
       user.set "pwhash"   "*"

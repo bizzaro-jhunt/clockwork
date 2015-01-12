@@ -1118,42 +1118,6 @@ int policy_gencode(const struct policy *pol, FILE *io)
 		acl_gencode(a, io);
 
 	struct resource *r;
-	unsigned int next = 0;
-	for_each_resource(r, pol) {
-		next++;
-		fprintf(io, "RESET\n");
-		resource_gencode(r, io, next);
-		fprintf(io, "next.%i:\n", next);
-
-		/* notifications */
-		fprintf(io, "!FLAGGED? :changed @final.%i\n", next);
-		struct dependency *d;
-		for_each_dependency(d, pol) {
-			if (r == d->resource_b)
-				fprintf(io, "  FLAG 1 :res%i\n", d->resource_a->serial);
-		}
-		fprintf(io, "final.%i:\n", next);
-	}
-	/* POSTAMBLE */
-	fprintf(io, "GETENV %%F $COGD\n");
-	fprintf(io, "NOTOK? @exit\n");
-	fprintf(io, "SET %%A \"/var/lock/cogd/.needs-restart\"\n");
-	fprintf(io, "CALL &FS.EXISTS?\n");
-	fprintf(io, "NOTOK? @exit\n");
-	fprintf(io, "SET %%A \"cw localsys svc-init-force cogd restart\"\n");
-	fprintf(io, "CALL &EXEC.CHECK\n");
-	fprintf(io, "exit:\n");
-	fprintf(io, "HALT\n");
-	return 0;
-}
-
-int policy_gencode2(const struct policy *pol, FILE *io)
-{
-	acl_t *a;
-	for_each_acl(a, pol)
-		acl_gencode(a, io);
-
-	struct resource *r;
 	struct dependency *d;
 	for_each_resource(r, pol) {
 		fprintf(io, "fn res:%08x\n"
@@ -1178,7 +1142,7 @@ int policy_gencode2(const struct policy *pol, FILE *io)
 		}
 
 		fprintf(io, "fn fix:%08x\n", r->serial);
-		resource_gencode2(r, io);
+		resource_gencode(r, io);
 		fprintf(io, "\n");
 	}
 

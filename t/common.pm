@@ -177,7 +177,7 @@ sub _cw_shell_ok
 }
 
 sub cw_shell_ok     { _cw_shell_ok(@_); }
-sub gencode_ok      { _cw_shell_ok(@_, command => "use host example; gencode2"); }
+sub gencode_ok      { _cw_shell_ok(@_, command => "use host example; gencode"); }
 sub acls_ok         { _cw_shell_ok(@_, command => "use host example; show acls"); }
 sub resources_ok    { _cw_shell_ok(@_, command => "use host example; show resources"); }
 sub dependencies_ok { _cw_shell_ok(@_, command => "use host example; show order"); }

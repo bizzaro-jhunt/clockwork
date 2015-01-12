@@ -306,7 +306,7 @@ int res_user_match(const void *res, const char *name, const char *value)
 	return rc;
 }
 
-int res_user_gencode2(const void *res, FILE *io)
+int res_user_gencode(const void *res, FILE *io)
 {
 	struct res_user *r = (struct res_user*)(res);
 	assert(r); // LCOV_EXCL_LINE
@@ -397,142 +397,6 @@ int res_user_gencode2(const void *res, FILE *io)
 
 	fprintf(io, "  call util.authdb.save\n");
 	return 0;
-}
-
-int res_user_gencode(const void *res, FILE *io, unsigned int next, unsigned int serial)
-{
-	struct res_user *r = (struct res_user*)(res);
-	assert(r); // LCOV_EXCL_LINE
-
-	fprintf(io, "TOPIC \"user(%s)\"\n", r->key);
-	fprintf(io, "CALL &USERDB.OPEN\n");
-	fprintf(io, "OK? @start.%u\n", next);
-	fprintf(io, "  ERROR \"Failed to open the user database\"\n");
-	fprintf(io, "  HALT\n");
-	fprintf(io, "start.%u:\n", next);
-	fprintf(io, "SET %%A 1\n");
-	fprintf(io, "SET %%B \"%s\"\n", r->name);
-	fprintf(io, "CALL &USER.FIND\n");
-
-	if (ENFORCED(r, RES_USER_ABSENT)) {
-		fprintf(io, "NOTOK? @next.%u\n", next);
-		fprintf(io, "  CALL &USER.REMOVE\n");
-	} else {
-		fprintf(io, "OK? @check.ids.%u\n", next);
-		if (ENFORCED(r, RES_USER_GID)) {
-			fprintf(io, "  SET %%C %i\n", r->gid);
-		} else {
-			fprintf(io, "  SET %%A 1\n");
-			fprintf(io, "  SET %%B \"%s\"\n", r->name);
-			fprintf(io, "  CALL &GROUP.FIND\n");
-			fprintf(io, "  OK? @group.found.%u\n", next);
-			fprintf(io, "    COPY %%B %%A\n");
-			fprintf(io, "    ERROR \"Failed to find group '%%s'\"\n");
-			fprintf(io, "    JUMP @next.%u\n", next);
-			fprintf(io, "  group.found.%u:\n", next);
-			fprintf(io, "    CALL &GROUP.GET_GID\n");
-			fprintf(io, "    COPY %%R %%C\n");
-			fprintf(io, "group.done.%u:\n", next);
-		}
-		if (ENFORCED(r, RES_USER_UID)) {
-			fprintf(io, "  SET %%B %i\n", r->uid);
-		} else {
-			fprintf(io, "  CALL &USER.NEXT_UID\n");
-			fprintf(io, "  COPY %%R %%B\n");
-		}
-		fprintf(io, "  SET %%A \"%s\"\n", r->name);
-		fprintf(io, "  CALL &USER.CREATE\n");
-		fprintf(io, "  SET %%B \"x\"\n");
-		fprintf(io, "  CALL &USER.SET_PASSWD\n");
-		if (r->passwd && !ENFORCED(r, RES_USER_PASSWD)) {
-			fprintf(io, "  SET %%B \"%s\"\n", r->passwd);
-		} else {
-			fprintf(io, "  SET %%B \"*\"\n");
-		}
-		fprintf(io, "  CALL &USER.SET_PWHASH\n");
-		if (ENFORCED(r, RES_USER_MKHOME)) {
-			fprintf(io, "  FLAG 1 :mkhome.%u\n", serial);
-		}
-		fprintf(io, "  JUMP @exists.%u\n", next);
-		fprintf(io, "check.ids.%u:\n", next);
-		if (ENFORCED(r, RES_USER_UID)) {
-			fprintf(io, "SET %%B %i\n", r->uid);
-			fprintf(io, "CALL &USER.SET_UID\n");
-		}
-		if (ENFORCED(r, RES_USER_GID)) {
-			fprintf(io, "SET %%B %i\n", r->gid);
-			fprintf(io, "CALL &USER.SET_GID\n");
-		}
-		fprintf(io, "exists.%u:\n", next);
-
-		if (ENFORCED(r, RES_USER_PASSWD)) {
-			fprintf(io, "SET %%B \"x\"\n");
-			fprintf(io, "CALL &USER.SET_PASSWD\n");
-			fprintf(io, "SET %%B \"%s\"\n", r->passwd);
-			fprintf(io, "CALL &USER.SET_PWHASH\n");
-		}
-
-		if (ENFORCED(r, RES_USER_DIR)) {
-			fprintf(io, "SET %%B \"%s\"\n", r->dir);
-			fprintf(io, "CALL &USER.SET_HOME\n");
-		}
-		if (ENFORCED(r, RES_USER_GECOS)) {
-			fprintf(io, "SET %%B \"%s\"\n", r->gecos);
-			fprintf(io, "CALL &USER.SET_GECOS\n");
-		}
-		if (ENFORCED(r, RES_USER_SHELL)) {
-			fprintf(io, "SET %%B \"%s\"\n", r->shell);
-			fprintf(io, "CALL &USER.SET_SHELL\n");
-		}
-		if (ENFORCED(r, RES_USER_PWMIN)) {
-			fprintf(io, "SET %%B %li\n", r->pwmin);
-			fprintf(io, "CALL &USER.SET_PWMIN\n");
-		}
-		if (ENFORCED(r, RES_USER_PWMAX)) {
-			fprintf(io, "SET %%B %li\n", r->pwmax);
-			fprintf(io, "CALL &USER.SET_PWMAX\n");
-		}
-		if (ENFORCED(r, RES_USER_PWWARN)) {
-			fprintf(io, "SET %%B %li\n", r->pwwarn);
-			fprintf(io, "CALL &USER.SET_PWWARN\n");
-		}
-		if (ENFORCED(r, RES_USER_INACT)) {
-			fprintf(io, "SET %%B %li\n", r->inact);
-			fprintf(io, "CALL &USER.SET_INACT\n");
-		}
-		if (ENFORCED(r, RES_USER_EXPIRE)) {
-			fprintf(io, "SET %%B %li\n", r->expire);
-			fprintf(io, "CALL &USER.SET_EXPIRY\n");
-		}
-
-		if (ENFORCED(r, RES_USER_MKHOME)) {
-			fprintf(io, "!FLAGGED? :mkhome.%u @home.exists.%u\n", serial, next);
-			fprintf(io, "  CALL &USER.GET_UID\n");
-			fprintf(io, "  COPY %%R %%B\n");
-			fprintf(io, "  CALL &USER.GET_GID\n");
-			fprintf(io, "  COPY %%R %%C\n");
-			fprintf(io, "  CALL &USER.GET_HOME\n");
-			fprintf(io, "  COPY %%R %%A\n");
-			fprintf(io, "  CALL &FS.EXISTS?\n");
-			fprintf(io, "  OK? @home.exists.%u\n", next);
-			fprintf(io, "    CALL &FS.MKDIR\n");
-			fprintf(io, "    CALL &FS.CHOWN\n");
-			fprintf(io, "    SET %%D 0%o\n", 0700);
-			fprintf(io, "    CALL &FS.CHMOD\n");
-			if (r->skel) {
-				fprintf(io, "    COPY %%C %%D\n");
-				fprintf(io, "    COPY %%B %%C\n");
-				fprintf(io, "    COPY %%A %%B\n");
-				fprintf(io, "    SET %%A \"%s\"\n", r->skel);
-				fprintf(io, "    CALL &FS.COPY_R\n");
-			}
-			fprintf(io, "home.exists.%u:\n", next);
-		}
-	}
-	fprintf(io, "!FLAGGED? :changed @next.%u\n", next);
-	fprintf(io, "  CALL &USERDB.SAVE\n");
-
-return 0;
 }
 
 FILE * res_user_content(const void *res, hash_t *facts) { return NULL; }
@@ -799,7 +663,7 @@ int res_file_match(const void *res, const char *name, const char *value)
 	return rc;
 }
 
-int res_file_gencode2(const void *res, FILE *io)
+int res_file_gencode(const void *res, FILE *io)
 {
 	struct res_file *r = (struct res_file*)(res);
 	assert(r); // LCOV_EXCL_LINE
@@ -833,159 +697,6 @@ int res_file_gencode2(const void *res, FILE *io)
 		fprintf(io, "  set %%c \"file:%s\"\n"
 		            "  call res.file.contents\n", r->key);
 	}
-	return 0;
-}
-
-int res_file_gencode(const void *res, FILE *io, unsigned int next, unsigned int serial)
-{
-	struct res_file *r = (struct res_file*)(res);
-	assert(r); // LCOV_EXCL_LINE
-
-	fprintf(io, "TOPIC \"file(%s)\"\n", r->key);
-	fprintf(io, "SET %%A \"%s\"\n", r->path);
-	fprintf(io, "CALL &FS.EXISTS?\n");
-	if (ENFORCED(r, RES_FILE_ABSENT)) {
-		fprintf(io, "NOTOK? @next.%u\n", next);
-		fprintf(io, "CALL &FS.IS_FILE?\n");
-		fprintf(io, "OK? @remove.%u\n", next);
-		fprintf(io, "  CALL &FS.IS_SYMLINK?\n");
-		fprintf(io, "  OK? @remove.%u\n", next);
-		fprintf(io, "    ERROR \"%%s exists, but is not a regular file\"\n");
-		fprintf(io, "    JUMP @next.%u\n", next);
-		fprintf(io, "remove.%u:\n", next);
-		fprintf(io, "CALL &FS.UNLINK\n");
-		fprintf(io, "JUMP @next.%u\n", next);
-		return 0;
-	}
-	fprintf(io, "OK? @exists.%u\n", next);
-	fprintf(io, "  CALL &FS.MKFILE\n");
-	fprintf(io, "  OK? @exists.%u\n", next);
-	fprintf(io, "  ERROR \"Failed to create new file '%%s'\"\n");
-	fprintf(io, "  JUMP @next.%u\n", next);
-	fprintf(io, "exists.%u:\n",  next);
-	fprintf(io, "CALL &FS.IS_FILE?\n");
-	fprintf(io, "OK? @isfile.%u\n", next);
-	fprintf(io, "  CALL &FS.IS_SYMLINK?\n");
-	fprintf(io, "  OK? @islink.%u\n", next);
-	fprintf(io, "    ERROR \"%%s exists, but is not a regular file\"\n");
-	fprintf(io, "    JUMP @next.%u\n", next);
-	fprintf(io, "islink.%u:\n", next);
-	fprintf(io, "CALL &FS.UNLINK\n");
-	fprintf(io, "OK? @unlinked.%u\n", next);
-	fprintf(io, "  ERROR \"Failed to remove symlink '%%s'\"\n");
-	fprintf(io, "  JUMP @next.%u\n", next);
-	fprintf(io, "unlinked.%u:\n", next);
-	fprintf(io, "CALL &FS.MKFILE\n");
-	fprintf(io, "OK? @isfile.%u\n", next);
-	fprintf(io, "  ERROR \"Failed to create new file '%%s'\"\n");
-	fprintf(io, "  JUMP @next.%u\n", next);
-	fprintf(io, "isfile.%u:\n", next);
-
-	if (ENFORCED(r, RES_FILE_UID) || ENFORCED(r, RES_FILE_GID)) {
-		fprintf(io, "CALL &USERDB.OPEN\n");
-		fprintf(io, "OK? @start.%u\n", next);
-		fprintf(io, "  ERROR \"Failed to open the user database\"\n");
-		fprintf(io, "  HALT\n");
-		fprintf(io, "start.%u:\n", next);
-		fprintf(io, "COPY %%A %%F\n");
-		fprintf(io, "SET %%D 0\n");
-		fprintf(io, "SET %%E 0\n");
-
-		if (ENFORCED(r, RES_FILE_UID)) {
-			fprintf(io, "SET %%A 1\n");
-			fprintf(io, "SET %%B \"%s\"\n", r->owner);
-			fprintf(io, "CALL &USER.FIND\n");
-			fprintf(io, "OK? @found.user.%u\n", next);
-			fprintf(io, "  COPY %%B %%A\n");
-			fprintf(io, "  ERROR \"Failed to find user '%%s'\"\n");
-			fprintf(io, "  JUMP @next.%u\n", next);
-			fprintf(io, "found.user.%u:\n", next);
-			fprintf(io, "CALL &USER.GET_UID\n");
-			fprintf(io, "COPY %%R %%D\n");
-		}
-
-		if (ENFORCED(r, RES_FILE_GID)) {
-			fprintf(io, "SET %%A 1\n");
-			fprintf(io, "SET %%B \"%s\"\n", r->group);
-			fprintf(io, "CALL &GROUP.FIND\n");
-			fprintf(io, "OK? @found.group.%u\n", next);
-			fprintf(io, "  COPY %%B %%A\n");
-			fprintf(io, "  ERROR \"Failed to find group '%%s'\"\n");
-			fprintf(io, "  JUMP @next.%u\n", next);
-			fprintf(io, "found.group.%u:\n", next);
-			fprintf(io, "CALL &GROUP.GET_GID\n");
-			fprintf(io, "COPY %%R %%E\n");
-		}
-		fprintf(io, "CALL &USERDB.CLOSE\n");
-		fprintf(io, "COPY %%F %%A\n");
-		fprintf(io, "COPY %%D %%B\n");
-		fprintf(io, "COPY %%E %%C\n");
-		fprintf(io, "CALL &FS.CHOWN\n");
-	}
-
-	if (ENFORCED(r, RES_FILE_MODE)) {
-		fprintf(io, "SET %%D 0%o\n", r->mode);
-		fprintf(io, "CALL &FS.CHMOD\n");
-	}
-
-	if (ENFORCED(r, RES_FILE_SHA1)) {
-		fprintf(io, "CALL &FS.SHA1\n");
-		fprintf(io, "OK? @localok.%u\n", next);
-		fprintf(io, "  ERROR \"Failed to calculate SHA1 for local copy of '%%s'\"\n");
-		fprintf(io, "  JUMP @sha1.done.%u\n", next);
-		fprintf(io, "localok.%u:\n", next);
-		fprintf(io, "COPY %%S2 %%T1\n");
-		fprintf(io, "COPY %%A %%F\n");
-		fprintf(io, "SET %%A \"file:%s\"\n", r->key);
-		if (r->source) {
-			fprintf(io, ";; source = %s\n", r->source);
-		} else if (r->template) {
-			fprintf(io, ";; template = %s\n", r->template);
-		}
-		fprintf(io, "CALL &SERVER.SHA1\n");
-		fprintf(io, "COPY %%F %%A\n");
-		fprintf(io, "OK? @remoteok.%u\n", next);
-		fprintf(io, "  ERROR \"Failed to retrieve SHA1 of expected contents\"\n");
-		fprintf(io, "  JUMP @sha1.done.%u\n", next);
-		fprintf(io, "remoteok.%u:\n", next);
-		fprintf(io, "COPY %%S2 %%T2\n");
-		fprintf(io, "CMP? @sha1.done.%u\n", next);
-		fprintf(io, "  COPY %%T1 %%A\n");
-		fprintf(io, "  COPY %%T2 %%B\n");
-		fprintf(io, "  LOG NOTICE \"Updating local content (%%s) from remote copy (%%s)\"\n");
-		fprintf(io, "  SET %%A \"%s\"\n", r->verify ? r->tmpfile : r->path);
-		fprintf(io, "  SET %%B \"%s\"\n", r->path);
-		fprintf(io, "  CALL &SERVER.WRITEFILE\n");
-		if (r->verify) {
-			fprintf(io, "  OK? @tmpfile.done.%u\n", next);
-			fprintf(io, "    ERROR \"Failed to update local file contents\"\n");
-			fprintf(io, "    JUMP @sha1.done.%u\n", next);
-			fprintf(io, "tmpfile.done.%u:\n", next);
-			fprintf(io, "  SET %%A \"%s\"\n", r->verify);
-			fprintf(io, "  SET %%B 0\n");
-			fprintf(io, "  SET %%C 0\n");
-			fprintf(io, "  CALL &EXEC.CHECK\n");
-			fprintf(io, "  COPY %%R %%T1\n");
-			fprintf(io, "  SET %%T2 %i\n", r->expectrc);
-			fprintf(io, "  EQ? @rename.%u\n", next);
-			fprintf(io, "    COPY %%R %%B\n");
-			fprintf(io, "    COPY %%T2 %%C\n");
-			fprintf(io, "    ERROR \"Pre-change verification check `%%s` failed; returned %%i (not %%i)\"\n");
-			fprintf(io, "    JUMP @sha1.done.%u\n", next);
-			fprintf(io, "rename.%u:\n", next);
-			fprintf(io, "  SET %%A \"%s\"\n", r->tmpfile);
-			fprintf(io, "  SET %%B \"%s\"\n", r->path);
-			fprintf(io, "  CALL &FS.RENAME\n");
-			fprintf(io, "  OK? @sha1.done.%u\n", next);
-			fprintf(io, "    ERROR \"Failed to update local file contents\"\n");
-			fprintf(io, "    CALL &FS.UNLINK\n");
-		} else {
-			fprintf(io, "  OK? @sha1.done.%u\n", next);
-			fprintf(io, "    ERROR \"Failed to update local file contents\"\n");
-		}
-		fprintf(io, "sha1.done.%u:\n", next);
-	}
-
 	return 0;
 }
 
@@ -1118,7 +829,7 @@ int res_symlink_match(const void *res, const char *name, const char *value)
 	return rc;
 }
 
-int res_symlink_gencode2(const void *res, FILE *io)
+int res_symlink_gencode(const void *res, FILE *io)
 {
 	struct res_symlink *r = (struct res_symlink*)(res);
 	assert(r); // LCOV_EXCL_LINE
@@ -1130,53 +841,6 @@ int res_symlink_gencode2(const void *res, FILE *io)
 	else
 		fprintf(io, "  set %%b \"%s\"\n"
 		            "  call res.symlink.ensure\n", r->target);
-	return 0;
-}
-
-int res_symlink_gencode(const void *res, FILE *io, unsigned int next, unsigned int serial)
-{
-	struct res_symlink *r = (struct res_symlink*)(res);
-	assert(r); // LCOV_EXCL_LINE
-
-	fprintf(io, "TOPIC \"symlink(%s)\"\n", r->key);
-	fprintf(io, "SET %%A \"%s\"\n", r->path);
-	fprintf(io, "SET %%B \"%s\"\n", r->target);
-
-	fprintf(io, "CALL &FS.EXISTS?\n");
-	if (r->absent) {
-		fprintf(io, "NOTOK? @next.%u\n", next);
-		fprintf(io, "CALL &FS.IS_SYMLINK?\n");
-		fprintf(io, "OK? @islink.%u\n", next);
-		fprintf(io, "  ERROR \"%%s exists, but is not a symlink\\n\"\n");
-		fprintf(io, "  JUMP @next.%u\n", next);
-		fprintf(io, "islink.%u:\n", next);
-		fprintf(io, "CALL &FS.UNLINK\n");
-		fprintf(io, "JUMP @next.%u\n", next);
-		return 0;
-	}
-	fprintf(io, "NOTOK? @create.%u\n", next);
-	fprintf(io, "  CALL &FS.IS_SYMLINK?\n");
-	fprintf(io, "  OK? @islink.%u\n", next);
-	fprintf(io, "    ERROR \"%%s exists, but is not a symlink\\n\"\n");
-	fprintf(io, "    JUMP @next.%u\n", next);
-	fprintf(io, "  islink.%u:\n", next);
-	fprintf(io, "  CALL &FS.READLINK\n");
-	fprintf(io, "  OK? @readlink.%u\n", next);
-	fprintf(io, "    ERROR \"%%s: failed to read symlink\\n\"\n");
-	fprintf(io, "    JUMP @next.%u\n", next);
-	fprintf(io, "  readlink.%u:\n", next);
-	fprintf(io, "  COPY %%B %%T1\n");
-	fprintf(io, "  COPY %%S2 %%T2\n");
-	fprintf(io, "  CMP? @next.%u\n", next);
-	fprintf(io, "  CALL &FS.UNLINK\n");
-	fprintf(io, "CALL &FS.EXISTS?\n");
-	fprintf(io, "NOTOK? @create.%u\n", next);
-	fprintf(io, "  ERROR \"Failed to unlink %%s\\n\"\n");
-	fprintf(io, "  JUMP @next.%u\n", next);
-	fprintf(io, "create.%u:\n", next);
-	fprintf(io, "CALL &FS.SYMLINK\n");
-	fprintf(io, "OK? @next.%u\n", next);
-	fprintf(io, "  ERROR \"Failed to symlink %%s -> %%s\\n\"\n");
 	return 0;
 }
 
@@ -1409,7 +1073,7 @@ int res_group_match(const void *res, const char *name, const char *value)
 	return rc;
 }
 
-int res_group_gencode2(const void *res, FILE *io)
+int res_group_gencode(const void *res, FILE *io)
 {
 	struct res_group *r = (struct res_group*)(res);
 	assert(r); // LCOV_EXCL_LINE
@@ -1436,99 +1100,6 @@ int res_group_gencode2(const void *res, FILE *io)
 		fprintf(io, "  ;; FIXME: manage group adminhood!\n");
 	}
 	fprintf(io, "  call util.authdb.save\n");
-	return 0;
-}
-
-int res_group_gencode(const void *res, FILE *io, unsigned int next, unsigned int serial)
-{
-	struct res_group *r = (struct res_group*)(res);
-	assert(r); // LCOV_EXCL_LINE
-
-	fprintf(io, "TOPIC \"group(%s)\"\n", r->key);
-	fprintf(io, "CALL &USERDB.OPEN\n");
-	fprintf(io, "OK? @start.%u\n", next);
-	fprintf(io, "  ERROR \"Failed to open the user database\"\n");
-	fprintf(io, "  HALT\n");
-	fprintf(io, "start.%u:\n", next);
-	fprintf(io, "SET %%A 1\n");
-	fprintf(io, "SET %%B \"%s\"\n", r->name);
-	fprintf(io, "CALL &GROUP.FIND\n");
-
-	if (ENFORCED(r, RES_GROUP_ABSENT)) {
-		fprintf(io, "CALL &GROUP.REMOVE\n");
-	} else {
-		fprintf(io, "OK? @found.%u\n", next);
-		fprintf(io, "  COPY %%B %%A\n");
-
-		if (ENFORCED(r, RES_GROUP_GID)) {
-			fprintf(io, "  SET %%B %i\n", r->gid);
-		} else {
-			fprintf(io, "  CALL &GROUP.NEXT_GID\n");
-			fprintf(io, "  COPY %%R %%B\n");
-		}
-
-		fprintf(io, "  CALL &GROUP.CREATE\n");
-		fprintf(io, "  JUMP @update.%u\n", next);
-		fprintf(io, "found.%u:\n", next);
-
-		if (ENFORCED(r, RES_GROUP_GID)) {
-			fprintf(io, "  SET %%B %i\n", r->gid);
-			fprintf(io, "  CALL &GROUP.SET_GID\n");
-		}
-
-		fprintf(io, "update.%u:\n", next);
-		if (ENFORCED(r, RES_GROUP_PASSWD)) {
-			fprintf(io, "SET %%B \"x\"\n");
-			fprintf(io, "CALL &GROUP.SET_PASSWD\n");
-			fprintf(io, "SET %%B \"%s\"\n", r->passwd);
-			fprintf(io, "CALL &GROUP.SET_PWHASH\n");
-		}
-
-		if (ENFORCED(r, RES_GROUP_MEMBERS)) {
-			fprintf(io, ";; members\n");
-			char ** name;
-			for (name = r->mem_add->strings; *name; name++) {
-				fprintf(io, "SET %%A \"%s\"\n", *name);
-				fprintf(io, "CALL &GROUP.HAS_MEMBER?\n");
-				fprintf(io, "OK? @has-member.%s.%u\n", *name, next);
-				fprintf(io, "  CALL &GROUP.ADD_MEMBER\n");
-				fprintf(io, "  FLAG 1 :changed\n");
-				fprintf(io, "has-member.%s.%u:\n", *name, next);
-			}
-			for (name = r->mem_rm->strings; *name; name++) {
-				fprintf(io, "SET %%A \"%s\"\n", *name);
-				fprintf(io, "CALL &GROUP.HAS_MEMBER?\n");
-				fprintf(io, "NOTOK? @no-member.%s.%u\n", *name, next);
-				fprintf(io, "  CALL &GROUP.RM_MEMBER\n");
-				fprintf(io, "  FLAG 1 :changed\n");
-				fprintf(io, "no-member.%s.%u:\n", *name, next);
-			}
-		}
-
-		if (ENFORCED(r, RES_GROUP_ADMINS)) {
-			fprintf(io, ";; admins\n");
-			char ** name;
-			for (name = r->adm_add->strings; *name; name++) {
-				fprintf(io, "SET %%A \"%s\"\n", *name);
-				fprintf(io, "CALL &GROUP.HAS_ADMIN?\n");
-				fprintf(io, "OK? @has-admin.%s.%u\n", *name, next);
-				fprintf(io, "  CALL &GROUP.ADD_ADMIN\n");
-				fprintf(io, "  FLAG 1 :changed\n");
-				fprintf(io, "has-admin.%s.%u:\n", *name, next);
-			}
-			for (name = r->adm_rm->strings; *name; name++) {
-				fprintf(io, "SET %%A \"%s\"\n", *name);
-				fprintf(io, "CALL &GROUP.HAS_ADMIN?\n");
-				fprintf(io, "NOTOK? @no-admin.%s.%u\n", *name, next);
-				fprintf(io, "  CALL &GROUP.RM_ADMIN\n");
-				fprintf(io, "  FLAG 1 :changed\n");
-				fprintf(io, "no-admin.%s.%u:\n", *name, next);
-			}
-		}
-	}
-	fprintf(io, "!FLAGGED? :changed @next.%u\n", next);
-	fprintf(io, "  CALL &USERDB.SAVE\n");
-
 	return 0;
 }
 
@@ -1728,7 +1299,7 @@ int res_package_match(const void *res, const char *name, const char *value)
 	return rc;
 }
 
-int res_package_gencode2(const void *res, FILE *io)
+int res_package_gencode(const void *res, FILE *io)
 {
 	struct res_package *r = (struct res_package*)(res);
 	assert(r); // LCOV_EXCL_LINE
@@ -1743,68 +1314,6 @@ int res_package_gencode2(const void *res, FILE *io)
 	else if (r->latest) fprintf(io, "  set %%b \"latest\"\n");
 	else                fprintf(io, "  set %%b \"\"\n");
 	fprintf(io, "  call res.package.install\n");
-	return 0;
-}
-
-int res_package_gencode(const void *res, FILE *io, unsigned int next, unsigned int serial)
-{
-	struct res_package *r = (struct res_package*)(res);
-	assert(r); // LCOV_EXCL_LINE
-
-	fprintf(io, "TOPIC \"package(%s)\"\n", r->key);
-	fprintf(io, "SET %%A \"cw localsys pkg-version %s\"\n", r->name);
-	fprintf(io, "CALL &EXEC.RUN1\n");
-	if (ENFORCED(r, RES_PACKAGE_ABSENT)) {
-		fprintf(io, "NOTOK? @next.%u\n", next);
-		fprintf(io, "  LOG NOTICE \"uninstalling %s\"\n", r->name);
-		fprintf(io, "  SET %%A \"cw localsys pkg-remove %s\"\n", r->name);
-		fprintf(io, "  CALL &EXEC.CHECK\n");
-		fprintf(io, "  FLAG 1 :changed\n");
-		return 0;
-	}
-
-	if (!r->version && !r->latest) {
-		fprintf(io, "OK? @next.%u\n", next);
-		fprintf(io, "  LOG NOTICE \"installing %s\"\n", r->name);
-		fprintf(io, "  SET %%A \"cw localsys pkg-install %s latest\"\n", r->name);
-		fprintf(io, "  CALL &EXEC.CHECK\n");
-		fprintf(io, "  FLAG 1 :changed\n");
-		return 0;
-	}
-
-	fprintf(io, "OK? @installed.%u\n", next);
-	if (r->version) {
-		fprintf(io, "  LOG NOTICE \"installing %s version %s\"\n", r->name, r->version);
-	} else {
-		fprintf(io, "  LOG NOTICE \"installing latest version of %s\"\n", r->name);
-	}
-	fprintf(io, "  SET %%A \"cw localsys pkg-install %s %s\"\n", r->name, r->version ? r->version : "latest");
-	fprintf(io, "  CALL &EXEC.CHECK\n");
-	fprintf(io, "  FLAG 1 :changed\n");
-	fprintf(io, "  JUMP @next.%u\n", next);
-	fprintf(io, "installed.%u:\n", next);
-	fprintf(io, "COPY %%S2 %%T1\n");
-	if (r->latest) {
-		fprintf(io, "SET %%A \"cw localsys pkg-latest %s\"\n", r->name);
-		fprintf(io, "CALL &EXEC.RUN1\n");
-		fprintf(io, "OK? @got.latest.%u\n", next);
-		fprintf(io, "  ERROR \"Failed to detect latest version of '%s'\"\n", r->name);
-		fprintf(io, "  JUMP @next.%u\n", next);
-		fprintf(io, "got.latest.%u:\n", next);
-		fprintf(io, "COPY %%S2 %%T2\n");
-	} else {
-		fprintf(io, "SET %%T2 \"%s\"\n", r->version);
-	}
-	fprintf(io, "CALL &UTIL.VERCMP\n");
-	fprintf(io, "OK? @next.%u\n", next);
-	if (r->latest) {
-		fprintf(io, "  LOG NOTICE \"upgrading to latest version of %s\"\n", r->name);
-	} else {
-		fprintf(io, "  LOG NOTICE \"upgrading to %s version %s\"\n", r->name, r->version);
-	}
-	fprintf(io, "  SET %%A \"cw localsys pkg-install %s %s\"\n", r->name, r->latest ? "latest" : r->version);
-	fprintf(io, "  CALL &EXEC.CHECK\n");
-	fprintf(io, "  FLAG 1 :changed\n");
 	return 0;
 }
 
@@ -1944,7 +1453,7 @@ int res_service_match(const void *res, const char *name, const char *value)
 	return rc;
 }
 
-int res_service_gencode2(const void *res, FILE *io)
+int res_service_gencode(const void *res, FILE *io)
 {
 	struct res_service *r = (struct res_service*)(res);
 	assert(r); // LCOV_EXCL_LINE
@@ -1965,74 +1474,6 @@ int res_service_gencode2(const void *res, FILE *io)
 		            "  jz +1 ret\n"
 		            "  call res.service.%s\n",
 		            r->key, r->notify ? r->notify : "restart");
-	return 0;
-}
-
-int res_service_gencode(const void *res, FILE *io, unsigned int next, unsigned int serial)
-{
-	struct res_service *r = (struct res_service*)(res);
-	assert(r); // LCOV_EXCL_LINE
-
-	fprintf(io, "TOPIC \"service(%s)\"\n", r->key);
-	if (ENFORCED(r, RES_SERVICE_ENABLED)) {
-		fprintf(io, "SET %%A \"cw localsys svc-boot-status %s\"\n", r->service);
-		fprintf(io, "CALL &EXEC.CHECK\n");
-		fprintf(io, "OK? @enabled.%u\n", next);
-		fprintf(io, "  LOG NOTICE \"enabling service %s to start at boot\"\n", r->service);
-		fprintf(io, "  SET %%A \"cw localsys svc-enable %s\"\n", r->service);
-		fprintf(io, "  CALL &EXEC.CHECK\n");
-		fprintf(io, "enabled.%u:\n", next);
-
-	} else if (ENFORCED(r, RES_SERVICE_DISABLED)) {
-		fprintf(io, "SET %%A \"cw localsys svc-boot-status %s\"\n", r->service);
-		fprintf(io, "CALL &EXEC.CHECK\n");
-		fprintf(io, "NOTOK? @disabled.%u\n", next);
-		fprintf(io, "  LOG NOTICE \"disabling service %s\"\n", r->service);
-		fprintf(io, "  SET %%A \"cw localsys svc-disable %s\"\n", r->service);
-		fprintf(io, "  CALL &EXEC.CHECK\n");
-		fprintf(io, "disabled.%u:\n", next);
-	}
-
-	if (ENFORCED(r, RES_SERVICE_RUNNING)) {
-		fprintf(io, "SET %%A \"cw localsys svc-run-status %s\"\n", r->service);
-		fprintf(io, "CALL &EXEC.CHECK\n");
-		fprintf(io, "OK? @running.%u\n", next);
-		fprintf(io, "  LOG NOTICE \"starting service %s\"\n", r->service);
-		fprintf(io, "  SET %%A \"cw localsys svc-init %s start\"\n", r->service);
-		fprintf(io, "  CALL &EXEC.CHECK\n");
-		fprintf(io, "  FLAG 1 :changed\n");
-		fprintf(io, "  FLAG 0 :res%u\n", serial);
-		fprintf(io, "running.%u:\n", next);
-
-	} else if (ENFORCED(r, RES_SERVICE_STOPPED)) {
-		fprintf(io, "SET %%A \"cw localsys svc-run-status %s\"\n", r->service);
-		fprintf(io, "CALL &EXEC.CHECK\n");
-		fprintf(io, "NOTOK? @stopped.%u\n", next);
-		fprintf(io, "  LOG NOTICE \"stopping service %s\"\n", r->service);
-		fprintf(io, "  SET %%A \"cw localsys svc-init %s stop\"\n", r->service);
-		fprintf(io, "  CALL &EXEC.CHECK\n");
-		fprintf(io, "  FLAG 1 :changed\n");
-		fprintf(io, "  FLAG 0 :res%u\n", serial);
-		fprintf(io, "stopped.%u:\n", next);
-	}
-
-	fprintf(io, "!FLAGGED? :res%u @next.%u\n", serial, next);
-
-	if (ENFORCED(r, RES_SERVICE_RUNNING)) {
-		fprintf(io, "  LOG NOTICE \"%sing service %s\"\n", r->notify ? r->notify : "restart", r->service);
-		fprintf(io, "  SET %%A \"cw localsys svc-init %s %s\"\n",
-				r->service, r->notify ? r->notify : "restart");
-		fprintf(io, "  CALL &EXEC.CHECK\n");
-		fprintf(io, "  FLAG 0 :res%u\n", serial);
-
-	} else if (ENFORCED(r, RES_SERVICE_STOPPED)) {
-		fprintf(io, "  LOG NOTICE \"stopping service %s\"\n", r->service);
-		fprintf(io, "  SET %%A \"cw localsys svc-init %s stop\"\n", r->service);
-		fprintf(io, "  CALL &EXEC.CHECK\n");
-		fprintf(io, "  FLAG 0 :res%u\n", serial);
-	}
-
-
 	return 0;
 }
 
@@ -2169,7 +1610,7 @@ int res_host_match(const void *res, const char *name, const char *value)
 	return rc;
 }
 
-int res_host_gencode2(const void *res, FILE *io)
+int res_host_gencode(const void *res, FILE *io)
 {
 	struct res_host *r = (struct res_host*)(res);
 	assert(r); // LCOV_EXCL_LINE
@@ -2191,51 +1632,6 @@ int res_host_gencode2(const void *res, FILE *io)
 				            "  call res.host.add-alias\n", r->aliases->strings[i]);
 		}
 	}
-	return 0;
-}
-
-int res_host_gencode(const void *res, FILE *io, unsigned int next, unsigned int serial)
-{
-	struct res_host *r = (struct res_host*)(res);
-	assert(r); // LCOV_EXCL_LINE
-
-	fprintf(io, "TOPIC \"host(%s)\"\n", r->key);
-	fprintf(io, "SET %%A \"/files/etc/hosts/*[ipaddr = \\\"%s\\\" and canonical = \\\"%s\\\"]\"\n", r->ip, r->hostname);
-	fprintf(io, "CALL &AUGEAS.FIND\n");
-
-	if (ENFORCED(r, RES_HOST_ABSENT)) {
-		fprintf(io, "NOTOK? @not.found.%u\n", next);
-		fprintf(io, "  COPY %%R %%A\n");
-		fprintf(io, "  CALL &AUGEAS.REMOVE\n");
-		fprintf(io, "not.found.%u:\n", next);
-
-	} else {
-		fprintf(io, "OK? @found.%u\n", next);
-		fprintf(io, "  SET %%A \"/files/etc/hosts/%u/ipaddr\"\n", 99999+next);
-		fprintf(io, "  SET %%B \"%s\"\n", r->ip);
-		fprintf(io, "  CALL &AUGEAS.SET\n");
-		fprintf(io, "  SET %%A \"/files/etc/hosts/%u/canonical\"\n", 99999+next);
-		fprintf(io, "  SET %%B \"%s\"\n", r->hostname);
-		fprintf(io, "  CALL &AUGEAS.SET\n");
-		fprintf(io, "  JUMP @aliases.%u\n", next);
-		fprintf(io, "found.%u:\n", next);
-		fprintf(io, "  COPY %%S2 %%A\n");
-
-		fprintf(io, "aliases.%u:\n", next);
-		if (ENFORCED(r, RES_HOST_ALIASES)) {
-			fprintf(io, "SET %%C \"/alias\"\n");
-			fprintf(io, "CALL &AUGEAS.REMOVE\n");
-
-			int i;
-			for (i = 0; i < r->aliases->num; i++) {
-				fprintf(io, "SET %%C \"/alias[%u]\"\n", i);
-				fprintf(io, "SET %%B \"%s\"\n", r->aliases->strings[i]);
-				fprintf(io, "CALL &AUGEAS.SET\n");
-			}
-		}
-	}
-
-
 	return 0;
 }
 
@@ -2352,7 +1748,7 @@ int res_sysctl_match(const void *res, const char *name, const char *value)
 	return rc;
 }
 
-int res_sysctl_gencode2(const void *res, FILE *io)
+int res_sysctl_gencode(const void *res, FILE *io)
 {
 	struct res_sysctl *r = (struct res_sysctl*)(res);
 	assert(r); // LCOV_EXCL_LINE
@@ -2370,38 +1766,6 @@ int res_sysctl_gencode2(const void *res, FILE *io)
 		              ENFORCED(r, RES_SYSCTL_PERSIST) ? 1 : 0); 
 	else
 		fprintf(io, "  noop\n");
-	return 0;
-}
-
-int res_sysctl_gencode(const void *res, FILE *io, unsigned int next, unsigned int serial)
-{
-	struct res_sysctl *r = (struct res_sysctl*)(res);
-	assert(r); // LCOV_EXCL_LINE
-
-	char *p, *path = strdup(r->param);
-	for (p = path; *p; p++)
-		if (*p == '.') *p = '/';
-
-	fprintf(io, "TOPIC \"sysctl(%s)\"\n", r->key);
-	if (ENFORCED(r, RES_SYSCTL_VALUE)) {
-		fprintf(io, "SET %%A \"/proc/sys/%s\"\n", path);
-		fprintf(io, "CALL &FS.GET\n");
-		fprintf(io, "COPY %%S2 %%T1\n");
-		fprintf(io, "SET %%T2 \"%s\"\n", r->value);
-		fprintf(io, "CMP? @done.%u\n", next);
-		fprintf(io, "  COPY %%T2 %%B\n");
-		fprintf(io, "  CALL &FS.PUT\n");
-		fprintf(io, "done.%u:\n", next);
-
-		if (ENFORCED(r, RES_SYSCTL_PERSIST)) {
-			fprintf(io, "SET %%A \"/files/etc/sysctl.conf/%%s\"\n");
-			fprintf(io, "SET %%B \"%s\"\n", r->value);
-			fprintf(io, "SET %%C \"%s\"\n", r->param);
-			fprintf(io, "CALL &AUGEAS.SET\n");
-		}
-	}
-
-	free(path);
 	return 0;
 }
 
@@ -2572,7 +1936,7 @@ int res_dir_match(const void *res, const char *name, const char *value)
 	return rc;
 }
 
-int res_dir_gencode2(const void *res, FILE *io)
+int res_dir_gencode(const void *res, FILE *io)
 {
 	struct res_dir *r = (struct res_dir*)(res);
 	assert(r); // LCOV_EXCL_LINE
@@ -2593,108 +1957,6 @@ int res_dir_gencode2(const void *res, FILE *io)
 	if (ENFORCED(r, RES_DIR_MODE))
 		fprintf(io, "  set %%b 0%o\n"
 		            "  call res.file.chmod\n", r->mode);
-	return 0;
-}
-
-int res_dir_gencode(const void *res, FILE *io, unsigned int next, unsigned int serial)
-{
-	struct res_dir *r = (struct res_dir*)(res);
-	assert(r); // LCOV_EXCL_LINE
-
-	fprintf(io, "TOPIC \"dir(%s)\"\n", r->key);
-	fprintf(io, "SET %%A \"%s\"\n", r->path);
-
-	fprintf(io, "CALL &FS.EXISTS?\n");
-	if (ENFORCED(r, RES_DIR_ABSENT)) {
-		fprintf(io, "NOTOK? @next.%u\n", next);
-		fprintf(io, "CALL &FS.IS_DIR?\n");
-		fprintf(io, "OK? @isdir.%u\n", next);
-		fprintf(io, "  CALL &FS.IS_SYMLINK?\n");
-		fprintf(io, "  OK? @islink.%u\n", next);
-		fprintf(io, "    ERROR \"%%s exists, but is not a directory\"\n");
-		fprintf(io, "    JUMP @next.%u\n", next);
-		fprintf(io, "islink.%u:\n", next);
-		fprintf(io, "CALL &FS.UNLINK\n");
-		fprintf(io, "JUMP @next.%u\n", next);
-		fprintf(io, "isdir.%u:\n", next);
-		fprintf(io, "CALL &FS.RMDIR\n");
-		fprintf(io, "JUMP @next.%u\n", next);
-		return 0;
-	}
-	fprintf(io, "OK? @exists.%u\n", next);
-	fprintf(io, "  CALL &FS.MKDIR\n");
-	fprintf(io, "  OK? @exists.%u\n", next);
-	fprintf(io, "  ERROR \"Failed to create new directory '%%s'\"\n");
-	fprintf(io, "  JUMP @next.%u\n", next);
-	fprintf(io, "exists.%u:\n", next);
-	fprintf(io, "CALL &FS.IS_DIR?\n");
-	fprintf(io, "OK? @isdir.%u\n", next);
-	fprintf(io, "  CALL &FS.IS_SYMLINK?\n");
-	fprintf(io, "  OK? @islink.%u\n", next);
-	fprintf(io, "    ERROR \"%%s exists, but is not a directory\"\n");
-	fprintf(io, "    JUMP @next.%u\n", next);
-	fprintf(io, "islink.%u:\n", next);
-	fprintf(io, "CALL &FS.UNLINK\n");
-	fprintf(io, "OK? @unlinked.%u\n", next);
-	fprintf(io, "  ERROR \"Failed to remove symlink '%%s'\"\n");
-	fprintf(io, "  JUMP @next.%u\n", next);
-	fprintf(io, "unlinked.%u:\n", next);
-	fprintf(io, "CALL &FS.MKDIR\n");
-	fprintf(io, "OK? @isdir.%u\n", next);
-	fprintf(io, "  ERROR \"Failed to create new directory '%%s'\"\n");
-	fprintf(io, "  JUMP @next.%u\n", next);
-	fprintf(io, "isdir.%u:\n", next);
-
-	if (ENFORCED(r, RES_DIR_UID) || ENFORCED(r, RES_DIR_GID)) {
-		fprintf(io, "COPY %%A %%F\n");
-		fprintf(io, "SET %%D 0\n");
-		fprintf(io, "SET %%E 0\n");
-
-		if (ENFORCED(r, RES_DIR_UID) || ENFORCED(r, RES_DIR_GID)) {
-			fprintf(io, "CALL &USERDB.OPEN\n");
-			fprintf(io, "OK? @owner.lookup.%u\n", next);
-			fprintf(io, "  ERROR \"Failed to open the user database\"\n");
-			fprintf(io, "  HALT\n");
-			fprintf(io, "owner.lookup.%u:\n", next);
-			if (ENFORCED(r, RES_DIR_UID)) {
-				fprintf(io, "SET %%A 1\n");
-				fprintf(io, "SET %%B \"%s\"\n", r->owner);
-				fprintf(io, "CALL &USER.FIND\n");
-				fprintf(io, "OK? @found.user.%u\n", next);
-				fprintf(io, "  COPY %%B %%A\n");
-				fprintf(io, "  ERROR \"Failed to find user '%%s'\"\n");
-				fprintf(io, "  JUMP @next.%u\n", next);
-				fprintf(io, "found.user.%u:\n", next);
-				fprintf(io, "CALL &USER.GET_UID\n");
-				fprintf(io, "COPY %%R %%D\n");
-			}
-
-			if (ENFORCED(r, RES_DIR_GID)) {
-				fprintf(io, "SET %%A 1\n");
-				fprintf(io, "SET %%B \"%s\"\n", r->group);
-				fprintf(io, "CALL &GROUP.FIND\n");
-				fprintf(io, "OK? @found.group.%u\n", next);
-				fprintf(io, "  COPY %%B %%A\n");
-				fprintf(io, "  ERROR \"Failed to find group '%%s'\"\n");
-				fprintf(io, "  JUMP @next.%u\n", next);
-				fprintf(io, "found.group.%u:\n", next);
-				fprintf(io, "CALL &GROUP.GET_GID\n");
-				fprintf(io, "COPY %%R %%E\n");
-			}
-
-			fprintf(io, "CALL &USERDB.CLOSE\n");
-		}
-		fprintf(io, "COPY %%F %%A\n");
-		fprintf(io, "COPY %%D %%B\n");
-		fprintf(io, "COPY %%E %%C\n");
-		fprintf(io, "CALL &FS.CHOWN\n");
-	}
-
-	if (ENFORCED(r, RES_DIR_MODE)) {
-		fprintf(io, "SET %%D 0%o\n", r->mode);
-		fprintf(io, "CALL &FS.CHMOD\n");
-	}
-
 	return 0;
 }
 
@@ -2862,7 +2124,7 @@ int res_exec_match(const void *res, const char *name, const char *value)
 	return rc;
 }
 
-int res_exec_gencode2(const void *res, FILE *io)
+int res_exec_gencode(const void *res, FILE *io)
 {
 	struct res_exec *r = (struct res_exec*)(res);
 	assert(r); // LCOV_EXCL_LINE
@@ -2891,64 +2153,6 @@ int res_exec_gencode2(const void *res, FILE *io)
 		            "  jz +1 ret\n", r->key);
 
 	fprintf(io, "  exec %%b %%d\n");
-	return 0;
-}
-
-int res_exec_gencode(const void *res, FILE *io, unsigned int next, unsigned int serial)
-{
-	struct res_exec *r = (struct res_exec*)(res);
-	assert(r); // LCOV_EXCL_LINE
-
-	fprintf(io, "TOPIC \"exec(%s)\"\n", r->key);
-	if (ENFORCED(r, RES_EXEC_UID) || ENFORCED(r, RES_EXEC_GID)) {
-		fprintf(io, "CALL &USERDB.OPEN\n");
-		fprintf(io, "OK? @who.lookup.%u\n", next);
-		fprintf(io, "  ERROR \"Failed to open the user database\"\n");
-		fprintf(io, "  HALT\n");
-		fprintf(io, "who.lookup.%u:\n", next);
-		fprintf(io, "SET %%D 0\n");
-		fprintf(io, "SET %%E 0\n");
-		if (ENFORCED(r, RES_EXEC_UID)) {
-			fprintf(io, "SET %%A 1\n");
-			fprintf(io, "SET %%B \"%s\"\n", r->user);
-			fprintf(io, "CALL &USER.FIND\n");
-			fprintf(io, "OK? @user.found.%u\n", next);
-			fprintf(io, "  ERROR \"Failed to find user '%s'\"\n", r->user);
-			fprintf(io, "  HALT\n");
-			fprintf(io, "user.found.%u:\n", next);
-			fprintf(io, "CALL &USER.GET_UID\n");
-			fprintf(io, "COPY %%R %%D\n");
-		}
-		if (ENFORCED(r, RES_EXEC_GID)) {
-			fprintf(io, "SET %%A 1\n");
-			fprintf(io, "SET %%B \"%s\"\n", r->group);
-			fprintf(io, "CALL &GROUP.FIND\n");
-			fprintf(io, "OK? @group.found.%u\n", next);
-			fprintf(io, "  ERROR \"Failed to find group '%s'\"\n", r->group);
-			fprintf(io, "  HALT\n");
-			fprintf(io, "group.found.%u:\n", next);
-			fprintf(io, "CALL &GROUP.GET_GID\n");
-			fprintf(io, "COPY %%R %%E\n");
-		}
-		fprintf(io, "COPY %%D %%B\n");
-		fprintf(io, "COPY %%E %%C\n");
-		fprintf(io, "CALL &USERDB.CLOSE\n");
-	} else {
-		fprintf(io, "SET %%B 0\n");
-		fprintf(io, "SET %%C 0\n");
-	}
-	if (ENFORCED(r, RES_EXEC_TEST)) {
-		fprintf(io, "SET %%A \"%s\"\n", r->test);
-		fprintf(io, "CALL &EXEC.CHECK\n");
-		fprintf(io, "NOTOK? @next.%u\n", next);
-	}
-	if (ENFORCED(r, RES_EXEC_ONDEMAND)) {
-		fprintf(io, "!FLAGGED? :res%u @next.%u\n", serial, next);
-	}
-	fprintf(io, "SET %%A \"%s\"\n", r->command);
-	fprintf(io, "CALL &EXEC.CHECK\n");
-	fprintf(io, "OK? @next.%u\n", next);
-	fprintf(io, "  FLAG 1 :changed\n");
 	return 0;
 }
 

@@ -30,8 +30,7 @@ typedef int (*resource_attrs_f)(const void *res, hash_t *attrs);
 typedef int (*resource_norm_f)(void *res, struct policy *pol, hash_t *facts);
 typedef int (*resource_set_f)(void *res, const char *attr, const char *value);
 typedef int (*resource_match_f)(const void *res, const char *attr, const char *value);
-typedef int (*resource_gencode_f)(const void *res, FILE *io, unsigned int next, unsigned int serial);
-typedef int (*resource_gencode2_f)(const void *res, FILE *io);
+typedef int (*resource_gencode_f)(const void *res, FILE *io);
 typedef FILE* (*resource_content_f)(const void *res, hash_t *facts);
 
 #define RESOURCE_TYPE(t) { \
@@ -45,7 +44,6 @@ typedef FILE* (*resource_content_f)(const void *res, hash_t *facts);
 	     .set_callback = res_ ## t ## _set,     \
 	   .match_callback = res_ ## t ## _match,   \
 	 .gencode_callback = res_ ## t ## _gencode, \
-	.gencode2_callback = res_ ## t ## _gencode2, \
 	 .content_callback = res_ ## t ## _content, }
 
 	const struct {
@@ -60,7 +58,6 @@ typedef FILE* (*resource_content_f)(const void *res, hash_t *facts);
 		resource_set_f      set_callback;
 		resource_match_f    match_callback;
 		resource_gencode_f  gencode_callback;
-		resource_gencode2_f  gencode2_callback;
 		resource_content_f  content_callback;
 
 	} resource_types[RES_UNKNOWN] = {
@@ -337,20 +334,12 @@ int resource_match(const struct resource *r, const char *attr, const char *value
 	return (*(resource_types[r->type].match_callback))(r->resource, attr, value);
 }
 
-int resource_gencode2(const struct resource *r, FILE *io)
+int resource_gencode(const struct resource *r, FILE *io)
 {
 	assert(r); // LCOV_EXCL_LINE
 	assert(r->type != RES_UNKNOWN); // LCOV_EXCL_LINE
 
-	return (*(resource_types[r->type].gencode2_callback))(r->resource, io);
-}
-
-int resource_gencode(const struct resource *r, FILE *io, unsigned int next)
-{
-	assert(r); // LCOV_EXCL_LINE
-	assert(r->type != RES_UNKNOWN); // LCOV_EXCL_LINE
-
-	return (*(resource_types[r->type].gencode_callback))(r->resource, io, next, r->serial);
+	return (*(resource_types[r->type].gencode_callback))(r->resource, io);
 }
 
 FILE * resource_content(const struct resource *r, hash_t *facts)

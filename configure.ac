@@ -68,6 +68,21 @@ AC_CHECK_LIB(uuid,
 AC_HAVE_LIBRARY(zmq,,
 	AC_MSG_ERROR(Missing 0MQ library))
 
+##
+## check that libzmq has cryptography / CURVE support compiled in
+## (otherwise, most of clockwork will fail, if it even builds).
+##
+AC_LANG(C)
+AC_RUN_IFELSE(
+	[AC_LANG_PROGRAM([#include <zmq.h>], [
+		char p[41]; char s[41];
+		return crypto_box_keypair(p, s) != ENOTSUPP;
+	])],
+
+	[AC_MSG_RESULT([OK])],
+	[AC_MSG_FAILURE([0MQ doesn not have crypto/CURVE support])])
+
+
 ################################################
 
 PKG_CHECK_MODULES([AUGEAS], [augeas])

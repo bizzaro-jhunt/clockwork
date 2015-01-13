@@ -1511,7 +1511,7 @@ int vm_exec(vm_t *vm)
 			break;
 
 		case OP_SHOW_ACL:
-			ARG1("show.acls");
+			ARG1("show.acl");
 			v = s_str(vm, f1, oper1);
 			for_each_object(acl, &vm->acl, l) {
 				if (!acl_match(acl, v, NULL)) continue;

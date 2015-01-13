@@ -123,6 +123,7 @@ int vm_reset(vm_t *vm);
 int vm_prime(vm_t *vm, byte_t *code, size_t len);
 int vm_args(vm_t *vm, int argc, char **argv);
 int vm_exec(vm_t *vm);
+int vm_disasm(byte_t *code, size_t len);
 int vm_done(vm_t *vm);
 
 #endif

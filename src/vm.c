@@ -559,8 +559,8 @@ int vm_prime(vm_t *vm, byte_t *code, size_t len)
 	hash_set(&vm->pragma, "localsys.cmd", strdup("cw localsys"));
 
 	/* default properties */
-	hash_set(&vm->props, "version", CLOCKWORK_VERSION);
-	hash_set(&vm->props, "runtime", CLOCKWORK_RUNTIME);
+	hash_set(&vm->props, "version", strdup(CLOCKWORK_VERSION));
+	hash_set(&vm->props, "runtime", strdup(CLOCKWORK_RUNTIME));
 
 	list_init(&vm->acl);
 
@@ -1550,6 +1550,38 @@ int vm_exec(vm_t *vm)
 	return 1;
 }
 
+int vm_disasm(byte_t *code, size_t len)
+{
+	byte_t op, f1, f2;
+	size_t i = 0;
+	while (i < len) {
+		op = code[i++];
+		if (op == 0xff && !code[i])
+			break;
+
+		f1 = HI_NYBLE(code[i]);
+		f2 = LO_NYBLE(code[i]);
+		fprintf(stderr, "%02x %02x", op, code[i++]);
+
+		if (f2 && !f1) {
+			fprintf(stderr, "pendulum bytecode error: corrupt operands mask detected; f1=%02x, f2=%02x\n", f1, f2);
+			return 1;
+		}
+		if (f1) {
+			fprintf(stderr, " [%02x %02x %02x %02x]\n",
+				code[i + 0], code[i + 1], code[i + 2], code[i + 3]);
+			i += 4;
+		}
+		if (f2) {
+			fprintf(stderr, "      [%02x %02x %02x %02x]\n",
+				code[i + 0], code[i + 1], code[i + 2], code[i + 3]);
+			i += 4;
+		}
+	}
+	/* FIXME: display static data */
+	return 0;
+}
+
 int vm_done(vm_t *vm)
 {
 	heap_t *h, *tmp;
@@ -1559,6 +1591,7 @@ int vm_done(vm_t *vm)
 		free(h);
 	}
 
+	hash_done(&vm->props,  1);
 	hash_done(&vm->pragma, 1);
 	hash_done(&vm->flags,  0);
 	return 0;

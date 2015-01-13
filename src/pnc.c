@@ -506,6 +506,7 @@ static int compile(void)
 		if (op->args[0].type != VALUE_NONE) offset += 4; /* 4-byte operand */
 		if (op->args[1].type != VALUE_NONE) offset += 4; /* 4-byte operand */
 	}
+	offset += 2; /* 0xff00 */
 	STATIC.offset = offset;
 	CODE = calloc(offset, sizeof(byte_t));
 	byte_t *c = CODE;
@@ -537,6 +538,8 @@ static int compile(void)
 			*c++ = ((op->args[1]._.literal >>  0) & 0xff);
 		}
 	}
+	*c++ = 0xff;
+	*c++ = 0x00;
 
 	return 0;
 }

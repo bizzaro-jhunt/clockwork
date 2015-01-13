@@ -272,6 +272,13 @@ subtest "print operators" => sub {
 
 	"[     str]",
 	"width-modifiers in print format specifier");
+
+	pendulum_ok(qq(
+	fn main
+	  print "\\n\\r\\t\\""),
+
+	"\n\r\t\"",
+	"recognized all the escape characters");
 };
 
 subtest "error operators" => sub {

@@ -276,6 +276,7 @@ security.trusted t/tmp/trusted
 security.strict  yes
 copydown t/tmp/copydown
 manifest t/tmp/manifest.pol
+stdlib   t/tmp/stdlib.pn
 EOF
 	put_file "t/tmp/master", <<EOF;
 id  master.host.fq.dn
@@ -284,6 +285,9 @@ sec 39594d56e97c363dd179205f64112339533500740706c160f4c0ab1303f97328
 EOF
 	put_file "t/tmp/trusted", <<EOF;
 bd60ed6d2daabaaa3d120c1c3269b40df6f8fa8219c538d7ee3f5d47c87abf66 client.host.fq.dn
+EOF
+	put_file "t/tmp/stdlib.pn", <<EOF;
+;; no standard lib
 EOF
 	put_file "t/tmp/cogd.conf", <<EOF;
 master.1 127.0.0.1:2313
@@ -334,6 +338,7 @@ security.trusted t/tmp/trusted
 security.strict  yes
 copydown t/tmp/copydown
 manifest t/tmp/manifest.pol
+stdlib   t/tmp/stdlib.pn
 EOF
 	put_file "t/tmp/manifest.pol", <<EOF;
 policy "base" { }
@@ -350,6 +355,9 @@ pub d3043ed5285b3cfbaaf3dace0ee9d68c7e3e01d4dc6aa092d90a55b7dfd4fb57
 EOF
 	put_file "t/tmp/trusted", <<EOF;
 bd60ed6d2daabaaa3d120c1c3269b40df6f8fa8219c538d7ee3f5d47c87abf66 client.host.fq.dn
+EOF
+	put_file "t/tmp/stdlib.pn", <<EOF;
+;; no standard lib
 EOF
 	put_file "t/tmp/cogd.conf", <<EOF;
 master.1 127.0.0.1:2313
@@ -402,11 +410,15 @@ security.cert    t/tmp/master
 security.strict  no
 copydown t/tmp/copydown
 manifest t/tmp/manifest.pol
+stdlib   t/tmp/stdlib.pn
 EOF
 	put_file "t/tmp/master", <<EOF;
 id  master.host.fq.dn
 pub d3043ed5285b3cfbaaf3dace0ee9d68c7e3e01d4dc6aa092d90a55b7dfd4fb57
 sec 39594d56e97c363dd179205f64112339533500740706c160f4c0ab1303f97328
+EOF
+	put_file "t/tmp/stdlib.pn", <<EOF;
+;; no standard lib
 EOF
 	put_file "t/tmp/cogd.conf", <<EOF;
 master.1 127.0.0.1:2313
@@ -456,6 +468,7 @@ security.cert    t/tmp/master
 security.strict  no
 copydown t/tmp/copydown
 manifest t/tmp/manifest.pol
+stdlib   t/tmp/stdlib.pn
 EOF
 	put_file "t/tmp/master", <<EOF;
 id  master.host.fq.dn
@@ -465,6 +478,9 @@ EOF
 	put_file "t/tmp/master.pub", <<EOF;
 id  master.host.fq.dn
 pub d3043ed5285b3cfbaaf3dace0ee9d68c7e3e01d4dc6aa092d90a55b7dfd4fb57
+EOF
+	put_file "t/tmp/stdlib.pn", <<EOF;
+;; no standard lib
 EOF
 	put_file "t/tmp/cogd.conf", <<EOF;
 master.1 127.0.0.1:2313

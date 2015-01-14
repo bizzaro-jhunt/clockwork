@@ -22,7 +22,7 @@ EOF
 
 	gencode_ok(<<'EOF',
 fn res:00000001
-  unflag changed
+  unflag "changed"
   call fix:00000001
   ;; no dependencies
 
@@ -54,7 +54,7 @@ host "example" { enforce "example" }
 EOF
 	gencode_ok(<<'EOF',
 fn res:00000001
-  unflag changed
+  unflag "changed"
   call fix:00000001
   ;; no dependencies
 
@@ -82,7 +82,7 @@ EOF
 
 	gencode_ok(<<'EOF',
 fn res:00000001
-  unflag changed
+  unflag "changed"
   call fix:00000001
   ;; no dependencies
 
@@ -113,7 +113,7 @@ EOF
 
 	gencode_ok(<<'EOF',
 fn res:00000001
-  unflag changed
+  unflag "changed"
   call fix:00000001
   ;; no dependencies
 
@@ -146,7 +146,7 @@ EOF
 
 	gencode_ok(<<'EOF',
 fn res:00000001
-  unflag changed
+  unflag "changed"
   call fix:00000001
   ;; no dependencies
 
@@ -180,7 +180,7 @@ EOF
 
 	gencode_ok(<<'EOF',
 fn res:00000001
-  unflag changed
+  unflag "changed"
   call fix:00000001
   ;; no dependencies
 
@@ -215,7 +215,7 @@ EOF
 
 	gencode_ok(<<'EOF',
 fn res:00000001
-  unflag changed
+  unflag "changed"
   call fix:00000001
   ;; no dependencies
 
@@ -253,7 +253,7 @@ EOF
 
 	gencode_ok(<<'EOF',
 fn res:00000001
-  unflag changed
+  unflag "changed"
   call fix:00000001
   ;; no dependencies
 
@@ -285,7 +285,7 @@ EOF
 
 	gencode_ok(<<'EOF',
 fn res:00000001
-  unflag changed
+  unflag "changed"
   call fix:00000001
   ;; no dependencies
 
@@ -303,7 +303,7 @@ fn fix:00000001
   user.set "home" %b
   jz +2
     error "Failed to set %[a]s' home directory to %[b]s"
-    bail
+    bail 1
   call util.authdb.save
 
 fn main
@@ -327,7 +327,7 @@ EOF
 
 	gencode_ok(<<'EOF',
 fn res:00000001
-  unflag changed
+  unflag "changed"
   call fix:00000001
   ;; no dependencies
 
@@ -345,8 +345,8 @@ fn fix:00000001
   user.set "home" %b
   jz +2
     error "Failed to set %[a]s' home directory to %[b]s"
-    bail
-  flagged? mkhome
+    bail 1
+  flagged? "mkhome"
   jnz +2
     user.get "home" %b
     call res.user.mkhome
@@ -382,7 +382,7 @@ EOF
 
 	gencode_ok(<<'EOF',
 fn res:00000001
-  unflag changed
+  unflag "changed"
   call fix:00000001
   ;; no dependencies
 
@@ -400,49 +400,49 @@ fn fix:00000001
   user.set "home" %b
   jz +2
     error "Failed to set %[a]s' home directory to %[b]s"
-    bail
+    bail 1
   ;;; comment
   set %b "Name,,,,"
   user.set "comment" %b
   jz +2
     error "Failed to set %[a]s' GECOS comment to %[b]s"
-    bail
+    bail 1
   ;;; login shell
   set %b "/bin/bash"
   user.set "shell" %b
   jz +2
     error "Failed to set %[a]s' login shell to %[b]s"
-    bail
+    bail 1
   ;;; minimum password age
   set %b "99"
   user.set "pwmin" %b
   jz +2
     error "Failed to set %[a]s' minimum password age to %[b]li"
-    bail
+    bail 1
   ;;; maximum password age
   set %b "305"
   user.set "pwmax" %b
   jz +2
     error "Failed to set %[a]s' maximum password age to %[b]li"
-    bail
+    bail 1
   ;;; password warning period
   set %b "14"
   user.set "pwwarn" %b
   jz +2
     error "Failed to set %[a]s' password warning period to %[b]li"
-    bail
+    bail 1
   ;;; password inactivity period
   set %b "9998"
   user.set "inact" %b
   jz +2
     error "Failed to set %[a]s' password inactivity period to %[b]li"
-    bail
+    bail 1
   ;;; account expiration
   set %b "/bin/bash"
   user.set "expiry" %b
   jz +2
     error "Failed to set %[a]s' account expiration to %[b]li"
-    bail
+    bail 1
   call util.authdb.save
 
 fn main
@@ -469,7 +469,7 @@ EOF
 
 	gencode_ok(<<'EOF',
 fn res:00000001
-  unflag changed
+  unflag "changed"
   call fix:00000001
   ;; no dependencies
 
@@ -498,7 +498,7 @@ EOF
 
 	gencode_ok(<<'EOF',
 fn res:00000001
-  unflag changed
+  unflag "changed"
   call fix:00000001
   ;; no dependencies
 
@@ -526,7 +526,7 @@ EOF
 
 	gencode_ok(<<'EOF',
 fn res:00000001
-  unflag changed
+  unflag "changed"
   call fix:00000001
   ;; no dependencies
 
@@ -560,7 +560,7 @@ EOF
 
 	gencode_ok(<<'EOF',
 fn res:00000001
-  unflag changed
+  unflag "changed"
   call fix:00000001
   ;; no dependencies
 
@@ -601,7 +601,7 @@ EOF
 
 	gencode_ok(<<'EOF',
 fn res:00000001
-  unflag changed
+  unflag "changed"
   call fix:00000001
   ;; no dependencies
 
@@ -634,7 +634,7 @@ EOF
 
 	gencode_ok(<<'EOF',
 fn res:00000001
-  unflag changed
+  unflag "changed"
   call fix:00000001
   ;; no dependencies
 
@@ -662,7 +662,7 @@ EOF
 
 	gencode_ok(<<'EOF',
 fn res:00000001
-  unflag changed
+  unflag "changed"
   call fix:00000001
   ;; no dependencies
 
@@ -694,7 +694,7 @@ EOF
 
 	gencode_ok(<<'EOF',
 fn res:00000001
-  unflag changed
+  unflag "changed"
   call fix:00000001
   ;; no dependencies
 
@@ -733,7 +733,7 @@ EOF
 
 	gencode_ok(<<'EOF',
 fn res:00000001
-  unflag changed
+  unflag "changed"
   call fix:00000001
   ;; no dependencies
 
@@ -764,7 +764,7 @@ EOF
 
 	gencode_ok(<<'EOF',
 fn res:00000001
-  unflag changed
+  unflag "changed"
   call fix:00000001
   ;; no dependencies
 
@@ -795,7 +795,7 @@ EOF
 
 	gencode_ok(<<'EOF',
 fn res:00000001
-  unflag changed
+  unflag "changed"
   call fix:00000001
   ;; no dependencies
 
@@ -825,7 +825,7 @@ EOF
 
 	gencode_ok(<<'EOF',
 fn res:00000001
-  unflag changed
+  unflag "changed"
   call fix:00000001
   ;; no dependencies
 
@@ -859,7 +859,7 @@ EOF
 
 	gencode_ok(<<'EOF',
 fn res:00000001
-  unflag changed
+  unflag "changed"
   call fix:00000001
   ;; no dependencies
 
@@ -887,7 +887,7 @@ EOF
 
 	gencode_ok(<<'EOF',
 fn res:00000001
-  unflag changed
+  unflag "changed"
   call fix:00000001
   ;; no dependencies
 
@@ -915,7 +915,7 @@ EOF
 
 	gencode_ok(<<'EOF',
 fn res:00000001
-  unflag changed
+  unflag "changed"
   call fix:00000001
   ;; no dependencies
 
@@ -944,7 +944,7 @@ EOF
 
 	gencode_ok(<<'EOF',
 fn res:00000001
-  unflag changed
+  unflag "changed"
   call fix:00000001
   ;; no dependencies
 
@@ -973,7 +973,7 @@ EOF
 
 	gencode_ok(<<'EOF',
 fn res:00000001
-  unflag changed
+  unflag "changed"
   call fix:00000001
   ;; no dependencies
 
@@ -1007,7 +1007,7 @@ EOF
 
 	gencode_ok(<<'EOF',
 fn res:00000001
-  unflag changed
+  unflag "changed"
   call fix:00000001
   ;; no dependencies
 
@@ -1042,7 +1042,7 @@ EOF
 
 	gencode_ok(<<'EOF',
 fn res:00000001
-  unflag changed
+  unflag "changed"
   call fix:00000001
   ;; no dependencies
 
@@ -1075,7 +1075,7 @@ EOF
 
 	gencode_ok(<<'EOF',
 fn res:00000001
-  unflag changed
+  unflag "changed"
   call fix:00000001
   ;; no dependencies
 
@@ -1106,7 +1106,7 @@ EOF
 
 	gencode_ok(<<'EOF',
 fn res:00000001
-  unflag changed
+  unflag "changed"
   call fix:00000001
   ;; no dependencies
 
@@ -1139,7 +1139,7 @@ EOF
 
 	gencode_ok(<<'EOF',
 fn res:00000001
-  unflag changed
+  unflag "changed"
   call fix:00000001
   ;; no dependencies
 
@@ -1168,7 +1168,7 @@ EOF
 
 	gencode_ok(<<'EOF',
 fn res:00000001
-  unflag changed
+  unflag "changed"
   call fix:00000001
   ;; no dependencies
 
@@ -1200,7 +1200,7 @@ EOF
 
 	gencode_ok(<<'EOF',
 fn res:00000001
-  unflag changed
+  unflag "changed"
   call fix:00000001
   ;; no dependencies
 
@@ -1235,7 +1235,7 @@ EOF
 
 	gencode_ok(<<'EOF',
 fn res:00000001
-  unflag changed
+  unflag "changed"
   call fix:00000001
   ;; no dependencies
 
@@ -1646,9 +1646,9 @@ host "example" { enforce "example" }
 EOF
 	gencode_ok <<'EOF', "implict deps";
 fn res:00000001
-  unflag changed
+  unflag "changed"
   call fix:00000001
-  flagged? changed
+  flagged? "changed"
   jz +1 ret
   flag "dir:/tmp"
   flag "dir:/tmp"
@@ -1659,9 +1659,9 @@ fn fix:00000001
   call res.dir.present
 
 fn res:00000003
-  unflag changed
+  unflag "changed"
   call fix:00000003
-  flagged? changed
+  flagged? "changed"
   jz +1 ret
   flag "dir:/tmp/inner"
   ret
@@ -1671,7 +1671,7 @@ fn fix:00000003
   call res.dir.present
 
 fn res:00000002
-  unflag changed
+  unflag "changed"
   call fix:00000002
   ;; no dependencies
 

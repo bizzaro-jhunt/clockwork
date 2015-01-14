@@ -127,9 +127,6 @@ struct __client_t {
 	FILE             *io;
 	unsigned long     offset;
 	struct SHA1       sha1;
-
-	void             *mapped;
-	size_t            maplen;
 };
 
 struct __server_t {
@@ -166,8 +163,10 @@ static int s_sha1(client_t *fsm)
 	return 0;
 }
 
-static char * s_gencode(client_t *c)
+static int s_gencode(client_t *c, byte_t **code, size_t *len)
 {
+	int rc;
+	size_t src_len;
 	FILE *io = tmpfile();
 	assert(io);
 
@@ -175,34 +174,46 @@ static char * s_gencode(client_t *c)
 	uint32_t ms = 0;
 	STOPWATCH(&t, ms) {
 		policy_gencode(c->policy, io);
-	}
 
-	fprintf(io, "%c", '\0');
-	c->maplen = ftell(io);
-	c->mapped = mmap(NULL, c->maplen, PROT_READ, MAP_SHARED, fileno(io), 0);
+		src_len = ftell(io);
+		rewind(io);
+		rc = vm_asm_io(io, code, len);
+	}
 	fclose(io);
 
-	if (c->mapped == MAP_FAILED)
-		c->mapped = NULL;
-
-	float size;
-	char unit = 'b';
-	if (c->maplen > 1024 * 1024 * 1024) {
-		size = c->maplen / 1024.0 / 1024.0 / 1024.0;
-		unit = 'G';
-	} else if (c->maplen > 1024 * 1024) {
-		size = c->maplen / 1024.0 / 1024.0;
-		unit = 'M';
-	} else if (c->maplen > 1024) {
-		size = c->maplen / 1024.0;
-		unit = 'k';
+	float src_size, bin_size;
+	char  src_unit, bin_unit;
+	if (src_len > 1024 * 1024 * 1024) {
+		src_size = src_len / 1024.0 / 1024.0 / 1024.0;
+		src_unit = 'G';
+	} else if (src_len > 1024 * 1024) {
+		src_size = src_len / 1024.0 / 1024.0;
+		src_unit = 'M';
+	} else if (src_len > 1024) {
+		src_size = src_len / 1024.0;
+		src_unit = 'k';
 	} else {
-		size = c->maplen;
-		unit = 'b';
+		src_size = src_len;
+		src_unit = 'b';
 	}
-	logger(LOG_INFO, "generated %0.2f%c policy for %s in %lums", size, unit, c->name, ms);
 
-	return (char *)c->mapped;
+	if (*len > 1024 * 1024 * 1024) {
+		bin_size = *len / 1024.0 / 1024.0 / 1024.0;
+		bin_unit = 'G';
+	} else if (*len > 1024 * 1024) {
+		bin_size = *len / 1024.0 / 1024.0;
+		bin_unit = 'M';
+	} else if (*len > 1024) {
+		bin_size = *len / 1024.0;
+		bin_unit = 'k';
+	} else {
+		bin_size = *len;
+		bin_unit = 'b';
+	}
+	logger(LOG_INFO, "generated %0.2f%c policy (%0.2f%c src) for %s in %lums",
+		bin_size, bin_unit, src_size, src_unit, c->name, ms);
+
+	return rc;
 }
 
 static int s_state_machine(client_t *fsm, pdu_t *pdu, pdu_t **reply)
@@ -324,8 +335,11 @@ static int s_state_machine(client_t *fsm, pdu_t *pdu, pdu_t **reply)
 		}
 		fsm->policy = policy_generate(fsm->pnode, fsm->facts);
 
-		char *code = s_gencode(fsm);
-		*reply = pdu_reply(pdu, "POLICY", 1, code);
+		byte_t *code;
+		size_t len;
+		int rc = s_gencode(fsm, &code, &len); assert(rc == 0);
+		*reply = pdu_reply(pdu, "POLICY", 0); assert(*reply);
+		pdu_extend(*reply, code, len);
 		fsm->state = STATE_POLICY;
 		return 0;
 
@@ -808,12 +822,6 @@ int main(int argc, char **argv)
 			logger(LOG_DEBUG, "%s: sending back a %s PDU", pdu_peer(pdu), reply->type);
 			pdu_send_and_free(reply, s->listener);
 			pdu_free(pdu);
-
-			if (c->mapped) {
-				munmap(c->mapped, c->maplen);
-				c->mapped = NULL;
-				c->maplen = 0;
-			}
 
 #ifdef UNIT_TESTS
 			if (c->event == EVENT_BYE)

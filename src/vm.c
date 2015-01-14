@@ -2096,12 +2096,20 @@ int vm_asm_io(FILE *io, byte_t **code, size_t *len)
 int vm_disasm(byte_t *code, size_t len)
 {
 	byte_t op, f1, f2;
-	size_t i = 0;
+	if (len < 3) return 1;
+	if (code[0] != 'p') return 2;
+	if (code[1] != 'n') return 2;
+
+	fprintf(stderr, "%02x %02x\n", 'p', 'n');
+
+	size_t i = 2;
 	while (i < len) {
 		op = code[i++];
-		if (op == 0xff && !code[i])
+		if (op == 0xff && !code[i]) {
+			fprintf(stderr, "%02x %02x\n", 0xff, 0x00);
+			i++;
 			break;
-
+		}
 		f1 = HI_NYBLE(code[i]);
 		f2 = LO_NYBLE(code[i]);
 		fprintf(stderr, "%02x %02x", op, code[i++]);
@@ -2111,17 +2119,27 @@ int vm_disasm(byte_t *code, size_t len)
 			return 1;
 		}
 		if (f1) {
-			fprintf(stderr, " [%02x %02x %02x %02x]\n",
+			fprintf(stderr, " [%02x %02x %02x %02x]",
 				code[i + 0], code[i + 1], code[i + 2], code[i + 3]);
 			i += 4;
 		}
 		if (f2) {
-			fprintf(stderr, "      [%02x %02x %02x %02x]\n",
+			fprintf(stderr, "      [%02x %02x %02x %02x]",
 				code[i + 0], code[i + 1], code[i + 2], code[i + 3]);
 			i += 4;
 		}
+		fprintf(stderr, "\n");
 	}
-	/* FIXME: display static data */
+
+	while (i < len) {
+		int n = 0;
+		while (code[i] && i < len) {
+			fprintf(stderr, "%02x", code[i++]);
+			n++;
+			if (n % 16 == 0)  fprintf(stderr, "\n");
+			else if (i < len) fprintf(stderr, " ");
+		}
+	}
 	return 0;
 }
 

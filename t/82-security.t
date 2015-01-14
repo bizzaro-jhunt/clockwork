@@ -382,8 +382,10 @@ EOF
 	$stderr =~ s/in \d\.\d+s/in #.##s/;
 	string_is $stderr, <<EOF, "Standard error output";
 Starting configuration run
-66 6e [20 6d 61 69]
-      [6e 0a 00 00]
+70 6e
+15 30 [00 00 00 08]
+0d 00
+ff 00
 complete. enforced 0 resources in #.##s
 STATS(ms): connect=X, hello=X, preinit=X, copydown=X, facts=X, getpolicy=X, parse=X, enforce=X, cleanup=X
 EOF
@@ -494,8 +496,10 @@ EOF
 	$stderr =~ s/in \d\.\d+s/in #.##s/;
 	string_is $stderr, <<EOF, "Standard error output";
 Starting configuration run
-66 6e [20 6d 61 69]
-      [6e 0a 00 00]
+70 6e
+15 30 [00 00 00 08]
+0d 00
+ff 00
 complete. enforced 0 resources in #.##s
 STATS(ms): connect=X, hello=X, preinit=X, copydown=X, facts=X, getpolicy=X, parse=X, enforce=X, cleanup=X
 EOF

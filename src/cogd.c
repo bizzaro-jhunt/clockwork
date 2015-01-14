@@ -365,7 +365,7 @@ static void s_cfm_run(client_t *c)
 
 	if (c->mode == MODE_CODE) {
 		logger(LOG_DEBUG, "dumping pendulum code to standard output");
-		printf("%s\n", vm_disasm(code, n));
+		vm_disasm(code, n);
 		free(code);
 
 	} else {

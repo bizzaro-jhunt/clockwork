@@ -31,10 +31,522 @@
 
 #include <augeas.h>
 
-#define OPCODES_EXTENDED
 #include "opcodes.h"
 #include "authdb.h"
 #include "mesh.h"
+
+#define T_REGISTER        0x01
+#define T_LABEL           0x02
+#define T_IDENTIFIER      0x03
+#define T_OFFSET          0x04
+#define T_NUMBER          0x05
+#define T_STRING          0x06
+#define T_OPCODE          0x07
+#define T_FUNCTION        0x08
+#define T_ACL             0x09
+
+typedef struct {
+	byte_t type;
+	byte_t bintype;
+	union {
+		char     regname;   /* register (a, c, etc.) */
+		dword_t  literal;   /* literal value         */
+		char    *string;    /* string value          */
+		dword_t  address;   /* memory address        */
+		char    *label;     /* for labelled jumps    */
+		char    *fnlabel;   /* for labelled jumps    */
+		dword_t  offset;    /* for relative jumps    */
+	} _;
+} value_t;
+
+#define SPECIAL_LABEL 1
+#define SPECIAL_FUNC  2
+typedef struct {
+	byte_t  special;     /* identify special, non-code markers */
+	char   *label;       /* special label */
+	void   *fn;          /* link to the FN that starts scope */
+
+	byte_t  op;          /* opcode number, for final encoding */
+	value_t args[2];     /* operands */
+
+	dword_t offset;      /* byte offset in opcode binary stream */
+	list_t  l;
+} op_t;
+
+#define LINE_BUF_SIZE 8192
+typedef struct {
+	FILE       *io;
+	const char *file;
+	int         line;
+	int         token;
+	char        value[LINE_BUF_SIZE];
+	char        buffer[LINE_BUF_SIZE];
+	char        raw[LINE_BUF_SIZE];
+
+	list_t      ops;
+
+	hash_t      strings;
+	dword_t     static_offset;
+	dword_t     static_fill;
+
+	byte_t     *code;
+	size_t      size;
+} compiler_t;
+
+/************************************************************************/
+
+static int s_asm_lex(compiler_t *cc)
+{
+	assert(cc);
+
+	char *a, *b;
+	if (!*cc->buffer || *cc->buffer == ';') {
+getline:
+		if (!fgets(cc->raw, LINE_BUF_SIZE, cc->io))
+			return 0;
+		cc->line++;
+
+		a = cc->raw;
+		while (*a && isspace(*a)) a++;
+		if (*a == ';')
+			while (*a && *a != '\n') a++;
+		while (*a && isspace(*a)) a++;
+		if (!*a)
+			goto getline;
+
+		b = cc->buffer;
+		while ((*b++ = *a++));
+	}
+	cc->token = 0;
+	cc->value[0] = '\0';
+
+	b = cc->buffer;
+	while (*b && isspace(*b)) b++;
+	a = b;
+
+#define SHIFTLINE do { \
+	while (*b && isspace(*b)) b++; \
+	memmove(cc->buffer, b, LINE_BUF_SIZE - (b - cc->buffer)); \
+} while (0)
+
+	if (*b == '%') { /* register */
+		while (*b && !isspace(*b)) b++;
+		if (!*b || isspace(*b)) {
+			*b = '\0';
+			char reg = b - a - 2 ? '0' : *(a+1);
+			if (reg < 'a' || reg >= 'a'+NREGS) {
+				logger(LOG_ERR, "%s:%i: unrecognized register address %s (%i)", cc->file, cc->line, a, reg);
+				return 0;
+			}
+
+			cc->token = T_REGISTER;
+			cc->value[0] = reg;
+			cc->value[1] = '\0';
+
+			b++;
+			SHIFTLINE;
+			return 1;
+		}
+		b = a;
+	}
+
+	if (*b == '+' || *b == '-') {
+		b++;
+		while (*b && isdigit(*b)) b++;
+		if (!*b || isspace(*b)) {
+			*b++ = '\0';
+
+			cc->token = T_OFFSET;
+			memcpy(cc->value, cc->buffer, b-cc->buffer);
+
+			SHIFTLINE;
+			return 1;
+		}
+		b = a;
+	}
+
+	if (isdigit(*b)) {
+		if (*b == '0' && *(b+1) == 'x') {
+			b += 2;
+			while (*b && isxdigit(*b)) b++;
+		} else {
+			while (*b && isdigit(*b)) b++;
+		}
+		if (!*b || isspace(*b)) {
+			*b++ = '\0';
+
+			cc->token = T_NUMBER;
+			memcpy(cc->value, cc->buffer, b-cc->buffer);
+
+			SHIFTLINE;
+			return 1;
+		}
+		b = a;
+	}
+
+	if (isalpha(*b)) {
+		while (*b && !isspace(*b))
+			b++;
+		if (b > a && *(b-1) == ':') {
+			*(b-1) = '\0';
+			cc->token = T_LABEL;
+			memcpy(cc->value, cc->buffer, b-cc->buffer);
+			SHIFTLINE;
+			return 1;
+		}
+		b = a;
+
+		while (*b && (isalnum(*b) || *b == '.' || *b == '_' || *b == '?' || *b == '-' || *b == ':'))
+			b++;
+		*b++ = '\0';
+
+		if (strcmp(a, "acl") == 0) {
+			cc->token = T_ACL;
+			a = b;
+			while (*b && *b != '\n') b++;
+			*b = '\0';
+			memcpy(cc->value, a, b - a + 1);
+			memset(cc->buffer, 0, LINE_BUF_SIZE);
+			return 1;
+		}
+
+		int i;
+		for (i = 0; ASM[i]; i++) {
+			if (strcmp(a, ASM[i]) != 0) continue;
+			cc->token = T_OPCODE;
+			cc->value[0] = T_OP_NOOP + i;
+			cc->value[1] = '\0';
+			break;
+		}
+
+		if (strcmp(a, "fn") == 0) cc->token = T_FUNCTION;
+
+		if (!cc->token) {
+			cc->token = T_IDENTIFIER;
+			memcpy(cc->value, cc->buffer, b-cc->buffer);
+		}
+
+		SHIFTLINE;
+		return 1;
+	}
+
+	if (*b == '"') {
+		b++; a = cc->value;
+		while (*b && *b != '"' && *b != '\r' && *b != '\n') {
+			if (*b == '\\') {
+				b++;
+				switch (*b) {
+				case 'n': *a = '\n'; break;
+				case 'r': *a = '\r'; break;
+				case 't': *a = '\t'; break;
+				default:  *a = *b;
+				}
+				a++; b++;
+			} else *a++ = *b++;
+		}
+		*a = '\0';
+		if (*b == '"') b++;
+		else logger(LOG_WARNING, "%s:%i: unterminated string literal", cc->file, cc->line);
+
+		cc->token = T_STRING;
+		SHIFTLINE;
+		return 1;
+	}
+
+
+	logger(LOG_ERR, "%s:%i: failed to parse '%s'", cc->file, cc->line, cc->buffer);
+	return 0;
+}
+
+static int s_asm_parse(compiler_t *cc)
+{
+	assert(cc);
+
+	op_t *FN = NULL;
+	list_init(&cc->ops);
+
+#define NEXT if (!s_asm_lex(cc)) { logger(LOG_CRIT, "%s:%i: unexpected end of configuration\n", cc->file, cc->line); goto bail; }
+#define ERROR(s) do { logger(LOG_CRIT, "%s:%i: syntax error: %s", cc->file, cc->line, s); goto bail; } while (0)
+#define BADTOKEN(s) do { logger(LOG_CRIT, "%s:%i: unexpected " s " '%s'", cc->file, cc->line, cc->value); goto bail; } while (0)
+
+	int i, j;
+	op_t *op;
+	while (s_asm_lex(cc)) {
+		op = calloc(1, sizeof(op_t));
+		op->fn = FN;
+
+		switch (cc->token) {
+		case T_FUNCTION:
+			if (FN && list_tail(&cc->ops, op_t, l)->op != OP_RET) {
+				op->op = OP_RET;
+				list_push(&cc->ops, &op->l);
+				op = calloc(1, sizeof(op_t));
+			}
+			FN = op;
+			op->special = SPECIAL_FUNC;
+			NEXT;
+			if (cc->token != T_IDENTIFIER)
+				ERROR("unacceptable name for function");
+			op->label = strdup(cc->value);
+			break;
+
+		case T_ACL:
+			op->op = OP_ACL;
+			op->args[0].type = VALUE_STRING;
+			op->args[0]._.string = strdup(cc->value);
+			break;
+
+		case T_LABEL:
+			op->special = SPECIAL_LABEL;
+			op->label = strdup(cc->value);
+			break;
+
+		case T_OPCODE:
+			for (i = 0; ASM_SYNTAX[i].token; i++) {
+				if ((byte_t)cc->value[0] != ASM_SYNTAX[i].token) continue;
+				op->op = (byte_t)ASM_SYNTAX[i].opcode;
+
+				for (j = 0; j < 2; j++) {
+					if (ASM_SYNTAX[i].args[j] == ARG_NONE) break;
+					NEXT;
+
+					if (cc->token == T_REGISTER && ASM_SYNTAX[i].args[j] & ARG_REGISTER) {
+						op->args[j].type = VALUE_REGISTER;
+						op->args[j]._.regname = cc->value[0];
+
+					} else if (cc->token == T_NUMBER && ASM_SYNTAX[i].args[j] & ARG_NUMBER) {
+						op->args[j].type = VALUE_NUMBER;
+						op->args[j]._.literal = strtol(cc->value, NULL, 0);
+
+					} else if (cc->token == T_STRING && ASM_SYNTAX[i].args[j] & ARG_STRING) {
+						op->args[j].type = VALUE_STRING;
+						op->args[j]._.string = strdup(cc->value);
+
+					} else if (cc->token == T_IDENTIFIER && ASM_SYNTAX[i].args[j] & ARG_LABEL) {
+						op->args[j].type = VALUE_LABEL;
+						op->args[j]._.label = strdup(cc->value);
+
+					} else if (cc->token == T_IDENTIFIER && ASM_SYNTAX[i].args[j] & ARG_FUNCTION) {
+						op->args[j].type = VALUE_FNLABEL;
+						op->args[j]._.fnlabel = strdup(cc->value);
+
+					} else if (cc->token == T_IDENTIFIER && ASM_SYNTAX[i].args[j] & ARG_IDENTIFIER) {
+						op->args[j].type = VALUE_STRING;
+						op->args[j]._.string = strdup(cc->value);
+
+					} else if (cc->token == T_OFFSET && ASM_SYNTAX[i].args[j] & ARG_LABEL) {
+						op->args[j].type = VALUE_OFFSET;
+						op->args[j]._.offset = strtol(cc->value, NULL, 10);
+
+					} else {
+						logger(LOG_CRIT, "%s: %i: invalid form; expected `%s`",
+							cc->file, cc->line, ASM_SYNTAX[i].usage);
+						goto bail;
+					}
+				}
+				break;
+			}
+			break;
+
+		case T_REGISTER:   BADTOKEN("register reference");
+		case T_IDENTIFIER: BADTOKEN("identifier");
+		case T_OFFSET:     BADTOKEN("offset");
+		case T_NUMBER:     BADTOKEN("numeric literal");
+		case T_STRING:     BADTOKEN("string literal");
+
+		default:
+			ERROR("unhandled token type");
+		}
+
+		list_push(&cc->ops, &op->l);
+	}
+
+	if (FN && list_tail(&cc->ops, op_t, l)->op != OP_RET) {
+		op = calloc(1, sizeof(op_t));
+		op->op = OP_RET;
+		list_push(&cc->ops, &op->l);
+	}
+	return 0;
+
+bail:
+	return 1;
+}
+
+static int s_asm_resolve(compiler_t *cc, value_t *v, op_t *me)
+{
+	byte_t *addr;
+	size_t len;
+	op_t *op, *fn;
+
+	switch (v->type) {
+	case VALUE_REGISTER:
+		v->bintype = TYPE_REGISTER;
+		v->_.literal -= 'a';
+		return 0;
+
+	case VALUE_NUMBER:
+		v->bintype = TYPE_LITERAL;
+		return 0;
+
+	case VALUE_STRING:
+		addr = hash_get(&cc->strings, v->_.string);
+		if (!addr) {
+			len = strlen(v->_.string) + 1;
+			memcpy(cc->code + cc->static_fill, v->_.string, len);
+
+			addr = cc->code + cc->static_fill;
+			hash_set(&cc->strings, v->_.string, addr);
+			cc->static_fill += len;
+		}
+		free(v->_.string);
+
+		v->type = VALUE_ADDRESS;
+		v->bintype = TYPE_ADDRESS;
+		v->_.address = addr - cc->code;
+		return 0;
+
+	case VALUE_ADDRESS:
+		v->bintype = TYPE_ADDRESS;
+		return 0;
+
+	case VALUE_LABEL:
+		fn = (op_t*)me->fn;
+		for_each_object(op, &fn->l, l) {
+			if (op->special == SPECIAL_FUNC) break;
+			if (op->special != SPECIAL_LABEL) continue;
+			if (strcmp(v->_.label, op->label) != 0) continue;
+
+			free(v->_.label);
+			v->type = VALUE_ADDRESS;
+			v->bintype = TYPE_ADDRESS;
+			v->_.address = op->offset;
+			return 0;
+		}
+		logger(LOG_ERR, "label %s not found in scope!", v->_.label);
+		return 1;
+
+	case VALUE_FNLABEL:
+		for_each_object(op, &me->l, l) {
+			if (op->special != SPECIAL_FUNC) continue;
+			if (strcmp(v->_.fnlabel, op->label) != 0) continue;
+
+			free(v->_.fnlabel);
+			v->type = VALUE_ADDRESS;
+			v->bintype = TYPE_ADDRESS;
+			v->_.address = op->offset;
+			return 0;
+		}
+		logger(LOG_ERR, "fnlabel %s not found globally!", v->_.fnlabel);
+		return 1;
+
+	case VALUE_OFFSET:
+		for_each_object(op, &me->l, l) {
+			if (op->special) continue;
+			if (v->_.offset--) continue;
+
+			v->type = VALUE_ADDRESS;
+			v->bintype = TYPE_ADDRESS;
+			v->_.address = op->offset;
+			return 0;
+		}
+		return 1;
+	}
+	return 0;
+}
+
+static int s_asm_encode(compiler_t *cc)
+{
+	assert(cc);
+	/* phases of compilation:
+
+	   I.   insert runtime at addr 0
+	   II.  determine offset of each opcode
+	   III. resolve labels / relative addresses
+	   IV.  pack 'external memory' data
+	   V.   encode
+	 */
+
+	op_t *op, *tmp;
+	int rc;
+
+	/* phase I: runtime insertion */
+	op = calloc(1, sizeof(op_t));
+	op->op = OP_JMP; /* jmp, don't call */
+	op->args[0].type = VALUE_FNLABEL;
+	op->args[0]._.label = strdup("main");
+	list_unshift(&cc->ops, &op->l);
+
+	/* phase II: calculate offsets & sizes */
+	dword_t text = 2; /* 0x7068 (pn) */
+	dword_t data = 0;
+	for_each_object(op, &cc->ops, l) {
+		op->offset = text;
+		if (op->special) continue;
+		text += 2;                                     /* 2-byte opcode  */
+		if (op->args[0].type != VALUE_NONE) text += 4; /* 4-byte operand */
+		if (op->args[1].type != VALUE_NONE) text += 4; /* 4-byte operand */
+
+		/* check for string lengths */
+		if (op->args[0].type == VALUE_STRING) data += strlen(op->args[0]._.string) + 1;
+		if (op->args[1].type == VALUE_STRING) data += strlen(op->args[1]._.string) + 1;
+	}
+	text += 2; /* 0xff00 */
+
+	cc->static_fill = cc->static_offset = text;
+	cc->size = text + data;
+	cc->code = calloc(cc->size, sizeof(byte_t));
+	byte_t *c = cc->code;
+
+	/* HEADER */
+	*c++ = 'p'; *c++ = 'n';
+	for_each_object(op, &cc->ops, l) {
+		if (op->special) continue;
+
+		/* phase II/III: resolve labels / pack strings */
+		rc = s_asm_resolve(cc, &op->args[0], op);
+		assert(rc == 0);
+		rc = s_asm_resolve(cc, &op->args[1], op);
+		assert(rc == 0);
+
+		/* phase IV: encode */
+		*c++ = op->op;
+		*c++ = ((op->args[0].bintype & 0xff) << 4)
+			 | ((op->args[1].bintype & 0xff));
+
+		if (op->args[0].type) {
+			*c++ = ((op->args[0]._.literal >> 24) & 0xff);
+			*c++ = ((op->args[0]._.literal >> 16) & 0xff);
+			*c++ = ((op->args[0]._.literal >>  8) & 0xff);
+			*c++ = ((op->args[0]._.literal >>  0) & 0xff);
+		}
+		if (op->args[1].type) {
+			*c++ = ((op->args[1]._.literal >> 24) & 0xff);
+			*c++ = ((op->args[1]._.literal >> 16) & 0xff);
+			*c++ = ((op->args[1]._.literal >>  8) & 0xff);
+			*c++ = ((op->args[1]._.literal >>  0) & 0xff);
+		}
+	}
+	*c++ = 0xff; *c++ = 0x00;
+
+	for_each_object_safe(op, tmp, &cc->ops, l) {
+		if (op->special == SPECIAL_FUNC) free(op->label);
+		free(op);
+	}
+	hash_done(&cc->strings, 0);
+	return 0;
+}
+
+static int s_asm_vm_asm(compiler_t *cc, byte_t **code, size_t *len)
+{
+	int rc;
+	rc = s_asm_parse(cc);  assert(rc == 0);
+	rc = s_asm_encode(cc); assert(rc == 0);
+
+	*code = cc->code;
+	*len  = cc->size;
+	return 0;
+}
+
 
 static int s_empty(stack_t *st)
 {
@@ -550,7 +1062,8 @@ int vm_prime(vm_t *vm, byte_t *code, size_t len)
 {
 	assert(vm);
 	assert(code);
-	assert(len > 1);
+	assert(len > 3);
+	assert(code[0] == 'p' && code[1] == 'n');
 
 	/* default pragmas */
 	hash_set(&vm->pragma, "authdb.root",  strdup(AUTHDB_ROOT));
@@ -613,8 +1126,7 @@ int vm_exec(vm_t *vm)
 	runner_t runner;
 	char execline[8192];
 
-	vm->pc = 0;
-
+	vm->pc = 2; /* skip the header */
 	while (!vm->abort) {
 		oper1 = oper2 = 0;
 		op = vm->code[vm->pc++];
@@ -1548,6 +2060,37 @@ int vm_exec(vm_t *vm)
 	}
 
 	return 1;
+}
+
+int vm_asm_file(const char *path, byte_t **code, size_t *len)
+{
+	int rc;
+	compiler_t cc;
+	memset(&cc, 0, sizeof(cc));
+
+	if (strcmp(path, "-") == 0) {
+		cc.file = "<stdin>";
+		cc.io   = stdin;
+		rc = s_asm_vm_asm(&cc, code, len);
+
+	} else {
+		cc.file = path;
+		cc.io   = fopen(path, "r");
+		rc = s_asm_vm_asm(&cc, code, len);
+		fclose(cc.io);
+	}
+
+	return rc;
+}
+
+int vm_asm_io(FILE *io, byte_t **code, size_t *len)
+{
+	compiler_t cc;
+	memset(&cc, 0, sizeof(cc));
+
+	cc.file = "<unknown>";
+	cc.io   = io;
+	return s_asm_vm_asm(&cc, code, len);
 }
 
 int vm_disasm(byte_t *code, size_t len)

@@ -6,19 +6,24 @@ use Test::More;
 use t::common;
 
 command_ok qq(show version), <<EOF;
-SHOW version
+fn main
+  property "version" %a
+  print %a
 EOF
 
 command_ok qq(show acls), <<EOF;
-SHOW acls
+fn main
+  show.acls
 EOF
 
 command_ok qq(show acls for user1), <<EOF;
-SHOW acls user1
+fn main
+  show.acl "user1"
 EOF
 
 command_ok qq(show acls for %group), <<EOF;
-SHOW acls :group
+fn main
+  show.acl ":group"
 EOF
 
 done_testing;

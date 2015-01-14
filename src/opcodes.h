@@ -110,7 +110,6 @@
 #define OP_REMOTE_FILE     0x6a  /* Retrieve the contents of a file based on a resource key */
 
 
-#ifdef OPCODES_EXTENDED
 /** OPCODE MNEMONIC NAMES **/
 static const char * OPCODES[] = {
 	"noop",              /* OP_NOOP              0  0000 */
@@ -222,10 +221,8 @@ static const char * OPCODES[] = {
 	"remote.file",       /* OP_REMOTE_FILE     106  0x6a */
 	NULL,
 };
-#endif
 
 
-#ifdef OPCODES_ASM
 /** ASM TOKENS **/
 #define T_OP_NOOP            0x40  /* does nothing */
 #define T_OP_PUSH            0x41  /* push a register onto data stack */
@@ -457,6 +454,31 @@ static const char * ASM[] = {
 #define ARG_FUNCTION    0x10
 #define ARG_IDENTIFIER  0x20
 
+#define VALUE_NONE      0x0
+#define VALUE_REGISTER  0x1
+#define VALUE_NUMBER    0x2
+#define VALUE_STRING    0x3
+#define VALUE_ADDRESS   0x4
+#define VALUE_LABEL     0x5
+#define VALUE_FNLABEL   0x6
+#define VALUE_OFFSET    0x7
+
+#define TYPE_LITERAL   0x1
+#define TYPE_REGISTER  0x2
+#define TYPE_ADDRESS   0x3
+
+static const char *ASM_TYPES[] = {
+	"NONE",
+	"register",
+	"number",
+	"string",
+	"address",
+	"label",
+	"offset",
+	"fnlabel",
+	NULL,
+};
+
 static struct {
 	byte_t      token;
 	const char *usage;
@@ -573,5 +595,3 @@ static struct {
 	{ T_OP_REMOTE_FILE,    "remote.file (%a|<string>) (%b|<string>)",        OP_REMOTE_FILE,    { ARG_REGISTER|ARG_STRING,            ARG_REGISTER|ARG_STRING,            } },
 	{ 0, 0, 0, { 0, 0 } },
 };
-
-#endif

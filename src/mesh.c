@@ -163,29 +163,19 @@ static char* s_user_lookup(const char *username)
 	return s;
 }
 
-static char* s_cmd_code(const char *command)
+static int s_cmd_compile(const char *command, byte_t **code, size_t *len)
 {
 	cmd_t *cmd = cmd_parse(command, COMMAND_LITERAL);
-	if (!cmd) return string(";; %s\n", command);
+	if (!cmd) return -1;
 
 	FILE *io = tmpfile();
 	cmd_gencode(cmd, io);
 	cmd_destroy(cmd);
-
-	size_t n1 = ftell(io);
 	rewind(io);
 
-	char *code = vmalloc(n1+1);
-	size_t n2 = fread(code, 1, n1, io);
-	if (n2 < n1) {
-		free(code);
-		code = string(";; short read error %i/%i\n", n2, n1);
-	} else {
-		code[n2] = '\0';
-	}
-
+	int rc = vm_asm_io(io, code, len);
 	fclose(io);
-	return code;
+	return rc;
 }
 /*
      ######  ##     ## ########
@@ -377,13 +367,16 @@ int cmd_gencode(cmd_t *cmd, FILE *io)
 
 		if (strcmp(tok->value, "version") == 0) {
 			if (l->next != end) goto syntax;
-			fprintf(io, "SHOW version\n");
+			fprintf(io, "fn main\n"
+			            "  property \"version\" %%a\n"
+			            "  print %%a\n");
 			return 0;
 		}
 
 		if (strcmp(tok->value, "acls") == 0) {
 			if (l->next == end) {
-				fprintf(io, "SHOW acls\n");
+				fprintf(io, "fn main\n"
+				            "  show.acls\n");
 				return 0;
 			}
 
@@ -396,11 +389,13 @@ int cmd_gencode(cmd_t *cmd, FILE *io)
 
 				if (l->next != end) goto syntax;
 				if (*tok->value == '%') {
-					fprintf(io, "SHOW acls :%s\n", tok->value + 1);
+					fprintf(io, "fn main\n"
+					            "  show.acl \":%s\"\n", tok->value + 1);
 					return 0;
 				}
 
-				fprintf(io, "SHOW acls %s\n", tok->value);
+				fprintf(io, "fn main\n"
+				            "  show.acl \"%s\"\n", tok->value);
 				return 0;
 			}
 		}
@@ -1001,8 +996,10 @@ int mesh_server_reactor(void *sock, pdu_t *pdu, void *data)
 		     *secret   = (char*)pdu_segment(pdu, 3, &secret_len),
 		     *command  = pdu_string(pdu, 4),
 		     *filters  = pdu_string(pdu, 5),
-		     *creds    = NULL,
-		     *code     = NULL;
+		     *creds    = NULL;
+
+		byte_t *code;
+		size_t len;
 
 		mesh_slot_t *client = vmalloc(sizeof(mesh_slot_t));
 		client->ident    = strdup(pdu_peer(pdu));
@@ -1019,8 +1016,10 @@ int mesh_server_reactor(void *sock, pdu_t *pdu, void *data)
 			goto REQUEST_exit;
 		}
 
-		creds = s_user_lookup(username); assert(creds);
-		code  = s_cmd_code(command);     assert(code);
+		creds = s_user_lookup(username);
+		assert(creds);
+		int rc = s_cmd_compile(command, &code, &len);
+		assert(rc == 0);
 
 		if (strlen(pubkey) > 0) {
 			logger(LOG_INFO, "authenticating as %s using public key %s", username, pubkey);
@@ -1057,7 +1056,7 @@ int mesh_server_reactor(void *sock, pdu_t *pdu, void *data)
 		}
 
 		logger(LOG_DEBUG, "checking global ACL for %s `%s`", creds, command);
-		int rc = acl_check(&server->acl, creds, cmd);
+		rc = acl_check(&server->acl, creds, cmd);
 		cmd_destroy(cmd);
 		if (rc == ACL_DENY) {
 			logger(LOG_DEBUG, "access to %s `%s` denied by global ACL", creds, command);
@@ -1066,7 +1065,9 @@ int mesh_server_reactor(void *sock, pdu_t *pdu, void *data)
 			goto REQUEST_exit;
 		}
 
-		pdu_t *blast = pdu_make("COMMAND", 5, serial, creds, command, code, filters);
+		pdu_t *blast = pdu_make("COMMAND", 3, serial, creds, command);
+		pdu_extend(blast, code, len);
+		pdu_extendf(blast, "%s", filters);
 		pdu_send_and_free(blast, server->broadcast);
 
 		reply = pdu_reply(pdu, "SUBMITTED", 1, serial);

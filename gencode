@@ -98,7 +98,6 @@ for my $op (@$lst) {
 }
 
 print "\n\n";
-print "#ifdef OPCODES_EXTENDED\n";
 print "/** OPCODE MNEMONIC NAMES **/\n";
 print "static const char * OPCODES[] = {\n";
 $n = 0;
@@ -110,10 +109,8 @@ for my $op (@$lst) {
 }
 print "\tNULL,\n";
 print "};\n";
-print "#endif\n";
 
 print "\n\n";
-print "#ifdef OPCODES_ASM\n";
 print "/** ASM TOKENS **/\n";
 $n = 0x40;
 for my $op (@$lst) {
@@ -141,6 +138,31 @@ print <<EOF;
 #define ARG_FUNCTION    0x10
 #define ARG_IDENTIFIER  0x20
 
+#define VALUE_NONE      0x0
+#define VALUE_REGISTER  0x1
+#define VALUE_NUMBER    0x2
+#define VALUE_STRING    0x3
+#define VALUE_ADDRESS   0x4
+#define VALUE_LABEL     0x5
+#define VALUE_FNLABEL   0x6
+#define VALUE_OFFSET    0x7
+
+#define TYPE_LITERAL   0x1
+#define TYPE_REGISTER  0x2
+#define TYPE_ADDRESS   0x3
+
+static const char *ASM_TYPES[] = {
+	"NONE",
+	"register",
+	"number",
+	"string",
+	"address",
+	"label",
+	"offset",
+	"fnlabel",
+	NULL,
+};
+
 static struct {
 	byte_t      token;
 	const char *usage;
@@ -155,6 +177,4 @@ for my $op (@$lst) {
 }
 table "\t{ %s %s %s { %s %s } },\n";
 print "\t{ 0, 0, 0, { 0, 0 } },\n";
-print "};\n\n";
-
-print "#endif\n";
+print "};\n";

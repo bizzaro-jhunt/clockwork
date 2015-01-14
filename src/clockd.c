@@ -139,6 +139,7 @@ struct __server_t {
 	cache_t          *clients;
 	struct manifest  *manifest;
 	char             *copydown;
+	char             *stdlib;
 
 	cert_t     *cert;
 	trustdb_t  *tdb;
@@ -170,12 +171,22 @@ static int s_gencode(client_t *c, byte_t **code, size_t *len)
 	FILE *io = tmpfile();
 	assert(io);
 
+	FILE *stdlib = fopen(c->server->stdlib, "r");
+	assert(stdlib);
+	char buf[8192];
+	while ((fgets(buf, 8192, stdlib)))
+		fprintf(io, "%s", buf);
+	fclose(stdlib);
+
 	stopwatch_t t;
 	uint32_t ms = 0;
 	STOPWATCH(&t, ms) {
 		policy_gencode(c->policy, io);
 
 		src_len = ftell(io);
+		rewind(io);
+	while ((fgets(buf, 8192, io)))
+		fprintf(stderr, "%s", buf);
 		rewind(io);
 		rc = vm_asm_io(io, code, len);
 	}
@@ -520,6 +531,7 @@ static inline server_t *s_server_new(int argc, char **argv)
 	config_set(&config, "security.trusted",    "/etc/clockwork/certs/trusted");
 	config_set(&config, "security.cert",       "/etc/clockwork/certs/clockd");
 	config_set(&config, "pidfile",             "/var/run/clockd.pid");
+	config_set(&config, "stdlib",              PACKAGE_LIBDIR "/stdlib.pn");
 
 	log_open(config_get(&config, "syslog.ident"), "stderr");
 	log_level(0, (getenv("CLOCKD_DEBUG") ? "debug" : "error"));
@@ -536,6 +548,7 @@ static inline server_t *s_server_new(int argc, char **argv)
 	logger(LOG_DEBUG, "  security.trusted    %s", config_get(&config, "security.trusted"));
 	logger(LOG_DEBUG, "  security.cert       %s", config_get(&config, "security.cert"));
 	logger(LOG_DEBUG, "  pidfile             %s", config_get(&config, "pidfile"));
+	logger(LOG_DEBUG, "  stdlib              %s", config_get(&config, "stdlib"));
 
 
 	logger(LOG_DEBUG, "processing command-line options");
@@ -710,6 +723,7 @@ static inline server_t *s_server_new(int argc, char **argv)
 		s->tdb->verify ? "Enabling" : "Disabling");
 
 	s->copydown = strdup(config_get(&config, "copydown"));
+	s->stdlib   = strdup(config_get(&config, "stdlib"));
 	s->manifest = parse_file(config_get(&config, "manifest"));
 	if (!s->manifest) {
 		if (errno)
@@ -773,6 +787,7 @@ static inline void s_server_destroy(server_t *s)
 	cert_free(s->cert);
 	trustdb_free(s->tdb);
 	free(s->copydown);
+	free(s->stdlib);
 
 	zap_shutdown(s->zap);
 	zmq_ctx_destroy(s->zmq);

@@ -20,6 +20,7 @@ AM_CFLAGS += -DCW_CACHE_DIR=\"$(pkgcachedir)\"
 AM_CFLAGS += -DCW_GATHER_DIR=\"$(gatherdir)\"
 AM_CFLAGS += -DCW_CLI_DIR=\"$(clidir)\"
 AM_CFLAGS += -DCW_SYSCONF_DIR=\"$(pkgsysconfdir)\"
+AM_CFLAGS += -DPACKAGE_LIBDIR=\"$(pkglibdir)\"
 AM_CFLAGS += @AUGEAS_CFLAGS@
 AM_CFLAGS += @GCOV_CFLAGS@
 

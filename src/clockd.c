@@ -180,6 +180,8 @@ static int s_gencode(client_t *c, byte_t **code, size_t *len)
 		rc = vm_asm_io(io, code, len);
 	}
 	fclose(io);
+	if (rc != 0)
+		return 1;
 
 	float src_size, bin_size;
 	char  src_unit, bin_unit;
@@ -213,7 +215,7 @@ static int s_gencode(client_t *c, byte_t **code, size_t *len)
 	logger(LOG_INFO, "generated %0.2f%c policy (%0.2f%c src) for %s in %lums",
 		bin_size, bin_unit, src_size, src_unit, c->name, ms);
 
-	return rc;
+	return 0;
 }
 
 static int s_state_machine(client_t *fsm, pdu_t *pdu, pdu_t **reply)

@@ -503,10 +503,8 @@ static int s_asm_encode(compiler_t *cc)
 		if (op->special) continue;
 
 		/* phase II/III: resolve labels / pack strings */
-		rc = s_asm_resolve(cc, &op->args[0], op);
-		assert(rc == 0);
-		rc = s_asm_resolve(cc, &op->args[1], op);
-		assert(rc == 0);
+		rc = s_asm_resolve(cc, &op->args[0], op); if (rc) return rc;
+		rc = s_asm_resolve(cc, &op->args[1], op); if (rc) return rc;
 
 		/* phase IV: encode */
 		*c++ = op->op;
@@ -536,11 +534,11 @@ static int s_asm_encode(compiler_t *cc)
 	return 0;
 }
 
-static int s_asm_vm_asm(compiler_t *cc, byte_t **code, size_t *len)
+static int s_vm_asm(compiler_t *cc, byte_t **code, size_t *len)
 {
 	int rc;
-	rc = s_asm_parse(cc);  assert(rc == 0);
-	rc = s_asm_encode(cc); assert(rc == 0);
+	rc = s_asm_parse(cc);  if (rc) return rc;
+	rc = s_asm_encode(cc); if (rc) return rc;
 
 	*code = cc->code;
 	*len  = cc->size;
@@ -2071,12 +2069,12 @@ int vm_asm_file(const char *path, byte_t **code, size_t *len)
 	if (strcmp(path, "-") == 0) {
 		cc.file = "<stdin>";
 		cc.io   = stdin;
-		rc = s_asm_vm_asm(&cc, code, len);
+		rc = s_vm_asm(&cc, code, len);
 
 	} else {
 		cc.file = path;
 		cc.io   = fopen(path, "r");
-		rc = s_asm_vm_asm(&cc, code, len);
+		rc = s_vm_asm(&cc, code, len);
 		fclose(cc.io);
 	}
 
@@ -2090,7 +2088,7 @@ int vm_asm_io(FILE *io, byte_t **code, size_t *len)
 
 	cc.file = "<unknown>";
 	cc.io   = io;
-	return s_asm_vm_asm(&cc, code, len);
+	return s_vm_asm(&cc, code, len);
 }
 
 int vm_disasm(byte_t *code, size_t len)

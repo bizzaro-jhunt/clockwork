@@ -339,58 +339,58 @@ int res_user_gencode(const void *res, FILE *io)
 		            "  user.set \"home\" %%b\n"
 		            "  jz +2\n"
 		            "    error \"Failed to set %%[a]s' home directory to %%[b]s\"\n"
-		            "    bail\n", r->dir);
+		            "    bail 1\n", r->dir);
 	if (ENFORCED(r, RES_USER_GECOS))
 		fprintf(io, "  ;;; comment\n"
 		            "  set %%b \"%s\"\n"
 		            "  user.set \"comment\" %%b\n"
 		            "  jz +2\n"
 		            "    error \"Failed to set %%[a]s' GECOS comment to %%[b]s\"\n"
-		            "    bail\n", r->gecos);
+		            "    bail 1\n", r->gecos);
 	if (ENFORCED(r, RES_USER_SHELL))
 		fprintf(io, "  ;;; login shell\n"
 		            "  set %%b \"%s\"\n"
 		            "  user.set \"shell\" %%b\n"
 		            "  jz +2\n"
 		            "    error \"Failed to set %%[a]s' login shell to %%[b]s\"\n"
-		            "    bail\n", r->shell);
+		            "    bail 1\n", r->shell);
 	if (ENFORCED(r, RES_USER_PWMIN))
 		fprintf(io, "  ;;; minimum password age\n"
 		            "  set %%b \"%li\"\n"
 		            "  user.set \"pwmin\" %%b\n"
 		            "  jz +2\n"
 		            "    error \"Failed to set %%[a]s' minimum password age to %%[b]li\"\n"
-		            "    bail\n", r->pwmin);
+		            "    bail 1\n", r->pwmin);
 	if (ENFORCED(r, RES_USER_PWMAX))
 		fprintf(io, "  ;;; maximum password age\n"
 		            "  set %%b \"%li\"\n"
 		            "  user.set \"pwmax\" %%b\n"
 		            "  jz +2\n"
 		            "    error \"Failed to set %%[a]s' maximum password age to %%[b]li\"\n"
-		            "    bail\n", r->pwmax);
+		            "    bail 1\n", r->pwmax);
 	if (ENFORCED(r, RES_USER_PWWARN))
 		fprintf(io, "  ;;; password warning period\n"
 		            "  set %%b \"%li\"\n"
 		            "  user.set \"pwwarn\" %%b\n"
 		            "  jz +2\n"
 		            "    error \"Failed to set %%[a]s' password warning period to %%[b]li\"\n"
-		            "    bail\n", r->pwwarn);
+		            "    bail 1\n", r->pwwarn);
 	if (ENFORCED(r, RES_USER_INACT))
 		fprintf(io, "  ;;; password inactivity period\n"
 		            "  set %%b \"%li\"\n"
 		            "  user.set \"inact\" %%b\n"
 		            "  jz +2\n"
 		            "    error \"Failed to set %%[a]s' password inactivity period to %%[b]li\"\n"
-		            "    bail\n", r->inact);
+		            "    bail 1\n", r->inact);
 	if (ENFORCED(r, RES_USER_EXPIRE))
 		fprintf(io, "  ;;; account expiration\n"
 		            "  set %%b \"%s\"\n"
 		            "  user.set \"expiry\" %%b\n"
 		            "  jz +2\n"
 		            "    error \"Failed to set %%[a]s' account expiration to %%[b]li\"\n"
-		            "    bail\n", r->shell);
+		            "    bail 1\n", r->shell);
 	if (ENFORCED(r, RES_USER_MKHOME))
-		fprintf(io, "  flagged? mkhome\n"
+		fprintf(io, "  flagged? \"mkhome\"\n"
 		            "  jnz +2\n"
 		            "    user.get \"home\" %%b\n"
 		            "    call res.user.mkhome\n");

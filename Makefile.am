@@ -113,7 +113,6 @@ test_source += src/opcodes.h
 test_source += src/base.h       src/base.c
 test_source += src/mesh.h       src/mesh.c
 test_source += src/sha1.h       src/sha1.c
-test_source += src/userdb.h     src/userdb.c
 test_source += src/authdb.h     src/authdb.c
 test_source += src/policy.h     src/policy.c
 test_source += src/resource.h   src/resource.c
@@ -211,7 +210,7 @@ man/%.8: man/%.8.pod
 core_src  = src/clockwork.h src/base.h src/base.c
 core_src += src/opcodes.h
 core_src += src/mesh.h src/mesh.c
-core_src += src/sha1.h src/sha1.c src/userdb.h src/userdb.c
+core_src += src/sha1.h src/sha1.c
 core_src += src/authdb.h src/authdb.c
 core_src += src/policy.h src/policy.c
 core_src += src/resource.h src/resource.c src/resources.h src/resources.c

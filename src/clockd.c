@@ -185,9 +185,6 @@ static int s_gencode(client_t *c, byte_t **code, size_t *len)
 
 		src_len = ftell(io);
 		rewind(io);
-	while ((fgets(buf, 8192, io)))
-		fprintf(stderr, "%s", buf);
-		rewind(io);
 		rc = vm_asm_io(io, code, len);
 	}
 	fclose(io);

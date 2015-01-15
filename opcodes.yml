@@ -157,6 +157,11 @@
     help: check to see if a file exists
     args:
       - [register, string]
+- fs.type:
+    help: return a string describing the type of file
+    args:
+      - [register, string]
+      - [register]
 - fs.file?:
     help: is a path a regular file?
     args:

@@ -379,7 +379,10 @@ static void s_cfm_run(client_t *c)
 
 			hash_set(&vm.pragma, "diff.tool", c->difftool);
 		}
-		vm_disasm(code, n);
+
+		vm.aux.remote = client;
+		//vm_disasm(code, n);
+
 		STOPWATCH(&t, ms_enforce) {
 			vm.trace = c->trace;
 			vm_exec(&vm);

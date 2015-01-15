@@ -1467,6 +1467,31 @@ int vm_exec(vm_t *vm)
 			vm->acc = lstat(s_str(vm, f1, oper1), &vm->aux.stat);
 			break;
 
+		case OP_FS_TYPE:
+			ARG2("fs.type");
+			REGISTER2("fs.type");
+			vm->acc = lstat(s_str(vm, f1, oper1), &vm->aux.stat);
+			if (vm->acc != 0) {
+				vm->r[oper2] = vm_heap_strdup(vm, "non-existent file");
+			} else if (S_ISREG(vm->aux.stat.st_mode)) {
+				vm->r[oper2] = vm_heap_strdup(vm, "regular file");
+			} else if (S_ISLNK(vm->aux.stat.st_mode)) {
+				vm->r[oper2] = vm_heap_strdup(vm, "symbolic link");
+			} else if (S_ISDIR(vm->aux.stat.st_mode)) {
+				vm->r[oper2] = vm_heap_strdup(vm, "directory");
+			} else if (S_ISCHR(vm->aux.stat.st_mode)) {
+				vm->r[oper2] = vm_heap_strdup(vm, "character device");
+			} else if (S_ISBLK(vm->aux.stat.st_mode)) {
+				vm->r[oper2] = vm_heap_strdup(vm, "block device");
+			} else if (S_ISFIFO(vm->aux.stat.st_mode)) {
+				vm->r[oper2] = vm_heap_strdup(vm, "FIFO pipe");
+			} else if (S_ISSOCK(vm->aux.stat.st_mode)) {
+				vm->r[oper2] = vm_heap_strdup(vm, "UNIX domain socket");
+			} else {
+				vm->r[oper2] = vm_heap_strdup(vm, "unknown file");
+			}
+			break;
+
 		case OP_FS_FILE_P:
 			ARG1("fs.file?");
 			vm->acc = lstat(s_str(vm, f1, oper1), &vm->aux.stat);

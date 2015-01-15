@@ -21,7 +21,8 @@ fn res.file.absent
     fs.symlink? %a
     jz rm
 
-    error "%[a]s exists, but is not a regular file"
+    fs.type %a %b
+    error "%[a]s exists, but is not a regular file (is a %[b]s)"
     bail 1
 
   rm:
@@ -46,7 +47,8 @@ fn res.dir.absent
     fs.symlink? %a
     jz rm
 
-    error "%[a]s exists, but is not a directory"
+    fs.type %a %b
+    error "%[a]s exists, but is not a directory (is a %[b]s)"
     bail 1
 
   rm:
@@ -67,7 +69,8 @@ fn res.dir.present
     fs.symlink? %a
     jz remove
 
-    error "%[a]s exists, but is not a regular file"
+    fs.type %a %b
+    error "%[a]s exists, but is not a regular file (is a %[b]s)"
     bail 1
 
   remove:
@@ -94,10 +97,14 @@ fn res.file.present
     fs.stat %a
     jnz create
 
+    fs.file? %a
+    retv 0
+
     fs.symlink? %a
     jz remove
 
-    error "%[a]s exists, but is not a regular file"
+    fs.type %a %b
+    error "%[a]s exists, but is not a regular file (is a %[b]s)"
     bail 1
 
   remove:
@@ -247,8 +254,9 @@ fn res.symlink.absent
     jz +1 ret
 
     fs.symlink? %a
-    jnz +2
-      error "%[a]s exists, but is not a symbolic link"
+    jnz +3
+      fs.type %a %b
+      error "%[a]s exists, but is not a symbolic link (is a %[b]s)"
       bail 1
 
     fs.unlink %a
@@ -264,8 +272,9 @@ fn res.symlink.ensure
     jnz create
 
     fs.symlink? %a
-    jz +2
-      error "%[a]s exists, but is not a symbolic link\n"
+    jz +3
+      fs.type %a %b
+      error "%[a]s exists, but is not a symbolic link (is a %[b]s)"
       bail 1
 
     fs.readlink %a %e

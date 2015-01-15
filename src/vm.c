@@ -2155,17 +2155,22 @@ static void op_localsys(vm_t *vm)
 		.gid = getegid(),
 	};
 
-	char *s = string("%s %s",
+	char *cmd = string("%s %s",
 		hash_get(&vm->pragma, "localsys.cmd"),
 		_sprintf(vm, STR1(vm))); /* FIXME: mem leak */
-	vm->acc = run2(&runner, "/bin/sh", "-c", s, NULL); free(s);
+	vm->acc = run2(&runner, "/bin/sh", "-c", cmd, NULL);
 
 	if (fgets(execline, sizeof(execline), runner.out)) {
-		s = strchr(execline, '\n'); if (s) *s = '\0';
+		char *s = strchr(execline, '\n'); if (s) *s = '\0';
 		REG2(vm) = vm_heap_strdup(vm, execline);
 	}
 	fclose(runner.out); runner.out = NULL;
 	fclose(runner.err); runner.err = NULL;
+
+	logger(LOG_INFO, "%s: `%s` exited %d: \"%s\"",
+		(vm->topic ? vm->topic : "(no topic)"),
+		cmd, vm->acc, execline);
+	free(cmd);
 }
 
 static void op_runas_uid(vm_t *vm)

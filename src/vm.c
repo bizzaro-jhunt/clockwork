@@ -1942,7 +1942,7 @@ int vm_exec(vm_t *vm)
 
 			s = string("%s %s",
 				hash_get(&vm->pragma, "localsys.cmd"),
-				s_str(vm, f1, oper1));
+				_sprintf(vm, s_str(vm, f1, oper1))); /* FIXME: mem leak */
 			vm->acc = run2(&runner, "/bin/sh", "-c", s, NULL); free(s);
 
 			if (fgets(execline, sizeof(execline), runner.out)) {

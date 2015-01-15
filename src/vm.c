@@ -2343,15 +2343,14 @@ int vm_load(vm_t *vm, byte_t *code, size_t len)
 	byte_t f;
 	code += 2; /* skip header */
 	while (code < vm->code + len) {
-		     code++; /* op */
-		f = *code++; /* f1/f2 */
-		if (HI_NYBLE(f)) code += 4;
-		if (LO_NYBLE(f)) code += 4;
-
 		if (*code == 0xff) {
-			vm->static0 = len - (code - vm->code);
+			vm->static0 = (code - vm->code + 2);
 			break;
 		}
+
+		code++; f = *code++;
+		if (HI_NYBLE(f)) code += 4;
+		if (LO_NYBLE(f)) code += 4;
 	}
 
 	return 0;

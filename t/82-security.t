@@ -394,6 +394,7 @@ Starting configuration run
 15 30 [00 00 00 08]
 0d 00
 ff 00
+---
 complete. enforced 0 resources in #.##s
 STATS(ms): connect=X, hello=X, preinit=X, copydown=X, facts=X, getpolicy=X, parse=X, enforce=X, cleanup=X
 EOF
@@ -516,6 +517,7 @@ Starting configuration run
 15 30 [00 00 00 08]
 0d 00
 ff 00
+---
 complete. enforced 0 resources in #.##s
 STATS(ms): connect=X, hello=X, preinit=X, copydown=X, facts=X, getpolicy=X, parse=X, enforce=X, cleanup=X
 EOF

@@ -372,7 +372,7 @@ subtest "register operators" => sub {
 		pragma test "on"
 		swap %a %a),
 
-	"pendulum bytecode error: swap requires distinct registers\n",
+	"pendulum bytecode error (0x001c): swap requires distinct registers\n",
 	"`swap %a %a` is invalid");
 };
 

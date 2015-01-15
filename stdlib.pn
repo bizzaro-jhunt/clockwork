@@ -56,6 +56,35 @@ fn res.dir.absent
     perror "failed to remove %[a]s"
     bail 1
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; res.dir.present
+;;
+fn res.dir.present
+    fs.stat %a
+    jnz create
+
+    fs.symlink? %a
+    jz remove
+
+    error "%[a]s exists, but is not a regular file"
+    bail 1
+
+  remove:
+    fs.unlink %a
+    jz create
+
+    perror "failed to replace %[a]s with a regular file"
+    bail 1
+
+  create:
+    fs.mkdir %a
+    jnz +2
+    ;;mark ;; FIXME
+    retv 0
+
+    perror "failed to create regular file %[a]s"
+    bail 1
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -276,6 +305,10 @@ fn util.authdb.save
     authdb.close
     ret
 
+fn util.authdb.close
+    authdb.close
+    ret
+
 fn util.runuser
     user.find %a
     jz +2
@@ -286,7 +319,7 @@ fn util.runuser
     runas.uid %b
     ret
 
-fn util.findgroup
+fn util.rungroup
     group.find %a
     jz +2
       perror "Failed to find group '%s'"
@@ -370,6 +403,29 @@ fn res.group.absent
 
     error "failed to delete group '%[a]s'"
     bail 1
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; res.group.passwd
+;;
+fn res.group.passwd
+  group.set "password" "*"
+  group.set "pwhash"   %a
+  jnz +1 ret
+
+  error "failed to set group password for '%[a]s'"
+  bail 1
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; res.user.mkhome
+;;
+;;   %a = user
+;;   %b = home directory
+;;   %c = skeleton
+;;
+fn res.user.mkhome
+    print "FIXME!"
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;

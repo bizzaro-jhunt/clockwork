@@ -52,6 +52,9 @@ gatherdir=$(pkglibdir)/gather.d
 gather_SCRIPTS  = gather.d/core
 gather_SCRIPTS += gather.d/time
 
+stdlibdir=$(pkglibdir)
+nobase_stdlib_DATA  = stdlib.pn
+
 ############################################################
 
 CTAP_TESTS  =

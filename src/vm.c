@@ -1099,7 +1099,7 @@ int vm_args(vm_t *vm, int argc, char **argv)
 }
 
 #define B_ERR(...) do { \
-	fprintf(vm->stderr, "pendulum bytecode error: "); \
+	fprintf(vm->stderr, "pendulum bytecode error (0x%04x): ", vm->pc); \
 	fprintf(vm->stderr, __VA_ARGS__); \
 	fprintf(vm->stderr, "\n"); \
 	return 1; \
@@ -1430,42 +1430,7 @@ int vm_exec(vm_t *vm)
 			if (vm->acc == 0) vm->acc = S_ISSOCK(vm->aux.stat.st_mode) ? 0 : 1;
 			break;
 
-		case OP_FS_TOUCH:
-			ARG1("fs.touch");
-			vm->acc = close(open(s_str(vm, f1, oper1), O_CREAT, 0777));
-			break;
-
-		case OP_FS_UNLINK:
-			ARG1("fs.unlink");
-			vm->acc = unlink(s_str(vm, f1, oper1));
-			break;
-
-		case OP_FS_RENAME:
-			ARG2("fs.rename");
-			vm->acc = rename(s_str(vm, f1, oper1), s_str(vm, f2, oper2));
-			break;
-
-		case OP_FS_CHOWN:
-			ARG2("fs.chown");
-			vm->acc = lchown(s_str(vm, f1, oper1), s_val(vm, f2, oper2), -1);
-			break;
-
-		case OP_FS_CHGRP:
-			ARG2("fs.chgrp");
-			vm->acc = lchown(s_str(vm, f1, oper1), -1, s_val(vm, f2, oper2));
-			break;
-
-		case OP_FS_CHMOD:
-			ARG2("fs.chmod");
-			vm->acc = chmod(s_str(vm, f1, oper1), s_val(vm, f2, oper2) & 07777);
-			break;
-
-		case OP_FS_SHA1:
-			ARG2("fs.sha1");
-			REGISTER2("fs.sha1");
-			vm->acc = sha1_file(s_str(vm, f1, oper1), &vm->aux.sha1);
-			vm->r[oper2] = vm_heap_strdup(vm, vm->aux.sha1.hex);
-			break;
+		/* FIXME: OP_READLINK */
 
 		case OP_FS_DEV:
 			ARG2("fs.dev");
@@ -1563,58 +1528,56 @@ int vm_exec(vm_t *vm)
 			if (vm->acc == 0) vm->r[oper2] = vm->aux.stat.st_ctime;
 			break;
 
-		case OP_LOCALSYS:
-			ARG2("localsys");
-			REGISTER2("localsys");
-			runner.in  = NULL;
-			runner.out = tmpfile();
-			runner.err = tmpfile();
-			runner.uid = geteuid();
-			runner.gid = getegid();
-
-			s = string("%s %s",
-				hash_get(&vm->pragma, "localsys.cmd"),
-				s_str(vm, f1, oper1));
-			vm->acc = run2(&runner, "/bin/sh", "-c", s, NULL); free(s);
-
-			if (fgets(execline, sizeof(execline), runner.out)) {
-				s = strchr(execline, '\n'); if (s) *s = '\0';
-				vm->r[oper2] = vm_heap_strdup(vm, execline);
-			}
-			fclose(runner.out); runner.out = NULL;
-			fclose(runner.err); runner.err = NULL;
+		case OP_FS_TOUCH:
+			ARG1("fs.touch");
+			vm->acc = close(open(s_str(vm, f1, oper1), O_CREAT, 0777));
 			break;
 
-		case OP_RUNAS_UID:
-			ARG1("runas.uid");
-			vm->aux.runas_uid = s_val(vm, f1, oper1);
-			if (vm->aux.runas_uid < 0 || vm->aux.runas_uid > 65535)
-				vm->aux.runas_uid = 0;
+		case OP_FS_MKDIR:
+			ARG1("fs.mkdir");
+			vm->acc = mkdir(s_str(vm, f1, oper1), 0777);
 			break;
 
-		case OP_RUNAS_GID:
-			ARG1("runas.gid");
-			vm->aux.runas_gid = s_val(vm, f1, oper1);
-			if (vm->aux.runas_gid < 0 || vm->aux.runas_gid > 65535)
-				vm->aux.runas_gid = 0;
+		/* FIXME: OP_FS_LINK */
+
+		case OP_FS_UNLINK:
+			ARG1("fs.unlink");
+			vm->acc = unlink(s_str(vm, f1, oper1));
 			break;
 
-		case OP_EXEC:
-			ARG2("exec");
-			REGISTER2("exec");
-			runner.in  = NULL;
-			runner.out = tmpfile();
-			runner.err = tmpfile();
-			runner.uid = vm->aux.runas_uid;
-			runner.gid = vm->aux.runas_gid;
-			vm->acc = run2(&runner, "/bin/sh", "-c", s_str(vm, f1, oper1), NULL);
-			if (fgets(execline, sizeof(execline), runner.out)) {
-				s = strchr(execline, '\n'); if (s) *s = '\0';
-				vm->r[oper2] = vm_heap_strdup(vm, execline);
-			}
-			fclose(runner.out); runner.out = NULL;
-			fclose(runner.err); runner.err = NULL;
+		/* FIXME: OP_RMDIR */
+
+		case OP_FS_RENAME:
+			ARG2("fs.rename");
+			vm->acc = rename(s_str(vm, f1, oper1), s_str(vm, f2, oper2));
 			break;
+
+		/* FIXME: OP_COPY */
+
+		case OP_FS_CHOWN:
+			ARG2("fs.chown");
+			vm->acc = lchown(s_str(vm, f1, oper1), s_val(vm, f2, oper2), -1);
+			break;
+
+		case OP_FS_CHGRP:
+			ARG2("fs.chgrp");
+			vm->acc = lchown(s_str(vm, f1, oper1), -1, s_val(vm, f2, oper2));
+			break;
+
+		case OP_FS_CHMOD:
+			ARG2("fs.chmod");
+			vm->acc = chmod(s_str(vm, f1, oper1), s_val(vm, f2, oper2) & 07777);
+			break;
+
+		case OP_FS_SHA1:
+			ARG2("fs.sha1");
+			REGISTER2("fs.sha1");
+			vm->acc = sha1_file(s_str(vm, f1, oper1), &vm->aux.sha1);
+			vm->r[oper2] = vm_heap_strdup(vm, vm->aux.sha1.hex);
+			break;
+
+		/* FIXME: OP_FS_GET */
+		/* FIXME: OP_FS_PUT */
 
 		case OP_AUTHDB_OPEN:
 			ARG0("authdb.open");
@@ -1968,14 +1931,67 @@ int vm_exec(vm_t *vm)
 			vm->acc = unsetenv(s_str(vm, f1, oper1));
 			break;
 
-		case OP_HALT:
-			ARG0("halt");
-			return 0;
+		case OP_LOCALSYS:
+			ARG2("localsys");
+			REGISTER2("localsys");
+			runner.in  = NULL;
+			runner.out = tmpfile();
+			runner.err = tmpfile();
+			runner.uid = geteuid();
+			runner.gid = getegid();
+
+			s = string("%s %s",
+				hash_get(&vm->pragma, "localsys.cmd"),
+				s_str(vm, f1, oper1));
+			vm->acc = run2(&runner, "/bin/sh", "-c", s, NULL); free(s);
+
+			if (fgets(execline, sizeof(execline), runner.out)) {
+				s = strchr(execline, '\n'); if (s) *s = '\0';
+				vm->r[oper2] = vm_heap_strdup(vm, execline);
+			}
+			fclose(runner.out); runner.out = NULL;
+			fclose(runner.err); runner.err = NULL;
+			break;
+
+		case OP_RUNAS_UID:
+			ARG1("runas.uid");
+			vm->aux.runas_uid = s_val(vm, f1, oper1);
+			if (vm->aux.runas_uid < 0 || vm->aux.runas_uid > 65535)
+				vm->aux.runas_uid = 0;
+			break;
+
+		case OP_RUNAS_GID:
+			ARG1("runas.gid");
+			vm->aux.runas_gid = s_val(vm, f1, oper1);
+			if (vm->aux.runas_gid < 0 || vm->aux.runas_gid > 65535)
+				vm->aux.runas_gid = 0;
+			break;
+
+		case OP_EXEC:
+			ARG2("exec");
+			REGISTER2("exec");
+			runner.in  = NULL;
+			runner.out = tmpfile();
+			runner.err = tmpfile();
+			runner.uid = vm->aux.runas_uid;
+			runner.gid = vm->aux.runas_gid;
+			vm->acc = run2(&runner, "/bin/sh", "-c", s_str(vm, f1, oper1), NULL);
+			if (fgets(execline, sizeof(execline), runner.out)) {
+				s = strchr(execline, '\n'); if (s) *s = '\0';
+				vm->r[oper2] = vm_heap_strdup(vm, execline);
+			}
+			fclose(runner.out); runner.out = NULL;
+			fclose(runner.err); runner.err = NULL;
+			break;
 
 		case OP_DUMP:
 			ARG0("dump");
 			dump(stdout, vm);
 			break;
+
+		case OP_HALT:
+			ARG0("halt");
+			return 0;
 
 		case OP_PRAGMA:
 			ARG2("pragma");
@@ -2129,15 +2145,16 @@ int vm_disasm(byte_t *code, size_t len)
 		fprintf(stderr, "\n");
 	}
 
+	fprintf(stderr, "---\n");
+	int n = 0;
 	while (i < len) {
-		int n = 0;
-		while (code[i] && i < len) {
-			fprintf(stderr, "%02x", code[i++]);
-			n++;
-			if (n % 16 == 0)  fprintf(stderr, "\n");
-			else if (i < len) fprintf(stderr, " ");
-		}
+		fprintf(stderr, "%02x", code[i++]);
+		n++;
+		if (n % 16 == 0)  fprintf(stderr, "\n");
+		else if (i < len) fprintf(stderr, " ");
 	}
+	if (n % 16 != 0)
+		fprintf(stderr, "\n");
 	return 0;
 }
 

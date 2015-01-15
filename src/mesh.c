@@ -1245,16 +1245,11 @@ int mesh_client_handle(mesh_client_t *c, void *sock, pdu_t *pdu)
 		assert(rc == 0);
 
 		vm.stdout = tmpfile();
-		fprintf(vm.stdout, "STARTING\n");
 		vm_exec(&vm);
 		vm_disasm(&vm);
-		fprintf(vm.stdout, "FINISHED\n");
 
 		rewind(vm.stdout);
 		char output[8192] = {0};
-		while ((fgets(output, 8192, vm.stdout)))
-			fprintf(stderr, "[%s", output);
-		rewind(vm.stdout);
 		if (!fgets(output, 8192, vm.stdout))
 			output[0] = '\0';
 		fclose(vm.stdout);

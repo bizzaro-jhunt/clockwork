@@ -2225,15 +2225,11 @@ static void op_property(vm_t *vm)
 {
 	ARG2("property");
 	REGISTER2("property");
-	abort();
-	fprintf(vm->stdout, "looking up property(%s)\n", STR1(vm));
 	const char *v = hash_get(&vm->props, STR1(vm));
 	if (v) {
-		fprintf(vm->stdout, "found property(%s) = '%s'\n", STR1(vm), v);
 		REG2(vm) = vm_heap_strdup(vm, v);
 		vm->acc = 0;
 	} else {
-		fprintf(vm->stdout, "could not find property(%s)\n", STR1(vm));
 		vm->acc = 1;
 	}
 }

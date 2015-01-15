@@ -24,7 +24,10 @@ EOF
 fn res:00000001
   unflag "changed"
   call fix:00000001
+  flagged? "changed"
+  jz +1 retv 0
   ;; no dependencies
+  retv 1
 
 fn fix:00000001
   set %a "/etc/sudoers"
@@ -37,8 +40,12 @@ fn fix:00000001
   call res.file.chmod
 
 fn main
+  set %o 0
   topic "file:/etc/sudoers"
   try res:00000001
+  acc %p
+  add %o %p
+  retv 0
 EOF
 		"file resource");
 
@@ -56,15 +63,22 @@ EOF
 fn res:00000001
   unflag "changed"
   call fix:00000001
+  flagged? "changed"
+  jz +1 retv 0
   ;; no dependencies
+  retv 1
 
 fn fix:00000001
   set %a "/path/to/delete"
   call res.file.absent
 
 fn main
+  set %o 0
   topic "file:/path/to/delete"
   try res:00000001
+  acc %p
+  add %o %p
+  retv 0
 EOF
 		"file removal");
 
@@ -84,7 +98,10 @@ EOF
 fn res:00000001
   unflag "changed"
   call fix:00000001
+  flagged? "changed"
+  jz +1 retv 0
   ;; no dependencies
+  retv 1
 
 fn fix:00000001
   set %a "/chmod-me"
@@ -93,8 +110,12 @@ fn fix:00000001
   call res.file.chmod
 
 fn main
+  set %o 0
   topic "file:/chmod-me"
   try res:00000001
+  acc %p
+  add %o %p
+  retv 0
 EOF
 		"file resource without chown/chgrp");
 
@@ -115,7 +136,10 @@ EOF
 fn res:00000001
   unflag "changed"
   call fix:00000001
+  flagged? "changed"
+  jz +1 retv 0
   ;; no dependencies
+  retv 1
 
 fn fix:00000001
   set %a "/home/user/stuff"
@@ -126,8 +150,12 @@ fn fix:00000001
   call res.file.chgrp
 
 fn main
+  set %o 0
   topic "file:/home/user/stuff"
   try res:00000001
+  acc %p
+  add %o %p
+  retv 0
 EOF
 		"file resource with non-root owner");
 
@@ -148,7 +176,10 @@ EOF
 fn res:00000001
   unflag "changed"
   call fix:00000001
+  flagged? "changed"
+  jz +1 retv 0
   ;; no dependencies
+  retv 1
 
 fn fix:00000001
   set %a "/etc/file.conf"
@@ -160,8 +191,12 @@ fn fix:00000001
   call res.file.contents
 
 fn main
+  set %o 0
   topic "file:/etc/file.conf"
   try res:00000001
+  acc %p
+  add %o %p
+  retv 0
 EOF
 		"file resource with content assertion");
 
@@ -182,7 +217,10 @@ EOF
 fn res:00000001
   unflag "changed"
   call fix:00000001
+  flagged? "changed"
+  jz +1 retv 0
   ;; no dependencies
+  retv 1
 
 fn fix:00000001
   set %a "/etc/sudoers"
@@ -194,8 +232,12 @@ fn fix:00000001
   call res.file.contents
 
 fn main
+  set %o 0
   topic "file:/etc/sudoers"
   try res:00000001
+  acc %p
+  add %o %p
+  retv 0
 EOF
 		"file resource with pre-change verification and default return code");
 
@@ -217,7 +259,10 @@ EOF
 fn res:00000001
   unflag "changed"
   call fix:00000001
+  flagged? "changed"
+  jz +1 retv 0
   ;; no dependencies
+  retv 1
 
 fn fix:00000001
   set %a "/etc/somefile"
@@ -229,8 +274,12 @@ fn fix:00000001
   call res.file.contents
 
 fn main
+  set %o 0
   topic "file:/etc/somefile"
   try res:00000001
+  acc %p
+  add %o %p
+  retv 0
 EOF
 		"file resource with pre-change verification and explicit return code");
 
@@ -255,7 +304,10 @@ EOF
 fn res:00000001
   unflag "changed"
   call fix:00000001
+  flagged? "changed"
+  jz +1 retv 0
   ;; no dependencies
+  retv 1
 
 fn fix:00000001
   call util.authdb.open
@@ -264,8 +316,12 @@ fn fix:00000001
   call util.authdb.save
 
 fn main
+  set %o 0
   topic "user:t1user"
   try res:00000001
+  acc %p
+  add %o %p
+  retv 0
 EOF
 		"user removal");
 
@@ -287,7 +343,10 @@ EOF
 fn res:00000001
   unflag "changed"
   call fix:00000001
+  flagged? "changed"
+  jz +1 retv 0
   ;; no dependencies
+  retv 1
 
 fn fix:00000001
   call util.authdb.open
@@ -307,8 +366,12 @@ fn fix:00000001
   call util.authdb.save
 
 fn main
+  set %o 0
   topic "user:t2user"
   try res:00000001
+  acc %p
+  add %o %p
+  retv 0
 EOF
 		"UID/GID, home and password management");
 
@@ -329,7 +392,10 @@ EOF
 fn res:00000001
   unflag "changed"
   call fix:00000001
+  flagged? "changed"
+  jz +1 retv 0
   ;; no dependencies
+  retv 1
 
 fn fix:00000001
   call util.authdb.open
@@ -353,8 +419,12 @@ fn fix:00000001
   call util.authdb.save
 
 fn main
+  set %o 0
   topic "user:t3user"
   try res:00000001
+  acc %p
+  add %o %p
+  retv 0
 EOF
 		"home directory / password management");
 
@@ -384,7 +454,10 @@ EOF
 fn res:00000001
   unflag "changed"
   call fix:00000001
+  flagged? "changed"
+  jz +1 retv 0
   ;; no dependencies
+  retv 1
 
 fn fix:00000001
   call util.authdb.open
@@ -446,8 +519,12 @@ fn fix:00000001
   call util.authdb.save
 
 fn main
+  set %o 0
   topic "user:t4user"
   try res:00000001
+  acc %p
+  add %o %p
+  retv 0
 EOF
 		"all user attributes under the sun");
 
@@ -471,7 +548,10 @@ EOF
 fn res:00000001
   unflag "changed"
   call fix:00000001
+  flagged? "changed"
+  jz +1 retv 0
   ;; no dependencies
+  retv 1
 
 fn fix:00000001
   call util.authdb.open
@@ -480,8 +560,12 @@ fn fix:00000001
   call util.authdb.save
 
 fn main
+  set %o 0
   topic "group:group1"
   try res:00000001
+  acc %p
+  add %o %p
+  retv 0
 EOF
 		"group resource");
 
@@ -500,7 +584,10 @@ EOF
 fn res:00000001
   unflag "changed"
   call fix:00000001
+  flagged? "changed"
+  jz +1 retv 0
   ;; no dependencies
+  retv 1
 
 fn fix:00000001
   call util.authdb.open
@@ -510,8 +597,12 @@ fn fix:00000001
   call util.authdb.save
 
 fn main
+  set %o 0
   topic "group:group2"
   try res:00000001
+  acc %p
+  add %o %p
+  retv 0
 EOF
 		"group with specific gid");
 
@@ -528,7 +619,10 @@ EOF
 fn res:00000001
   unflag "changed"
   call fix:00000001
+  flagged? "changed"
+  jz +1 retv 0
   ;; no dependencies
+  retv 1
 
 fn fix:00000001
   call util.authdb.open
@@ -538,8 +632,12 @@ fn fix:00000001
   call util.authdb.save
 
 fn main
+  set %o 0
   topic "group:group3"
   try res:00000001
+  acc %p
+  add %o %p
+  retv 0
 EOF
 		"default group");
 
@@ -562,7 +660,10 @@ EOF
 fn res:00000001
   unflag "changed"
   call fix:00000001
+  flagged? "changed"
+  jz +1 retv 0
   ;; no dependencies
+  retv 1
 
 fn fix:00000001
   call util.authdb.open
@@ -576,8 +677,12 @@ fn fix:00000001
   call util.authdb.save
 
 fn main
+  set %o 0
   topic "group:group4"
   try res:00000001
+  acc %p
+  add %o %p
+  retv 0
 EOF
 		"group resource with member / admin changes");
 
@@ -603,7 +708,10 @@ EOF
 fn res:00000001
   unflag "changed"
   call fix:00000001
+  flagged? "changed"
+  jz +1 retv 0
   ;; no dependencies
+  retv 1
 
 fn fix:00000001
   set %a "/etc/sudoers"
@@ -616,8 +724,12 @@ fn fix:00000001
   call res.file.chmod
 
 fn main
+  set %o 0
   topic "dir:/etc/sudoers"
   try res:00000001
+  acc %p
+  add %o %p
+  retv 0
 EOF
 		"dir resource");
 
@@ -636,15 +748,22 @@ EOF
 fn res:00000001
   unflag "changed"
   call fix:00000001
+  flagged? "changed"
+  jz +1 retv 0
   ;; no dependencies
+  retv 1
 
 fn fix:00000001
   set %a "/path/to/delete"
   call res.dir.absent
 
 fn main
+  set %o 0
   topic "dir:/path/to/delete"
   try res:00000001
+  acc %p
+  add %o %p
+  retv 0
 EOF
 		"dir removal");
 
@@ -664,7 +783,10 @@ EOF
 fn res:00000001
   unflag "changed"
   call fix:00000001
+  flagged? "changed"
+  jz +1 retv 0
   ;; no dependencies
+  retv 1
 
 fn fix:00000001
   set %a "/chmod-me"
@@ -673,8 +795,12 @@ fn fix:00000001
   call res.file.chmod
 
 fn main
+  set %o 0
   topic "dir:/chmod-me"
   try res:00000001
+  acc %p
+  add %o %p
+  retv 0
 EOF
 		"dir resource with only a mode change");
 
@@ -696,7 +822,10 @@ EOF
 fn res:00000001
   unflag "changed"
   call fix:00000001
+  flagged? "changed"
+  jz +1 retv 0
   ;; no dependencies
+  retv 1
 
 fn fix:00000001
   set %a "/home/user/bin"
@@ -709,8 +838,12 @@ fn fix:00000001
   call res.file.chmod
 
 fn main
+  set %o 0
   topic "dir:/home/user/bin"
   try res:00000001
+  acc %p
+  add %o %p
+  retv 0
 EOF
 		"dir resource with non-root owner / group");
 
@@ -735,7 +868,10 @@ EOF
 fn res:00000001
   unflag "changed"
   call fix:00000001
+  flagged? "changed"
+  jz +1 retv 0
   ;; no dependencies
+  retv 1
 
 fn fix:00000001
   set %a "snmpd"
@@ -746,8 +882,12 @@ fn fix:00000001
   call res.service.restart
 
 fn main
+  set %o 0
   topic "service:snmpd"
   try res:00000001
+  acc %p
+  add %o %p
+  retv 0
 EOF
 		"service resource - running / enabled");
 
@@ -766,15 +906,22 @@ EOF
 fn res:00000001
   unflag "changed"
   call fix:00000001
+  flagged? "changed"
+  jz +1 retv 0
   ;; no dependencies
+  retv 1
 
 fn fix:00000001
   set %a "microcode"
   call res.service.stop
 
 fn main
+  set %o 0
   topic "service:microcode"
   try res:00000001
+  acc %p
+  add %o %p
+  retv 0
 EOF
 		"stopped service");
 
@@ -797,7 +944,10 @@ EOF
 fn res:00000001
   unflag "changed"
   call fix:00000001
+  flagged? "changed"
+  jz +1 retv 0
   ;; no dependencies
+  retv 1
 
 fn fix:00000001
   set %a "neverwhere"
@@ -805,8 +955,12 @@ fn fix:00000001
   call res.service.stop
 
 fn main
+  set %o 0
   topic "service:neverwhere"
   try res:00000001
+  acc %p
+  add %o %p
+  retv 0
 EOF
 		"stopped / disabled service (all keywords)");
 
@@ -827,7 +981,10 @@ EOF
 fn res:00000001
   unflag "changed"
   call fix:00000001
+  flagged? "changed"
+  jz +1 retv 0
   ;; no dependencies
+  retv 1
 
 fn fix:00000001
   set %a "snmpd"
@@ -838,8 +995,12 @@ fn fix:00000001
   call res.service.reload
 
 fn main
+  set %o 0
   topic "service:snmpd"
   try res:00000001
+  acc %p
+  add %o %p
+  retv 0
 EOF
 		"service with reload notify mechanism");
 
@@ -861,7 +1022,10 @@ EOF
 fn res:00000001
   unflag "changed"
   call fix:00000001
+  flagged? "changed"
+  jz +1 retv 0
   ;; no dependencies
+  retv 1
 
 fn fix:00000001
   set %a "binutils"
@@ -869,8 +1033,12 @@ fn fix:00000001
   call res.package.install
 
 fn main
+  set %o 0
   topic "package:binutils"
   try res:00000001
+  acc %p
+  add %o %p
+  retv 0
 EOF
 		"package resource");
 
@@ -889,15 +1057,22 @@ EOF
 fn res:00000001
   unflag "changed"
   call fix:00000001
+  flagged? "changed"
+  jz +1 retv 0
   ;; no dependencies
+  retv 1
 
 fn fix:00000001
   set %a "binutils"
   call res.package.absent
 
 fn main
+  set %o 0
   topic "package:binutils"
   try res:00000001
+  acc %p
+  add %o %p
+  retv 0
 EOF
 		"package removal");
 
@@ -917,7 +1092,10 @@ EOF
 fn res:00000001
   unflag "changed"
   call fix:00000001
+  flagged? "changed"
+  jz +1 retv 0
   ;; no dependencies
+  retv 1
 
 fn fix:00000001
   set %a "binutils"
@@ -925,8 +1103,12 @@ fn fix:00000001
   call res.package.install
 
 fn main
+  set %o 0
   topic "package:binutils"
   try res:00000001
+  acc %p
+  add %o %p
+  retv 0
 EOF
 		"explicit version specification");
 
@@ -946,7 +1128,10 @@ EOF
 fn res:00000001
   unflag "changed"
   call fix:00000001
+  flagged? "changed"
+  jz +1 retv 0
   ;; no dependencies
+  retv 1
 
 fn fix:00000001
   set %a "binutils"
@@ -954,8 +1139,12 @@ fn fix:00000001
   call res.package.install
 
 fn main
+  set %o 0
   topic "package:binutils"
   try res:00000001
+  acc %p
+  add %o %p
+  retv 0
 EOF
 		"'latest' version specification");
 
@@ -975,7 +1164,10 @@ EOF
 fn res:00000001
   unflag "changed"
   call fix:00000001
+  flagged? "changed"
+  jz +1 retv 0
   ;; no dependencies
+  retv 1
 
 fn fix:00000001
   set %a "binutils"
@@ -983,8 +1175,12 @@ fn fix:00000001
   call res.package.install
 
 fn main
+  set %o 0
   topic "package:binutils"
   try res:00000001
+  acc %p
+  add %o %p
+  retv 0
 EOF
 		"'any' version will suffice");
 
@@ -1009,7 +1205,10 @@ EOF
 fn res:00000001
   unflag "changed"
   call fix:00000001
+  flagged? "changed"
+  jz +1 retv 0
   ;; no dependencies
+  retv 1
 
 fn fix:00000001
   set %a "1.2.3.4"
@@ -1023,8 +1222,12 @@ fn fix:00000001
   call res.host.add-alias
 
 fn main
+  set %o 0
   topic "host:example.com"
   try res:00000001
+  acc %p
+  add %o %p
+  retv 0
 EOF
 		"host resource with two aliases");
 
@@ -1044,7 +1247,10 @@ EOF
 fn res:00000001
   unflag "changed"
   call fix:00000001
+  flagged? "changed"
+  jz +1 retv 0
   ;; no dependencies
+  retv 1
 
 fn fix:00000001
   set %a "2.4.6.8"
@@ -1052,8 +1258,12 @@ fn fix:00000001
   call res.host.absent
 
 fn main
+  set %o 0
   topic "host:remove.me"
   try res:00000001
+  acc %p
+  add %o %p
+  retv 0
 EOF
 		"host removal");
 
@@ -1077,7 +1287,10 @@ EOF
 fn res:00000001
   unflag "changed"
   call fix:00000001
+  flagged? "changed"
+  jz +1 retv 0
   ;; no dependencies
+  retv 1
 
 fn fix:00000001
   set %a "net/ipv6/icmp/ratelimit"
@@ -1087,8 +1300,12 @@ fn fix:00000001
   call res.sysctl.set
 
 fn main
+  set %o 0
   topic "sysctl:net.ipv6.icmp.ratelimit"
   try res:00000001
+  acc %p
+  add %o %p
+  retv 0
 EOF
 		"sysctl resource");
 
@@ -1108,7 +1325,10 @@ EOF
 fn res:00000001
   unflag "changed"
   call fix:00000001
+  flagged? "changed"
+  jz +1 retv 0
   ;; no dependencies
+  retv 1
 
 fn fix:00000001
   set %a "net/ipv6/icmp/ratelimit"
@@ -1118,8 +1338,12 @@ fn fix:00000001
   call res.sysctl.set
 
 fn main
+  set %o 0
   topic "sysctl:net.ipv6.icmp.ratelimit"
   try res:00000001
+  acc %p
+  add %o %p
+  retv 0
 EOF
 		"persistent sysctl value");
 
@@ -1141,7 +1365,10 @@ EOF
 fn res:00000001
   unflag "changed"
   call fix:00000001
+  flagged? "changed"
+  jz +1 retv 0
   ;; no dependencies
+  retv 1
 
 fn fix:00000001
   set %b "/bin/ls -l /tmp"
@@ -1150,8 +1377,12 @@ fn fix:00000001
   exec %b %d
 
 fn main
+  set %o 0
   topic "exec:/bin/ls -l /tmp"
   try res:00000001
+  acc %p
+  add %o %p
+  retv 0
 EOF
 		"exec resource");
 
@@ -1170,7 +1401,10 @@ EOF
 fn res:00000001
   unflag "changed"
   call fix:00000001
+  flagged? "changed"
+  jz +1 retv 0
   ;; no dependencies
+  retv 1
 
 fn fix:00000001
   set %b "/bin/refresh-the-thing"
@@ -1181,8 +1415,12 @@ fn fix:00000001
   exec %b %d
 
 fn main
+  set %o 0
   topic "exec:/bin/refresh-the-thing"
   try res:00000001
+  acc %p
+  add %o %p
+  retv 0
 EOF
 		"ondemand exec resource");
 
@@ -1202,7 +1440,10 @@ EOF
 fn res:00000001
   unflag "changed"
   call fix:00000001
+  flagged? "changed"
+  jz +1 retv 0
   ;; no dependencies
+  retv 1
 
 fn fix:00000001
   set %b "/make-stuff"
@@ -1214,8 +1455,12 @@ fn fix:00000001
   exec %b %d
 
 fn main
+  set %o 0
   topic "exec:CONDITIONAL"
   try res:00000001
+  acc %p
+  add %o %p
+  retv 0
 EOF
 		"conditional exec resource");
 
@@ -1237,7 +1482,10 @@ EOF
 fn res:00000001
   unflag "changed"
   call fix:00000001
+  flagged? "changed"
+  jz +1 retv 0
   ;; no dependencies
+  retv 1
 
 fn fix:00000001
   set %b "catmans"
@@ -1255,8 +1503,12 @@ fn fix:00000001
   exec %b %d
 
 fn main
+  set %o 0
   topic "exec:catmans"
   try res:00000001
+  acc %p
+  add %o %p
+  retv 0
 EOF
 		"runas user/group exec resource");
 
@@ -1649,10 +1901,10 @@ fn res:00000001
   unflag "changed"
   call fix:00000001
   flagged? "changed"
-  jz +1 ret
+  jz +1 retv 0
   flag "dir:/tmp"
   flag "dir:/tmp"
-  ret
+  retv 1
 
 fn fix:00000001
   set %a "/tmp"
@@ -1662,9 +1914,9 @@ fn res:00000003
   unflag "changed"
   call fix:00000003
   flagged? "changed"
-  jz +1 ret
+  jz +1 retv 0
   flag "dir:/tmp/inner"
-  ret
+  retv 1
 
 fn fix:00000003
   set %a "/tmp/inner"
@@ -1673,19 +1925,30 @@ fn fix:00000003
 fn res:00000002
   unflag "changed"
   call fix:00000002
+  flagged? "changed"
+  jz +1 retv 0
   ;; no dependencies
+  retv 1
 
 fn fix:00000002
   set %a "/tmp/inner/file"
   call res.file.present
 
 fn main
+  set %o 0
   topic "dir:/tmp"
   try res:00000001
+  acc %p
+  add %o %p
   topic "dir:/tmp/inner"
   try res:00000003
+  acc %p
+  add %o %p
   topic "file:/tmp/inner/file"
   try res:00000002
+  acc %p
+  add %o %p
+  retv 0
 EOF
 
 	#######################################################

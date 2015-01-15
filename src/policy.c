@@ -1122,7 +1122,9 @@ int policy_gencode(const struct policy *pol, FILE *io)
 	for_each_resource(r, pol) {
 		fprintf(io, "fn res:%08x\n"
 		            "  unflag \"changed\"\n"
-		            "  call fix:%08x\n", r->serial, r->serial);
+		            "  call fix:%08x\n"
+		            "  flagged? \"changed\"\n"
+		            "  jz +1 retv 0\n", r->serial, r->serial);
 
 		int n = 0;
 		for_each_dependency(d, pol)
@@ -1130,25 +1132,27 @@ int policy_gencode(const struct policy *pol, FILE *io)
 				n++;
 
 		if (n) {
-			fprintf(io, "  flagged? \"changed\"\n"
-			            "  jz +1 ret\n");
 			for_each_dependency(d, pol)
 				if (r == d->resource_b)
 					fprintf(io, "  flag \"%s\"\n", r->key);
-			fprintf(io, "  ret\n\n");
 
 		} else {
-			fprintf(io, "  ;; no dependencies\n\n");
+			fprintf(io, "  ;; no dependencies\n");
 		}
-
-		fprintf(io, "fn fix:%08x\n", r->serial);
+		fprintf(io, "  retv 1\n"
+		            "\n"
+		            "fn fix:%08x\n", r->serial);
 		resource_gencode(r, io);
 		fprintf(io, "\n");
 	}
 
-	fprintf(io, "fn main\n");
+	fprintf(io, "fn main\n"
+	            "  set %%o 0\n");
 	for_each_resource(r, pol)
 		fprintf(io, "  topic \"%s\"\n"
-		            "  try res:%08x\n", r->key, r->serial);
+		            "  try res:%08x\n"
+		            "  acc %%p\n"
+		            "  add %%o %%p\n", r->key, r->serial);
+	fprintf(io, "  retv 0\n");
 	return 0;
 }

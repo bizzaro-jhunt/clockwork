@@ -8,121 +8,194 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
+;; util.authdb.open
+;;
+fn util.authdb.open
+    syslog debug "opening authentication databases"
+    authdb.open
+    jz +1
+      perror "failed to open authentication databases"
+      bail 1
+    ret
+
+fn util.authdb.save
+    syslog debug "saving changes to authentication databases"
+    authdb.save
+    jz +2
+      perror "failed to write changes to authentication databases"
+      bail 1
+    authdb.close
+    ret
+
+fn util.authdb.close
+    syslog debug "closing authentication databases"
+    authdb.close
+    ret
+
+fn util.runuser
+    syslog debug "setting run-as user; looking up user %[a]s"
+    user.find %a
+    jz +2
+      perror "failed to find user %[a]s"
+      bail 1
+
+    user.get "uid" %b
+    syslog debug "found user %[a]s; GID = %[b]d"
+    runas.uid %b
+    ret
+
+fn util.rungroup
+    syslog debug "setting run-as group; looking up group %[a]s"
+    group.find %a
+    jz +2
+      perror "failed to find group %[a]s"
+      bail 1
+
+    group.get "gid" %b
+    syslog debug "found user %[a]s; GID = %[b]d"
+    runas.gid %b
+    ret
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
 ;; res.file.absent
 ;;
 fn res.file.absent
+    syslog info "%T: enforcing absence of %[a]s"
     fs.stat %a
     jz +1
     retv 0
 
+    fs.type %a %b
     fs.file? %a
     jz rm
 
     fs.symlink? %a
     jz rm
 
-    fs.type %a %b
-    error "%[a]s exists, but is not a regular file (is a %[b]s)"
+    error "%[a]s already exists, as a %[b]s, and will not be automatically removed"
     bail 1
 
   rm:
+    syslog notice "%T: removing %[b]s %[a]s"
     fs.unlink %a
-    jnz +1 ret
+    jz +2
+      perror "failed to remove %[a]s"
+      bail 1
 
-    perror "failed to remove %[a]s"
-    bail 1
+    flag "changed"
+    retv 0
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; res.dir.absent
 ;;
 fn res.dir.absent
+    syslog info "%T: enforcing absence of %[a]s"
     fs.stat %a
     jz +1
     retv 0
 
+    fs.type %a %b
     fs.dir? %a
     jz rm
 
     fs.symlink? %a
     jz rm
 
-    fs.type %a %b
-    error "%[a]s exists, but is not a directory (is a %[b]s)"
+    error "%[a]s already exists, as a %[b]s, and will not be automatically removed"
     bail 1
 
   rm:
-    fs.rmdir %a
-    jnz +1 ret
+    syslog notice "%T: removing %[b]s %[a]s"
+    fs.symlink? %a
+    jz +1 fs.rmdir %a   ; for dirs
+          fs.unlink %a  ; for symlinks
+    jz +2
+      perror "failed to remove %[a]s"
+      bail 1
 
-    perror "failed to remove %[a]s"
-    bail 1
+    flag "changed"
+    retv 0
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; res.dir.present
 ;;
 fn res.dir.present
+    syslog info "%T: enforcing presence of %[a]s"
     fs.stat %a
     jnz create
 
-    fs.symlink? %a
-    jz remove
-
     fs.type %a %b
-    error "%[a]s exists, but is not a regular file (is a %[b]s)"
+    fs.dir? %a
+    jnz +2
+      syslog info "%T: %[a]s already exists"
+      retv 0
+
+    fs.symlink? %a
+    jz rm
+
+    error "%[a]s already exists, as a %[b]s, and will not be automatically removed"
     bail 1
 
-  remove:
+  rm:
+    syslog notice "%T: removing pre-existing %[b]s %[a]s"
     fs.unlink %a
     jz create
 
-    perror "failed to replace %[a]s with a regular file"
+    perror "failed to remove %[a]s"
     bail 1
 
   create:
     syslog notice "%T: creating directory %[a]s"
     fs.mkdir %a
-    jnz +2
-    ;;mark ;; FIXME
-    retv 0
+    jz +2
+      perror "failed to create directory %[a]s"
+      bail 1
 
-    perror "failed to create regular file %[a]s"
-    bail 1
+    flag "changed"
+    retv 0
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; res.file.present
 ;;
 fn res.file.present
+    syslog info "%T: enforcing presence of %[a]s"
     fs.stat %a
     jnz create
 
+    fs.type %a %b
     fs.file? %a
-    retv 0
+    jnz +2
+      syslog info "%T: %[a]s already exists"
+      retv 0
 
     fs.symlink? %a
-    jz remove
+    jz rm
 
-    fs.type %a %b
-    error "%[a]s exists, but is not a regular file (is a %[b]s)"
+    error "%[a]s already exists, as a %[b]s, and will not be automatically removed"
     bail 1
 
-  remove:
+  rm:
+    syslog notice "%T: removing pre-existing symbolic link %[a]s"
     fs.unlink %a
     jz create
 
-    perror "failed to replace %[a]s with a regular file"
+    perror "failed to remove %[a]s"
     bail 1
 
   create:
+    syslog notice "%T: creating new file %[a]s"
     fs.touch %a
-    jnz +2
-    ;;mark ;; FIXME
+    jz +2
+      perror "failed to create regular file %[a]s"
+      bail 1
+
+    flag "changed"
     retv 0
 
-    perror "failed to create regular file %[a]s"
-    bail 1
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -131,11 +204,13 @@ fn res.file.present
 ;;
 
 fn res.file.chown
+    syslog info "%T: enforcing user ownership of %[a]s"
     authdb.open
     jz +2
-      perror "failed to open authdb"
+      perror "failed to open authentication databases"
       bail 1
 
+    syslog info "%T: looking for user named %[b]s"
     user.find %b
     user.get "uid" %c
     jz +3
@@ -144,12 +219,13 @@ fn res.file.chown
       bail 1
 
     authdb.close
+    syslog notice "%T: changing user ownership of %[a]s to %[b]s"
     fs.chown %a %c
     jz +2
       perror "failed to change ownership of %[a]s to %[b]s"
       bail 1
 
-    ;;mark ;; FIXME
+    flag "changed"
     retv 0
 
 
@@ -158,11 +234,13 @@ fn res.file.chown
 ;; res.file.chgrp
 ;;
 fn res.file.chgrp
+    syslog info "%T: enforcing group ownership of %[a]s"
     authdb.open
     jz +2
-      perror "failed to open authdb"
+      perror "failed to open authentication databases"
       bail 1
 
+    syslog info "%T: looking for group named %[b]s"
     group.find %b
     group.get "gid" %c
     jz +3
@@ -171,12 +249,13 @@ fn res.file.chgrp
       bail 1
 
     authdb.close
+    syslog notice "%T: changing group ownership of %[a]s to %[b]s"
     fs.chgrp %a %c
     jz +2
       perror "failed to change group ownership of %[a]s to %[b]s"
       bail 1
 
-    ;mark ;; FIXME
+    flag "changed"
     retv 0
 
 
@@ -185,12 +264,14 @@ fn res.file.chgrp
 ;; res.file.chmod
 ;;
 fn res.file.chmod
+    syslog info "%T: enforcing file permissions on %[a]s"
+    syslog notice "%T: changing file permissions of %[a]s to %[b]04o"
     fs.chmod %a %b
     jz +2
-      perror "failed to set mode of %[a]s to %[b]04o"
+      perror "failed to set file permissions of %[a]s to %[b]04o"
       bail 1
 
-    ;mark ;; FIXME
+    flag "changed"
     retv 0
 
 
@@ -205,76 +286,99 @@ fn res.file.contents
     ; %d is verify command
     ; %e is expected return code of `%d`
 
+    syslog info "%T: enforcing file contents of %[a]s"
+
+    syslog info "%T: retrieving remote SHA1 checksum"
     remote.sha1 %c %o
     jz +2
       perror "failed to retrieve remote SHA1 for %[a]s"
       bail 1
 
+    syslog info "%T: calculating local SHA1 checksum"
     fs.sha1 %a %p
     jz +2
       perror "failed to calculate SHA1 for local copy of %[a]s"
       bail 1
 
+    syslog info "%T: checking if remote (%[o]s) SHA1 matches local (%[p]s) SHA1"
     streq %o %p
     jnz +1
       ret
 
-    syslog notice "Updating local content of %[a]s (%[p]s) from remote copy (%[o]s)"
+    syslog notice "%T: updating local content of %[a]s (%[p]s) from remote copy (%[o]s)"
     remote.file %c %b
     jz +2
       perror "failed to write to %[b]s"
       bail 1
 
     streq %a %b
-    jnz +1
-      ret ;; if path (%a) == tempfile (%b), nothing more to be done here
+    jnz +2
+      flag "changed";; if path (%a) == tempfile (%b), nothing more to be done here
+      ret
 
     ;; otherwise, we have to verify via %d and %e
+    syslog info "%T: verifying new local copy via `%[d]s`"
     exec %d %m
     jz +2
-      perror "Failed to exec pre-change verification check `%[d]s`"
+      perror "failed to exec pre-change verification check `%[d]s`"
       bail 1
 
+    syslog info "%T: pre-change verification check exited %[m]d (want %[e]d)"
     eq %m %e ;; actual return code == expected return code?
     jz +2
-      error "Pre-change verification check `%[d]s` failed; returned %[m]u (not %[e]u)\n"
+      error "pre-change verification check `%[d]s` failed; returned %[m]u (not %[e]u)\n"
       bail 1
 
+    syslog info "%T: renaming %[b]s -> %[a]s (verified)"
     fs.rename %b %a
     jz +3
-      perror "Failed to rename %[b]s -> %[a]s"
+      perror "failed to rename %[b]s -> %[a]s"
       fs.unlink %b
       bail 1
 
+    flag "changed"
     retv 0
 
 
 
 fn res.symlink.absent
+    syslog info "%T: enforcing absence of %[a]s"
     fs.stat %a
-    jz +1 ret
+    jz +1
+    retv 0
 
+    fs.type %a %b
     fs.symlink? %a
-    jnz +3
-      fs.type %a %b
+    jnz +2
       error "%[a]s exists, but is not a symbolic link (is a %[b]s)"
       bail 1
 
+    syslog notice "%T: removing %[b]s %[a]s"
     fs.unlink %a
-    jz +1 bail 1
-    ret
+    jz +2
+      perror "failed to remove %[a]s"
+      bail 1
+
+    flag "changed"
+    retv 0
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; res.symlink.ensure
 ;;
+;;   %a = symbolic link path
+;;   %b = target path
+;;
 fn res.symlink.ensure
+    set %c %b
+
+    syslog info "%T: enforcing presence of %[a]s"
     fs.stat %a
     jnz create
 
+    fs.type %a %b
     fs.symlink? %a
-    jz +3
-      fs.type %a %b
+    jz +2
       error "%[a]s exists, but is not a symbolic link (is a %[b]s)"
       bail 1
 
@@ -283,75 +387,42 @@ fn res.symlink.ensure
       perror "failed to read target of symbolic link %[a]s"
       bail 1
 
+    syslog info "%T: existing symbolic link %[a]s points to %[e]s"
     streq %b %e
     jnz +1
       retv 0
 
+    syslog info "%T: symbolic link is incorrect; removing %[a]s"
     fs.unlink %a
     jz +2
       perror "failed to remove %[a]s"
       bail 1
 
   create:
+    syslog notice "%T: creating symbolic link %[a]s -> %[b]s"
     fs.symlink %a %b
-    ret
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;
-;; util.authdb.open
-;;
-fn util.authdb.open
-    authdb.open
-    jz +1
-      perror "Failed to open authentication databases"
-      bail 1
-    ret
-
-fn util.authdb.save
-    authdb.save
-    jz +2
-      perror "Failed to write changes to authentication databases"
-      bail 1
-    authdb.close
-    ret
-
-fn util.authdb.close
-    authdb.close
-    ret
-
-fn util.runuser
-    user.find %a
-    jz +2
-      perror "Failed to find user '%s'"
-      bail 1
-
-    user.get "uid" %b
-    runas.uid %b
-    ret
-
-fn util.rungroup
-    group.find %a
-    jz +2
-      perror "Failed to find group '%s'"
-      bail 1
-
-    group.get "gid" %b
-    runas.gid %b
-    ret
+    flag "changed"
+    retv 0
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; res.user.absent
 ;;
 fn res.user.absent
+    syslog info "%T: enforcing absence of %[a]s"
     user.find %a
-    jz +1 ret
+    jz +1
+      retv 0
 
+    syslog notice "%T: removing user %[a]s"
     user.delete
     user.find %a
-    jz +1 ret
+    jz +2
+      flag "changed"
+      retv 0
 
-    error "failed to delete group '%[a]s'"
+    error "failed to delete user %[a]s"
     bail 1
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -366,8 +437,10 @@ fn res.user.absent
 ;;   %f = password
 ;;
 fn res.user.present
+    syslog info "%T: enforcing presence of %[a]s"
     user.find %a
     jz exists
+      syslog notice "%T: provisioning new local user account for %[a]s"
       user.new
       flag "mkhome"
       user.set "username"  %a
@@ -382,6 +455,7 @@ fn res.user.present
   exists:
     eq %b 0
     jnz ok
+      syslog notice "%T: auto-determining next available UID (> 1000) for %[a]s"
       authdb.nextuid 1000 %b
       jz ok
         perror "failed to lookup next available GID"
@@ -389,13 +463,26 @@ fn res.user.present
 
   ok:
     streq %e ""
-    jnz +1 set %e "/bin/false"  ;; set default shell
+    jnz +2
+      set %e "/bin/false"  ;; set default shell
+      syslog info "%T: no login shell provided; using default of %[e]s"
 
-    user.set "uid"    %b
-    user.set "gid"    %c
-    user.set "home"   %d
-    user.set "shell"  %e
+    syslog info "%T: setting %[a]s UID to %[b]d"
+    user.set "uid" %b
+
+    syslog info "%T: setting %[a]s GID to %[b]d"
+    user.set "gid" %c
+
+    syslog info "%T: setting %[a]s home directory to %[b]d"
+    user.set "home" %d
+
+    syslog info "%T: setting %[a]s login shell to %[b]d"
+    user.set "shell" %e
+
+    syslog info "%T: setting password hash for %[a]s"
     user.set "pwhash" %f
+
+    flag "changed"
     ret
 
 
@@ -404,14 +491,19 @@ fn res.user.present
 ;; res.group.absent
 ;;
 fn res.group.absent
+    syslog notice "%T: enforcing absence of %[a]s"
     group.find %a
-    jz +1 ret
+    jz +1
+      retv 0
 
+    syslog notice "%T: removing group %[a]s"
     group.delete
     group.find %a
-    jz +1 ret
+    jz +2
+      flag "changed"
+      retv 0
 
-    error "failed to delete group '%[a]s'"
+    error "failed to delete group %[a]s"
     bail 1
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -419,11 +511,14 @@ fn res.group.absent
 ;; res.group.passwd
 ;;
 fn res.group.passwd
+  syslog notice "%T: setting password for group %[a]s"
   group.set "password" "*"
   group.set "pwhash"   %a
-  jnz +1 ret
+  jnz +2
+    flag "changed"
+    retv 0
 
-  error "failed to set group password for '%[a]s'"
+  error "failed to set group password for %[a]s"
   bail 1
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -445,22 +540,30 @@ fn res.user.mkhome
 ;;   %b = gid
 ;;
 fn res.group.present
+    syslog info "%T: enforcing presence of %[a]s"
     group.find %a
     jz exists
+      syslog notice "%T: provisioning new local group account for %[a]s"
       group.new
       group.set "name"    %a
       group.set "passwd" "x"
+      group.set "pwhash" "*"
 
   exists:
     eq %b 0
     jnz ok
+      syslog notice "%T: auto-determining next available GID (> 1000) for %[a]s"
       authdb.nextgid 1000 %b
       jz ok
         perror "failed to lookup next available GID"
         bail 1
 
   ok:
+    syslog info "%T: setting %[a]s GID to %[b]s"
     group.set "gid" %b
+
+    flag "changed"
+    retv 0
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -469,23 +572,27 @@ fn res.group.present
 ;;   %a = package name
 ;;
 fn res.package.absent
-    localsys "pkg-version %[a]s" %b
+    syslog info "%T: enforcing absence of %[a]s"
+    syslog info "%T: checking for currently installed version (if any)"
+    localsys "pkg-version %[a]s" %p
     acc %d
     eq %d 1
-    jnz +1  ;; return code 1 == not installed
-      ret
+    jnz +2  ;; return code 1 == not installed
+      syslog info "%T: not installed"
+      retv 0
 
     eq %d 0
     jz +2
-      perror "Failed to detect installed version of %[a]s"
+      perror "failed to detect installed version of %[a]s"
       bail 1
 
-    localsys "pkg-remove %[a]s" %c
-    acc %d
-    eq %d 0
-    jnz +1 ret
+    syslog notice "%T: uninstalling %[a]s"
+    localsys "pkg-remove %[a]s" %p
+    jnz +2
+      flag "changed"
+      retv 0
 
-    perror "Failed to remove package %[a]s"
+    perror "failed to uninstall package %[a]s"
     bail 1
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -499,63 +606,76 @@ fn res.package.absent
 ;;          "x.y.z"  = install a specific version
 ;;
 fn res.package.install
+    syslog info "%T: enforcing presence of %[a]s %[b]s"
     set %c ""
     localsys "pkg-version %[a]s" %c
-    jz update
+    jnz +2
+      syslog info "%T: package is installed, may need an update"
+      jmp update
 
-    acc %d eq %d 1
-    jz install
+    acc %d
+    eq %d 1
+    jnz +2
+      syslog info "%T: package is not installed yet"
+      jmp install
 
-    perror "Failed to detect installed version of %[a]s"
+    perror "failed to detect installed version of %[a]s"
     bail 1
 
   install:
     streq %b ""         jz install.latest
     streq %b "latest"   jz install.latest
 
-    syslog notice "installing %[a]s version %[b]s"
-    localsys "pkg-install %[a]s %[b]s" %c
-    jnz +1 ret
+    syslog notice "%T: installing %[a]s version %[b]s"
+    localsys "pkg-install %[a]s %[b]s" %p
+    jz +2
+      perror "package installation failed"
+      bail 1
 
-    perror "Package installation failed"
-    bail 1
+    flag "changed"
+    retv 0
 
   install.latest:
-    syslog notice "installing latest version of %[a]s"
+    syslog notice "%T: installing latest version of %[a]s"
     localsys "pkg-install %[a]s latest" %p
-    jnz +1 ret
+    jz +2
+      perror "package installation failed"
+      bail 1
 
-    perror "Package installation failed"
-    bail 1
+    flag "changed"
+    retv 0
 
   update:
-    streq %b ""         jz update.latest
-    streq %b "latest"   jz update.latest
+    streq %b ""       jz update.latest
+    streq %b "latest" jz update.latest
 
-    streq %b %c
-    jnz +1 ret
+    syslog info "%T: checking if current version (%[p]s) matches desired version (%[b]s)"
+    streq %b %p
+    jnz +1
+      retv 0
 
-    syslog notice "upgrading package %[a]s to version %[b]s"
+    syslog notice "%T: upgrading package %[a]s from v%[p]s to v%[b]s"
     localsys "pkg-install %[a]s %[b]s" %p
     jnz +1 ret
 
-    perror "Package installation failed"
+    perror "package installation failed"
     bail 1
 
   update.latest:
-    localsys "pkg-latest %[a]s" %d
+    localsys "pkg-latest %[a]s" %p
     jz +2
-      error "Failed to determine latest version of %[a]s"
+      error "failed to determine latest version of %[a]s"
       bail 1
 
-    streq %c %d
+    syslog info "%T: checking if current version (%[p]s) matches latest version (%[b]s)"
+    streq %c %p
     jnz +1 ret
 
-    syslog notice "updgraind package %[a]s from version %[c]s to (latest) %[d]s"
+    syslog notice "upgrading package %[a]s from version %[c]s to (latest) %[d]s"
     localsys "pkg-install %[a]s %[d]s" %p
     jnz +1 ret
 
-    perror "Package installation failed"
+    perror "package upgrade failed"
     bail 1
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -565,14 +685,17 @@ fn res.package.install
 ;;   %a = service name
 ;;
 fn res.service.enable
+    syslog info "%T: enforcing that %[a]s is enabled"
     localsys "svc-boot-status %[a]s" %b
     jnz +1 ret
 
-    syslog notice "enabling service %[a]s to start at boot"
+    syslog notice "%T: enabling service %[a]s to start at boot"
     localsys "svc-enable %[a]s" %b
-    jnz +1 ret
+    jnz +2
+      flag "changed"
+      retv 0
 
-    error "Failed to enable service %[a]s to start at boot"
+    error "failed to enable service %[a]s to start at boot"
     bail 1
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -582,14 +705,17 @@ fn res.service.enable
 ;;   %a = service name
 ;;
 fn res.service.disable
+    syslog info "%T: enforcing that %[a]s is disabled"
     localsys "svc-boot-status %[a]s" %b
     jz +1 ret
 
-    syslog notice "disabling service %[a]s"
+    syslog notice "%T: disabling service %[a]s"
     localsys "svc-disable %[a]s" %b
-    jnz +1 ret
+    jnz +2
+      flag "changed"
+      retv 0
 
-    error "Failed to disable service %[a]s"
+    error "failed to disable service %[a]s"
     bail 1
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -599,14 +725,17 @@ fn res.service.disable
 ;;   %a = service name
 ;;
 fn res.service.start
+    syslog info "%T: enforcing that %[a]s is running"
     localsys "svc-run-status %[a]s" %b
     jnz +1 ret
 
-    syslog notice "starting service %[a]s"
+    syslog notice "%T: starting service %[a]s"
     localsys "svc-init %[a]s start" %b
-    jnz +1 ret
+    jnz +2
+      flag "changed"
+      retv 0
 
-    error "Failed to start service %[a]s"
+    error "failed to start service %[a]s"
     bail 1
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -616,22 +745,27 @@ fn res.service.start
 ;;   %a = service name
 ;;
 fn res.service.restart
+    syslog info "%T: conditionally restarting %[a]s"
     localsys "svc-run-status %[a]s" %b
     jz restart
 
-      syslog notice "starting service %[a]s"
+      syslog notice "%T: starting service %[a]s"
       localsys "svc-init %[a]s start" %b
-      jnz +1 ret
+      jnz +2
+        flag "changed"
+        retv 0
 
-      error "Failed to start service %[a]s"
+      error "failed to start service %[a]s"
       bail 1
 
   restart:
       syslog notice "restarting service %[a]s"
       localsys "svc-init %[a]s restart" %b
-      jnz +1 ret
+      jnz +2
+        flag "changed"
+        retv 0
 
-      error "Failed to restart service %[a]s"
+      error "failed to restart service %[a]s"
       bail 1
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -641,22 +775,27 @@ fn res.service.restart
 ;;   %a = service name
 ;;
 fn res.service.reload
+    syslog info "%T: reloading %[a]s"
     localsys "svc-run-status %[a]s" %b
     jz reload
 
       syslog notice "starting service %[a]s"
       localsys "svc-init %[a]s start" %b
-      jnz +1 ret
+      jnz +2
+        flag "changed"
+        retv 0
 
-      error "Failed to start service %[a]s"
+      error "failed to start service %[a]s"
       bail 1
 
   reload:
       syslog notice "reloading service %[a]s"
       localsys "svc-init %[a]s reload" %b
-      jnz +1 ret
+      jnz +2
+        flag "changed"
+        retv 0
 
-      error "Failed to reload service %[a]s"
+      error "failed to reload service %[a]s"
       bail 1
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -666,14 +805,17 @@ fn res.service.reload
 ;;   %a = service name
 ;;
 fn res.service.stop
+    syslog info "%T: enforcing that %[a]s is stopped"
     localsys "svc-run-status %[a]s" %b
     jz +1 ret
 
     syslog notice "stopping service %[a]s"
     localsys "svc-init %[a]s stop" %b
-    jnz +1 ret
+    jnz +2
+      flag "changed"
+      retv 0
 
-    error "Failed to stop service %[a]s"
+    error "failed to stop service %[a]s"
     bail 1
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -684,14 +826,17 @@ fn res.service.stop
 ;;   %b = hostname
 ;;
 fn res.host.absent
+    syslog info "%T: enforcing absence of hosts entry %[a]s/%[b]s"
     string "/files/etc/hosts/*[ipaddr = \"%[a]s\" and canonical = \"%[b]s\"" %p
     augeas.find %p %o ;; FIXME augeas.exists?
-    jz +1 ret
-    augeas.remove %p
-    jnz +1 ret
+    jz +1 retv 0
+      augeas.remove %p
+      jz +2
+        augeas.perror "failed to remove host record for %[a]s/%[b]s"
+        bail 1
 
-    augeas.perror "Failed to remove host record for %[a]s/%[b]s"
-    bail 1
+    flag "changed"
+    retv 0
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -701,21 +846,24 @@ fn res.host.absent
 ;;   %b = hostname
 ;;
 fn res.host.present
+    syslog info "%T: enforcing presence of hosts entry %[a]s/%[b]s"
     string "/files/etc/hosts/*[ipaddr = \"%[a]s\" and canonical = \"%[b]s\"" %p
     augeas.find %p %o ;; FIXME augeas.exists?
     jnz +1 ret
 
+    syslog notice "%T: creating new hosts entry for %[a]s/%[b]s"
     augeas.set "/files/etc/hosts/9999/ipaddr" %a
     jz +2
-      augeas.perror "Failed to create new host record for %[a]s/%[b]s"
+      augeas.perror "failed to create new host record for %[a]s/%[b]s"
       bail 1
 
     augeas.set "/files/etc/hosts/9999/canonical" %b
     jz +2
-      augeas.perror "Failed to create new host record for %[a]s/%[b]s"
+      augeas.perror "failed to create new host record for %[a]s/%[b]s"
       bail 1
 
-    ret
+    flag "changed"
+    retv 0
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -725,19 +873,22 @@ fn res.host.present
 ;;   %b = hostname
 ;;
 fn res.host.clear-aliases
+    syslog info "%T: clearing previous host aliases"
     string "/files/etc/hosts/*[ipaddr = \"%[a]s\" and canonical = \"%[b]s\"" %p
     augeas.find %p %o
 
     jz +2
-      augeas.perror "Failed to find host record %[a]s/%[b]s"
+      augeas.perror "failed to find host record %[a]s/%[b]s"
       bail 1
 
     string "%[o]s/alias" %n
     augeas.remove %n
-    jnz +1 ret
+    jz +2
+      augeas.perror "failed to clear host aliases for %[a]s/%[b]s"
+      bail 1
 
-    augeas.perror "Failed to clear host aliases for %[a]s/%[b]s"
-    bail 1
+    flag "changed"
+    retv 0
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -749,19 +900,22 @@ fn res.host.clear-aliases
 ;;   %d = alias name
 ;;
 fn res.host.add-alias
+    syslog notice "%T: adding host alias %[d]s to %[a]s/%[b]s"
     string "/files/etc/hosts/*[ipaddr = \"%[a]s\" and canonical = \"%[b]s\"" %p
     augeas.find %p %o
 
     jz +2
-      augeas.perror "Failed to find host record %[a]s/%[b]s"
+      augeas.perror "failed to find host record %[a]s/%[b]s"
       bail 1
 
     string "%[o]s/alias/%[c]u" %n
     augeas.set %n %d
-    jnz +1 ret
+    jz +2
+      augeas.perror "failed to add alias '%[d]s' (at index %[c]u) to host record %[a]s/%[b]s"
+      bail 1
 
-    augeas.perror "Failed to add alias '%[d]s' (at index %[c]u) to host record %[a]s/%[b]s"
-    bail 1
+    flag "changed"
+    retv 0
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -773,24 +927,29 @@ fn res.host.add-alias
 ;;   %d = persist to file (1) or not (0)
 ;;
 fn res.sysctl.set
+    syslog info "%T: enforcing sysctl %[b]s = %[c]s"
     string "/proc/sys/%[a]s" %e
     fs.get %e %f
+
+    syslog info "%T: comparing current value (%[f]s) to desired value (%[c]s)"
     streq %f %c
-    jz persist
+    jnz +1 retv 0
 
+    syslog info "%T: setting %[b]s = '%[c]s'"
     fs.put %e %c
-    jz persist
+    jz +2
+      perror "failed to update %[a]s with desired value"
+      bail 1
 
-    perror "Failed to update %[a]s with desired value"
-    bail 1
+    flag "changed"
+    eq %d 1 jz +1 retv 0 ;;  no persistence
 
-  persist:
-    eq %d 1 jz +1 ret   ;;  no persistence
+    syslog notice "%T: saving updated value of %[b]s to /proc"
     set %a "/files/etc/sysctl.conf/%[b]s"
     augeas.set %a %c
-    jnz +1 ret
+    jnz +1 retv 0
 
-    perror "Failed to update /etc/sysctl.conf for %[b]s = %[c]s"
+    perror "failed to update /etc/sysctl.conf for %[b]s = %[c]s"
     bail 1
 
 ;; vim:et:ts=4:sw=4

@@ -105,14 +105,14 @@ int main (int argc, char **argv)
 	log_open(ident, facility);
 	log_level(level, NULL);
 
-	int rc, fd = open(argv[optind], O_RDONLY);
-	if (fd < 0) {
-		perror(argv[optind]);
-		return 1;
-	}
-
 	if (mode == MODE_EXECUTE || mode == MODE_DISASSEMBLE) {
 		/* modes that require a valid binary image */
+		int rc, fd = open(argv[optind], O_RDONLY);
+		if (fd < 0) {
+			perror(argv[optind]);
+			return 1;
+		}
+
 		off_t n = lseek(fd, 0, SEEK_END);
 		if (n < 0) {
 			perror(argv[optind]);
@@ -161,24 +161,31 @@ int main (int argc, char **argv)
 	if (mode == MODE_ASSEMBLE) {
 		byte_t *code;
 		size_t len;
+		int rc, filter = 0;
 
-		FILE *io = fdopen(fd, "r");
+		if (strcmp(argv[optind], "-") == 0)
+			filter = 1;
+
+		FILE *io = filter ? stdin : fopen(argv[optind], "r");
 		if (!io) {
-			perror("fdopen");
+			perror(argv[optind]);
 			return 1;
 		}
 
 		rc = vm_asm_io(io, &code, &len);
 		assert(rc == 0);
 
-		char *sfile = string("%s.S", argv[optind]);
-		int outfd = open(sfile, O_WRONLY|O_CREAT|O_EXCL, 0666);
-		if (outfd < 0) {
-			perror(sfile);
+		int outfd = 1;
+		if (!filter) {
+			char *sfile = string("%s.S", argv[optind]);
+			outfd = open(sfile, O_WRONLY|O_CREAT|O_EXCL, 0666);
+			if (outfd < 0) {
+				perror(sfile);
+				free(sfile);
+				return 1;
+			}
 			free(sfile);
-			return 1;
 		}
-		free(sfile);
 
 		if (write(outfd, code, len) != len) {
 			perror("short write");

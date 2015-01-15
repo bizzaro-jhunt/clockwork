@@ -62,6 +62,9 @@ typedef struct {
 	dword_t  pc;     /* program counter register */
 	dword_t  tryc;   /* try counter register */
 
+	byte_t   op, f1, f2;
+	dword_t  oper1, oper2;
+
 	stack_t  dstack; /* data stack */
 	stack_t  istack; /* instruction stack */
 	stack_t  tstack; /* "try" nesting stack */
@@ -75,7 +78,8 @@ typedef struct {
 	byte_t   trace;  /* whether or not to print trace messages */
 	FILE    *stderr; /* where to direct error messages */
 	FILE    *stdout; /* where to send normal error messages */
-	byte_t   abort;  /* signal to the main vm thread to abort */
+
+	byte_t   stop;   /* signal that the execution is complete */
 
 	/* auxiliary */
 	struct {
@@ -119,13 +123,14 @@ typedef struct {
 #define is_address(fl)  ((fl) == TYPE_ADDRESS)
 #define is_register(fl) ((fl) == TYPE_REGISTER)
 
+int vm_iscode(byte_t *code, size_t len);
 int vm_reset(vm_t *vm);
-int vm_prime(vm_t *vm, byte_t *code, size_t len);
+int vm_load(vm_t *vm, byte_t *code, size_t len);
 int vm_args(vm_t *vm, int argc, char **argv);
 int vm_exec(vm_t *vm);
 int vm_asm_file(const char *path, byte_t **code, size_t *len);
 int vm_asm_io(FILE *io, byte_t **code, size_t *len);
-int vm_disasm(byte_t *code, size_t len);
+int vm_disasm(vm_t *vm);
 int vm_done(vm_t *vm);
 
 #endif

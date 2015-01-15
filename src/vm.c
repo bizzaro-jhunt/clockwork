@@ -29,8 +29,8 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#define OPCODES_INTERPRETER
 #include <augeas.h>
-
 #include "opcodes.h"
 #include "authdb.h"
 #include "mesh.h"
@@ -556,7 +556,7 @@ static int s_push(vm_t *vm, stack_t *st, dword_t value)
 	assert(st);
 	if (st->top == 254) {
 		fprintf(vm->stderr, "stack overflow!\n");
-		vm->abort = 1;
+		vm->stop = 1; vm->acc  = 1;
 		return 0;
 	}
 
@@ -569,7 +569,7 @@ static dword_t s_pop(vm_t *vm, stack_t *st)
 	assert(st);
 	if (s_empty(st)) {
 		fprintf(vm->stderr, "stack underflow!\n");
-		vm->abort = 1;
+		vm->stop = 1; vm->acc  = 1;
 		return 0;
 	}
 
@@ -586,7 +586,7 @@ static void *s_ptr(vm_t *vm, dword_t arg)
 				return h->data;
 			}
 		}
-	} else if (arg < vm->codesize) {
+	} else if (arg > 0 && arg < vm->codesize) {
 		return (void *)(vm->code + arg);
 	}
 	return NULL;
@@ -594,12 +594,18 @@ static void *s_ptr(vm_t *vm, dword_t arg)
 
 static const char *s_str(vm_t *vm, byte_t type, dword_t arg)
 {
+	char *s;
 	switch (type) {
-	case TYPE_ADDRESS:  return (char *)s_ptr(vm, arg);
-	case TYPE_REGISTER: return (char *)s_ptr(vm, vm->r[arg]);
-	default:            return NULL;
+	case TYPE_ADDRESS:  s = (char *)s_ptr(vm, arg);        break;
+	case TYPE_REGISTER: s = (char *)s_ptr(vm, vm->r[arg]); break;
+	default:            s = NULL;                          break;
 	}
+
+	if (!s) s = "";
+	return s;
 }
+#define STR1(vm) s_str(vm, vm->f1, vm->oper1)
+#define STR2(vm) s_str(vm, vm->f2, vm->oper2)
 
 static dword_t s_val(vm_t *vm, byte_t type, dword_t arg)
 {
@@ -621,6 +627,11 @@ static dword_t s_val(vm_t *vm, byte_t type, dword_t arg)
 		return bad;
 	}
 }
+#define VAL1(vm) s_val(vm, vm->f1, vm->oper1)
+#define VAL2(vm) s_val(vm, vm->f2, vm->oper2)
+
+#define REG1(vm) vm->r[vm->oper1]
+#define REG2(vm) vm->r[vm->oper2]
 
 static void s_save_state(vm_t *vm)
 {
@@ -663,14 +674,19 @@ static heap_t *vm_heap_alloc(vm_t *vm, size_t n)
 	return h;
 }
 
-static dword_t vm_heap_strdup(vm_t *vm, const char *s)
+static dword_t vm_heap_string(vm_t *vm, char *s)
 {
 	heap_t *h = calloc(1, sizeof(heap_t));
 	h->addr = vm->heaptop++ | HEAP_ADDRMASK;
 	h->size = strlen(s) + 1;
-	h->data = (byte_t*)strdup(s);
+	h->data = (byte_t *)s;
 	list_push(&vm->heap, &h->l);
 	return h->addr;
+}
+
+static dword_t vm_heap_strdup(vm_t *vm, const char *s)
+{
+	return vm_heap_string(vm, strdup(s));
 }
 
 static void dump(FILE *io, vm_t *vm)
@@ -1127,6 +1143,1155 @@ static int s_fs_put(const char *path, const char *contents)
 
 /************************************************************************/
 
+#define ARG0(s) do { if ( vm->f1 ||  vm->f2) B_ERR(s " takes no operands");            } while (0)
+#define ARG1(s) do { if (!vm->f1 ||  vm->f2) B_ERR(s " requires exactly one operand"); } while (0)
+#define ARG2(s) do { if (!vm->f1 || !vm->f2) B_ERR(s " requires two operands");        } while (0)
+#define REGISTER1(s) do { if (!is_register(vm->f1)) B_ERR(s " must be given a register as its first operand"); \
+                          if (vm->oper1 > NREGS)    B_ERR(s " operand 1 register index %i out of bounds", vm->oper1); } while (0)
+#define REGISTER2(s) do { if (!is_register(vm->f2)) B_ERR(s " must be given a register as its second operand"); \
+                          if (vm->oper2 > NREGS)    B_ERR(s " operand 2 register index %i out of bounds", vm->oper2); } while (0)
+#define B_ERR(...) do { \
+	fprintf(vm->stderr, "pendulum bytecode error (0x%04x): ", vm->pc); \
+	fprintf(vm->stderr, __VA_ARGS__); \
+	fprintf(vm->stderr, "\n"); \
+	vm->stop = 0; vm->acc = 1; \
+} while (0)
+
+static void op_noop(vm_t *vm) { }
+
+static void op_push(vm_t *vm)
+{
+	ARG1("push");
+	REGISTER1("push");
+
+	s_push(vm, &vm->dstack, REG1(vm));
+}
+
+static void op_pop(vm_t *vm)
+{
+	ARG1("pop");
+	REGISTER1("pop");
+
+	REG1(vm) = s_pop(vm, &vm->dstack);
+}
+
+static void op_set(vm_t *vm)
+{
+	ARG2("set");
+	REGISTER1("set");
+
+	REG1(vm) = VAL2(vm);
+}
+
+static void op_swap(vm_t *vm)
+{
+	ARG2("swap");
+	REGISTER1("swap");
+	REGISTER2("swap");
+
+	if (vm->oper1 == vm->oper2)
+		B_ERR("swap requires distinct registers");
+
+	REG1(vm) ^= REG2(vm);
+	REG2(vm) ^= REG1(vm);
+	REG1(vm) ^= REG2(vm);
+}
+
+static void op_acc(vm_t *vm)
+{
+	ARG1("acc");
+	REGISTER1("acc");
+
+	REG1(vm) = vm->acc;
+}
+
+static void op_add(vm_t *vm)
+{
+	ARG2("add");
+	REGISTER1("add");
+
+	REG1(vm) += VAL2(vm);
+}
+
+static void op_sub(vm_t *vm)
+{
+	ARG2("sub");
+	REGISTER1("sub");
+
+	REG1(vm) -= VAL2(vm);
+}
+
+static void op_mult(vm_t *vm)
+{
+	ARG2("mult");
+	REGISTER1("mult");
+
+	REG1(vm) *= VAL2(vm);
+}
+
+static void op_div(vm_t *vm)
+{
+	ARG2("div");
+	REGISTER1("div");
+
+	REG1(vm) /= VAL2(vm);
+}
+
+static void op_mod(vm_t *vm)
+{
+	ARG2("mod");
+	REGISTER1("mod");
+
+	REG1(vm) %= VAL2(vm);
+}
+
+static void op_call(vm_t *vm)
+{
+	ARG1("call");
+	if (!is_address(vm->f1))
+		B_ERR("call requires an address for operand 1");
+
+	s_save_state(vm);
+	s_push(vm, &vm->istack, vm->pc);
+	vm->pc = vm->oper1;
+}
+
+static void op_try(vm_t *vm)
+{
+	ARG1("try");
+	if (!is_address(vm->f1))
+		B_ERR("try requires an address for operand 1");
+
+	s_save_state(vm);
+
+	s_push(vm, &vm->tstack, vm->tryc);
+	vm->tryc = vm->pc;
+
+	s_push(vm, &vm->istack, vm->pc);
+	vm->pc = vm->oper1;
+}
+
+static void op_ret(vm_t *vm)
+{
+	if (vm->f1) {
+		ARG1("ret");
+		vm->acc = VAL1(vm);
+	} else {
+		ARG0("ret");
+	}
+
+	if (s_empty(&vm->istack)) {
+		/* last RET == HALT */
+		vm->stop = 1;
+		return;
+	}
+
+	vm->pc = s_pop(vm, &vm->istack);
+	if (vm->tryc == vm->pc)
+		vm->tryc = s_pop(vm, &vm->tstack);
+	s_restore_state(vm);
+}
+
+static void op_bail(vm_t *vm)
+{
+	ARG1("bail");
+	vm->acc = VAL1(vm);
+
+	if (vm->tryc == 0) {
+		/* last BAIL == HALT */
+		vm->stop = 1;
+		return;
+	}
+
+	while (vm->pc != vm->tryc) {
+		vm->pc = s_pop(vm, &vm->istack);
+		s_restore_state(vm);
+	}
+
+	vm->tryc = s_pop(vm, &vm->tstack);
+}
+
+static void op_eq(vm_t *vm)
+{
+	ARG2("eq");
+	vm->acc = (VAL1(vm) == VAL2(vm)) ? 0 : 1;
+}
+
+static void op_gt(vm_t *vm)
+{
+	ARG2("gt");
+	vm->acc = (VAL1(vm) >  VAL2(vm)) ? 0 : 1;
+}
+
+static void op_gte(vm_t *vm)
+{
+	ARG2("gte");
+	vm->acc = (VAL1(vm) >= VAL2(vm)) ? 0 : 1;
+}
+
+static void op_lt(vm_t *vm)
+{
+	ARG2("lt");
+	vm->acc = (VAL1(vm) <  VAL2(vm)) ? 0 : 1;
+}
+
+static void op_lte(vm_t *vm)
+{
+	ARG2("lte");
+	vm->acc = (VAL1(vm) <= VAL2(vm)) ? 0 : 1;
+}
+
+static void op_streq(vm_t *vm)
+{
+	ARG2("streq");
+	vm->acc = strcmp(STR1(vm), STR2(vm)) == 0 ? 0 : 1;
+}
+
+static void op_jmp(vm_t *vm)
+{
+	ARG1("jmp");
+	vm->pc = vm->oper1;
+}
+
+static void op_jz(vm_t *vm)
+{
+	ARG1("jz");
+	if (vm->acc == 0) vm->pc = VAL1(vm);
+}
+
+static void op_jnz(vm_t *vm)
+{
+	ARG1("jnz");
+	if (vm->acc != 0) vm->pc = VAL1(vm);
+}
+
+static void op_string(vm_t *vm)
+{
+	ARG2("str");
+	REGISTER2("str");
+
+	REG2(vm) = vm_sprintf(vm, STR1(vm));
+}
+
+static void op_print(vm_t *vm)
+{
+	ARG1("print");
+	vm_fprintf(vm, vm->stdout, STR1(vm));
+}
+
+static void op_error(vm_t *vm)
+{
+	ARG1("error");
+	vm_fprintf(vm, vm->stderr, STR1(vm));
+	fprintf(vm->stderr, "\n");
+}
+
+static void op_perror(vm_t *vm)
+{
+	ARG1("perror");
+	vm_fprintf(vm, vm->stderr, STR1(vm));
+	fprintf(vm->stderr, ": (%i) %s\n", errno, strerror(errno));
+}
+
+static void op_syslog(vm_t *vm)
+{
+	ARG2("syslog");
+	char *s = _sprintf(vm, STR2(vm));
+	logger(log_level_number(STR1(vm)), s); free(s);
+}
+
+static void op_flag(vm_t *vm)
+{
+	ARG1("flag");
+	hash_set(&vm->flags, STR1(vm), "Y");
+}
+
+static void op_unflag(vm_t *vm)
+{
+	ARG1("unflag");
+	hash_set(&vm->flags, STR1(vm), NULL);
+}
+
+static void op_flagged_p(vm_t *vm)
+{
+	ARG1("flagged?");
+	vm->acc = hash_get(&vm->flags, STR1(vm)) ? 0 : 1;
+}
+
+static void op_fs_stat(vm_t *vm)
+{
+	ARG1("fs.stat");
+	vm->acc = lstat(STR1(vm), &vm->aux.stat);
+}
+
+static void op_fs_type(vm_t *vm)
+{
+	ARG2("fs.type");
+	REGISTER2("fs.type");
+	vm->acc = lstat(STR1(vm), &vm->aux.stat);
+	if (vm->acc != 0) {
+		REG2(vm) = vm_heap_strdup(vm, "non-existent file");
+	} else if (S_ISREG(vm->aux.stat.st_mode)) {
+		REG2(vm) = vm_heap_strdup(vm, "regular file");
+	} else if (S_ISLNK(vm->aux.stat.st_mode)) {
+		REG2(vm) = vm_heap_strdup(vm, "symbolic link");
+	} else if (S_ISDIR(vm->aux.stat.st_mode)) {
+		REG2(vm) = vm_heap_strdup(vm, "directory");
+	} else if (S_ISCHR(vm->aux.stat.st_mode)) {
+		REG2(vm) = vm_heap_strdup(vm, "character device");
+	} else if (S_ISBLK(vm->aux.stat.st_mode)) {
+		REG2(vm) = vm_heap_strdup(vm, "block device");
+	} else if (S_ISFIFO(vm->aux.stat.st_mode)) {
+		REG2(vm) = vm_heap_strdup(vm, "FIFO pipe");
+	} else if (S_ISSOCK(vm->aux.stat.st_mode)) {
+		REG2(vm) = vm_heap_strdup(vm, "UNIX domain socket");
+	} else {
+		REG2(vm) = vm_heap_strdup(vm, "unknown file");
+	}
+}
+
+static void op_fs_file_p(vm_t *vm)
+{
+	ARG1("fs.file?");
+	vm->acc = lstat(STR1(vm), &vm->aux.stat);
+	if (vm->acc == 0) vm->acc = S_ISREG(vm->aux.stat.st_mode) ? 0 : 1;
+}
+
+static void op_fs_symlink_p(vm_t *vm)
+{
+	ARG1("fs.symlink?");
+	vm->acc = lstat(STR1(vm), &vm->aux.stat);
+	if (vm->acc == 0) vm->acc = S_ISLNK(vm->aux.stat.st_mode) ? 0 : 1;
+}
+
+static void op_fs_dir_p(vm_t *vm)
+{
+	ARG1("fs.dir?");
+	vm->acc = lstat(STR1(vm), &vm->aux.stat);
+	if (vm->acc == 0) vm->acc = S_ISDIR(vm->aux.stat.st_mode) ? 0 : 1;
+}
+
+static void op_fs_chardev_p(vm_t *vm)
+{
+	ARG1("fs.chardev?");
+	vm->acc = lstat(STR1(vm), &vm->aux.stat);
+	if (vm->acc == 0) vm->acc = S_ISCHR(vm->aux.stat.st_mode) ? 0 : 1;
+}
+
+static void op_fs_blockdev_p(vm_t *vm)
+{
+	ARG1("fs.blockdev?");
+	vm->acc = lstat(STR1(vm), &vm->aux.stat);
+	if (vm->acc == 0) vm->acc = S_ISBLK(vm->aux.stat.st_mode) ? 0 : 1;
+}
+
+static void op_fs_fifo_p(vm_t *vm)
+{
+	ARG1("fs.fifo?");
+	vm->acc = lstat(STR1(vm), &vm->aux.stat);
+	if (vm->acc == 0) vm->acc = S_ISFIFO(vm->aux.stat.st_mode) ? 0 : 1;
+}
+
+static void op_fs_socket_p(vm_t *vm)
+{
+	ARG1("fs.socket?");
+	vm->acc = lstat(STR1(vm), &vm->aux.stat);
+	if (vm->acc == 0) vm->acc = S_ISSOCK(vm->aux.stat.st_mode) ? 0 : 1;
+}
+
+static void op_fs_readlink(vm_t *vm)
+{
+	ARG2("fs.readlink");
+	REGISTER2("fs.readlink");
+
+	vm->acc = lstat(STR1(vm), &vm->aux.stat);
+	if (vm->acc != 0) return;
+
+	vm->acc = S_ISLNK(vm->aux.stat.st_mode) ? 0 : 1;
+	if (vm->acc != 0) return;
+
+	char *s = vmalloc((vm->aux.stat.st_size + 1) * sizeof(char));
+	if (readlink(STR1(vm), s, vm->aux.stat.st_size) != vm->aux.stat.st_size) {
+		free(s);
+		vm->acc = 1;
+		errno = ENOBUFS;
+		return;
+	}
+	if (vm->acc != 0) return;
+
+	REG2(vm) = vm_heap_string(vm, s);
+}
+
+static void op_fs_dev(vm_t *vm)
+{
+	ARG2("fs.dev");
+	REGISTER2("fs.dev");
+
+	vm->acc = lstat(STR1(vm), &vm->aux.stat);
+	if (vm->acc == 0) REG2(vm) = vm->aux.stat.st_dev;
+}
+
+static void op_fs_inode(vm_t *vm)
+{
+	ARG2("fs.inode");
+	REGISTER2("fs.inode");
+
+	vm->acc = lstat(STR1(vm), &vm->aux.stat);
+	if (vm->acc == 0) REG2(vm) = vm->aux.stat.st_ino;
+}
+
+static void op_fs_mode(vm_t *vm)
+{
+	ARG2("fs.mode");
+	REGISTER2("fs.mode");
+
+	vm->acc = lstat(STR1(vm), &vm->aux.stat);
+	if (vm->acc == 0) REG2(vm) = vm->aux.stat.st_mode & 07777;
+}
+
+static void op_fs_nlink(vm_t *vm)
+{
+	ARG2("fs.nlink");
+	REGISTER2("fs.nlink");
+
+	vm->acc = lstat(STR1(vm), &vm->aux.stat);
+	if (vm->acc == 0) REG2(vm) = vm->aux.stat.st_nlink;
+}
+
+static void op_fs_uid(vm_t *vm)
+{
+	ARG2("fs.uid");
+	REGISTER2("fs.uid");
+
+	vm->acc = lstat(STR1(vm), &vm->aux.stat);
+	if (vm->acc == 0) REG2(vm) = vm->aux.stat.st_uid;
+}
+
+static void op_fs_gid(vm_t *vm)
+{
+	ARG2("fs.gid");
+	REGISTER2("fs.gid");
+
+	vm->acc = lstat(STR1(vm), &vm->aux.stat);
+	if (vm->acc == 0) REG2(vm) = vm->aux.stat.st_gid;
+}
+
+static void op_fs_major(vm_t *vm)
+{
+	ARG2("fs.major");
+	REGISTER2("fs.major");
+
+	vm->acc = lstat(STR1(vm), &vm->aux.stat);
+	if (vm->acc == 0) REG2(vm) = major(vm->aux.stat.st_rdev);
+}
+
+static void op_fs_minor(vm_t *vm)
+{
+	ARG2("fs.minor");
+	REGISTER2("fs.minor");
+
+	vm->acc = lstat(STR1(vm), &vm->aux.stat);
+	if (vm->acc == 0) REG2(vm) = minor(vm->aux.stat.st_rdev);
+}
+
+static void op_fs_size(vm_t *vm)
+{
+	ARG2("fs.size");
+	REGISTER2("fs.size");
+
+	vm->acc = lstat(STR1(vm), &vm->aux.stat);
+	if (vm->acc == 0) REG2(vm) = vm->aux.stat.st_size;
+}
+
+static void op_fs_atime(vm_t *vm)
+{
+	ARG2("fs.atime");
+	REGISTER2("fs.atime");
+
+	vm->acc = lstat(STR1(vm), &vm->aux.stat);
+	if (vm->acc == 0) REG2(vm) = vm->aux.stat.st_atime;
+}
+
+static void op_fs_mtime(vm_t *vm)
+{
+	ARG2("fs.mtime");
+	REGISTER2("fs.mtime");
+
+	vm->acc = lstat(STR1(vm), &vm->aux.stat);
+	if (vm->acc == 0) REG2(vm) = vm->aux.stat.st_mtime;
+}
+
+static void op_fs_ctime(vm_t *vm)
+{
+	ARG2("fs.ctime");
+	REGISTER2("fs.ctime");
+
+	vm->acc = lstat(STR1(vm), &vm->aux.stat);
+	if (vm->acc == 0) REG2(vm) = vm->aux.stat.st_ctime;
+}
+
+static void op_fs_touch(vm_t *vm)
+{
+	ARG1("fs.touch");
+	vm->acc = close(open(STR1(vm), O_CREAT, 0777));
+}
+
+static void op_fs_mkdir(vm_t *vm)
+{
+	ARG1("fs.mkdir");
+	vm->acc = mkdir(STR1(vm), 0777);
+}
+
+static void op_fs_symlink(vm_t *vm)
+{
+	ARG2("fs.symlink");
+	vm->acc = symlink(STR1(vm), STR2(vm));
+}
+
+static void op_fs_link(vm_t *vm)
+{
+	ARG2("fs.link");
+	vm->acc = lstat(STR1(vm), &vm->aux.stat);
+	if (vm->acc != 0) return;
+
+	if (S_ISDIR(vm->aux.stat.st_mode)) {
+		errno = EISDIR;
+		vm->acc = 1;
+		return;
+	}
+
+	vm->acc = link(STR1(vm), STR2(vm));
+}
+
+static void op_fs_unlink(vm_t *vm)
+{
+	ARG1("fs.unlink");
+	vm->acc = unlink(STR1(vm));
+}
+
+static void op_fs_rmdir(vm_t *vm)
+{
+	ARG1("fs.rmdir");
+	vm->acc = rmdir(STR1(vm));
+}
+
+static void op_fs_rename(vm_t *vm)
+{
+	ARG2("fs.rename");
+	vm->acc = rename(STR1(vm), STR2(vm));
+}
+
+static void op_fs_copy(vm_t *vm)
+{
+	ARG2("fs.copy");
+	vm->acc = s_copy(STR1(vm), STR2(vm));
+}
+
+static void op_fs_chown(vm_t *vm)
+{
+	ARG2("fs.chown");
+	vm->acc = lchown(STR1(vm), VAL2(vm), -1);
+}
+
+static void op_fs_chgrp(vm_t *vm)
+{
+	ARG2("fs.chgrp");
+	vm->acc = lchown(STR1(vm), -1, VAL2(vm));
+}
+
+static void op_fs_chmod(vm_t *vm)
+{
+	ARG2("fs.chmod");
+	vm->acc = chmod(STR1(vm), VAL2(vm) & 07777);
+}
+
+static void op_fs_sha1(vm_t *vm)
+{
+	ARG2("fs.sha1");
+	REGISTER2("fs.sha1");
+	vm->acc = sha1_file(STR1(vm), &vm->aux.sha1);
+	REG2(vm) = vm_heap_strdup(vm, vm->aux.sha1.hex);
+}
+
+static void op_fs_get(vm_t *vm)
+{
+	ARG2("fs.get");
+	REGISTER2("fs.get");
+	char *s = s_fs_get(STR1(vm));
+	vm->acc = s ? 0 : 1;
+	if (!s) return;
+
+	REG2(vm) = vm_heap_string(vm, s);
+}
+
+static void op_fs_put(vm_t *vm)
+{
+	ARG2("fs.put");
+	vm->acc = s_fs_put(STR1(vm), STR2(vm));
+}
+
+static void op_authdb_open(vm_t *vm)
+{
+	ARG0("authdb.open");
+
+	authdb_close(vm->aux.authdb);
+	vm->aux.authdb = authdb_read(hash_get(&vm->pragma, "authdb.root"), AUTHDB_ALL);
+	vm->acc = vm->aux.authdb != NULL ? 0 : 1;
+}
+
+static void op_authdb_save(vm_t *vm)
+{
+	ARG0("authdb.save");
+	vm->acc = authdb_write(vm->aux.authdb);
+}
+
+static void op_authdb_close(vm_t *vm)
+{
+	ARG0("authdb.close");
+	authdb_close(vm->aux.authdb);
+	vm->aux.authdb = NULL;
+	vm->acc = 0;
+}
+
+static void op_authdb_nextuid(vm_t *vm)
+{
+	ARG2("authdb.nextuid");
+	REGISTER2("authdb.nextuid");
+	vm->acc = authdb_nextuid(vm->aux.authdb, VAL1(vm));
+	if (vm->acc < 65536) {
+		REG2(vm) = vm->acc;
+		vm->acc = 0;
+	}
+}
+
+static void op_authdb_nextgid(vm_t *vm)
+{
+	ARG2("authdb.nextgid");
+	REGISTER2("authdb.nextuid");
+	vm->acc = authdb_nextgid(vm->aux.authdb, VAL1(vm));
+	if (vm->acc < 65536) {
+		REG2(vm) = vm->acc;
+		vm->acc = 0;
+	}
+}
+
+static void op_user_find(vm_t *vm)
+{
+	ARG1("user.find");
+	vm->aux.user = user_find(vm->aux.authdb, STR1(vm), -1);
+	vm->acc = vm->aux.user ? 0 : 1;
+}
+
+static void op_user_get(vm_t *vm)
+{
+	ARG2("user.get");
+	REGISTER2("user.get");
+	if (!vm->aux.user) {
+		vm->acc = 1;
+		return;
+	}
+
+	vm->acc = 0;
+	const char *v = STR1(vm);
+
+	if (strcmp(v, "uid") == 0) {
+		REG2(vm) = vm->aux.user->uid;
+
+	} else if (strcmp(v, "gid") == 0) {
+		REG2(vm) = vm->aux.user->gid;
+
+	} else if (strcmp(v, "username") == 0) {
+		REG2(vm) = vm_heap_strdup(vm, vm->aux.user->name);
+
+	} else if (strcmp(v, "comment") == 0) {
+		REG2(vm) = vm_heap_strdup(vm, vm->aux.user->comment);
+
+	} else if (strcmp(v, "home") == 0) {
+		REG2(vm) = vm_heap_strdup(vm, vm->aux.user->home);
+
+	} else if (strcmp(v, "shell") == 0) {
+		REG2(vm) = vm_heap_strdup(vm, vm->aux.user->shell);
+
+	} else if (strcmp(v, "password") == 0) {
+		REG2(vm) = vm_heap_strdup(vm, vm->aux.user->clear_pass);
+
+	} else if (strcmp(v, "pwhash") == 0) {
+		REG2(vm) = vm_heap_strdup(vm, vm->aux.user->crypt_pass);
+
+	} else if (strcmp(v, "changed") == 0) {
+		REG2(vm) = vm->aux.user->creds.last_changed;
+
+	} else if (strcmp(v, "pwmin") == 0) {
+		REG2(vm) = vm->aux.user->creds.min_days;
+
+	} else if (strcmp(v, "pwmax") == 0) {
+		REG2(vm) = vm->aux.user->creds.max_days;
+
+	} else if (strcmp(v, "pwwarn") == 0) {
+		REG2(vm) = vm->aux.user->creds.warn_days;
+
+	} else if (strcmp(v, "inact") == 0) {
+		REG2(vm) = vm->aux.user->creds.grace_period;
+
+	} else if (strcmp(v, "expiry") == 0) {
+		REG2(vm) = vm->aux.user->creds.expiration;
+
+	} else {
+		vm->acc = 1;
+	}
+}
+
+static void op_user_set(vm_t *vm)
+{
+	ARG2("user.set");
+	if (!vm->aux.user) {
+		vm->acc = 1;
+		return;
+	}
+
+	vm->acc = 0;
+	const char *v = STR1(vm);
+
+	if (strcmp(v, "uid") == 0) {
+		vm->aux.user->uid = VAL2(vm);
+
+	} else if (strcmp(v, "gid") == 0) {
+		vm->aux.user->gid = VAL2(vm);
+
+	} else if (strcmp(v, "username") == 0) {
+		free(vm->aux.user->name);
+		vm->aux.user->name = strdup(STR2(vm));
+
+	} else if (strcmp(v, "comment") == 0) {
+		free(vm->aux.user->comment);
+		vm->aux.user->comment = strdup(STR2(vm));
+
+	} else if (strcmp(v, "home") == 0) {
+		free(vm->aux.user->home);
+		vm->aux.user->home = strdup(STR2(vm));
+
+	} else if (strcmp(v, "shell") == 0) {
+		free(vm->aux.user->shell);
+		vm->aux.user->shell = strdup(STR2(vm));
+
+	} else if (strcmp(v, "password") == 0) {
+		free(vm->aux.user->clear_pass);
+		vm->aux.user->clear_pass = strdup(STR2(vm));
+
+	} else if (strcmp(v, "pwhash") == 0) {
+		free(vm->aux.user->crypt_pass);
+		vm->aux.user->crypt_pass = strdup(STR2(vm));
+
+	} else if (strcmp(v, "changed") == 0) {
+		vm->aux.user->creds.last_changed = VAL2(vm);
+
+	} else if (strcmp(v, "pwmin") == 0) {
+		vm->aux.user->creds.min_days = VAL2(vm);
+
+	} else if (strcmp(v, "pwmax") == 0) {
+		vm->aux.user->creds.max_days = VAL2(vm);
+
+	} else if (strcmp(v, "pwwarn") == 0) {
+		vm->aux.user->creds.warn_days = VAL2(vm);
+
+	} else if (strcmp(v, "inact") == 0) {
+		vm->aux.user->creds.grace_period = VAL2(vm);
+
+	} else if (strcmp(v, "expiry") == 0) {
+		vm->aux.user->creds.expiration = VAL2(vm);
+
+	} else {
+		vm->acc = 1;
+	}
+}
+
+static void op_user_new(vm_t *vm)
+{
+	ARG0("user.new");
+	vm->aux.user = user_add(vm->aux.authdb);
+	vm->acc = vm->aux.user ? 0 : 1;
+}
+
+static void op_user_delete(vm_t *vm)
+{
+	ARG0("user.delete");
+	if (!vm->aux.user) {
+		vm->acc = 1;
+		return;
+	}
+	user_remove(vm->aux.user);
+	vm->acc = 0;
+}
+
+static void op_group_find(vm_t *vm)
+{
+	ARG1("group.find");
+	vm->aux.group = group_find(vm->aux.authdb, STR1(vm), -1);
+	vm->acc = vm->aux.group ? 0 : 1;
+}
+
+static void op_group_get(vm_t *vm)
+{
+	ARG2("group.get");
+	REGISTER2("group.get");
+	if (!vm->aux.group) {
+		vm->acc = 1;
+		return;
+	}
+
+	vm->acc = 0;
+	const char *v = STR1(vm);
+
+	if (strcmp(v, "gid") == 0) {
+		REG2(vm) = vm->aux.group->gid;
+
+	} else if (strcmp(v, "name") == 0) {
+		REG2(vm) = vm_heap_strdup(vm, vm->aux.group->name);
+
+	} else if (strcmp(v, "password") == 0) {
+		REG2(vm) = vm_heap_strdup(vm, vm->aux.group->clear_pass);
+
+	} else if (strcmp(v, "pwhash") == 0) {
+		REG2(vm) = vm_heap_strdup(vm, vm->aux.group->crypt_pass);
+
+	} else {
+		vm->acc = 1;
+	}
+}
+
+static void op_group_set(vm_t *vm)
+{
+	ARG2("group.set");
+	if (!vm->aux.group) {
+		vm->acc = 1;
+		return;
+	}
+
+	vm->acc = 0;
+	const char *v = STR1(vm);
+
+	if (strcmp(v, "gid") == 0) {
+		vm->aux.group->gid = VAL2(vm);
+
+	} else if (strcmp(v, "name") == 0) {
+		free(vm->aux.group->name);
+		vm->aux.group->name = strdup(STR2(vm));
+
+	} else if (strcmp(v, "password") == 0) {
+		free(vm->aux.group->clear_pass);
+		vm->aux.group->clear_pass = strdup(STR2(vm));
+
+	} else if (strcmp(v, "pwhash") == 0) {
+		free(vm->aux.group->crypt_pass);
+		vm->aux.group->crypt_pass = strdup(STR2(vm));
+
+	} else {
+		vm->acc = 1;
+	}
+}
+
+static void op_group_new(vm_t *vm)
+{
+	ARG0("group.new");
+	vm->aux.group = group_add(vm->aux.authdb);
+	vm->acc = vm->aux.group ? 0 : 1;
+}
+
+static void op_group_delete(vm_t *vm)
+{
+	ARG0("group.delete");
+	if (!vm->aux.group) {
+		vm->acc = 1;
+		return;
+	}
+	group_remove(vm->aux.group);
+	vm->acc = 0;
+}
+
+static void op_augeas_init(vm_t *vm)
+{
+	ARG0("augeas.init");
+	vm->aux.augeas = aug_init(
+		hash_get(&vm->pragma, "augeas.root"),
+		hash_get(&vm->pragma, "augeas.libs"),
+		AUG_NO_STDINC|AUG_NO_LOAD|AUG_NO_MODL_AUTOLOAD);
+
+	if (aug_set(vm->aux.augeas, "/augeas/load/Hosts/lens", "Hosts.lns") < 0
+	 || aug_set(vm->aux.augeas, "/augeas/load/Hosts/incl", "/etc/hosts") < 0
+	 || aug_load(vm->aux.augeas) != 0) {
+		vm->acc = 1;
+	} else {
+		vm->acc = 0;
+	}
+}
+
+static void op_augeas_done(vm_t *vm)
+{
+	ARG0("augeas.done");
+	aug_close(vm->aux.augeas);
+	vm->aux.augeas = NULL;
+	vm->acc = 0;
+}
+
+static void op_augeas_perror(vm_t *vm)
+{
+	ARG1("augeas.perror");
+	vm_fprintf(vm, vm->stderr, STR1(vm));
+	s_aug_perror(vm->stderr, vm->aux.augeas);
+}
+
+static void op_augeas_write(vm_t *vm)
+{
+	ARG0("augeas.write");
+	vm->acc = aug_save(vm->aux.augeas);
+}
+
+static void op_augeas_set(vm_t *vm)
+{
+	ARG2("augeas.set");
+	vm->acc = aug_set(vm->aux.augeas, STR1(vm), STR2(vm));
+}
+
+static void op_augeas_get(vm_t *vm)
+{
+	ARG2("augeas.get");
+	REGISTER2("augeas.get");
+	const char *v;
+	if (aug_get(vm->aux.augeas, STR1(vm), &v) == 1 && v) {
+		REG2(vm) = vm_heap_strdup(vm, v);
+		vm->acc = 0;
+	} else {
+		vm->acc = 1;
+	}
+}
+
+static void op_augeas_find(vm_t *vm)
+{
+	ARG2("augeas.find");
+	REGISTER2("augeas.find");
+	char *s = s_aug_find(vm->aux.augeas, STR1(vm));
+	if (s) {
+		vm->acc = 0;
+		REG2(vm) = vm_heap_string(vm, s);
+	} else {
+		vm->acc = 1;
+	}
+}
+
+static void op_augeas_remove(vm_t *vm)
+{
+	ARG1("augeas.remove");
+	vm->acc = aug_rm(vm->aux.augeas, STR1(vm)) > 1 ? 0 : 1;
+}
+
+static void op_env_get(vm_t *vm)
+{
+	ARG2("env.get");
+	REGISTER2("env.get");
+	char *s = getenv(STR1(vm));
+	if (s) {
+		REG2(vm) = vm_heap_strdup(vm, s);
+		vm->acc = 0;
+	} else {
+		vm->acc = 1;
+	}
+}
+
+static void op_env_set(vm_t *vm)
+{
+	ARG2("env.set");
+	vm->acc = setenv(STR1(vm), STR2(vm), 1);
+}
+
+static void op_env_unset(vm_t *vm)
+{
+	ARG1("env.unset");
+	vm->acc = unsetenv(STR1(vm));
+}
+
+static void op_localsys(vm_t *vm)
+{
+	ARG2("localsys");
+	REGISTER2("localsys");
+
+	char execline[8192];
+	runner_t runner = {
+		.in  = NULL,
+		.out = tmpfile(),
+		.err = tmpfile(),
+		.uid = geteuid(),
+		.gid = getegid(),
+	};
+
+	char *s = string("%s %s",
+		hash_get(&vm->pragma, "localsys.cmd"),
+		_sprintf(vm, STR1(vm))); /* FIXME: mem leak */
+	vm->acc = run2(&runner, "/bin/sh", "-c", s, NULL); free(s);
+
+	if (fgets(execline, sizeof(execline), runner.out)) {
+		s = strchr(execline, '\n'); if (s) *s = '\0';
+		REG2(vm) = vm_heap_strdup(vm, execline);
+	}
+	fclose(runner.out); runner.out = NULL;
+	fclose(runner.err); runner.err = NULL;
+}
+
+static void op_runas_uid(vm_t *vm)
+{
+	ARG1("runas.uid");
+	vm->aux.runas_uid = VAL1(vm);
+	if (vm->aux.runas_uid < 0 || vm->aux.runas_uid > 65535)
+		vm->aux.runas_uid = 0;
+}
+
+static void op_runas_gid(vm_t *vm)
+{
+	ARG1("runas.gid");
+	vm->aux.runas_gid = VAL1(vm);
+	if (vm->aux.runas_gid < 0 || vm->aux.runas_gid > 65535)
+		vm->aux.runas_gid = 0;
+}
+
+static void op_exec(vm_t *vm)
+{
+	ARG2("exec");
+	REGISTER2("exec");
+
+	char execline[8192];
+	runner_t runner = {
+		.in  = NULL,
+		.out = tmpfile(),
+		.err = tmpfile(),
+		.uid = vm->aux.runas_uid,
+		.gid = vm->aux.runas_gid,
+	};
+
+	vm->acc = run2(&runner, "/bin/sh", "-c", STR1(vm), NULL);
+	if (fgets(execline, sizeof(execline), runner.out)) {
+		char *s = strchr(execline, '\n'); if (s) *s = '\0';
+		REG2(vm) = vm_heap_strdup(vm, execline);
+	}
+	fclose(runner.out); runner.out = NULL;
+	fclose(runner.err); runner.err = NULL;
+}
+
+static void op_dump(vm_t *vm)
+{
+	ARG0("dump");
+	dump(stdout, vm);
+}
+
+static void op_halt(vm_t *vm)
+{
+	ARG0("halt");
+	vm->stop = 1;
+}
+
+static void op_pragma(vm_t *vm)
+{
+	ARG2("pragma");
+	const char *v = STR1(vm);
+
+	if (strcmp(v, "test") == 0) {
+		vm->stderr = strcmp(STR2(vm), "on") == 0 ? stdout : stderr;
+
+	} else if (strcmp(v, "trace") == 0) {
+		vm->trace = strcmp(STR2(vm), "on") == 0;
+
+	} else {
+		/* set the value in the pragma hash */
+		hash_set(&vm->pragma, v, (void *)STR2(vm));
+	}
+}
+
+static void op_property(vm_t *vm)
+{
+	ARG2("property");
+	REGISTER2("property");
+	abort();
+	fprintf(vm->stdout, "looking up property(%s)\n", STR1(vm));
+	const char *v = hash_get(&vm->props, STR1(vm));
+	if (v) {
+		fprintf(vm->stdout, "found property(%s) = '%s'\n", STR1(vm), v);
+		REG2(vm) = vm_heap_strdup(vm, v);
+		vm->acc = 0;
+	} else {
+		fprintf(vm->stdout, "could not find property(%s)\n", STR1(vm));
+		vm->acc = 1;
+	}
+}
+
+static void op_acl(vm_t *vm)
+{
+	ARG1("acl");
+	acl_t *acl = acl_parse(STR1(vm));
+	list_push(&vm->acl, &acl->l);
+	vm->acc = 0;
+}
+
+static void op_show_acls(vm_t *vm)
+{
+	ARG0("show.acls");
+	char *s;
+	acl_t *acl;
+	for_each_object(acl, &vm->acl, l) {
+		fprintf(stdout, "%s\n", s = acl_string(acl));
+		free(s);
+	}
+}
+
+static void op_show_acl(vm_t *vm)
+{
+	ARG1("show.acl");
+	char *s;
+	acl_t *acl;
+	const char *v;
+
+	v = STR1(vm);
+	for_each_object(acl, &vm->acl, l) {
+		if (!acl_match(acl, v, NULL)) continue;
+		fprintf(stdout, "%s\n", s = acl_string(acl));
+		free(s);
+	}
+}
+
+static void op_remote_live_p(vm_t *vm)
+{
+	ARG0("remote.live?");
+	vm->acc = vm->aux.remote ? 0 : 1;
+}
+
+static void op_remote_sha1(vm_t *vm)
+{
+	ARG2("remote.sha1");
+	REGISTER2("remote.sha1");
+	char *s = s_remote_sha1(vm, STR1(vm));
+	vm->acc = 1;
+	if (s) {
+		REG2(vm) = vm_heap_strdup(vm, s);
+		vm->acc = 0;
+	}
+}
+
+static void op_remote_file(vm_t *vm)
+{
+	ARG2("remote.file");
+	vm->acc = s_remote_file(vm, STR1(vm), STR2(vm));
+}
+
+/************************************************************************/
+
+int vm_iscode(byte_t *code, size_t len)
+{
+	if ((!code)           /* gotta have a pointer to _something_ */
+	 || (len < 4)     /* smallest bytecode image is 'pn<HALT>00' */
+	 || (code[0] != 'p'  /* bytecode "magic number" is 0x70 0x68 */
+	  || code[1] != 'n'))                 /* (which spells "pn") */
+		return 0;
+
+	return 1; /* OK! */
+}
+
 int vm_reset(vm_t *vm)
 {
 	assert(vm);
@@ -1135,7 +2300,7 @@ int vm_reset(vm_t *vm)
 	return 0;
 }
 
-int vm_prime(vm_t *vm, byte_t *code, size_t len)
+int vm_load(vm_t *vm, byte_t *code, size_t len)
 {
 	assert(vm);
 	assert(code);
@@ -1143,14 +2308,14 @@ int vm_prime(vm_t *vm, byte_t *code, size_t len)
 	assert(code[0] == 'p' && code[1] == 'n');
 
 	/* default pragmas */
-	hash_set(&vm->pragma, "authdb.root",  strdup(AUTHDB_ROOT));
-	hash_set(&vm->pragma, "augeas.root",  strdup(AUGEAS_ROOT));
-	hash_set(&vm->pragma, "augeas.libs",  strdup(AUGEAS_LIBS));
-	hash_set(&vm->pragma, "localsys.cmd", strdup("cw localsys"));
+	hash_set(&vm->pragma, "authdb.root",  AUTHDB_ROOT);
+	hash_set(&vm->pragma, "augeas.root",  AUGEAS_ROOT);
+	hash_set(&vm->pragma, "augeas.libs",  AUGEAS_LIBS);
+	hash_set(&vm->pragma, "localsys.cmd", "cw localsys");
 
 	/* default properties */
-	hash_set(&vm->props, "version", strdup(CLOCKWORK_VERSION));
-	hash_set(&vm->props, "runtime", strdup(CLOCKWORK_RUNTIME));
+	hash_set(&vm->props, "version", CLOCKWORK_VERSION);
+	hash_set(&vm->props, "runtime", CLOCKWORK_RUNTIME);
 
 	list_init(&vm->acl);
 
@@ -1177,1058 +2342,56 @@ int vm_args(vm_t *vm, int argc, char **argv)
 	return 0;
 }
 
-#define B_ERR(...) do { \
-	fprintf(vm->stderr, "pendulum bytecode error (0x%04x): ", vm->pc); \
-	fprintf(vm->stderr, __VA_ARGS__); \
-	fprintf(vm->stderr, "\n"); \
-	return 1; \
-} while (0)
-
-#define ARG0(s) do { if ( f1 ||  f2) B_ERR(s " takes no operands");            } while (0)
-#define ARG1(s) do { if (!f1 ||  f2) B_ERR(s " requires exactly one operand"); } while (0)
-#define ARG2(s) do { if (!f1 || !f2) B_ERR(s " requires two operands");        } while (0)
-#define REGISTER1(s) do { if (!is_register(f1)) B_ERR(s " must be given a register as its first operand"); \
-	if (oper1 > NREGS) B_ERR("register index %i out of bounds", oper1); } while (0)
-#define REGISTER2(s) do { if (!is_register(f2)) B_ERR(s " must be given a register as its second operand"); \
-	if (oper2 > NREGS) B_ERR("register index %i out of bounds", oper2); } while (0)
-
 int vm_exec(vm_t *vm)
 {
-	byte_t op, f1, f2;
-	dword_t oper1, oper2;
-	char *s;
-	const char *v;
-	acl_t *acl;
-
-	runner_t runner;
-	char execline[8192];
-
 	vm->pc = 2; /* skip the header */
-	while (!vm->abort) {
-		oper1 = oper2 = 0;
-		op = vm->code[vm->pc++];
-		f1 = HI_NYBLE(vm->code[vm->pc]);
-		f2 = LO_NYBLE(vm->code[vm->pc]);
+again:
+	while (!vm->stop) {
+		vm->oper1 = vm->oper2 = 0;
+		vm->op = vm->code[vm->pc++];
+		vm->f1 = HI_NYBLE(vm->code[vm->pc]);
+		vm->f2 = LO_NYBLE(vm->code[vm->pc]);
 
 		if (vm->trace)
-			fprintf(vm->stderr, "+%s [%02x]", OPCODES[op], vm->code[vm->pc]);
+			fprintf(vm->stderr, "+%s [%02x]", OPCODES[vm->op], vm->code[vm->pc]);
 		vm->pc++;
 
-		if (f2 && !f1)
-			B_ERR("corrupt operands mask detected; f1=%02x, f2=%02x", f1, f2);
+		if (vm->f2 && !vm->f1)
+			B_ERR("corrupt operands mask detected; vm->f1=%02x, vm->f2=%02x", vm->f1, vm->f2);
 
-		if (f1) {
-			oper1 = DWORD(vm->code[vm->pc + 0],
-			              vm->code[vm->pc + 1],
-			              vm->code[vm->pc + 2],
-			              vm->code[vm->pc + 3]);
+		if (vm->f1) {
+			vm->oper1 = DWORD(vm->code[vm->pc + 0],
+			                  vm->code[vm->pc + 1],
+			                  vm->code[vm->pc + 2],
+			                  vm->code[vm->pc + 3]);
 			vm->pc += 4;
 			if (vm->trace)
-				fprintf(vm->stderr, " %08x", oper1);
+				fprintf(vm->stderr, " %08x", vm->oper1);
 		}
 
-		if (f2) {
-			oper2 = DWORD(vm->code[vm->pc + 0],
-			              vm->code[vm->pc + 1],
-			              vm->code[vm->pc + 2],
-			              vm->code[vm->pc + 3]);
+		if (vm->f2) {
+			vm->oper2 = DWORD(vm->code[vm->pc + 0],
+			                  vm->code[vm->pc + 1],
+			                  vm->code[vm->pc + 2],
+			                  vm->code[vm->pc + 3]);
 			vm->pc += 4;
 			if (vm->trace)
-				fprintf(vm->stderr, " %08x", oper2);
+				fprintf(vm->stderr, " %08x", vm->oper2);
 		}
 		if (vm->trace)
 			fprintf(vm->stderr, "\n");
 
-		switch (op) {
-		case OP_NOOP:
-			break;
-
-		case OP_PUSH:
-			ARG1("push");
-			REGISTER1("push");
-
-			s_push(vm, &vm->dstack, vm->r[oper1]);
-			break;
-
-		case OP_POP:
-			ARG1("pop");
-			REGISTER1("pop");
-
-			vm->r[oper1] = s_pop(vm, &vm->dstack);
-			break;
-
-		case OP_SET:
-			ARG2("set");
-			REGISTER1("set");
-
-			vm->r[oper1] = s_val(vm, f2, oper2);
-			break;
-
-		case OP_SWAP:
-			ARG2("swap");
-			REGISTER1("swap");
-			REGISTER2("swap");
-
-			if (oper1 == oper2)
-				B_ERR("swap requires distinct registers");
-
-			vm->r[oper1] ^= vm->r[oper2];
-			vm->r[oper2] ^= vm->r[oper1];
-			vm->r[oper1] ^= vm->r[oper2];
-			break;
-
-		case OP_ACC:
-			ARG1("acc");
-			REGISTER1("acc");
-
-			vm->r[oper1] = vm->acc;
-			break;
-
-		case OP_ADD:
-			ARG2("add");
-			REGISTER1("add");
-
-			vm->r[oper1] += s_val(vm, f2, oper2);
-			break;
-
-		case OP_SUB:
-			ARG2("sub");
-			REGISTER1("sub");
-
-			vm->r[oper1] -= s_val(vm, f2, oper2);
-			break;
-
-		case OP_MULT:
-			ARG2("mult");
-			REGISTER1("mult");
-
-			vm->r[oper1] *= s_val(vm, f2, oper2);
-			break;
-
-		case OP_DIV:
-			ARG2("div");
-			REGISTER1("div");
-
-			vm->r[oper1] /= s_val(vm, f2, oper2);
-			break;
-
-		case OP_MOD:
-			ARG2("mod");
-			REGISTER1("mod");
-
-			vm->r[oper1] %= s_val(vm, f2, oper2);
-			break;
-
-		case OP_CALL:
-			ARG1("call");
-			if (!is_address(f1))
-				B_ERR("call requires an address for operand 1");
-
-			s_save_state(vm);
-			s_push(vm, &vm->istack, vm->pc);
-			vm->pc = oper1;
-			break;
-
-		case OP_TRY:
-			ARG1("try");
-			if (!is_address(f1))
-				B_ERR("try requires an address for operand 1");
-
-			s_save_state(vm);
-			s_push(vm, &vm->tstack, vm->tryc);
-			vm->tryc = vm->pc;
-			s_push(vm, &vm->istack, vm->pc);
-			vm->pc = oper1;
-			break;
-
-		case OP_RET:
-			if (f1) {
-				ARG1("ret");
-				vm->acc = s_val(vm, f1, oper1);
-			} else {
-				ARG0("ret");
-			}
-			if (s_empty(&vm->istack))
-				return 0; /* last RET == HALT */
-			vm->pc = s_pop(vm, &vm->istack);
-			if (vm->tryc == vm->pc)
-				vm->tryc = s_pop(vm, &vm->tstack);
-			s_restore_state(vm);
-			break;
-
-		case OP_BAIL:
-			ARG1("bail");
-			vm->acc = s_val(vm, f1, oper1);
-
-			if (vm->tryc == 0)
-				return 0; /* last BAIL == HALT */
-
-			while (vm->pc != vm->tryc) {
-				vm->pc = s_pop(vm, &vm->istack);
-				s_restore_state(vm);
-			}
-			vm->tryc = s_pop(vm, &vm->tstack);
-			break;
-
-		case OP_EQ:
-			ARG2("eq");
-			vm->acc = (s_val(vm, f1, oper1) == s_val(vm, f2, oper2)) ? 0 : 1;
-			break;
-
-		case OP_GT:
-			ARG2("gt");
-			vm->acc = (s_val(vm, f1, oper1) >  s_val(vm, f2, oper2)) ? 0 : 1;
-			break;
-
-		case OP_GTE:
-			ARG2("gte");
-			vm->acc = (s_val(vm, f1, oper1) >= s_val(vm, f2, oper2)) ? 0 : 1;
-			break;
-
-		case OP_LT:
-			ARG2("lt");
-			vm->acc = (s_val(vm, f1, oper1) <  s_val(vm, f2, oper2)) ? 0 : 1;
-			break;
-
-		case OP_LTE:
-			ARG2("lte");
-			vm->acc = (s_val(vm, f1, oper1) <= s_val(vm, f2, oper2)) ? 0 : 1;
-			break;
-
-		case OP_STREQ:
-			ARG2("streq");
-			vm->acc = strcmp(s_str(vm, f1, oper1), s_str(vm, f2, oper2)) == 0 ? 0 : 1;
-			break;
-
-		case OP_JMP:
-			ARG1("jmp");
-			vm->pc = oper1;
-			break;
-
-		case OP_JZ:
-			ARG1("jz");
-			if (vm->acc == 0) vm->pc = s_val(vm, f1, oper1);
-			break;
-
-		case OP_JNZ:
-			ARG1("jnz");
-			if (vm->acc != 0) vm->pc = s_val(vm, f1, oper1);
-			break;
-
-		case OP_STRING:
-			ARG2("str");
-			REGISTER2("str");
-
-			vm->r[oper2] = vm_sprintf(vm, s_str(vm, f1, oper1));
-			break;
-
-		case OP_PRINT:
-			ARG1("print");
-			vm_fprintf(vm, vm->stdout, s_str(vm, f1, oper1));
-			break;
-
-		case OP_ERROR:
-			ARG1("error");
-			vm_fprintf(vm, vm->stderr, s_str(vm, f1, oper1));
-			fprintf(vm->stderr, "\n");
-			break;
-
-		case OP_PERROR:
-			ARG1("perror");
-			vm_fprintf(vm, vm->stderr, s_str(vm, f1, oper1));
-			fprintf(vm->stderr, ": (%i) %s\n", errno, strerror(errno));
-			break;
-
-		case OP_SYSLOG:
-			ARG2("syslog");
-			s = _sprintf(vm, s_str(vm, f2, oper2));
-			logger(log_level_number(s_str(vm, f1, oper1)), s); free(s);
-			break;
-
-		case OP_FLAG:
-			ARG1("flag");
-			hash_set(&vm->flags, s_str(vm, f1, oper1), "Y");
-			vm->acc = 0;
-			break;
-
-		case OP_UNFLAG:
-			ARG1("unflag");
-			hash_set(&vm->flags, s_str(vm, f1, oper1), NULL);
-			vm->acc = 0;
-			break;
-
-		case OP_FLAGGED_P:
-			ARG1("flagged?");
-			vm->acc = hash_get(&vm->flags, s_str(vm, f1, oper1)) ? 0 : 1;
-			break;
-
-		case OP_FS_STAT:
-			ARG1("fs.stat");
-			vm->acc = lstat(s_str(vm, f1, oper1), &vm->aux.stat);
-			break;
-
-		case OP_FS_TYPE:
-			ARG2("fs.type");
-			REGISTER2("fs.type");
-			vm->acc = lstat(s_str(vm, f1, oper1), &vm->aux.stat);
-			if (vm->acc != 0) {
-				vm->r[oper2] = vm_heap_strdup(vm, "non-existent file");
-			} else if (S_ISREG(vm->aux.stat.st_mode)) {
-				vm->r[oper2] = vm_heap_strdup(vm, "regular file");
-			} else if (S_ISLNK(vm->aux.stat.st_mode)) {
-				vm->r[oper2] = vm_heap_strdup(vm, "symbolic link");
-			} else if (S_ISDIR(vm->aux.stat.st_mode)) {
-				vm->r[oper2] = vm_heap_strdup(vm, "directory");
-			} else if (S_ISCHR(vm->aux.stat.st_mode)) {
-				vm->r[oper2] = vm_heap_strdup(vm, "character device");
-			} else if (S_ISBLK(vm->aux.stat.st_mode)) {
-				vm->r[oper2] = vm_heap_strdup(vm, "block device");
-			} else if (S_ISFIFO(vm->aux.stat.st_mode)) {
-				vm->r[oper2] = vm_heap_strdup(vm, "FIFO pipe");
-			} else if (S_ISSOCK(vm->aux.stat.st_mode)) {
-				vm->r[oper2] = vm_heap_strdup(vm, "UNIX domain socket");
-			} else {
-				vm->r[oper2] = vm_heap_strdup(vm, "unknown file");
-			}
-			break;
-
-		case OP_FS_FILE_P:
-			ARG1("fs.file?");
-			vm->acc = lstat(s_str(vm, f1, oper1), &vm->aux.stat);
-			if (vm->acc == 0) vm->acc = S_ISREG(vm->aux.stat.st_mode) ? 0 : 1;
-			break;
-
-		case OP_FS_SYMLINK_P:
-			ARG1("fs.symlink?");
-			vm->acc = lstat(s_str(vm, f1, oper1), &vm->aux.stat);
-			if (vm->acc == 0) vm->acc = S_ISLNK(vm->aux.stat.st_mode) ? 0 : 1;
-			break;
-
-		case OP_FS_DIR_P:
-			ARG1("fs.dir?");
-			vm->acc = lstat(s_str(vm, f1, oper1), &vm->aux.stat);
-			if (vm->acc == 0) vm->acc = S_ISDIR(vm->aux.stat.st_mode) ? 0 : 1;
-			break;
-
-		case OP_FS_CHARDEV_P:
-			ARG1("fs.chardev?");
-			vm->acc = lstat(s_str(vm, f1, oper1), &vm->aux.stat);
-			if (vm->acc == 0) vm->acc = S_ISCHR(vm->aux.stat.st_mode) ? 0 : 1;
-			break;
-
-		case OP_FS_BLOCKDEV_P:
-			ARG1("fs.blockdev?");
-			vm->acc = lstat(s_str(vm, f1, oper1), &vm->aux.stat);
-			if (vm->acc == 0) vm->acc = S_ISBLK(vm->aux.stat.st_mode) ? 0 : 1;
-			break;
-
-		case OP_FS_FIFO_P:
-			ARG1("fs.fifo?");
-			vm->acc = lstat(s_str(vm, f1, oper1), &vm->aux.stat);
-			if (vm->acc == 0) vm->acc = S_ISFIFO(vm->aux.stat.st_mode) ? 0 : 1;
-			break;
-
-		case OP_FS_SOCKET_P:
-			ARG1("fs.socket?");
-			vm->acc = lstat(s_str(vm, f1, oper1), &vm->aux.stat);
-			if (vm->acc == 0) vm->acc = S_ISSOCK(vm->aux.stat.st_mode) ? 0 : 1;
-			break;
-
-		case OP_FS_READLINK:
-			ARG2("fs.readlink");
-			REGISTER2("fs.readlink");
-
-			vm->acc = lstat(s_str(vm, f1, oper1), &vm->aux.stat);
-			if (vm->acc != 0) break;
-
-			vm->acc = S_ISLNK(vm->aux.stat.st_mode) ? 0 : 1;
-			if (vm->acc != 0) break;
-
-			s = vmalloc((vm->aux.stat.st_size + 1) * sizeof(char));
-			if (readlink(s_str(vm, f1, oper1), s, vm->aux.stat.st_size) != vm->aux.stat.st_size) {
-				free(s);
-				vm->acc = 1;
-				errno = ENOBUFS;
-				break;
-			}
-			if (vm->acc != 0) break;
-
-			vm->r[oper2] = vm_heap_strdup(vm, s);
-			free(s);
-			break;
-
-		case OP_FS_DEV:
-			ARG2("fs.dev");
-			REGISTER2("fs.dev");
-
-			vm->acc = lstat(s_str(vm, f1, oper1), &vm->aux.stat);
-			if (vm->acc == 0) vm->r[oper2] = vm->aux.stat.st_dev;
-			break;
-
-		case OP_FS_INODE:
-			ARG2("fs.inode");
-			REGISTER2("fs.inode");
-
-			vm->acc = lstat(s_str(vm, f1, oper1), &vm->aux.stat);
-			if (vm->acc == 0) vm->r[oper2] = vm->aux.stat.st_ino;
-			break;
-
-		case OP_FS_MODE:
-			ARG2("fs.mode");
-			REGISTER2("fs.mode");
-
-			vm->acc = lstat(s_str(vm, f1, oper1), &vm->aux.stat);
-			if (vm->acc == 0) vm->r[oper2] = vm->aux.stat.st_mode & 07777;
-			break;
-
-		case OP_FS_NLINK:
-			ARG2("fs.nlink");
-			REGISTER2("fs.nlink");
-
-			vm->acc = lstat(s_str(vm, f1, oper1), &vm->aux.stat);
-			if (vm->acc == 0) vm->r[oper2] = vm->aux.stat.st_nlink;
-			break;
-
-		case OP_FS_UID:
-			ARG2("fs.uid");
-			REGISTER2("fs.uid");
-
-			vm->acc = lstat(s_str(vm, f1, oper1), &vm->aux.stat);
-			if (vm->acc == 0) vm->r[oper2] = vm->aux.stat.st_uid;
-			break;
-
-		case OP_FS_GID:
-			ARG2("fs.gid");
-			REGISTER2("fs.gid");
-
-			vm->acc = lstat(s_str(vm, f1, oper1), &vm->aux.stat);
-			if (vm->acc == 0) vm->r[oper2] = vm->aux.stat.st_gid;
-			break;
-
-		case OP_FS_MAJOR:
-			ARG2("fs.major");
-			REGISTER2("fs.major");
-
-			vm->acc = lstat(s_str(vm, f1, oper1), &vm->aux.stat);
-			if (vm->acc == 0) vm->r[oper2] = major(vm->aux.stat.st_rdev);
-			break;
-
-		case OP_FS_MINOR:
-			ARG2("fs.minor");
-			REGISTER2("fs.minor");
-
-			vm->acc = lstat(s_str(vm, f1, oper1), &vm->aux.stat);
-			if (vm->acc == 0) vm->r[oper2] = minor(vm->aux.stat.st_rdev);
-			break;
-
-		case OP_FS_SIZE:
-			ARG2("fs.size");
-			REGISTER2("fs.size");
-
-			vm->acc = lstat(s_str(vm, f1, oper1), &vm->aux.stat);
-			if (vm->acc == 0) vm->r[oper2] = vm->aux.stat.st_size;
-			break;
-
-		case OP_FS_ATIME:
-			ARG2("fs.atime");
-			REGISTER2("fs.atime");
-
-			vm->acc = lstat(s_str(vm, f1, oper1), &vm->aux.stat);
-			if (vm->acc == 0) vm->r[oper2] = vm->aux.stat.st_atime;
-			break;
-
-		case OP_FS_MTIME:
-			ARG2("fs.mtime");
-			REGISTER2("fs.mtime");
-
-			vm->acc = lstat(s_str(vm, f1, oper1), &vm->aux.stat);
-			if (vm->acc == 0) vm->r[oper2] = vm->aux.stat.st_mtime;
-			break;
-
-		case OP_FS_CTIME:
-			ARG2("fs.ctime");
-			REGISTER2("fs.ctime");
-
-			vm->acc = lstat(s_str(vm, f1, oper1), &vm->aux.stat);
-			if (vm->acc == 0) vm->r[oper2] = vm->aux.stat.st_ctime;
-			break;
-
-		case OP_FS_TOUCH:
-			ARG1("fs.touch");
-			vm->acc = close(open(s_str(vm, f1, oper1), O_CREAT, 0777));
-			break;
-
-		case OP_FS_MKDIR:
-			ARG1("fs.mkdir");
-			vm->acc = mkdir(s_str(vm, f1, oper1), 0777);
-			break;
-
-		case OP_FS_LINK:
-			ARG2("fs.link");
-			vm->acc = lstat(s_str(vm, f1, oper1), &vm->aux.stat);
-			if (vm->acc != 0) break;
-
-			if (S_ISDIR(vm->aux.stat.st_mode)) {
-				errno = EISDIR;
-				vm->acc = 1;
-				break;
-			}
-
-			vm->acc = link(s_str(vm, f1, oper1), s_str(vm, f2, oper2));
-			break;
-
-		case OP_FS_UNLINK:
-			ARG1("fs.unlink");
-			vm->acc = unlink(s_str(vm, f1, oper1));
-			break;
-
-		case OP_FS_RMDIR:
-			ARG1("fs.rmdir");
-			vm->acc = rmdir(s_str(vm, f1, oper1));
-			break;
-
-		case OP_FS_RENAME:
-			ARG2("fs.rename");
-			vm->acc = rename(s_str(vm, f1, oper1), s_str(vm, f2, oper2));
-			break;
-
-		case OP_FS_COPY:
-			ARG2("fs.copy");
-			vm->acc = s_copy(s_str(vm, f1, oper1), s_str(vm, f2, oper2));
-			break;
-
-		case OP_FS_CHOWN:
-			ARG2("fs.chown");
-			vm->acc = lchown(s_str(vm, f1, oper1), s_val(vm, f2, oper2), -1);
-			break;
-
-		case OP_FS_CHGRP:
-			ARG2("fs.chgrp");
-			vm->acc = lchown(s_str(vm, f1, oper1), -1, s_val(vm, f2, oper2));
-			break;
-
-		case OP_FS_CHMOD:
-			ARG2("fs.chmod");
-			vm->acc = chmod(s_str(vm, f1, oper1), s_val(vm, f2, oper2) & 07777);
-			break;
-
-		case OP_FS_SHA1:
-			ARG2("fs.sha1");
-			REGISTER2("fs.sha1");
-			vm->acc = sha1_file(s_str(vm, f1, oper1), &vm->aux.sha1);
-			vm->r[oper2] = vm_heap_strdup(vm, vm->aux.sha1.hex);
-			break;
-
-		case OP_FS_GET:
-			ARG2("fs.get");
-			REGISTER2("fs.get");
-			s = s_fs_get(s_str(vm, f1, oper1));
-			vm->acc = s ? 0 : 1;
-			if (!s) break;
-
-			vm->r[oper2] = vm_heap_strdup(vm, s); free(s);
-			break;
-
-		case OP_FS_PUT:
-			ARG2("fs.put");
-			vm->acc = s_fs_put(s_str(vm, f1, oper1), s_str(vm, f2, oper2));
-			break;
-
-		case OP_AUTHDB_OPEN:
-			ARG0("authdb.open");
-
-			authdb_close(vm->aux.authdb);
-			vm->aux.authdb = authdb_read(hash_get(&vm->pragma, "authdb.root"), AUTHDB_ALL);
-			vm->acc = vm->aux.authdb != NULL ? 0 : 1;
-			break;
-
-		case OP_AUTHDB_SAVE:
-			ARG0("authdb.save");
-			vm->acc = authdb_write(vm->aux.authdb);
-			break;
-
-		case OP_AUTHDB_CLOSE:
-			ARG0("authdb.close");
-			authdb_close(vm->aux.authdb);
-			vm->aux.authdb = NULL;
-			vm->acc = 0;
-			break;
-
-		case OP_AUTHDB_NEXTUID:
-			ARG2("authdb.nextuid");
-			REGISTER2("authdb.nextuid");
-			vm->acc = authdb_nextuid(vm->aux.authdb, s_val(vm, f1, oper1));
-			if (vm->acc < 65536) {
-				vm->r[oper2] = vm->acc;
-				vm->acc = 0;
-			}
-			break;
-
-		case OP_AUTHDB_NEXTGID:
-			ARG2("authdb.nextgid");
-			REGISTER2("authdb.nextuid");
-			vm->acc = authdb_nextgid(vm->aux.authdb, s_val(vm, f1, oper1));
-			if (vm->acc < 65536) {
-				vm->r[oper2] = vm->acc;
-				vm->acc = 0;
-			}
-			break;
-
-		case OP_USER_FIND:
-			ARG1("user.find");
-			vm->aux.user = user_find(vm->aux.authdb, s_str(vm, f1, oper1), -1);
-			vm->acc = vm->aux.user ? 0 : 1;
-			break;
-
-		case OP_USER_GET:
-			ARG2("user.get");
-			REGISTER2("user.get");
-			if (!vm->aux.user) {
-				vm->acc = 1;
-				break;
-			}
-
-			vm->acc = 0;
-			v = s_str(vm, f1, oper1);
-
-			if (strcmp(v, "uid") == 0) {
-				vm->r[oper2] = vm->aux.user->uid;
-
-			} else if (strcmp(v, "gid") == 0) {
-				vm->r[oper2] = vm->aux.user->gid;
-
-			} else if (strcmp(v, "username") == 0) {
-				vm->r[oper2] = vm_heap_strdup(vm, vm->aux.user->name);
-
-			} else if (strcmp(v, "comment") == 0) {
-				vm->r[oper2] = vm_heap_strdup(vm, vm->aux.user->comment);
-
-			} else if (strcmp(v, "home") == 0) {
-				vm->r[oper2] = vm_heap_strdup(vm, vm->aux.user->home);
-
-			} else if (strcmp(v, "shell") == 0) {
-				vm->r[oper2] = vm_heap_strdup(vm, vm->aux.user->shell);
-
-			} else if (strcmp(v, "password") == 0) {
-				vm->r[oper2] = vm_heap_strdup(vm, vm->aux.user->clear_pass);
-
-			} else if (strcmp(v, "pwhash") == 0) {
-				vm->r[oper2] = vm_heap_strdup(vm, vm->aux.user->crypt_pass);
-
-			} else if (strcmp(v, "changed") == 0) {
-				vm->r[oper2] = vm->aux.user->creds.last_changed;
-
-			} else if (strcmp(v, "pwmin") == 0) {
-				vm->r[oper2] = vm->aux.user->creds.min_days;
-
-			} else if (strcmp(v, "pwmax") == 0) {
-				vm->r[oper2] = vm->aux.user->creds.max_days;
-
-			} else if (strcmp(v, "pwwarn") == 0) {
-				vm->r[oper2] = vm->aux.user->creds.warn_days;
-
-			} else if (strcmp(v, "inact") == 0) {
-				vm->r[oper2] = vm->aux.user->creds.grace_period;
-
-			} else if (strcmp(v, "expiry") == 0) {
-				vm->r[oper2] = vm->aux.user->creds.expiration;
-
-			} else {
-				vm->acc = 1;
-			}
-			break;
-
-		case OP_USER_SET:
-			ARG2("user.set");
-			if (!vm->aux.user) {
-				vm->acc = 1;
-				break;
-			}
-
-			vm->acc = 0;
-			v = s_str(vm, f1, oper1);
-
-			if (strcmp(v, "uid") == 0) {
-				vm->aux.user->uid = s_val(vm, f2, oper2);
-
-			} else if (strcmp(v, "gid") == 0) {
-				vm->aux.user->gid = s_val(vm, f2, oper2);
-
-			} else if (strcmp(v, "username") == 0) {
-				free(vm->aux.user->name);
-				vm->aux.user->name = strdup(s_str(vm, f2, oper2));
-
-			} else if (strcmp(v, "comment") == 0) {
-				free(vm->aux.user->comment);
-				vm->aux.user->comment = strdup(s_str(vm, f2, oper2));
-
-			} else if (strcmp(v, "home") == 0) {
-				free(vm->aux.user->home);
-				vm->aux.user->home = strdup(s_str(vm, f2, oper2));
-
-			} else if (strcmp(v, "shell") == 0) {
-				free(vm->aux.user->shell);
-				vm->aux.user->shell = strdup(s_str(vm, f2, oper2));
-
-			} else if (strcmp(v, "password") == 0) {
-				free(vm->aux.user->clear_pass);
-				vm->aux.user->clear_pass = strdup(s_str(vm, f2, oper2));
-
-			} else if (strcmp(v, "pwhash") == 0) {
-				free(vm->aux.user->crypt_pass);
-				vm->aux.user->crypt_pass = strdup(s_str(vm, f2, oper2));
-
-			} else if (strcmp(v, "changed") == 0) {
-				vm->aux.user->creds.last_changed = s_val(vm, f2, oper2);
-
-			} else if (strcmp(v, "pwmin") == 0) {
-				vm->aux.user->creds.min_days = s_val(vm, f2, oper2);
-
-			} else if (strcmp(v, "pwmax") == 0) {
-				vm->aux.user->creds.max_days = s_val(vm, f2, oper2);
-
-			} else if (strcmp(v, "pwwarn") == 0) {
-				vm->aux.user->creds.warn_days = s_val(vm, f2, oper2);
-
-			} else if (strcmp(v, "inact") == 0) {
-				vm->aux.user->creds.grace_period = s_val(vm, f2, oper2);
-
-			} else if (strcmp(v, "expiry") == 0) {
-				vm->aux.user->creds.expiration = s_val(vm, f2, oper2);
-
-			} else {
-				vm->acc = 1;
-			}
-			break;
-
-		case OP_USER_NEW:
-			ARG0("user.new");
-			vm->aux.user = user_add(vm->aux.authdb);
-			vm->acc = vm->aux.user ? 0 : 1;
-			break;
-
-		case OP_USER_DELETE:
-			ARG0("user.delete");
-			if (!vm->aux.user) {
-				vm->acc = 1;
-				break;
-			}
-			user_remove(vm->aux.user);
-			vm->acc = 0;
-			break;
-
-		case OP_GROUP_FIND:
-			ARG1("group.find");
-			vm->aux.group = group_find(vm->aux.authdb, s_str(vm, f1, oper1), -1);
-			vm->acc = vm->aux.group ? 0 : 1;
-			break;
-
-		case OP_GROUP_GET:
-			ARG2("group.get");
-			REGISTER2("group.get");
-			if (!vm->aux.group) {
-				vm->acc = 1;
-				break;
-			}
-
-			vm->acc = 0;
-			v = s_str(vm, f1, oper1);
-
-			if (strcmp(v, "gid") == 0) {
-				vm->r[oper2] = vm->aux.group->gid;
-
-			} else if (strcmp(v, "name") == 0) {
-				vm->r[oper2] = vm_heap_strdup(vm, vm->aux.group->name);
-
-			} else if (strcmp(v, "password") == 0) {
-				vm->r[oper2] = vm_heap_strdup(vm, vm->aux.group->clear_pass);
-
-			} else if (strcmp(v, "pwhash") == 0) {
-				vm->r[oper2] = vm_heap_strdup(vm, vm->aux.group->crypt_pass);
-
-			} else {
-				vm->acc = 1;
-			}
-			break;
-
-		case OP_GROUP_SET:
-			ARG2("group.get");
-			if (!vm->aux.group) {
-				vm->acc = 1;
-				break;
-			}
-
-			vm->acc = 0;
-			v = s_str(vm, f1, oper1);
-
-			if (strcmp(v, "gid") == 0) {
-				vm->aux.group->gid = s_val(vm, f2, oper2);
-
-			} else if (strcmp(v, "name") == 0) {
-				free(vm->aux.group->name);
-				vm->aux.group->name = strdup(s_str(vm, f2, oper2));
-
-			} else if (strcmp(v, "password") == 0) {
-				free(vm->aux.group->clear_pass);
-				vm->aux.group->clear_pass = strdup(s_str(vm, f2, oper2));
-
-			} else if (strcmp(v, "pwhash") == 0) {
-				free(vm->aux.group->crypt_pass);
-				vm->aux.group->crypt_pass = strdup(s_str(vm, f2, oper2));
-
-			} else {
-				vm->acc = 1;
-			}
-			break;
-
-		case OP_GROUP_NEW:
-			ARG0("group.new");
-			vm->aux.group = group_add(vm->aux.authdb);
-			vm->acc = vm->aux.group ? 0 : 1;
-			break;
-
-		case OP_GROUP_DELETE:
-			ARG0("group.delete");
-			if (!vm->aux.group) {
-				vm->acc = 1;
-				break;
-			}
-			group_remove(vm->aux.group);
-			vm->acc = 0;
-			break;
-
-		case OP_AUGEAS_INIT:
-			ARG0("augeas.init");
-			vm->aux.augeas = aug_init(
-				hash_get(&vm->pragma, "augeas.root"),
-				hash_get(&vm->pragma, "augeas.libs"),
-				AUG_NO_STDINC|AUG_NO_LOAD|AUG_NO_MODL_AUTOLOAD);
-
-			if (aug_set(vm->aux.augeas, "/augeas/load/Hosts/lens", "Hosts.lns") < 0
-			 || aug_set(vm->aux.augeas, "/augeas/load/Hosts/incl", "/etc/hosts") < 0
-			 || aug_load(vm->aux.augeas) != 0) {
-				vm->acc = 1;
-			} else {
-				vm->acc = 0;
-			}
-			break;
-
-		case OP_AUGEAS_DONE:
-			ARG0("augeas.done");
-			aug_close(vm->aux.augeas);
-			vm->aux.augeas = NULL;
-			vm->acc = 0;
-			break;
-
-		case OP_AUGEAS_PERROR:
-			ARG1("augeas.perror");
-			vm_fprintf(vm, vm->stderr, s_str(vm, f1, oper1));
-			s_aug_perror(vm->stderr, vm->aux.augeas);
-			break;
-
-		case OP_AUGEAS_WRITE:
-			ARG0("augeas.write");
-			vm->acc = aug_save(vm->aux.augeas);
-			break;
-
-		case OP_AUGEAS_SET:
-			ARG2("augeas.set");
-			vm->acc = aug_set(vm->aux.augeas, s_str(vm, f1, oper1), s_str(vm, f2, oper2));
-			break;
-
-		case OP_AUGEAS_GET:
-			ARG2("augeas.get");
-			REGISTER2("augeas.get");
-			if (aug_get(vm->aux.augeas, s_str(vm, f1, oper1), &v) == 1 && v) {
-				vm->r[oper2] = vm_heap_strdup(vm, v);
-				vm->acc = 0;
-			} else {
-				vm->acc = 1;
-			}
-			break;
-
-		case OP_AUGEAS_FIND:
-			ARG2("augeas.find");
-			REGISTER2("augeas.find");
-			s = s_aug_find(vm->aux.augeas, s_str(vm, f1, oper1));
-			if (s) {
-				vm->acc = 0;
-				vm->r[oper2] = vm_heap_strdup(vm, s); free(s);
-			} else {
-				vm->acc = 1;
-			}
-			break;
-
-		case OP_AUGEAS_REMOVE:
-			ARG1("augeas.remove");
-			vm->acc = aug_rm(vm->aux.augeas, s_str(vm, f1, oper1)) > 1 ? 0 : 1;
-			break;
-
-		case OP_ENV_GET:
-			ARG2("env.get");
-			REGISTER2("env.get");
-			s = getenv(s_str(vm, f1, oper1));
-			if (s) {
-				vm->r[oper2] = vm_heap_strdup(vm, s);
-				vm->acc = 0;
-			} else {
-				vm->acc = 1;
-			}
-			break;
-
-		case OP_ENV_SET:
-			ARG2("env.set");
-			vm->acc = setenv(s_str(vm, f1, oper1), s_str(vm, f2, oper2), 1);
-			break;
-
-		case OP_ENV_UNSET:
-			ARG1("env.unset");
-			vm->acc = unsetenv(s_str(vm, f1, oper1));
-			break;
-
-		case OP_LOCALSYS:
-			ARG2("localsys");
-			REGISTER2("localsys");
-			runner.in  = NULL;
-			runner.out = tmpfile();
-			runner.err = tmpfile();
-			runner.uid = geteuid();
-			runner.gid = getegid();
-
-			s = string("%s %s",
-				hash_get(&vm->pragma, "localsys.cmd"),
-				_sprintf(vm, s_str(vm, f1, oper1))); /* FIXME: mem leak */
-			vm->acc = run2(&runner, "/bin/sh", "-c", s, NULL); free(s);
-
-			if (fgets(execline, sizeof(execline), runner.out)) {
-				s = strchr(execline, '\n'); if (s) *s = '\0';
-				vm->r[oper2] = vm_heap_strdup(vm, execline);
-			}
-			fclose(runner.out); runner.out = NULL;
-			fclose(runner.err); runner.err = NULL;
-			break;
-
-		case OP_RUNAS_UID:
-			ARG1("runas.uid");
-			vm->aux.runas_uid = s_val(vm, f1, oper1);
-			if (vm->aux.runas_uid < 0 || vm->aux.runas_uid > 65535)
-				vm->aux.runas_uid = 0;
-			break;
-
-		case OP_RUNAS_GID:
-			ARG1("runas.gid");
-			vm->aux.runas_gid = s_val(vm, f1, oper1);
-			if (vm->aux.runas_gid < 0 || vm->aux.runas_gid > 65535)
-				vm->aux.runas_gid = 0;
-			break;
-
-		case OP_EXEC:
-			ARG2("exec");
-			REGISTER2("exec");
-			runner.in  = NULL;
-			runner.out = tmpfile();
-			runner.err = tmpfile();
-			runner.uid = vm->aux.runas_uid;
-			runner.gid = vm->aux.runas_gid;
-			vm->acc = run2(&runner, "/bin/sh", "-c", s_str(vm, f1, oper1), NULL);
-			if (fgets(execline, sizeof(execline), runner.out)) {
-				s = strchr(execline, '\n'); if (s) *s = '\0';
-				vm->r[oper2] = vm_heap_strdup(vm, execline);
-			}
-			fclose(runner.out); runner.out = NULL;
-			fclose(runner.err); runner.err = NULL;
-			break;
-
-		case OP_DUMP:
-			ARG0("dump");
-			dump(stdout, vm);
-			break;
-
-		case OP_HALT:
-			ARG0("halt");
-			return 0;
-
-		case OP_PRAGMA:
-			ARG2("pragma");
-			v = s_str(vm, f1, oper1);
-
-			if (strcmp(v, "test") == 0) {
-				vm->stderr = strcmp(s_str(vm, f2, oper2), "on") == 0 ? stdout : stderr;
-
-			} else if (strcmp(v, "trace") == 0) {
-				vm->trace = strcmp(s_str(vm, f2, oper2), "on") == 0;
-
-			} else {
-				/* set the value in the pragma hash */
-				free(hash_set(&vm->pragma, v, strdup(s_str(vm, f2, oper2))));
-			}
-			break;
-
-		case OP_PROPERTY:
-			ARG2("property");
-			REGISTER2("property");
-			v = hash_get(&vm->props, s_str(vm, f1, oper1));
-			if (v) {
-				vm->r[oper2] = vm_heap_strdup(vm, v);
-				vm->acc = 0;
-			} else {
-				vm->acc = 1;
-			}
-			break;
-
-		case OP_ACL:
-			ARG1("acl");
-			acl = acl_parse(s_str(vm, f1, oper1));
-			list_push(&vm->acl, &acl->l);
-			vm->acc = 0;
-			break;
-
-		case OP_SHOW_ACLS:
-			ARG0("show.acls");
-			for_each_object(acl, &vm->acl, l) {
-				fprintf(stdout, "%s\n", s = acl_string(acl));
-				free(s);
-			}
-			break;
-
-		case OP_SHOW_ACL:
-			ARG1("show.acl");
-			v = s_str(vm, f1, oper1);
-			for_each_object(acl, &vm->acl, l) {
-				if (!acl_match(acl, v, NULL)) continue;
-				fprintf(stdout, "%s\n", s = acl_string(acl));
-				free(s);
-			}
-			break;
-
-		case OP_REMOTE_LIVE_P:
-			ARG0("remote.live?");
-			vm->acc = vm->aux.remote ? 0 : 1;
-			break;
-
-		case OP_REMOTE_SHA1:
-			ARG2("remote.sha1");
-			REGISTER2("remote.sha1");
-			s = s_remote_sha1(vm, s_str(vm, f1, oper1));
-			vm->acc = 1;
-			if (s) {
-				vm->r[oper2] = vm_heap_strdup(vm, s);
-				vm->acc = 0;
-			}
-			break;
-
-		case OP_REMOTE_FILE:
-			ARG2("remote.file");
-			vm->acc = s_remote_file(vm, s_str(vm, f1, oper1), s_str(vm, f2, oper2));
-			break;
-
-		default:
-			B_ERR("unknown operand %02x", op);
-			return -1;
+		int i;
+		for (i = 0; OPCODE_HANDLERS[i].handler; i++) {
+			if (OPCODE_HANDLERS[i].opcode != vm->op) continue;
+			(*OPCODE_HANDLERS[i].handler)(vm);
+			if (vm->stop) return vm->acc;
+			goto again;
 		}
+		B_ERR("unknown operand %02x", vm->op);
+		return -1;
 	}
-
-	return 1;
+	return vm->acc;
 }
 
 int vm_asm_file(const char *path, byte_t **code, size_t *len)
@@ -2262,54 +2425,73 @@ int vm_asm_io(FILE *io, byte_t **code, size_t *len)
 	return s_vm_asm(&cc, code, len);
 }
 
-int vm_disasm(byte_t *code, size_t len)
+int vm_disasm(vm_t *vm)
 {
-	byte_t op, f1, f2;
-	if (len < 3) return 1;
-	if (code[0] != 'p') return 2;
-	if (code[1] != 'n') return 2;
+	if (vm->codesize < 3) return 1;
+	if (vm->code[0] != 'p') return 2;
+	if (vm->code[1] != 'n') return 2;
 
+	fprintf(stderr, "0x%08x: ", 0);
 	fprintf(stderr, "%02x %02x\n", 'p', 'n');
 
 	size_t i = 2;
-	while (i < len) {
-		op = code[i++];
-		if (op == 0xff && !code[i]) {
+	while (i < vm->codesize) {
+		fprintf(stderr, "0x%08x: ", (dword_t)i);
+		vm->op = vm->code[i++];
+		if (vm->op == 0xff && !vm->code[i]) {
 			fprintf(stderr, "%02x %02x\n", 0xff, 0x00);
 			i++;
 			break;
 		}
-		f1 = HI_NYBLE(code[i]);
-		f2 = LO_NYBLE(code[i]);
-		fprintf(stderr, "%02x %02x", op, code[i++]);
+		vm->f1 = HI_NYBLE(vm->code[i]);
+		vm->f2 = LO_NYBLE(vm->code[i]);
+		fprintf(stderr, "%02x %02x", vm->op, vm->code[i++]);
 
-		if (f2 && !f1) {
-			fprintf(stderr, "pendulum bytecode error: corrupt operands mask detected; f1=%02x, f2=%02x\n", f1, f2);
+		if (vm->f2 && !vm->f1) {
+			fprintf(stderr, "pendulum bytecode error: corrupt operands mask detected; vm->f1=%02x, vm->f2=%02x\n", vm->f1, vm->f2);
 			return 1;
 		}
-		if (f1) {
+		if (vm->f1) {
 			fprintf(stderr, " [%02x %02x %02x %02x]",
-				code[i + 0], code[i + 1], code[i + 2], code[i + 3]);
+				vm->code[i + 0], vm->code[i + 1], vm->code[i + 2], vm->code[i + 3]);
+			vm->oper1 = DWORD(vm->code[i + 0], vm->code[i + 1], vm->code[i + 2], vm->code[i + 3]);
 			i += 4;
+		} else {
+			fprintf(stderr, "%14s", " ");
 		}
-		if (f2) {
-			fprintf(stderr, "      [%02x %02x %02x %02x]",
-				code[i + 0], code[i + 1], code[i + 2], code[i + 3]);
+		fprintf(stderr, "  %12s", OPCODES[vm->op]);
+		if (vm->f1) {
+			switch (vm->f1) {
+			case TYPE_LITERAL:  fprintf(stderr, " %u",     vm->oper1); break;
+			case TYPE_REGISTER: fprintf(stderr, " %%%c",   vm->oper1 + 'a'); break;
+			case TYPE_ADDRESS:  fprintf(stderr, " 0x%08x", vm->oper1); break;
+			default:            fprintf(stderr, " ; operand 1 unknown (0x%x/0x%x)",
+			                                    vm->f1, vm->oper1);
+			}
+		}
+		if (vm->f2) {
+			fprintf(stderr, "\n                  [%02x %02x %02x %02x]  %12s",
+				vm->code[i + 0], vm->code[i + 1], vm->code[i + 2], vm->code[i + 3], "");
+			vm->oper2 = DWORD(vm->code[i + 0], vm->code[i + 1], vm->code[i + 2], vm->code[i + 3]);
 			i += 4;
+
+			switch (vm->f2) {
+			case TYPE_LITERAL:  fprintf(stderr, " %u",     vm->oper2); break;
+			case TYPE_REGISTER: fprintf(stderr, " %%%c",   vm->oper2 + 'a'); break;
+			case TYPE_ADDRESS:  fprintf(stderr, " 0x%08x", vm->oper2); break;
+			default:            fprintf(stderr, " ; operand 2 unknown (0x%x/0x%x)",
+			                                    vm->f2, vm->oper2);
+			}
 		}
+
 		fprintf(stderr, "\n");
 	}
 
 	fprintf(stderr, "---\n");
-	int n = 0;
-	while (i < len) {
-		fprintf(stderr, "%02x", code[i++]);
-		n++;
-		if (n % 16 == 0)  fprintf(stderr, "\n");
-		else if (i < len) fprintf(stderr, " ");
+	while (i < vm->codesize) {
+		fprintf(stderr, "0x%08x: [%s]\n", (dword_t)i, (char *)(vm->code + i));
+		i += strlen((char *)vm->code + i) + 1;
 	}
-	if (n % 16 != 0)
-		fprintf(stderr, "\n");
 	return 0;
 }
 
@@ -2322,8 +2504,8 @@ int vm_done(vm_t *vm)
 		free(h);
 	}
 
-	hash_done(&vm->props,  1);
-	hash_done(&vm->pragma, 1);
+	hash_done(&vm->props,  0);
+	hash_done(&vm->pragma, 0);
 	hash_done(&vm->flags,  0);
 	return 0;
 }

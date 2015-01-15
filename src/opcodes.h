@@ -471,18 +471,6 @@ static const char * ASM[] = {
 #define TYPE_REGISTER  0x2
 #define TYPE_ADDRESS   0x3
 
-static const char *ASM_TYPES[] = {
-	"NONE",
-	"register",
-	"number",
-	"string",
-	"address",
-	"label",
-	"offset",
-	"fnlabel",
-	NULL,
-};
-
 static struct {
 	byte_t      token;
 	const char *usage;
@@ -600,3 +588,232 @@ static struct {
 	{ T_OP_REMOTE_FILE,    "remote.file (%a|<string>) (%b|<string>)",        OP_REMOTE_FILE,    { ARG_REGISTER|ARG_STRING,            ARG_REGISTER|ARG_STRING,            } },
 	{ 0, 0, 0, { 0, 0 } },
 };
+
+
+#ifdef OPCODES_INTERPRETER
+static void op_noop           (vm_t*);
+static void op_push           (vm_t*);
+static void op_pop            (vm_t*);
+static void op_set            (vm_t*);
+static void op_swap           (vm_t*);
+static void op_acc            (vm_t*);
+static void op_add            (vm_t*);
+static void op_sub            (vm_t*);
+static void op_mult           (vm_t*);
+static void op_div            (vm_t*);
+static void op_mod            (vm_t*);
+static void op_call           (vm_t*);
+static void op_try            (vm_t*);
+static void op_ret            (vm_t*);
+static void op_bail           (vm_t*);
+static void op_eq             (vm_t*);
+static void op_lt             (vm_t*);
+static void op_lte            (vm_t*);
+static void op_gt             (vm_t*);
+static void op_gte            (vm_t*);
+static void op_streq          (vm_t*);
+static void op_jmp            (vm_t*);
+static void op_jz             (vm_t*);
+static void op_jnz            (vm_t*);
+static void op_string         (vm_t*);
+static void op_print          (vm_t*);
+static void op_error          (vm_t*);
+static void op_perror         (vm_t*);
+static void op_syslog         (vm_t*);
+static void op_flag           (vm_t*);
+static void op_unflag         (vm_t*);
+static void op_flagged_p      (vm_t*);
+static void op_fs_stat        (vm_t*);
+static void op_fs_type        (vm_t*);
+static void op_fs_file_p      (vm_t*);
+static void op_fs_symlink_p   (vm_t*);
+static void op_fs_dir_p       (vm_t*);
+static void op_fs_chardev_p   (vm_t*);
+static void op_fs_blockdev_p  (vm_t*);
+static void op_fs_fifo_p      (vm_t*);
+static void op_fs_socket_p    (vm_t*);
+static void op_fs_readlink    (vm_t*);
+static void op_fs_dev         (vm_t*);
+static void op_fs_inode       (vm_t*);
+static void op_fs_mode        (vm_t*);
+static void op_fs_nlink       (vm_t*);
+static void op_fs_uid         (vm_t*);
+static void op_fs_gid         (vm_t*);
+static void op_fs_major       (vm_t*);
+static void op_fs_minor       (vm_t*);
+static void op_fs_size        (vm_t*);
+static void op_fs_atime       (vm_t*);
+static void op_fs_mtime       (vm_t*);
+static void op_fs_ctime       (vm_t*);
+static void op_fs_touch       (vm_t*);
+static void op_fs_mkdir       (vm_t*);
+static void op_fs_link        (vm_t*);
+static void op_fs_symlink     (vm_t*);
+static void op_fs_unlink      (vm_t*);
+static void op_fs_rmdir       (vm_t*);
+static void op_fs_rename      (vm_t*);
+static void op_fs_copy        (vm_t*);
+static void op_fs_chown       (vm_t*);
+static void op_fs_chgrp       (vm_t*);
+static void op_fs_chmod       (vm_t*);
+static void op_fs_sha1        (vm_t*);
+static void op_fs_get         (vm_t*);
+static void op_fs_put         (vm_t*);
+static void op_authdb_open    (vm_t*);
+static void op_authdb_save    (vm_t*);
+static void op_authdb_close   (vm_t*);
+static void op_authdb_nextuid (vm_t*);
+static void op_authdb_nextgid (vm_t*);
+static void op_user_find      (vm_t*);
+static void op_user_get       (vm_t*);
+static void op_user_set       (vm_t*);
+static void op_user_new       (vm_t*);
+static void op_user_delete    (vm_t*);
+static void op_group_find     (vm_t*);
+static void op_group_get      (vm_t*);
+static void op_group_set      (vm_t*);
+static void op_group_new      (vm_t*);
+static void op_group_delete   (vm_t*);
+static void op_augeas_init    (vm_t*);
+static void op_augeas_done    (vm_t*);
+static void op_augeas_perror  (vm_t*);
+static void op_augeas_write   (vm_t*);
+static void op_augeas_set     (vm_t*);
+static void op_augeas_get     (vm_t*);
+static void op_augeas_find    (vm_t*);
+static void op_augeas_remove  (vm_t*);
+static void op_env_get        (vm_t*);
+static void op_env_set        (vm_t*);
+static void op_env_unset      (vm_t*);
+static void op_localsys       (vm_t*);
+static void op_runas_uid      (vm_t*);
+static void op_runas_gid      (vm_t*);
+static void op_exec           (vm_t*);
+static void op_dump           (vm_t*);
+static void op_halt           (vm_t*);
+static void op_pragma         (vm_t*);
+static void op_property       (vm_t*);
+static void op_acl            (vm_t*);
+static void op_show_acls      (vm_t*);
+static void op_show_acl       (vm_t*);
+static void op_remote_live_p  (vm_t*);
+static void op_remote_sha1    (vm_t*);
+static void op_remote_file    (vm_t*);
+
+typedef void (*opcode_fn)(vm_t*);
+
+static struct {
+	byte_t     opcode;
+	opcode_fn  handler;
+} OPCODE_HANDLERS[] = {
+	{ OP_NOOP,           op_noop,           },
+	{ OP_PUSH,           op_push,           },
+	{ OP_POP,            op_pop,            },
+	{ OP_SET,            op_set,            },
+	{ OP_SWAP,           op_swap,           },
+	{ OP_ACC,            op_acc,            },
+	{ OP_ADD,            op_add,            },
+	{ OP_SUB,            op_sub,            },
+	{ OP_MULT,           op_mult,           },
+	{ OP_DIV,            op_div,            },
+	{ OP_MOD,            op_mod,            },
+	{ OP_CALL,           op_call,           },
+	{ OP_TRY,            op_try,            },
+	{ OP_RET,            op_ret,            },
+	{ OP_BAIL,           op_bail,           },
+	{ OP_EQ,             op_eq,             },
+	{ OP_LT,             op_lt,             },
+	{ OP_LTE,            op_lte,            },
+	{ OP_GT,             op_gt,             },
+	{ OP_GTE,            op_gte,            },
+	{ OP_STREQ,          op_streq,          },
+	{ OP_JMP,            op_jmp,            },
+	{ OP_JZ,             op_jz,             },
+	{ OP_JNZ,            op_jnz,            },
+	{ OP_STRING,         op_string,         },
+	{ OP_PRINT,          op_print,          },
+	{ OP_ERROR,          op_error,          },
+	{ OP_PERROR,         op_perror,         },
+	{ OP_SYSLOG,         op_syslog,         },
+	{ OP_FLAG,           op_flag,           },
+	{ OP_UNFLAG,         op_unflag,         },
+	{ OP_FLAGGED_P,      op_flagged_p,      },
+	{ OP_FS_STAT,        op_fs_stat,        },
+	{ OP_FS_TYPE,        op_fs_type,        },
+	{ OP_FS_FILE_P,      op_fs_file_p,      },
+	{ OP_FS_SYMLINK_P,   op_fs_symlink_p,   },
+	{ OP_FS_DIR_P,       op_fs_dir_p,       },
+	{ OP_FS_CHARDEV_P,   op_fs_chardev_p,   },
+	{ OP_FS_BLOCKDEV_P,  op_fs_blockdev_p,  },
+	{ OP_FS_FIFO_P,      op_fs_fifo_p,      },
+	{ OP_FS_SOCKET_P,    op_fs_socket_p,    },
+	{ OP_FS_READLINK,    op_fs_readlink,    },
+	{ OP_FS_DEV,         op_fs_dev,         },
+	{ OP_FS_INODE,       op_fs_inode,       },
+	{ OP_FS_MODE,        op_fs_mode,        },
+	{ OP_FS_NLINK,       op_fs_nlink,       },
+	{ OP_FS_UID,         op_fs_uid,         },
+	{ OP_FS_GID,         op_fs_gid,         },
+	{ OP_FS_MAJOR,       op_fs_major,       },
+	{ OP_FS_MINOR,       op_fs_minor,       },
+	{ OP_FS_SIZE,        op_fs_size,        },
+	{ OP_FS_ATIME,       op_fs_atime,       },
+	{ OP_FS_MTIME,       op_fs_mtime,       },
+	{ OP_FS_CTIME,       op_fs_ctime,       },
+	{ OP_FS_TOUCH,       op_fs_touch,       },
+	{ OP_FS_MKDIR,       op_fs_mkdir,       },
+	{ OP_FS_LINK,        op_fs_link,        },
+	{ OP_FS_SYMLINK,     op_fs_symlink,     },
+	{ OP_FS_UNLINK,      op_fs_unlink,      },
+	{ OP_FS_RMDIR,       op_fs_rmdir,       },
+	{ OP_FS_RENAME,      op_fs_rename,      },
+	{ OP_FS_COPY,        op_fs_copy,        },
+	{ OP_FS_CHOWN,       op_fs_chown,       },
+	{ OP_FS_CHGRP,       op_fs_chgrp,       },
+	{ OP_FS_CHMOD,       op_fs_chmod,       },
+	{ OP_FS_SHA1,        op_fs_sha1,        },
+	{ OP_FS_GET,         op_fs_get,         },
+	{ OP_FS_PUT,         op_fs_put,         },
+	{ OP_AUTHDB_OPEN,    op_authdb_open,    },
+	{ OP_AUTHDB_SAVE,    op_authdb_save,    },
+	{ OP_AUTHDB_CLOSE,   op_authdb_close,   },
+	{ OP_AUTHDB_NEXTUID, op_authdb_nextuid, },
+	{ OP_AUTHDB_NEXTGID, op_authdb_nextgid, },
+	{ OP_USER_FIND,      op_user_find,      },
+	{ OP_USER_GET,       op_user_get,       },
+	{ OP_USER_SET,       op_user_set,       },
+	{ OP_USER_NEW,       op_user_new,       },
+	{ OP_USER_DELETE,    op_user_delete,    },
+	{ OP_GROUP_FIND,     op_group_find,     },
+	{ OP_GROUP_GET,      op_group_get,      },
+	{ OP_GROUP_SET,      op_group_set,      },
+	{ OP_GROUP_NEW,      op_group_new,      },
+	{ OP_GROUP_DELETE,   op_group_delete,   },
+	{ OP_AUGEAS_INIT,    op_augeas_init,    },
+	{ OP_AUGEAS_DONE,    op_augeas_done,    },
+	{ OP_AUGEAS_PERROR,  op_augeas_perror,  },
+	{ OP_AUGEAS_WRITE,   op_augeas_write,   },
+	{ OP_AUGEAS_SET,     op_augeas_set,     },
+	{ OP_AUGEAS_GET,     op_augeas_get,     },
+	{ OP_AUGEAS_FIND,    op_augeas_find,    },
+	{ OP_AUGEAS_REMOVE,  op_augeas_remove,  },
+	{ OP_ENV_GET,        op_env_get,        },
+	{ OP_ENV_SET,        op_env_set,        },
+	{ OP_ENV_UNSET,      op_env_unset,      },
+	{ OP_LOCALSYS,       op_localsys,       },
+	{ OP_RUNAS_UID,      op_runas_uid,      },
+	{ OP_RUNAS_GID,      op_runas_gid,      },
+	{ OP_EXEC,           op_exec,           },
+	{ OP_DUMP,           op_dump,           },
+	{ OP_HALT,           op_halt,           },
+	{ OP_PRAGMA,         op_pragma,         },
+	{ OP_PROPERTY,       op_property,       },
+	{ OP_ACL,            op_acl,            },
+	{ OP_SHOW_ACLS,      op_show_acls,      },
+	{ OP_SHOW_ACL,       op_show_acl,       },
+	{ OP_REMOTE_LIVE_P,  op_remote_live_p,  },
+	{ OP_REMOTE_SHA1,    op_remote_sha1,    },
+	{ OP_REMOTE_FILE,    op_remote_file,    },
+	{ 0, 0 },
+};
+#endif

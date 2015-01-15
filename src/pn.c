@@ -25,21 +25,28 @@
 #include <fcntl.h>
 #include <getopt.h>
 
+#define MODE_EXECUTE     1
+#define MODE_ASSEMBLE    2
+#define MODE_DISASSEMBLE 3
+
 int main (int argc, char **argv)
 {
 	int trace = 0, debug = 0;
 	int level = LOG_WARNING;
 	const char *ident = "pn", *facility = "stdout";
+	int mode = MODE_EXECUTE;
 
-	const char *short_opts = "h?vqDVTc";
+	const char *short_opts = "h?vqDVTSd";
 	struct option long_opts[] = {
-		{ "help",     no_argument,       NULL, 'h' },
-		{ "verbose",  no_argument,       NULL, 'v' },
-		{ "quiet",    no_argument,       NULL, 'q' },
-		{ "debug",    no_argument,       NULL, 'D' },
-		{ "version",  no_argument,       NULL, 'V' },
-		{ "trace",    no_argument,       NULL, 'T' },
-		{ "syslog",   required_argument, NULL,  0  },
+		{ "help",        no_argument,       NULL, 'h' },
+		{ "verbose",     no_argument,       NULL, 'v' },
+		{ "quiet",       no_argument,       NULL, 'q' },
+		{ "debug",       no_argument,       NULL, 'D' },
+		{ "version",     no_argument,       NULL, 'V' },
+		{ "trace",       no_argument,       NULL, 'T' },
+		{ "assemble",    no_argument,       NULL, 'S' },
+		{ "disassemble", no_argument,       NULL, 'd' },
+		{ "syslog",      required_argument, NULL,  0  },
 
 		{ 0, 0, 0, 0 },
 	};
@@ -75,6 +82,14 @@ int main (int argc, char **argv)
 			trace = 1;
 			break;
 
+		case 'S':
+			mode = MODE_ASSEMBLE;
+			break;
+
+		case 'd':
+			mode = MODE_DISASSEMBLE;
+			break;
+
 		case 0: /* --syslog */
 			facility = argv[optind];
 			break;
@@ -95,37 +110,84 @@ int main (int argc, char **argv)
 		perror(argv[optind]);
 		return 1;
 	}
-	off_t n = lseek(fd, 0, SEEK_END);
-	if (n < 0) {
-		perror(argv[optind]);
-		return 1;
+
+	if (mode == MODE_EXECUTE || mode == MODE_DISASSEMBLE) {
+		/* modes that require a valid binary image */
+		off_t n = lseek(fd, 0, SEEK_END);
+		if (n < 0) {
+			perror(argv[optind]);
+			return 1;
+		}
+		byte_t *code = mmap(NULL, n, PROT_READ, MAP_PRIVATE, fd, 0);
+		if (!code) {
+			perror(argv[optind]);
+			return 1;
+		}
+		if (!vm_iscode(code, n)) {
+			fprintf(stderr, "%s: not a Pendulum bytecode image.\n", argv[optind]);
+			return 2;
+		}
+
+		vm_t vm;
+		rc = vm_reset(&vm);
+		assert(rc == 0);
+
+		rc = vm_load(&vm, code, n);
+		assert(rc == 0);
+
+		if (mode == MODE_EXECUTE) {
+			rc = vm_args(&vm, argc - optind, argv + optind);
+			assert(rc == 0);
+
+			vm.trace = trace;
+			vm_exec(&vm);
+
+			rc = vm_done(&vm);
+			assert(rc == 0);
+
+			return 0;
+		}
+
+		if (mode == MODE_DISASSEMBLE) {
+			vm_disasm(&vm);
+
+			rc = vm_done(&vm);
+			assert(rc == 0);
+
+			return 0;
+		}
 	}
-	if (n == 0) {
-		fprintf(stderr, "%s: not a valid pendulum binary image\n", argv[optind]);
-		return 1;
+
+	if (mode == MODE_ASSEMBLE) {
+		byte_t *code;
+		size_t len;
+
+		FILE *io = fdopen(fd, "r");
+		if (!io) {
+			perror("fdopen");
+			return 1;
+		}
+
+		rc = vm_asm_io(io, &code, &len);
+		assert(rc == 0);
+
+		char *sfile = string("%s.S", argv[optind]);
+		int outfd = open(sfile, O_WRONLY|O_CREAT|O_EXCL, 0666);
+		if (outfd < 0) {
+			perror(sfile);
+			free(sfile);
+			return 1;
+		}
+		free(sfile);
+
+		if (write(outfd, code, len) != len) {
+			perror("short write");
+			close(outfd);
+			return 1;
+		}
+		close(outfd);
+		return 0;
 	}
-	byte_t *code = mmap(NULL, n, PROT_READ, MAP_PRIVATE, fd, 0);
-	if (!code) {
-		perror(argv[optind]);
-		return 1;
-	}
 
-	vm_t vm;
-	rc = vm_reset(&vm);
-	assert(rc == 0);
-
-	rc = vm_prime(&vm, code, n);
-	assert(rc == 0);
-
-	rc = vm_args(&vm, argc - optind, argv + optind);
-	assert(rc == 0);
-
-	vm.trace = trace;
-
-	vm_exec(&vm);
-
-	rc = vm_done(&vm);
-	assert(rc == 0);
-
-	return 0;
+	return 3;
 }

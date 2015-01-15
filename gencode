@@ -27,6 +27,8 @@ sub table
 	my ($fmt) = @_;
 	$fmt =~ s/%s/%-${_}s/ for @widths;
 	printf $fmt, @$_ for @cols;
+	@cols = ();
+	@widths = ();
 }
 
 sub arg
@@ -151,18 +153,6 @@ print <<EOF;
 #define TYPE_REGISTER  0x2
 #define TYPE_ADDRESS   0x3
 
-static const char *ASM_TYPES[] = {
-	"NONE",
-	"register",
-	"number",
-	"string",
-	"address",
-	"label",
-	"offset",
-	"fnlabel",
-	NULL,
-};
-
 static struct {
 	byte_t      token;
 	const char *usage;
@@ -178,3 +168,28 @@ for my $op (@$lst) {
 table "\t{ %s %s %s { %s %s } },\n";
 print "\t{ 0, 0, 0, { 0, 0 } },\n";
 print "};\n";
+print "\n\n";
+print "#ifdef OPCODES_INTERPRETER\n";
+for my $op (@$lst) {
+	my ($key, $o) = %$op;
+	next if $o->{alias};
+	column $o->{constant}, lc($o->{constant});
+}
+for my $op (@$lst) {
+	my ($key, $o) = %$op;
+	next if $o->{alias};
+	printf "static void %-$widths[1]s(vm_t*);\n", lc($o->{constant});
+}
+print <<EOF;
+
+typedef void (*opcode_fn)(vm_t*);
+
+static struct {
+	byte_t     opcode;
+	opcode_fn  handler;
+} OPCODE_HANDLERS[] = {
+EOF
+table "\t{ %s %s },\n";
+print "\t{ 0, 0 },\n";
+print "};\n";
+print "#endif\n";

@@ -369,7 +369,11 @@ int cmd_gencode(cmd_t *cmd, FILE *io)
 			if (l->next != end) goto syntax;
 			fprintf(io, "fn main\n"
 			            "  property \"version\" %%a\n"
-			            "  print %%a\n");
+			            "  jz +2\n"
+			            "    error \"failed to retrieve the 'version' property\""
+			            "    retv 1\n"
+			            "  print \"(v%%[a]s)\"\n"
+			            "  retv 0\n");
 			return 0;
 		}
 
@@ -1237,14 +1241,20 @@ int mesh_client_handle(mesh_client_t *c, void *sock, pdu_t *pdu)
 		int rc = vm_reset(&vm);
 		assert(rc == 0);
 
-		rc = vm_prime(&vm, code, n);
+		rc = vm_load(&vm, code, n);
 		assert(rc == 0);
 
 		vm.stdout = tmpfile();
+		fprintf(vm.stdout, "STARTING\n");
 		vm_exec(&vm);
+		vm_disasm(&vm);
+		fprintf(vm.stdout, "FINISHED\n");
 
 		rewind(vm.stdout);
 		char output[8192] = {0};
+		while ((fgets(output, 8192, vm.stdout)))
+			fprintf(stderr, "[%s", output);
+		rewind(vm.stdout);
 		if (!fgets(output, 8192, vm.stdout))
 			output[0] = '\0';
 		fclose(vm.stdout);

@@ -363,25 +363,23 @@ static void s_cfm_run(client_t *c)
 	uint8_t *code = pdu_segment(reply, 1, &n);
 	pdu_free(reply);
 
+	vm_t vm;
+	STOPWATCH(&t, ms_parse) {
+		rc = vm_reset(&vm);
+		assert(rc == 0);
+
+		rc = vm_load(&vm, code, n);
+		assert(rc == 0);
+
+		hash_set(&vm.pragma, "diff.tool", c->difftool);
+	}
+
 	if (c->mode == MODE_CODE) {
 		logger(LOG_DEBUG, "dumping pendulum code to standard output");
-		vm_disasm(code, n);
-		free(code);
+		vm_disasm(&vm);
 
 	} else {
-		vm_t vm;
-		STOPWATCH(&t, ms_parse) {
-			rc = vm_reset(&vm);
-			assert(rc == 0);
-
-			rc = vm_prime(&vm, code, n);
-			assert(rc == 0);
-
-			hash_set(&vm.pragma, "diff.tool", c->difftool);
-		}
-
 		vm.aux.remote = client;
-		//vm_disasm(code, n);
 
 		STOPWATCH(&t, ms_enforce) {
 			vm.trace = c->trace;

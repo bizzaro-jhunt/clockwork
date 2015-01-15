@@ -390,10 +390,10 @@ EOF
 	$stderr =~ s/in \d\.\d+s/in #.##s/;
 	string_is $stderr, <<EOF, "Standard error output";
 Starting configuration run
-70 6e
-15 30 [00 00 00 08]
-0d 00
-ff 00
+0x00000000: 70 6e
+0x00000002: 15 30 [00 00 00 08]           jmp 0x00000008
+0x00000008: 0d 00                         ret
+0x0000000a: ff 00
 ---
 complete. enforced 0 resources in #.##s
 STATS(ms): connect=X, hello=X, preinit=X, copydown=X, facts=X, getpolicy=X, parse=X, enforce=X, cleanup=X
@@ -513,10 +513,10 @@ EOF
 	$stderr =~ s/in \d\.\d+s/in #.##s/;
 	string_is $stderr, <<EOF, "Standard error output";
 Starting configuration run
-70 6e
-15 30 [00 00 00 08]
-0d 00
-ff 00
+0x00000000: 70 6e
+0x00000002: 15 30 [00 00 00 08]           jmp 0x00000008
+0x00000008: 0d 00                         ret
+0x0000000a: ff 00
 ---
 complete. enforced 0 resources in #.##s
 STATS(ms): connect=X, hello=X, preinit=X, copydown=X, facts=X, getpolicy=X, parse=X, enforce=X, cleanup=X

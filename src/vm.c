@@ -885,6 +885,7 @@ static int s_copyfile(FILE *src, FILE *dst)
 
 	return 0;
 }
+
 static void s_aug_perror(FILE *io, augeas *aug)
 {
 	char **err = NULL;
@@ -1044,6 +1045,84 @@ static int s_remote_file(vm_t *vm, const char *target, const char *temp)
 	fclose(dst);
 	fclose(tmpf);
 	return rc;
+}
+
+static int s_copy(const char *from, const char *to)
+{
+	int src, dst;
+	src = open(from, O_RDONLY);
+	if (!src) return 1;
+
+	dst = open(to, O_WRONLY|O_CREAT|O_TRUNC, 0777);
+	if (!dst) {
+		close(src);
+		return 1;
+	}
+
+	size_t n;
+	char buf[8192];
+	while ((n = read(src, buf, 8192)) > 0) {
+		if (write(src, buf, n) == n) continue;
+		close(src); close(dst);
+		return 1;
+	}
+
+	close(src); close(dst);
+	return n;
+}
+
+static char * s_fs_get(const char *path)
+{
+	int fd = open(path, O_RDONLY);
+	if (fd < 0) return NULL;
+
+	long size = lseek(fd, 0, SEEK_END);
+	if (lseek(fd, 0, SEEK_SET) != 0) {
+		close(fd);
+		return NULL;
+	}
+
+	char *s = vmalloc(size * sizeof(char) + 1);
+	char *p = s;
+
+	while (p < s + size) {
+		long want = size - (p - s);
+		if (want > 8192) want = 8192;
+
+		size_t nread = read(fd, p, want);
+		if (nread <= 0) {
+			close(fd);
+			free(s);
+			return NULL;
+		}
+
+		p += nread;
+	}
+
+	return s;
+}
+
+static int s_fs_put(const char *path, const char *contents)
+{
+	int fd = open(path, O_WRONLY|O_CREAT|O_TRUNC, 0777);
+	if (fd < 0) return 1;
+
+	size_t size = strlen(contents);
+	const char *p = contents;
+	while (p < contents + size) {
+		size_t want = size - (p - contents);
+		if (want > 8192) want = 8192;
+
+		size_t wrote = write(fd, p, want);
+		if (wrote <= 0) {
+			close(fd);
+			return 1;
+		}
+
+		p += wrote;
+	}
+
+	return 0;
 }
 
 /************************************************************************/
@@ -1588,7 +1667,10 @@ int vm_exec(vm_t *vm)
 			vm->acc = rename(s_str(vm, f1, oper1), s_str(vm, f2, oper2));
 			break;
 
-		/* FIXME: OP_COPY */
+		case OP_FS_COPY:
+			ARG2("fs.copy");
+			vm->acc = s_copy(s_str(vm, f1, oper1), s_str(vm, f2, oper2));
+			break;
 
 		case OP_FS_CHOWN:
 			ARG2("fs.chown");
@@ -1612,8 +1694,20 @@ int vm_exec(vm_t *vm)
 			vm->r[oper2] = vm_heap_strdup(vm, vm->aux.sha1.hex);
 			break;
 
-		/* FIXME: OP_FS_GET */
-		/* FIXME: OP_FS_PUT */
+		case OP_FS_GET:
+			ARG2("fs.get");
+			REGISTER2("fs.get");
+			s = s_fs_get(s_str(vm, f1, oper1));
+			vm->acc = s ? 0 : 1;
+			if (!s) break;
+
+			vm->r[oper2] = vm_heap_strdup(vm, s); free(s);
+			break;
+
+		case OP_FS_PUT:
+			ARG2("fs.put");
+			vm->acc = s_fs_put(s_str(vm, f1, oper1), s_str(vm, f2, oper2));
+			break;
 
 		case OP_AUTHDB_OPEN:
 			ARG0("authdb.open");

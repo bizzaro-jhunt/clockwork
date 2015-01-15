@@ -948,6 +948,34 @@ EOF
 
 	"</path/to/somewhere>",
 	"fs.readlink");
+
+	put_file "t/tmp/fsget", <<EOF;
+line 1
+line the second
+EOF
+	pendulum_ok(qq(
+	fn main
+		fs.get "t/tmp/fsget" %a
+		jnz +1
+		print %a
+		ret),
+
+	"line 1\n".
+	"line the second\n",
+	"fs.get retrieves the full contents of a file");
+
+
+	pendulum_ok(qq(
+	fn main
+		fs.put "t/tmp/fsget" "replacement data!"
+		fs.get "t/tmp/fsget" %a
+		jnz +1
+		print %a
+		ret),
+
+	"replacement data!",
+	"fs.put overwrites a file");
+
 };
 
 subtest "user management" => sub {

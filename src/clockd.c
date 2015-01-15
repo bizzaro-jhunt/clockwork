@@ -166,8 +166,8 @@ static int s_sha1(client_t *fsm)
 
 static int s_gencode(client_t *c, byte_t **code, size_t *len)
 {
-	int rc;
-	size_t src_len;
+	int rc = 0;
+	size_t src_len = 0;
 	FILE *io = tmpfile();
 	assert(io);
 

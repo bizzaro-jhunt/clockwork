@@ -2,6 +2,4 @@ regm:
 
   save a copy of the most recent policy bytecode
   save a copy of the most recent *successful* policy bytecode
-  update pnc to do disassembly
-  command-line args to pnc
   improve disassembly to recover mnemonics and unpack strings

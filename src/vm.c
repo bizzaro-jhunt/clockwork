@@ -95,6 +95,23 @@ typedef struct {
 
 /************************************************************************/
 
+static void s_eprintf(FILE *io, const char *orig)
+{
+	const char *p = orig;
+	while (*p) {
+		switch (*p) {
+		case '\r': fprintf(io, "\\r"); break;
+		case '\n': fprintf(io, "\\n"); break;
+		case '\t': fprintf(io, "\\t"); break;
+		case '\"': fprintf(io, "\\\""); break;
+		default:
+			if (isprint(*p)) fprintf(io, "%c", *p);
+			else             fprintf(io, "\\x%02x", *p);
+		}
+		p++;
+	}
+}
+
 static int s_asm_lex(compiler_t *cc)
 {
 	assert(cc);
@@ -2325,6 +2342,22 @@ int vm_load(vm_t *vm, byte_t *code, size_t len)
 
 	vm->code = code;
 	vm->codesize = len;
+
+	/* determine the static boundary */
+	byte_t f;
+	code += 2; /* skip header */
+	while (code < vm->code + len) {
+		     code++; /* op */
+		f = *code++; /* f1/f2 */
+		if (HI_NYBLE(f)) code += 4;
+		if (LO_NYBLE(f)) code += 4;
+
+		if (*code == 0xff) {
+			vm->static0 = len - (code - vm->code);
+			break;
+		}
+	}
+
 	return 0;
 }
 
@@ -2464,10 +2497,17 @@ int vm_disasm(vm_t *vm)
 			switch (vm->f1) {
 			case TYPE_LITERAL:  fprintf(stderr, " %u",     vm->oper1); break;
 			case TYPE_REGISTER: fprintf(stderr, " %%%c",   vm->oper1 + 'a'); break;
-			case TYPE_ADDRESS:  fprintf(stderr, " 0x%08x", vm->oper1); break;
+			case TYPE_ADDRESS:  fprintf(stderr, " 0x%08x", vm->oper1);
+			                    if (vm->oper1 > vm->static0) {
+			                        fprintf(stderr, " ; \"");
+			                        s_eprintf(stderr, (char *)vm->code + vm->oper1);
+			                        fprintf(stderr, "\"");
+			                    }
+			                    break;
 			default:            fprintf(stderr, " ; operand 1 unknown (0x%x/0x%x)",
 			                                    vm->f1, vm->oper1);
 			}
+
 		}
 		if (vm->f2) {
 			fprintf(stderr, "\n                  [%02x %02x %02x %02x]  %12s",
@@ -2478,7 +2518,13 @@ int vm_disasm(vm_t *vm)
 			switch (vm->f2) {
 			case TYPE_LITERAL:  fprintf(stderr, " %u",     vm->oper2); break;
 			case TYPE_REGISTER: fprintf(stderr, " %%%c",   vm->oper2 + 'a'); break;
-			case TYPE_ADDRESS:  fprintf(stderr, " 0x%08x", vm->oper2); break;
+			case TYPE_ADDRESS:  fprintf(stderr, " 0x%08x", vm->oper2);
+			                    if (vm->oper2 > vm->static0) {
+			                        fprintf(stderr, " ; \"");
+			                        s_eprintf(stderr, (char *)vm->code + vm->oper2);
+			                        fprintf(stderr, "\"");
+			                    }
+			                    break;
 			default:            fprintf(stderr, " ; operand 2 unknown (0x%x/0x%x)",
 			                                    vm->f2, vm->oper2);
 			}
@@ -2489,7 +2535,9 @@ int vm_disasm(vm_t *vm)
 
 	fprintf(stderr, "---\n");
 	while (i < vm->codesize) {
-		fprintf(stderr, "0x%08x: [%s]\n", (dword_t)i, (char *)(vm->code + i));
+		fprintf(stderr, "0x%08x: [", (dword_t)i);
+		s_eprintf(stderr, (char *)(vm->code + i));
+		fprintf(stderr, "]\n");
 		i += strlen((char *)vm->code + i) + 1;
 	}
 	return 0;

@@ -102,6 +102,7 @@ typedef struct {
 	list_t   heap;
 	dword_t  heaptop;
 
+	byte_t   static0;      /* offset in code[] where static strings start */
 	size_t   codesize;
 	byte_t  *code;
 } vm_t;

@@ -55,7 +55,7 @@ function file_sha1_should_be() {
 function dir_should_exist() {
 	local dir=$1
 	if [[ ! -e $dir ]]; then
-		echo >&2 "Direcotry $dir not found on the filesystem"
+		echo >&2 "Directory $dir not found on the filesystem"
 		RC=2
 	elif [[ ! -d $dir ]]; then
 		echo >&2 "File $dir is not a directory"

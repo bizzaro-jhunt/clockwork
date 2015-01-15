@@ -37,7 +37,7 @@ fn fix:00000001
   call res.file.chmod
 
 fn main
-  ;; file:/etc/sudoers
+  topic "file:/etc/sudoers"
   try res:00000001
 EOF
 		"file resource");
@@ -63,7 +63,7 @@ fn fix:00000001
   call res.file.absent
 
 fn main
-  ;; file:/path/to/delete
+  topic "file:/path/to/delete"
   try res:00000001
 EOF
 		"file removal");
@@ -93,7 +93,7 @@ fn fix:00000001
   call res.file.chmod
 
 fn main
-  ;; file:/chmod-me
+  topic "file:/chmod-me"
   try res:00000001
 EOF
 		"file resource without chown/chgrp");
@@ -126,7 +126,7 @@ fn fix:00000001
   call res.file.chgrp
 
 fn main
-  ;; file:/home/user/stuff
+  topic "file:/home/user/stuff"
   try res:00000001
 EOF
 		"file resource with non-root owner");
@@ -160,7 +160,7 @@ fn fix:00000001
   call res.file.contents
 
 fn main
-  ;; file:/etc/file.conf
+  topic "file:/etc/file.conf"
   try res:00000001
 EOF
 		"file resource with content assertion");
@@ -194,7 +194,7 @@ fn fix:00000001
   call res.file.contents
 
 fn main
-  ;; file:/etc/sudoers
+  topic "file:/etc/sudoers"
   try res:00000001
 EOF
 		"file resource with pre-change verification and default return code");
@@ -229,7 +229,7 @@ fn fix:00000001
   call res.file.contents
 
 fn main
-  ;; file:/etc/somefile
+  topic "file:/etc/somefile"
   try res:00000001
 EOF
 		"file resource with pre-change verification and explicit return code");
@@ -264,7 +264,7 @@ fn fix:00000001
   call util.authdb.save
 
 fn main
-  ;; user:t1user
+  topic "user:t1user"
   try res:00000001
 EOF
 		"user removal");
@@ -307,7 +307,7 @@ fn fix:00000001
   call util.authdb.save
 
 fn main
-  ;; user:t2user
+  topic "user:t2user"
   try res:00000001
 EOF
 		"UID/GID, home and password management");
@@ -353,7 +353,7 @@ fn fix:00000001
   call util.authdb.save
 
 fn main
-  ;; user:t3user
+  topic "user:t3user"
   try res:00000001
 EOF
 		"home directory / password management");
@@ -446,7 +446,7 @@ fn fix:00000001
   call util.authdb.save
 
 fn main
-  ;; user:t4user
+  topic "user:t4user"
   try res:00000001
 EOF
 		"all user attributes under the sun");
@@ -480,7 +480,7 @@ fn fix:00000001
   call util.authdb.save
 
 fn main
-  ;; group:group1
+  topic "group:group1"
   try res:00000001
 EOF
 		"group resource");
@@ -510,7 +510,7 @@ fn fix:00000001
   call util.authdb.save
 
 fn main
-  ;; group:group2
+  topic "group:group2"
   try res:00000001
 EOF
 		"group with specific gid");
@@ -538,7 +538,7 @@ fn fix:00000001
   call util.authdb.save
 
 fn main
-  ;; group:group3
+  topic "group:group3"
   try res:00000001
 EOF
 		"default group");
@@ -576,7 +576,7 @@ fn fix:00000001
   call util.authdb.save
 
 fn main
-  ;; group:group4
+  topic "group:group4"
   try res:00000001
 EOF
 		"group resource with member / admin changes");
@@ -616,7 +616,7 @@ fn fix:00000001
   call res.file.chmod
 
 fn main
-  ;; dir:/etc/sudoers
+  topic "dir:/etc/sudoers"
   try res:00000001
 EOF
 		"dir resource");
@@ -643,7 +643,7 @@ fn fix:00000001
   call res.dir.absent
 
 fn main
-  ;; dir:/path/to/delete
+  topic "dir:/path/to/delete"
   try res:00000001
 EOF
 		"dir removal");
@@ -673,7 +673,7 @@ fn fix:00000001
   call res.file.chmod
 
 fn main
-  ;; dir:/chmod-me
+  topic "dir:/chmod-me"
   try res:00000001
 EOF
 		"dir resource with only a mode change");
@@ -709,7 +709,7 @@ fn fix:00000001
   call res.file.chmod
 
 fn main
-  ;; dir:/home/user/bin
+  topic "dir:/home/user/bin"
   try res:00000001
 EOF
 		"dir resource with non-root owner / group");
@@ -746,7 +746,7 @@ fn fix:00000001
   call res.service.restart
 
 fn main
-  ;; service:snmpd
+  topic "service:snmpd"
   try res:00000001
 EOF
 		"service resource - running / enabled");
@@ -773,7 +773,7 @@ fn fix:00000001
   call res.service.stop
 
 fn main
-  ;; service:microcode
+  topic "service:microcode"
   try res:00000001
 EOF
 		"stopped service");
@@ -805,7 +805,7 @@ fn fix:00000001
   call res.service.stop
 
 fn main
-  ;; service:neverwhere
+  topic "service:neverwhere"
   try res:00000001
 EOF
 		"stopped / disabled service (all keywords)");
@@ -838,7 +838,7 @@ fn fix:00000001
   call res.service.reload
 
 fn main
-  ;; service:snmpd
+  topic "service:snmpd"
   try res:00000001
 EOF
 		"service with reload notify mechanism");
@@ -869,7 +869,7 @@ fn fix:00000001
   call res.package.install
 
 fn main
-  ;; package:binutils
+  topic "package:binutils"
   try res:00000001
 EOF
 		"package resource");
@@ -896,7 +896,7 @@ fn fix:00000001
   call res.package.absent
 
 fn main
-  ;; package:binutils
+  topic "package:binutils"
   try res:00000001
 EOF
 		"package removal");
@@ -925,7 +925,7 @@ fn fix:00000001
   call res.package.install
 
 fn main
-  ;; package:binutils
+  topic "package:binutils"
   try res:00000001
 EOF
 		"explicit version specification");
@@ -954,7 +954,7 @@ fn fix:00000001
   call res.package.install
 
 fn main
-  ;; package:binutils
+  topic "package:binutils"
   try res:00000001
 EOF
 		"'latest' version specification");
@@ -983,7 +983,7 @@ fn fix:00000001
   call res.package.install
 
 fn main
-  ;; package:binutils
+  topic "package:binutils"
   try res:00000001
 EOF
 		"'any' version will suffice");
@@ -1023,7 +1023,7 @@ fn fix:00000001
   call res.host.add-alias
 
 fn main
-  ;; host:example.com
+  topic "host:example.com"
   try res:00000001
 EOF
 		"host resource with two aliases");
@@ -1052,7 +1052,7 @@ fn fix:00000001
   call res.host.absent
 
 fn main
-  ;; host:remove.me
+  topic "host:remove.me"
   try res:00000001
 EOF
 		"host removal");
@@ -1087,7 +1087,7 @@ fn fix:00000001
   call res.sysctl.set
 
 fn main
-  ;; sysctl:net.ipv6.icmp.ratelimit
+  topic "sysctl:net.ipv6.icmp.ratelimit"
   try res:00000001
 EOF
 		"sysctl resource");
@@ -1118,7 +1118,7 @@ fn fix:00000001
   call res.sysctl.set
 
 fn main
-  ;; sysctl:net.ipv6.icmp.ratelimit
+  topic "sysctl:net.ipv6.icmp.ratelimit"
   try res:00000001
 EOF
 		"persistent sysctl value");
@@ -1150,7 +1150,7 @@ fn fix:00000001
   exec %b %d
 
 fn main
-  ;; exec:/bin/ls -l /tmp
+  topic "exec:/bin/ls -l /tmp"
   try res:00000001
 EOF
 		"exec resource");
@@ -1181,7 +1181,7 @@ fn fix:00000001
   exec %b %d
 
 fn main
-  ;; exec:/bin/refresh-the-thing
+  topic "exec:/bin/refresh-the-thing"
   try res:00000001
 EOF
 		"ondemand exec resource");
@@ -1214,7 +1214,7 @@ fn fix:00000001
   exec %b %d
 
 fn main
-  ;; exec:CONDITIONAL
+  topic "exec:CONDITIONAL"
   try res:00000001
 EOF
 		"conditional exec resource");
@@ -1255,7 +1255,7 @@ fn fix:00000001
   exec %b %d
 
 fn main
-  ;; exec:catmans
+  topic "exec:catmans"
   try res:00000001
 EOF
 		"runas user/group exec resource");
@@ -1680,11 +1680,11 @@ fn fix:00000002
   call res.file.present
 
 fn main
-  ;; dir:/tmp
+  topic "dir:/tmp"
   try res:00000001
-  ;; dir:/tmp/inner
+  topic "dir:/tmp/inner"
   try res:00000003
-  ;; file:/tmp/inner/file
+  topic "file:/tmp/inner/file"
   try res:00000002
 EOF
 

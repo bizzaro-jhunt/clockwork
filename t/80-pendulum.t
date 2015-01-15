@@ -1987,4 +1987,18 @@ subtest "remote" => sub {
 	"remote.live?");
 };
 
+subtest "topics" => sub {
+	pendulum_ok(qq(
+	fn main
+		topic "a"
+		print "%T: topic A\\n"
+		topic "b"
+		print "%T: topic B\\n"),
+
+	"a: topic A\n".
+	"b: topic B\n",
+
+	"topic opcode and the %T format code");
+};
+
 done_testing;

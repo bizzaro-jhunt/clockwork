@@ -81,6 +81,7 @@ fn res.dir.present
     bail 1
 
   create:
+    syslog notice "%T: creating directory %[a]s"
     fs.mkdir %a
     jnz +2
     ;;mark ;; FIXME

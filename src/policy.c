@@ -1148,7 +1148,7 @@ int policy_gencode(const struct policy *pol, FILE *io)
 
 	fprintf(io, "fn main\n");
 	for_each_resource(r, pol)
-		fprintf(io, "  ;; %s\n"
+		fprintf(io, "  topic \"%s\"\n"
 		            "  try res:%08x\n", r->key, r->serial);
 	return 0;
 }

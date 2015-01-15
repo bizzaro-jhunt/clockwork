@@ -489,4 +489,9 @@
       - [register, string]
       - [register, string]
 
+- topic:
+    help: Set the current topic, for the %T special register
+    args:
+      - [register, string]
+
 # vim:ft=yaml:et:ts=2:sts=2:sw=2

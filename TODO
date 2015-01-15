@@ -2,6 +2,5 @@ regm:
 
   save a copy of the most recent {received,successful} policy bytecode
     - need a directory for this
-  count total resources (via `fn main` code)
   count changed resources (via flag "changed")
   stdlib: logging about what we are doing

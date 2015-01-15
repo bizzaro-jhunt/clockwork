@@ -39,12 +39,12 @@ syn match     pnasmOpCode1    /runas\.\(uid\|gid\)/
 syn match     pnasmOpCode1    /show\.\(acl\|acls\)/
 syn match     pnasmOpCode1    /remote\.\(live?\|sha1\|file\)/
 
-syn keyword   pnasmOpcode2    call try ret retv bail pragma halt property
+syn keyword   pnasmOpcode2    call try ret retv bail pragma halt property topic
 
 syn region    pnasmString     start=+L\="+ skip=+\\\\\|\\"\|\\$+ excludenl end=+"+ contains=pnasmFormat
 syn match     pnasmFormat     display "%\[[a-p]\]\(\d\+\$\)\=[-+' #0*]*\(\d*\|\*\|\*\d\+\$\)\(\.\(\d*\|\*\|\*\d\+\$\)\)\=\([hlL]\|ll\)\=\([bdiuoxXDOUfeEgGcCsSpn]\|\[\^\=.[^]]*\]\)" contained
 syn match     pnasmFormat     display /\\[nrt"]/ contained
-syn match     pnasmFormat     display /%%/ contained
+syn match     pnasmFormat     display /%[%T]/ contained
 
 syn match     pnasmNumber     /[0-9][0-9]*/
 syn match     pnasmOffset     /+[0-9][0-9]*/

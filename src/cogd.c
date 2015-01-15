@@ -385,7 +385,7 @@ static void s_cfm_run(client_t *c)
 			vm.trace = c->trace;
 			vm_exec(&vm);
 		}
-		count = 0; /* FIXME: count number of topics! */
+		count = vm.topics;
 		rc = vm_done(&vm);
 		assert(rc == 0);
 	}

@@ -65,6 +65,9 @@ typedef struct {
 	byte_t   op, f1, f2;
 	dword_t  oper1, oper2;
 
+	const char *topic;
+	unsigned int topics;
+
 	stack_t  dstack; /* data stack */
 	stack_t  istack; /* instruction stack */
 	stack_t  tstack; /* "try" nesting stack */

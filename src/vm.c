@@ -784,6 +784,13 @@ static char *_sprintf(vm_t *vm, const char *fmt)
 				ADVANCE;
 				continue;
 			}
+
+			if (*b == 'T') {
+				ADVANCE;
+				n += snprintf(NULL, 0, "%s", vm->topic);
+				continue;
+			}
+
 			if (*b != '[') {
 				fprintf(stderr, "<< %s >>\n", fmt);
 				fprintf(stderr, "<< invalid format specifier, '[' != '%c', offset:%li >>\n", *b, b - a + 1);
@@ -840,7 +847,15 @@ static char *_sprintf(vm_t *vm, const char *fmt)
 				continue;
 			}
 			*b = '\0';
-			ADVANCE; /* [    */
+			ADVANCE;
+			/* first, check for special registers */
+			if (*b == 'T') {
+				s += snprintf(s, n - (s - s1) + 1, "%s", vm->topic);
+				ADVANCE;
+				a = b;
+				continue;
+			}
+			         /* [    */
 			ADVANCE; /*  %r  */  reg = *b;
 			ADVANCE; /*    ] */  a = b; *a = '%';
 
@@ -2290,6 +2305,13 @@ static void op_remote_file(vm_t *vm)
 {
 	ARG2("remote.file");
 	vm->acc = s_remote_file(vm, STR1(vm), STR2(vm));
+}
+
+static void op_topic(vm_t *vm)
+{
+	ARG1("topic");
+	vm->topic = STR1(vm);
+	vm->topics++;
 }
 
 /************************************************************************/

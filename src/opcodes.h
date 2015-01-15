@@ -109,6 +109,7 @@
 #define OP_REMOTE_LIVE_P   0x69  /* Determine if we are connected to a clockd server */
 #define OP_REMOTE_SHA1     0x6a  /* Retrieve the remote SHA1 based on a resource key */
 #define OP_REMOTE_FILE     0x6b  /* Retrieve the contents of a file based on a resource key */
+#define OP_TOPIC           0x6c  /* Set the current topic, for the %T special register */
 
 
 /** OPCODE MNEMONIC NAMES **/
@@ -221,6 +222,7 @@ static const char * OPCODES[] = {
 	"remote.live?",      /* OP_REMOTE_LIVE_P   105  0x69 */
 	"remote.sha1",       /* OP_REMOTE_SHA1     106  0x6a */
 	"remote.file",       /* OP_REMOTE_FILE     107  0x6b */
+	"topic",             /* OP_TOPIC           108  0x6c */
 	NULL,
 };
 
@@ -335,6 +337,7 @@ static const char * OPCODES[] = {
 #define T_OP_REMOTE_LIVE_P   0xaa  /* Determine if we are connected to a clockd server */
 #define T_OP_REMOTE_SHA1     0xab  /* Retrieve the remote SHA1 based on a resource key */
 #define T_OP_REMOTE_FILE     0xac  /* Retrieve the contents of a file based on a resource key */
+#define T_OP_TOPIC           0xad  /* Set the current topic, for the %T special register */
 
 
 static const char * ASM[] = {
@@ -447,6 +450,7 @@ static const char * ASM[] = {
 	"remote.live?",      /* T_OP_REMOTE_LIVE_P   106  0x6a */
 	"remote.sha1",       /* T_OP_REMOTE_SHA1     107  0x6b */
 	"remote.file",       /* T_OP_REMOTE_FILE     108  0x6c */
+	"topic",             /* T_OP_TOPIC           109  0x6d */
 	NULL,
 };
 
@@ -586,6 +590,7 @@ static struct {
 	{ T_OP_REMOTE_LIVE_P,  "remote.live?",                                   OP_REMOTE_LIVE_P,  { ARG_NONE,                           ARG_NONE,                           } },
 	{ T_OP_REMOTE_SHA1,    "remote.sha1 (%a|<string>) %b",                   OP_REMOTE_SHA1,    { ARG_REGISTER|ARG_STRING,            ARG_REGISTER,                       } },
 	{ T_OP_REMOTE_FILE,    "remote.file (%a|<string>) (%b|<string>)",        OP_REMOTE_FILE,    { ARG_REGISTER|ARG_STRING,            ARG_REGISTER|ARG_STRING,            } },
+	{ T_OP_TOPIC,          "topic (%a|<string>)",                            OP_TOPIC,          { ARG_REGISTER|ARG_STRING,            ARG_NONE,                           } },
 	{ 0, 0, 0, { 0, 0 } },
 };
 
@@ -699,6 +704,7 @@ static void op_show_acl       (vm_t*);
 static void op_remote_live_p  (vm_t*);
 static void op_remote_sha1    (vm_t*);
 static void op_remote_file    (vm_t*);
+static void op_topic          (vm_t*);
 
 typedef void (*opcode_fn)(vm_t*);
 
@@ -814,6 +820,7 @@ static struct {
 	{ OP_REMOTE_LIVE_P,  op_remote_live_p,  },
 	{ OP_REMOTE_SHA1,    op_remote_sha1,    },
 	{ OP_REMOTE_FILE,    op_remote_file,    },
+	{ OP_TOPIC,          op_topic,          },
 	{ 0, 0 },
 };
 #endif

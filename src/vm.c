@@ -1559,7 +1559,19 @@ int vm_exec(vm_t *vm)
 			vm->acc = mkdir(s_str(vm, f1, oper1), 0777);
 			break;
 
-		/* FIXME: OP_FS_LINK */
+		case OP_FS_LINK:
+			ARG2("fs.link");
+			vm->acc = lstat(s_str(vm, f1, oper1), &vm->aux.stat);
+			if (vm->acc != 0) break;
+
+			if (S_ISDIR(vm->aux.stat.st_mode)) {
+				errno = EISDIR;
+				vm->acc = 1;
+				break;
+			}
+
+			vm->acc = link(s_str(vm, f1, oper1), s_str(vm, f2, oper2));
+			break;
 
 		case OP_FS_UNLINK:
 			ARG1("fs.unlink");

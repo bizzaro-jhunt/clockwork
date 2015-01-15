@@ -748,6 +748,21 @@ subtest "fs operators" => sub {
 	"ok",
 	"retrieved inode from file");
 
+	put_file "t/tmp/orig", "this is a file\n";
+	pendulum_ok(qq(
+	fn main
+		fs.inode "t/tmp/orig" %a
+		fs.link "t/tmp/orig" "t/tmp/link"
+		fs.inode "t/tmp/link" %b
+
+		eq %a %b
+		jz +1
+			print "fail"
+		print "ok"),
+
+	"ok",
+	"fs.link creates hard links");
+
 	SKIP: {
 		skip "No /dev/null device found", 2
 			unless -e "/dev/null";

@@ -890,6 +890,20 @@ EOF
 
 	"SHA1:9b032ba6005e483b9e33706a8e9e3f17e4c3d1fc\n",
 	"fs.sha1");
+
+
+	unlink "t/tmp/symread";
+	symlink "/path/to/somewhere", "t/tmp/symread";
+	pendulum_ok(qq(
+	fn main
+		fs.readlink "t/tmp/symread" %b
+		jz +2
+			print "fail"
+			ret
+		print "<%[b]s>"),
+
+	"</path/to/somewhere>",
+	"fs.readlink");
 };
 
 subtest "user management" => sub {

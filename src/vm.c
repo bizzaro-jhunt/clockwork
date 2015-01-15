@@ -1430,7 +1430,28 @@ int vm_exec(vm_t *vm)
 			if (vm->acc == 0) vm->acc = S_ISSOCK(vm->aux.stat.st_mode) ? 0 : 1;
 			break;
 
-		/* FIXME: OP_READLINK */
+		case OP_FS_READLINK:
+			ARG2("fs.readlink");
+			REGISTER2("fs.readlink");
+
+			vm->acc = lstat(s_str(vm, f1, oper1), &vm->aux.stat);
+			if (vm->acc != 0) break;
+
+			vm->acc = S_ISLNK(vm->aux.stat.st_mode) ? 0 : 1;
+			if (vm->acc != 0) break;
+
+			s = vmalloc((vm->aux.stat.st_size + 1) * sizeof(char));
+			if (readlink(s_str(vm, f1, oper1), s, vm->aux.stat.st_size) != vm->aux.stat.st_size) {
+				free(s);
+				vm->acc = 1;
+				errno = ENOBUFS;
+				break;
+			}
+			if (vm->acc != 0) break;
+
+			vm->r[oper2] = vm_heap_strdup(vm, s);
+			free(s);
+			break;
 
 		case OP_FS_DEV:
 			ARG2("fs.dev");

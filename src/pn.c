@@ -90,23 +90,23 @@ int main (int argc, char **argv)
 	log_open(ident, facility);
 	log_level(level, NULL);
 
-	int rc, fd = open(argv[1], O_RDONLY);
+	int rc, fd = open(argv[optind], O_RDONLY);
 	if (fd < 0) {
-		perror(argv[1]);
+		perror(argv[optind]);
 		return 1;
 	}
 	off_t n = lseek(fd, 0, SEEK_END);
 	if (n < 0) {
-		perror(argv[1]);
+		perror(argv[optind]);
 		return 1;
 	}
 	if (n == 0) {
-		fprintf(stderr, "%s: not a valid pendulum binary image\n", argv[1]);
+		fprintf(stderr, "%s: not a valid pendulum binary image\n", argv[optind]);
 		return 1;
 	}
 	byte_t *code = mmap(NULL, n, PROT_READ, MAP_PRIVATE, fd, 0);
 	if (!code) {
-		perror(argv[1]);
+		perror(argv[optind]);
 		return 1;
 	}
 
@@ -117,7 +117,7 @@ int main (int argc, char **argv)
 	rc = vm_prime(&vm, code, n);
 	assert(rc == 0);
 
-	rc = vm_args(&vm, argc, argv);
+	rc = vm_args(&vm, argc - optind, argv + optind);
 	assert(rc == 0);
 
 	vm.trace = trace;

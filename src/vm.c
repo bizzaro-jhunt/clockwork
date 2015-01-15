@@ -1088,13 +1088,13 @@ int vm_args(vm_t *vm, int argc, char **argv)
 {
 	assert(vm);
 	int i;
-	for (i = argc - 1; i > 0; i--) {
+	for (i = argc - 1; i >= 0; i--) {
 		size_t n = strlen(argv[i]) + 1;
 		heap_t *h = vm_heap_alloc(vm, n);
 		memcpy(h->data, argv[i], n);
 		s_push(vm, &vm->dstack, h->addr);
 	}
-	s_push(vm, &vm->dstack, argc - 1);
+	s_push(vm, &vm->dstack, argc);
 	return 0;
 }
 

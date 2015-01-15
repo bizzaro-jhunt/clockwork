@@ -31,7 +31,7 @@ our @EXPORT = @EXPORT_OK;
 my $T = Test::Builder->new;
 
 my $PN = "./pn";
-my $PNC = "./pnc";
+my $PNC = "./pn -S -";
 my $CWSH = "./cw-shell";
 my $BDFA = "./bdfa";
 my $COMMAND = "./TEST_cmd";

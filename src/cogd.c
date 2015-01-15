@@ -55,6 +55,9 @@ typedef struct {
 	char *cfm_lock;
 	char *cfm_killswitch;
 
+	char *cfm_last_retr;
+	char *cfm_last_exec;
+
 	int   mode;
 	int   trace;
 	int   daemonize;
@@ -381,6 +384,15 @@ static void s_cfm_run(client_t *c)
 	} else {
 		vm.aux.remote = client;
 
+		FILE *io = fopen(c->cfm_last_retr, "w");
+		if (io) {
+			fwrite(code, n, 1, io);
+			fclose(io);
+		} else {
+			logger(LOG_ERR, "Failed to open %s for writing: %s",
+				c->cfm_last_retr, strerror(errno));
+		}
+
 		STOPWATCH(&t, ms_enforce) {
 			vm.trace = c->trace;
 			vm_exec(&vm);
@@ -388,6 +400,15 @@ static void s_cfm_run(client_t *c)
 		count = vm.topics;
 		rc = vm_done(&vm);
 		assert(rc == 0);
+
+		io = fopen(c->cfm_last_exec, "w");
+		if (io) {
+			fwrite(code, n, 1, io);
+			fclose(io);
+		} else {
+			logger(LOG_ERR, "Failed to open %s for writing: %s",
+				c->cfm_last_exec, strerror(errno));
+		}
 	}
 
 	STOPWATCH(&t, ms_cleanup) {
@@ -561,6 +582,7 @@ static inline client_t* s_client_new(int argc, char **argv)
 	config_set(&config, "security.cert",   "/etc/clockwork/certs/cogd");
 	config_set(&config, "pidfile",         "/var/run/cogd.pid");
 	config_set(&config, "lockdir",         "/var/lock/cogd");
+	config_set(&config, "statedir",        "/lib/clockwork/state");
 	config_set(&config, "difftool",        "/usr/bin/diff -u");
 
 	log_open(config_get(&config, "syslog.ident"), "stderr");
@@ -578,6 +600,7 @@ static inline client_t* s_client_new(int argc, char **argv)
 	logger(LOG_DEBUG, "  security.cert   %s", config_get(&config, "security.cert"));
 	logger(LOG_DEBUG, "  pidfile         %s", config_get(&config, "pidfile"));
 	logger(LOG_DEBUG, "  lockdir         %s", config_get(&config, "lockdir"));
+	logger(LOG_DEBUG, "  statedir        %s", config_get(&config, "statedir"));
 	logger(LOG_DEBUG, "  difftool        %s", config_get(&config, "difftool"));
 
 
@@ -676,6 +699,7 @@ static inline client_t* s_client_new(int argc, char **argv)
 		printf("security.cert   %s\n", config_get(&config, "security.cert"));
 		printf("pidfile         %s\n", config_get(&config, "pidfile"));
 		printf("lockdir         %s\n", config_get(&config, "lockdir"));
+		printf("statedir        %s\n", config_get(&config, "statedir"));
 		printf("difftool        %s\n", config_get(&config, "difftool"));
 		exit(0);
 	}
@@ -841,6 +865,14 @@ static inline client_t* s_client_new(int argc, char **argv)
 		"cfm.KILLSWITCH");
 	logger(LOG_DEBUG, "will use CFM killswitch file '%s'", c->cfm_killswitch);
 
+	c->cfm_last_retr = string("%s/%s",
+		config_get(&config, "statedir"), "retr.S");
+	logger(LOG_DEBUG, "will use last retrieved policy file '%s'", c->cfm_last_retr);
+
+	c->cfm_last_exec = string("%s/%s",
+		config_get(&config, "statedir"), "policy.S");
+	logger(LOG_DEBUG, "will use last successfully executed policy file '%s'", c->cfm_last_exec);
+
 	config_done(&config);
 	return c;
 }
@@ -871,6 +903,8 @@ static void s_client_free(client_t *c)
 	free(c->fqdn);
 	free(c->cfm_lock);
 	free(c->cfm_killswitch);
+	free(c->cfm_last_retr);
+	free(c->cfm_last_exec);
 
 	if (c->broadcast) {
 		logger(LOG_DEBUG, "shutting down mesh broadcast socket");

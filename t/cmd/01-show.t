@@ -8,11 +8,7 @@ use t::common;
 command_ok qq(show version), <<EOF;
 fn main
   property "version" %a
-  jz +2
-    error "failed to retrieve the 'version' property"
-    retv 1
-  print "(v%[a]s)"
-  retv 0
+  print %a
 EOF
 
 command_ok qq(show acls), <<EOF;

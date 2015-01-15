@@ -1566,7 +1566,10 @@ int vm_exec(vm_t *vm)
 			vm->acc = unlink(s_str(vm, f1, oper1));
 			break;
 
-		/* FIXME: OP_RMDIR */
+		case OP_FS_RMDIR:
+			ARG1("fs.rmdir");
+			vm->acc = rmdir(s_str(vm, f1, oper1));
+			break;
 
 		case OP_FS_RENAME:
 			ARG2("fs.rename");

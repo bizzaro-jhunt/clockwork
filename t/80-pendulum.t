@@ -640,6 +640,35 @@ subtest "fs operators" => sub {
 	"ok",
 	"fs.stat for non-existent file");
 
+	rmdir "t/tmp/dir";
+	pendulum_ok(qq(
+	fn main
+		fs.mkdir "t/tmp/dir"
+		jz +1
+		print "mkdir-failed;"
+
+		fs.stat "t/tmp/dir"
+		jz +1
+		print "fail"
+		print "ok"),
+
+	"ok",
+	"fs.mkdir can create directories");
+
+	pendulum_ok(qq(
+	fn main
+		fs.rmdir "t/tmp/dir"
+		jz +1
+		print "FAIL"
+		fs.stat "t/tmp/dir"
+		jnz +1
+		print "fail"
+		print "ok"),
+
+	"ok",
+	"fs.rmdir can remove directories");
+
+	unlink "t/tmp/newfile";
 	pendulum_ok(qq(
 	fn main
 		fs.touch "t/tmp/newfile"

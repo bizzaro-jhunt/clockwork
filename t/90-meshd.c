@@ -100,7 +100,7 @@ void* mesh_client_thread(void *ctx)
 #define CODE_LEN 43
 static char *CODE = "\x70\x6e"                            /* HEADER                */
                     "\x15\x30" "\0\0\0\x08"               /* jmp main              */
-                    "\x64\x32" "\0\0\0\x1c" "\0\0\0\x04"  /* property "version" %e */
+                    "\x65\x32" "\0\0\0\x1c" "\0\0\0\x04"  /* property "version" %e */
                     "\x19\x30" "\0\0\0\x24"               /* print "%[e]s"         */
                     "\x0d\x00"                            /* ret                   */
                     "\xff\x00"

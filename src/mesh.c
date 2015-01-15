@@ -369,11 +369,7 @@ int cmd_gencode(cmd_t *cmd, FILE *io)
 			if (l->next != end) goto syntax;
 			fprintf(io, "fn main\n"
 			            "  property \"version\" %%a\n"
-			            "  jz +2\n"
-			            "    error \"failed to retrieve the 'version' property\""
-			            "    retv 1\n"
-			            "  print \"(v%%[a]s)\"\n"
-			            "  retv 0\n");
+			            "  print %%a\n");
 			return 0;
 		}
 

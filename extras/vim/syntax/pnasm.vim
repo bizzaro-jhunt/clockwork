@@ -29,6 +29,7 @@ syn keyword   pnasmOpcode1    string print error perror
 syn keyword   pnasmOpcode1    flag unflag flagged?
 syn match     pnasmOpCode1    /fs\.\(stat\|type\|readlink\|dev\|inode\|mode\|nlink\|uid\|gid\|major\|minor\|size\|atime\|mtime\|ctime\)/
 syn match     pnasmOpCode1    /fs\.\(touch\|mkdir\|link\|symlink\|unlink\|rmdir\|rename\|copy\|chown\|chgrp\|chmod\|sha1\|get\|put\)/
+syn match     pnasmOpCode1    /fs\.\(open\|read\|close\)dir/
 syn match     pnasmOpCode1    /fs\.\(file\|symlink\|dir\|chardev\|blockdev\|fifo\|socket\)?/
 syn match     pnasmOpCode1    /authdb\.\(open\|save\|close\|next[ug]id\)/
 syn match     pnasmOpCode1    /\(user\|group\)\.\(find\|get\|set\|new\|delete\)/

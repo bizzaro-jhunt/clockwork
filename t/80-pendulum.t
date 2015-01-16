@@ -789,6 +789,9 @@ subtest "fs operators" => sub {
 	};
 
 	SKIP: {
+		skip "No /dev/loop0 device found", 2
+			unless -e "/dev/loop0";
+
 		pendulum_ok(qq(
 		fn main
 			fs.blockdev? "/dev/loop0"

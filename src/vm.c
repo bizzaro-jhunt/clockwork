@@ -1917,6 +1917,10 @@ static void op_authdb_nextgid(vm_t *vm)
 static void op_user_find(vm_t *vm)
 {
 	ARG1("user.find");
+	if (!vm->aux.authdb) {
+		vm->acc = 1;
+		return;
+	}
 	vm->aux.user = user_find(vm->aux.authdb, STR1(vm), -1);
 	vm->acc = vm->aux.user ? 0 : 1;
 }
@@ -2065,6 +2069,10 @@ static void op_user_delete(vm_t *vm)
 static void op_group_find(vm_t *vm)
 {
 	ARG1("group.find");
+	if (!vm->aux.authdb) {
+		vm->acc = 1;
+		return;
+	}
 	vm->aux.group = group_find(vm->aux.authdb, STR1(vm), -1);
 	vm->acc = vm->aux.group ? 0 : 1;
 }

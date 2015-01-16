@@ -487,3 +487,27 @@ int cw_logio(int level, const char *fmt, FILE *io)
 		return 1;
 	}
 }
+
+int cw_fcat(FILE *src, FILE *dst)
+{
+	assert(src);
+	assert(dst);
+
+	char buf[8192]; int n;
+	while ((n = fread(buf, 1, 8192, src)) > 0)
+		if (fwrite(buf, 1, n, dst) != n)
+			return 1;
+	return feof(src) ? 0 : 1;
+}
+
+int cw_cat(int src, int dst)
+{
+	assert(src >= 0);
+	assert(dst >= 0);
+
+	char buf[8192]; int n;
+	while ((n = read(src, buf, 8192)) > 0)
+		if (write(dst, buf, n) != n)
+			return 1;
+	return n;
+}

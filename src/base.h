@@ -42,4 +42,7 @@ const char *cw_autherror(void);
 
 int cw_logio(int level, const char *fmt, FILE *io);
 
+int cw_fcat(FILE *src, FILE *dst);
+int cw_cat(int src, int dst);
+
 #endif

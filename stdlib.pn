@@ -60,6 +60,8 @@ fn util.rungroup
 ;;
 ;; res.file.absent
 ;;
+;;   %a = file to remove
+;;
 fn res.file.absent
     syslog info "%T: enforcing absence of %[a]s"
     fs.stat %a
@@ -109,12 +111,14 @@ fn res.dir.absent
   rm:
     syslog notice "%T: removing %[b]s %[a]s"
     fs.symlink? %a
-    jz +1 fs.rmdir %a   ; for dirs
+    jz +2 fs.rmdir %a   ; for dirs
+          jmp done
           fs.unlink %a  ; for symlinks
     jz +2
       perror "failed to remove %[a]s"
       bail 1
 
+  done:
     flag "changed"
     retv 0
 

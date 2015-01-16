@@ -33,11 +33,11 @@ int main (int argc, char **argv)
 {
 	int trace = 0, debug = 0;
 	int level = LOG_WARNING;
-	const char *ident = "pn", *facility = "stdout";
+	const char *ident = "pn", *facility = "console", *stdlib = NULL;
 	int mode = MODE_EXECUTE;
 	int coverage = 0;
 
-	const char *short_opts = "h?vqDVTSd";
+	const char *short_opts = "h?vqDVTSdCL:";
 	struct option long_opts[] = {
 		{ "help",        no_argument,       NULL, 'h' },
 		{ "verbose",     no_argument,       NULL, 'v' },
@@ -49,6 +49,7 @@ int main (int argc, char **argv)
 		{ "disassemble", no_argument,       NULL, 'd' },
 		{ "cover",       no_argument,       NULL, 'C' },
 		{ "coverage",    no_argument,       NULL, 'C' },
+		{ "stdlib",      required_argument, NULL, 'L' },
 		{ "syslog",      required_argument, NULL,  0  },
 
 		{ 0, 0, 0, 0 },
@@ -97,8 +98,12 @@ int main (int argc, char **argv)
 			coverage = 1;
 			break;
 
+		case 'L':
+			stdlib = optarg;
+			break;
+
 		case 0: /* --syslog */
-			facility = argv[optind];
+			facility = optarg;
 			break;
 		}
 	}
@@ -191,13 +196,34 @@ int main (int argc, char **argv)
 			return 1;
 		}
 
-		rc = vm_asm_io(io, &code, &len);
+		FILE *agg = tmpfile();
+		if (!agg) {
+			perror("failed to create temp file");
+			return 1;
+		}
+		if (stdlib) {
+			FILE *lib = fopen(stdlib, "r");
+			if (!lib) {
+				perror(stdlib);
+				return 1;
+			}
+			rc = cw_fcat(lib, agg);
+			assert(rc == 0);
+			fclose(lib);
+		}
+		rc = cw_fcat(io, agg);
 		assert(rc == 0);
+		rewind(agg);
+
+		rc = vm_asm_io(agg, &code, &len);
+		assert(rc == 0);
+		fclose(agg);
+		fclose(io);
 
 		int outfd = 1;
 		if (!filter) {
 			char *sfile = string("%s.S", argv[optind]);
-			outfd = open(sfile, O_WRONLY|O_CREAT|O_EXCL, 0666);
+			outfd = open(sfile, O_WRONLY|O_CREAT|O_TRUNC, 0666);
 			if (outfd < 0) {
 				perror(sfile);
 				free(sfile);

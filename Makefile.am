@@ -86,6 +86,7 @@ PERL_TESTS += t/80-pendulum.t
 PERL_TESTS += t/81-gencode.t
 PERL_TESTS += t/82-security.t
 PERL_TESTS += t/83-bdfa.t
+PERL_TESTS += t/84-stdlib.t
 
 PERL_TESTS += t/cmd/01-show.t
 

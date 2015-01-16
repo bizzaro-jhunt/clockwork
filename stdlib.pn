@@ -525,12 +525,74 @@ fn res.group.passwd
 ;;
 ;; res.user.mkhome
 ;;
-;;   %a = user
-;;   %b = home directory
-;;   %c = skeleton
+;;   %a = home directory
+;;   %b = skeleton
+;;   %c = uid of owner
+;;   %d = gid of owner
 ;;
 fn res.user.mkhome
-    print "FIXME!"
+    syslog info "%T: enforcing presence of %[a]s home directory"
+    fs.stat %a
+    jz +3
+      fs.dir? %a
+      jnz +1
+        retv 0
+
+    fs.mkdir %a
+    jz +2
+      perror "failed to create directory %[a]s"
+      bail 1
+
+   fs.chown %a %c
+   fs.chgrp %a %d
+   fs.chmod %a 0750
+
+   streq %c ""
+   jnz +1 ret
+   fs.dir? %c
+   jz +1 ret
+
+   swap %a %b ;; copytree is (src -> dest)
+   call util.copytree
+   ret
+
+fn util.copytree
+    fs.opendir %a %p
+  again:
+    fs.readdir %p %o
+    jz done
+    string "%[a]s/%[o]s" %n
+    string "%[b]s/%[o]s" %m
+
+    fs.dir? %n
+    jz dir
+
+    fs.file? %n
+    jz file
+
+    fs.symlink? %n
+    jz symlink
+
+    jmp again ; unknown!
+
+  dir:
+    fs.mkdir %m
+    swap %a %n swap %b %m
+    call util.copytree
+    swap %a %n swap %b %m
+    jmp again
+
+  file:
+    fs.copy %n %m
+    jmp again
+
+  symlink:
+    fs.readlink %n %l
+    fs.symlink %m %l
+    jmp again
+
+  done:
+  ret
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;

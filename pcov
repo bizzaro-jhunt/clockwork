@@ -21,19 +21,42 @@ use Data::Dumper;
 print Dumper \%counts;
 
 my @report;
+my ($lines, $hit) = (0, 0);
 open my $dism, "-|", "./pn -d $prog"
 	or die "disassembly failed: $!\n";
 while (<$dism>) {
+	last if m/^---$/;
+	$lines++;
 	if (m/0x([0-9a-f]{8}): ([0-9a-f]{2})/ && $counts{$1}) {
 		my ($addr, $op) = ($1, $2);
 		die "binary image / ccov report mismatch detected;\n".
 		    "opcode at 0x$addr is $op (ccov has $ops{$addr})\n"
 			if $ops{$addr} ne $op;
 		push @report, sprintf("%13i: %s", $counts{$addr}, $_);
+		$hit++;
 	} else {
 		push @report, sprintf("%14s %s", "", $_);
 	}
 }
 
 print $_ for @report;
+print <<EOF;
+
+
+
+
+      ######   #######  ##     ## ######## ########     ###     ######   ########
+     ##    ## ##     ## ##     ## ##       ##     ##   ## ##   ##    ##  ##
+     ##       ##     ## ##     ## ##       ##     ##  ##   ##  ##        ##
+     ##       ##     ## ##     ## ######   ########  ##     ## ##   #### ######
+     ##       ##     ##  ##   ##  ##       ##   ##   ######### ##    ##  ##
+     ##    ## ##     ##   ## ##   ##       ##    ##  ##     ## ##    ##  ##
+      ######   #######     ###    ######## ##     ## ##     ##  ######   ########
+
+
+EOF
+printf "        %12i opcodes executed\n", $lines;
+printf "        %12i opcodes total\n", $hit;
+printf "        %12.2lf %% coverage\n", $hit / $lines * 100.0;
+print "\n\n";
 exit 0;

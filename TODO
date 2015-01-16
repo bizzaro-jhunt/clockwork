@@ -1,0 +1,7 @@
+TODO
+====
+
+  - t/8x-stdlib.t - Tests for standard library functionality
+    (in a clean environment)
+  - document pendulum 2 assembler code
+    (maybe embed in opcodes.yml?)

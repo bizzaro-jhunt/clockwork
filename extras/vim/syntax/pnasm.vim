@@ -13,8 +13,8 @@ endif
 syn keyword   pnasmTodo       contained TODO FIXME XXX
 syn match     pnasmComment    ";.*" contains=pnasmTodo
 
-syn match     pnasmFunc       /fn[ \t]*[a-z][a-z0-9._?:-]*/ contains=pnasmOpFn,pnasmFuncName
-syn keyword   pnasmOpFn       fn contained
+syn match     pnasmFunc       /\(fn\|call\|try\)[ \t]*[a-z][a-z0-9._?:-]*/ contains=pnasmOpFn,pnasmFuncName
+syn keyword   pnasmOpFn       fn call try contained
 syn match     pnasmFuncName   /[a-z][a-z0-9._?:-]*/ contained
 
 syn match     pnasmLog        /syslog[ \t]*[^ \t]*/ contains=pnasmOpSyslog,pnasmLogLevel,pnasmLogBad
@@ -41,7 +41,7 @@ syn match     pnasmOpCode1    /runas\.\(uid\|gid\)/
 syn match     pnasmOpCode1    /show\.\(acl\|acls\)/
 syn match     pnasmOpCode1    /remote\.\(live?\|sha1\|file\)/
 
-syn keyword   pnasmOpcode2    call try ret retv bail pragma halt property topic
+syn keyword   pnasmOpcode2    ret retv bail pragma halt property topic
 
 syn region    pnasmString     start=+L\="+ skip=+\\\\\|\\"\|\\$+ excludenl end=+"+ contains=pnasmFormat
 syn match     pnasmFormat     display "%\[[a-p]\]\(\d\+\$\)\=[-+' #0*]*\(\d*\|\*\|\*\d\+\$\)\(\.\(\d*\|\*\|\*\d\+\$\)\)\=\([hlL]\|ll\)\=\([bdiuoxXDOUfeEgGcCsSpn]\|\[\^\=.[^]]*\]\)" contained

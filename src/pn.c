@@ -35,6 +35,7 @@ int main (int argc, char **argv)
 	int level = LOG_WARNING;
 	const char *ident = "pn", *facility = "stdout";
 	int mode = MODE_EXECUTE;
+	int coverage = 0;
 
 	const char *short_opts = "h?vqDVTSd";
 	struct option long_opts[] = {
@@ -46,6 +47,8 @@ int main (int argc, char **argv)
 		{ "trace",       no_argument,       NULL, 'T' },
 		{ "assemble",    no_argument,       NULL, 'S' },
 		{ "disassemble", no_argument,       NULL, 'd' },
+		{ "cover",       no_argument,       NULL, 'C' },
+		{ "coverage",    no_argument,       NULL, 'C' },
 		{ "syslog",      required_argument, NULL,  0  },
 
 		{ 0, 0, 0, 0 },
@@ -88,6 +91,10 @@ int main (int argc, char **argv)
 
 		case 'd':
 			mode = MODE_DISASSEMBLE;
+			break;
+
+		case 'C':
+			coverage = 1;
 			break;
 
 		case 0: /* --syslog */
@@ -136,6 +143,18 @@ int main (int argc, char **argv)
 		assert(rc == 0);
 
 		if (mode == MODE_EXECUTE) {
+			if (coverage) {
+				char *cfile = string("%s.pcov", argv[optind]);
+				FILE *io = fopen(cfile, "w");
+				if (!io) {
+					perror(cfile);
+					free(cfile);
+					return 1;
+				}
+				free(cfile);
+				vm.ccovio = io;
+			}
+
 			rc = vm_args(&vm, argc - optind, argv + optind);
 			assert(rc == 0);
 

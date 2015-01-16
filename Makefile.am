@@ -232,6 +232,8 @@ bdfa_SOURCES        = src/bdfa.c src/base.h src/base.c
 pn_SOURCES          = src/pn.c    $(core_src)
 cw_SOURCES          = cli/cw.c    $(core_src) $(parser_spec_src)
 
+bin_SCRIPTS         = pcov
+
 clidir=$(pkglibdir)/cli
 dist_cli_SCRIPTS  = cli/mesh-builtin
 dist_cli_SCRIPTS += cli/cw-localsys

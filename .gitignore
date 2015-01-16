@@ -16,6 +16,7 @@ stamp-h?
 *.deb
 *.rpm
 *.tmp
+*.pcov
 
 /pn
 /pn2

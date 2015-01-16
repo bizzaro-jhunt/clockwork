@@ -87,6 +87,7 @@ typedef struct {
 	byte_t   trace;  /* whether or not to print trace messages */
 	FILE    *stderr; /* where to direct error messages */
 	FILE    *stdout; /* where to send normal error messages */
+	FILE    *ccovio; /* where to write code coverage info (NULL = don't) */
 
 	byte_t   stop;   /* signal that the execution is complete */
 

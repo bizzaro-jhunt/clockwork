@@ -2498,10 +2498,14 @@ int vm_exec(vm_t *vm)
 again:
 	while (!vm->stop) {
 		vm->oper1 = vm->oper2 = 0;
-		vm->op = vm->code[vm->pc++];
+		vm->op = vm->code[vm->pc];
+
+		if (vm->ccovio)
+			fprintf(vm->ccovio, "%08x %02x\n", vm->pc, vm->op);
+		vm->pc++;
+
 		vm->f1 = HI_NYBLE(vm->code[vm->pc]);
 		vm->f2 = LO_NYBLE(vm->code[vm->pc]);
-
 		if (vm->trace)
 			fprintf(vm->stderr, "+%s [%02x]", OPCODES[vm->op], vm->code[vm->pc]);
 		vm->pc++;

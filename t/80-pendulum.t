@@ -976,6 +976,35 @@ EOF
 	"replacement data!",
 	"fs.put overwrites a file");
 
+	mkdir "t/tmp/readdir";
+	mkdir "t/tmp/readdir/$_" for qw/a b c d/;
+	pendulum_ok(qq(
+	fn main
+		print "starting\\n"
+		fs.opendir "t/tmp/readdir" %a
+		jz +2
+			print "opendir failed\\n"
+			ret
+	again:
+		fs.readdir %a %b
+		jnz done
+		  print "found '%[b]s'\\n"
+		  jmp again
+
+	done:
+		fs.closedir %a
+		jz +2
+			print "closedir failed\\n"
+			ret
+		print "ok\\n"),
+
+	"starting\n".
+	"found 'a'\n".
+	"found 'b'\n".
+	"found 'c'\n".
+	"found 'd'\n".
+	"ok\n",
+	"fs directory traversal");
 };
 
 subtest "user management" => sub {
@@ -2010,10 +2039,10 @@ subtest "disassembly" => sub {
 
 	<<EOF, "pendulum compiler de-duplicates strings");
 0x00000000: 70 6e
-0x00000002: 15 30 [00 00 00 08]           jmp 0x00000008
-0x00000008: 19 30 [00 00 00 18]         print 0x00000018 ; "foo"
-0x0000000e: 19 30 [00 00 00 18]         print 0x00000018 ; "foo"
-0x00000014: 0d 00                         ret
+0x00000002: 17 30 [00 00 00 08]           jmp 0x00000008
+0x00000008: 1b 30 [00 00 00 18]         print 0x00000018 ; "foo"
+0x0000000e: 1b 30 [00 00 00 18]         print 0x00000018 ; "foo"
+0x00000014: 0f 00                         ret
 0x00000016: ff 00
 ---
 0x00000018: [foo]

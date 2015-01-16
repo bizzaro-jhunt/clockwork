@@ -24,6 +24,17 @@
     args:
       - [register]
 
+- pragma:
+    help: set a compiler pragma
+    args:
+      - [identifier]
+      - [string, number]
+- property:
+    help: retrieve a property into a register
+    args:
+      - [register, string]
+      - [register]
+
 - add:
     help: add the second operand to the first
     args:
@@ -326,6 +337,20 @@
     args:
       - [register, string]
       - [register, string]
+- fs.opendir:
+    help: open a directory, to inspect its contents
+    args:
+      - [register, string]
+      - [register]
+- fs.readdir:
+    help: read the next entry out of a directory handle
+    args:
+      - [register]
+      - [register]
+- fs.closedir:
+    help: close an open directory handle
+    args:
+      - [register]
 
 - authdb.open:
     help: open the passwd/shadow (and group) databases for reading or writing
@@ -452,18 +477,6 @@
     help: dump virtual machine state for debugging
 - halt:
     help: halt the virtual machine
-
-- pragma:
-    help: set a compiler pragma
-    args:
-      - [identifier]
-      - [string, number]
-
-- property:
-    help: retrieve a property into a register
-    args:
-      - [register, string]
-      - [register]
 
 - acl:
     help: store a mech ACL

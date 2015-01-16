@@ -28,6 +28,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <dirent.h>
 
 #define OPCODES_INTERPRETER
 #include <augeas.h>
@@ -516,6 +517,7 @@ static int s_asm_encode(compiler_t *cc)
 		}
 	}
 	text += 2; /* 0xff00 */
+	hash_done(&seen, 0);
 
 	cc->static_fill = cc->static_offset = text;
 	cc->size = text + data;
@@ -1237,6 +1239,36 @@ static void op_swap(vm_t *vm)
 	REG1(vm) ^= REG2(vm);
 }
 
+static void op_pragma(vm_t *vm)
+{
+	ARG2("pragma");
+	const char *v = STR1(vm);
+
+	if (strcmp(v, "test") == 0) {
+		vm->stderr = strcmp(STR2(vm), "on") == 0 ? stdout : stderr;
+
+	} else if (strcmp(v, "trace") == 0) {
+		vm->trace = strcmp(STR2(vm), "on") == 0;
+
+	} else {
+		/* set the value in the pragma hash */
+		hash_set(&vm->pragma, v, (void *)STR2(vm));
+	}
+}
+
+static void op_property(vm_t *vm)
+{
+	ARG2("property");
+	REGISTER2("property");
+	const char *v = hash_get(&vm->props, STR1(vm));
+	if (v) {
+		REG2(vm) = vm_heap_strdup(vm, v);
+		vm->acc = 0;
+	} else {
+		vm->acc = 1;
+	}
+}
+
 static void op_acc(vm_t *vm)
 {
 	ARG1("acc");
@@ -1770,6 +1802,73 @@ static void op_fs_put(vm_t *vm)
 	vm->acc = s_fs_put(STR1(vm), STR2(vm));
 }
 
+static void op_fs_opendir(vm_t *vm)
+{
+	ARG2("fs.opendir");
+	REGISTER2("fs.opendir");
+
+	int i;
+	for (i = 0; i < VM_MAX_OPENDIRS; i++) {
+		if (vm->aux.dirs[i].paths) continue;
+
+		DIR *dir = opendir(STR1(vm));
+		if (!dir) {
+			vm->acc = 1;
+			return;
+		}
+		vm->acc = 0;
+
+		vm->aux.dirs[i].i     = 0;
+		vm->aux.dirs[i].paths = strings_new(NULL);
+		struct dirent *D;
+		while ((D = readdir(dir)))
+			if (strcmp(D->d_name, ".") != 0 && strcmp(D->d_name, "..") != 0)
+				strings_add(vm->aux.dirs[i].paths, strdup(D->d_name));
+
+		strings_sort(vm->aux.dirs[i].paths, STRINGS_ASC);
+		vm->r[vm->oper2] = i;
+		return;
+	}
+	errno = ENFILE;
+	vm->acc = 1;
+}
+
+static void op_fs_readdir(vm_t *vm)
+{
+	ARG2("fs.readdir");
+	REGISTER2("fs.readdir");
+
+	int d = VAL1(vm);
+	if (d < 0 || d >= VM_MAX_OPENDIRS || !vm->aux.dirs[d].paths) {
+		vm->acc = 1;
+		return;
+	}
+
+	if (vm->aux.dirs[d].i == vm->aux.dirs[d].paths->num) {
+		vm->acc = 1;
+		return;
+	}
+
+	vm->acc = 0;
+	vm->r[vm->oper2] = vm_heap_strdup(vm,
+		vm->aux.dirs[d].paths->strings[vm->aux.dirs[d].i++]);
+}
+
+static void op_fs_closedir(vm_t *vm)
+{
+	ARG1("fs.closedir");
+	REGISTER1("fs.closedir");
+
+	int d = VAL1(vm);
+	if (d < 0 || d >= VM_MAX_OPENDIRS) {
+		vm->acc = 1;
+		return;
+	}
+	strings_free(vm->aux.dirs[d].paths);
+	vm->aux.dirs[d].paths = NULL;
+	vm->acc = 0;
+}
+
 static void op_authdb_open(vm_t *vm)
 {
 	ARG0("authdb.open");
@@ -2230,36 +2329,6 @@ static void op_halt(vm_t *vm)
 {
 	ARG0("halt");
 	vm->stop = 1;
-}
-
-static void op_pragma(vm_t *vm)
-{
-	ARG2("pragma");
-	const char *v = STR1(vm);
-
-	if (strcmp(v, "test") == 0) {
-		vm->stderr = strcmp(STR2(vm), "on") == 0 ? stdout : stderr;
-
-	} else if (strcmp(v, "trace") == 0) {
-		vm->trace = strcmp(STR2(vm), "on") == 0;
-
-	} else {
-		/* set the value in the pragma hash */
-		hash_set(&vm->pragma, v, (void *)STR2(vm));
-	}
-}
-
-static void op_property(vm_t *vm)
-{
-	ARG2("property");
-	REGISTER2("property");
-	const char *v = hash_get(&vm->props, STR1(vm));
-	if (v) {
-		REG2(vm) = vm_heap_strdup(vm, v);
-		vm->acc = 0;
-	} else {
-		vm->acc = 1;
-	}
 }
 
 static void op_acl(vm_t *vm)

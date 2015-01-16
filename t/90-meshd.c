@@ -99,10 +99,10 @@ void* mesh_client_thread(void *ctx)
 /* pendulum code for 'show version' */
 #define CODE_LEN 43
 static char *CODE = "\x70\x6e"                            /* HEADER                */
-                    "\x15\x30" "\0\0\0\x08"               /* jmp main              */
-                    "\x65\x32" "\0\0\0\x1c" "\0\0\0\x04"  /* property "version" %e */
-                    "\x19\x30" "\0\0\0\x24"               /* print "%[e]s"         */
-                    "\x0d\x00"                            /* ret                   */
+                    "\x17\x30" "\0\0\0\x08"               /* jmp main              */
+                    "\x07\x32" "\0\0\0\x1c" "\0\0\0\x04"  /* property "version" %e */
+                    "\x1b\x30" "\0\0\0\x24"               /* print "%[e]s"         */
+                    "\x0f\x00"                            /* ret                   */
                     "\xff\x00"
                     /* --------[[ static ]]----------*/
                     "version\0"

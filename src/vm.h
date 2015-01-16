@@ -55,7 +55,13 @@ typedef struct {
 	list_t   l;
 } heap_t;
 
+typedef struct {
+	size_t     i;
+	strings_t *paths;
+} dirlist_t;
+
 #define NREGS 16
+#define VM_MAX_OPENDIRS 2048
 typedef struct {
 	dword_t  r[16];  /* generic registers */
 	dword_t  acc;    /* accumulator register */
@@ -97,6 +103,8 @@ typedef struct {
 		struct SHA1   sha1;
 
 		void         *remote;
+
+		dirlist_t     dirs[VM_MAX_OPENDIRS];
 
 		uid_t         runas_uid;
 		gid_t         runas_gid;

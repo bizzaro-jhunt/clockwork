@@ -5,3 +5,10 @@ TODO
     (in a clean environment)
   - document pendulum 2 assembler code
     (maybe embed in opcodes.yml?)
+  - Pendulum Code Coverage reporting
+      `pn --cover program.S`
+        Run program.S, and write a coverage file to program.pcov
+      `pcov program.S`
+        Read program.pcov, disassemble program.S, and show opcode
+        hit counts per offset / total % of opcodes hit
+        (might be written in Perl)

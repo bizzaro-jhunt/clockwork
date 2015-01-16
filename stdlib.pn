@@ -13,7 +13,7 @@
 fn util.authdb.open
     syslog debug "opening authentication databases"
     authdb.open
-    jz +1
+    jz +2
       perror "failed to open authentication databases"
       bail 1
     ret

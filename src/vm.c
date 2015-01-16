@@ -2147,6 +2147,24 @@ static void op_group_delete(vm_t *vm)
 	vm->acc = 0;
 }
 
+static void op_group_has_p(vm_t *vm)
+{
+	ARG2("group.has?");
+	vm->acc = 1;
+}
+
+static void op_group_join(vm_t *vm)
+{
+	ARG2("group.join");
+	vm->acc = 1;
+}
+
+static void op_group_kick(vm_t *vm)
+{
+	ARG2("group.kick");
+	vm->acc = 1;
+}
+
 static void op_augeas_init(vm_t *vm)
 {
 	ARG0("augeas.init");

@@ -406,6 +406,21 @@
     help: allocate a new (unsaved) group object
 - group.delete:
     help: remove the current group from the (in-memory) database
+- group.has?:
+    help: check if a user is a member/admin of a group
+    args:
+      - [register, string]
+      - [register, string]
+- group.join:
+    help: join a member/admin to a group
+    args:
+      - [register, string]
+      - [register, string]
+- group.kick:
+    help: kick a member/admin from a group
+    args:
+      - [register, string]
+      - [register, string]
 
 - augeas.init:
     help: initialize the augeas system

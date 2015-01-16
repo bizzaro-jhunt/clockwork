@@ -89,30 +89,33 @@
 #define OP_GROUP_SET       0x55  /* set an attribute on the last found group */
 #define OP_GROUP_NEW       0x56  /* allocate a new (unsaved) group object */
 #define OP_GROUP_DELETE    0x57  /* remove the current group from the (in-memory) database */
-#define OP_AUGEAS_INIT     0x58  /* initialize the augeas system */
-#define OP_AUGEAS_DONE     0x59  /* de-initializes the augeas system */
-#define OP_AUGEAS_PERROR   0x5a  /* print a helpful augeas error message */
-#define OP_AUGEAS_WRITE    0x5b  /* write all pending changes to disk */
-#define OP_AUGEAS_SET      0x5c  /* set the value of a file/key */
-#define OP_AUGEAS_GET      0x5d  /* retrieve the value of a file/key */
-#define OP_AUGEAS_FIND     0x5e  /* search for and retrieve the value of file/key */
-#define OP_AUGEAS_REMOVE   0x5f  /* remove a file/key */
-#define OP_ENV_GET         0x60  /* retrieve the value of an environment variable */
-#define OP_ENV_SET         0x61  /* set the value of an environment variable */
-#define OP_ENV_UNSET       0x62  /* unset an environment variable */
-#define OP_LOCALSYS        0x63  /* execute `cw localsys` with arguments */
-#define OP_RUNAS_UID       0x64  /* Set the run-as UID */
-#define OP_RUNAS_GID       0x65  /* Set the run-as GID */
-#define OP_EXEC            0x66  /* execute a command */
-#define OP_DUMP            0x67  /* dump virtual machine state for debugging */
-#define OP_HALT            0x68  /* halt the virtual machine */
-#define OP_ACL             0x69  /* store a mech ACL */
-#define OP_SHOW_ACLS       0x6a  /* print ACL entries */
-#define OP_SHOW_ACL        0x6b  /* print ACL entries that match the query */
-#define OP_REMOTE_LIVE_P   0x6c  /* Determine if we are connected to a clockd server */
-#define OP_REMOTE_SHA1     0x6d  /* Retrieve the remote SHA1 based on a resource key */
-#define OP_REMOTE_FILE     0x6e  /* Retrieve the contents of a file based on a resource key */
-#define OP_TOPIC           0x6f  /* Set the current topic, for the %T special register */
+#define OP_GROUP_HAS_P     0x58  /* check if a user is a member/admin of a group */
+#define OP_GROUP_JOIN      0x59  /* join a member/admin to a group */
+#define OP_GROUP_KICK      0x5a  /* kick a member/admin from a group */
+#define OP_AUGEAS_INIT     0x5b  /* initialize the augeas system */
+#define OP_AUGEAS_DONE     0x5c  /* de-initializes the augeas system */
+#define OP_AUGEAS_PERROR   0x5d  /* print a helpful augeas error message */
+#define OP_AUGEAS_WRITE    0x5e  /* write all pending changes to disk */
+#define OP_AUGEAS_SET      0x5f  /* set the value of a file/key */
+#define OP_AUGEAS_GET      0x60  /* retrieve the value of a file/key */
+#define OP_AUGEAS_FIND     0x61  /* search for and retrieve the value of file/key */
+#define OP_AUGEAS_REMOVE   0x62  /* remove a file/key */
+#define OP_ENV_GET         0x63  /* retrieve the value of an environment variable */
+#define OP_ENV_SET         0x64  /* set the value of an environment variable */
+#define OP_ENV_UNSET       0x65  /* unset an environment variable */
+#define OP_LOCALSYS        0x66  /* execute `cw localsys` with arguments */
+#define OP_RUNAS_UID       0x67  /* Set the run-as UID */
+#define OP_RUNAS_GID       0x68  /* Set the run-as GID */
+#define OP_EXEC            0x69  /* execute a command */
+#define OP_DUMP            0x6a  /* dump virtual machine state for debugging */
+#define OP_HALT            0x6b  /* halt the virtual machine */
+#define OP_ACL             0x6c  /* store a mech ACL */
+#define OP_SHOW_ACLS       0x6d  /* print ACL entries */
+#define OP_SHOW_ACL        0x6e  /* print ACL entries that match the query */
+#define OP_REMOTE_LIVE_P   0x6f  /* Determine if we are connected to a clockd server */
+#define OP_REMOTE_SHA1     0x70  /* Retrieve the remote SHA1 based on a resource key */
+#define OP_REMOTE_FILE     0x71  /* Retrieve the contents of a file based on a resource key */
+#define OP_TOPIC           0x72  /* Set the current topic, for the %T special register */
 
 
 /** OPCODE MNEMONIC NAMES **/
@@ -205,30 +208,33 @@ static const char * OPCODES[] = {
 	"group.set",         /* OP_GROUP_SET        85  0x55 */
 	"group.new",         /* OP_GROUP_NEW        86  0x56 */
 	"group.delete",      /* OP_GROUP_DELETE     87  0x57 */
-	"augeas.init",       /* OP_AUGEAS_INIT      88  0x58 */
-	"augeas.done",       /* OP_AUGEAS_DONE      89  0x59 */
-	"augeas.perror",     /* OP_AUGEAS_PERROR    90  0x5a */
-	"augeas.write",      /* OP_AUGEAS_WRITE     91  0x5b */
-	"augeas.set",        /* OP_AUGEAS_SET       92  0x5c */
-	"augeas.get",        /* OP_AUGEAS_GET       93  0x5d */
-	"augeas.find",       /* OP_AUGEAS_FIND      94  0x5e */
-	"augeas.remove",     /* OP_AUGEAS_REMOVE    95  0x5f */
-	"env.get",           /* OP_ENV_GET          96  0x60 */
-	"env.set",           /* OP_ENV_SET          97  0x61 */
-	"env.unset",         /* OP_ENV_UNSET        98  0x62 */
-	"localsys",          /* OP_LOCALSYS         99  0x63 */
-	"runas.uid",         /* OP_RUNAS_UID       100  0x64 */
-	"runas.gid",         /* OP_RUNAS_GID       101  0x65 */
-	"exec",              /* OP_EXEC            102  0x66 */
-	"dump",              /* OP_DUMP            103  0x67 */
-	"halt",              /* OP_HALT            104  0x68 */
-	"acl",               /* OP_ACL             105  0x69 */
-	"show.acls",         /* OP_SHOW_ACLS       106  0x6a */
-	"show.acl",          /* OP_SHOW_ACL        107  0x6b */
-	"remote.live?",      /* OP_REMOTE_LIVE_P   108  0x6c */
-	"remote.sha1",       /* OP_REMOTE_SHA1     109  0x6d */
-	"remote.file",       /* OP_REMOTE_FILE     110  0x6e */
-	"topic",             /* OP_TOPIC           111  0x6f */
+	"group.has?",        /* OP_GROUP_HAS_P      88  0x58 */
+	"group.join",        /* OP_GROUP_JOIN       89  0x59 */
+	"group.kick",        /* OP_GROUP_KICK       90  0x5a */
+	"augeas.init",       /* OP_AUGEAS_INIT      91  0x5b */
+	"augeas.done",       /* OP_AUGEAS_DONE      92  0x5c */
+	"augeas.perror",     /* OP_AUGEAS_PERROR    93  0x5d */
+	"augeas.write",      /* OP_AUGEAS_WRITE     94  0x5e */
+	"augeas.set",        /* OP_AUGEAS_SET       95  0x5f */
+	"augeas.get",        /* OP_AUGEAS_GET       96  0x60 */
+	"augeas.find",       /* OP_AUGEAS_FIND      97  0x61 */
+	"augeas.remove",     /* OP_AUGEAS_REMOVE    98  0x62 */
+	"env.get",           /* OP_ENV_GET          99  0x63 */
+	"env.set",           /* OP_ENV_SET         100  0x64 */
+	"env.unset",         /* OP_ENV_UNSET       101  0x65 */
+	"localsys",          /* OP_LOCALSYS        102  0x66 */
+	"runas.uid",         /* OP_RUNAS_UID       103  0x67 */
+	"runas.gid",         /* OP_RUNAS_GID       104  0x68 */
+	"exec",              /* OP_EXEC            105  0x69 */
+	"dump",              /* OP_DUMP            106  0x6a */
+	"halt",              /* OP_HALT            107  0x6b */
+	"acl",               /* OP_ACL             108  0x6c */
+	"show.acls",         /* OP_SHOW_ACLS       109  0x6d */
+	"show.acl",          /* OP_SHOW_ACL        110  0x6e */
+	"remote.live?",      /* OP_REMOTE_LIVE_P   111  0x6f */
+	"remote.sha1",       /* OP_REMOTE_SHA1     112  0x70 */
+	"remote.file",       /* OP_REMOTE_FILE     113  0x71 */
+	"topic",             /* OP_TOPIC           114  0x72 */
 	NULL,
 };
 
@@ -323,30 +329,33 @@ static const char * OPCODES[] = {
 #define T_OP_GROUP_SET       0x96  /* set an attribute on the last found group */
 #define T_OP_GROUP_NEW       0x97  /* allocate a new (unsaved) group object */
 #define T_OP_GROUP_DELETE    0x98  /* remove the current group from the (in-memory) database */
-#define T_OP_AUGEAS_INIT     0x99  /* initialize the augeas system */
-#define T_OP_AUGEAS_DONE     0x9a  /* de-initializes the augeas system */
-#define T_OP_AUGEAS_PERROR   0x9b  /* print a helpful augeas error message */
-#define T_OP_AUGEAS_WRITE    0x9c  /* write all pending changes to disk */
-#define T_OP_AUGEAS_SET      0x9d  /* set the value of a file/key */
-#define T_OP_AUGEAS_GET      0x9e  /* retrieve the value of a file/key */
-#define T_OP_AUGEAS_FIND     0x9f  /* search for and retrieve the value of file/key */
-#define T_OP_AUGEAS_REMOVE   0xa0  /* remove a file/key */
-#define T_OP_ENV_GET         0xa1  /* retrieve the value of an environment variable */
-#define T_OP_ENV_SET         0xa2  /* set the value of an environment variable */
-#define T_OP_ENV_UNSET       0xa3  /* unset an environment variable */
-#define T_OP_LOCALSYS        0xa4  /* execute `cw localsys` with arguments */
-#define T_OP_RUNAS_UID       0xa5  /* Set the run-as UID */
-#define T_OP_RUNAS_GID       0xa6  /* Set the run-as GID */
-#define T_OP_EXEC            0xa7  /* execute a command */
-#define T_OP_DUMP            0xa8  /* dump virtual machine state for debugging */
-#define T_OP_HALT            0xa9  /* halt the virtual machine */
-#define T_OP_ACL             0xaa  /* store a mech ACL */
-#define T_OP_SHOW_ACLS       0xab  /* print ACL entries */
-#define T_OP_SHOW_ACL        0xac  /* print ACL entries that match the query */
-#define T_OP_REMOTE_LIVE_P   0xad  /* Determine if we are connected to a clockd server */
-#define T_OP_REMOTE_SHA1     0xae  /* Retrieve the remote SHA1 based on a resource key */
-#define T_OP_REMOTE_FILE     0xaf  /* Retrieve the contents of a file based on a resource key */
-#define T_OP_TOPIC           0xb0  /* Set the current topic, for the %T special register */
+#define T_OP_GROUP_HAS_P     0x99  /* check if a user is a member/admin of a group */
+#define T_OP_GROUP_JOIN      0x9a  /* join a member/admin to a group */
+#define T_OP_GROUP_KICK      0x9b  /* kick a member/admin from a group */
+#define T_OP_AUGEAS_INIT     0x9c  /* initialize the augeas system */
+#define T_OP_AUGEAS_DONE     0x9d  /* de-initializes the augeas system */
+#define T_OP_AUGEAS_PERROR   0x9e  /* print a helpful augeas error message */
+#define T_OP_AUGEAS_WRITE    0x9f  /* write all pending changes to disk */
+#define T_OP_AUGEAS_SET      0xa0  /* set the value of a file/key */
+#define T_OP_AUGEAS_GET      0xa1  /* retrieve the value of a file/key */
+#define T_OP_AUGEAS_FIND     0xa2  /* search for and retrieve the value of file/key */
+#define T_OP_AUGEAS_REMOVE   0xa3  /* remove a file/key */
+#define T_OP_ENV_GET         0xa4  /* retrieve the value of an environment variable */
+#define T_OP_ENV_SET         0xa5  /* set the value of an environment variable */
+#define T_OP_ENV_UNSET       0xa6  /* unset an environment variable */
+#define T_OP_LOCALSYS        0xa7  /* execute `cw localsys` with arguments */
+#define T_OP_RUNAS_UID       0xa8  /* Set the run-as UID */
+#define T_OP_RUNAS_GID       0xa9  /* Set the run-as GID */
+#define T_OP_EXEC            0xaa  /* execute a command */
+#define T_OP_DUMP            0xab  /* dump virtual machine state for debugging */
+#define T_OP_HALT            0xac  /* halt the virtual machine */
+#define T_OP_ACL             0xad  /* store a mech ACL */
+#define T_OP_SHOW_ACLS       0xae  /* print ACL entries */
+#define T_OP_SHOW_ACL        0xaf  /* print ACL entries that match the query */
+#define T_OP_REMOTE_LIVE_P   0xb0  /* Determine if we are connected to a clockd server */
+#define T_OP_REMOTE_SHA1     0xb1  /* Retrieve the remote SHA1 based on a resource key */
+#define T_OP_REMOTE_FILE     0xb2  /* Retrieve the contents of a file based on a resource key */
+#define T_OP_TOPIC           0xb3  /* Set the current topic, for the %T special register */
 
 
 static const char * ASM[] = {
@@ -439,30 +448,33 @@ static const char * ASM[] = {
 	"group.set",         /* T_OP_GROUP_SET       86  0x56 */
 	"group.new",         /* T_OP_GROUP_NEW       87  0x57 */
 	"group.delete",      /* T_OP_GROUP_DELETE    88  0x58 */
-	"augeas.init",       /* T_OP_AUGEAS_INIT     89  0x59 */
-	"augeas.done",       /* T_OP_AUGEAS_DONE     90  0x5a */
-	"augeas.perror",     /* T_OP_AUGEAS_PERROR   91  0x5b */
-	"augeas.write",      /* T_OP_AUGEAS_WRITE    92  0x5c */
-	"augeas.set",        /* T_OP_AUGEAS_SET      93  0x5d */
-	"augeas.get",        /* T_OP_AUGEAS_GET      94  0x5e */
-	"augeas.find",       /* T_OP_AUGEAS_FIND     95  0x5f */
-	"augeas.remove",     /* T_OP_AUGEAS_REMOVE   96  0x60 */
-	"env.get",           /* T_OP_ENV_GET         97  0x61 */
-	"env.set",           /* T_OP_ENV_SET         98  0x62 */
-	"env.unset",         /* T_OP_ENV_UNSET       99  0x63 */
-	"localsys",          /* T_OP_LOCALSYS        100  0x64 */
-	"runas.uid",         /* T_OP_RUNAS_UID       101  0x65 */
-	"runas.gid",         /* T_OP_RUNAS_GID       102  0x66 */
-	"exec",              /* T_OP_EXEC            103  0x67 */
-	"dump",              /* T_OP_DUMP            104  0x68 */
-	"halt",              /* T_OP_HALT            105  0x69 */
-	"acl",               /* T_OP_ACL             106  0x6a */
-	"show.acls",         /* T_OP_SHOW_ACLS       107  0x6b */
-	"show.acl",          /* T_OP_SHOW_ACL        108  0x6c */
-	"remote.live?",      /* T_OP_REMOTE_LIVE_P   109  0x6d */
-	"remote.sha1",       /* T_OP_REMOTE_SHA1     110  0x6e */
-	"remote.file",       /* T_OP_REMOTE_FILE     111  0x6f */
-	"topic",             /* T_OP_TOPIC           112  0x70 */
+	"group.has?",        /* T_OP_GROUP_HAS_P     89  0x59 */
+	"group.join",        /* T_OP_GROUP_JOIN      90  0x5a */
+	"group.kick",        /* T_OP_GROUP_KICK      91  0x5b */
+	"augeas.init",       /* T_OP_AUGEAS_INIT     92  0x5c */
+	"augeas.done",       /* T_OP_AUGEAS_DONE     93  0x5d */
+	"augeas.perror",     /* T_OP_AUGEAS_PERROR   94  0x5e */
+	"augeas.write",      /* T_OP_AUGEAS_WRITE    95  0x5f */
+	"augeas.set",        /* T_OP_AUGEAS_SET      96  0x60 */
+	"augeas.get",        /* T_OP_AUGEAS_GET      97  0x61 */
+	"augeas.find",       /* T_OP_AUGEAS_FIND     98  0x62 */
+	"augeas.remove",     /* T_OP_AUGEAS_REMOVE   99  0x63 */
+	"env.get",           /* T_OP_ENV_GET         100  0x64 */
+	"env.set",           /* T_OP_ENV_SET         101  0x65 */
+	"env.unset",         /* T_OP_ENV_UNSET       102  0x66 */
+	"localsys",          /* T_OP_LOCALSYS        103  0x67 */
+	"runas.uid",         /* T_OP_RUNAS_UID       104  0x68 */
+	"runas.gid",         /* T_OP_RUNAS_GID       105  0x69 */
+	"exec",              /* T_OP_EXEC            106  0x6a */
+	"dump",              /* T_OP_DUMP            107  0x6b */
+	"halt",              /* T_OP_HALT            108  0x6c */
+	"acl",               /* T_OP_ACL             109  0x6d */
+	"show.acls",         /* T_OP_SHOW_ACLS       110  0x6e */
+	"show.acl",          /* T_OP_SHOW_ACL        111  0x6f */
+	"remote.live?",      /* T_OP_REMOTE_LIVE_P   112  0x70 */
+	"remote.sha1",       /* T_OP_REMOTE_SHA1     113  0x71 */
+	"remote.file",       /* T_OP_REMOTE_FILE     114  0x72 */
+	"topic",             /* T_OP_TOPIC           115  0x73 */
 	NULL,
 };
 
@@ -582,6 +594,9 @@ static struct {
 	{ T_OP_GROUP_SET,      "group.set (%a|<string>) (%b|<string>|<number>)", OP_GROUP_SET,      { ARG_REGISTER|ARG_STRING,            ARG_REGISTER|ARG_STRING|ARG_NUMBER, } },
 	{ T_OP_GROUP_NEW,      "group.new",                                      OP_GROUP_NEW,      { ARG_NONE,                           ARG_NONE,                           } },
 	{ T_OP_GROUP_DELETE,   "group.delete",                                   OP_GROUP_DELETE,   { ARG_NONE,                           ARG_NONE,                           } },
+	{ T_OP_GROUP_HAS_P,    "group.has? (%a|<string>) (%b|<string>)",         OP_GROUP_HAS_P,    { ARG_REGISTER|ARG_STRING,            ARG_REGISTER|ARG_STRING,            } },
+	{ T_OP_GROUP_JOIN,     "group.join (%a|<string>) (%b|<string>)",         OP_GROUP_JOIN,     { ARG_REGISTER|ARG_STRING,            ARG_REGISTER|ARG_STRING,            } },
+	{ T_OP_GROUP_KICK,     "group.kick (%a|<string>) (%b|<string>)",         OP_GROUP_KICK,     { ARG_REGISTER|ARG_STRING,            ARG_REGISTER|ARG_STRING,            } },
 	{ T_OP_AUGEAS_INIT,    "augeas.init",                                    OP_AUGEAS_INIT,    { ARG_NONE,                           ARG_NONE,                           } },
 	{ T_OP_AUGEAS_DONE,    "augeas.done",                                    OP_AUGEAS_DONE,    { ARG_NONE,                           ARG_NONE,                           } },
 	{ T_OP_AUGEAS_PERROR,  "augeas.perror (%a|<string>)",                    OP_AUGEAS_PERROR,  { ARG_REGISTER|ARG_STRING,            ARG_NONE,                           } },
@@ -699,6 +714,9 @@ static void op_group_get      (vm_t*);
 static void op_group_set      (vm_t*);
 static void op_group_new      (vm_t*);
 static void op_group_delete   (vm_t*);
+static void op_group_has_p    (vm_t*);
+static void op_group_join     (vm_t*);
+static void op_group_kick     (vm_t*);
 static void op_augeas_init    (vm_t*);
 static void op_augeas_done    (vm_t*);
 static void op_augeas_perror  (vm_t*);
@@ -818,6 +836,9 @@ static struct {
 	{ OP_GROUP_SET,      op_group_set,      },
 	{ OP_GROUP_NEW,      op_group_new,      },
 	{ OP_GROUP_DELETE,   op_group_delete,   },
+	{ OP_GROUP_HAS_P,    op_group_has_p,    },
+	{ OP_GROUP_JOIN,     op_group_join,     },
+	{ OP_GROUP_KICK,     op_group_kick,     },
 	{ OP_AUGEAS_INIT,    op_augeas_init,    },
 	{ OP_AUGEAS_DONE,    op_augeas_done,    },
 	{ OP_AUGEAS_PERROR,  op_augeas_perror,  },

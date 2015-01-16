@@ -33,6 +33,7 @@ syn match     pnasmOpCode1    /fs\.\(open\|read\|close\)dir/
 syn match     pnasmOpCode1    /fs\.\(file\|symlink\|dir\|chardev\|blockdev\|fifo\|socket\)?/
 syn match     pnasmOpCode1    /authdb\.\(open\|save\|close\|next[ug]id\)/
 syn match     pnasmOpCode1    /\(user\|group\)\.\(find\|get\|set\|new\|delete\)/
+syn match     pnasmOpCode1    /group\.\(has?\|join\|kick\)/
 syn match     pnasmOpCode1    /augeas\.\(init\|done\|perror\|write\|set\|find\|remove\)/
 syn match     pnasmOpCode1    /env\.\(get\|set\|unset\)/
 syn keyword   pnasmOpCode1    localsys exec dump acl

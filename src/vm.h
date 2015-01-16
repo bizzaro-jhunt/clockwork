@@ -105,8 +105,8 @@ typedef struct {
 	list_t   heap;
 	dword_t  heaptop;
 
-	byte_t   static0;      /* offset in code[] where static strings start */
-	size_t   codesize;
+	dword_t  static0;      /* offset in code[] where static strings start */
+	dword_t  codesize;
 	byte_t  *code;
 } vm_t;
 
@@ -134,7 +134,7 @@ int vm_args(vm_t *vm, int argc, char **argv);
 int vm_exec(vm_t *vm);
 int vm_asm_file(const char *path, byte_t **code, size_t *len);
 int vm_asm_io(FILE *io, byte_t **code, size_t *len);
-int vm_disasm(vm_t *vm);
+int vm_disasm(vm_t *vm, FILE *out);
 int vm_done(vm_t *vm);
 
 #endif

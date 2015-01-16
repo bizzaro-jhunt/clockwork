@@ -1242,7 +1242,6 @@ int mesh_client_handle(mesh_client_t *c, void *sock, pdu_t *pdu)
 
 		vm.stdout = tmpfile();
 		vm_exec(&vm);
-		vm_disasm(&vm);
 
 		rewind(vm.stdout);
 		char output[8192] = {0};

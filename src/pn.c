@@ -149,7 +149,7 @@ int main (int argc, char **argv)
 		}
 
 		if (mode == MODE_DISASSEMBLE) {
-			vm_disasm(&vm);
+			vm_disasm(&vm, stdout);
 
 			rc = vm_done(&vm);
 			assert(rc == 0);

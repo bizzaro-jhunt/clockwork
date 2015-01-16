@@ -2001,4 +2001,23 @@ subtest "topics" => sub {
 	"topic opcode and the %T format code");
 };
 
+subtest "disassembly" => sub {
+	disassemble_ok(qq(
+	fn main
+		print "foo"
+		print "foo"
+		ret),
+
+	<<EOF, "pendulum compiler de-duplicates strings");
+0x00000000: 70 6e
+0x00000002: 15 30 [00 00 00 08]           jmp 0x00000008
+0x00000008: 19 30 [00 00 00 18]         print 0x00000018 ; "foo"
+0x0000000e: 19 30 [00 00 00 18]         print 0x00000018 ; "foo"
+0x00000014: 0d 00                         ret
+0x00000016: ff 00
+---
+0x00000018: [foo]
+EOF
+};
+
 done_testing;

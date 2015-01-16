@@ -496,6 +496,8 @@ static int s_asm_encode(compiler_t *cc)
 	/* phase II: calculate offsets & sizes */
 	dword_t text = 2; /* 0x7068 (pn) */
 	dword_t data = 0;
+	/* strings we already saw */
+	hash_t seen; memset(&seen, 0, sizeof(seen));
 	for_each_object(op, &cc->ops, l) {
 		op->offset = text;
 		if (op->special) continue;
@@ -504,8 +506,14 @@ static int s_asm_encode(compiler_t *cc)
 		if (op->args[1].type != VALUE_NONE) text += 4; /* 4-byte operand */
 
 		/* check for string lengths */
-		if (op->args[0].type == VALUE_STRING) data += strlen(op->args[0]._.string) + 1;
-		if (op->args[1].type == VALUE_STRING) data += strlen(op->args[1]._.string) + 1;
+		if (op->args[0].type == VALUE_STRING && !hash_get(&seen, op->args[0]._.string)) {
+			data += strlen(op->args[0]._.string) + 1;
+			hash_set(&seen, op->args[0]._.string, "Y");
+		}
+		if (op->args[1].type == VALUE_STRING && !hash_get(&seen, op->args[1]._.string)) {
+			data += strlen(op->args[1]._.string) + 1;
+			hash_set(&seen, op->args[1]._.string, "Y");
+		}
 	}
 	text += 2; /* 0xff00 */
 
@@ -2146,7 +2154,7 @@ static void op_localsys(vm_t *vm)
 	ARG2("localsys");
 	REGISTER2("localsys");
 
-	char execline[8192];
+	char execline[8192] = {0};
 	runner_t runner = {
 		.in  = NULL,
 		.out = tmpfile(),
@@ -2371,7 +2379,7 @@ int vm_load(vm_t *vm, byte_t *code, size_t len)
 	code += 2; /* skip header */
 	while (code < vm->code + len) {
 		if (*code == 0xff) {
-			vm->static0 = (code - vm->code + 2);
+			vm->static0 = code - vm->code;
 			break;
 		}
 
@@ -2480,86 +2488,86 @@ int vm_asm_io(FILE *io, byte_t **code, size_t *len)
 	return s_vm_asm(&cc, code, len);
 }
 
-int vm_disasm(vm_t *vm)
+int vm_disasm(vm_t *vm, FILE *out)
 {
 	if (vm->codesize < 3) return 1;
 	if (vm->code[0] != 'p') return 2;
 	if (vm->code[1] != 'n') return 2;
 
-	fprintf(stderr, "0x%08x: ", 0);
-	fprintf(stderr, "%02x %02x\n", 'p', 'n');
+	fprintf(out, "0x%08x: ", 0);
+	fprintf(out, "%02x %02x\n", 'p', 'n');
 
 	size_t i = 2;
 	while (i < vm->codesize) {
-		fprintf(stderr, "0x%08x: ", (dword_t)i);
+		fprintf(out, "0x%08x: ", (dword_t)i);
 		vm->op = vm->code[i++];
 		if (vm->op == 0xff && !vm->code[i]) {
-			fprintf(stderr, "%02x %02x\n", 0xff, 0x00);
+			fprintf(out, "%02x %02x\n", 0xff, 0x00);
 			i++;
 			break;
 		}
 		vm->f1 = HI_NYBLE(vm->code[i]);
 		vm->f2 = LO_NYBLE(vm->code[i]);
-		fprintf(stderr, "%02x %02x", vm->op, vm->code[i++]);
+		fprintf(out, "%02x %02x", vm->op, vm->code[i++]);
 
 		if (vm->f2 && !vm->f1) {
-			fprintf(stderr, "pendulum bytecode error: corrupt operands mask detected; vm->f1=%02x, vm->f2=%02x\n", vm->f1, vm->f2);
+			fprintf(out, "pendulum bytecode error: corrupt operands mask detected; vm->f1=%02x, vm->f2=%02x\n", vm->f1, vm->f2);
 			return 1;
 		}
 		if (vm->f1) {
-			fprintf(stderr, " [%02x %02x %02x %02x]",
+			fprintf(out, " [%02x %02x %02x %02x]",
 				vm->code[i + 0], vm->code[i + 1], vm->code[i + 2], vm->code[i + 3]);
 			vm->oper1 = DWORD(vm->code[i + 0], vm->code[i + 1], vm->code[i + 2], vm->code[i + 3]);
 			i += 4;
 		} else {
-			fprintf(stderr, "%14s", " ");
+			fprintf(out, "%14s", " ");
 		}
-		fprintf(stderr, "  %12s", OPCODES[vm->op]);
+		fprintf(out, "  %12s", OPCODES[vm->op]);
 		if (vm->f1) {
 			switch (vm->f1) {
-			case TYPE_LITERAL:  fprintf(stderr, " %u",     vm->oper1); break;
-			case TYPE_REGISTER: fprintf(stderr, " %%%c",   vm->oper1 + 'a'); break;
-			case TYPE_ADDRESS:  fprintf(stderr, " 0x%08x", vm->oper1);
+			case TYPE_LITERAL:  fprintf(out, " %u",     vm->oper1); break;
+			case TYPE_REGISTER: fprintf(out, " %%%c",   vm->oper1 + 'a'); break;
+			case TYPE_ADDRESS:  fprintf(out, " 0x%08x", vm->oper1);
 			                    if (vm->oper1 > vm->static0) {
-			                        fprintf(stderr, " ; \"");
-			                        s_eprintf(stderr, (char *)vm->code + vm->oper1);
-			                        fprintf(stderr, "\"");
+			                        fprintf(out, " ; \"");
+			                        s_eprintf(out, (char *)vm->code + vm->oper1);
+			                        fprintf(out, "\"");
 			                    }
 			                    break;
-			default:            fprintf(stderr, " ; operand 1 unknown (0x%x/0x%x)",
+			default:            fprintf(out, " ; operand 1 unknown (0x%x/0x%x)",
 			                                    vm->f1, vm->oper1);
 			}
 
 		}
 		if (vm->f2) {
-			fprintf(stderr, "\n                  [%02x %02x %02x %02x]  %12s",
+			fprintf(out, "\n                  [%02x %02x %02x %02x]  %12s",
 				vm->code[i + 0], vm->code[i + 1], vm->code[i + 2], vm->code[i + 3], "");
 			vm->oper2 = DWORD(vm->code[i + 0], vm->code[i + 1], vm->code[i + 2], vm->code[i + 3]);
 			i += 4;
 
 			switch (vm->f2) {
-			case TYPE_LITERAL:  fprintf(stderr, " %u",     vm->oper2); break;
-			case TYPE_REGISTER: fprintf(stderr, " %%%c",   vm->oper2 + 'a'); break;
-			case TYPE_ADDRESS:  fprintf(stderr, " 0x%08x", vm->oper2);
+			case TYPE_LITERAL:  fprintf(out, " %u",     vm->oper2); break;
+			case TYPE_REGISTER: fprintf(out, " %%%c",   vm->oper2 + 'a'); break;
+			case TYPE_ADDRESS:  fprintf(out, " 0x%08x", vm->oper2);
 			                    if (vm->oper2 > vm->static0) {
-			                        fprintf(stderr, " ; \"");
-			                        s_eprintf(stderr, (char *)vm->code + vm->oper2);
-			                        fprintf(stderr, "\"");
+			                        fprintf(out, " ; \"");
+			                        s_eprintf(out, (char *)vm->code + vm->oper2);
+			                        fprintf(out, "\"");
 			                    }
 			                    break;
-			default:            fprintf(stderr, " ; operand 2 unknown (0x%x/0x%x)",
+			default:            fprintf(out, " ; operand 2 unknown (0x%x/0x%x)",
 			                                    vm->f2, vm->oper2);
 			}
 		}
 
-		fprintf(stderr, "\n");
+		fprintf(out, "\n");
 	}
 
-	fprintf(stderr, "---\n");
+	fprintf(out, "---\n");
 	while (i < vm->codesize) {
-		fprintf(stderr, "0x%08x: [", (dword_t)i);
-		s_eprintf(stderr, (char *)(vm->code + i));
-		fprintf(stderr, "]\n");
+		fprintf(out, "0x%08x: [", (dword_t)i);
+		s_eprintf(out, (char *)(vm->code + i));
+		fprintf(out, "]\n");
 		i += strlen((char *)vm->code + i) + 1;
 	}
 	return 0;

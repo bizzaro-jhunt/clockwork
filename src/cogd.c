@@ -379,7 +379,7 @@ static void s_cfm_run(client_t *c)
 
 	if (c->mode == MODE_CODE) {
 		logger(LOG_DEBUG, "dumping pendulum code to standard output");
-		vm_disasm(&vm);
+		vm_disasm(&vm, stdout);
 
 	} else {
 		vm.aux.remote = client;

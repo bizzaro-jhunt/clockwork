@@ -1162,7 +1162,7 @@ static char * s_fs_get(const char *path)
 
 static int s_fs_put(const char *path, const char *contents)
 {
-	int fd = open(path, O_WRONLY|O_CREAT|O_TRUNC, 0777);
+	int fd = open(path, O_WRONLY|O_CREAT|O_TRUNC, 0666);
 	if (fd < 0) return 1;
 
 	size_t size = strlen(contents);
@@ -1705,7 +1705,7 @@ static void op_fs_ctime(vm_t *vm)
 static void op_fs_touch(vm_t *vm)
 {
 	ARG1("fs.touch");
-	vm->acc = close(open(STR1(vm), O_CREAT, 0777));
+	vm->acc = close(open(STR1(vm), O_CREAT, 0666));
 }
 
 static void op_fs_mkdir(vm_t *vm)
@@ -2420,6 +2420,13 @@ static void op_topic(vm_t *vm)
 	ARG1("topic");
 	vm->topic = STR1(vm);
 	vm->topics++;
+}
+
+static void op_umask(vm_t *vm)
+{
+	ARG2("umask");
+	REGISTER2("umask");
+	vm->r[vm->oper2] = umask(VAL1(vm));
 }
 
 /************************************************************************/

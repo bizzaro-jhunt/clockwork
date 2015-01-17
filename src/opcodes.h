@@ -116,6 +116,7 @@
 #define OP_REMOTE_SHA1     0x70  /* Retrieve the remote SHA1 based on a resource key */
 #define OP_REMOTE_FILE     0x71  /* Retrieve the contents of a file based on a resource key */
 #define OP_TOPIC           0x72  /* Set the current topic, for the %T special register */
+#define OP_UMASK           0x73  /* Set the file and directory permissions mask */
 
 
 /** OPCODE MNEMONIC NAMES **/
@@ -235,6 +236,7 @@ static const char * OPCODES[] = {
 	"remote.sha1",       /* OP_REMOTE_SHA1     112  0x70 */
 	"remote.file",       /* OP_REMOTE_FILE     113  0x71 */
 	"topic",             /* OP_TOPIC           114  0x72 */
+	"umask",             /* OP_UMASK           115  0x73 */
 	NULL,
 };
 
@@ -356,6 +358,7 @@ static const char * OPCODES[] = {
 #define T_OP_REMOTE_SHA1     0xb1  /* Retrieve the remote SHA1 based on a resource key */
 #define T_OP_REMOTE_FILE     0xb2  /* Retrieve the contents of a file based on a resource key */
 #define T_OP_TOPIC           0xb3  /* Set the current topic, for the %T special register */
+#define T_OP_UMASK           0xb4  /* Set the file and directory permissions mask */
 
 
 static const char * ASM[] = {
@@ -475,6 +478,7 @@ static const char * ASM[] = {
 	"remote.sha1",       /* T_OP_REMOTE_SHA1     113  0x71 */
 	"remote.file",       /* T_OP_REMOTE_FILE     114  0x72 */
 	"topic",             /* T_OP_TOPIC           115  0x73 */
+	"umask",             /* T_OP_UMASK           116  0x74 */
 	NULL,
 };
 
@@ -621,6 +625,7 @@ static struct {
 	{ T_OP_REMOTE_SHA1,    "remote.sha1 (%a|<string>) %b",                   OP_REMOTE_SHA1,    { ARG_REGISTER|ARG_STRING,            ARG_REGISTER,                       } },
 	{ T_OP_REMOTE_FILE,    "remote.file (%a|<string>) (%b|<string>)",        OP_REMOTE_FILE,    { ARG_REGISTER|ARG_STRING,            ARG_REGISTER|ARG_STRING,            } },
 	{ T_OP_TOPIC,          "topic (%a|<string>)",                            OP_TOPIC,          { ARG_REGISTER|ARG_STRING,            ARG_NONE,                           } },
+	{ T_OP_UMASK,          "umask (%a|<number>) %b",                         OP_UMASK,          { ARG_REGISTER|ARG_NUMBER,            ARG_REGISTER,                       } },
 	{ 0, 0, 0, { 0, 0 } },
 };
 
@@ -741,6 +746,7 @@ static void op_remote_live_p  (vm_t*);
 static void op_remote_sha1    (vm_t*);
 static void op_remote_file    (vm_t*);
 static void op_topic          (vm_t*);
+static void op_umask          (vm_t*);
 
 typedef void (*opcode_fn)(vm_t*);
 
@@ -863,6 +869,7 @@ static struct {
 	{ OP_REMOTE_SHA1,    op_remote_sha1,    },
 	{ OP_REMOTE_FILE,    op_remote_file,    },
 	{ OP_TOPIC,          op_topic,          },
+	{ OP_UMASK,          op_umask,          },
 	{ 0, 0 },
 };
 #endif

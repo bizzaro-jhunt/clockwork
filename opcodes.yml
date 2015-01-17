@@ -522,4 +522,10 @@
     args:
       - [register, string]
 
+- umask:
+    help: Set the file and directory permissions mask
+    args:
+      - [register, number]
+      - [register]
+
 # vim:ft=yaml:et:ts=2:sts=2:sw=2

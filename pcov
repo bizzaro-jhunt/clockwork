@@ -6,6 +6,7 @@ use Getopt::Long qw/:config bundling/;
 my %OPTIONS;
 GetOptions(\%OPTIONS, qw/
 	html|H
+	brief|b
 /) or die "USAGE: $0 program.S\n";
 
 my $prog = shift @ARGV or die "USAGE: $0 program.S\n";
@@ -100,6 +101,9 @@ EOF
 </body>
 </html>
 EOF
+} elsif ($OPTIONS{brief}) {
+	printf "%12.2lf %% (%i/%i opcodes) coverage on $prog\n", $hit / $lines * 100.0, $hit, $lines;
+
 } else {
 
 	for (@report) {

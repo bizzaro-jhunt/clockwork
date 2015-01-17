@@ -328,6 +328,7 @@ clean-local-check:
 
 if GCOV_ENABLED
 coverage-clean:
+	@make coverage-pn-clean
 	@rm -fr coverage
 	@find . -name "*.gc??" -exec rm {} \;
 	@lcov --directory . --zerocounters
@@ -339,6 +340,7 @@ coverage-report:
 
 coverage:
 	@make coverage-report
+	@make coverage-pn
 
 clean-local-cov:
 	@make coverage-clean
@@ -348,6 +350,14 @@ check:
 
 else
 coverage:
-	@echo >&2 "nothin doin"
+	@make coverage-pn
 clean-local-cov:
+	@make coverage-pn-clean
 endif
+
+coverage-pn:
+	@mkdir -p coverage
+	@./pcov t/cover.pn.S --html > coverage/pendulum.html
+	@./pcov t/cover.pn.S --brief
+coverage-pn-clean:
+	@rm -f coverage/pendulum.html

@@ -12,3 +12,4 @@ TODO
     benefit: coverage of *just* stdlib.pn during tests
     alt: object boundaries via asm opcode (border?)
          it would have to be a special
+  - make fn redefinition emit a warning

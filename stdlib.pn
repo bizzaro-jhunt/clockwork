@@ -360,7 +360,7 @@ fn res.symlink.absent
 
     fs.type %a %b
     fs.symlink? %a
-    jnz +2
+    jz +2
       error "%[a]s exists, but is not a symbolic link (is a %[b]s)"
       bail 1
 

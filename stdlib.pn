@@ -740,7 +740,7 @@ fn res.package.install
       error "failed to determine latest version of %[a]s"
       bail 1
 
-    syslog info "%T: checking if current version (%[p]s) matches latest version (%[b]s)"
+    syslog info "%T: checking if current version (%[c]s) matches latest version (%[p]s)"
     streq %c %p
     jnz +1 ret
 

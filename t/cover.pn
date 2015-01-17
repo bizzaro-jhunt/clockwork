@@ -1,0 +1,587 @@
+fn ok
+  print "ok %[o]u - %[p]s\n"
+  bail 0
+fn notok
+  print "not ok %[o]u - %[p]s\n"
+  bail 1
+
+fn setup
+  loglevel emergency %e
+  umask 0 %e
+  exec "rm -rf t/tmp; mkdir -p t/tmp" %e
+
+fn setup.authdb
+  call setup
+  pragma authdb.root "t/tmp"
+
+  fs.put "t/tmp/passwd" <<EOF
+root:x:0:0:root:/root:/bin/bash\n
+daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin
+EOF
+  fs.put "t/tmp/shadow" <<EOF
+root:HASH:15390:0:99999:7:::
+daemon:*:15259:0:99999:7:::
+EOF
+ fs.put "t/tmp/group" <<EOF
+root:x:0:
+daemon:x:1:abbadon
+EOF
+  fs.put "t/tmp/gshadow" <<EOF
+root:*::
+daemon:*:abbadon:mephisto
+EOF
+
+
+fn test.authdb.1
+  call setup.authdb
+  set %p "util.authdb.* - readonly mode"
+
+  call util.authdb.open
+  user.find "daemon"
+  jz +2 call notok
+
+  call util.authdb.close
+  call ok
+
+fn test.authdb.2
+  call setup.authdb
+  set %p "util.authdb.* - abandon changes"
+  call util.authdb.open
+  user.find "daemon"
+  jz +2
+    string "%[p]s: daemon user not found" %p
+    call notok
+
+  user.delete
+  user.find "daemon"
+  jnz +2
+    string "%[p]s: daemon user not removed (in-memory)" %p
+    call notok
+
+  call util.authdb.close
+  call util.authdb.open
+  user.find "daemon"
+  jz +2
+    string "%[p]s: changes were not abandoned" %p
+    call notok
+  call ok
+
+fn test.authdb.3
+  call setup.authdb
+  set %p "util.authdb.* - write changes"
+
+  call util.authdb.open
+  user.find "daemon"
+  jz +2
+    string "%[p]s: daemon user not found" %p
+    call notok
+
+  user.delete
+  user.find "daemon"
+  jnz +2
+    string "%[p]s: daemon user not removed" %p
+    call notok
+
+  call util.authdb.save
+  call util.authdb.close
+  call util.authdb.open
+  user.find "daemon"
+  jnz +2
+    string "%[p]s: util.authdb.save just ... didn't" %p
+    call notok
+  call ok
+
+fn test.res.file.absent.1
+  call setup
+  set %p "res.file.absent deals with non-existent files"
+  set %a "t/tmp/enoent"
+
+  fs.stat %a jnz +2
+    string "%[p]s: %[a]s already exists" %p
+    call notok
+
+  unflag "changed"
+  try res.file.absent
+  flagged? "changed" jnz +2
+    string "%[p]s: flagged" %p
+    call notok
+  fs.stat %a         jnz +2
+    string "%[p]s: %[a]s was accidentally created" %p
+    call notok
+  call ok
+
+fn test.res.file.absent.2
+  call setup
+  set %p "res.file.absent removes regular files"
+  set %a "t/tmp/file"
+
+  fs.put %a "{contents}"
+  fs.file? %a jz +2
+    string "%[p]s: %[a]s does not already exist" %p
+    call notok
+
+  unflag "changed"
+  try res.file.absent
+  flagged? "changed" jz +2
+    string "%[p]s: not flagged" %p
+    call notok
+
+  fs.stat %a         jnz +2
+    string "%[p]s: %[a]s not removed" %p
+    call notok
+  call ok
+
+fn test.res.file.absent.3
+  call setup
+  set %p "res.file.absent won't remove directories"
+  set %a "t/tmp/dir"
+
+  fs.mkdir %a
+  fs.dir? %a jz +2
+    string "%[p]s: %[a]s does not already exist" %p
+    call notok
+
+  unflag "changed"
+  try res.file.absent
+  flagged? "changed" jnz +2
+    string "%[p]s: flagged" %p
+    call notok
+
+  fs.stat %a         jz +2
+    string "%[p]s: %[a]s was removed" %p
+    call notok
+
+  fs.dir? %a         jz +2
+    string "%[p]s: %[a]s is no longer a directory" %p
+    call notok
+  call ok
+
+fn test.res.file.absent.4
+  call setup
+  set %p "res.file.absent removes symbolic links"
+  set %a "t/tmp/symlink"
+
+  fs.symlink "x" %a jz +1
+  fs.symlink? %a jz +2
+    string "%[p]s: %[a]s does not already exist" %p
+    call notok
+
+  unflag "changed"
+  try res.file.absent
+  flagged? "changed" jz +2
+    string "%[p]s: not flagged" %p
+    call notok
+
+  fs.stat %a         jnz +2
+    string "%[p]s: %[a]s still exists" %p
+    call notok
+  call ok
+
+fn test.res.file.present.1
+  call setup
+  set %p "res.file.present creates a new file"
+  set %a "t/tmp/new"
+
+  fs.stat %a jnz +2
+    string "%[p]s: %[a]s already exists" %p
+    call notok
+
+  unflag "changed"
+  set %a "t/tmp/new"
+  try res.file.present
+  flagged? "changed"  jz +2
+    string "%[p]s: not flagged" %p
+    call notok
+
+  fs.stat %a          jz +2
+    string "%[p]s: %[a]s not created" %p
+    call notok
+
+  fs.file? %a         jz +2
+    string "%[p]s: %[a]s is not a regular file" %p
+    call notok
+
+  fs.mode %a %b
+  eq %b 0666          jz +2
+    string "%[p]s: %[a]s has incorrect mode (got %[b]04o, expected 0666)" %p
+    call notok
+  call ok
+
+fn test.res.file.present.2
+  call setup
+  set %p "res.file.present ignores extant files"
+  set %a "t/tmp/file"
+
+  fs.put %a "{contents}"
+  fs.chmod %a 0641
+  fs.inode %a %b
+  fs.file? %a jz +2
+    string "%[p]s: %[a]s does not already exist" %p
+    call notok
+
+  unflag "changed"
+  try res.file.present
+  flagged? "changed" jnz +2
+    string "%[p]s: flagged" %p
+    call notok
+
+  fs.stat %a         jz +2
+    string "%[p]s: %[a]s does not still exist" %p
+    call notok
+
+  fs.file? %a        jz +2
+    string "%[p]s: %[a]s is no longer a regular file" %p
+    call notok
+
+  fs.mode %a %c
+  eq %c 0641         jz +2
+    string "%[p]s: %[a]s has incorrect mode (got %[a]04o, expected 0641)" %p
+    call notok
+
+  fs.inode %a %c
+  eq %c %b           jz +2
+    string "%[p]s: %[a]s inode changed from %[b]i to %[c]i" %p
+    call notok
+  call ok
+
+fn test.res.file.present.3
+  call setup
+  set %p "res.file.present will not remove directories"
+  set %a "t/tmp/dir"
+
+  fs.mkdir %a
+  fs.dir? %a jz +2
+    string "%[p]s: %[a]s does not exist" %p
+    call notok
+  fs.chmod %a 0705
+  fs.inode %a %b
+
+  unflag "changed"
+  try res.file.present
+  flagged? "changed" jnz +2
+    string "%[p]s: flagged" %p
+    call notok
+
+  fs.dir? %a         jz +2
+    string "%[p]s: %[a]s is not a directory" %p
+    call notok
+
+  fs.mode %a %c
+  eq %c 0705         jz +2
+    string "%[p]s: %[a]s has incorrect mode (got %[a]04o, expected 0705)" %p
+    call notok
+
+  fs.inode %a %c
+  eq %c %b           jz +2
+    string "%[p]s: %[a]s inode changed from %[b]i to %[c]i" %p
+    call notok
+  call ok
+
+fn test.res.file.present.4
+  call setup
+  set %p "res.file.present will remove symbolic links"
+  set %a "t/tmp/symlink"
+
+  fs.symlink "x" %a
+  fs.symlink? %a jz +2
+    string "%[p]s: %[a]s does not exist" %p
+    call notok
+
+  unflag "changed"
+  try res.file.present
+  flagged? "changed" jz +2
+    string "%[p]s: flagged" %p
+    call notok
+
+  fs.stat %a         jz +2
+    string "%[p]s: %[a]s does not exist" %p
+    call notok
+
+  fs.file? %a        jz +2
+    string "%[p]s: %[a]s is not a regular file" %p
+    call notok
+  call ok
+
+fn test.res.dir.absent.1
+  call setup
+  set %p "res.dir.absent deals with non-existent directories"
+  set %a "t/tmp/enoent"
+
+  fs.stat %a jnz +2
+    string "%[p]s: %[a]s already exists" %p
+    call notok
+
+  unflag "changed"
+  try res.dir.absent
+  flagged? "changed" jnz +2
+    string "%[p]s: flagged" %p
+    call notok
+
+  fs.stat %a         jnz +2
+    string "%[p]s: %[a]s was created somehow" %p
+    call notok
+  call ok
+
+fn test.res.dir.absent.2
+  call setup
+  set %p "res.dir.absent will remove direcotires"
+  set %a "t/tmp/dir"
+
+  fs.mkdir %a
+  fs.dir? %a jz +2
+    string "%[p]s: %[a]s does not already exist" %p
+    call notok
+
+  unflag "changed"
+  try res.dir.absent
+  flagged? "changed" jz +2
+    string "%[p]s: not flagged" %p
+    call notok
+
+  fs.stat %a         jnz +2
+    string "%[p]s: %[a]s still exists" %p
+    call notok
+  call ok
+
+fn test.res.dir.absent.2
+  call setup
+  set %p "res.dir.absent will not remove regular files"
+  set %a "t/tmp/file"
+
+  fs.put %a "{contents}"
+  fs.file? %a jz +2
+    string "%[p]s: %[a]s does not already exist" %p
+    call notok
+
+  unflag "changed"
+  try res.dir.absent
+  flagged? "changed" jnz +2
+    string "%[p]s: flagged" %p
+    call notok
+
+  fs.stat %a         jz +2
+    string "%[p]s: %[a]s was removed" %p
+    call notok
+
+  fs.file? %a        jz +2
+    string "%[p]s: %[a]s is no longer a regular file" %p
+    call notok
+  call ok
+
+fn test.res.dir.absent.3
+  call setup
+  set %p "res.dir.absent will remove symbolic links"
+  set %a "t/tmp/symlink"
+
+  fs.symlink "target" %a
+  fs.symlink? %a jz +2
+    string "%[p]s: %[a]s does not already exist" %p
+    call notok
+
+  unflag "changed"
+  try res.dir.absent
+  flagged? "changed" jz +2
+    string "%[p]s: not flagged" %p
+    call notok
+
+  fs.stat %a         jnz +2
+    string "%[p]s: %[a]s not removed" %p
+    call notok
+  call ok
+
+fn test.res.dir.present.1
+  call setup
+  set %p "res.dir.present will create a new directory"
+  set %a "t/tmp/new"
+
+  fs.stat %a jnz +2
+    string "%[p]s: %[a]s already exists" %p
+    call notok
+
+  unflag "changed"
+  try res.dir.present
+  flagged? "changed" jz +2
+    string "%[p]s: not flagged" %p
+    call notok
+
+  fs.stat %a         jz +2
+    string "%[p]s: %[a]s not created" %p
+    call notok
+
+  fs.dir? %a         jz +2
+    string "%[p]s: %[a]s is not a directory" %p
+    call notok
+
+  fs.mode %a %b
+  eq %b 0777         jz +2
+    string "%[p]s: mode of %[a]s is wrong (got %[b]04o, expected 0777)" %p
+    call notok
+  call ok
+
+fn test.res.dir.present.2
+  call setup
+  set %p "res.dir.present will skip extant directories"
+  set %a "t/tmp/dir"
+
+  fs.mkdir %a
+  fs.dir? %a jz +2
+    string "%[p]s: %[a]s does not already exist" %p
+    call notok
+
+  unflag "changed"
+  fs.inode %a %c
+
+  try res.dir.present
+  flagged? "changed" jnz +2
+    string "%[p]s: flagged" %p
+    call notok
+
+  fs.stat %a         jz +2
+    string "%[p]s: %[a]s does not exist" %p
+    call notok
+
+  fs.dir? %a         jz +2
+    string "%[p]s: %[a]s is not a directory" %p
+    call notok
+
+  fs.inode %a %d
+  eq %c %d           jz +2
+    string "%[p]s: inode changed from %[c]u to %[d]u" %p
+    call notok
+  call ok
+
+fn test.res.dir.present.3
+  call setup
+  set %p "res.dir.present won't remove files"
+  set %a "t/tmp/file"
+
+  fs.put %a "{contents}"
+  fs.file? %a jz +2
+    string "%[p]s: %[a]s does not already exist" %p
+    call notok
+
+  unflag "changed"
+  try res.dir.present
+  flagged? "changed" jnz +2
+    string "%[p]s: flagged" %p
+    call notok
+
+  fs.stat %a         jz +2
+    string "%[p]s: %[a]s does not exist" %p
+    call notok
+
+  fs.file? %a        jz +2
+    string "%[p]s: %[a]s is no longer a regular file" %p
+    call notok
+  call ok
+
+fn test.res.dir.present.4
+  call setup
+  set %p "res.dir.present will remove symbolic links"
+  set %a "t/tmp/symlink"
+
+  fs.symlink "x" %a
+  fs.symlink? %a jz +2
+    string "%[p]s: %[a]s does not exist" %p
+    call notok
+
+  unflag "changed"
+  try res.dir.present
+  flagged? "changed" jz +2
+    string "%[p]s: flagged" %p
+     call notok
+
+  fs.stat %a         jz +2
+    string "%[p]s: %[a]s does not exist" %p
+     call notok
+
+  fs.dir? %a         jz +2
+     string "%[p]s: %[a]s is not a directory" %p
+     call notok
+  call ok
+
+fn test.res.file.chmod.1
+  call setup
+  set %p "res.file.chmod works on files"
+  set %a "t/tmp/file"
+  set %b 0641
+
+  fs.put %a "{contents}"
+  fs.mode %a %c
+  eq %b %c jnz +2
+    string "%[p]s: %[a]s is already mode %[b]04o" %b
+    call notok
+
+  unflag "changed"
+  try res.file.chmod
+  flagged? "changed" jz +2
+    string "%[p]s: not flagged" %p
+    call notok
+
+  fs.mode %a %c
+  eq %b %c           jz +2
+    string "%[p]s: mode was not changed from %[c]04o to %[b]04o" %p
+    call notok
+  call ok
+
+fn test.res.file.chmod.2
+  set %p "res.file.chmod ignores files that are already correct"
+  set %a "t/tmp/file"
+  set %b 0666
+
+  fs.put %a "{contents}"
+  fs.chmod %a %b
+  fs.mode %a %c
+  eq %b %c jz +2
+    string "%[p]s: %[a]s is mode %[c]04o (not %[b]04o)" %p
+    call notok
+
+  unflag "changed"
+  try res.file.chmod
+  flagged? "changed" jnz +2
+    string "%[p]s: flagged" %p
+    call notok
+
+  fs.mode %a %c
+  eq %b %c           jz +2
+    string "%[p]s: invalid mode (got %[c]04o, expecting %[c]04o)" %p
+    call notok
+  call ok
+
+fn main
+  set %o 0
+  set %p 0
+
+  add %o 1 try test.authdb.1 jz +1 set %p 1
+  add %o 1 try test.authdb.2 jz +1 set %p 1
+  add %o 1 try test.authdb.3 jz +1 set %p 1
+
+  ;; FIXME: need a way to get our current UID+GID via get*uid / get*gid
+  ;; so we can skip tests like runuser / chown / chgrp / etc.
+
+  add %o 1 try test.res.file.absent.1 jz +1 set %p 1
+  add %o 1 try test.res.file.absent.2 jz +1 set %p 1
+  add %o 1 try test.res.file.absent.3 jz +1 set %p 1
+  add %o 1 try test.res.file.absent.4 jz +1 set %p 1
+
+  add %o 1 try test.res.file.present.1 jz +1 set %p 1
+  add %o 1 try test.res.file.present.2 jz +1 set %p 1
+  add %o 1 try test.res.file.present.3 jz +1 set %p 1
+  add %o 1 try test.res.file.present.4 jz +1 set %p 1
+
+  add %o 1 try test.res.dir.absent.1 jz +1 set %p 1
+  add %o 1 try test.res.dir.absent.2 jz +1 set %p 1
+  add %o 1 try test.res.dir.absent.3 jz +1 set %p 1
+
+  add %o 1 try test.res.dir.present.1 jz +1 set %p 1
+  add %o 1 try test.res.dir.present.2 jz +1 set %p 1
+  add %o 1 try test.res.dir.present.3 jz +1 set %p 1
+  add %o 1 try test.res.dir.present.4 jz +1 set %p 1
+
+  add %o 1 try test.res.file.chmod.1 jz +1 set %p 1
+  add %o 1 try test.res.file.chmod.2 jz +1 set %p 1
+
+  print "1..%[o]i\n"
+  retv %p
+
+;; vim:et:ts=2

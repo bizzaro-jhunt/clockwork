@@ -248,7 +248,7 @@ on_gentoo () {
 		if [ $? -ne 0 ]; then
 			exit 1
 		else
-			/usr/bin/eix -e "$NAME" --format '<installedversions:NAMEVERSION>' | sed -e 's,'"$NAME-"',,'
+			/usr/bin/eix -e "$NAME" --format '<installedversions:NAMEVERSION>'|grep -v '\[[0-9]*\]'|sed -e 's,'"$NAME-"',,'
 			exit 0
 		fi
 		;;
@@ -275,7 +275,7 @@ on_gentoo () {
 			exit $?
 		else
 			# specific version
-			P_VERSION=$(/usr/bin/eix -n -e "$NAME" --format '<installedversions:NAMEVERSION>' | sed -e 's,'"$NAME-"',,')
+			P_VERSION=$(/usr/bin/eix -n -e "$NAME" --format '<installedversions:NAMEVERSION>'|grep -v '\[[0-9]*\]'|sed -e 's,'"$NAME-"',,')
 			if [ "$P_VERSION" != "$VERSION" ]; then
 				/usr/bin/emerge -q "$NAME-$VERSION"
 			fi

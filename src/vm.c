@@ -147,6 +147,32 @@ getline:
 	memmove(cc->buffer, b, LINE_BUF_SIZE - (b - cc->buffer)); \
 } while (0)
 
+	if (*b == '<') { /* start of <<EOF ? */
+		if (*++b == '<') {
+			b++;
+			int lines = 0;
+			char *marker = b, *s = NULL;
+			/* start reading lines, until we hit our marker again */
+			while ((fgets(cc->raw, LINE_BUF_SIZE, cc->io))) {
+				lines++;
+				if (strcmp(cc->raw, marker) == 0) {
+					*cc->raw = *cc->buffer = '\0';
+					cc->token = T_STRING;
+					if (strlen(s) > LINE_BUF_SIZE - 1)
+						logger(LOG_WARNING, "%s:%i: heredoc string literal is too long (>%u bytes)", cc->file, cc->line, LINE_BUF_SIZE - 1);
+					strncpy(cc->value, s, LINE_BUF_SIZE - 1);
+					cc->line += lines; /* after the error message! */
+					free(s);
+					return 1;
+				}
+				char *t = s;
+				s = string("%s%s", t, cc->raw); free(t);
+			}
+			logger(LOG_ERR, "%s:%i: unterminated heredoc string literal (expecting '%s' marker never seen)", cc->file, cc->line, b);
+			return 0;
+		}
+		b = a;
+	}
 	if (*b == '%') { /* register */
 		while (*b && !isspace(*b)) b++;
 		if (!*b || isspace(*b)) {

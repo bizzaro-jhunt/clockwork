@@ -55,8 +55,8 @@ print <<EOF;
 
 
 EOF
-printf "        %12i opcodes executed\n", $lines;
-printf "        %12i opcodes total\n", $hit;
+printf "        %12i opcodes executed\n", $hit;
+printf "        %12i opcodes total\n", $lines;
 printf "        %12.2lf %% coverage\n", $hit / $lines * 100.0;
 print "\n\n";
 exit 0;

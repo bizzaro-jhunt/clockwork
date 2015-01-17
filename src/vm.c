@@ -2455,6 +2455,16 @@ static void op_umask(vm_t *vm)
 	vm->r[vm->oper2] = umask(VAL1(vm));
 }
 
+static void op_loglevel(vm_t *vm)
+{
+	ARG2("loglevel");
+	REGISTER2("loglevel");
+
+	const char *new = STR1(vm);
+	int level = log_level(-1, strcmp(new, "") == 0 ? NULL : new);
+	vm->r[vm->oper2] = vm_heap_strdup(vm, log_level_name(level));
+}
+
 /************************************************************************/
 
 int vm_iscode(byte_t *code, size_t len)

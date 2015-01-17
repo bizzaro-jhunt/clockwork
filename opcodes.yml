@@ -148,7 +148,7 @@
 - syslog:
     help: log a message to syslog
     args:
-      - [register, identifier]
+      - [register, identifier, string]
       - [register, string]
 
 - flag:
@@ -526,6 +526,12 @@
     help: Set the file and directory permissions mask
     args:
       - [register, number]
+      - [register]
+
+- loglevel:
+    help: Set the current syslog level
+    args:
+      - [register, string, identifier]
       - [register]
 
 # vim:ft=yaml:et:ts=2:sts=2:sw=2

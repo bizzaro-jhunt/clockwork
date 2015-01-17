@@ -6,3 +6,9 @@ TODO
   - document pendulum 2 assembler code
     (maybe embed in opcodes.yml?)
   - man page for pcov (and probably updates for pn)
+  - 'include' directive, to keep files/line numbers sorted out during asm
+  - relocatable addresses?
+    (constant strings would need to be merged somehow)
+    benefit: coverage of *just* stdlib.pn during tests
+    alt: object boundaries via asm opcode (border?)
+         it would have to be a special

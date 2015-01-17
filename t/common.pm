@@ -27,6 +27,8 @@ our @EXPORT_OK = qw/
 	string_is
 	file_is
 	bdfa_file_is
+
+	clean_tmp
 /;
 our @EXPORT = @EXPORT_OK;
 
@@ -245,6 +247,7 @@ sub pendulum_compile_ok
 
 sub pendulum_ok
 {
+	local $Test::Builder::Level = $Test::Builder::Level + 1;
 	my ($asm, $expect, $message, %opts) = @_;
 	$message ||= "run ok";
 	$opts{timeout} ||= 5;
@@ -326,7 +329,7 @@ sub pendulum_ok
 }
 
 sub disassemble_ok { pendulum_ok @_, args => ['-d']; }
-sub stdlib_ok      { pendulum_ok @_, args => [qw[--stdlib stdlib.pn --cover --syslog stdout]],
+sub stdlib_ok      { pendulum_ok @_, args => [qw[--stdlib stdlib.pn --cover]],
                                      stderr => 'stdout'; }
 
 sub command_ok
@@ -547,6 +550,11 @@ sub bdfa_file_is
 	$expect = join('', map { "$_\n" } sort split('\n', $expect));
 
 	string_is $actual, $expect, $message;
+}
+
+sub clean_tmp
+{
+	qx(rm -rf t/tmp; mkdir t/tmp);
 }
 
 1;

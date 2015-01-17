@@ -126,6 +126,8 @@ fn res.dir.absent
 ;;
 ;; res.dir.present
 ;;
+;;   %a = directory to create
+;;
 fn res.dir.present
     syslog info "%T: enforcing presence of %[a]s"
     fs.stat %a
@@ -201,7 +203,6 @@ fn res.file.present
     retv 0
 
 
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; res.file.chown
@@ -237,6 +238,9 @@ fn res.file.chown
 ;;
 ;; res.file.chgrp
 ;;
+;;   %a = file to change group ownership of
+;;   %b = GID
+;;
 fn res.file.chgrp
     syslog info "%T: enforcing group ownership of %[a]s"
     authdb.open
@@ -269,6 +273,9 @@ fn res.file.chgrp
 ;;
 fn res.file.chmod
     syslog info "%T: enforcing file permissions on %[a]s"
+    fs.mode %a %c
+    eq %c %b jnz +1 retv 0 ;; mode already good.  exit
+
     syslog notice "%T: changing file permissions of %[a]s to %[b]04o"
     fs.chmod %a %b
     jz +2
@@ -404,7 +411,7 @@ fn res.symlink.ensure
 
   create:
     syslog notice "%T: creating symbolic link %[a]s -> %[b]s"
-    fs.symlink %a %b
+    fs.symlink %b %a
 
     flag "changed"
     retv 0
@@ -592,7 +599,7 @@ fn util.copytree
 
   symlink:
     fs.readlink %n %l
-    fs.symlink %m %l
+    fs.symlink %l %m
     jmp again
 
   done:

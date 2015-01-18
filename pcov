@@ -3,12 +3,15 @@ use strict;
 use warnings;
 
 use Getopt::Long qw/:config bundling/;
-my %OPTIONS;
+my %OPTIONS = (
+	tholds => "50/80"
+);
 GetOptions(\%OPTIONS, qw/
 	html|H
 	brief|b
 	exclude|x=s
 	only|o=s
+	tholds=s
 /) or die "USAGE: $0 program.S\n";
 
 my $prog = shift @ARGV or die "USAGE: $0 program.S\n";
@@ -81,7 +84,8 @@ while (<$dism>) {
 
 if ($OPTIONS{html}) {
 	my $cov = sprintf "%12.2lf", $hit / $lines * 100.0;
-	my $covd = $cov < 50 ? "bad" : $cov < 80 ? "good" : "great";
+	my ($lim1, $lim2) = split '/', $OPTIONS{tholds};
+	my $covd = $cov < $lim1 ? "bad" : $cov < $lim2 ? "good" : "great";
 	print <<EOF;
 <!doctype html>
 <html>

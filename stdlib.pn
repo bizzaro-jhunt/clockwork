@@ -375,22 +375,22 @@ fn res.symlink.absent
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
-;; res.symlink.ensure
+;; res.symlink.present
 ;;
 ;;   %a = symbolic link path
 ;;   %b = target path
 ;;
-fn res.symlink.ensure
+fn res.symlink.present
     set %c %b
 
     syslog info "%T: enforcing presence of %[a]s"
     fs.stat %a
     jnz create
 
-    fs.type %a %b
+    fs.type %a %c
     fs.symlink? %a
     jz +2
-      error "%[a]s exists, but is not a symbolic link (is a %[b]s)"
+      error "%[a]s exists, but is not a symbolic link (is a %[c]s)"
       bail 1
 
     fs.readlink %a %e
@@ -454,6 +454,7 @@ fn res.user.present
       syslog notice "%T: provisioning new local user account for %[a]s"
       user.new
       flag "mkhome"
+      flag "changed"
       user.set "username"  %a
       user.set "passwd"   "x"
       user.set "pwhash"   "*"
@@ -464,38 +465,52 @@ fn res.user.present
       user.set "expiry"    0
 
   exists:
-    eq %b 0
-    jnz ok
+    eq %b 65536 ;; max(UID) + 1
+    jnz uid
       syslog notice "%T: auto-determining next available UID (> 1000) for %[a]s"
       authdb.nextuid 1000 %b
-      jz ok
+      jz uid
         perror "failed to lookup next available GID"
         bail 1
 
-  ok:
+  uid:
+    lt %b 65536
+    jnz gid
+      syslog info "%T: setting %[a]s UID to %[b]u"
+      user.set "uid" %b
+      flag "changed"
+
+  gid:
+    lt %c 65536
+    jnz home
+      syslog info "%T: setting %[a]s GID to %[c]u"
+      user.set "gid" %c
+      flag "changed"
+
+  home:
+    streq %d ""
+    jz shell
+      syslog info "%T: setting %[a]s home directory to %[d]d"
+      user.set "home" %d
+      flag "changed"
+
+  shell:
     streq %e ""
-    jnz +2
-      set %e "/bin/false"  ;; set default shell
-      syslog info "%T: no login shell provided; using default of %[e]s"
+    jz password
+      syslog info "%T: setting %[a]s login shell to %[e]d"
+      user.set "shell" %e
+      flag "changed"
 
-    syslog info "%T: setting %[a]s UID to %[b]d"
-    user.set "uid" %b
+  password:
+    streq %f ""
+    jz done
+      syslog info "%T: setting password hash for %[a]s"
+      user.set "password" "x"
+      user.set "pwhash" %f
+      flag "changed"
 
-    syslog info "%T: setting %[a]s GID to %[b]d"
-    user.set "gid" %c
-
-    syslog info "%T: setting %[a]s home directory to %[b]d"
-    user.set "home" %d
-
-    syslog info "%T: setting %[a]s login shell to %[b]d"
-    user.set "shell" %e
-
-    syslog info "%T: setting password hash for %[a]s"
-    user.set "pwhash" %f
-
-    flag "changed"
+  done:
     ret
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;

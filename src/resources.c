@@ -840,7 +840,7 @@ int res_symlink_gencode(const void *res, FILE *io)
 		fprintf(io, "  call res.symlink.absent\n");
 	else
 		fprintf(io, "  set %%b \"%s\"\n"
-		            "  call res.symlink.ensure\n", r->target);
+		            "  call res.symlink.present\n", r->target);
 	return 0;
 }
 

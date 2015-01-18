@@ -1,0 +1,24 @@
+#!/usr/bin/perl
+open my $in, "<", shift @ARGV;
+my $args = join(' ', @ARGV);
+
+sub touch
+{
+	open my $fh, ">", $_[0];
+	print $fh "invoked $args";
+	close $fh;
+}
+
+while (<$in>) {
+	chomp; s/#.*//; $_ or next;
+	my ($pat, $act) = split /\s*:\s*/, $_, 2;
+	$pat =~ s/\s\*/ .+/g;
+	$args =~ m/^$pat$/ or next;
+	for (split /\s+/, $act) {
+		touch("t/tmp/ok") if m/^ok$/i;
+		exit $1           if m/^(\d+)$/;
+	}
+	exit 0; # just in case
+}
+touch "t/tmp/failed";
+exit 77;

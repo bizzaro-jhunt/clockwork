@@ -13,6 +13,7 @@ fn setup
 
 fn setup.authdb
   call setup
+  try util.authdb.close
   pragma authdb.root "t/tmp"
 
   fs.put "t/tmp/passwd" <<EOF
@@ -36,6 +37,41 @@ daemon:*:abbadon:mephisto
 oldman:$$gcrypt::
 EOF
 
+fn setup.hosts
+  call setup
+  fs.mkdir "t/tmp/etc"
+  fs.put "t/tmp/etc/hosts" <<EOF
+127.0.0.1 localhost localhost.localdomain
+8.8.7.6 host.example.com
+8.8.6.4 host with aliases host.fqdn.example.com
+EOF
+  pragma augeas.root "t/tmp"
+  pragma augeas.libs "augeas/lenses"
+  augeas.init
+  jnz +1 retv 0
+    set %p "augeas.init failed!!!"
+    call notok
+
+fn setup.localsys
+  call setup
+  fs.put "t/tmp/localsys" <<EOF
+#!/bin/bash
+echo -n "default setup.localsys version" >t/tmp/failed
+exit 77
+EOF
+  fs.chmod "t/tmp/localsys" 0755
+  pragma localsys.cmd "./t/tmp/localsys"
+
+fn localsys-check
+  fs.file? "t/tmp/failed" jnz +3
+    fs.get "t/tmp/failed" %e
+    string "%[p]s: localsys failed (%[e]s)" %p
+    call notok
+
+  fs.file? "t/tmp/ok" jz +2
+    string "%[p]s: localsys never created the 'ok' file" %p
+    call notok
+  call ok
 
 fn test.authdb.1
   call setup.authdb
@@ -125,6 +161,140 @@ fn test.authdb.5
   try util.authdb.close   jz +2
     string "%[p]s: util.authdb.close bailed" %p
     call notok
+  call ok
+
+fn test.copytree.1
+  call setup
+  set %p "util.copytree works"
+  set %a "t/tmp/src"
+  set %b "t/tmp/dst"
+  fs.mkdir %a
+  fs.mkdir %b
+
+  string "%[a]s/file1" %c fs.put %c "{file1 contents}" fs.chmod %c 0640
+  string "%[a]s/file2" %c fs.put %c "{file2 contents}" fs.chmod %c 0644
+  string "%[a]s/file3" %c fs.put %c "{file3 contents}" fs.chmod %c 0755
+
+  string "%[a]s/three"   %d fs.symlink %c %d
+  string "%[a]s/symlink" %d fs.symlink "dangling" %d
+
+  string "%[a]s/dir1" %c fs.mkdir %c fs.chmod %c 0700
+  string "%[a]s/dir2" %c fs.mkdir %c fs.chmod %c 0755
+  string "%[a]s/dir1/a" %c fs.mkdir %c fs.chmod %c 0755
+  string "%[a]s/dir1/a/b" %c fs.mkdir %c fs.chmod %c 0755
+  string "%[a]s/dir1/a/b/c" %c fs.mkdir %c fs.chmod %c 0755
+  string "%[a]s/dir1/a/b/c/D" %c fs.put %c "{D contents}" fs.chmod %c 0604
+
+  try util.copytree
+
+  set %c "file1" string "%[b]s/%[c]s" %d
+  fs.file? %d jz +2
+    string "%[p]s: failed to copy %[c]s from %[a]s to %[b]s" %p
+    call notok
+  fs.mode %d %e
+  eq %e 0640 jz +2
+    string "%[p]s: failed to set mode of %[d]s based on src" %p
+    call notok
+  fs.get %d %e
+  streq %e "{file1 contents}" jz +2
+    string "%[p]s: %[d]s contents don't match src file" %p
+    call notok
+
+  set %c "file2" string "%[b]s/%[c]s" %d
+  fs.file? %d jz +2
+    string "%[p]s: failed to copy %[c]s from %[a]s to %[b]s" %p
+    call notok
+  fs.mode %d %e
+  eq %e 0644 jz +2
+    string "%[p]s: failed to set mode of %[d]s based on src" %p
+    call notok
+  fs.get %d %e
+  streq %e "{file2 contents}" jz +2
+    string "%[p]s: %[d]s contents don't match src file" %p
+    call notok
+
+  set %c "file3" string "%[b]s/%[c]s" %d
+  fs.file? %d jz +2
+    string "%[p]s: failed to copy %[c]s from %[a]s to %[b]s" %p
+    call notok
+  fs.mode %d %e
+  eq %e 0755 jz +2
+    string "%[p]s: failed to set mode of %[d]s based on src" %p
+    call notok
+  fs.get %d %e
+  streq %e "{file3 contents}" jz +2
+    string "%[p]s: %[d]s contents don't match src file" %p
+    call notok
+
+  set %c "three" string "%[b]s/%[c]s" %d 
+  string "%[a]s/file3" %e ;; absolute symlinks are copied as-is...
+  fs.symlink? %d jz +2
+    string "%[p]s: failed to create symlink '%[c]s' at %[d]s" %p
+    call notok
+  fs.readlink %d %f
+  streq %e %f jz +2
+    string "%[p]s: symlink %[d]s created with bad target ('%[f]s', not '%[e]s')" %p
+    call notok
+
+  set %c "symlink" string "%[b]s/%[c]s" %d 
+  set %e "dangling" ;; relative symlinks are copied as-is...
+  fs.symlink? %d jz +2
+    string "%[p]s: failed to create symlink '%[c]s' at %[d]s" %p
+    call notok
+  fs.readlink %d %f
+  streq %e %f jz +2
+    string "%[p]s: symlink %[d]s created with bad target ('%[f]s', not '%[e]s')" %p
+    call notok
+
+  set %c "dir1" string "%[b]s/%[c]s" %d
+  fs.dir? %d jz +2
+    string "%[p]s: failed to copy %[c]s from %[a]s to %[b]s" %p
+    call notok
+  fs.mode %d %e
+  eq %e 0700 jz +2
+    string "%[p]s: failed to set mode of %[d]s based on src" %p
+    call notok
+
+  set %c "dir1/a" string "%[b]s/%[c]s" %d
+  fs.dir? %d jz +2
+    string "%[p]s: failed to copy %[c]s from %[a]s to %[b]s" %p
+    call notok
+  fs.mode %d %e
+  eq %e 0755 jz +2
+    string "%[p]s: failed to set mode of %[d]s based on src" %p
+    call notok
+
+  set %c "dir1/a/b" string "%[b]s/%[c]s" %d
+  fs.dir? %d jz +2
+    string "%[p]s: failed to copy %[c]s from %[a]s to %[b]s" %p
+    call notok
+  fs.mode %d %e
+  eq %e 0755 jz +2
+    string "%[p]s: failed to set mode of %[d]s based on src" %p
+    call notok
+
+  set %c "dir1/a/b/c" string "%[b]s/%[c]s" %d
+  fs.dir? %d jz +2
+    string "%[p]s: failed to copy %[c]s from %[a]s to %[b]s" %p
+    call notok
+  fs.mode %d %e
+  eq %e 0755 jz +2
+    string "%[p]s: failed to set mode of %[d]s based on src" %p
+    call notok
+
+  set %c "dir1/a/b/c/D" string "%[b]s/%[c]s" %d
+  fs.file? %d jz +2
+    string "%[p]s: failed to copy %[c]s from %[a]s to %[b]s" %p
+    call notok
+  fs.mode %d %e
+  eq %e 0604 jz +2
+    string "%[p]s: failed to set mode of %[d]s based on src" %p
+    call notok
+  fs.get %d %e
+  streq %e "{D contents}" jz +2
+    string "%[p]s: %[d]s contents don't match src file" %p
+    call notok
+
   call ok
 
 fn test.res.file.absent.1
@@ -971,6 +1141,662 @@ fn test.res.user.present.2
   call util.authdb.close
   call ok
 
+fn test.res.user.present.3
+  call setup.authdb
+  call util.authdb.open
+  set %p "res.user.present will auto-generate UIDs if asked nicely"
+
+  set %a "newuser"
+  set %b 65536 ;; auto-generate
+  set %c 300
+  set %d "/home/newuser"
+  set %e "/bin/zsh"
+  set %f "$$crypto"
+  user.find %a jnz +2
+    string "%[p]s: %[a]s already exists" %p
+    call notok
+
+  unflag "changed"
+  try res.user.present
+  flagged? "changed" jz +2
+    string "%[p]s: not flagged" %p
+    call notok
+
+  user.find %a jz +2
+    string "%[p]s: %[a]s was not created" %p
+    call notok
+
+  user.get "uid" %m set %b 1000
+  eq %m %b jz +2
+    string "%[p]s: %[a]s UID set to %[m]u, not %[b]u" %p
+    call notok
+
+  user.get "gid" %m
+  eq %m %c jz +2
+    string "%[p]s: %[a]s GID set to %[m]u, not %[c]u" %p
+    call notok
+
+  user.get "home" %m
+  streq %m %d jz +2
+    string "%[p]s: %[a]s home directory set to '%[m]s', not '%[d]s'" %p
+    call notok
+
+  user.get "shell" %m
+  streq %m %e jz +2
+    string "%[p]s: %[a]s login shell set to '%[m]s', not '%[e]s'" %p
+    call notok
+
+  user.get "password" %m
+  streq %m "x" jz +2
+    string "%[p]s: %[a]s cleartext password set to '%[m]s', not 'x'" %p
+    call notok
+
+  user.get "pwhash" %m
+  streq %m %f jz +2
+    string "%[p]s: %[a]s encrypted password set to '%[m]s', not '%[f]s'" %p
+    call notok
+
+
+  call util.authdb.close
+  call ok
+
+fn test.res.group.absent.1
+  call setup.authdb
+  call util.authdb.open
+  set %p "res.group.absent handles absent groups"
+
+  set %a "nosuchgroup"
+  group.find %a jnz +2
+    string "%[p]s: %[a]s already exists" %p
+    call notok
+
+  unflag "changed"
+  try res.group.absent
+  flagged? "changed" jnz +2
+    string "%[p]s: flagged" %p
+    call notok
+
+  group.find %a jnz +2
+    string "%[p]s: %[a]s was created" %p
+    call notok
+  call util.authdb.close
+  call ok
+
+fn test.res.group.absent.2
+  call setup.authdb
+  call util.authdb.open
+  set %p "res.group.absent ignores extant groups"
+
+  set %a "daemon"
+  group.find %a jz +2
+    string "%[p]s: %[a]s does not already exist" %p
+    call notok
+
+  unflag "changed"
+  try res.group.absent
+  flagged? "changed" jz +2
+    string "%[p]s: not flagged" %p
+    call notok
+
+  group.find %a jnz +2
+    string "%[p]s: %[a]s was not removed" %p
+    call notok
+  call util.authdb.close
+  call ok
+
+fn test.res.group.present.1
+  call setup.authdb
+  call util.authdb.open
+  set %p "res.group.present ignores extant groups"
+
+  set %a "oldman"
+  set %b 0xffffffff
+  group.find %a jz +2
+    string "%[p]s: %[a]s does not already exist" %p
+    call notok
+
+  unflag "changed"
+  try res.group.present
+  flagged? "changed" jnz +2
+    string "%[p]s: flagged" %p
+    call notok
+
+  group.find %a jz +2
+    string "%[p]s: %[a]s was removed" %p
+    call notok
+
+  group.get "gid" %m set %n 501
+  eq %m %n jz +2
+    string "%[p]s: %[a]s GID changed from %[n]u to %[m]u" %p
+    call notok
+
+  call util.authdb.close
+  call ok
+
+fn test.res.group.present.2
+  call setup.authdb
+  call util.authdb.open
+  set %p "res.group.present will create a new group account"
+
+  set %a "newgroup"
+  set %b 502
+  group.find %a jnz +2
+    string "%[p]s: %[a]s already exists" %p
+    call notok
+
+  unflag "changed"
+  try res.group.present
+  flagged? "changed" jz +2
+    string "%[p]s: not flagged" %p
+    call notok
+
+  group.find %a jz +2
+    string "%[p]s: %[a]s not created" %p
+    call notok
+
+  group.get "gid" %m set %n 502
+  eq %m %n jz +2
+    string "%[p]s: %[a]s GID set to %[m]u, not %[n]u" %p
+    call notok
+
+  call util.authdb.close
+  call ok
+
+fn test.res.group.present.3
+  call setup.authdb
+  call util.authdb.open
+  set %p "res.group.present will auto-generate GIDs if asked nicely"
+
+  set %a "newgroup"
+  set %b 65536
+  group.find %a jnz +2
+    string "%[p]s: %[a]s already exists" %p
+    call notok
+
+  unflag "changed"
+  try res.group.present
+  flagged? "changed" jz +2
+    string "%[p]s: not flagged" %p
+    call notok
+
+  group.find %a jz +2
+    string "%[p]s: %[a]s not created" %p
+    call notok
+
+  group.get "gid" %m set %n 1000
+  eq %m %n jz +2
+    string "%[p]s: %[a]s GID set to %[m]u, not %[n]u" %p
+    call notok
+
+  call util.authdb.close
+  call ok
+
+fn test.res.group.passwd.1
+  call setup.authdb
+  call util.authdb.open
+  set %p "res.group.passwd works"
+
+  set %a "oldman"
+  set %b "$$n3wp@55w0rD"
+  group.find %a jz +2
+    string "%[p]s: %[a]s does not already exist" %p
+    call notok
+
+  unflag "changed"
+  try res.group.passwd
+  flagged? "changed" jz +2
+    string "%[p]s: not flagged" %p
+    call notok
+
+  group.find %a jz +2
+    string "%[p]s: %[a]s was removed" %p
+    call notok
+
+  group.get "password" %e
+  streq %e "*" jz +2
+    string "%[p]s: cleartext password is '%[e]s', not '*'" %p
+    call notok
+
+  group.get "pwhash" %e
+  streq %e %b jz +2
+    string "%[p]s: encrypted password if '%[e]s', not '%[b]s'" %p
+    call notok
+  call ok
+
+fn test.res.service.enable.1
+  call setup.localsys
+  fs.put "t/tmp/localsys" <<EOF
+#!./t/patterns
+svc-boot-status *: ok 0
+EOF
+
+  set %p "res.service.enable ignores enabled services"
+  set %a "some-service"
+
+  unflag "changed"
+  try res.service.enable
+  flagged? "changed" jnz +2
+    string "%[p]s: flagged" %p
+    call notok
+  call localsys-check
+
+fn test.res.service.enable.2
+  call setup.localsys
+  fs.put "t/tmp/localsys" <<EOF
+#!./t/patterns
+svc-boot-status *:    1 # not enabled
+svc-enable *:      ok 0 # enable successfully!
+EOF
+
+  set %p "res.service.enable enables services"
+  set %a "some-service"
+
+  unflag "changed"
+  try res.service.enable
+  flagged? "changed" jz +2
+    string "%[p]s: not flagged" %p
+    call notok
+  call localsys-check
+
+fn test.res.service.enable.3
+  call setup.localsys
+  fs.put "t/tmp/localsys" <<EOF
+#!./t/patterns
+svc-boot-status *:    1 # not enabled
+svc-enable *:      ok 1 # fail to enable
+EOF
+
+  set %p "res.service.enable can fail to enable services"
+  set %a "some-service"
+
+  unflag "changed"
+  try res.service.enable
+  flagged? "changed" jnz +2
+    string "%[p]s: flagged" %p
+    call notok
+  call localsys-check
+
+fn test.res.service.disable.1
+  call setup.localsys
+  fs.put "t/tmp/localsys" <<EOF
+#!./t/patterns
+svc-boot-status *: ok 1 # disabled
+EOF
+
+  set %p "res.service.disable ignores disabled services"
+  set %a "some-service"
+
+  unflag "changed"
+  try res.service.disable
+  flagged? "changed" jnz +2
+    string "%[p]s: flagged" %p
+    call notok
+  call localsys-check
+
+fn test.res.service.disable.2
+  call setup.localsys
+  fs.put "t/tmp/localsys" <<EOF
+#!./t/patterns
+svc-boot-status *:    0 # enabled
+svc-disable *:     ok 0 # disabled successfully
+EOF
+
+  set %p "res.service.disable disables services"
+  set %a "some-service"
+
+  unflag "changed"
+  try res.service.disable
+  flagged? "changed" jz +2
+    string "%[p]s: not flagged" %p
+    call notok
+  call localsys-check
+
+fn test.res.service.disable.3
+  call setup.localsys
+  fs.put "t/tmp/localsys" <<EOF
+#!./t/patterns
+svc-boot-status *:    0 # enabled
+svc-disable *:     ok 1 # fail to disable
+EOF
+
+  set %p "res.service.disable can fail to disable services"
+  set %a "some-service"
+
+  unflag "changed"
+  try res.service.disable
+  flagged? "changed" jnz +2
+    string "%[p]s: flagged" %p
+    call notok
+  call localsys-check
+
+fn test.res.service.start.1
+  call setup.localsys
+  fs.put "t/tmp/localsys" <<EOF
+#!./t/patterns
+svc-run-status *: ok 0 # already running
+EOF
+
+  set %p "res.service.start ignores running services"
+  set %a "some-service"
+
+  unflag "changed"
+  try res.service.start
+  flagged? "changed" jnz +2
+    string "%[p]s: flagged" %p
+    call notok
+  call localsys-check
+
+fn test.res.service.start.2
+  call setup.localsys
+  fs.put "t/tmp/localsys" <<EOF
+#!./t/patterns
+svc-run-status *:    1 # stopped
+svc-init * start: ok 0 # started successfully
+EOF
+
+  set %p "res.service.start starts stopped services"
+  set %a "some-service"
+
+  unflag "changed"
+  try res.service.start
+  flagged? "changed" jz +2
+    string "%[p]s: not flagged" %p
+    call notok
+  call localsys-check
+
+fn test.res.service.start.3
+  call setup.localsys
+  fs.put "t/tmp/localsys" <<EOF
+#!./t/patterns
+svc-run-status *:    1 # stopped
+svc-init * start: ok 1 # fail to start
+EOF
+
+  set %p "res.service.start can fail to start services"
+  set %a "some-service"
+
+  unflag "changed"
+  try res.service.start
+  flagged? "changed" jnz +2
+    string "%[p]s: flagged" %p
+    call notok
+  call localsys-check
+
+fn test.res.service.stop.1
+  call setup.localsys
+  fs.put "t/tmp/localsys" <<EOF
+#!./t/patterns
+svc-run-status *: ok 1 # already stopped
+EOF
+
+  set %p "res.service.stop ignores stopped services"
+  set %a "some-service"
+
+  unflag "changed"
+  try res.service.stop
+  flagged? "changed" jnz +2
+    string "%[p]s: flagged" %p
+    call notok
+  call localsys-check
+
+fn test.res.service.stop.2
+  call setup.localsys
+  fs.put "t/tmp/localsys" <<EOF
+#!./t/patterns
+svc-run-status *:    0 # running
+svc-init * stop:  ok 0
+EOF
+
+  set %p "res.service.stop stops running services"
+  set %a "some-service"
+
+  unflag "changed"
+  try res.service.stop
+  flagged? "changed" jz +2
+    string "%[p]s: not flagged" %p
+    call notok
+  call localsys-check
+
+fn test.res.service.stop.3
+  call setup.localsys
+  fs.put "t/tmp/localsys" <<EOF
+#!./t/patterns
+svc-run-status *:   0 # running
+svc-init * stop: ok 1
+EOF
+
+  set %p "res.service.stop can fail to stop services"
+  set %a "some-service"
+
+  unflag "changed"
+  try res.service.stop
+  flagged? "changed" jnz +2
+    string "%[p]s: flagged" %p
+    call notok
+  call localsys-check
+
+fn test.res.service.reload.1
+  call setup.localsys
+  fs.put "t/tmp/localsys" <<EOF
+#!./t/patterns
+svc-run-status *:     0 # running
+svc-init * reload: ok 0
+EOF
+
+  set %p "res.service.reload can reload a running service"
+  set %a "some-service"
+
+  unflag "changed"
+  try res.service.reload
+  flagged? "changed" jz +2
+    string "%[p]s: not flagged" %p
+    call notok
+  call localsys-check
+
+fn test.res.service.reload.2
+  call setup.localsys
+  fs.put "t/tmp/localsys" <<EOF
+#!./t/patterns
+svc-run-status *:     0 # running
+svc-init * reload: ok 1 # fail to reload
+EOF
+
+  set %p "res.service.reload can fail reload a running service"
+  set %a "some-service"
+
+  unflag "changed"
+  try res.service.reload
+  flagged? "changed" jnz +2
+    string "%[p]s: flagged" %p
+    call notok
+  call localsys-check
+
+fn test.res.service.reload.3
+  call setup.localsys
+  fs.put "t/tmp/localsys" <<EOF
+#!./t/patterns
+svc-run-status *:    1 # stopped
+svc-init * start: ok 0 # started successfully
+EOF
+
+  set %p "res.service.reload will start a stopped service"
+  set %a "some-service"
+
+  unflag "changed"
+  try res.service.reload
+  flagged? "changed" jz +2
+    string "%[p]s: not flagged" %p
+    call notok
+  call localsys-check
+
+fn test.res.service.reload.4
+  call setup.localsys
+  fs.put "t/tmp/localsys" <<EOF
+#!./t/patterns
+svc-run-status *:    1 # stopped
+svc-init * start: ok 1 # fail to start
+EOF
+
+  set %p "res.service.reload can fail to start a stopped service"
+  set %a "some-service"
+
+  unflag "changed"
+  try res.service.reload
+  flagged? "changed" jnz +2
+    string "%[p]s: flagged" %p
+    call notok
+  call localsys-check
+
+fn test.res.service.restart.1
+  call setup.localsys
+  fs.put "t/tmp/localsys" <<EOF
+#!./t/patterns
+svc-run-status *:     0 # running
+svc-init * restart: ok 0
+EOF
+
+  set %p "res.service.restart can restart a running service"
+  set %a "some-service"
+
+  unflag "changed"
+  try res.service.restart
+  flagged? "changed" jz +2
+    string "%[p]s: not flagged" %p
+    call notok
+  call localsys-check
+
+fn test.res.service.restart.2
+  call setup.localsys
+  fs.put "t/tmp/localsys" <<EOF
+#!./t/patterns
+svc-run-status *:     0 # running
+svc-init * restart: ok 1 # fail to restart
+EOF
+
+  set %p "res.service.restart can fail restart a running service"
+  set %a "some-service"
+
+  unflag "changed"
+  try res.service.restart
+  flagged? "changed" jnz +2
+    string "%[p]s: flagged" %p
+    call notok
+  call localsys-check
+
+fn test.res.service.restart.3
+  call setup.localsys
+  fs.put "t/tmp/localsys" <<EOF
+#!./t/patterns
+svc-run-status *:    1 # stopped
+svc-init * start: ok 0 # started successfully
+EOF
+
+  set %p "res.service.restart will start a stopped service"
+  set %a "some-service"
+
+  unflag "changed"
+  try res.service.restart
+  flagged? "changed" jz +2
+    string "%[p]s: not flagged" %p
+    call notok
+  call localsys-check
+
+fn test.res.service.restart.4
+  call setup.localsys
+  fs.put "t/tmp/localsys" <<EOF
+#!./t/patterns
+svc-run-status *:    1 # stopped
+svc-init * start: ok 1 # fail to start
+EOF
+
+  set %p "res.service.restart can fail to start a stopped service"
+  set %a "some-service"
+
+  unflag "changed"
+  try res.service.restart
+  flagged? "changed" jnz +2
+    string "%[p]s: flagged" %p
+    call notok
+  call localsys-check
+
+fn test.res.host.absent.1
+  call setup.hosts
+  set %p "res.host.absent will remove host records"
+  set %a "8.8.7.6"
+  set %b "host.example.com"
+
+  string "/files/etc/hosts/*[ipaddr = \"%[a]s\" and canonical = \"%[b]s\"]" %e
+  augeas.find %e %f jz +2
+    string "%[p]s: hosts entry not already present" %p
+    call notok
+
+  unflag "changed"
+  try res.host.absent
+  flagged? "changed" jz +2
+    string "%[p]s: not flagged" %p
+    call notok
+
+  string "/files/etc/hosts/*[ipaddr = \"%[a]s\" and canonical = \"%[b]s\"]" %e
+  augeas.find %e %f jnz +2
+    string "%[p]s: hosts entry still present" %p
+    call notok
+  call ok
+
+fn test.res.host.absent.2
+  call setup.hosts
+  set %p "res.host.absent skips non-existent host records"
+  set %a "3.3.3.3"
+  set %b "enoent.fq.dn"
+
+  string "/files/etc/hosts/*[ipaddr = \"%[a]s\" and canonical = \"%[b]s\"]" %e
+  augeas.find %e %f jnz +2
+    string "%[p]s: hosts entry already present" %p
+    call notok
+
+  unflag "changed"
+  try res.host.absent
+  flagged? "changed" jnz +2
+    string "%[p]s: flagged" %p
+    call notok
+
+  string "/files/etc/hosts/*[ipaddr = \"%[a]s\" and canonical = \"%[b]s\"]" %e
+  augeas.find %e %f jnz +2
+    string "%[p]s: hosts entry was created" %p
+    call notok
+  call ok
+
+fn test.res.host.absent.3
+  call setup.hosts
+  set %p "res.host.absent must match both IP and FQDN"
+  set %a "8.8.7.6"
+  set %b "enoent.fq.dn"
+
+  unflag "changed"
+  try res.host.absent
+  flagged? "changed" jnz +2
+    string "%[p]s: flagged" %p
+    call notok
+
+  string "/files/etc/hosts/*[ipaddr = \"%[a]s\"]" %e
+  augeas.find %e %f jz +2
+    string "%[p]s: ip %[a]s entry was removed" %p
+    call notok
+
+  set %a "172.16.30.188"
+  set %b "host.example.com"
+
+  unflag "changed"
+  try res.host.absent
+  flagged? "changed" jnz +2
+    string "%[p]s: flagged" %p
+    call notok
+
+  string "/files/etc/hosts/*[canonical = \"%[b]s\"]" %e
+  augeas.find %e %f jz +2
+    string "%[p]s: fqdn %[b]s entry was removed" %p
+    call notok
+  call ok
+
 fn main
   set %o 0
   set %p 0
@@ -980,6 +1806,8 @@ fn main
   add %o 1 try test.authdb.3 jz +1 set %p 1
   add %o 1 try test.authdb.4 jz +1 set %p 1
   add %o 1 try test.authdb.5 jz +1 set %p 1
+
+  add %o 1 try test.copytree.1 jz +1 set %p 1
 
   ;; FIXME: need a way to get our current UID+GID via get*uid / get*gid
   ;; so we can skip tests like runuser / chown / chgrp / etc.
@@ -1025,9 +1853,49 @@ fn main
 
   add %o 1 try test.res.user.present.1 jz +1 set %p 1
   add %o 1 try test.res.user.present.2 jz +1 set %p 1
-  ;; FIXME - test.res.user.present.3 (auto-detect UID)
+  add %o 1 try test.res.user.present.3 jz +1 set %p 1
+
+  add %o 1 try test.res.group.absent.1 jz +1 set %p 1
+  add %o 1 try test.res.group.absent.2 jz +1 set %p 1
+
+  add %o 1 try test.res.group.present.1 jz +1 set %p 1
+  add %o 1 try test.res.group.present.2 jz +1 set %p 1
+  add %o 1 try test.res.group.present.3 jz +1 set %p 1
+
+  add %o 1 try test.res.group.passwd.1 jz +1 set %p 1
+
+  add %o 1 try test.res.service.enable.1 jz +1 set %p 1
+  add %o 1 try test.res.service.enable.2 jz +1 set %p 1
+  add %o 1 try test.res.service.enable.3 jz +1 set %p 1
+
+  add %o 1 try test.res.service.disable.1 jz +1 set %p 1
+  add %o 1 try test.res.service.disable.2 jz +1 set %p 1
+  add %o 1 try test.res.service.disable.3 jz +1 set %p 1
+
+  add %o 1 try test.res.service.start.1 jz +1 set %p 1
+  add %o 1 try test.res.service.start.2 jz +1 set %p 1
+  add %o 1 try test.res.service.start.3 jz +1 set %p 1
+
+  add %o 1 try test.res.service.stop.1 jz +1 set %p 1
+  add %o 1 try test.res.service.stop.2 jz +1 set %p 1
+  add %o 1 try test.res.service.stop.3 jz +1 set %p 1
+
+  add %o 1 try test.res.service.reload.1 jz +1 set %p 1
+  add %o 1 try test.res.service.reload.2 jz +1 set %p 1
+  add %o 1 try test.res.service.reload.3 jz +1 set %p 1
+  add %o 1 try test.res.service.reload.4 jz +1 set %p 1
+
+  add %o 1 try test.res.service.restart.1 jz +1 set %p 1
+  add %o 1 try test.res.service.restart.2 jz +1 set %p 1
+  add %o 1 try test.res.service.restart.3 jz +1 set %p 1
+  add %o 1 try test.res.service.restart.4 jz +1 set %p 1
+
+  add %o 1 try test.res.host.absent.1 jz +1 set %p 1
+  add %o 1 try test.res.host.absent.2 jz +1 set %p 1
+  add %o 1 try test.res.host.absent.3 jz +1 set %p 1
 
   print "1..%[o]i\n"
+  exec "rm -rf t/tmp" %e
   retv %p
 
 ;; vim:et:ts=2

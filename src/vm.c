@@ -255,7 +255,7 @@ getline:
 			}
 			char *path = s_findlib(cc, a);
 			if (!path) {
-				logger(LOG_ERR, "%s:%i: could not find '%s' for #include", cc->file, cc->line, path);
+				logger(LOG_ERR, "%s:%i: could not find '%s' for #include", cc->file, cc->line, a);
 				free(path);
 				return 0;
 			}
@@ -1177,7 +1177,7 @@ static char * s_aug_find(augeas *aug, const char *needle)
 		free(r);
 		return v;
 	}
-	while (rc) free(r[--rc]);
+	while (rc > 0) free(r[rc--]);
 	free(r);
 	return NULL;
 }
@@ -1328,14 +1328,7 @@ static int s_copy(const char *from, const char *to)
 		return 1;
 	}
 
-	size_t n;
-	char buf[8192];
-	while ((n = read(src, buf, 8192)) > 0) {
-		if (write(src, buf, n) == n) continue;
-		close(src); close(dst);
-		return 1;
-	}
-
+	int n = cw_cat(src, dst);
 	close(src); close(dst);
 	return n;
 }
@@ -1368,6 +1361,7 @@ static char * s_fs_get(const char *path)
 		p += nread;
 	}
 
+	close(fd);
 	return s;
 }
 
@@ -1391,6 +1385,7 @@ static int s_fs_put(const char *path, const char *contents)
 		p += wrote;
 	}
 
+	close(fd);
 	return 0;
 }
 
@@ -2052,12 +2047,9 @@ static void op_fs_readdir(vm_t *vm)
 	REGISTER2("fs.readdir");
 
 	int d = VAL1(vm);
-	if (d < 0 || d >= VM_MAX_OPENDIRS || !vm->aux.dirs[d].paths) {
-		vm->acc = 1;
-		return;
-	}
-
-	if (vm->aux.dirs[d].i == vm->aux.dirs[d].paths->num) {
+	if (d < 0 || d > VM_MAX_OPENDIRS
+	 || !vm->aux.dirs[d].paths
+	 || vm->aux.dirs[d].i == vm->aux.dirs[d].paths->num) {
 		vm->acc = 1;
 		return;
 	}
@@ -2394,6 +2386,11 @@ static void op_augeas_init(vm_t *vm)
 		hash_get(&vm->pragma, "augeas.libs"),
 		AUG_NO_STDINC|AUG_NO_LOAD|AUG_NO_MODL_AUTOLOAD);
 
+	if (!vm->aux.augeas) {
+		vm->acc = 1;
+		return;
+	}
+
 	if (aug_set(vm->aux.augeas, "/augeas/load/Hosts/lens", "Hosts.lns") < 0
 	 || aug_set(vm->aux.augeas, "/augeas/load/Hosts/incl", "/etc/hosts") < 0
 	 || aug_load(vm->aux.augeas) != 0) {
@@ -2414,6 +2411,7 @@ static void op_augeas_done(vm_t *vm)
 static void op_augeas_perror(vm_t *vm)
 {
 	ARG1("augeas.perror");
+	if (!vm->aux.augeas) return;
 	vm_fprintf(vm, vm->stderr, STR1(vm));
 	s_aug_perror(vm->stderr, vm->aux.augeas);
 }
@@ -2421,12 +2419,20 @@ static void op_augeas_perror(vm_t *vm)
 static void op_augeas_write(vm_t *vm)
 {
 	ARG0("augeas.write");
+	if (!vm->aux.augeas) {
+		vm->acc = 1;
+		return;
+	}
 	vm->acc = aug_save(vm->aux.augeas);
 }
 
 static void op_augeas_set(vm_t *vm)
 {
 	ARG2("augeas.set");
+	if (!vm->aux.augeas) {
+		vm->acc = 1;
+		return;
+	}
 	vm->acc = aug_set(vm->aux.augeas, STR1(vm), STR2(vm));
 }
 
@@ -2434,6 +2440,10 @@ static void op_augeas_get(vm_t *vm)
 {
 	ARG2("augeas.get");
 	REGISTER2("augeas.get");
+	if (!vm->aux.augeas) {
+		vm->acc = 1;
+		return;
+	}
 	const char *v;
 	if (aug_get(vm->aux.augeas, STR1(vm), &v) == 1 && v) {
 		REG2(vm) = vm_heap_strdup(vm, v);
@@ -2447,6 +2457,10 @@ static void op_augeas_find(vm_t *vm)
 {
 	ARG2("augeas.find");
 	REGISTER2("augeas.find");
+	if (!vm->aux.augeas) {
+		vm->acc = 1;
+		return;
+	}
 	char *s = s_aug_find(vm->aux.augeas, STR1(vm));
 	if (s) {
 		vm->acc = 0;
@@ -2459,6 +2473,10 @@ static void op_augeas_find(vm_t *vm)
 static void op_augeas_remove(vm_t *vm)
 {
 	ARG1("augeas.remove");
+	if (!vm->aux.augeas) {
+		vm->acc = 1;
+		return;
+	}
 	vm->acc = aug_rm(vm->aux.augeas, STR1(vm)) > 1 ? 0 : 1;
 }
 
@@ -2549,6 +2567,7 @@ static void op_exec(vm_t *vm)
 		.gid = vm->aux.runas_gid,
 	};
 
+	logger(LOG_DEBUG, "exec: running `/bin/ash -c \"%s\"`", STR1(vm));
 	vm->acc = run2(&runner, "/bin/sh", "-c", STR1(vm), NULL);
 	if (fgets(execline, sizeof(execline), runner.out)) {
 		char *s = strchr(execline, '\n'); if (s) *s = '\0';

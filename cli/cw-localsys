@@ -29,6 +29,55 @@
 export PATH=/sbin:/bin:/usr/sbin:/usr/bin
 
 #################################################################
+
+# IMPLEMENTORS!
+#
+# This script communicates to the outside world via the first
+# line of stdout, and the return code.  Here's a rundown of how
+# each action is expected to behave:
+#
+#   svc-run-status
+#       output is ignored
+#       returns:
+#         0 = service is running
+#        !0 = service is NOT running
+#
+#   svc-boot-status
+#       output is ignored
+#       returns:
+#         0 = service will start on boot
+#        !0 = service will NOT start on boot
+#
+#   svc-init
+#       output is ignored
+#       returns (whatever the init script returns)
+#         0 = success
+#        !0 = failure (usually)
+#
+#   svc-init-force
+#       output is ignored
+#       returns (whatever the init script returns):
+#         0 = success
+#        !0 = failure (usually)
+#
+#   svc-enable
+#       output is ignored
+#       returns:
+#         0 = service has been enabled to start at boot
+#        !0 = failed to enable service
+#
+#   svc-disable
+#       output is ignored
+#       returns:
+#         0 = service has been disabled (won't start at boot)
+#        !0 = failed to disable service
+#
+#   pkg-version
+#   pkg-latest
+#   pkg-install
+#   pkg-remove
+
+#################################################################
 # AUTO-DETECTION
 #
 

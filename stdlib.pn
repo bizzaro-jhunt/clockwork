@@ -511,7 +511,7 @@ fn res.user.present
       flag "changed"
 
   done:
-    ret
+    retv 0
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -537,10 +537,17 @@ fn res.group.absent
 ;;
 ;; res.group.passwd
 ;;
+;;   %a = group name
+;;   %b = new password
+;;
 fn res.group.passwd
+  group.find %a jz +2
+    perror "failed to find group %[a]s"
+    bail 1
+
   syslog notice "%T: setting password for group %[a]s"
   group.set "password" "*"
-  group.set "pwhash"   %a
+  group.set "pwhash"   %b
   jnz +2
     flag "changed"
     retv 0
@@ -585,11 +592,15 @@ fn res.user.mkhome
 
 fn util.copytree
     fs.opendir %a %p
+    jz +2
+      perror "failed to opendir(%[a]s)"
+      retv 1
   again:
     fs.readdir %p %o
-    jz done
+    jnz done
     string "%[a]s/%[o]s" %n
     string "%[b]s/%[o]s" %m
+    syslog info "copying %[n]s -> %[m]s"
 
     fs.dir? %n
     jz dir
@@ -604,6 +615,8 @@ fn util.copytree
 
   dir:
     fs.mkdir %m
+    fs.mode %n %l
+    fs.chmod %m %l
     swap %a %n swap %b %m
     call util.copytree
     swap %a %n swap %b %m
@@ -611,6 +624,8 @@ fn util.copytree
 
   file:
     fs.copy %n %m
+    fs.mode %n %l
+    fs.chmod %m %l
     jmp again
 
   symlink:
@@ -634,24 +649,28 @@ fn res.group.present
     jz exists
       syslog notice "%T: provisioning new local group account for %[a]s"
       group.new
+      flag "changed"
       group.set "name"    %a
       group.set "passwd" "x"
       group.set "pwhash" "*"
 
   exists:
-    eq %b 0
-    jnz ok
+    eq %b 65536 ;; max(GID) + 1
+    jnz gid
       syslog notice "%T: auto-determining next available GID (> 1000) for %[a]s"
       authdb.nextgid 1000 %b
-      jz ok
+      jz gid
         perror "failed to lookup next available GID"
         bail 1
 
-  ok:
-    syslog info "%T: setting %[a]s GID to %[b]s"
-    group.set "gid" %b
+  gid:
+    lt %b 65536
+    jnz done
+      syslog info "%T: setting %[a]s GID to %[b]s"
+      group.set "gid" %b
+      flag "changed"
 
-    flag "changed"
+  done:
     retv 0
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -780,12 +799,11 @@ fn res.service.enable
 
     syslog notice "%T: enabling service %[a]s to start at boot"
     localsys "svc-enable %[a]s" %b
-    jnz +2
-      flag "changed"
-      retv 0
-
-    error "failed to enable service %[a]s to start at boot"
-    bail 1
+    jz +2
+      error "failed to enable service %[a]s to start at boot"
+      bail 1
+    flag "changed"
+    retv 0
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -800,12 +818,12 @@ fn res.service.disable
 
     syslog notice "%T: disabling service %[a]s"
     localsys "svc-disable %[a]s" %b
-    jnz +2
-      flag "changed"
-      retv 0
+    jz +2
+      error "failed to disable service %[a]s"
+      bail 1
 
-    error "failed to disable service %[a]s"
-    bail 1
+    flag "changed"
+    retv 0
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -820,12 +838,12 @@ fn res.service.start
 
     syslog notice "%T: starting service %[a]s"
     localsys "svc-init %[a]s start" %b
-    jnz +2
-      flag "changed"
-      retv 0
+    jz +2
+      error "failed to start service %[a]s"
+      bail 1
 
-    error "failed to start service %[a]s"
-    bail 1
+    flag "changed"
+    retv 0
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -840,22 +858,22 @@ fn res.service.restart
 
       syslog notice "%T: starting service %[a]s"
       localsys "svc-init %[a]s start" %b
-      jnz +2
-        flag "changed"
-        retv 0
+      jz +2
+        error "failed to start service %[a]s"
+        bail 1
 
-      error "failed to start service %[a]s"
-      bail 1
+      flag "changed"
+      retv 0
 
   restart:
       syslog notice "restarting service %[a]s"
       localsys "svc-init %[a]s restart" %b
-      jnz +2
-        flag "changed"
-        retv 0
+      jz +2
+        error "failed to restart service %[a]s"
+        bail 1
 
-      error "failed to restart service %[a]s"
-      bail 1
+      flag "changed"
+      retv 0
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -880,12 +898,12 @@ fn res.service.reload
   reload:
       syslog notice "reloading service %[a]s"
       localsys "svc-init %[a]s reload" %b
-      jnz +2
-        flag "changed"
-        retv 0
+      jz +2
+        error "failed to reload service %[a]s"
+        bail 1
 
-      error "failed to reload service %[a]s"
-      bail 1
+      flag "changed"
+      retv 0
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -900,12 +918,12 @@ fn res.service.stop
 
     syslog notice "stopping service %[a]s"
     localsys "svc-init %[a]s stop" %b
-    jnz +2
-      flag "changed"
-      retv 0
+    jz +2
+      error "failed to stop service %[a]s"
+      bail 1
 
-    error "failed to stop service %[a]s"
-    bail 1
+    flag "changed"
+    retv 0
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -916,7 +934,7 @@ fn res.service.stop
 ;;
 fn res.host.absent
     syslog info "%T: enforcing absence of hosts entry %[a]s/%[b]s"
-    string "/files/etc/hosts/*[ipaddr = \"%[a]s\" and canonical = \"%[b]s\"" %p
+    string "/files/etc/hosts/*[ipaddr = \"%[a]s\" and canonical = \"%[b]s\"]" %p
     augeas.find %p %o ;; FIXME augeas.exists?
     jz +1 retv 0
       augeas.remove %p

@@ -357,7 +357,7 @@ endif
 
 coverage-pn:
 	@mkdir -p coverage
-	@./pcov t/cover.pn.S --html --only stdlib > coverage/pendulum.html
-	@./pcov t/cover.pn.S --brief
+	@./pcov t/cover.pn.S --only stdlib --html > coverage/pendulum.html
+	@./pcov t/cover.pn.S --only stdlib --brief
 coverage-pn-clean:
 	@rm -f coverage/pendulum.html

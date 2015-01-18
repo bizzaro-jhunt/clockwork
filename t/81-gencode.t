@@ -21,6 +21,7 @@ host "example" { enforce "example" }
 EOF
 
 	gencode_ok(<<'EOF',
+#include stdlib
 fn res:00000001
   unflag "changed"
   call fix:00000001
@@ -60,6 +61,7 @@ policy "example" {
 host "example" { enforce "example" }
 EOF
 	gencode_ok(<<'EOF',
+#include stdlib
 fn res:00000001
   unflag "changed"
   call fix:00000001
@@ -95,6 +97,7 @@ host "example" { enforce "example" }
 EOF
 
 	gencode_ok(<<'EOF',
+#include stdlib
 fn res:00000001
   unflag "changed"
   call fix:00000001
@@ -133,6 +136,7 @@ host "example" { enforce "example" }
 EOF
 
 	gencode_ok(<<'EOF',
+#include stdlib
 fn res:00000001
   unflag "changed"
   call fix:00000001
@@ -173,6 +177,7 @@ host "example" { enforce "example" }
 EOF
 
 	gencode_ok(<<'EOF',
+#include stdlib
 fn res:00000001
   unflag "changed"
   call fix:00000001
@@ -214,6 +219,7 @@ host "example" { enforce "example" }
 EOF
 
 	gencode_ok(<<'EOF',
+#include stdlib
 fn res:00000001
   unflag "changed"
   call fix:00000001
@@ -256,6 +262,7 @@ host "example" { enforce "example" }
 EOF
 
 	gencode_ok(<<'EOF',
+#include stdlib
 fn res:00000001
   unflag "changed"
   call fix:00000001
@@ -301,6 +308,7 @@ host "example" { enforce "example" }
 EOF
 
 	gencode_ok(<<'EOF',
+#include stdlib
 fn res:00000001
   unflag "changed"
   call fix:00000001
@@ -340,6 +348,7 @@ host "example" { enforce "example" }
 EOF
 
 	gencode_ok(<<'EOF',
+#include stdlib
 fn res:00000001
   unflag "changed"
   call fix:00000001
@@ -389,6 +398,7 @@ host "example" { enforce "example" }
 EOF
 
 	gencode_ok(<<'EOF',
+#include stdlib
 fn res:00000001
   unflag "changed"
   call fix:00000001
@@ -451,6 +461,7 @@ host "example" { enforce "example" }
 EOF
 
 	gencode_ok(<<'EOF',
+#include stdlib
 fn res:00000001
   unflag "changed"
   call fix:00000001
@@ -545,6 +556,7 @@ host "example" { enforce "example" }
 EOF
 
 	gencode_ok(<<'EOF',
+#include stdlib
 fn res:00000001
   unflag "changed"
   call fix:00000001
@@ -581,6 +593,7 @@ host "example" { enforce "example" }
 EOF
 
 	gencode_ok(<<'EOF',
+#include stdlib
 fn res:00000001
   unflag "changed"
   call fix:00000001
@@ -616,6 +629,7 @@ host "example" { enforce "example" }
 EOF
 
 	gencode_ok(<<'EOF',
+#include stdlib
 fn res:00000001
   unflag "changed"
   call fix:00000001
@@ -657,6 +671,7 @@ host "example" { enforce "example" }
 EOF
 
 	gencode_ok(<<'EOF',
+#include stdlib
 fn res:00000001
   unflag "changed"
   call fix:00000001
@@ -705,6 +720,7 @@ host "example" { enforce "example" }
 EOF
 
 	gencode_ok(<<'EOF',
+#include stdlib
 fn res:00000001
   unflag "changed"
   call fix:00000001
@@ -745,6 +761,7 @@ host "example" { enforce "example" }
 EOF
 
 	gencode_ok(<<'EOF',
+#include stdlib
 fn res:00000001
   unflag "changed"
   call fix:00000001
@@ -780,6 +797,7 @@ host "example" { enforce "example" }
 EOF
 
 	gencode_ok(<<'EOF',
+#include stdlib
 fn res:00000001
   unflag "changed"
   call fix:00000001
@@ -819,6 +837,7 @@ host "example" { enforce "example" }
 EOF
 
 	gencode_ok(<<'EOF',
+#include stdlib
 fn res:00000001
   unflag "changed"
   call fix:00000001
@@ -865,6 +884,7 @@ host "example" { enforce "example" }
 EOF
 
 	gencode_ok(<<'EOF',
+#include stdlib
 fn res:00000001
   unflag "changed"
   call fix:00000001
@@ -903,6 +923,7 @@ host "example" { enforce "example" }
 EOF
 
 	gencode_ok(<<'EOF',
+#include stdlib
 fn res:00000001
   unflag "changed"
   call fix:00000001
@@ -941,6 +962,7 @@ host "example" { enforce "example" }
 EOF
 
 	gencode_ok(<<'EOF',
+#include stdlib
 fn res:00000001
   unflag "changed"
   call fix:00000001
@@ -978,6 +1000,7 @@ host "example" { enforce "example" }
 EOF
 
 	gencode_ok(<<'EOF',
+#include stdlib
 fn res:00000001
   unflag "changed"
   call fix:00000001
@@ -1019,6 +1042,7 @@ host "example" { enforce "example" }
 EOF
 
 	gencode_ok(<<'EOF',
+#include stdlib
 fn res:00000001
   unflag "changed"
   call fix:00000001
@@ -1054,6 +1078,7 @@ host "example" { enforce "example" }
 EOF
 
 	gencode_ok(<<'EOF',
+#include stdlib
 fn res:00000001
   unflag "changed"
   call fix:00000001
@@ -1089,6 +1114,7 @@ host "example" { enforce "example" }
 EOF
 
 	gencode_ok(<<'EOF',
+#include stdlib
 fn res:00000001
   unflag "changed"
   call fix:00000001
@@ -1125,6 +1151,7 @@ host "example" { enforce "example" }
 EOF
 
 	gencode_ok(<<'EOF',
+#include stdlib
 fn res:00000001
   unflag "changed"
   call fix:00000001
@@ -1161,6 +1188,7 @@ host "example" { enforce "example" }
 EOF
 
 	gencode_ok(<<'EOF',
+#include stdlib
 fn res:00000001
   unflag "changed"
   call fix:00000001
@@ -1202,6 +1230,7 @@ host "example" { enforce "example" }
 EOF
 
 	gencode_ok(<<'EOF',
+#include stdlib
 fn res:00000001
   unflag "changed"
   call fix:00000001
@@ -1244,6 +1273,7 @@ host "example" { enforce "example" }
 EOF
 
 	gencode_ok(<<'EOF',
+#include stdlib
 fn res:00000001
   unflag "changed"
   call fix:00000001
@@ -1284,6 +1314,7 @@ host "example" { enforce "example" }
 EOF
 
 	gencode_ok(<<'EOF',
+#include stdlib
 fn res:00000001
   unflag "changed"
   call fix:00000001
@@ -1322,6 +1353,7 @@ host "example" { enforce "example" }
 EOF
 
 	gencode_ok(<<'EOF',
+#include stdlib
 fn res:00000001
   unflag "changed"
   call fix:00000001
@@ -1362,6 +1394,7 @@ host "example" { enforce "example" }
 EOF
 
 	gencode_ok(<<'EOF',
+#include stdlib
 fn res:00000001
   unflag "changed"
   call fix:00000001
@@ -1398,6 +1431,7 @@ host "example" { enforce "example" }
 EOF
 
 	gencode_ok(<<'EOF',
+#include stdlib
 fn res:00000001
   unflag "changed"
   call fix:00000001
@@ -1437,6 +1471,7 @@ host "example" { enforce "example" }
 EOF
 
 	gencode_ok(<<'EOF',
+#include stdlib
 fn res:00000001
   unflag "changed"
   call fix:00000001
@@ -1479,6 +1514,7 @@ host "example" { enforce "example" }
 EOF
 
 	gencode_ok(<<'EOF',
+#include stdlib
 fn res:00000001
   unflag "changed"
   call fix:00000001
@@ -1897,6 +1933,7 @@ policy "example" {
 host "example" { enforce "example" }
 EOF
 	gencode_ok <<'EOF', "implict deps";
+#include stdlib
 fn res:00000001
   unflag "changed"
   call fix:00000001
@@ -2089,6 +2126,7 @@ EOF
 EOF
 
 	# FIXME: run gencode_ok to get ACL data
+#include stdlib
 
 	#######################################################
 

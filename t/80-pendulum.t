@@ -2052,4 +2052,35 @@ subtest "disassembly" => sub {
 EOF
 };
 
+subtest "includes" => sub {
+	local $ENV{PENDULUM_INCLUDE} = "/usr/lib/clockwork/not/a/thing:t/tmp:/another/enoent/path";
+	put_file "t/tmp/incl.pn", <<EOF;
+fn from.incl
+  print "Hello, Includes!\\n"
+EOF
+
+	pendulum_ok(qq(
+	#include incl
+	fn main
+		call from.incl
+		print "fin\\n"),
+
+	"Hello, Includes!\n".
+	"fin\n",
+	"preprocessor directive for including works");
+
+	pendulum_ok(qq(
+	#include incl
+	#include incl
+	#include incl
+	#include incl
+	fn main
+		call from.incl
+		print "fin\\n"),
+
+	"Hello, Includes!\n".
+	"fin\n",
+	"files can only be included once");
+};
+
 done_testing;

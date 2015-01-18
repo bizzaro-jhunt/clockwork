@@ -4,6 +4,7 @@ use warnings;
 
 use Test::More;
 use t::common;
+$ENV{PENDULUM_INCLUDE} = ".";
 
 ##########################################################################
 

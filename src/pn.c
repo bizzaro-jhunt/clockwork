@@ -33,11 +33,11 @@ int main (int argc, char **argv)
 {
 	int trace = 0, debug = 0;
 	int level = LOG_WARNING;
-	const char *ident = "pn", *facility = "console", *stdlib = NULL;
+	const char *ident = "pn", *facility = "console";
 	int mode = MODE_EXECUTE;
 	int coverage = 0;
 
-	const char *short_opts = "h?vqDVTSdCL:";
+	const char *short_opts = "h?vqDVTSdC";
 	struct option long_opts[] = {
 		{ "help",        no_argument,       NULL, 'h' },
 		{ "verbose",     no_argument,       NULL, 'v' },
@@ -49,7 +49,6 @@ int main (int argc, char **argv)
 		{ "disassemble", no_argument,       NULL, 'd' },
 		{ "cover",       no_argument,       NULL, 'C' },
 		{ "coverage",    no_argument,       NULL, 'C' },
-		{ "stdlib",      required_argument, NULL, 'L' },
 		{ "syslog",      required_argument, NULL,  0  },
 
 		{ 0, 0, 0, 0 },
@@ -96,10 +95,6 @@ int main (int argc, char **argv)
 
 		case 'C':
 			coverage = 1;
-			break;
-
-		case 'L':
-			stdlib = optarg;
 			break;
 
 		case 0: /* --syslog */
@@ -185,43 +180,15 @@ int main (int argc, char **argv)
 	if (mode == MODE_ASSEMBLE) {
 		byte_t *code;
 		size_t len;
-		int rc, filter = 0;
+		int rc, outfd = 1;
 
-		if (strcmp(argv[optind], "-") == 0)
-			filter = 1;
-
-		FILE *io = filter ? stdin : fopen(argv[optind], "r");
-		if (!io) {
-			perror(argv[optind]);
-			return 1;
-		}
-
-		FILE *agg = tmpfile();
-		if (!agg) {
-			perror("failed to create temp file");
-			return 1;
-		}
-		if (stdlib) {
-			FILE *lib = fopen(stdlib, "r");
-			if (!lib) {
-				perror(stdlib);
-				return 1;
-			}
-			rc = cw_fcat(lib, agg);
+		if (strcmp(argv[optind], "-") == 0) {
+			rc = vm_asm_io(stdin, &code, &len, "<stdin>");
 			assert(rc == 0);
-			fclose(lib);
-		}
-		rc = cw_fcat(io, agg);
-		assert(rc == 0);
-		rewind(agg);
+		} else {
+			rc = vm_asm_file(argv[optind], &code, &len);
+			assert(rc == 0);
 
-		rc = vm_asm_io(agg, &code, &len);
-		assert(rc == 0);
-		fclose(agg);
-		fclose(io);
-
-		int outfd = 1;
-		if (!filter) {
 			char *sfile = string("%s.S", argv[optind]);
 			outfd = open(sfile, O_WRONLY|O_CREAT|O_TRUNC, 0666);
 			if (outfd < 0) {

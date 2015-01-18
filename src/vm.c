@@ -78,6 +78,8 @@ typedef struct {
 typedef struct {
 	FILE       *io;
 	const char *file;
+	int         close_on_free;
+
 	int         line;
 	int         token;
 	char        value[LINE_BUF_SIZE];
@@ -90,9 +92,48 @@ typedef struct {
 	dword_t     static_offset;
 	dword_t     static_fill;
 
+	strings_t  *incpath; /* list of directories to search for #includes */
+	hash_t      incseen; /* list of seen dev/ino pairs (as string keys) */
+
 	byte_t     *code;
 	size_t      size;
 } compiler_t;
+
+static compiler_t* s_compiler_new(const char *path, FILE *io)
+{
+	compiler_t *cc = calloc(1, sizeof(compiler_t));
+	if (cc) {
+		cc->file = path;
+		if (!io) {
+			io = fopen(path, "r");
+			cc->close_on_free = 1;
+		}
+		if (!io) {
+			free(cc);
+			return NULL;
+		}
+		cc->io = io;
+	}
+
+	/* set up include dirs */
+	char  *e = getenv("PENDULUM_INCLUDE");
+	if (e) e = string("%s:" PENDULUM_INCLUDE, e);
+	else   e = strdup(PENDULUM_INCLUDE);
+
+	cc->incpath = strings_split(e, strlen(e), ":", SPLIT_NORMAL);
+	free(e);
+
+	return cc;
+}
+
+static void s_compiler_free(compiler_t *cc)
+{
+	if (!cc) return;
+	if (cc->close_on_free) fclose(cc->io);
+	strings_free(cc->incpath);
+	hash_done(&cc->incseen, 0);
+	free(cc);
+}
 
 /************************************************************************/
 
@@ -113,6 +154,34 @@ static void s_eprintf(FILE *io, const char *orig)
 	}
 }
 
+static char* s_findlib(compiler_t *cc, const char *relpath)
+{
+	struct stat st;
+	int i;
+	for (i = 0; i < cc->incpath->num; i++) {
+		char *path = string("%s/%s.pn", cc->incpath->strings[i], relpath);
+		logger(LOG_DEBUG, "checking for `#include %s` at '%s'", relpath, path);
+		if (stat(path, &st) != 0) {
+			free(path);
+			continue;
+		}
+
+		logger(LOG_DEBUG, "resolved #include of '%s' to path '%s' (dev/ino:%u/%u)",
+			relpath, path, st.st_dev, st.st_ino);
+		char *key = string("%u:%u", st.st_dev, st.st_ino);
+		if (hash_get(&cc->incseen, key) != NULL) {
+			free(key);
+			return "";
+		}
+
+		logger(LOG_DEBUG, "'%s' is a new (never-before-included) file", path);
+		hash_set(&cc->incseen, key, "Y");
+		return path;
+	}
+	return NULL;
+}
+
+static int s_asm_parse(compiler_t *cc);
 static int s_asm_lex(compiler_t *cc)
 {
 	assert(cc);
@@ -147,6 +216,64 @@ getline:
 	memmove(cc->buffer, b, LINE_BUF_SIZE - (b - cc->buffer)); \
 } while (0)
 
+	if (*b == '#') { /* preprocesor directive */
+		b++;
+		while (!isspace(*b)) b++;
+		*b++ = '\0';
+		if (strcmp(a, "#include") == 0) {
+			while (*b && isspace(*b)) *b++ = '\0';
+			if (!*b) {
+				logger(LOG_ERR, "%s:%i: '#include' directive requires an argument", cc->file, cc->line);
+				return 0;
+			}
+			a = b; while (!isspace(*b)) b++;
+			*b++ = '\0';
+			if (*b) {
+				logger(LOG_ERR, "%s:%i: bad invocation of '#include' preprocessor directive", cc->file, cc->line);
+				return 0;
+			}
+			char *path = s_findlib(cc, a);
+			if (!path) {
+				logger(LOG_ERR, "%s:%i: could not find '%s' for #include", cc->file, cc->line, path);
+				free(path);
+				return 0;
+			}
+			if (strcmp(path, "") != 0) {
+				op_t *op, *tmp;
+
+				/* push the OBJ opcode */
+				op = calloc(1, sizeof(op_t));
+				op->op = OP__OBJ;
+				op->label = strdup(a);
+				list_push(&cc->ops, &op->l);
+
+				/* start up a new compiler for the new library */
+				compiler_t *c2 = s_compiler_new(path, NULL);
+				if (s_asm_parse(c2) != 0) {
+					s_compiler_free(c2);
+					return 0;
+				}
+
+				/* splice in the raw opcodes for $path */
+				for_each_object_safe(op, tmp, &c2->ops, l) {
+					list_delete(&op->l);
+					list_push(&cc->ops, &op->l);
+				}
+				s_compiler_free(c2);
+
+				/* push the OBJ opcode to return (NULL) */
+				op = calloc(1, sizeof(op_t));
+				op->op = OP__OBJ;
+				op->label = strdup("MAIN");
+				list_push(&cc->ops, &op->l);
+			}
+
+			/* get next token */
+			goto getline;
+		}
+		logger(LOG_ERR, "%s:%i: unrecognized preprocessor directive '%s'", cc->file, cc->line, a);
+		return 0;
+	}
 	if (*b == '<') { /* start of <<EOF ? */
 		if (*++b == '<') {
 			b++;
@@ -308,6 +435,7 @@ static int s_asm_parse(compiler_t *cc)
 
 	op_t *FN = NULL;
 	list_init(&cc->ops);
+	cc->line = 0;
 
 #define NEXT if (!s_asm_lex(cc)) { logger(LOG_CRIT, "%s:%i: unexpected end of configuration\n", cc->file, cc->line); goto bail; }
 #define ERROR(s) do { logger(LOG_CRIT, "%s:%i: syntax error: %s", cc->file, cc->line, s); goto bail; } while (0)
@@ -528,6 +656,11 @@ static int s_asm_encode(compiler_t *cc)
 	for_each_object(op, &cc->ops, l) {
 		op->offset = text;
 		if (op->special) continue;
+		if (op->op == OP__OBJ) {
+			text += 1;                     /* opcode */
+			text += strlen(op->label) + 1; /* label + \0 */
+			continue;
+		}
 		text += 2;                                     /* 2-byte opcode  */
 		if (op->args[0].type != VALUE_NONE) text += 4; /* 4-byte operand */
 		if (op->args[1].type != VALUE_NONE) text += 4; /* 4-byte operand */
@@ -542,7 +675,7 @@ static int s_asm_encode(compiler_t *cc)
 			hash_set(&seen, op->args[1]._.string, "Y");
 		}
 	}
-	text += 2; /* 0xff00 */
+	text += 2; /* OP__EOF 0x00 */
 	hash_done(&seen, 0);
 
 	cc->static_fill = cc->static_offset = text;
@@ -561,6 +694,11 @@ static int s_asm_encode(compiler_t *cc)
 
 		/* phase IV: encode */
 		*c++ = op->op;
+		if (op->op == OP__OBJ) {
+			char *p = op->label;
+			while ((*c++ = *p++));
+			continue;
+		}
 		*c++ = ((op->args[0].bintype & 0xff) << 4)
 			 | ((op->args[1].bintype & 0xff));
 
@@ -577,7 +715,7 @@ static int s_asm_encode(compiler_t *cc)
 			*c++ = ((op->args[1]._.literal >>  0) & 0xff);
 		}
 	}
-	*c++ = 0xff; *c++ = 0x00;
+	*c++ = OP__EOF; *c++ = 0x00;
 
 	for_each_object_safe(op, tmp, &cc->ops, l) {
 		if (op->special == SPECIAL_FUNC) free(op->label);
@@ -2516,9 +2654,15 @@ int vm_load(vm_t *vm, byte_t *code, size_t len)
 	byte_t f;
 	code += 2; /* skip header */
 	while (code < vm->code + len) {
-		if (*code == 0xff) {
+		if (*code == OP__EOF) {
 			vm->static0 = code - vm->code;
 			break;
+		}
+		if (*code == OP__OBJ) {
+			/* this is an inert marker, for profilers / disassembly */
+			/* format: [fe] [...] [00] */
+			while (*code++);
+			continue;
 		}
 
 		code++; f = *code++;
@@ -2554,6 +2698,13 @@ again:
 		if (vm->ccovio)
 			fprintf(vm->ccovio, "%08x %02x\n", vm->pc, vm->op);
 		vm->pc++;
+
+		if (vm->op == OP__OBJ) {
+			/* inert marker opcodes, for profiling / disassembly. skip */
+			while (vm->code[vm->pc++]);
+			fprintf(stderr, "moved pc to %08x (%02x)\n", vm->pc, vm->code[vm->pc]);
+			goto again;
+		}
 
 		vm->f1 = HI_NYBLE(vm->code[vm->pc]);
 		vm->f2 = LO_NYBLE(vm->code[vm->pc]);
@@ -2602,32 +2753,31 @@ again:
 int vm_asm_file(const char *path, byte_t **code, size_t *len)
 {
 	int rc;
-	compiler_t cc;
-	memset(&cc, 0, sizeof(cc));
+	compiler_t *cc;
 
 	if (strcmp(path, "-") == 0) {
-		cc.file = "<stdin>";
-		cc.io   = stdin;
-		rc = s_vm_asm(&cc, code, len);
+		cc = s_compiler_new("<stdin>", stdin);
+		rc = s_vm_asm(cc, code, len);
 
 	} else {
-		cc.file = path;
-		cc.io   = fopen(path, "r");
-		rc = s_vm_asm(&cc, code, len);
-		fclose(cc.io);
+		cc = s_compiler_new(path, NULL);
+		rc = s_vm_asm(cc, code, len);
 	}
 
+	s_compiler_free(cc);
 	return rc;
 }
 
-int vm_asm_io(FILE *io, byte_t **code, size_t *len)
+int vm_asm_io(FILE *io, byte_t **code, size_t *len, const char *vpath)
 {
-	compiler_t cc;
-	memset(&cc, 0, sizeof(cc));
+	int rc;
+	compiler_t *cc;
 
-	cc.file = "<unknown>";
-	cc.io   = io;
-	return s_vm_asm(&cc, code, len);
+	cc = s_compiler_new(vpath ? vpath : "<unknown>", io);
+	rc = s_vm_asm(cc, code, len);
+
+	s_compiler_free(cc);
+	return rc;
 }
 
 int vm_disasm(vm_t *vm, FILE *out)
@@ -2643,10 +2793,15 @@ int vm_disasm(vm_t *vm, FILE *out)
 	while (i < vm->codesize) {
 		fprintf(out, "0x%08x: ", (dword_t)i);
 		vm->op = vm->code[i++];
-		if (vm->op == 0xff && !vm->code[i]) {
-			fprintf(out, "%02x %02x\n", 0xff, 0x00);
+		if (vm->op == OP__EOF && !vm->code[i]) {
+			fprintf(out, "%02x %02x\n", OP__EOF, 0x00);
 			i++;
 			break;
+		}
+		if (vm->op == OP__OBJ) {
+			fprintf(out, "%02x <%s> [00]\n", OP__OBJ, (char *)vm->code + i);
+			while (vm->code[i++]);
+			continue;
 		}
 		vm->f1 = HI_NYBLE(vm->code[i]);
 		vm->f2 = LO_NYBLE(vm->code[i]);

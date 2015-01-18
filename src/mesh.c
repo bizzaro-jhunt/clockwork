@@ -173,7 +173,7 @@ static int s_cmd_compile(const char *command, byte_t **code, size_t *len)
 	cmd_destroy(cmd);
 	rewind(io);
 
-	int rc = vm_asm_io(io, code, len);
+	int rc = vm_asm_io(io, code, len, "<mesh>");
 	fclose(io);
 	return rc;
 }

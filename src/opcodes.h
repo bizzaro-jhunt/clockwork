@@ -507,6 +507,10 @@ static const char * ASM[] = {
 #define TYPE_REGISTER  0x2
 #define TYPE_ADDRESS   0x3
 
+/* some special ops */
+#define OP__OBJ 0xfe   /* object start; followed by NULL-terminated object name */
+#define OP__EOF 0xff   /* end of program, to avoid executing the static section */
+
 static struct {
 	byte_t      token;
 	const char *usage;

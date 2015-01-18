@@ -1113,6 +1113,8 @@ int policy_add_dependency(struct policy *pol, struct dependency *dep)
 
 int policy_gencode(const struct policy *pol, FILE *io)
 {
+	fprintf(io, "#include stdlib\n");
+
 	acl_t *a;
 	for_each_acl(a, pol)
 		acl_gencode(a, io);

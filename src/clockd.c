@@ -185,7 +185,7 @@ static int s_gencode(client_t *c, byte_t **code, size_t *len)
 
 		src_len = ftell(io);
 		rewind(io);
-		rc = vm_asm_io(io, code, len);
+		rc = vm_asm_io(io, code, len, "<clockd>");
 	}
 	fclose(io);
 	if (rc != 0)

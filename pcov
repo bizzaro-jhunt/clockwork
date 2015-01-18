@@ -7,6 +7,8 @@ my %OPTIONS;
 GetOptions(\%OPTIONS, qw/
 	html|H
 	brief|b
+	exclude|x=s
+	only|o=s
 /) or die "USAGE: $0 program.S\n";
 
 my $prog = shift @ARGV or die "USAGE: $0 program.S\n";
@@ -30,9 +32,27 @@ my ($lines, $hit) = (0, 0);
 open my $dism, "-|", "./pn -d $prog"
 	or die "disassembly failed: $!\n";
 my $last;
+my $ignore = undef;
 while (<$dism>) {
 	chomp;
 	last if m/^---$/;
+	if (m/0x[0-9a-f]{8}: fe <(.*)> \[00\]/) {
+		my $obj = $1;
+
+		$ignore = undef;
+		$ignore = $obj !~ m/$OPTIONS{exclude}/ if $OPTIONS{exclude};
+		$ignore = $obj !~ m/$OPTIONS{only}/    if $OPTIONS{only};
+
+		push @report, { op => 0, hit => 0, txt => $_ };
+		$lines++;
+		next;
+	}
+
+	if ($ignore) {
+		push @report, { op => 0, hit => 0, txt => $_ };
+		next;
+	}
+
 	$lines++;
 	if (m/^0x00000000: 70 6e$/) { # header
 		push @report, { op => 0, hit => 0, txt => $_ };
@@ -90,6 +110,9 @@ pre code .op.miss { background-color: #ff6230; }
   <pre><code>
 EOF
 	for (@report) {
+		$_->{txt} =~ s/&/&amp;/g;
+		$_->{txt} =~ s/</&lt;/g;
+		$_->{txt} =~ s/>/&gt;/g;
 		my $t = $_->{op}  ? 'op'  : 'line';
 		my $d = $_->{hit} ? 'hit' : 'miss';
 		my $h = $_->{hit} ? sprintf("%4i: ", $_->{hit})

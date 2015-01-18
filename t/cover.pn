@@ -1,3 +1,4 @@
+#include stdlib
 fn ok
   print "ok %[o]u - %[p]s\n"
   bail 0

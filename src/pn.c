@@ -36,8 +36,9 @@ int main (int argc, char **argv)
 	const char *ident = "pn", *facility = "console";
 	int mode = MODE_EXECUTE;
 	int coverage = 0;
+	int strip = 1;
 
-	const char *short_opts = "h?vqDVTSdC";
+	const char *short_opts = "h?vqDVTSdCg";
 	struct option long_opts[] = {
 		{ "help",        no_argument,       NULL, 'h' },
 		{ "verbose",     no_argument,       NULL, 'v' },
@@ -49,6 +50,7 @@ int main (int argc, char **argv)
 		{ "disassemble", no_argument,       NULL, 'd' },
 		{ "cover",       no_argument,       NULL, 'C' },
 		{ "coverage",    no_argument,       NULL, 'C' },
+		{ "annotations", no_argument,       NULL, 'g' },
 		{ "syslog",      required_argument, NULL,  0  },
 
 		{ 0, 0, 0, 0 },
@@ -95,6 +97,10 @@ int main (int argc, char **argv)
 
 		case 'C':
 			coverage = 1;
+			break;
+
+		case 'g':
+			strip = 0;
 			break;
 
 		case 0: /* --syslog */
@@ -183,10 +189,10 @@ int main (int argc, char **argv)
 		int rc, outfd = 1;
 
 		if (strcmp(argv[optind], "-") == 0) {
-			rc = vm_asm_io(stdin, &code, &len, "<stdin>");
+			rc = vm_asm_io(stdin, &code, &len, "<stdin>", strip);
 			assert(rc == 0);
 		} else {
-			rc = vm_asm_file(argv[optind], &code, &len);
+			rc = vm_asm_file(argv[optind], &code, &len, strip);
 			assert(rc == 0);
 
 			char *sfile = string("%s.S", argv[optind]);

@@ -35,6 +35,11 @@
       - [register, string]
       - [register]
 
+- anno:
+    help: insert a source code annotation
+    args:
+      - [embed]
+
 - add:
     help: add the second operand to the first
     args:

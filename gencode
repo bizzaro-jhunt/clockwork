@@ -44,7 +44,7 @@ sub arg
 		} elsif (m/^(identifier)$/) {
 			push @names, "identifier";
 			push @flags, "ARG_IDENTIFIER";
-		} elsif (m/^(number|string|function|label)$/) {
+		} elsif (m/^(number|string|function|label|embed)$/) {
 			push @names, "<$1>";
 			push @flags, uc("ARG_$1");
 		} else {
@@ -139,23 +139,31 @@ print <<EOF;
 #define ARG_LABEL       0x08
 #define ARG_FUNCTION    0x10
 #define ARG_IDENTIFIER  0x20
+#define ARG_EMBED       0x40
 
-#define VALUE_NONE      0x0
-#define VALUE_REGISTER  0x1
-#define VALUE_NUMBER    0x2
-#define VALUE_STRING    0x3
-#define VALUE_ADDRESS   0x4
-#define VALUE_LABEL     0x5
-#define VALUE_FNLABEL   0x6
-#define VALUE_OFFSET    0x7
+#define VALUE_NONE      0x00
+#define VALUE_REGISTER  0x01
+#define VALUE_NUMBER    0x02
+#define VALUE_STRING    0x03
+#define VALUE_ADDRESS   0x04
+#define VALUE_LABEL     0x05
+#define VALUE_FNLABEL   0x06
+#define VALUE_OFFSET    0x07
+#define VALUE_EMBED     0x08
 
-#define TYPE_LITERAL   0x1
-#define TYPE_REGISTER  0x2
-#define TYPE_ADDRESS   0x3
+#define TYPE_LITERAL    0x01
+#define TYPE_REGISTER   0x02
+#define TYPE_ADDRESS    0x03
+#define TYPE_EMBED      0x04
+
+#define ANNO_USER       0x01
+#define ANNO_MODULE     0x02
+#define ANNO_FUNCTION   0x03
+#define ANNO_FILELINE   0x04
+#define ANNO_COMMENT    0x05
 
 /* some special ops */
-#define OP__OBJ 0xfe   /* object start; followed by NULL-terminated object name */
-#define OP__EOF 0xff   /* end of program, to avoid executing the static section */
+#define OPx_EOF 0xff   /* end of program, to avoid executing the static section */
 
 static struct {
 	byte_t      token;

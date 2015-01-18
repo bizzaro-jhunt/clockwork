@@ -128,10 +128,6 @@ typedef struct {
 
 #define HEAP_ADDRMASK 0x80000000
 
-#define TYPE_LITERAL  0x1
-#define TYPE_REGISTER 0x2
-#define TYPE_ADDRESS  0x3
-
 #define is_value(fl)    ((fl) == TYPE_LITERAL)
 #define is_address(fl)  ((fl) == TYPE_ADDRESS)
 #define is_register(fl) ((fl) == TYPE_REGISTER)
@@ -141,8 +137,8 @@ int vm_reset(vm_t *vm);
 int vm_load(vm_t *vm, byte_t *code, size_t len);
 int vm_args(vm_t *vm, int argc, char **argv);
 int vm_exec(vm_t *vm);
-int vm_asm_file(const char *path, byte_t **code, size_t *len);
-int vm_asm_io(FILE *io, byte_t **code, size_t *len, const char *vpath);
+int vm_asm_file(const char *path, byte_t **code, size_t *len, int strip);
+int vm_asm_io(FILE *io, byte_t **code, size_t *len, const char *vpath, int strip);
 int vm_disasm(vm_t *vm, FILE *out);
 int vm_done(vm_t *vm);
 

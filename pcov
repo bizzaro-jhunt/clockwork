@@ -36,29 +36,29 @@ my $ignore = undef;
 while (<$dism>) {
 	chomp;
 	last if m/^---$/;
-	if (m/0x[0-9a-f]{8}: fe <(.*)> \[00\]/) {
-		my $obj = $1;
+	if (m/=+ \[ (module : )?(.*) \] =+/) {
+		my $obj = $2;
 
 		$ignore = undef;
 		$ignore = $obj !~ m/$OPTIONS{exclude}/ if $OPTIONS{exclude};
 		$ignore = $obj !~ m/$OPTIONS{only}/    if $OPTIONS{only};
 
-		push @report, { op => 0, hit => 0, txt => $_ };
+		push @report, { txt => $_ };
 		$lines++;
 		next;
 	}
 
 	if ($ignore) {
-		push @report, { op => 0, hit => 0, txt => $_ };
+		push @report, { txt => $_ };
 		next;
 	}
 
 	$lines++;
 	if (m/^0x00000000: 70 6e$/) { # header
-		push @report, { op => 0, hit => 0, txt => $_ };
+		push @report, { txt => $_ };
 
 	} elsif (m/0x([0-9a-f]{8}): ff 00$/) { # trailer
-		push @report, { op => 0, hit => 0, txt => $_ };
+		push @report, { txt => $_ };
 
 	} elsif (m/0x([0-9a-f]{8}): ([0-9a-f]{2})/) {
 		my ($addr, $op) = ($1, $2);
@@ -70,8 +70,12 @@ while (<$dism>) {
 			$hit++;
 		}
 		push @report, {op => 1, hit => $counts{$addr}, txt => $_};
+
+	} elsif (m/^\s+fn /) {
+		push @report, {fn => 1, txt => $_};
+
 	} else {
-		push @report, {op => 0, hit => $counts{$last}, txt => $_};
+		push @report, {hit => $counts{$last}, txt => $_};
 	}
 }
 
@@ -97,6 +101,7 @@ pre { display: block; padding: 1em; color: #222; }
 pre code .l { padding: 2px; display: inline-block; }
 pre code .op.hit { background-color: #cad7fe; }
 pre code .op.miss { background-color: #ff6230; }
+pre code .fn { background-color: #444; color: #fff; }
   </style>
 </head>
 <body>
@@ -113,7 +118,7 @@ EOF
 		$_->{txt} =~ s/&/&amp;/g;
 		$_->{txt} =~ s/</&lt;/g;
 		$_->{txt} =~ s/>/&gt;/g;
-		my $t = $_->{op}  ? 'op'  : 'line';
+		my $t = $_->{op}  ? 'op' : $_->{fn} ? 'fn' : 'line';
 		my $d = $_->{hit} ? 'hit' : 'miss';
 		my $h = $_->{hit} ? sprintf("%4i: ", $_->{hit})
 		                  : sprintf("%5s ", "");

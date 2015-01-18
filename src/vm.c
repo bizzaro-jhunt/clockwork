@@ -79,6 +79,7 @@ typedef struct {
 	FILE       *io;
 	const char *file;
 	int         close_on_free;
+	int         strip;
 
 	int         line;
 	int         token;
@@ -99,7 +100,7 @@ typedef struct {
 	size_t      size;
 } compiler_t;
 
-static compiler_t* s_compiler_new(const char *path, FILE *io)
+static compiler_t* s_compiler_new(const char *path, FILE *io, int strip)
 {
 	compiler_t *cc = calloc(1, sizeof(compiler_t));
 	if (cc) {
@@ -113,16 +114,18 @@ static compiler_t* s_compiler_new(const char *path, FILE *io)
 			return NULL;
 		}
 		cc->io = io;
+
+		cc->strip = strip;
+
+		/* set up include dirs */
+		char  *e = getenv("PENDULUM_INCLUDE");
+		if (e) e = string("%s:" PENDULUM_INCLUDE, e);
+		else   e = strdup(PENDULUM_INCLUDE);
+
+		cc->incpath = strings_split(e, strlen(e), ":", SPLIT_NORMAL);
+		free(e);
+
 	}
-
-	/* set up include dirs */
-	char  *e = getenv("PENDULUM_INCLUDE");
-	if (e) e = string("%s:" PENDULUM_INCLUDE, e);
-	else   e = strdup(PENDULUM_INCLUDE);
-
-	cc->incpath = strings_split(e, strlen(e), ":", SPLIT_NORMAL);
-	free(e);
-
 	return cc;
 }
 
@@ -179,6 +182,24 @@ static char* s_findlib(compiler_t *cc, const char *relpath)
 		return path;
 	}
 	return NULL;
+}
+
+static op_t* s_asm_pushop(compiler_t *cc, byte_t type)
+{
+	op_t *op = calloc(1, sizeof(op_t));
+	op->op = type;
+	list_push(&cc->ops, &op->l);
+	return op;
+}
+
+static op_t* s_asm_annotate(compiler_t *cc, dword_t anno, char *label)
+{
+	op_t *op = s_asm_pushop(cc, OP_ANNO);
+	op->args[0].type = VALUE_NUMBER;
+	op->args[0]._.literal = anno;
+	op->args[1].type = VALUE_EMBED;
+	op->args[1]._.string = label;
+	return op;
 }
 
 static int s_asm_parse(compiler_t *cc);
@@ -241,14 +262,11 @@ getline:
 			if (strcmp(path, "") != 0) {
 				op_t *op, *tmp;
 
-				/* push the OBJ opcode */
-				op = calloc(1, sizeof(op_t));
-				op->op = OP__OBJ;
-				op->label = strdup(a);
-				list_push(&cc->ops, &op->l);
+				/* push the ANNOtation opcode */
+				op = s_asm_annotate(cc, ANNO_MODULE, string("module : %s", a));
 
 				/* start up a new compiler for the new library */
-				compiler_t *c2 = s_compiler_new(path, NULL);
+				compiler_t *c2 = s_compiler_new(path, NULL, cc->strip);
 				if (s_asm_parse(c2) != 0) {
 					s_compiler_free(c2);
 					return 0;
@@ -261,11 +279,8 @@ getline:
 				}
 				s_compiler_free(c2);
 
-				/* push the OBJ opcode to return (NULL) */
-				op = calloc(1, sizeof(op_t));
-				op->op = OP__OBJ;
-				op->label = strdup("MAIN");
-				list_push(&cc->ops, &op->l);
+				/* push the ANNOtation opcode to return (NULL) */
+				op = s_asm_annotate(cc, ANNO_MODULE, string("MAIN", a));
 			}
 
 			/* get next token */
@@ -460,6 +475,7 @@ static int s_asm_parse(compiler_t *cc)
 			if (cc->token != T_IDENTIFIER)
 				ERROR("unacceptable name for function");
 			op->label = strdup(cc->value);
+			s_asm_annotate(cc, ANNO_FUNCTION, strdup(cc->value));
 			break;
 
 		case T_ACL:
@@ -494,6 +510,10 @@ static int s_asm_parse(compiler_t *cc)
 						op->args[j].type = VALUE_STRING;
 						op->args[j]._.string = strdup(cc->value);
 
+					} else if (cc->token == T_STRING && ASM_SYNTAX[i].args[j] & ARG_EMBED) {
+						op->args[j].type = VALUE_EMBED;
+						op->args[j]._.string = strdup(cc->value);
+
 					} else if (cc->token == T_IDENTIFIER && ASM_SYNTAX[i].args[j] & ARG_LABEL) {
 						op->args[j].type = VALUE_LABEL;
 						op->args[j]._.label = strdup(cc->value);
@@ -516,6 +536,15 @@ static int s_asm_parse(compiler_t *cc)
 						goto bail;
 					}
 				}
+
+				/* compile-time fixups */
+				if (op->op == OP_ANNO) {
+					/* all parsed annotations are ANNO_USER annotations */
+					memcpy(&op->args[1], &op->args[0], sizeof(value_t));
+					op->args[0].type = VALUE_NUMBER;
+					op->args[0]._.literal = ANNO_USER;
+				}
+
 				break;
 			}
 			break;
@@ -534,9 +563,7 @@ static int s_asm_parse(compiler_t *cc)
 	}
 
 	if (FN && list_tail(&cc->ops, op_t, l)->op != OP_RET) {
-		op = calloc(1, sizeof(op_t));
-		op->op = OP_RET;
-		list_push(&cc->ops, &op->l);
+		op = s_asm_pushop(cc, OP_RET);
 	}
 	return 0;
 
@@ -575,6 +602,10 @@ static int s_asm_resolve(compiler_t *cc, value_t *v, op_t *me)
 		v->type = VALUE_ADDRESS;
 		v->bintype = TYPE_ADDRESS;
 		v->_.address = addr - cc->code;
+		return 0;
+
+	case VALUE_EMBED:
+		v->bintype = TYPE_EMBED;
 		return 0;
 
 	case VALUE_ADDRESS:
@@ -656,14 +687,22 @@ static int s_asm_encode(compiler_t *cc)
 	for_each_object(op, &cc->ops, l) {
 		op->offset = text;
 		if (op->special) continue;
-		if (op->op == OP__OBJ) {
-			text += 1;                     /* opcode */
-			text += strlen(op->label) + 1; /* label + \0 */
-			continue;
+		if (op->op == OP_ANNO && cc->strip) continue;
+
+		text += 2; /* 2-byte opcode  */
+
+		/* immediate operand values */
+		switch (op->args[0].type) {
+		case VALUE_NONE:  break;
+		case VALUE_EMBED: text += strlen(op->args[0]._.string) + 1; break;
+		default:          text += 4; break;
 		}
-		text += 2;                                     /* 2-byte opcode  */
-		if (op->args[0].type != VALUE_NONE) text += 4; /* 4-byte operand */
-		if (op->args[1].type != VALUE_NONE) text += 4; /* 4-byte operand */
+
+		switch (op->args[1].type) {
+		case VALUE_NONE:  break;
+		case VALUE_EMBED: text += strlen(op->args[1]._.string) + 1; break;
+		default:          text += 4; break;
+		}
 
 		/* check for string lengths */
 		if (op->args[0].type == VALUE_STRING && !hash_get(&seen, op->args[0]._.string)) {
@@ -675,18 +714,19 @@ static int s_asm_encode(compiler_t *cc)
 			hash_set(&seen, op->args[1]._.string, "Y");
 		}
 	}
-	text += 2; /* OP__EOF 0x00 */
+	text += 2; /* OPx_EOF 0x00 */
 	hash_done(&seen, 0);
 
 	cc->static_fill = cc->static_offset = text;
 	cc->size = text + data;
 	cc->code = calloc(cc->size, sizeof(byte_t));
-	byte_t *c = cc->code;
+	byte_t *c = cc->code; char *p;
 
 	/* HEADER */
 	*c++ = 'p'; *c++ = 'n';
 	for_each_object(op, &cc->ops, l) {
 		if (op->special) continue;
+		if (op->op == OP_ANNO && cc->strip) continue;
 
 		/* phase II/III: resolve labels / pack strings */
 		rc = s_asm_resolve(cc, &op->args[0], op); if (rc) return rc;
@@ -694,31 +734,38 @@ static int s_asm_encode(compiler_t *cc)
 
 		/* phase IV: encode */
 		*c++ = op->op;
-		if (op->op == OP__OBJ) {
-			char *p = op->label;
-			while ((*c++ = *p++));
-			continue;
-		}
 		*c++ = ((op->args[0].bintype & 0xff) << 4)
 			 | ((op->args[1].bintype & 0xff));
 
 		if (op->args[0].type) {
-			*c++ = ((op->args[0]._.literal >> 24) & 0xff);
-			*c++ = ((op->args[0]._.literal >> 16) & 0xff);
-			*c++ = ((op->args[0]._.literal >>  8) & 0xff);
-			*c++ = ((op->args[0]._.literal >>  0) & 0xff);
+			if (op->args[0].type == VALUE_EMBED) {
+				p = op->args[0]._.string;
+				while ((*c++ = *p++));
+			} else {
+				*c++ = ((op->args[0]._.literal >> 24) & 0xff);
+				*c++ = ((op->args[0]._.literal >> 16) & 0xff);
+				*c++ = ((op->args[0]._.literal >>  8) & 0xff);
+				*c++ = ((op->args[0]._.literal >>  0) & 0xff);
+			}
 		}
 		if (op->args[1].type) {
-			*c++ = ((op->args[1]._.literal >> 24) & 0xff);
-			*c++ = ((op->args[1]._.literal >> 16) & 0xff);
-			*c++ = ((op->args[1]._.literal >>  8) & 0xff);
-			*c++ = ((op->args[1]._.literal >>  0) & 0xff);
+			if (op->args[1].type == VALUE_EMBED) {
+				p = op->args[1]._.string;
+				while ((*c++ = *p++));
+			} else {
+				*c++ = ((op->args[1]._.literal >> 24) & 0xff);
+				*c++ = ((op->args[1]._.literal >> 16) & 0xff);
+				*c++ = ((op->args[1]._.literal >>  8) & 0xff);
+				*c++ = ((op->args[1]._.literal >>  0) & 0xff);
+			}
 		}
 	}
-	*c++ = OP__EOF; *c++ = 0x00;
+	*c++ = OPx_EOF; *c++ = 0x00;
 
 	for_each_object_safe(op, tmp, &cc->ops, l) {
 		if (op->special == SPECIAL_FUNC) free(op->label);
+		if (op->args[0].type == VALUE_EMBED) free(op->args[0]._.string);
+		if (op->args[1].type == VALUE_EMBED) free(op->args[1]._.string);
 		free(op);
 	}
 	hash_done(&cc->strings, 0);
@@ -1432,6 +1479,8 @@ static void op_property(vm_t *vm)
 		vm->acc = 1;
 	}
 }
+
+static void op_anno(vm_t *vm) { }
 
 static void op_acc(vm_t *vm)
 {
@@ -2654,20 +2703,22 @@ int vm_load(vm_t *vm, byte_t *code, size_t len)
 	byte_t f;
 	code += 2; /* skip header */
 	while (code < vm->code + len) {
-		if (*code == OP__EOF) {
+		if (*code == OPx_EOF) {
 			vm->static0 = code - vm->code;
 			break;
 		}
-		if (*code == OP__OBJ) {
-			/* this is an inert marker, for profilers / disassembly */
-			/* format: [fe] [...] [00] */
-			while (*code++);
-			continue;
-		}
 
 		code++; f = *code++;
-		if (HI_NYBLE(f)) code += 4;
-		if (LO_NYBLE(f)) code += 4;
+		switch (HI_NYBLE(f)) {
+		case 0:          break;
+		case TYPE_EMBED: while (*code++); break;
+		default:         code += 4;
+		}
+		switch (LO_NYBLE(f)) {
+		case 0:          break;
+		case TYPE_EMBED: while (*code++); break;
+		default:         code += 4;
+		}
 	}
 
 	return 0;
@@ -2699,13 +2750,6 @@ again:
 			fprintf(vm->ccovio, "%08x %02x\n", vm->pc, vm->op);
 		vm->pc++;
 
-		if (vm->op == OP__OBJ) {
-			/* inert marker opcodes, for profiling / disassembly. skip */
-			while (vm->code[vm->pc++]);
-			fprintf(stderr, "moved pc to %08x (%02x)\n", vm->pc, vm->code[vm->pc]);
-			goto again;
-		}
-
 		vm->f1 = HI_NYBLE(vm->code[vm->pc]);
 		vm->f2 = LO_NYBLE(vm->code[vm->pc]);
 		if (vm->trace)
@@ -2715,7 +2759,12 @@ again:
 		if (vm->f2 && !vm->f1)
 			B_ERR("corrupt operands mask detected; vm->f1=%02x, vm->f2=%02x", vm->f1, vm->f2);
 
-		if (vm->f1) {
+		if (vm->f1 == TYPE_EMBED) {
+			if (vm->trace)
+				fprintf(vm->stderr, " <%s>", vm->code + vm->pc);
+			while (vm->code[vm->pc++]);
+
+		} else if (vm->f1) {
 			vm->oper1 = DWORD(vm->code[vm->pc + 0],
 			                  vm->code[vm->pc + 1],
 			                  vm->code[vm->pc + 2],
@@ -2725,7 +2774,12 @@ again:
 				fprintf(vm->stderr, " %08x", vm->oper1);
 		}
 
-		if (vm->f2) {
+		if (vm->f2 == TYPE_EMBED) {
+			if (vm->trace)
+				fprintf(vm->stderr, " <%s>", vm->code + vm->pc);
+			while (vm->code[vm->pc++]);
+
+		} else if (vm->f2) {
 			vm->oper2 = DWORD(vm->code[vm->pc + 0],
 			                  vm->code[vm->pc + 1],
 			                  vm->code[vm->pc + 2],
@@ -2734,6 +2788,7 @@ again:
 			if (vm->trace)
 				fprintf(vm->stderr, " %08x", vm->oper2);
 		}
+
 		if (vm->trace)
 			fprintf(vm->stderr, "\n");
 
@@ -2750,17 +2805,17 @@ again:
 	return vm->acc;
 }
 
-int vm_asm_file(const char *path, byte_t **code, size_t *len)
+int vm_asm_file(const char *path, byte_t **code, size_t *len, int strip)
 {
 	int rc;
 	compiler_t *cc;
 
 	if (strcmp(path, "-") == 0) {
-		cc = s_compiler_new("<stdin>", stdin);
+		cc = s_compiler_new("<stdin>", stdin, strip);
 		rc = s_vm_asm(cc, code, len);
 
 	} else {
-		cc = s_compiler_new(path, NULL);
+		cc = s_compiler_new(path, NULL, strip);
 		rc = s_vm_asm(cc, code, len);
 	}
 
@@ -2768,12 +2823,12 @@ int vm_asm_file(const char *path, byte_t **code, size_t *len)
 	return rc;
 }
 
-int vm_asm_io(FILE *io, byte_t **code, size_t *len, const char *vpath)
+int vm_asm_io(FILE *io, byte_t **code, size_t *len, const char *vpath, int strip)
 {
 	int rc;
 	compiler_t *cc;
 
-	cc = s_compiler_new(vpath ? vpath : "<unknown>", io);
+	cc = s_compiler_new(vpath ? vpath : "<unknown>", io, strip);
 	rc = s_vm_asm(cc, code, len);
 
 	s_compiler_free(cc);
@@ -2790,32 +2845,76 @@ int vm_disasm(vm_t *vm, FILE *out)
 	fprintf(out, "%02x %02x\n", 'p', 'n');
 
 	size_t i = 2;
+	dword_t addr;
+
 	while (i < vm->codesize) {
-		fprintf(out, "0x%08x: ", (dword_t)i);
+		addr = (dword_t)i;
 		vm->op = vm->code[i++];
-		if (vm->op == OP__EOF && !vm->code[i]) {
-			fprintf(out, "%02x %02x\n", OP__EOF, 0x00);
+		if (vm->op == OPx_EOF && !vm->code[i]) {
+			fprintf(out, "0x%08x: ", addr);
+			fprintf(out, "%02x %02x\n", OPx_EOF, 0x00);
 			i++;
 			break;
 		}
-		if (vm->op == OP__OBJ) {
-			fprintf(out, "%02x <%s> [00]\n", OP__OBJ, (char *)vm->code + i);
-			while (vm->code[i++]);
-			continue;
-		}
 		vm->f1 = HI_NYBLE(vm->code[i]);
 		vm->f2 = LO_NYBLE(vm->code[i]);
-		fprintf(out, "%02x %02x", vm->op, vm->code[i++]);
 
 		if (vm->f2 && !vm->f1) {
 			fprintf(out, "pendulum bytecode error: corrupt operands mask detected; vm->f1=%02x, vm->f2=%02x\n", vm->f1, vm->f2);
 			return 1;
 		}
-		if (vm->f1) {
+
+		if (vm->op == OP_ANNO) {
+			/* we output annotations differently */
+			i++;
+
+			/* oper1 */
+			vm->oper1 = DWORD(vm->code[i + 0], vm->code[i + 1], vm->code[i + 2], vm->code[i + 3]);
+			i += 4;
+
+			char line[81] = {0};
+			size_t pos;
+
+			switch (vm->oper1) {
+			case ANNO_MODULE:
+				pos = strlen((char *)vm->code + i);
+				if (pos > 80 - 6 - 6) /* 6 == strlen('--- [ ') */
+					pos = 80 - 6 - 6; /*  and strlen(' ] ---') */
+				memset(line, '=', 80);
+				memcpy(line + 3, " [ ", 3);
+				memcpy(line + 6, vm->code + i, pos);
+				memcpy(line + 6 + pos, " ] ", 3);
+				fprintf(out, "\n%s\n\n", line);
+				break;
+
+			case ANNO_USER:
+				fprintf(out, "%46s;; %s\n", " ", vm->code + i);
+				break;
+
+			case ANNO_FUNCTION:
+				fprintf(out, "%32s fn %s\n", " ", vm->code + i);
+				break;
+
+			default:
+				fprintf(out, "%32s anno [%02x] \"%s\"\n", " ", vm->oper1, vm->code + i);
+			}
+
+			/* oper2 */
+			while (vm->code[i++]);
+			continue;
+		}
+
+		fprintf(out, "0x%08x: %02x %02x", addr, vm->op, vm->code[i++]);
+		if (vm->f1 == TYPE_EMBED) {
+			fprintf(out, "<%s> [00]\n", (char *)vm->code + i);
+			while (vm->code[i++]);
+
+		} else if (vm->f1) {
 			fprintf(out, " [%02x %02x %02x %02x]",
 				vm->code[i + 0], vm->code[i + 1], vm->code[i + 2], vm->code[i + 3]);
 			vm->oper1 = DWORD(vm->code[i + 0], vm->code[i + 1], vm->code[i + 2], vm->code[i + 3]);
 			i += 4;
+
 		} else {
 			fprintf(out, "%14s", " ");
 		}
@@ -2831,17 +2930,25 @@ int vm_disasm(vm_t *vm, FILE *out)
 			                        fprintf(out, "\"");
 			                    }
 			                    break;
+			case TYPE_EMBED:    break;
 			default:            fprintf(out, " ; operand 1 unknown (0x%x/0x%x)",
 			                                    vm->f1, vm->oper1);
 			}
 
 		}
-		if (vm->f2) {
+		if (vm->f2 == TYPE_EMBED) {
+			fprintf(out, "\n                  <%s> [00]\n", (char *)vm->code + i);
+			while (vm->code[i++]);
+
+		} else if (vm->f2) {
+
 			fprintf(out, "\n                  [%02x %02x %02x %02x]  %12s",
 				vm->code[i + 0], vm->code[i + 1], vm->code[i + 2], vm->code[i + 3], "");
 			vm->oper2 = DWORD(vm->code[i + 0], vm->code[i + 1], vm->code[i + 2], vm->code[i + 3]);
 			i += 4;
+		}
 
+		if (vm->f2) {
 			switch (vm->f2) {
 			case TYPE_LITERAL:  fprintf(out, " %u",     vm->oper2); break;
 			case TYPE_REGISTER: fprintf(out, " %%%c",   vm->oper2 + 'a'); break;
@@ -2852,6 +2959,7 @@ int vm_disasm(vm_t *vm, FILE *out)
 			                        fprintf(out, "\"");
 			                    }
 			                    break;
+			case TYPE_EMBED:    break;
 			default:            fprintf(out, " ; operand 2 unknown (0x%x/0x%x)",
 			                                    vm->f2, vm->oper2);
 			}

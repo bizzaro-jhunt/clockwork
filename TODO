@@ -10,12 +10,4 @@ TODO
     alt: object boundaries via asm opcode (border?)
          it would have to be a special
   - make fn redefinition emit a warning
-  - expand 0xfe opcode: [fe] [xx] <string> [00]
-    - `pn -Sg` will inject these annotations
-    - `pn -d` will print them
-    - `pcov --html` will make use of them
-    - support the following types ([xx] byte)
-      - file/line annotations (xx = 01)
-      - comments (xx = 02)
-      - function name annotations (xx = 03)
-      - module annotations (xx = 04)
+  - suppress auto-RET if last op is a BAIL

@@ -308,7 +308,7 @@ getline:
 					return 1;
 				}
 				char *t = s;
-				s = string("%s%s", t, cc->raw); free(t);
+				s = string("%s%s", t ? t : "", cc->raw); free(t);
 			}
 			logger(LOG_ERR, "%s:%i: unterminated heredoc string literal (expecting '%s' marker never seen)", cc->file, cc->line, b);
 			return 0;

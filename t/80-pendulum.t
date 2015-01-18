@@ -279,6 +279,48 @@ subtest "print operators" => sub {
 
 	"\n\r\t\"",
 	"recognized all the escape characters");
+
+	pendulum_ok(qq(
+	fn main
+		print <<EOF
+this is a
+multiline string
+literal heredoc
+EOF
+), # ^-- that newline there is critical
+
+	"this is a\n".
+	"multiline string\n".
+	"literal heredoc\n",
+	"<<EOF heredoc markers work");
+
+	pendulum_ok(qq(
+	fn main
+		print <<EOF
+embedded EOF
+is (EOF) ok
+EOF at the beginning is fine too
+EOF
+), # ^-- that newline there is critical
+
+	"embedded EOF\n".
+	"is (EOF) ok\n".
+	"EOF at the beginning is fine too\n",
+	"heredoc markers can be embedded work");
+
+	pendulum_ok(qq(
+	fn main
+		print <<IAMDONE
+line 1
+EOF
+line 3
+IAMDONE
+), # ^-- that newline there is critical
+
+	"line 1\n".
+	"EOF\n".
+	"line 3\n",
+	"alternate heredoc markers are honored");
 };
 
 subtest "error operators" => sub {

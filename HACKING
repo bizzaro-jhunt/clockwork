@@ -621,12 +621,6 @@ Key:  . = detection
   gateway
   (sure there are others... metric?)
 
-7.15. res_sysctl (done)
------------------------
-+ name
-+ value
-+ persist
-
 8. Clockwork Specification Language
 -----------------------------------
 

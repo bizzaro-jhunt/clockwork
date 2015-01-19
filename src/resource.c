@@ -67,7 +67,6 @@ typedef FILE* (*resource_content_f)(const void *res, hash_t *facts);
 		RESOURCE_TYPE(package),
 		RESOURCE_TYPE(service),
 		RESOURCE_TYPE(host),
-		RESOURCE_TYPE(sysctl),
 		RESOURCE_TYPE(dir),
 		RESOURCE_TYPE(exec),
 		RESOURCE_TYPE(symlink),

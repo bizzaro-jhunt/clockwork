@@ -238,23 +238,6 @@ struct res_host {
 
 NEW_RESOURCE(host);
 
-#define RES_SYSCTL_ABSENT   0x80000000
-#define RES_SYSCTL_VALUE    0x01
-#define RES_SYSCTL_PERSIST  0x02
-
-struct res_sysctl {
-	char *key;
-
-	char *param;
-	char *value;
-
-	int persist;
-
-	unsigned int enforced;
-};
-
-NEW_RESOURCE(sysctl);
-
 #define RES_DIR_ABSENT  0x80000000
 #define RES_DIR_MODE    0x01
 #define RES_DIR_UID     0x02

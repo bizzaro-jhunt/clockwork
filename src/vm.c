@@ -1157,33 +1157,6 @@ static int s_copyfile(FILE *src, FILE *dst)
 	return 0;
 }
 
-static void s_aug_perror(FILE *io, augeas *aug)
-{
-	char **err = NULL;
-	const char *value;
-	int i, rc = aug_match(aug, "/augeas//error", &err);
-	fprintf(io, ": found %u problem%s:\n", rc, rc == 1 ? "" : "s");
-	for (i = 0; i < rc; i++) {
-		aug_get(aug, err[i], &value);
-		fprintf(io, "  %s: %s\n", err[i], value);
-	}
-	free(err);
-}
-
-static char * s_aug_find(augeas *aug, const char *needle)
-{
-	char **r = NULL, *v;
-	int rc = aug_match(aug, needle, &r);
-	if (rc == 1) {
-		v = r[0];
-		free(r);
-		return v;
-	}
-	while (rc > 0) free(r[rc--]);
-	free(r);
-	return NULL;
-}
-
 static char* s_remote_sha1(vm_t *vm, const char *key)
 {
 	if (!vm->aux.remote) return NULL;
@@ -1322,10 +1295,10 @@ static int s_copy(const char *from, const char *to)
 {
 	int src, dst;
 	src = open(from, O_RDONLY);
-	if (!src) return 1;
+	if (src < 0) return 1;
 
 	dst = open(to, O_WRONLY|O_CREAT|O_TRUNC, 0777);
-	if (!dst) {
+	if (dst < 0) {
 		close(src);
 		return 1;
 	}
@@ -1337,16 +1310,24 @@ static int s_copy(const char *from, const char *to)
 
 static char * s_fs_get(const char *path)
 {
-	int fd = open(path, O_RDONLY);
+	/* RDWR, even though we won't write to it.
+	   otherwise, we can open a directory and lseek
+	   will fail mysteriously */
+	int fd = open(path, O_RDWR);
 	if (fd < 0) return NULL;
 
-	long size = lseek(fd, 0, SEEK_END);
+	off_t size = lseek(fd, 0, SEEK_END);
+	if (size == (off_t)(-1)) {
+		fprintf(stderr, "-size; bailing\n");
+		close(fd);
+		return NULL;
+	}
 	if (lseek(fd, 0, SEEK_SET) != 0) {
 		close(fd);
 		return NULL;
 	}
 
-	char *s = vmalloc(size * sizeof(char) + 1);
+	char *s = vmalloc(size * (sizeof(char) + 1));
 	char *p = s;
 
 	while (p < s + size) {
@@ -2413,7 +2394,16 @@ static void op_augeas_perror(vm_t *vm)
 	ARG1("augeas.perror");
 	if (!vm->aux.augeas) return;
 	vm_fprintf(vm, vm->stderr, STR1(vm));
-	s_aug_perror(vm->stderr, vm->aux.augeas);
+
+	char **err = NULL;
+	const char *value;
+	int i, rc = aug_match(vm->aux.augeas, "/augeas//error", &err);
+	fprintf(vm->stderr, ": found %u problem%s:\n", rc, rc == 1 ? "" : "s");
+	for (i = 0; i < rc; i++) {
+		aug_get(vm->aux.augeas, err[i], &value);
+		fprintf(vm->stderr, "  %s: %s\n", err[i], value);
+	}
+	free(err);
 }
 
 static void op_augeas_write(vm_t *vm)
@@ -2457,17 +2447,21 @@ static void op_augeas_find(vm_t *vm)
 {
 	ARG2("augeas.find");
 	REGISTER2("augeas.find");
-	if (!vm->aux.augeas) {
-		vm->acc = 1;
+	vm->acc = 1;
+	if (!vm->aux.augeas) return;
+
+	char **r = NULL, *v;
+	int rc = aug_match(vm->aux.augeas, STR1(vm), &r);
+	if (rc == 1) {
+		v = r[0];
+		free(r);
+
+		vm->acc = 0;
+		REG2(vm) = vm_heap_string(vm, v);
 		return;
 	}
-	char *s = s_aug_find(vm->aux.augeas, STR1(vm));
-	if (s) {
-		vm->acc = 0;
-		REG2(vm) = vm_heap_string(vm, s);
-	} else {
-		vm->acc = 1;
-	}
+	while (rc > 0) free(r[rc--]);
+	free(r);
 }
 
 static void op_augeas_remove(vm_t *vm)

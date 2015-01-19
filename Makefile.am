@@ -73,7 +73,6 @@ CTAP_TESTS += t/62-res_file
 CTAP_TESTS += t/63-res_group
 CTAP_TESTS += t/64-res_dir
 CTAP_TESTS += t/65-res_host
-CTAP_TESTS += t/66-res_sysctl
 CTAP_TESTS += t/67-res_service
 CTAP_TESTS += t/68-res_package
 CTAP_TESTS += t/69-res_exec
@@ -148,7 +147,6 @@ t_62_res_file_SOURCES    = t/62-res_file.c      $(test_source)
 t_63_res_group_SOURCES   = t/63-res_group.c     $(test_source)
 t_64_res_dir_SOURCES     = t/64-res_dir.c       $(test_source)
 t_65_res_host_SOURCES    = t/65-res_host.c      $(test_source)
-t_66_res_sysctl_SOURCES  = t/66-res_sysctl.c    $(test_source)
 t_67_res_service_SOURCES = t/67-res_service.c   $(test_source)
 t_68_res_package_SOURCES = t/68-res_package.c   $(test_source)
 t_69_res_exec_SOURCES    = t/69-res_exec.c      $(test_source)
@@ -194,7 +192,6 @@ dist_man_MANS   += man/res_host.5
 dist_man_MANS   += man/res_package.5
 dist_man_MANS   += man/res_service.5
 dist_man_MANS   += man/res_symlink.5
-dist_man_MANS   += man/res_sysctl.5
 dist_man_MANS   += man/res_user.5
 
 man/%.1: man/%.1.pod

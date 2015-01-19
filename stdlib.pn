@@ -1075,39 +1075,4 @@ fn res.host.add-alias
     flag "changed"
     retv 0
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;
-;; res.sysctl.set
-;;
-;;   %a = /-separated path
-;;   %b = .-separated parameter name
-;;   %c = value
-;;   %d = persist to file (1) or not (0)
-;;
-fn res.sysctl.set
-    syslog info "%T: enforcing sysctl %[b]s = %[c]s"
-    string "/proc/sys/%[a]s" %e
-    fs.get %e %f
-
-    syslog info "%T: comparing current value (%[f]s) to desired value (%[c]s)"
-    streq %f %c
-    jnz +1 retv 0
-
-    syslog info "%T: setting %[b]s = '%[c]s'"
-    fs.put %e %c
-    jz +2
-      perror "failed to update %[a]s with desired value"
-      bail 1
-
-    flag "changed"
-    eq %d 1 jz +1 retv 0 ;;  no persistence
-
-    syslog notice "%T: saving updated value of %[b]s to /proc"
-    set %a "/files/etc/sysctl.conf/%[b]s"
-    augeas.set %a %c
-    jnz +1 retv 0
-
-    perror "failed to update /etc/sysctl.conf for %[b]s = %[c]s"
-    bail 1
-
-;; vim:et:ts=4:sw=4
+;; vim:et:ts=5:sw=4

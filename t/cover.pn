@@ -8,13 +8,14 @@ fn notok
 
 fn setup
   loglevel emergency %e
-  umask 0 %e
   exec "rm -rf t/tmp; mkdir -p t/tmp" %e
+  umask 0 %e
 
 fn setup.authdb
   call setup
   try util.authdb.close
   pragma authdb.root "t/tmp"
+  umask 022 %e
 
   fs.put "t/tmp/passwd" <<EOF
 root:x:0:0:root:/root:/bin/bash\n
@@ -45,6 +46,7 @@ EOF
 
 fn setup.hosts
   call setup
+  umask 022 %e
   fs.mkdir "t/tmp/etc"
   fs.put "t/tmp/etc/hosts" <<EOF
 127.0.0.1 localhost localhost.localdomain
@@ -53,19 +55,7 @@ fn setup.hosts
 EOF
   pragma augeas.root "t/tmp"
   pragma augeas.libs "augeas/lenses"
-  augeas.init
-  jnz +1 retv 0
-    set %p "augeas.init failed!!!"
-    call notok
-
-fn setup.sysctl
-  call setup
-  fs.mkdir "t/tmp/proc"
-  fs.mkdir "t/tmp/proc/sys"
-  fs.mkdir "t/tmp/proc/sys/net"
-  fs.mkdir "t/tmp/proc/sys/net/ipv4"
-  pragma augeas.root "t/tmp"
-  pragma augeas.libs "augeas/lenses"
+  augeas.done
   augeas.init
   jnz +1 retv 0
     set %p "augeas.init failed!!!"
@@ -73,6 +63,7 @@ fn setup.sysctl
 
 fn setup.localsys
   call setup
+  umask 022 %e
   fs.put "t/tmp/localsys" <<EOF
 #!/bin/bash
 echo -n "default setup.localsys version" >t/tmp/failed
@@ -2306,26 +2297,6 @@ EOF
     call notok
   call localsys-check
 
-fn test.res.sysctl.set.1
-  call setup.sysctl
-  set %p "res.sysctl.set can set a value in memory"
-  set %a "net/ipv4"
-  set %b "net.ipv4"
-  set %c "4"
-  set %d 0 ;; not persistent
-
-  unflag "changed"
-  try res.sysctl.set
-  flagged? "changed" jz +2
-    string "%[p]s: not flagged" %p
-    call notok
-
-  fs.get "t/tmp/proc/sys/net/ipv4" %e
-  streq %e "4" jz +2
-    string "%[p]s: value in /proc was wrong ('%[e]s', not '4')" %p
-    call notok
-  call ok
-
 fn test.res.chgrp.1
   call setup.authdb
   set %p "fs.chgrp ignores absent files"
@@ -2548,8 +2519,9 @@ fn test.res.run-as.1
 
 fn test.res.run-as.2
   call setup
-  set %a "xyzzy bad user"  call util.runuser
-  set %a "xyzzy bad group" call util.rungroup
+  set %p "util.run* can handle invalid users / group"
+  set %a "xyzzy bad user"  try util.runuser
+  set %a "xyzzy bad group" try util.rungroup
   call ok
 
 fn test.res.user.mkhome.1
@@ -2778,11 +2750,7 @@ fn test.res.user.mkhome.5
   set %f "#config\n" streq %e %f jz +2
     string "%[p]s: contents of .ssh/config - got '%[e]s', expecting '%[f]s'" %p
     call notok
-
   call ok
-
-;; skeleton
-;; dont remove file in the way
 
 fn main
   set %o 0
@@ -2911,7 +2879,7 @@ fn main
   geteuid %a
   eq %a 0 jz +2
     print "# skipping root tests\n"
-    jmp done
+    jmp noroot
 
 ifroot:
   add %o 1 try test.res.chgrp.1 jz +1 set %p 1
@@ -2933,6 +2901,9 @@ ifroot:
 
   add %o 1 try test.res.run-as.1 jz +1 set %p 1
   add %o 1 try test.res.run-as.2 jz +1 set %p 1
+  ;; back to root
+  set %a "root" call util.runuser
+                call util.rungroup
   jmp +1
 skip-run-as:
   print "# skipping util.run* tests (couldn't find a suitable system user/group)\n"
@@ -2943,11 +2914,9 @@ skip-run-as:
   add %o 1 try test.res.user.mkhome.4 jz +1 set %p 1
   add %o 1 try test.res.user.mkhome.5 jz +1 set %p 1
 
-  ;add %o 1 try test.res.sysctl.set.1 jz +1 set %p 1
-
-done:
-  print "1..%[o]i\n"
+noroot:
   exec "rm -rf t/tmp" %e
+  print "1..%[o]i\n"
   retv %p
 
 ;; vim:et:ts=2

@@ -102,7 +102,6 @@ rm -rf %{buildroot}
 %doc /usr/share/man/man5/res_host.5.gz
 %doc /usr/share/man/man5/res_package.5.gz
 %doc /usr/share/man/man5/res_service.5.gz
-%doc /usr/share/man/man5/res_sysctl.5.gz
 %doc /usr/share/man/man5/res_user.5.gz
 %doc /usr/share/man/man7/clockwork.7.gz
 %doc /usr/share/clockwork/help/*

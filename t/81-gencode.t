@@ -424,7 +424,10 @@ fn fix:00000001
     bail 1
   flagged? "mkhome"
   jnz +2
-    user.get "home" %b
+    user.get "home" %a
+    set %b "/etc/skel"
+    user.get "uid" %c
+    user.get "gid" %d
     call res.user.mkhome
   call util.authdb.save
 

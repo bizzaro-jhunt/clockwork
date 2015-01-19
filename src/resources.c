@@ -392,8 +392,11 @@ int res_user_gencode(const void *res, FILE *io)
 	if (ENFORCED(r, RES_USER_MKHOME))
 		fprintf(io, "  flagged? \"mkhome\"\n"
 		            "  jnz +2\n"
-		            "    user.get \"home\" %%b\n"
-		            "    call res.user.mkhome\n");
+		            "    user.get \"home\" %%a\n"
+		            "    set %%b \"%s\"\n"
+		            "    user.get \"uid\" %%c\n"
+		            "    user.get \"gid\" %%d\n"
+		            "    call res.user.mkhome\n", r->skel);
 
 	fprintf(io, "  call util.authdb.save\n");
 	return 0;

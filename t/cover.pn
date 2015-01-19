@@ -19,21 +19,27 @@ fn setup.authdb
   fs.put "t/tmp/passwd" <<EOF
 root:x:0:0:root:/root:/bin/bash\n
 daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin
+jhacker:x:566:401:J. Random Hacker:/home/jhacker:/bin/zsh
 oldman:NOTSET:1001:501:Old Man:/home/oldman:/bin/bash
 EOF
   fs.put "t/tmp/shadow" <<EOF
 root:HASH:15390:0:99999:7:::
 daemon:*:15259:0:99999:7:::
+jhacker:$$crypto:15200:0:99999:7:::
 oldman:$$crypto:15200:0:99999:7:::
 EOF
  fs.put "t/tmp/group" <<EOF
 root:x:0:
 daemon:x:1:abbadon
+people:x:400:
+rnd:x:401:
 oldman:NOTSET:501:
 EOF
   fs.put "t/tmp/gshadow" <<EOF
 root:*::
 daemon:*:abbadon:mephisto
+people:*::
+rnd:*::
 oldman:$$gcrypt::
 EOF
 
@@ -1386,6 +1392,28 @@ fn test.res.group.passwd.1
     call notok
   call ok
 
+fn test.res.group.passwd.2
+  call setup.authdb
+  call util.authdb.open
+  set %p "res.group.passwd skips absent groups"
+
+  set %a "not-a-group"
+  set %b "$$shouldfail"
+  group.find %a jnz +2
+    string "%[p]s: %[a]s exists" %p
+    call notok
+
+  unflag "changed"
+  try res.group.passwd
+  flagged? "changed" jnz +2
+    string "%[p]s: flagged" %p
+    call notok
+
+  group.find %a jnz +2
+    string "%[p]s: %[a]s was created" %p
+    call notok
+  call ok
+
 fn test.res.service.enable.1
   call setup.localsys
   fs.put "t/tmp/localsys" <<EOF
@@ -2298,6 +2326,464 @@ fn test.res.sysctl.set.1
     call notok
   call ok
 
+fn test.res.chgrp.1
+  call setup.authdb
+  set %p "fs.chgrp ignores absent files"
+  set %a "t/tmp/enoent"
+  set %b "people"
+
+  fs.stat %a jnz +2
+    string "%[p]s: %[a]s already exists" %p
+    call notok
+
+  unflag "changed"
+  try res.file.chgrp
+  flagged? "changed" jnz +2
+    string "%[p]s: flagged" %p
+    call notok
+
+  fs.stat %a jnz +2
+    string "%[p]s: %[a]s was created" %p
+    call notok
+  call ok
+
+fn test.res.chgrp.2
+  call setup.authdb
+  set %p "fs.chgrp skips files that are properly chgrp'd"
+  set %a "t/tmp/file"
+  set %b "people" set %c 400
+
+  fs.put   %a "{contents}"
+  fs.chgrp %a %c
+  fs.stat %a jz +2
+    string "%[p]s: %[a]s does not already exist" %p
+    call notok
+
+  unflag "changed"
+  try res.file.chgrp
+  jz +2
+    string "%[p]s: did not return 0 (indicated other failure)" %p
+    call notok
+  flagged? "changed" jnz +2
+    string "%[p]s: flagged" %p
+    call notok
+
+  fs.file? %a jz +2
+    string "%[p]s: %[a]s was removed" %p
+    call notok
+  fs.gid %a %d eq %c %d jz +2
+    string "%[p]s: %[a]s is group-owned by %[d]u, not %[c]u (%[b]s)" %p
+    call notok
+  call ok
+
+fn test.res.chgrp.3
+  call setup.authdb
+  set %p "fs.chgrp handles failed group lookup"
+  set %a "t/tmp/file"
+  set %b "ENOENT"
+
+  fs.put  %a "{contents}"
+  fs.stat %a jz +2
+    string "%[p]s: %[a]s does not already exist" %p
+    call notok
+
+  unflag "changed"
+  try res.file.chgrp
+  flagged? "changed" jnz +2
+    string "%[p]s: flagged" %p
+    call notok
+
+  fs.file? %a jz +2
+    string "%[p]s: %[a]s was removed" %p
+    call notok
+  call ok
+
+fn test.res.chgrp.4
+  call setup.authdb
+  set %p "fs.chgrp changes group-ownership"
+  set %a "t/tmp/file"
+  set %b "people" set %c 400
+
+  fs.put   %a "{contents}"
+  fs.chgrp %a 401 ;; 'rnd' group
+  fs.stat %a jz +2
+    string "%[p]s: %[a]s does not already exist" %p
+    call notok
+
+  unflag "changed"
+  try res.file.chgrp
+  jz +2
+    string "%[p]s: did not return 0 (indicated other failure)" %p
+    call notok
+  flagged? "changed" jz +2
+    string "%[p]s: not flagged" %p
+    call notok
+
+  fs.file? %a jz +2
+    string "%[p]s: %[a]s was removed" %p
+    call notok
+  fs.gid %a %d eq %c %d jz +2
+    string "%[p]s: %[a]s is group-owned by %[d]u, not %[c]u (%[b]s)" %p
+    call notok
+  call ok
+
+fn test.res.chown.1
+  call setup.authdb
+  set %p "fs.chown ignores absent files"
+  set %a "t/tmp/enoent"
+  set %b "jhacker"
+
+  fs.stat %a jnz +2
+    string "%[p]s: %[a]s already exists" %p
+    call notok
+
+  unflag "changed"
+  try res.file.chown
+  flagged? "changed" jnz +2
+    string "%[p]s: flagged" %p
+    call notok
+
+  fs.stat %a jnz +2
+    string "%[p]s: %[a]s was created" %p
+    call notok
+  call ok
+
+fn test.res.chown.2
+  call setup.authdb
+  set %p "fs.chown skips files that are properly chown'd"
+  set %a "t/tmp/file"
+  set %b "jhacker" set %c 566
+
+  fs.put   %a "{contents}"
+  fs.chown %a %c
+  fs.stat %a jz +2
+    string "%[p]s: %[a]s does not already exist" %p
+    call notok
+
+  unflag "changed"
+  try res.file.chown
+  jz +2
+    string "%[p]s: did not return 0 (indicated other failure)" %p
+    call notok
+  flagged? "changed" jnz +2
+    string "%[p]s: flagged" %p
+    call notok
+
+  fs.file? %a jz +2
+    string "%[p]s: %[a]s was removed" %p
+    call notok
+  fs.uid %a %d eq %c %d jz +2
+    string "%[p]s: %[a]s is owned by %[d]u, not %[c]u (%[b]s)" %p
+    call notok
+  call ok
+
+fn test.res.chown.3
+  call setup.authdb
+  set %p "fs.chown handles failed user lookup"
+  set %a "t/tmp/file"
+  set %b "ENOENT"
+
+  fs.put  %a "{contents}"
+  fs.stat %a jz +2
+    string "%[p]s: %[a]s does not already exist" %p
+    call notok
+
+  unflag "changed"
+  try res.file.chown
+  flagged? "changed" jnz +2
+    string "%[p]s: flagged" %p
+    call notok
+
+  fs.file? %a jz +2
+    string "%[p]s: %[a]s was removed" %p
+    call notok
+  call ok
+
+fn test.res.chown.4
+  call setup.authdb
+  set %p "fs.chown changes ownership"
+  set %a "t/tmp/file"
+  set %b "jhacker" set %c 566
+
+  fs.put   %a "{contents}"
+  fs.chown %a 0 ;; root
+  fs.stat %a jz +2
+    string "%[p]s: %[a]s does not already exist" %p
+    call notok
+
+  unflag "changed"
+  try res.file.chown
+  jz +2
+    string "%[p]s: did not return 0 (indicated other failure)" %p
+    call notok
+  flagged? "changed" jz +2
+    string "%[p]s: not flagged" %p
+    call notok
+
+  fs.file? %a jz +2
+    string "%[p]s: %[a]s was removed" %p
+    call notok
+  fs.uid %a %d eq %c %d jz +2
+    string "%[p]s: %[a]s is owned by %[d]u, not %[c]u (%[b]s)" %p
+    call notok
+  call ok
+
+fn test.res.run-as.1
+  call setup
+  set %p "util.run* function sets user/group to run as"
+  string "%[c]u:%[c]u/%[d]u:%[d]u" %n
+
+            call util.runuser
+  set %a %b call util.rungroup
+
+  exec "perl -MPOSIX -e 'print geteuid.\":\".getuid.\"/\".getegid.\":\".getgid'" %m
+  jz +3
+    acc %e
+    string "perl id verification process exited non-zero (rc=%[e]u)" %p
+    call notok
+  streq %m %n jz +2
+    string "%[p]s: got '%[m]s'; expected '%[n]s'" %p
+    call notok
+  call ok
+
+fn test.res.run-as.2
+  call setup
+  set %a "xyzzy bad user"  call util.runuser
+  set %a "xyzzy bad group" call util.rungroup
+  call ok
+
+fn test.res.user.mkhome.1
+  call setup
+  set %p "res.user.mkhome skips home directories that exist"
+  set %a "t/tmp/home"
+  set %b "" ; no skel dir
+  set %c 800
+  set %d 900
+
+  fs.mkdir %a
+  fs.chown %a 1
+  fs.chgrp %a 2
+  fs.dir? %a jz +2
+    string "%[p]s: %[a]s does not already exist" %p
+    call notok
+
+  try res.user.mkhome
+  jz +2
+    string "%[p]s: res.user.mkhome returned non-zero" %p
+    call notok
+
+  fs.dir? %a jz +2
+    string "%[p]s: %[a]s was removed" %p
+    call notok
+
+  fs.uid %a %e eq %e 1 jz +2
+    string "%[p]s: %[a]s was chowned to %[e]u (not 1)" %p
+    call notok
+  fs.gid %a %e eq %e 2 jz +2
+    string "%[p]s: %[a]s was chgrped to %[e]u (not 2)" %p
+    call notok
+  call ok
+
+fn test.res.user.mkhome.2
+  call setup
+  set %p "res.user.mkhome will create home directories"
+  set %a "t/tmp/home"
+  set %b "" ; no skel dir
+  set %c 800
+  set %d 900
+
+  fs.dir? %a jnz +2
+    string "%[p]s: %[a]s already exists" %p
+    call notok
+
+  try res.user.mkhome
+  jz +2
+    string "%[p]s: res.user.mkhome returned non-zero" %p
+    call notok
+
+  fs.dir? %a jz +2
+    string "%[p]s: %[a]s was not created" %p
+    call notok
+
+  fs.uid %a %e eq %e %c jz +2
+    string "%[p]s: %[a]s was chowned to %[e]u (not %[c]u)" %p
+    call notok
+  fs.gid %a %e eq %e %d jz +2
+    string "%[p]s: %[a]s was chgrped to %[e]u (not %[d]u)" %p
+    call notok
+  call ok
+
+fn test.res.user.mkhome.3
+  call setup
+  set %p "res.user.mkhome will remove symbolic links"
+  set %a "t/tmp/home"
+  set %b "" ; no skel dir
+  set %c 800
+  set %d 900
+
+  fs.symlink "x" %a
+  fs.symlink? %a jz +2
+    string "%[p]s: %[a]s does not already exist" %p
+    call notok
+
+  try res.user.mkhome
+  jz +2
+    string "%[p]s: res.user.mkhome returned non-zero" %p
+    call notok
+
+  fs.dir? %a jz +2
+    string "%[p]s: %[a]s was not created" %p
+    call notok
+
+  fs.uid %a %e eq %e %c jz +2
+    string "%[p]s: %[a]s was chowned to %[e]u (not %[c]u)" %p
+    call notok
+  fs.gid %a %e eq %e %d jz +2
+    string "%[p]s: %[a]s was chgrped to %[e]u (not %[d]u)" %p
+    call notok
+  call ok
+
+fn test.res.user.mkhome.4
+  call setup
+  set %p "res.user.mkhome will not remove files"
+  set %a "t/tmp/home"
+  set %b "" ; no skel dir
+  set %c 800
+  set %d 900
+
+  fs.put %a "{contents}"
+  fs.file? %a jz +2
+    string "%[p]s: %[a]s does not already exist" %p
+    call notok
+
+  try res.user.mkhome
+  jnz +2
+    string "%[p]s: res.user.mkhome returned zero" %p
+    call notok
+
+  fs.file? %a jz +2
+    string "%[p]s: %[a]s was removed" %p
+    call notok
+  call ok
+
+fn test.res.user.mkhome.5
+  call setup
+  umask 022 %p
+  set %p "res.user.mkhome will copy the skel directory"
+  set %a "t/tmp/home"
+  set %b "t/tmp/skel"
+  set %c 800
+  set %d 900
+
+  fs.mkdir "t/tmp/skel"
+  fs.put   "t/tmp/skel/.bashrc" "#bashrc\n"
+  fs.put   "t/tmp/skel/README"  "good job!\n"
+  fs.mkdir "t/tmp/skel/.ssh"
+  fs.chmod "t/tmp/skel/.ssh" 0700
+  fs.put   "t/tmp/skel/.ssh/config" "#config\n"
+  fs.chmod "t/tmp/skel/.ssh/config" 0600
+
+  fs.dir? %a jnz +2
+    string "%[p]s: %[a]s already exists" %p
+    call notok
+
+  try res.user.mkhome
+  jz +2
+    string "%[p]s: res.user.mkhome returned non-zero" %p
+    call notok
+
+  fs.dir? %a jz +2
+    string "%[p]s: %[a]s was not created" %p
+    call notok
+
+  fs.uid %a %e eq %e %c jz +2
+    string "%[p]s: %[a]s was chowned to %[e]u (not %[c]u)" %p
+    call notok
+  fs.gid %a %e eq %e %d jz +2
+    string "%[p]s: %[a]s was chgrped to %[e]u (not %[d]u)" %p
+    call notok
+
+  fs.file? "t/tmp/home/README" jz +2
+    string "%[p]s: did not copy README from skel dir" %p
+    call notok
+  fs.mode "t/tmp/home/README" %e
+  eq %e 0644 jz +2
+    string "%[p]s: README not chmodded 0644 (%[e]04o)" %p
+    call notok
+  fs.uid "t/tmp/home/README" %e
+  eq %e 800 jz +2
+    string "%[p]s: README not chowned to UID 800 (%[e]u)" %p
+    call notok
+  fs.gid "t/tmp/home/README" %e
+  eq %e 900 jz +2
+    string "%[p]s: README not chowned to GID 900 (%[e]u)" %p
+    call notok
+  fs.get "t/tmp/home/README" %e
+  set %f "good job!\n" streq %e %f jz +2
+    string "%[p]s: contents of README - got '%[e]s', expecting '%[f]s'" %p
+    call notok
+
+  fs.file? "t/tmp/home/.bashrc" jz +2
+    string "%[p]s: did not copy .bashrc from skel dir" %p
+    call notok
+  fs.mode "t/tmp/home/.bashrc" %e
+  eq %e 0644 jz +2
+    string "%[p]s: .bashrc not chmodded 0644 (%[e]04o)" %p
+    call notok
+  fs.uid "t/tmp/home/.bashrc" %e
+  eq %e 800 jz +2
+    string "%[p]s: .bashrc not chowned to UID 800 (%[e]u)" %p
+    call notok
+  fs.gid "t/tmp/home/.bashrc" %e
+  eq %e 900 jz +2
+    string "%[p]s: .bashrc not chowned to GID 900 (%[e]u)" %p
+    call notok
+  fs.get "t/tmp/home/.bashrc" %e
+  set %f "#bashrc\n" streq %e %f jz +2
+    string "%[p]s: contents of .bashrc - got '%[e]s', expecting '%[f]s'" %p
+    call notok
+
+  fs.dir? "t/tmp/home/.ssh" jz +2
+    string "%[p]s: did not copy .ssh/ from skel dir" %p
+    call notok
+  fs.mode "t/tmp/home/.ssh" %e
+  eq %e 0700 jz +2
+    string "%[p]s: .ssh not chmodded 0700 (%[e]04o)" %p
+    call notok
+  fs.uid "t/tmp/home/.ssh" %e
+  eq %e 800 jz +2
+    string "%[p]s: .ssh not chowned to UID 800 (%[e]u)" %p
+    call notok
+  fs.gid "t/tmp/home/.ssh" %e
+  eq %e 900 jz +2
+    string "%[p]s: .ssh not chowned to GID 900 (%[e]u)" %p
+    call notok
+
+  fs.file? "t/tmp/home/.ssh/config" jz +2
+    string "%[p]s: did not copy .ssh/config from skel dir" %p
+    call notok
+  fs.mode "t/tmp/home/.ssh/config" %e
+  eq %e 0600 jz +2
+    string "%[p]s: .ssh/config not chmodded 0600 (%[e]04o)" %p
+    call notok
+  fs.uid "t/tmp/home/.ssh/config" %e
+  eq %e 800 jz +2
+    string "%[p]s: .ssh/config not chowned to UID 800 (%[e]u)" %p
+    call notok
+  fs.gid "t/tmp/home/.ssh/config" %e
+  eq %e 900 jz +2
+    string "%[p]s: .ssh/config not chowned to GID 900 (%[e]u)" %p
+    call notok
+  fs.get "t/tmp/home/.ssh/config" %e
+  set %f "#config\n" streq %e %f jz +2
+    string "%[p]s: contents of .ssh/config - got '%[e]s', expecting '%[f]s'" %p
+    call notok
+
+  call ok
+
+;; skeleton
+;; dont remove file in the way
+
 fn main
   set %o 0
   set %p 0
@@ -2362,6 +2848,7 @@ fn main
   add %o 1 try test.res.group.present.3 jz +1 set %p 1
 
   add %o 1 try test.res.group.passwd.1 jz +1 set %p 1
+  add %o 1 try test.res.group.passwd.2 jz +1 set %p 1
 
   add %o 1 try test.res.service.enable.1 jz +1 set %p 1
   add %o 1 try test.res.service.enable.2 jz +1 set %p 1
@@ -2427,11 +2914,34 @@ fn main
     jmp done
 
 ifroot:
-  ;; chgrp tests
-  ;; chown tests
-  ;; runuser tests
-  ;; rungroup test
-  ;; user.mkhome
+  add %o 1 try test.res.chgrp.1 jz +1 set %p 1
+  add %o 1 try test.res.chgrp.2 jz +1 set %p 1
+  add %o 1 try test.res.chgrp.3 jz +1 set %p 1
+  add %o 1 try test.res.chgrp.4 jz +1 set %p 1
+
+  add %o 1 try test.res.chown.1 jz +1 set %p 1
+  add %o 1 try test.res.chown.2 jz +1 set %p 1
+  add %o 1 try test.res.chown.3 jz +1 set %p 1
+  add %o 1 try test.res.chown.4 jz +1 set %p 1
+
+  ;; for run(user|group), we need a real user and group
+  ;; try nobody:nobody (redhat) or nobody:nogroup (debian)
+  pragma authdb.root "/etc" authdb.open
+  set %a "nobody"   user.find %a jnz skip-run-as user.get "uid" %c
+  set %b "nobody"  group.find %b jz +3
+  set %b "nogroup" group.find %b jnz skip-run-as group.get "gid" %d
+
+  add %o 1 try test.res.run-as.1 jz +1 set %p 1
+  add %o 1 try test.res.run-as.2 jz +1 set %p 1
+  jmp +1
+skip-run-as:
+  print "# skipping util.run* tests (couldn't find a suitable system user/group)\n"
+
+  add %o 1 try test.res.user.mkhome.1 jz +1 set %p 1
+  add %o 1 try test.res.user.mkhome.2 jz +1 set %p 1
+  add %o 1 try test.res.user.mkhome.3 jz +1 set %p 1
+  add %o 1 try test.res.user.mkhome.4 jz +1 set %p 1
+  add %o 1 try test.res.user.mkhome.5 jz +1 set %p 1
 
   ;add %o 1 try test.res.sysctl.set.1 jz +1 set %p 1
 

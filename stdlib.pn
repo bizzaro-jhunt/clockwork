@@ -211,6 +211,12 @@ fn res.file.present
 
 fn res.file.chown
     syslog info "%T: enforcing user ownership of %[a]s"
+
+    fs.uid %a %d
+    jz +2
+      perror "failed to determine ownership of %[a]s"
+      bail 1
+
     authdb.open
     jz +2
       perror "failed to open authentication databases"
@@ -218,17 +224,19 @@ fn res.file.chown
 
     syslog info "%T: looking for user named %[b]s"
     user.find %b
-    user.get "uid" %c
     jz +3
       error "failed to find user %[b]s"
       authdb.close
       bail 1
 
+    user.get "uid" %c
     authdb.close
+    eq %c %d jnz +1 retv 0
+
     syslog notice "%T: changing user ownership of %[a]s to %[b]s"
     fs.chown %a %c
     jz +2
-      perror "failed to change ownership of %[a]s to %[b]s"
+      perror "failed to change user ownership of %[a]s to %[b]s"
       bail 1
 
     flag "changed"
@@ -240,10 +248,16 @@ fn res.file.chown
 ;; res.file.chgrp
 ;;
 ;;   %a = file to change group ownership of
-;;   %b = GID
+;;   %b = group name
 ;;
 fn res.file.chgrp
     syslog info "%T: enforcing group ownership of %[a]s"
+
+    fs.gid %a %d
+    jz +2
+      perror "failed to determine group-ownership of %[a]s"
+      bail 1
+
     authdb.open
     jz +2
       perror "failed to open authentication databases"
@@ -251,13 +265,15 @@ fn res.file.chgrp
 
     syslog info "%T: looking for group named %[b]s"
     group.find %b
-    group.get "gid" %c
     jz +3
       error "failed to find group %[b]s"
       authdb.close
       bail 1
 
+    group.get "gid" %c
     authdb.close
+    eq %c %d jnz +1 retv 0
+
     syslog notice "%T: changing group ownership of %[a]s to %[b]s"
     fs.chgrp %a %c
     jz +2
@@ -566,12 +582,18 @@ fn res.group.passwd
 ;;
 fn res.user.mkhome
     syslog info "%T: enforcing presence of %[a]s home directory"
-    fs.stat %a
-    jz +3
-      fs.dir? %a
-      jnz +1
-        retv 0
+    fs.stat %a jnz create
+    fs.dir? %a jnz +1
+      retv 0
+    fs.symlink? %a jnz +2
+      fs.unlink %a
+      jmp create
 
+    fs.type %a %b
+    error "%[a]s exists, but is not a symbolic link (is a %[b]s)"
+    bail 1
+
+  create:
     fs.mkdir %a
     jz +2
       perror "failed to create directory %[a]s"
@@ -581,14 +603,42 @@ fn res.user.mkhome
    fs.chgrp %a %d
    fs.chmod %a 0750
 
-   streq %c ""
-   jnz +1 ret
-   fs.dir? %c
-   jz +1 ret
+   streq %b "" jnz +1 retv 0
+   fs.dir? %b jz +1 retv 0
 
    swap %a %b ;; copytree is (src -> dest)
    call util.copytree
-   ret
+   swap %b %a
+
+   swap %b %c ; %b == UID
+   swap %c %d ; %c == GID
+   call util.chown.r
+   retv 0
+
+fn util.chown.r
+    fs.opendir %a %p
+    jz +2
+      perror "failed to opendir(%[a]s)"
+      retv 1
+  again:
+    fs.readdir %p %o
+    jnz done
+    string "%[a]s/%[o]s" %n
+    fs.symlink? %n jz again
+
+    syslog info "changing ownership of %[n]s to %[b]u:%[c]u"
+    fs.chown %n %b
+    fs.chgrp %n %c
+    fs.dir? %n jnz again
+
+    ;; recurse!
+    swap %a %n
+    call util.chown.r
+    swap %n %a
+    jmp again
+
+  done:
+    retv 0
 
 fn util.copytree
     fs.opendir %a %p
@@ -634,7 +684,7 @@ fn util.copytree
     jmp again
 
   done:
-  ret
+    retv 0
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;

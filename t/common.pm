@@ -187,6 +187,7 @@ sub dependencies_ok { _cw_shell_ok(@_, command => "use host example; show order"
 
 sub pendulum_compile_ok
 {
+	local $Test::Builder::Level = $Test::Builder::Level + 1;
 	my ($asm, $target, $message, %opts) = @_;
 	$message ||= "compile";
 	$opts{timeout} ||= 5;

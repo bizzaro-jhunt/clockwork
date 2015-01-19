@@ -75,6 +75,7 @@ typedef struct {
 	unsigned int topics;
 
 	stack_t  dstack; /* data stack */
+	stack_t  rstack; /* register stack */
 	stack_t  istack; /* instruction stack */
 	stack_t  tstack; /* "try" nesting stack */
 

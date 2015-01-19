@@ -2,9 +2,9 @@
     help: does nothing
     args: []
 - push:
-    help: push a register onto data stack
+    help: push a value onto data stack
     args:
-      - [register]
+      - [register, string, number]
 - pop:
     help: pop data stack top into a register
     args: 

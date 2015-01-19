@@ -526,6 +526,7 @@ subtest "dump operator" => sub {
 
     data: | 80000000 | 0
           | 00000001 | 1
+          '----------'
     inst: <s_empty>
     heap:
           <program name> 0
@@ -563,10 +564,13 @@ subtest "dump operator" => sub {
 	fn main
 		set %a 0x42
 		set %p 0x24
+		push 0x414141
+		push 0x898989
 		call func
 
 	fn func
 		set %a 0x36
+		push 0x1111
 		dump),
 
 	qq(
@@ -577,27 +581,16 @@ subtest "dump operator" => sub {
     %m [ 00000000 ]   %n [ 00000000 ]   %o [ 00000000 ]   %p [ 00000024 ]
 
     acc: 00000000
-     pc: 00000030
+     pc: 00000042
 
     data: | 80000000 | 0
           | 00000001 | 1
-          | 00000042 | 2
-          | 00000000 | 3
-          | 00000000 | 4
-          | 00000000 | 5
-          | 00000000 | 6
-          | 00000000 | 7
-          | 00000000 | 8
-          | 00000000 | 9
-          | 00000000 | 10
-          | 00000000 | 11
-          | 00000000 | 12
-          | 00000000 | 13
-          | 00000000 | 14
-          | 00000000 | 15
-          | 00000000 | 16
-          | 00000024 | 17
-    inst: | 00000022 | 0
+          | 00414141 | 2
+          | 00898989 | 3
+          | 00001111 | 4
+          '----------'
+    inst: | 0000002e | 0
+          '----------'
     heap:
           <program name> 0
     ---------------------------------------------------------------------
@@ -627,40 +620,10 @@ subtest "dump operator" => sub {
 
     data: | 80000000 | 0
           | 00000001 | 1
-          | 00000000 | 2
-          | 00000000 | 3
-          | 00000000 | 4
-          | 00000000 | 5
-          | 00000000 | 6
-          | 00000000 | 7
-          | 00000000 | 8
-          | 00000000 | 9
-          | 00000000 | 10
-          | 00000000 | 11
-          | 00000000 | 12
-          | 00000000 | 13
-          | 00000000 | 14
-          | 00000000 | 15
-          | 00000000 | 16
-          | 00000000 | 17
-          | 00000000 | 18
-          | 00000000 | 19
-          | 00000000 | 20
-          | 00000000 | 21
-          | 00000000 | 22
-          | 00000000 | 23
-          | 00000000 | 24
-          | 00000000 | 25
-          | 00000000 | 26
-          | 00000000 | 27
-          | 00000000 | 28
-          | 00000000 | 29
-          | 00000000 | 30
-          | 00000000 | 31
-          | 00000000 | 32
-          | 00000000 | 33
+          '----------'
     inst: | 0000000e | 0
           | 00000016 | 1
+          '----------'
     heap:
           <program name> 0
     ---------------------------------------------------------------------
@@ -2123,6 +2086,117 @@ EOF
 	"Hello, Includes!\n".
 	"fin\n",
 	"files can only be included once");
+};
+
+subtest "stack" => sub {
+	pendulum_ok(qq(
+	fn myfunc
+		set %a "from myfunc"
+		set %p "in myfunc"
+		ret
+
+	fn main
+		set %a "from main"
+		set %p "in main"
+		call myfunc
+		print "%[a]s, %[p]s"),
+
+	"from main, in main",
+	"ret opcode unwinds stack");
+
+	pendulum_ok(qq(
+	fn myfunc
+		set %a "from myfunc"
+		set %p "in myfunc"
+		ret
+
+	fn inner
+		set %a "from inner"
+		set %p "in inner"
+		call myfunc
+		set %a "after myfunc"
+		set %p "still in inner"
+
+	fn main
+		set %a "from main"
+		set %p "in main"
+		call inner
+		print "%[a]s, %[p]s"),
+
+	"from main, in main",
+	"ret opcode unwinds stack through multiple levels");
+
+	pendulum_ok(qq(
+	fn myfunc
+		set %a "from myfunc"
+		set %p "in myfunc"
+		bail 0
+
+	fn main
+		set %a "from main"
+		set %p "in main"
+		try myfunc
+		print "%[a]s, %[p]s"),
+
+	"from main, in main",
+	"bail opcode unwinds stack");
+
+	pendulum_ok(qq(
+	fn myfunc
+		set %a "from myfunc"
+		set %p "in myfunc"
+		bail 0
+
+	fn inner
+		set %a "from inner"
+		set %p "in inner"
+		call myfunc
+		set %a "after myfunc"
+		set %p "still in inner"
+
+	fn main
+		set %a "from main"
+		set %p "in main"
+		try inner
+		print "%[a]s, %[p]s"),
+
+	"from main, in main",
+	"bail opcode unwinds stack through multiple levels");
+
+	pendulum_ok(qq(
+	fn myfunc
+		set %a "from myfunc"
+		set %p "in myfunc"
+		bail 0
+
+	fn inner
+		set %a "from inner"
+		set %p "in inner"
+		try myfunc
+		set %a "after myfunc"
+		set %p "still in inner"
+
+	fn main
+		set %a "from main"
+		set %p "in main"
+		call inner
+		print "%[a]s, %[p]s"),
+
+	"from main, in main",
+	"bail opcode unwinds stack with an inner try");
+
+	pendulum_ok(qq(
+	fn myfunc
+		push "from myfunc"
+		ret
+	fn main
+		push "from main"
+		call myfunc
+		pop %b
+		print "%[b]s"),
+
+	"from myfunc",
+	"push/pop operate on their own data stack");
 };
 
 done_testing;

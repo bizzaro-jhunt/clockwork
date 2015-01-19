@@ -2,7 +2,7 @@
 
 /** OPCODE CONSTANTS **/
 #define OP_NOOP            0000  /* does nothing */
-#define OP_PUSH            0x01  /* push a register onto data stack */
+#define OP_PUSH            0x01  /* push a value onto data stack */
 #define OP_POP             0x02  /* pop data stack top into a register */
 #define OP_SET             0x03  /* set register value */
 #define OP_SWAP            0x04  /* swap two register values */
@@ -251,7 +251,7 @@ static const char * OPCODES[] = {
 
 /** ASM TOKENS **/
 #define T_OP_NOOP            0x40  /* does nothing */
-#define T_OP_PUSH            0x41  /* push a register onto data stack */
+#define T_OP_PUSH            0x41  /* push a value onto data stack */
 #define T_OP_POP             0x42  /* pop data stack top into a register */
 #define T_OP_SET             0x43  /* set register value */
 #define T_OP_SWAP            0x44  /* swap two register values */
@@ -536,7 +536,7 @@ static struct {
 	byte_t      args[2];
 } ASM_SYNTAX[] = {
 	{ T_OP_NOOP,           "noop",                                           OP_NOOP,           { ARG_NONE,                               ARG_NONE,                           } },
-	{ T_OP_PUSH,           "push %a",                                        OP_PUSH,           { ARG_REGISTER,                           ARG_NONE,                           } },
+	{ T_OP_PUSH,           "push (%a|<string>|<number>)",                    OP_PUSH,           { ARG_REGISTER|ARG_STRING|ARG_NUMBER,     ARG_NONE,                           } },
 	{ T_OP_POP,            "pop %a",                                         OP_POP,            { ARG_REGISTER,                           ARG_NONE,                           } },
 	{ T_OP_SET,            "set %a (%b|<string>|<number>)",                  OP_SET,            { ARG_REGISTER,                           ARG_REGISTER|ARG_STRING|ARG_NUMBER, } },
 	{ T_OP_SWAP,           "swap %a %b",                                     OP_SWAP,           { ARG_REGISTER,                           ARG_REGISTER,                       } },

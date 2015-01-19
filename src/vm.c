@@ -875,14 +875,14 @@ static void s_save_state(vm_t *vm)
 {
 	int i;
 	for (i = 0; i < NREGS; i++)
-		s_push(vm, &vm->dstack, vm->r[i]);
+		s_push(vm, &vm->rstack, vm->r[i]);
 }
 
 static void s_restore_state(vm_t *vm)
 {
 	int i;
 	for (i = NREGS - 1; i >= 0; i--)
-		vm->r[i] = s_pop(vm, &vm->dstack);
+		vm->r[i] = s_pop(vm, &vm->rstack);
 }
 
 static char HEX[] = "0123456789abcdef";
@@ -952,6 +952,7 @@ static void dump(FILE *io, vm_t *vm)
 		fprintf(io, "    data: | %08x | 0\n", vm->dstack.val[0]);
 		for (i = 1; i < vm->dstack.top; i++)
 			fprintf(io, "          | %08x | %i\n", vm->dstack.val[i], i);
+		fprintf(io, "          '----------'\n");
 	}
 
 	if (vm->istack.top == 0) {
@@ -960,6 +961,7 @@ static void dump(FILE *io, vm_t *vm)
 		fprintf(io, "    inst: | %08x | 0\n", vm->istack.val[0]);
 		for (i = 1; i < vm->istack.top; i++)
 			fprintf(io, "          | %08x | %u\n", vm->istack.val[i], i);
+		fprintf(io, "          '----------'\n");
 	}
 
 	if (vm->heaptop != 0) {
@@ -1410,9 +1412,7 @@ static void op_noop(vm_t *vm) { }
 static void op_push(vm_t *vm)
 {
 	ARG1("push");
-	REGISTER1("push");
-
-	s_push(vm, &vm->dstack, REG1(vm));
+	s_push(vm, &vm->dstack, VAL1(vm));
 }
 
 static void op_pop(vm_t *vm)

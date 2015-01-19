@@ -4,7 +4,7 @@ if [ -f Makefile ]; then
 	make distclean
 fi
 
-./bootrap
+./bootstrap
 export CFLAGS=-g
 ./configure --prefix /cw
 make

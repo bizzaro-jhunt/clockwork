@@ -548,12 +548,12 @@ fn res.group.passwd
   syslog notice "%T: setting password for group %[a]s"
   group.set "password" "*"
   group.set "pwhash"   %b
-  jnz +2
-    flag "changed"
-    retv 0
+  jz +2
+    error "failed to set group password for %[a]s"
+    bail 1
 
-  error "failed to set group password for %[a]s"
-  bail 1
+  flag "changed"
+  retv 0
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;

@@ -119,6 +119,8 @@
 #define OP_TOPIC           0x73  /* Set the current topic, for the %T special register */
 #define OP_UMASK           0x74  /* Set the file and directory permissions mask */
 #define OP_LOGLEVEL        0x75  /* Set the current syslog level */
+#define OP_GETEUID         0x76  /* Retrieve the effective UID of the current process */
+#define OP_GETEGID         0x77  /* Retreive the effect GID of the current process */
 
 
 /** OPCODE MNEMONIC NAMES **/
@@ -241,6 +243,8 @@ static const char * OPCODES[] = {
 	"topic",             /* OP_TOPIC           115  0x73 */
 	"umask",             /* OP_UMASK           116  0x74 */
 	"loglevel",          /* OP_LOGLEVEL        117  0x75 */
+	"geteuid",           /* OP_GETEUID         118  0x76 */
+	"getegid",           /* OP_GETEGID         119  0x77 */
 	NULL,
 };
 
@@ -365,6 +369,8 @@ static const char * OPCODES[] = {
 #define T_OP_TOPIC           0xb4  /* Set the current topic, for the %T special register */
 #define T_OP_UMASK           0xb5  /* Set the file and directory permissions mask */
 #define T_OP_LOGLEVEL        0xb6  /* Set the current syslog level */
+#define T_OP_GETEUID         0xb7  /* Retrieve the effective UID of the current process */
+#define T_OP_GETEGID         0xb8  /* Retreive the effect GID of the current process */
 
 
 static const char * ASM[] = {
@@ -487,6 +493,8 @@ static const char * ASM[] = {
 	"topic",             /* T_OP_TOPIC           116  0x74 */
 	"umask",             /* T_OP_UMASK           117  0x75 */
 	"loglevel",          /* T_OP_LOGLEVEL        118  0x76 */
+	"geteuid",           /* T_OP_GETEUID         119  0x77 */
+	"getegid",           /* T_OP_GETEGID         120  0x78 */
 	NULL,
 };
 
@@ -646,6 +654,8 @@ static struct {
 	{ T_OP_TOPIC,          "topic (%a|<string>)",                            OP_TOPIC,          { ARG_REGISTER|ARG_STRING,                ARG_NONE,                           } },
 	{ T_OP_UMASK,          "umask (%a|<number>) %b",                         OP_UMASK,          { ARG_REGISTER|ARG_NUMBER,                ARG_REGISTER,                       } },
 	{ T_OP_LOGLEVEL,       "loglevel (%a|<string>|identifier) %b",           OP_LOGLEVEL,       { ARG_REGISTER|ARG_STRING|ARG_IDENTIFIER, ARG_REGISTER,                       } },
+	{ T_OP_GETEUID,        "geteuid %a",                                     OP_GETEUID,        { ARG_REGISTER,                           ARG_NONE,                           } },
+	{ T_OP_GETEGID,        "getegid %a",                                     OP_GETEGID,        { ARG_REGISTER,                           ARG_NONE,                           } },
 	{ 0, 0, 0, { 0, 0 } },
 };
 
@@ -769,6 +779,8 @@ static void op_remote_file    (vm_t*);
 static void op_topic          (vm_t*);
 static void op_umask          (vm_t*);
 static void op_loglevel       (vm_t*);
+static void op_geteuid        (vm_t*);
+static void op_getegid        (vm_t*);
 
 typedef void (*opcode_fn)(vm_t*);
 
@@ -894,6 +906,8 @@ static struct {
 	{ OP_TOPIC,          op_topic,          },
 	{ OP_UMASK,          op_umask,          },
 	{ OP_LOGLEVEL,       op_loglevel,       },
+	{ OP_GETEUID,        op_geteuid,        },
+	{ OP_GETEGID,        op_getegid,        },
 	{ 0, 0 },
 };
 #endif

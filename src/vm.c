@@ -2671,6 +2671,24 @@ static void op_loglevel(vm_t *vm)
 	vm->r[vm->oper2] = vm_heap_strdup(vm, log_level_name(level));
 }
 
+static void op_geteuid(vm_t *vm)
+{
+	ARG1("geteuid");
+	REGISTER1("geteuid");
+
+	vm->r[vm->oper1] = geteuid();
+	vm->acc = 0;
+}
+
+static void op_getegid(vm_t *vm)
+{
+	ARG1("getegid");
+	REGISTER1("getegid");
+
+	vm->r[vm->oper1] = getegid();
+	vm->acc = 0;
+}
+
 /************************************************************************/
 
 int vm_iscode(byte_t *code, size_t len)

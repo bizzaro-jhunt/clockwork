@@ -159,8 +159,6 @@ print <<EOF;
 #define ANNO_USER       0x01
 #define ANNO_MODULE     0x02
 #define ANNO_FUNCTION   0x03
-#define ANNO_FILELINE   0x04
-#define ANNO_COMMENT    0x05
 
 /* some special ops */
 #define OPx_EOF 0xff   /* end of program, to avoid executing the static section */

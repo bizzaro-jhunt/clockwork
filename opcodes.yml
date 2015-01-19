@@ -539,4 +539,13 @@
       - [register, string, identifier]
       - [register]
 
+- geteuid:
+    help: Retrieve the effective UID of the current process
+    args:
+      - [register]
+- getegid:
+    help: Retreive the effect GID of the current process
+    args:
+      - [register]
+
 # vim:ft=yaml:et:ts=2:sts=2:sw=2

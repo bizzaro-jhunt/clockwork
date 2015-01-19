@@ -2311,9 +2311,6 @@ fn main
   add %o 1 try test.copytree.1 jz +1 set %p 1
   add %o 1 try test.copytree.2 jz +1 set %p 1
 
-  ;; FIXME: need a way to get our current UID+GID via get*uid / get*gid
-  ;; so we can skip tests like runuser / chown / chgrp / etc.
-
   add %o 1 try test.res.file.absent.1 jz +1 set %p 1
   add %o 1 try test.res.file.absent.2 jz +1 set %p 1
   add %o 1 try test.res.file.absent.3 jz +1 set %p 1
@@ -2424,8 +2421,21 @@ fn main
   add %o 1 try test.res.package.install.12 jz +1 set %p 1
   add %o 1 try test.res.package.install.13 jz +1 set %p 1
 
+  geteuid %a
+  eq %a 0 jz +2
+    print "# skipping root tests\n"
+    jmp done
+
+ifroot:
+  ;; chgrp tests
+  ;; chown tests
+  ;; runuser tests
+  ;; rungroup test
+  ;; user.mkhome
+
   ;add %o 1 try test.res.sysctl.set.1 jz +1 set %p 1
 
+done:
   print "1..%[o]i\n"
   exec "rm -rf t/tmp" %e
   retv %p

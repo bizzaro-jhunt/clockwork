@@ -507,14 +507,14 @@ fn res.user.present
   home:
     streq %d ""
     jz shell
-      syslog info "%T: setting %[a]s home directory to %[d]d"
+      syslog info "%T: setting %[a]s home directory to %[d]s"
       user.set "home" %d
       flag "changed"
 
   shell:
     streq %e ""
     jz password
-      syslog info "%T: setting %[a]s login shell to %[e]d"
+      syslog info "%T: setting %[a]s login shell to %[e]s"
       user.set "shell" %e
       flag "changed"
 

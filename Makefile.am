@@ -52,7 +52,7 @@ gatherdir=$(pkglibdir)/gather.d
 gather_SCRIPTS  = gather.d/core
 gather_SCRIPTS += gather.d/time
 
-stdlibdir=$(pkglibdir)
+stdlibdir=$(pkglibdir)/pn
 nobase_stdlib_DATA  = stdlib.pn
 
 ############################################################

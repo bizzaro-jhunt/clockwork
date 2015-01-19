@@ -43,8 +43,21 @@ fn setup.hosts
   fs.put "t/tmp/etc/hosts" <<EOF
 127.0.0.1 localhost localhost.localdomain
 8.8.7.6 host.example.com
-8.8.6.4 host with aliases host.fqdn.example.com
+8.8.6.4 host.fqdn.example.com with aliases
 EOF
+  pragma augeas.root "t/tmp"
+  pragma augeas.libs "augeas/lenses"
+  augeas.init
+  jnz +1 retv 0
+    set %p "augeas.init failed!!!"
+    call notok
+
+fn setup.sysctl
+  call setup
+  fs.mkdir "t/tmp/proc"
+  fs.mkdir "t/tmp/proc/sys"
+  fs.mkdir "t/tmp/proc/sys/net"
+  fs.mkdir "t/tmp/proc/sys/net/ipv4"
   pragma augeas.root "t/tmp"
   pragma augeas.libs "augeas/lenses"
   augeas.init
@@ -295,6 +308,16 @@ fn test.copytree.1
     string "%[p]s: %[d]s contents don't match src file" %p
     call notok
 
+  call ok
+
+fn test.copytree.2
+  call setup
+  set %p "util.copytree handles missing source"
+  set %a "t/tmp/src"
+  set %b "t/tmp/dst"
+  fs.mkdir %b
+
+  try util.copytree
   call ok
 
 fn test.res.file.absent.1
@@ -1797,6 +1820,484 @@ fn test.res.host.absent.3
     call notok
   call ok
 
+fn test.res.host.present.1
+  call setup.hosts
+  set %p "res.host.present skips pre-existing host entries"
+  set %a "8.8.7.6"
+  set %b "host.example.com"
+
+  unflag "changed"
+  try res.host.present
+  flagged? "changed" jnz +2
+    string "%[p]s: flagged" %p
+    call notok
+
+  string "/files/etc/hosts/*[ipaddr = \"%[a]s\" and canonical = \"%[b]s\"]" %e
+  augeas.find %e %f jz +2
+    string "%[p]s: hosts entry was removed" %p
+    call notok
+  call ok
+
+fn test.res.host.present.2
+  call setup.hosts
+  set %p "res.host.present creates new, barebones entries"
+  set %a "10.86.86.86"
+  set %b "new.host.example.com"
+
+  unflag "changed"
+  try res.host.present
+  flagged? "changed" jz +2
+    string "%[p]s: not flagged" %p
+    call notok
+
+  string "/files/etc/hosts/*[ipaddr = \"%[a]s\" and canonical = \"%[b]s\"]" %e
+  augeas.find %e %f jz +2
+    string "%[p]s: host entry not created" %p
+    call notok
+  call ok
+
+fn test.res.host.present.3
+  call setup.hosts
+  set %p "res.host.present can create overlapping entries"
+  set %a "10.10.10.10"
+  set %b "host.example.com"
+
+  unflag "changed"
+  try res.host.present
+  flagged? "changed" jz +2
+    string "%[p]s: not flagged" %p
+    call notok
+
+  string "/files/etc/hosts/*[ipaddr = \"%[a]s\" and canonical = \"%[b]s\"]" %e
+  augeas.find %e %f jz +2
+    string "%[p]s: host entry not created" %p
+    call notok
+
+  string "/files/etc/hosts/*[ipaddr = \"8.8.7.6\" and canonical = \"%[b]s\"]" %e
+  augeas.find %e %f jz +2
+    string "%[p]s: existing host entry was removed / overwritten" %p
+    call notok
+  call ok
+
+fn test.res.host.aliases.1
+  call setup.hosts
+  set %p "res.host.clear-aliases ignores non-existent hosts"
+  set %a "1.1.1.1"
+  set %b "enoent.fq.dn"
+
+  unflag "changed"
+  try res.host.clear-aliases
+  flagged? "changed" jnz +2
+    string "%[p]s: flagged" %p
+    call notok
+
+  string "/files/etc/hosts/*[ipaddr = \"%[a]s\" and canonical = \"%[b]s\"]" %e
+  augeas.find %e %f jnz +2
+    string "%[p]s: entry was created" %p
+    call notok
+  call ok
+
+fn test.res.host.aliases.2
+  call setup.hosts
+  set %p "res.host.clear-aliases removes all alias records"
+  set %a "8.8.6.4"
+  set %b "host.fqdn.example.com"
+
+  string "/files/etc/hosts/*[alias = \"with\"]" %e
+  augeas.find %e %f jz +2
+    string "%[p]s: alias 'with' not found" %p
+    call notok
+
+  unflag "changed"
+  try res.host.clear-aliases
+  flagged? "changed" jz +2
+    string "%[p]s: not flagged" %p
+    call notok
+
+  string "/files/etc/hosts/*[alias = \"with\"]" %e
+  augeas.find %e %f jnz +2
+    string "%[p]s: alias 'with' still exists" %p
+    call notok
+  call ok
+
+fn test.res.host.aliases.3
+  call setup.hosts
+  set %p "res.host.add-alias ignores non-existent hosts"
+  set %a "1.1.1.1"
+  set %b "enoent.tld"
+
+  unflag "changed"
+  try res.host.add-alias
+  flagged? "changed" jnz +2
+    string "%[p]s: flagged" %p
+    call notok
+  call ok
+
+fn test.res.host.aliases.4
+  call setup.hosts
+  set %p "res.host.add-alias adds a host alias"
+  set %a "8.8.7.6"
+  set %b "host.example.com"
+  set %c 0 ;; index
+  set %d "alias1"
+
+  string "/files/etc/hosts/*[alias = \"alias1\"]" %e
+  augeas.find %e %f jnz +2
+    string "%[p]s: alias 'alias1' already exists" %p
+    call notok
+
+  unflag "changed"
+  try res.host.add-alias
+  flagged? "changed" jz +2
+    string "%[p]s: not flagged" %p
+    call notok
+  augeas.write jz +3
+    augeas.perror "write failed"
+    string "%[p]s: failed to write augeas changes" %p
+    call notok
+
+  string "/files/etc/hosts/*[alias = \"alias1\"]" %e
+  augeas.find %e %f jz +2
+    string "%[p]s: alias 'alias1' not created" %p
+    call notok
+  call ok
+
+fn test.res.package.absent.1
+  call setup.localsys
+  set %p "res.package.absent handles uninstalled packages"
+  set %a "a-package"
+
+  fs.put "t/tmp/localsys" <<EOF
+#!./t/patterns
+pkg-version *: ok 1
+EOF
+
+  unflag "changed"
+  try res.package.absent
+  flagged? "changed" jnz +2
+    string "%[p]s: flagged" %p
+    call notok
+  call localsys-check
+
+fn test.res.package.absent.2
+  call setup.localsys
+  set %p "res.package.absent will uninstall packages"
+  set %a "a-package"
+
+  fs.put "t/tmp/localsys" <<EOF
+#!./t/patterns
+pkg-version *:    0 : 1.2.3-16 # installed
+pkg-remove *:  ok 0            # removed
+EOF
+
+  unflag "changed"
+  try res.package.absent
+  flagged? "changed" jz +2
+    string "%[p]s: not flagged" %p
+    call notok
+  call localsys-check
+
+fn test.res.package.absent.3
+  call setup.localsys
+  set %p "res.package.absent can fail to uninstall packages"
+  set %a "a-package"
+
+  fs.put "t/tmp/localsys" <<EOF
+#!./t/patterns
+pkg-version *:    0 : 1.2.3-16 # installed
+pkg-remove *:  ok 1            # failed to remove
+EOF
+
+  unflag "changed"
+  try res.package.absent
+  flagged? "changed" jnz +2
+    string "%[p]s: flagged" %p
+    call notok
+  call localsys-check
+
+fn test.res.package.absent.4
+  call setup.localsys
+  set %p "res.package.absent can fail to uninstall packages"
+  set %a "a-package"
+
+  fs.put "t/tmp/localsys" <<EOF
+#!./t/patterns
+pkg-version *: ok 9 # fail to detect version
+EOF
+
+  unflag "changed"
+  try res.package.absent
+  flagged? "changed" jnz +2
+    string "%[p]s: flagged" %p
+    call notok
+  call localsys-check
+
+fn test.res.package.install.1
+  call setup.localsys
+  fs.put "t/tmp/localsys" <<EOF
+#!./t/patterns
+pkg-version *: ok 0 : 1.2.3-16 # installed
+EOF
+
+  set %p "res.package.install skips already-installed packages"
+  set %a "a-package"
+  set %b ""
+
+  unflag "changed"
+  try res.package.install
+  flagged? "changed" jnz +2
+    string "%[p]s: flagged" %p
+    call notok
+  call localsys-check
+
+fn test.res.package.install.2
+  call setup.localsys
+  fs.put "t/tmp/localsys" <<EOF
+#!./t/patterns
+pkg-version *: ok 42 # fail
+EOF
+
+  set %p "res.package.install can install a new package"
+  set %a "a-package"
+  set %b ""
+
+  unflag "changed"
+  try res.package.install
+  flagged? "changed" jnz +2
+    string "%[p]s: flagged" %p
+    call notok
+  call localsys-check
+
+fn test.res.package.install.3
+  call setup.localsys
+  fs.put "t/tmp/localsys" <<EOF
+#!./t/patterns
+pkg-version *:           1 # not installed
+pkg-install * latest: ok 0 # installed ok
+EOF
+
+  set %p "res.package.install can install a new package"
+  set %a "a-package"
+  set %b ""
+
+  unflag "changed"
+  try res.package.install
+  flagged? "changed" jz +2
+    string "%[p]s: not flagged" %p
+    call notok
+  call localsys-check
+
+fn test.res.package.install.4
+  call setup.localsys
+  fs.put "t/tmp/localsys" <<EOF
+#!./t/patterns
+pkg-version *:           1 # not installed
+pkg-install * latest: ok 1 # install failed
+EOF
+
+  set %p "res.package.install can fail to install a new package"
+  set %a "a-package"
+  set %b ""
+
+  unflag "changed"
+  try res.package.install
+  flagged? "changed" jnz +2
+    string "%[p]s: flagged" %p
+    call notok
+  call localsys-check
+
+fn test.res.package.install.5
+  call setup.localsys
+  fs.put "t/tmp/localsys" <<EOF
+#!./t/patterns
+pkg-version *:          1 # not installed
+pkg-install * 1.2.3: ok 0 # installed
+EOF
+
+  set %p "res.package.install can install a specific version"
+  set %a "a-package"
+  set %b "1.2.3"
+
+  unflag "changed"
+  try res.package.install
+  flagged? "changed" jz +2
+    string "%[p]s: not flagged" %p
+    call notok
+  call localsys-check
+
+fn test.res.package.install.6
+  call setup.localsys
+  fs.put "t/tmp/localsys" <<EOF
+#!./t/patterns
+pkg-version *:          1 # not installed
+pkg-install * 1.2.3: ok 1 # install failed
+EOF
+
+  set %p "res.package.install can install a specific version"
+  set %a "a-package"
+  set %b "1.2.3"
+
+  unflag "changed"
+  try res.package.install
+  flagged? "changed" jnz +2
+    string "%[p]s: flagged" %p
+    call notok
+  call localsys-check
+
+fn test.res.package.install.7
+  call setup.localsys
+  fs.put "t/tmp/localsys" <<EOF
+#!./t/patterns
+pkg-version *:          0 : 0.3.4 # installed
+pkg-install * 1.2.3: ok 0         # updated
+EOF
+
+  set %p "res.package.install can update to a specific version"
+  set %a "a-package"
+  set %b "1.2.3"
+
+  unflag "changed"
+  try res.package.install
+  flagged? "changed" jz +2
+    string "%[p]s: not flagged" %p
+    call notok
+  call localsys-check
+
+fn test.res.package.install.8
+  call setup.localsys
+  fs.put "t/tmp/localsys" <<EOF
+#!./t/patterns
+pkg-version *:          0 : 0.3.4    # installed
+pkg-latest *:           0 : 1.2.3    # latest version
+pkg-install * 1.2.3: ok 0            # updated
+EOF
+
+  set %p "res.package.install can update to the latest version"
+  set %a "a-package"
+  set %b "latest"
+
+  unflag "changed"
+  try res.package.install
+  flagged? "changed" jz +2
+    string "%[p]s: not flagged" %p
+    call notok
+  call localsys-check
+
+fn test.res.package.install.9
+  call setup.localsys
+  fs.put "t/tmp/localsys" <<EOF
+#!./t/patterns
+pkg-version *:          0 : 2.4.4    # installed
+pkg-latest *:        ok 0 : 2.4.4    # latest version
+EOF
+
+  set %p "res.package.install skips packages at the latest version"
+  set %a "a-package"
+  set %b "latest"
+
+  unflag "changed"
+  try res.package.install
+  flagged? "changed" jnz +2
+    string "%[p]s: flagged" %p
+    call notok
+  call localsys-check
+
+fn test.res.package.install.10
+  call setup.localsys
+  fs.put "t/tmp/localsys" <<EOF
+#!./t/patterns
+pkg-version *:       ok 0 : 2.4.4    # installed
+EOF
+
+  set %p "res.package.install skips packages at the correct version"
+  set %a "a-package"
+  set %b "2.4.4"
+
+  unflag "changed"
+  try res.package.install
+  flagged? "changed" jnz +2
+    string "%[p]s: flagged" %p
+    call notok
+  call localsys-check
+
+fn test.res.package.install.11
+  call setup.localsys
+  fs.put "t/tmp/localsys" <<EOF
+#!./t/patterns
+pkg-version *:          0 : 1.0.1    # installed
+pkg-latest *:        ok 0 : 1.2.2    # detect latest version
+pkg-install * 1.2.2:    1            # fail to update
+EOF
+
+  set %p "res.package.install can fail to update to latest version"
+  set %a "a-package"
+  set %b "latest"
+
+  unflag "changed"
+  try res.package.install
+  flagged? "changed" jnz +2
+    string "%[p]s: flagged" %p
+    call notok
+  call localsys-check
+
+fn test.res.package.install.12
+  call setup.localsys
+  fs.put "t/tmp/localsys" <<EOF
+#!./t/patterns
+pkg-version *:          0 : 1.0.1    # installed
+pkg-install * 1.2.2: ok 1            # fail to update
+EOF
+
+  set %p "res.package.install can fail to update to a specific version"
+  set %a "a-package"
+  set %b "1.2.2"
+
+  unflag "changed"
+  try res.package.install
+  flagged? "changed" jnz +2
+    string "%[p]s: flagged" %p
+    call notok
+  call localsys-check
+
+fn test.res.package.install.13
+  call setup.localsys
+  fs.put "t/tmp/localsys" <<EOF
+#!./t/patterns
+pkg-version *:    0 : 1.0.1    # installed
+pkg-latest *:  ok 1            # fail to detect latest
+EOF
+
+  set %p "res.package.install can fail to update to a specific version"
+  set %a "a-package"
+  set %b "latest"
+
+  unflag "changed"
+  try res.package.install
+  flagged? "changed" jnz +2
+    string "%[p]s: flagged" %p
+    call notok
+  call localsys-check
+
+fn test.res.sysctl.set.1
+  call setup.sysctl
+  set %p "res.sysctl.set can set a value in memory"
+  set %a "net/ipv4"
+  set %b "net.ipv4"
+  set %c "4"
+  set %d 0 ;; not persistent
+
+  unflag "changed"
+  try res.sysctl.set
+  flagged? "changed" jz +2
+    string "%[p]s: not flagged" %p
+    call notok
+
+  fs.get "t/tmp/proc/sys/net/ipv4" %e
+  streq %e "4" jz +2
+    string "%[p]s: value in /proc was wrong ('%[e]s', not '4')" %p
+    call notok
+  call ok
+
 fn main
   set %o 0
   set %p 0
@@ -1808,6 +2309,7 @@ fn main
   add %o 1 try test.authdb.5 jz +1 set %p 1
 
   add %o 1 try test.copytree.1 jz +1 set %p 1
+  add %o 1 try test.copytree.2 jz +1 set %p 1
 
   ;; FIXME: need a way to get our current UID+GID via get*uid / get*gid
   ;; so we can skip tests like runuser / chown / chgrp / etc.
@@ -1893,6 +2395,36 @@ fn main
   add %o 1 try test.res.host.absent.1 jz +1 set %p 1
   add %o 1 try test.res.host.absent.2 jz +1 set %p 1
   add %o 1 try test.res.host.absent.3 jz +1 set %p 1
+
+  add %o 1 try test.res.host.present.1 jz +1 set %p 1
+  add %o 1 try test.res.host.present.2 jz +1 set %p 1
+  add %o 1 try test.res.host.present.3 jz +1 set %p 1
+
+  add %o 1 try test.res.host.aliases.1 jz +1 set %p 1
+  add %o 1 try test.res.host.aliases.2 jz +1 set %p 1
+  add %o 1 try test.res.host.aliases.3 jz +1 set %p 1
+  add %o 1 try test.res.host.aliases.4 jz +1 set %p 1
+
+  add %o 1 try test.res.package.absent.1 jz +1 set %p 1
+  add %o 1 try test.res.package.absent.2 jz +1 set %p 1
+  add %o 1 try test.res.package.absent.3 jz +1 set %p 1
+  add %o 1 try test.res.package.absent.4 jz +1 set %p 1
+
+  add %o 1 try test.res.package.install.1 jz +1 set %p 1
+  add %o 1 try test.res.package.install.2 jz +1 set %p 1
+  add %o 1 try test.res.package.install.3 jz +1 set %p 1
+  add %o 1 try test.res.package.install.4 jz +1 set %p 1
+  add %o 1 try test.res.package.install.5 jz +1 set %p 1
+  add %o 1 try test.res.package.install.6 jz +1 set %p 1
+  add %o 1 try test.res.package.install.7 jz +1 set %p 1
+  add %o 1 try test.res.package.install.8 jz +1 set %p 1
+  add %o 1 try test.res.package.install.9 jz +1 set %p 1
+  add %o 1 try test.res.package.install.10 jz +1 set %p 1
+  add %o 1 try test.res.package.install.11 jz +1 set %p 1
+  add %o 1 try test.res.package.install.12 jz +1 set %p 1
+  add %o 1 try test.res.package.install.13 jz +1 set %p 1
+
+  ;add %o 1 try test.res.sysctl.set.1 jz +1 set %p 1
 
   print "1..%[o]i\n"
   exec "rm -rf t/tmp" %e

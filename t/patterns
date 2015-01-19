@@ -10,10 +10,11 @@ sub touch
 }
 
 while (<$in>) {
-	chomp; s/#.*//; $_ or next;
-	my ($pat, $act) = split /\s*:\s*/, $_, 2;
+	chomp; s/\s*#.*//; $_ or next;
+	my ($pat, $act, $output) = split /\s*:\s*/, $_, 3;
 	$pat =~ s/\s\*/ .+/g;
 	$args =~ m/^$pat$/ or next;
+	print "$output\n" if $output;
 	for (split /\s+/, $act) {
 		touch("t/tmp/ok") if m/^ok$/i;
 		exit $1           if m/^(\d+)$/;

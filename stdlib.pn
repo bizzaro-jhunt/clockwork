@@ -696,12 +696,12 @@ fn res.package.absent
 
     syslog notice "%T: uninstalling %[a]s"
     localsys "pkg-remove %[a]s" %p
-    jnz +2
-      flag "changed"
-      retv 0
+    jz +2
+      perror "failed to uninstall package %[a]s"
+      bail 1
 
-    perror "failed to uninstall package %[a]s"
-    bail 1
+    flag "changed"
+    retv 0
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -754,20 +754,22 @@ fn res.package.install
     retv 0
 
   update:
-    streq %b ""       jz update.latest
+    streq %b ""       jnz +1 retv 0
     streq %b "latest" jz update.latest
 
-    syslog info "%T: checking if current version (%[p]s) matches desired version (%[b]s)"
-    streq %b %p
+    syslog info "%T: checking if current version (%[c]s) matches desired version (%[b]s)"
+    streq %b %c
     jnz +1
       retv 0
 
-    syslog notice "%T: upgrading package %[a]s from v%[p]s to v%[b]s"
+    syslog notice "%T: upgrading package %[a]s from v%[c]s to v%[b]s"
     localsys "pkg-install %[a]s %[b]s" %p
-    jnz +1 ret
+    jz +2
+      perror "package update failed"
+      bail 1
 
-    perror "package installation failed"
-    bail 1
+    flag "changed"
+    retv 0
 
   update.latest:
     localsys "pkg-latest %[a]s" %p
@@ -779,12 +781,14 @@ fn res.package.install
     streq %c %p
     jnz +1 ret
 
-    syslog notice "upgrading package %[a]s from version %[c]s to (latest) %[d]s"
-    localsys "pkg-install %[a]s %[d]s" %p
-    jnz +1 ret
+    syslog notice "upgrading package %[a]s from version %[c]s to (latest) %[p]s"
+    localsys "pkg-install %[a]s %[p]s" %p
+    jz +2
+      perror "package update failed"
+      bail 1
 
-    perror "package upgrade failed"
-    bail 1
+    flag "changed"
+    retv 0
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -954,7 +958,7 @@ fn res.host.absent
 ;;
 fn res.host.present
     syslog info "%T: enforcing presence of hosts entry %[a]s/%[b]s"
-    string "/files/etc/hosts/*[ipaddr = \"%[a]s\" and canonical = \"%[b]s\"" %p
+    string "/files/etc/hosts/*[ipaddr = \"%[a]s\" and canonical = \"%[b]s\"]" %p
     augeas.find %p %o ;; FIXME augeas.exists?
     jnz +1 ret
 
@@ -981,7 +985,7 @@ fn res.host.present
 ;;
 fn res.host.clear-aliases
     syslog info "%T: clearing previous host aliases"
-    string "/files/etc/hosts/*[ipaddr = \"%[a]s\" and canonical = \"%[b]s\"" %p
+    string "/files/etc/hosts/*[ipaddr = \"%[a]s\" and canonical = \"%[b]s\"]" %p
     augeas.find %p %o
 
     jz +2
@@ -1008,16 +1012,13 @@ fn res.host.clear-aliases
 ;;
 fn res.host.add-alias
     syslog notice "%T: adding host alias %[d]s to %[a]s/%[b]s"
-    string "/files/etc/hosts/*[ipaddr = \"%[a]s\" and canonical = \"%[b]s\"" %p
-    augeas.find %p %o
-
-    jz +2
+    string "/files/etc/hosts/*[ipaddr = \"%[a]s\" and canonical = \"%[b]s\"]" %p
+    augeas.find %p %o jz +2
       augeas.perror "failed to find host record %[a]s/%[b]s"
       bail 1
 
-    string "%[o]s/alias/%[c]u" %n
-    augeas.set %n %d
-    jz +2
+    string "%[o]s/alias[%[c]u]" %n
+    augeas.set %n %d jz +2
       augeas.perror "failed to add alias '%[d]s' (at index %[c]u) to host record %[a]s/%[b]s"
       bail 1
 

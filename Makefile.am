@@ -161,6 +161,7 @@ EXTRA_DIST      += bootstrap
 EXTRA_DIST      += augeas gather.d
 EXTRA_DIST      += examples extras
 EXTRA_DIST      += help man
+EXTRA_DIST      += pcov stdlib.pn
 EXTRA_DIST      += $(TEST_EXTRAS)
 
 dist_man_MANS    =

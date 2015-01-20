@@ -11,3 +11,6 @@ TODO
          it would have to be a special
   - make fn redefinition emit a warning
   - suppress auto-RET if last op is a BAIL
+  - handle missing stdlib better
+  - go through call tree in general and handle errors
+  - better logging

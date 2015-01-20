@@ -2781,6 +2781,14 @@ static int s_asm_parse(asm_t *pna)
 				ERROR("unacceptable name for function");
 			op->label = strdup(u->value);
 			s_asm_annotate(pna, ANNO_FUNCTION, strdup(u->value));
+
+			if (hash_get(&pna->funcs, u->value)) {
+				logger(LOG_CRIT, "%s:%i: function `%s' redefined (previous definition was at %s)",
+					u->file, u->line, u->value, hash_get(&pna->funcs, u->value));
+				goto bail;
+			}
+			hash_set(&pna->funcs, u->value, string("%s:%i", u->file, u->line));
+
 			break;
 
 		case T_ACL:

@@ -148,6 +148,8 @@ typedef struct {
 	list_t      ops;
 	list_t      units;
 
+	hash_t      funcs; /* for redefinition errors */
+
 	struct {
 		hash_t  strings;
 		dword_t offset;

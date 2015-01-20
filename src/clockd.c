@@ -171,13 +171,6 @@ static int s_gencode(client_t *c, byte_t **code, size_t *len)
 	FILE *io = tmpfile();
 	assert(io);
 
-	FILE *stdlib = fopen(c->server->stdlib, "r");
-	assert(stdlib);
-	char buf[8192];
-	while ((fgets(buf, 8192, stdlib)))
-		fprintf(io, "%s", buf);
-	fclose(stdlib);
-
 	stopwatch_t t;
 	uint32_t ms = 0;
 	STOPWATCH(&t, ms) {

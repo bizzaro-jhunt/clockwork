@@ -181,6 +181,7 @@ static char* s_findlib(compiler_t *cc, const char *relpath)
 		hash_set(&cc->incseen, key, "Y");
 		return path;
 	}
+	logger(LOG_WARNING, "pendulum: unable to find '%s' for #include", relpath);
 	return NULL;
 }
 

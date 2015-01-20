@@ -22,7 +22,7 @@ if [ "x$EXPORT" != "x" ]; then
 	echo "Ready."
 	echo
 	echo "To load into a nightly LXC tester,"
-	echo "run \`cd /; nc $WHERE $EXPORT | tar -xzv\`"
+	echo "run \`cd /; rm -rf /cw; nc $WHERE $EXPORT | tar -xzv\`"
 	echo "from inside the container environment."
 	nc -l $EXPORT < nightly.tar.gz
 fi

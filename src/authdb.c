@@ -82,6 +82,7 @@ authdb_t* authdb_read(const char *root, int dbs)
 	FILE *io;
 	size_t line, field;
 	char *file, *a, *b, LINE[LINEMAX];
+	char *endptr; /* for strtoul calls */
 
 	authdb_t *db = vmalloc(sizeof(authdb_t));
 	list_init(&db->users);
@@ -100,6 +101,14 @@ authdb_t* authdb_read(const char *root, int dbs)
 		goto bail; \
 	} \
 	*b = '\0'; \
+} while (0)
+
+#define NUMBER(x,a,s) do { \
+	(x) = strtoul((a), &endptr, 10); \
+	if (*endptr) { \
+		logger(LOG_ERR, "failed to parse entry #%u from %s: '%s' does not look like a %s", line, file, (a), (s)); \
+		goto bail; \
+	} \
 } while (0)
 
 	if (db->dbs & AUTHDB_PASSWD) {
@@ -124,10 +133,10 @@ authdb_t* authdb_read(const char *root, int dbs)
 			user->clear_pass = strdup(a);
 
 			a = ++b; FIELD("passwd", "UID number");
-			user->uid = atoi(a); /* FIXME: use strtol + errno */
+			NUMBER(user->uid, a, "valid UID");
 
 			a = ++b; FIELD("passwd", "GID number");
-			user->gid = atoi(a); /* FIXME: use strtol + errno */
+			NUMBER(user->gid, a, "valid GID");
 
 			a = ++b; FIELD("passwd", "comment");
 			user->comment = strdup(a);
@@ -164,27 +173,28 @@ authdb_t* authdb_read(const char *root, int dbs)
 			user->crypt_pass = strdup(a);
 
 			a = ++b; FIELD("shadow", "date of last password change");
-			user->creds.last_changed = atoi(a); /* FIXME: use strtol + errno */
+			NUMBER(user->creds.last_changed, a, "number");
 
 			a = ++b; FIELD("shadow", "minimum password age");
-			user->creds.min_days = atoi(a); /* FIXME: use strtol + errno */
+			NUMBER(user->creds.min_days, a, "number");
 
 			a = ++b; FIELD("shadow", "maximum password age");
-			user->creds.max_days = atoi(a); /* FIXME: use strtol + errno */
+			NUMBER(user->creds.max_days, a, "number");
 
 			a = ++b; FIELD("shadow", "password warning period");
-			user->creds.warn_days = atoi(a); /* FIXME: use strtol + errno */
+			NUMBER(user->creds.warn_days, a, "number");
 
 			a = ++b; FIELD("shadow", "password inactivity period");
 			if (!*a) user->creds.grace_period = -1;
-			else     user->creds.grace_period = atoi(a); /* FIXME: use strtol + errno */
+			else NUMBER(user->creds.grace_period, a, "number");
 
 			a = ++b; FIELD("shadow", "expiration date");
 			if (!*a) user->creds.expiration = -1;
-			else     user->creds.expiration = atoi(a); /* FIXME: use strtol + errno */
+			else NUMBER(user->creds.expiration, a, "number");
 
 			/* last field */
-			user->creds.flags = atoi(++b); /* FIXME: use strtoul + errno */
+			a = ++b;
+			NUMBER(user->creds.flags, a, "number");
 		}
 
 		fclose(io);
@@ -212,7 +222,7 @@ authdb_t* authdb_read(const char *root, int dbs)
 			group->clear_pass = strdup(a);
 
 			a = ++b; FIELD("group", "GID number");
-			group->gid = atoi(a); /* FIXME: use strtol + errno */
+			NUMBER(group->gid, a, "valid GID");
 
 			/* last field */
 			group->raw_members = strdup(++b);
@@ -280,6 +290,9 @@ bail:
 	if (io) fclose(io);
 	authdb_close(db);
 	return NULL;
+
+#undef FIELD
+#undef NUMBER
 }
 
 int authdb_write(authdb_t *db)

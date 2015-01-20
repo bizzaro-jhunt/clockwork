@@ -207,7 +207,7 @@ sub pendulum_compile_ok
 			or die "Failed to reopen stderr: $!\n";
 		open STDIN,  "<&", $stdin
 			or die "Failed to reopen stdin: $!\n";
-		exec $PN, @{$opts{args} || []}, '-S', '-' or die "Failed to exec $PN -S: $!\n";
+		exec $PN, @{$opts{args} || []}, '-Sg', '-' or die "Failed to exec $PN -Sg: $!\n";
 	}
 	local $SIG{ALRM} = sub { die "timed out\n" };
 	alarm($opts{timeout});

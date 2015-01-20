@@ -2308,11 +2308,10 @@ typedef struct {
 } op_t;
 
 typedef struct {
-	asm_t *main;
-
 	list_t   l;
 	FILE    *io;
 	char    *file;
+	char    *name;
 
 	int      line;
 	int      token;
@@ -2339,7 +2338,6 @@ static int s_asm_unit_push(asm_t *pna)
 	asm_unit_t *u = vmalloc(sizeof(asm_unit_t));
 	if (u) {
 		list_init(&u->l);
-		u->main = pna;
 		list_push(&pna->units, &u->l);
 		return 0;
 	}
@@ -2500,12 +2498,13 @@ static int s_asm_include(asm_t *pna, const char *module)
 		if (!u->io)
 			return -1;
 
-		s_asm_annotate(pna, ANNO_MODULE, string("module : %s", module));
+		u->name = string("module : %s", module);
+		s_asm_annotate(pna, ANNO_MODULE, strdup(u->name));
 		if (s_asm_parse(pna) != 0) /* recurse! */
 			return -1;
 
 		s_asm_unit_pop(pna);
-		s_asm_annotate(pna, ANNO_MODULE, strdup("MAIN")); /* FIXME! */
+		s_asm_annotate(pna, ANNO_MODULE, strdup(u->name));
 		return 0;
 	}
 	logger(LOG_ERR, "asm (preprocessor): %s:%i: could not find module `%s' for #include", u->file, u->line, module);
@@ -3019,6 +3018,12 @@ asm_t *asm_new(void)
 		asm_free(pna);
 		return NULL;
 	}
+	asm_unit_t *u = s_asm_unit(pna);
+	if (!u) {
+		asm_free(pna);
+		return NULL;
+	}
+	u->name = strdup("MAIN");
 
 	if (asm_setopt(pna, PNASM_OPT_INCLUDE, PENDULUM_INCLUDE, strlen(PENDULUM_INCLUDE)) != 0) {
 		asm_free(pna);
@@ -3038,6 +3043,7 @@ void asm_free(asm_t *pna)
 	for_each_object_safe(unit, tmp, &pna->units, l) {
 		if (unit->io)
 			fclose(unit->io);
+		free(unit->name);
 		free(unit->file);
 		free(unit);
 	}
@@ -3096,8 +3102,8 @@ int asm_setopt(asm_t *pna, int opt, const void *v, size_t len)
 	case PNASM_OPT_STRIPPED:
 		if (len != sizeof(int)) return -1;
 
-		if (*(int*)v) pna->flags |= PNASM_FLAG_STRIP;
-		else          pna->flags ^= PNASM_FLAG_STRIP;
+		if (*(int*)v) pna->flags = pna->flags |  PNASM_FLAG_STRIP;
+		else          pna->flags = pna->flags & ~PNASM_FLAG_STRIP;
 		break;
 
 	case PNASM_OPT_INCLUDE:

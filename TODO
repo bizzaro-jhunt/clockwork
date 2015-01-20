@@ -14,3 +14,5 @@ TODO
   - handle missing stdlib better
   - go through call tree in general and handle errors
   - better logging
+  - update vim syntax files
+  - fix mesh

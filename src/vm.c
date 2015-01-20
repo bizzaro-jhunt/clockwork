@@ -1794,9 +1794,8 @@ static void op_localsys(vm_t *vm)
 		.gid = getegid(),
 	};
 
-	char *cmd = string("%s %s",
-		hash_get(&vm->pragma, "localsys.cmd"),
-		_sprintf(vm, STR1(vm))); /* FIXME: mem leak */
+	char *s = _sprintf(vm, STR1(vm));
+	char *cmd = string("%s %s", hash_get(&vm->pragma, "localsys.cmd"), s);
 	vm->acc = run2(&runner, "/bin/sh", "-c", cmd, NULL);
 
 	if (fgets(execline, sizeof(execline), runner.out)) {
@@ -1810,6 +1809,7 @@ static void op_localsys(vm_t *vm)
 		(vm->topic ? vm->topic : "(no topic)"),
 		cmd, vm->acc, execline);
 	free(cmd);
+	free(s);
 }
 
 static void op_runas_uid(vm_t *vm)

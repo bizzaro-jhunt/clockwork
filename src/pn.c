@@ -37,8 +37,9 @@ int main (int argc, char **argv)
 	int mode = MODE_EXECUTE;
 	int coverage = 0;
 	int strip = 1;
+	strings_t *inc = strings_new(NULL);
 
-	const char *short_opts = "h?vqDVTSdCg";
+	const char *short_opts = "h?vqDVTSdCgI:";
 	struct option long_opts[] = {
 		{ "help",        no_argument,       NULL, 'h' },
 		{ "verbose",     no_argument,       NULL, 'v' },
@@ -101,6 +102,10 @@ int main (int argc, char **argv)
 
 		case 'g':
 			strip = 0;
+			break;
+
+		case 'I':
+			strings_add(inc, optarg);
 			break;
 
 		case 0: /* --syslog */
@@ -206,11 +211,17 @@ int main (int argc, char **argv)
 			if (rc != 0) goto bail;
 		}
 
-		char *e = getenv("PENDULUM_INCLUDE");
-		if (e) {
-			rc = asm_setopt(pna, PNASM_OPT_INCLUDE, e, strlen(e));
-			if (rc != 0) goto bail;
-		}
+
+		char *s = getenv("PENDULUM_INCLUDE");
+		if (s)
+			strings_add(inc, s);
+
+		strings_add(inc, PENDULUM_INCLUDE);
+		s = strings_join(inc, ":");
+		logger(LOG_DEBUG, "setting include path to `%s'", s);
+		rc = asm_setopt(pna, PNASM_OPT_INCLUDE, s, strlen(s));
+		free(s);
+		if (rc != 0) goto bail;
 
 		rc = asm_setopt(pna, PNASM_OPT_STRIPPED, &strip, sizeof(strip));
 		if (rc != 0) goto bail;

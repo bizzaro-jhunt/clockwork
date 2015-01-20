@@ -471,7 +471,8 @@ static int s_asm_parse(compiler_t *cc)
 
 		switch (cc->token) {
 		case T_FUNCTION:
-			if (FN && list_tail(&cc->ops, op_t, l)->op != OP_RET) {
+			if (FN && list_tail(&cc->ops, op_t, l)->op != OP_RET
+			       && list_tail(&cc->ops, op_t, l)->op != OP_BAIL) {
 				op->op = OP_RET;
 				list_push(&cc->ops, &op->l);
 				op = vmalloc(sizeof(op_t));
@@ -569,7 +570,8 @@ static int s_asm_parse(compiler_t *cc)
 		list_push(&cc->ops, &op->l);
 	}
 
-	if (FN && list_tail(&cc->ops, op_t, l)->op != OP_RET) {
+	if (FN && list_tail(&cc->ops, op_t, l)->op != OP_RET
+	       && list_tail(&cc->ops, op_t, l)->op != OP_BAIL) {
 		op = s_asm_pushop(cc, OP_RET);
 	}
 	return 0;

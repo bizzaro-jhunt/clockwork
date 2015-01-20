@@ -2055,6 +2055,39 @@ subtest "disassembly" => sub {
 ---
 0x00000018: [foo]
 EOF
+
+	disassemble_ok(qq(
+	fn main
+		print "foo"
+		print "foo"),
+
+	<<EOF, "pendulum compiler inserts ret opcodes at the end of functions");
+0x00000000: 70 6e
+0x00000002: 18 30 [00 00 00 08]           jmp 0x00000008
+0x00000008: 1c 30 [00 00 00 18]         print 0x00000018 ; "foo"
+0x0000000e: 1c 30 [00 00 00 18]         print 0x00000018 ; "foo"
+0x00000014: 10 00                         ret
+0x00000016: ff 00
+---
+0x00000018: [foo]
+EOF
+
+	disassemble_ok(qq(
+	fn main
+		print "foo"
+		print "foo"
+		bail 2),
+
+	<<EOF, "pendulum compiler treats a final bail as sufficient");
+0x00000000: 70 6e
+0x00000002: 18 30 [00 00 00 08]           jmp 0x00000008
+0x00000008: 1c 30 [00 00 00 1c]         print 0x0000001c ; "foo"
+0x0000000e: 1c 30 [00 00 00 1c]         print 0x0000001c ; "foo"
+0x00000014: 11 10 [00 00 00 02]          bail 2
+0x0000001a: ff 00
+---
+0x0000001c: [foo]
+EOF
 };
 
 subtest "includes" => sub {

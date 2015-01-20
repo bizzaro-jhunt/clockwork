@@ -6,7 +6,6 @@ TODO
   - man page for pcov (and probably updates for pn)
   - clean up assembler/compiler code - it's getting out of hand
   - make fn redefinition emit a warning
-  - suppress auto-RET if last op is a BAIL
   - handle missing stdlib better
   - go through call tree in general and handle errors
   - better logging

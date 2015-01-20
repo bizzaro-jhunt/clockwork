@@ -328,7 +328,7 @@ fn res.file.contents
       perror "failed to calculate SHA1 for local copy of %[a]s"
       bail 1
 
-    syslog info "%T: checking if remote (%[o]s) SHA1 matches local (%[p]s) SHA1"
+    syslog info "%T: checking if local SHA1 (%[p]s) matches remote (%[o]s)"
     streq %o %p
     jnz +1
       ret
@@ -594,18 +594,22 @@ fn res.user.mkhome
     bail 1
 
   create:
+    syslog info "%T: creating new home directory %[a]s"
     fs.mkdir %a
     jz +2
       perror "failed to create directory %[a]s"
       bail 1
 
+   syslog info "%T: setting owner/group to %[c]u:%[d]u"
    fs.chown %a %c
    fs.chgrp %a %d
+   syslog info "%T: setting mode to 0750"
    fs.chmod %a 0750
 
    streq %b "" jnz +1 retv 0
    fs.dir? %b jz +1 retv 0
 
+   syslog info "%T: copying skeleton home directory from %[b]s"
    swap %a %b ;; copytree is (src -> dest)
    call util.copytree
    swap %b %a

@@ -7,5 +7,4 @@ TODO
   - man page for pcov (and probably updates for pn)
   - go through call tree in general and handle errors
   - better logging
-  - update vim syntax files
   - fix mesh

@@ -4,11 +4,7 @@ TODO
   - document pendulum 2 assembler code
     (maybe embed in opcodes.yml?)
   - man page for pcov (and probably updates for pn)
-  - relocatable addresses?
-    (constant strings would need to be merged somehow)
-    benefit: coverage of *just* stdlib.pn during tests
-    alt: object boundaries via asm opcode (border?)
-         it would have to be a special
+  - clean up assembler/compiler code - it's getting out of hand
   - make fn redefinition emit a warning
   - suppress auto-RET if last op is a BAIL
   - handle missing stdlib better

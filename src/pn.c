@@ -188,42 +188,62 @@ int main (int argc, char **argv)
 
 	if (mode == MODE_ASSEMBLE) {
 		logger(LOG_DEBUG, "running in assembler mode");
-		byte_t *code;
-		size_t len;
 		int rc, outfd = 1;
 
-		if (strcmp(argv[optind], "-") == 0) {
-			rc = vm_asm_io(stdin, &code, &len, "<stdin>", NULL, strip);
-			if (rc != 0) {
-				logger(LOG_ERR, "assembly of pendulum source code on standard input failed");
-				return 1;
-			}
-		} else {
-			rc = vm_asm_file(argv[optind], &code, &len, NULL, strip);
-			if (rc != 0) {
-				logger(LOG_ERR, "assembly of pendulum source code in `%s' failed", argv[optind]);
-				return 1;
-			}
+		asm_t *pna = asm_new();
+		if (!pna) return 1;
 
+		const char *path = argv[optind];
+		if (strcmp(path, "-") == 0) {
+			rc = asm_setopt(pna, PNASM_OPT_INIO, stdin, sizeof(stdin));
+			if (rc != 0) goto bail;
+
+			rc = asm_setopt(pna, PNASM_OPT_INFILE, "<stdin>", strlen("<stdin>"));
+			if (rc != 0) goto bail;
+
+		} else {
+			rc = asm_setopt(pna, PNASM_OPT_INFILE, path, strlen(path));
+			if (rc != 0) goto bail;
+		}
+
+		char *e = getenv("PENDULUM_INCLUDE");
+		if (e) {
+			rc = asm_setopt(pna, PNASM_OPT_INCLUDE, e, strlen(e));
+			if (rc != 0) goto bail;
+		}
+
+		rc = asm_setopt(pna, PNASM_OPT_STRIPPED, &strip, sizeof(strip));
+		if (rc != 0) goto bail;
+
+		rc = asm_compile(pna);
+		if (rc != 0) goto bail;
+
+		logger(LOG_DEBUG, "asm: assembly complete, writing bytecode image");
+		if (strcmp(path, "-") == 0) {
+			logger(LOG_DEBUG, "writing image to standard output");
+			outfd = 1;
+
+		} else {
 			char *sfile = string("%s.S", argv[optind]);
-			logger(LOG_DEBUG, "writing pendulum bytecode image to `%s'", sfile);
+			logger(LOG_DEBUG, "writing image to `%s'", sfile);
 
 			outfd = open(sfile, O_WRONLY|O_CREAT|O_TRUNC, 0666);
 			if (outfd < 0) {
 				perror(sfile);
-				free(sfile);
 				return 1;
 			}
 			free(sfile);
 		}
 
-		if (write(outfd, code, len) != len) {
+		if (write(outfd, pna->code, pna->size) != pna->size) {
 			perror("short write");
-			close(outfd);
 			return 1;
 		}
-		close(outfd);
 		return 0;
+
+bail:
+		logger(LOG_ERR, "assembly failed!");
+		return 1;
 	}
 
 	return 3;

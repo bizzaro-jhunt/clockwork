@@ -178,10 +178,60 @@ static int s_gencode(client_t *c, byte_t **code, size_t *len)
 
 		src_len = ftell(io);
 		rewind(io);
-		rc = vm_asm_io(io, code, len, "<clockd>", c->server->include, 1);
+
+		asm_t *pna = asm_new();
+		if (!pna) {
+			logger(LOG_ERR, "Failed to allocate a pendulum assembler");
+			return 1;
+		}
+
+		rc = asm_setopt(pna, PNASM_OPT_INIO, io, sizeof(io));
+		if (rc != 0) {
+			logger(LOG_ERR, "Failed to set INIO option on pendulum assembler");
+			asm_free(pna);
+			return 1;
+		}
+
+		rc = asm_setopt(pna, PNASM_OPT_INFILE, "<clockd>", strlen("<clockd>"));
+		if (rc != 0) {
+			logger(LOG_ERR, "Failed to set INFILE option on pendulum assembler");
+			asm_free(pna);
+			return 1;
+		}
+
+		rc = asm_setopt(pna, PNASM_OPT_INCLUDE, c->server->include, strlen(c->server->include));
+		if (rc != 0) {
+			logger(LOG_ERR, "Failed to set module include path");
+			asm_free(pna);
+			return 1;
+		}
+
+		int strip = 1;
+		rc = asm_setopt(pna, PNASM_OPT_STRIPPED, &strip, sizeof(strip));
+		if (rc != 0) {
+			logger(LOG_ERR, "Failed to set stripped mode for pendulum assembler");
+			asm_free(pna);
+			return 1;
+		}
+
+		rc = asm_compile(pna);
+		if (rc != 0) {
+			logger(LOG_ERR, "assembly failed");
+			asm_free(pna);
+			return 1;
+		}
+
+		*code = vmalloc(pna->size);
+		if (!*code) {
+			logger(LOG_ERR, "failed to allocate code buffer for bytecode image");
+			asm_free(pna);
+			return 1;
+		}
+
+		memcpy(*code, pna->code, pna->size);
+		*len = pna->size;
+		asm_free(pna);
 	}
-	if (rc != 0)
-		return 1;
 
 	float src_size, bin_size;
 	char  src_unit, bin_unit;

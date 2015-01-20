@@ -2117,110 +2117,6 @@ again:
 	return vm->acc;
 }
 
-int vm_asm_file(const char *path, byte_t **code, size_t *len, const char *inc, int strip)
-{
-	assert(code);
-	assert(len);
-
-	int rc;
-	pnasm_t *pna = pnasm_new();
-
-	if (strcmp(path, "-") == 0) {
-		logger(LOG_DEBUG, "pnasm: setting input to stdin");
-		rc = pnasm_setopt(pna, PNASM_OPT_INIO, stdin, sizeof(stdin));
-		if (rc != 0) goto bail;
-
-		rc = pnasm_setopt(pna, PNASM_OPT_INFILE, "<stdin>", strlen("<stdin>"));
-		if (rc != 0) goto bail;
-
-	} else {
-		logger(LOG_DEBUG, "pnasm: setting input path to `%s'", path);
-		rc = pnasm_setopt(pna, PNASM_OPT_INFILE, path, strlen(path));
-		if (rc != 0) goto bail;
-	}
-
-	if (inc) {
-		logger(LOG_DEBUG, "pnasm: setting inc = %s", inc);
-		rc = pnasm_setopt(pna, PNASM_OPT_INCLUDE, inc, strlen(inc));
-		if (rc != 0) goto bail;
-	} else {
-		char *e = getenv("PENDULUM_INCLUDE");
-		if (e) {
-			logger(LOG_DEBUG, "pnasm: setting inc = %s", e);
-			rc = pnasm_setopt(pna, PNASM_OPT_INCLUDE, e, strlen(e));
-			if (rc != 0) goto bail;
-		}
-	}
-
-	logger(LOG_DEBUG, "pnasm: setting stripped = %i", strip);
-	rc = pnasm_setopt(pna, PNASM_OPT_STRIPPED, &strip, sizeof(strip));
-	if (rc != 0) goto bail;
-
-	rc = pnasm_compile(pna);
-	if (rc != 0) goto bail;
-
-	logger(LOG_DEBUG, "pnasm: assembly complete, copying bytecode image to caller buffers");
-	*code = vmalloc(pna->size);
-	if (!*code) goto bail;
-
-	memcpy(*code, pna->code, pna->size);
-	*len = pna->size;
-	pnasm_free(pna);
-	return 0;
-
-bail:
-	pnasm_free(pna);
-	return -1;
-}
-
-int vm_asm_io(FILE *io, byte_t **code, size_t *len, const char *vpath, const char *inc, int strip)
-{
-	assert(code);
-	assert(len);
-
-	int rc;
-	pnasm_t *pna = pnasm_new();
-	if (!pna) return -1;
-	rc = pnasm_setopt(pna, PNASM_OPT_INIO, io, sizeof(io));
-	if (rc != 0) goto bail;
-
-	if (!vpath) vpath = "<unknown>";
-	rc = pnasm_setopt(pna, PNASM_OPT_INFILE, vpath, strlen(vpath));
-	if (rc != 0) goto bail;
-
-	if (inc) {
-		logger(LOG_DEBUG, "pnasm: setting inc = %s", inc);
-		rc = pnasm_setopt(pna, PNASM_OPT_INCLUDE, inc, strlen(inc));
-		if (rc != 0) goto bail;
-	} else {
-		char *e = getenv("PENDULUM_INCLUDE");
-		if (e) {
-			logger(LOG_DEBUG, "pnasm: setting inc = %s", e);
-			rc = pnasm_setopt(pna, PNASM_OPT_INCLUDE, e, strlen(e));
-			if (rc != 0) goto bail;
-		}
-	}
-
-	logger(LOG_DEBUG, "pnasm: setting stripped = %i", strip);
-	rc = pnasm_setopt(pna, PNASM_OPT_STRIPPED, &strip, sizeof(strip));
-	if (rc != 0) goto bail;
-
-	rc = pnasm_compile(pna);
-	if (rc != 0) goto bail;
-
-	*code = vmalloc(pna->size);
-	if (!*code) goto bail;
-
-	memcpy(*code, pna->code, pna->size);
-	*len = pna->size;
-	pnasm_free(pna);
-	return 0;
-
-bail:
-	pnasm_free(pna);
-	return -1;
-}
-
 int vm_disasm(vm_t *vm, FILE *out)
 {
 	if (vm->codesize < 3) return 1;
@@ -2412,7 +2308,7 @@ typedef struct {
 } op_t;
 
 typedef struct {
-	pnasm_t *main;
+	asm_t *main;
 
 	list_t   l;
 	FILE    *io;
@@ -2423,24 +2319,24 @@ typedef struct {
 	char     value[PNASM_LINE];
 	char     buffer[PNASM_LINE];
 	char     raw[PNASM_LINE];
-} pnasm_unit_t;
+} asm_unit_t;
 
-#define s_pnasm_unit(pna) list_tail(&(pna)->units, pnasm_unit_t, l)
-static int s_pnasm_unit_push(pnasm_t *pna);
-static int s_pnasm_unit_pop(pnasm_t *pna);
-static op_t* s_pnasm_op(pnasm_t *pna, byte_t type);
-static op_t* s_pnasm_annotate(pnasm_t *pna, dword_t anno, char *label);
-static int s_pnasm_resolve(pnasm_t *pna, value_t *v, op_t *me);
-static int s_pnasm_include(pnasm_t *pna, const char *module);
-static int s_pnasm_lex(pnasm_t *pna);
-static int s_pnasm_parse(pnasm_t *pna);
-static int s_pnasm_bytecode(pnasm_t *pna);
+#define s_asm_unit(pna) list_tail(&(pna)->units, asm_unit_t, l)
+static int s_asm_unit_push(asm_t *pna);
+static int s_asm_unit_pop(asm_t *pna);
+static op_t* s_asm_op(asm_t *pna, byte_t type);
+static op_t* s_asm_annotate(asm_t *pna, dword_t anno, char *label);
+static int s_asm_resolve(asm_t *pna, value_t *v, op_t *me);
+static int s_asm_include(asm_t *pna, const char *module);
+static int s_asm_lex(asm_t *pna);
+static int s_asm_parse(asm_t *pna);
+static int s_asm_bytecode(asm_t *pna);
 
 
-static int s_pnasm_unit_push(pnasm_t *pna)
+static int s_asm_unit_push(asm_t *pna)
 {
 	assert(pna);
-	pnasm_unit_t *u = vmalloc(sizeof(pnasm_unit_t));
+	asm_unit_t *u = vmalloc(sizeof(asm_unit_t));
 	if (u) {
 		list_init(&u->l);
 		u->main = pna;
@@ -2450,10 +2346,10 @@ static int s_pnasm_unit_push(pnasm_t *pna)
 	return 1;
 }
 
-static int s_pnasm_unit_pop(pnasm_t *pna)
+static int s_asm_unit_pop(asm_t *pna)
 {
 	assert(pna);
-	pnasm_unit_t *u = s_pnasm_unit(pna);
+	asm_unit_t *u = s_asm_unit(pna);
 	if (!u) return 1;
 
 	list_delete(&u->l);
@@ -2461,7 +2357,7 @@ static int s_pnasm_unit_pop(pnasm_t *pna)
 	return 0;
 }
 
-static op_t* s_pnasm_op(pnasm_t *pna, byte_t type)
+static op_t* s_asm_op(asm_t *pna, byte_t type)
 {
 	op_t *op = vmalloc(sizeof(op_t));
 	op->op = type;
@@ -2469,9 +2365,9 @@ static op_t* s_pnasm_op(pnasm_t *pna, byte_t type)
 	return op;
 }
 
-static op_t* s_pnasm_annotate(pnasm_t *pna, dword_t anno, char *label)
+static op_t* s_asm_annotate(asm_t *pna, dword_t anno, char *label)
 {
-	op_t *op = s_pnasm_op(pna, OP_ANNO);
+	op_t *op = s_asm_op(pna, OP_ANNO);
 	op->args[0].type = VALUE_NUMBER;
 	op->args[0]._.literal = anno;
 	op->args[1].type = VALUE_EMBED;
@@ -2479,7 +2375,7 @@ static op_t* s_pnasm_annotate(pnasm_t *pna, dword_t anno, char *label)
 	return op;
 }
 
-static int s_pnasm_resolve(pnasm_t *pna, value_t *v, op_t *me)
+static int s_asm_resolve(asm_t *pna, value_t *v, op_t *me)
 {
 	byte_t *addr;
 	size_t len;
@@ -2533,7 +2429,7 @@ static int s_pnasm_resolve(pnasm_t *pna, value_t *v, op_t *me)
 			v->_.address = op->offset;
 			return 0;
 		}
-		logger(LOG_ERR, "pnasm (resolver): label %s not found in scope!", v->_.label);
+		logger(LOG_ERR, "asm (resolver): label %s not found in scope!", v->_.label);
 		return 1;
 
 	case VALUE_FNLABEL:
@@ -2547,7 +2443,7 @@ static int s_pnasm_resolve(pnasm_t *pna, value_t *v, op_t *me)
 			v->_.address = op->offset;
 			return 0;
 		}
-		logger(LOG_ERR, "pnasm (resolver): function %s not defined!", v->_.fnlabel);
+		logger(LOG_ERR, "asm (resolver): function %s not defined!", v->_.fnlabel);
 		return 1;
 
 	case VALUE_OFFSET:
@@ -2565,22 +2461,22 @@ static int s_pnasm_resolve(pnasm_t *pna, value_t *v, op_t *me)
 	return 0;
 }
 
-static int s_pnasm_include(pnasm_t *pna, const char *module)
+static int s_asm_include(asm_t *pna, const char *module)
 {
 	assert(pna);
-	pnasm_unit_t *u = s_pnasm_unit(pna);
+	asm_unit_t *u = s_asm_unit(pna);
 
 	struct stat st;
 	int i;
 	for (i = 0; i < pna->include.paths->num; i++) {
 		char *path = string("%s/%s.pn", pna->include.paths->strings[i], module);
-		logger(LOG_DEBUG, "pnasm (preprocessor): checking for existence of `%s' module in file %s", module, path);
+		logger(LOG_DEBUG, "asm (preprocessor): checking for existence of `%s' module in file %s", module, path);
 		if (stat(path, &st) != 0) {
 			free(path);
 			continue;
 		}
 
-		logger(LOG_DEBUG, "pnasm (preprocessor): found '%s' module in file `%s' (dev/ino:%u/%u)",
+		logger(LOG_DEBUG, "asm (preprocessor): found '%s' module in file `%s' (dev/ino:%u/%u)",
 			module, path, st.st_dev, st.st_ino);
 		char *key = string("%u:%u", st.st_dev, st.st_ino);
 		if (hash_get(&pna->include.seen, key) != NULL) {
@@ -2589,30 +2485,30 @@ static int s_pnasm_include(pnasm_t *pna, const char *module)
 			return 0;
 		}
 
-		logger(LOG_DEBUG, "pnasm (preprocessor): '%s' is a new (never-before-included) file", path);
+		logger(LOG_DEBUG, "asm (preprocessor): '%s' is a new (never-before-included) file", path);
 		hash_set(&pna->include.seen, key, "Y");
 		free(key);
 
-		if (s_pnasm_unit_push(pna) != 0) {
+		if (s_asm_unit_push(pna) != 0) {
 			free(path);
 			return -1;
 		}
 
-		u = s_pnasm_unit(pna);
+		u = s_asm_unit(pna);
 		u->file = path;
 		u->io = fopen(u->file, "r");
 		if (!u->io)
 			return -1;
 
-		s_pnasm_annotate(pna, ANNO_MODULE, string("module : %s", module));
-		if (s_pnasm_parse(pna) != 0) /* recurse! */
+		s_asm_annotate(pna, ANNO_MODULE, string("module : %s", module));
+		if (s_asm_parse(pna) != 0) /* recurse! */
 			return -1;
 
-		s_pnasm_unit_pop(pna);
-		s_pnasm_annotate(pna, ANNO_MODULE, strdup("MAIN")); /* FIXME! */
+		s_asm_unit_pop(pna);
+		s_asm_annotate(pna, ANNO_MODULE, strdup("MAIN")); /* FIXME! */
 		return 0;
 	}
-	logger(LOG_ERR, "pnasm (preprocessor): %s:%i: could not find module `%s' for #include", u->file, u->line, module);
+	logger(LOG_ERR, "asm (preprocessor): %s:%i: could not find module `%s' for #include", u->file, u->line, module);
 	return -1;
 }
 
@@ -2620,10 +2516,10 @@ static int s_pnasm_include(pnasm_t *pna, const char *module)
 	while (*b && isspace(*b)) b++; \
 	memmove(u->buffer, b, PNASM_LINE - (b - u->buffer)); \
 } while (0)
-static int s_pnasm_lex(pnasm_t *pna)
+static int s_asm_lex(asm_t *pna)
 {
 	assert(pna);
-	pnasm_unit_t *u = s_pnasm_unit(pna);
+	asm_unit_t *u = s_asm_unit(pna);
 
 	char *a, *b;
 	if (!*u->buffer || *u->buffer == ';') {
@@ -2668,7 +2564,7 @@ getline:
 				pna->abort = 1;
 				return 0;
 			}
-			if (s_pnasm_include(pna, a) != 0) {
+			if (s_asm_include(pna, a) != 0) {
 				pna->abort = 1;
 				return 0;
 			}
@@ -2838,7 +2734,7 @@ getline:
 #undef SHIFTLINE
 
 #define NEXT do { \
-	if (!s_pnasm_lex(pna)) { \
+	if (!s_asm_lex(pna)) { \
 		logger(LOG_CRIT, "%s:%i: unexpected end of configuration\n", u->file, u->line); \
 		goto bail; \
 	} \
@@ -2854,18 +2750,18 @@ getline:
 	goto bail; \
 } while (0)
 
-static int s_pnasm_parse(pnasm_t *pna)
+static int s_asm_parse(asm_t *pna)
 {
 	assert(pna);
-	pnasm_unit_t *u = s_pnasm_unit(pna);
+	asm_unit_t *u = s_asm_unit(pna);
 	assert(u);
 
-	logger(LOG_DEBUG, "pnasm: starting to parse pendulum asm source file `%s'", u->file);
+	logger(LOG_DEBUG, "asm: starting to parse pendulum asm source file `%s'", u->file);
 
 	op_t *op, *FN = NULL;
 	int i, j;
 
-	while (s_pnasm_lex(pna)) {
+	while (s_asm_lex(pna)) {
 		op = vmalloc(sizeof(op_t));
 		op->fn = FN;
 
@@ -2884,7 +2780,7 @@ static int s_pnasm_parse(pnasm_t *pna)
 			if (u->token != T_IDENTIFIER)
 				ERROR("unacceptable name for function");
 			op->label = strdup(u->value);
-			s_pnasm_annotate(pna, ANNO_FUNCTION, strdup(u->value));
+			s_asm_annotate(pna, ANNO_FUNCTION, strdup(u->value));
 			break;
 
 		case T_ACL:
@@ -2972,13 +2868,13 @@ static int s_pnasm_parse(pnasm_t *pna)
 	}
 
 	if (pna->abort) {
-		logger(LOG_WARNING, "pnasm: aborting");
+		logger(LOG_WARNING, "asm: aborting");
 		return 1;
 	}
 
 	if (FN && list_tail(&pna->ops, op_t, l)->op != OP_RET
 	       && list_tail(&pna->ops, op_t, l)->op != OP_BAIL) {
-		op = s_pnasm_op(pna, OP_RET);
+		op = s_asm_op(pna, OP_RET);
 	}
 	return 0;
 
@@ -2989,7 +2885,7 @@ bail:
 #undef ERROR
 #undef BADTOKEN
 
-static int s_pnasm_bytecode(pnasm_t *pna)
+static int s_asm_bytecode(asm_t *pna)
 {
 	assert(pna);
 	/* phases of compilation:
@@ -3061,8 +2957,8 @@ static int s_pnasm_bytecode(pnasm_t *pna)
 		if (op->op == OP_ANNO && pna->flags & PNASM_FLAG_STRIP) continue;
 
 		/* phase II/III: resolve labels / pack strings */
-		rc = s_pnasm_resolve(pna, &op->args[0], op); if (rc) return rc;
-		rc = s_pnasm_resolve(pna, &op->args[1], op); if (rc) return rc;
+		rc = s_asm_resolve(pna, &op->args[0], op); if (rc) return rc;
+		rc = s_asm_resolve(pna, &op->args[1], op); if (rc) return rc;
 
 		/* phase IV: encode */
 		*c++ = op->op;
@@ -3104,33 +3000,33 @@ static int s_pnasm_bytecode(pnasm_t *pna)
 	return 0;
 }
 
-pnasm_t *pnasm_new(void)
+asm_t *asm_new(void)
 {
-	pnasm_t *pna = vmalloc(sizeof(pnasm_t));
+	asm_t *pna = vmalloc(sizeof(asm_t));
 	if (!pna) return NULL;
 
 	list_init(&pna->units);
 	list_init(&pna->ops);
-	if (s_pnasm_unit_push(pna) != 0) {
-		pnasm_free(pna);
+	if (s_asm_unit_push(pna) != 0) {
+		asm_free(pna);
 		return NULL;
 	}
 
-	if (pnasm_setopt(pna, PNASM_OPT_INCLUDE, PENDULUM_INCLUDE, strlen(PENDULUM_INCLUDE)) != 0) {
-		pnasm_free(pna);
+	if (asm_setopt(pna, PNASM_OPT_INCLUDE, PENDULUM_INCLUDE, strlen(PENDULUM_INCLUDE)) != 0) {
+		asm_free(pna);
 		return NULL;
 	}
 
 	return pna;
 }
 
-void pnasm_free(pnasm_t *pna)
+void asm_free(asm_t *pna)
 {
 	if (!pna) return;
 	strings_free(pna->include.paths);
 	hash_done(&pna->include.seen, 0);
 
-	pnasm_unit_t *unit, *tmp;
+	asm_unit_t *unit, *tmp;
 	for_each_object_safe(unit, tmp, &pna->units, l) {
 		if (unit->io)
 			fclose(unit->io);
@@ -3149,28 +3045,28 @@ static const char *PNASM_OPT_NAMES[] = {
 	"PNASM_OPT_STRIPPED",
 	"PNASM_OPT_INCLUDE",
 };
-static const char* s_pnasm_optname(int opt)
+static const char* s_asm_optname(int opt)
 {
 	if (opt < PNASM_OPT_MIN || opt > PNASM_OPT_MAX) opt = 1;
 	return PNASM_OPT_NAMES[opt];
 }
 
-int pnasm_setopt(pnasm_t *pna, int opt, const void *v, size_t len)
+int asm_setopt(asm_t *pna, int opt, const void *v, size_t len)
 {
-	pnasm_unit_t *current;
+	asm_unit_t *current;
 	char *tmp;
 
 	errno = EINVAL;
 	if (!pna) return -1;
 
-	logger(LOG_DEBUG, "pnasm: setting assembler option %s (%#04x) on %p (v=%p, l=%u)",
-		s_pnasm_optname(opt), opt, pna, v, len);
+	logger(LOG_DEBUG, "asm: setting assembler option %s (%#04x) on %p (v=%p, l=%u)",
+		s_asm_optname(opt), opt, pna, v, len);
 
 	switch (opt) {
 	case PNASM_OPT_INIO:
 		if (len != sizeof(FILE*)) return -1;
 
-		current = s_pnasm_unit(pna);
+		current = s_asm_unit(pna);
 		if (!current) return -1;
 
 		current->io = (FILE*)v;
@@ -3179,7 +3075,7 @@ int pnasm_setopt(pnasm_t *pna, int opt, const void *v, size_t len)
 	case PNASM_OPT_INFILE:
 		if (len < 0)  return -1;
 
-		current = s_pnasm_unit(pna);
+		current = s_asm_unit(pna);
 		if (!current) return -1;
 
 		free(current->file);
@@ -3217,22 +3113,22 @@ int pnasm_setopt(pnasm_t *pna, int opt, const void *v, size_t len)
 	return 0;
 }
 
-int pnasm_getopt(pnasm_t *pna, int opt, void *v, size_t *len)
+int asm_getopt(asm_t *pna, int opt, void *v, size_t *len)
 {
 	assert(pna);
 	errno = EINVAL;
 	return -1;
 }
 
-int pnasm_compile(pnasm_t *pna)
+int asm_compile(asm_t *pna)
 {
-	pnasm_unit_t *u = s_pnasm_unit(pna);
+	asm_unit_t *u = s_asm_unit(pna);
 	assert(u);
 
-	logger(LOG_DEBUG, "pnasm: beginning assembly");
+	logger(LOG_DEBUG, "asm: beginning assembly");
 
 	if (!u->io && u->file) {
-		logger(LOG_DEBUG, "pnasm: no explicit IO stream given; opening `%s'", u->file);
+		logger(LOG_DEBUG, "asm: no explicit IO stream given; opening `%s'", u->file);
 		u->io = fopen(u->file, "r");
 		if (!u->io) {
 			logger(LOG_ERR, "%s: %s (error %u)", u->file, strerror(errno), errno);
@@ -3240,15 +3136,15 @@ int pnasm_compile(pnasm_t *pna)
 		}
 	}
 	if (!u->io) {
-		logger(LOG_ERR, "pnasm: no file or IO stream given to compilation routine; aborting");
+		logger(LOG_ERR, "asm: no file or IO stream given to compilation routine; aborting");
 		return -1;
 	}
 
 	int rc;
-	logger(LOG_DEBUG, "pnasm: beginning parse phase of assembly");
-	rc = s_pnasm_parse(pna);  if (rc != 0) return rc;
-	logger(LOG_DEBUG, "pnasm: beginning bytecoding phase of assembly");
-	rc = s_pnasm_bytecode(pna); if (rc != 0) return rc;
+	logger(LOG_DEBUG, "asm: beginning parse phase of assembly");
+	rc = s_asm_parse(pna);  if (rc != 0) return rc;
+	logger(LOG_DEBUG, "asm: beginning bytecoding phase of assembly");
+	rc = s_asm_bytecode(pna); if (rc != 0) return rc;
 
 	return 0;
 }

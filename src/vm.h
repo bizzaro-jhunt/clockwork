@@ -139,8 +139,6 @@ int vm_reset(vm_t *vm);
 int vm_load(vm_t *vm, byte_t *code, size_t len);
 int vm_args(vm_t *vm, int argc, char **argv);
 int vm_exec(vm_t *vm);
-int vm_asm_file(const char *path, byte_t **code, size_t *len, const char *inc, int strip);
-int vm_asm_io(FILE *io, byte_t **code, size_t *len, const char *vpath, const char *inc, int strip);
 int vm_disasm(vm_t *vm, FILE *out);
 int vm_done(vm_t *vm);
 
@@ -163,7 +161,7 @@ typedef struct {
 
 	byte_t     *code;
 	size_t      size;
-} pnasm_t;
+} asm_t;
 
 #define PNASM_FLAG_STRIP 0x01
 
@@ -174,10 +172,10 @@ typedef struct {
 #define PNASM_OPT_INCLUDE  4
 #define PNASM_OPT_MAX      4
 
-pnasm_t *pnasm_new(void);
-void pnasm_free(pnasm_t *pna);
-int pnasm_setopt(pnasm_t *pna, int opt, const void *v, size_t len);
-int pnasm_getopt(pnasm_t *pna, int opt, void *v, size_t *len);
-int pnasm_compile(pnasm_t *pna);
+asm_t *asm_new(void);
+void asm_free(asm_t *pna);
+int asm_setopt(asm_t *pna, int opt, const void *v, size_t len);
+int asm_getopt(asm_t *pna, int opt, void *v, size_t *len);
+int asm_compile(asm_t *pna);
 
 #endif

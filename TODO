@@ -4,9 +4,7 @@ TODO
   - document pendulum 2 assembler code
     (maybe embed in opcodes.yml?)
   - man page for pcov (and probably updates for pn)
-  - clean up assembler/compiler code - it's getting out of hand
   - make fn redefinition emit a warning
-  - handle missing stdlib better
   - go through call tree in general and handle errors
   - better logging
   - update vim syntax files

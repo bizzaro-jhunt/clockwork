@@ -102,7 +102,7 @@ typedef struct {
 
 static compiler_t* s_compiler_new(const char *path, FILE *io, int strip)
 {
-	compiler_t *cc = calloc(1, sizeof(compiler_t));
+	compiler_t *cc = vmalloc(sizeof(compiler_t));
 	if (cc) {
 		cc->file = path;
 		if (!io) {
@@ -187,7 +187,7 @@ static char* s_findlib(compiler_t *cc, const char *relpath)
 
 static op_t* s_asm_pushop(compiler_t *cc, byte_t type)
 {
-	op_t *op = calloc(1, sizeof(op_t));
+	op_t *op = vmalloc(sizeof(op_t));
 	op->op = type;
 	list_push(&cc->ops, &op->l);
 	return op;
@@ -460,7 +460,7 @@ static int s_asm_parse(compiler_t *cc)
 	int i, j;
 	op_t *op;
 	while (s_asm_lex(cc)) {
-		op = calloc(1, sizeof(op_t));
+		op = vmalloc(sizeof(op_t));
 		op->fn = FN;
 
 		switch (cc->token) {
@@ -468,7 +468,7 @@ static int s_asm_parse(compiler_t *cc)
 			if (FN && list_tail(&cc->ops, op_t, l)->op != OP_RET) {
 				op->op = OP_RET;
 				list_push(&cc->ops, &op->l);
-				op = calloc(1, sizeof(op_t));
+				op = vmalloc(sizeof(op_t));
 			}
 			FN = op;
 			op->special = SPECIAL_FUNC;
@@ -674,7 +674,7 @@ static int s_asm_encode(compiler_t *cc)
 	int rc;
 
 	/* phase I: runtime insertion */
-	op = calloc(1, sizeof(op_t));
+	op = vmalloc(sizeof(op_t));
 	op->op = OP_JMP; /* jmp, don't call */
 	op->args[0].type = VALUE_FNLABEL;
 	op->args[0]._.label = strdup("main");
@@ -904,7 +904,7 @@ static char *bin(byte_t *data, size_t size)
 
 static heap_t *vm_heap_alloc(vm_t *vm, size_t n)
 {
-	heap_t *h = calloc(1, sizeof(heap_t));
+	heap_t *h = vmalloc(sizeof(heap_t));
 	h->addr = vm->heaptop++ | HEAP_ADDRMASK;
 	h->size = n;
 	if (n)
@@ -915,7 +915,7 @@ static heap_t *vm_heap_alloc(vm_t *vm, size_t n)
 
 static dword_t vm_heap_string(vm_t *vm, char *s)
 {
-	heap_t *h = calloc(1, sizeof(heap_t));
+	heap_t *h = vmalloc(sizeof(heap_t));
 	h->addr = vm->heaptop++ | HEAP_ADDRMASK;
 	h->size = strlen(s) + 1;
 	h->data = (byte_t *)s;

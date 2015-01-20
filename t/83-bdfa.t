@@ -27,6 +27,7 @@ sub prep
 		utime 872835240, 872835240, $_;
 		chmod 0755, $_ if -d $_;
 		chmod 0644, $_ if -f $_;
+		chown $UID, $GID, $_ if !$>;
 	}, "t/tmp/bdfa");
 }
 

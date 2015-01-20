@@ -104,6 +104,8 @@ BUILT_TESTS    = $(CTAP_TESTS)
 check_PROGRAMS = $(CTAP_TESTS) TEST_cogd TEST_clockd TEST_ps TEST_lock TEST_meshd TEST_cmd
 
 TEST_EXTRAS  = t/common.pm
+TEST_EXTRAS += t/cover.pn
+TEST_EXTRAS += t/patterns
 TEST_EXTRAS += $(PERL_TESTS)
 TEST_EXTRAS += t/memcheck/verify
 TEST_EXTRAS += $(SHELL_TESTS)

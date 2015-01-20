@@ -117,9 +117,12 @@ int main (int argc, char **argv)
 	if (debug) level = LOG_DEBUG;
 	log_open(ident, facility);
 	log_level(level, NULL);
+	logger(LOG_INFO, "pn starting up");
 
 	if (mode == MODE_EXECUTE || mode == MODE_DISASSEMBLE) {
-		/* modes that require a valid binary image */
+		logger(LOG_DEBUG, "running in execute / disassemble mode; a valid binary image is required");
+		logger(LOG_DEBUG, "opening `%s' for execution / disassembly", argv[optind]);
+
 		int rc, fd = open(argv[optind], O_RDONLY);
 		if (fd < 0) {
 			perror(argv[optind]);
@@ -184,18 +187,27 @@ int main (int argc, char **argv)
 	}
 
 	if (mode == MODE_ASSEMBLE) {
+		logger(LOG_DEBUG, "running in assembler mode");
 		byte_t *code;
 		size_t len;
 		int rc, outfd = 1;
 
 		if (strcmp(argv[optind], "-") == 0) {
 			rc = vm_asm_io(stdin, &code, &len, "<stdin>", NULL, strip);
-			assert(rc == 0);
+			if (rc != 0) {
+				logger(LOG_ERR, "assembly of pendulum source code on standard input failed");
+				return 1;
+			}
 		} else {
 			rc = vm_asm_file(argv[optind], &code, &len, NULL, strip);
-			assert(rc == 0);
+			if (rc != 0) {
+				logger(LOG_ERR, "assembly of pendulum source code in `%s' failed", argv[optind]);
+				return 1;
+			}
 
 			char *sfile = string("%s.S", argv[optind]);
+			logger(LOG_DEBUG, "writing pendulum bytecode image to `%s'", sfile);
+
 			outfd = open(sfile, O_WRONLY|O_CREAT|O_TRUNC, 0666);
 			if (outfd < 0) {
 				perror(sfile);

@@ -43,6 +43,13 @@ typedef uint8_t   byte_t;
 typedef uint16_t  word_t;
 typedef uint32_t dword_t;
 
+#define HI_NYBLE(_) (((_) >> 4) & 0x0f)
+#define LO_NYBLE(_) ( (_)       & 0x0f)
+#define HI_BYTE(_)  (((_) >> 8) & 0xff);
+#define LO_BYTE(_)  ( (_)       & 0xff);
+#define WORD(a,b) ((a << 8) | (b))
+#define DWORD(a,b,c,d) ((a << 24) | (b << 16) | (c << 8) | (d))
+
 typedef struct {
 	dword_t val[254];
 	byte_t  top;
@@ -62,6 +69,8 @@ typedef struct {
 
 #define NREGS 16
 #define VM_MAX_OPENDIRS 2048
+#define HEAP_ADDRMASK 0x80000000
+
 typedef struct {
 	dword_t  r[16];  /* generic registers */
 	dword_t  acc;    /* accumulator register */
@@ -120,14 +129,6 @@ typedef struct {
 	byte_t  *code;
 } vm_t;
 
-#define HI_NYBLE(_) (((_) >> 4) & 0x0f)
-#define LO_NYBLE(_) ( (_)       & 0x0f)
-#define HI_BYTE(_)  (((_) >> 8) & 0xff);
-#define LO_BYTE(_)  ( (_)       & 0xff);
-#define WORD(a,b) ((a << 8) | (b))
-#define DWORD(a,b,c,d) ((a << 24) | (b << 16) | (c << 8) | (d))
-
-#define HEAP_ADDRMASK 0x80000000
 
 #define is_value(fl)    ((fl) == TYPE_LITERAL)
 #define is_address(fl)  ((fl) == TYPE_ADDRESS)
@@ -142,5 +143,41 @@ int vm_asm_file(const char *path, byte_t **code, size_t *len, const char *inc, i
 int vm_asm_io(FILE *io, byte_t **code, size_t *len, const char *vpath, const char *inc, int strip);
 int vm_disasm(vm_t *vm, FILE *out);
 int vm_done(vm_t *vm);
+
+typedef struct {
+	int         flags;
+	int         abort;
+	list_t      ops;
+	list_t      units;
+
+	struct {
+		hash_t  strings;
+		dword_t offset;
+		dword_t fill;
+	} data;
+
+	struct {
+		strings_t *paths;
+		hash_t     seen;
+	} include;
+
+	byte_t     *code;
+	size_t      size;
+} pnasm_t;
+
+#define PNASM_FLAG_STRIP 0x01
+
+#define PNASM_OPT_MIN      1
+#define PNASM_OPT_INIO     1
+#define PNASM_OPT_INFILE   2
+#define PNASM_OPT_STRIPPED 3
+#define PNASM_OPT_INCLUDE  4
+#define PNASM_OPT_MAX      4
+
+pnasm_t *pnasm_new(void);
+void pnasm_free(pnasm_t *pna);
+int pnasm_setopt(pnasm_t *pna, int opt, const void *v, size_t len);
+int pnasm_getopt(pnasm_t *pna, int opt, void *v, size_t *len);
+int pnasm_compile(pnasm_t *pna);
 
 #endif

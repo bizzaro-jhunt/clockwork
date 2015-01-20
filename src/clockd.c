@@ -180,7 +180,6 @@ static int s_gencode(client_t *c, byte_t **code, size_t *len)
 		rewind(io);
 		rc = vm_asm_io(io, code, len, "<clockd>", c->server->include, 1);
 	}
-	fclose(io);
 	if (rc != 0)
 		return 1;
 

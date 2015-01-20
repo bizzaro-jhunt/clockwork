@@ -3038,6 +3038,7 @@ void asm_free(asm_t *pna)
 	if (!pna) return;
 	strings_free(pna->include.paths);
 	hash_done(&pna->include.seen, 0);
+	hash_done(&pna->funcs, 1);
 
 	asm_unit_t *unit, *tmp;
 	for_each_object_safe(unit, tmp, &pna->units, l) {

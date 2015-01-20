@@ -410,8 +410,8 @@ fn res:00000001
 fn fix:00000001
   call util.authdb.open
   set %a "t3user"
-  set %b 0 ; uid
-  set %c 0 ; gid
+  set %b 4294967295 ; uid
+  set %c 4294967295 ; gid
   set %d "/home/t3user" ; home
   set %e "" ; shell
   set %f "$$crypto" ; password

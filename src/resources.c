@@ -327,8 +327,8 @@ int res_user_gencode(const void *res, FILE *io)
 	            "  set %%e \"%s\" ; shell\n"
 	            "  set %%f \"%s\" ; password\n"
 	            "  call res.user.present\n",
-	            ENFORCED(r, RES_USER_UID)   ? r->uid   : 0xffff,
-	            ENFORCED(r, RES_USER_GID)   ? r->gid   : 0xffff,
+	            ENFORCED(r, RES_USER_UID)   ? r->uid   : 0xffffffff,
+	            ENFORCED(r, RES_USER_GID)   ? r->gid   : 0xffffffff,
 	            ENFORCED(r, RES_USER_DIR)   ? r->dir   : s,
 	            ENFORCED(r, RES_USER_SHELL) ? r->shell : "",
 	            r->passwd ? r->passwd : "*");

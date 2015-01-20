@@ -179,6 +179,7 @@ subtest "clockd: invalid certificate" => sub {
 	mkdir "t/tmp";
 	put_file "t/tmp/clockd.conf", <<EOF;
 security.cert t/tmp/cert
+pendulum.inc .
 EOF
 	put_file "t/tmp/cert", <<EOF;
 this is not a certificate file
@@ -204,6 +205,7 @@ subtest "clockd: missing certificate" => sub {
 	mkdir "t/tmp";
 	put_file "t/tmp/clockd.conf", <<EOF;
 security.cert /path/to/nowhere
+pendulum.inc .
 EOF
 	my ($stdout, $stderr);
 	local $ENV{TEST_CLOCKD_BAIL_EARLY} = 1;
@@ -224,6 +226,7 @@ subtest "clockd: missing private key component of certificate" => sub {
 	mkdir "t/tmp";
 	put_file "t/tmp/clockd.conf", <<EOF;
 security.cert t/tmp/cert
+pendulum.inc .
 EOF
 	put_file "t/tmp/cert", <<EOF;
 id  pubonly.test
@@ -248,6 +251,7 @@ subtest "clockd: anonymous certificate" => sub {
 	mkdir "t/tmp";
 	put_file "t/tmp/clockd.conf", <<EOF;
 security.cert t/tmp/cert
+pendulum.inc .
 EOF
 	put_file "t/tmp/cert", <<EOF;
 pub aea625f90ac478b9bc9649f6ab74e5f095bab8522f107b1a6d701e83c41cfc4b
@@ -277,7 +281,7 @@ security.trusted t/tmp/trusted
 security.strict  yes
 copydown t/tmp/copydown
 manifest t/tmp/manifest.pol
-stdlib   t/tmp/stdlib.pn
+pendulum.inc t/tmp
 EOF
 	put_file "t/tmp/master", <<EOF;
 id  master.host.fq.dn
@@ -339,7 +343,7 @@ security.trusted t/tmp/trusted
 security.strict  yes
 copydown t/tmp/copydown
 manifest t/tmp/manifest.pol
-stdlib   t/tmp/stdlib.pn
+pendulum.inc t/tmp
 EOF
 	put_file "t/tmp/manifest.pol", <<EOF;
 policy "base" { }
@@ -407,7 +411,7 @@ security.cert    t/tmp/master
 security.strict  no
 copydown t/tmp/copydown
 manifest t/tmp/manifest.pol
-stdlib   t/tmp/stdlib.pn
+pendulum.inc t/tmp
 EOF
 	put_file "t/tmp/master", <<EOF;
 id  master.host.fq.dn
@@ -465,7 +469,7 @@ security.cert    t/tmp/master
 security.strict  no
 copydown t/tmp/copydown
 manifest t/tmp/manifest.pol
-stdlib   t/tmp/stdlib.pn
+pendulum.inc t/tmp
 EOF
 	put_file "t/tmp/master", <<EOF;
 id  master.host.fq.dn

@@ -138,8 +138,8 @@ int vm_reset(vm_t *vm);
 int vm_load(vm_t *vm, byte_t *code, size_t len);
 int vm_args(vm_t *vm, int argc, char **argv);
 int vm_exec(vm_t *vm);
-int vm_asm_file(const char *path, byte_t **code, size_t *len, int strip);
-int vm_asm_io(FILE *io, byte_t **code, size_t *len, const char *vpath, int strip);
+int vm_asm_file(const char *path, byte_t **code, size_t *len, const char *inc, int strip);
+int vm_asm_io(FILE *io, byte_t **code, size_t *len, const char *vpath, const char *inc, int strip);
 int vm_disasm(vm_t *vm, FILE *out);
 int vm_done(vm_t *vm);
 

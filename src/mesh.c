@@ -173,7 +173,7 @@ static int s_cmd_compile(const char *command, byte_t **code, size_t *len)
 	cmd_destroy(cmd);
 	rewind(io);
 
-	int rc = vm_asm_io(io, code, len, "<mesh>", 1);
+	int rc = vm_asm_io(io, code, len, "<mesh>", NULL, 1);
 	fclose(io);
 	return rc;
 }
@@ -576,7 +576,7 @@ int acl_gencode(acl_t *a, FILE *io)
 	assert(a);
 	assert(io);
 
-	fprintf(io, "ACL \"%s %s%s \\\"%s\\\"%s\"\n",
+	fprintf(io, "acl \"%s %s%s \\\"%s\\\"%s\"\n",
 			a->disposition == ACL_ALLOW ? "allow" : "deny",
 			a->target_group ? "%" : "",
 			a->target_group ? a->target_group : a->target_user,

@@ -189,10 +189,10 @@ int main (int argc, char **argv)
 		int rc, outfd = 1;
 
 		if (strcmp(argv[optind], "-") == 0) {
-			rc = vm_asm_io(stdin, &code, &len, "<stdin>", strip);
+			rc = vm_asm_io(stdin, &code, &len, "<stdin>", NULL, strip);
 			assert(rc == 0);
 		} else {
-			rc = vm_asm_file(argv[optind], &code, &len, strip);
+			rc = vm_asm_file(argv[optind], &code, &len, NULL, strip);
 			assert(rc == 0);
 
 			char *sfile = string("%s.S", argv[optind]);

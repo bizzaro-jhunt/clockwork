@@ -139,7 +139,7 @@ struct __server_t {
 	cache_t          *clients;
 	struct manifest  *manifest;
 	char             *copydown;
-	char             *stdlib;
+	char             *include;
 
 	cert_t     *cert;
 	trustdb_t  *tdb;
@@ -178,7 +178,7 @@ static int s_gencode(client_t *c, byte_t **code, size_t *len)
 
 		src_len = ftell(io);
 		rewind(io);
-		rc = vm_asm_io(io, code, len, "<clockd>", 1);
+		rc = vm_asm_io(io, code, len, "<clockd>", c->server->include, 1);
 	}
 	fclose(io);
 	if (rc != 0)
@@ -521,7 +521,7 @@ static inline server_t *s_server_new(int argc, char **argv)
 	config_set(&config, "security.trusted",    "/etc/clockwork/certs/trusted");
 	config_set(&config, "security.cert",       "/etc/clockwork/certs/clockd");
 	config_set(&config, "pidfile",             "/var/run/clockd.pid");
-	config_set(&config, "stdlib",              PACKAGE_LIBDIR "/stdlib.pn");
+	config_set(&config, "pendulum.inc",        PENDULUM_INCLUDE);
 
 	log_open(config_get(&config, "syslog.ident"), "stderr");
 	log_level(0, (getenv("CLOCKD_DEBUG") ? "debug" : "error"));
@@ -538,7 +538,7 @@ static inline server_t *s_server_new(int argc, char **argv)
 	logger(LOG_DEBUG, "  security.trusted    %s", config_get(&config, "security.trusted"));
 	logger(LOG_DEBUG, "  security.cert       %s", config_get(&config, "security.cert"));
 	logger(LOG_DEBUG, "  pidfile             %s", config_get(&config, "pidfile"));
-	logger(LOG_DEBUG, "  stdlib              %s", config_get(&config, "stdlib"));
+	logger(LOG_DEBUG, "  pendulum.inc        %s", config_get(&config, "pendulum.inc"));
 
 
 	logger(LOG_DEBUG, "processing command-line options");
@@ -685,6 +685,7 @@ static inline server_t *s_server_new(int argc, char **argv)
 		printf("security.trusted    %s\n", config_get(&config, "security.trusted"));
 		printf("security.cert       %s\n", config_get(&config, "security.cert"));
 		printf("pidfile             %s\n", config_get(&config, "pidfile"));
+		printf("pendulum.inc        %s\n", config_get(&config, "pendulum.inc"));
 		exit(0);
 	}
 
@@ -713,7 +714,7 @@ static inline server_t *s_server_new(int argc, char **argv)
 		s->tdb->verify ? "Enabling" : "Disabling");
 
 	s->copydown = strdup(config_get(&config, "copydown"));
-	s->stdlib   = strdup(config_get(&config, "stdlib"));
+	s->include  = strdup(config_get(&config, "pendulum.inc"));
 	s->manifest = parse_file(config_get(&config, "manifest"));
 	if (!s->manifest) {
 		if (errno)
@@ -777,7 +778,7 @@ static inline void s_server_destroy(server_t *s)
 	cert_free(s->cert);
 	trustdb_free(s->tdb);
 	free(s->copydown);
-	free(s->stdlib);
+	free(s->include);
 
 	zap_shutdown(s->zap);
 	zmq_ctx_destroy(s->zmq);

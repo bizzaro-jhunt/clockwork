@@ -93,6 +93,7 @@ typedef struct {
 	dword_t     static_offset;
 	dword_t     static_fill;
 
+	const char *inc;     /* colon-separated list of include paths */
 	strings_t  *incpath; /* list of directories to search for #includes */
 	hash_t      incseen; /* list of seen dev/ino pairs (as string keys) */
 
@@ -100,7 +101,7 @@ typedef struct {
 	size_t      size;
 } compiler_t;
 
-static compiler_t* s_compiler_new(const char *path, FILE *io, int strip)
+static compiler_t* s_compiler_new(const char *path, FILE *io, const char *inc, int strip)
 {
 	compiler_t *cc = vmalloc(sizeof(compiler_t));
 	if (cc) {
@@ -115,15 +116,20 @@ static compiler_t* s_compiler_new(const char *path, FILE *io, int strip)
 		}
 		cc->io = io;
 
+		cc->inc = inc;
 		cc->strip = strip;
 
 		/* set up include dirs */
-		char  *e = getenv("PENDULUM_INCLUDE");
-		if (e) e = string("%s:" PENDULUM_INCLUDE, e);
-		else   e = strdup(PENDULUM_INCLUDE);
+		if (!inc) {
+			char  *e = getenv("PENDULUM_INCLUDE");
+			if (e) e = string("%s:" PENDULUM_INCLUDE, e);
+			else   e = strdup(PENDULUM_INCLUDE);
 
-		cc->incpath = strings_split(e, strlen(e), ":", SPLIT_NORMAL);
-		free(e);
+			cc->incpath = strings_split(e, strlen(e), ":", SPLIT_NORMAL);
+			free(e);
+		} else {
+			cc->incpath = strings_split(inc, strlen(inc), ":", SPLIT_NORMAL);
+		}
 
 	}
 	return cc;
@@ -267,7 +273,7 @@ getline:
 				op = s_asm_annotate(cc, ANNO_MODULE, string("module : %s", a));
 
 				/* start up a new compiler for the new library */
-				compiler_t *c2 = s_compiler_new(path, NULL, cc->strip);
+				compiler_t *c2 = s_compiler_new(path, NULL, cc->inc, cc->strip);
 				if (s_asm_parse(c2) != 0) {
 					s_compiler_free(c2);
 					return 0;
@@ -2837,17 +2843,17 @@ again:
 	return vm->acc;
 }
 
-int vm_asm_file(const char *path, byte_t **code, size_t *len, int strip)
+int vm_asm_file(const char *path, byte_t **code, size_t *len, const char *inc, int strip)
 {
 	int rc;
 	compiler_t *cc;
 
 	if (strcmp(path, "-") == 0) {
-		cc = s_compiler_new("<stdin>", stdin, strip);
+		cc = s_compiler_new("<stdin>", stdin, inc, strip);
 		rc = s_vm_asm(cc, code, len);
 
 	} else {
-		cc = s_compiler_new(path, NULL, strip);
+		cc = s_compiler_new(path, NULL, inc, strip);
 		rc = s_vm_asm(cc, code, len);
 	}
 
@@ -2855,12 +2861,12 @@ int vm_asm_file(const char *path, byte_t **code, size_t *len, int strip)
 	return rc;
 }
 
-int vm_asm_io(FILE *io, byte_t **code, size_t *len, const char *vpath, int strip)
+int vm_asm_io(FILE *io, byte_t **code, size_t *len, const char *vpath, const char *inc, int strip)
 {
 	int rc;
 	compiler_t *cc;
 
-	cc = s_compiler_new(vpath ? vpath : "<unknown>", io, strip);
+	cc = s_compiler_new(vpath ? vpath : "<unknown>", io, inc, strip);
 	rc = s_vm_asm(cc, code, len);
 
 	s_compiler_free(cc);

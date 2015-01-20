@@ -1,6 +1,7 @@
 TODO
 ====
 
+  - group membership / adminhood
   - document pendulum 2 assembler code
     (maybe embed in opcodes.yml?)
   - man page for pcov (and probably updates for pn)

@@ -712,12 +712,14 @@ filter_t* filter_parse(const char *s)
 		a++; b--;
 		char *pat = s_string(a, b);
 
-		const char *e_string;
-		int e_offset;
+		const char *e_string = NULL; int e_offset;
 		f->regex = pcre_compile(pat, PCRE_CASELESS, &e_string, &e_offset, NULL);
 		free(pat);
 
-		/* FIXME: what do we do with the error string?? */
+		if (e_string) {
+			logger(LOG_ERR, "failed to parse regular expression for acl: %s", e_string);
+			f->regex = NULL;
+		}
 	} else {
 		f->literal = s_string(a, b);
 	}

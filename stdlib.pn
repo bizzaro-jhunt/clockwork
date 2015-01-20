@@ -993,7 +993,7 @@ fn res.service.stop
 fn res.host.absent
     syslog info "%T: enforcing absence of hosts entry %[a]s/%[b]s"
     string "/files/etc/hosts/*[ipaddr = \"%[a]s\" and canonical = \"%[b]s\"]" %p
-    augeas.find %p %o ;; FIXME augeas.exists?
+    augeas.find %p %o
     jz +1 retv 0
       augeas.remove %p
       jz +2
@@ -1013,7 +1013,7 @@ fn res.host.absent
 fn res.host.present
     syslog info "%T: enforcing presence of hosts entry %[a]s/%[b]s"
     string "/files/etc/hosts/*[ipaddr = \"%[a]s\" and canonical = \"%[b]s\"]" %p
-    augeas.find %p %o ;; FIXME augeas.exists?
+    augeas.find %p %o
     jnz +1 ret
 
     syslog notice "%T: creating new hosts entry for %[a]s/%[b]s"

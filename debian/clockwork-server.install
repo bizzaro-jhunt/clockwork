@@ -4,6 +4,7 @@ lib/clockwork/cli/cw-cc
 lib/clockwork/cli/cw-shell
 lib/clockwork/cli/cw-template-erb
 lib/clockwork/help
+lib/clockwork/pn
 sbin/clockd
 usr/share/man/man1/cw-cc.1
 usr/share/man/man1/cw-shell.1

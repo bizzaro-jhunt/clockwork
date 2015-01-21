@@ -1447,6 +1447,142 @@ EOF
 
 	"ok",
 	"group.delete without a group.find returns non-zero to accumulator");
+
+};
+
+subtest "group memberships" => sub {
+	mkdir "t/tmp/auth";
+	put_file "t/tmp/auth/passwd", <<EOF;
+root:x:0:0:root:/root:/bin/bash
+sys:x:3:3:sys:/dev:/usr/sbin/nologin
+user1:x:1000:1100:Some User:/home/user1:/bin/bash
+user2:x:1001:1101:Some User:/home/user2:/bin/bash
+EOF
+	put_file "t/tmp/auth/shadow", <<EOF;
+root:HASH:15390:0:99999:7:::
+sys:*:15259:0:99999:7:::
+user1:PWHASH:15259:0:99999:7:::
+user2:PWHASH:15259:0:99999:7:::
+EOF
+
+	put_file "t/tmp/auth/group", <<EOF;
+root:x:0:
+sys:x:3:
+group1:x:1100:user1
+group2:x:1101:user2,sys
+EOF
+
+	put_file "t/tmp/auth/gshadow", <<EOF;
+root:*::
+daemon:*::
+bin:*::
+sys:*::
+group1:*::user1
+group2:*:sys:user2,sys
+EOF
+
+	pendulum_ok(qq(
+	fn main
+		pragma authdb.root "t/tmp/auth"
+		authdb.open
+
+		group.find "group2" jz +2
+			print "failed to find group2"
+			bail 1
+
+		user.find "user2" jz +2
+			print "user2 not found in /etc/passwd"
+			bail 1
+		group.has? "member" "user2" jz +2
+			print "user2 not found in group2"
+			bail 1
+		group.has? "admin" "user2" jnz +2
+			print "user2 is an admin of group2"
+			bail 1
+
+		user.find "user1" jz +2
+			print "user2 not found in /etc/passwd"
+			bail 1
+		group.has? "member" "user1" jnz +2
+			print "user1 is a member of group2"
+			bail 1
+
+		user.find "sys" jz +2
+			print "sys not found in /etc/passwd"
+			bail 1
+		group.has? "member" "sys" jz +2
+			print "sys not found in group2"
+			bail 1
+		group.has? "admin" "sys" jz +2
+			print "sys not an admin of group2"
+			bail 1
+
+		user.find "root" jz +2
+			print "root not found in /etc/passwd"
+			bail 1
+		group.has? "member" "root" jnz +2
+			print "root found in group2"
+			bail 1
+		print "ok"),
+
+	"ok",
+	"group.has? reports group membership properly");
+
+	pendulum_ok(qq(
+	fn main
+		pragma authdb.root "t/tmp/auth"
+		authdb.open
+
+		; test without a found group
+		group.has? "admin" "root" jnz +2
+			print "fail"
+			bail 1
+
+		group.find "group2" jz +2
+			print "failed to find group2"
+			bail 1
+
+		group.has? "member" "some-random-enoent" jnz +2
+			print "found 'some-random-enoent' in group..."
+			bail 1
+		print "ok"),
+
+	"ok",
+	"group.has? handles non-existent things");
+
+	pendulum_ok(qq(
+	fn main
+		pragma authdb.root "t/tmp/auth"
+		authdb.open
+
+		group.find "group2" jz +2
+			print "failed to find group2"
+			bail 1
+
+		user.find "user2" jz +2
+			print "user2 not found in /etc/passwd"
+			bail 1
+		group.has? "member" "user2" jz +2
+			print "user2 not found in group2"
+			bail 1
+		group.has? "admin" "user2" jnz +2
+			print "user2 is an admin of group2"
+			bail 1
+
+		group.kick "admin"  "user2"
+		group.kick "member" "user2"
+
+		group.has? "member" "user2" jnz +2
+			print "user2 still in group2"
+			bail 1
+		group.has? "admin" "user2" jnz +2
+			print "user2 is an admin of group2"
+			bail 1
+
+		print "ok"),
+
+	"ok",
+	"group.join and group.kick");
 };
 
 subtest "augeas operators" => sub {

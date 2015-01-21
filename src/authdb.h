@@ -27,7 +27,25 @@
 #include <shadow.h>
 #include <grp.h>
 
+#define AUTHDB_PASSWD    0x01
+#define AUTHDB_SHADOW    0x02
+#define AUTHDB_GROUP     0x04
+#define AUTHDB_GSHADOW   0x08
+
+#define AUTHDB_ALL       0x0f
+
 typedef struct {
+	int    dbs;
+	char  *root;
+
+	list_t users;
+	list_t groups;
+	list_t memberships;
+} authdb_t;
+
+typedef struct {
+	authdb_t *db;
+
 	int    state;
 
 	char  *name;
@@ -56,6 +74,8 @@ typedef struct {
 } user_t;
 
 typedef struct {
+	authdb_t *db;
+
 	int    state;
 
 	char  *name;
@@ -81,22 +101,6 @@ typedef struct {
 	list_t   l;
 } member_t;
 
-#define AUTHDB_PASSWD    0x01
-#define AUTHDB_SHADOW    0x02
-#define AUTHDB_GROUP     0x04
-#define AUTHDB_GSHADOW   0x08
-
-#define AUTHDB_ALL       0x0f
-
-typedef struct {
-	int    dbs;
-	char  *root;
-
-	list_t users;
-	list_t groups;
-	list_t memberships;
-} authdb_t;
-
 authdb_t* authdb_read(const char *root, int dbs);
 int authdb_write(authdb_t *db);
 void authdb_close(authdb_t *db);
@@ -115,5 +119,11 @@ void user_remove(user_t *user);
 group_t* group_find(authdb_t *db, const char *name, gid_t gid);
 group_t* group_add(authdb_t *db);
 void group_remove(group_t *group);
+
+#define GROUP_MEMBER 1
+#define GROUP_ADMIN  2
+int group_has(group_t *group, int type, user_t *user);
+int group_join(group_t *group, int type, user_t *user);
+int group_kick(group_t *group, int type, user_t *user);
 
 #endif

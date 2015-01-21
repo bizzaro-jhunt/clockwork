@@ -1626,18 +1626,48 @@ static void op_group_has_p(vm_t *vm)
 {
 	ARG2("group.has?");
 	vm->acc = 1;
+	if (!vm->aux.group)
+		return;
+
+	int type = 0;
+	     if (strcmp(STR1(vm), "member") == 0) type = GROUP_MEMBER;
+	else if (strcmp(STR1(vm), "admin")  == 0) type = GROUP_ADMIN;
+	else return;
+
+	vm->acc = group_has(vm->aux.group, type,
+		user_find(vm->aux.authdb, STR2(vm), NO_UID));
 }
 
 static void op_group_join(vm_t *vm)
 {
 	ARG2("group.join");
 	vm->acc = 1;
+	if (!vm->aux.group)
+		return;
+
+	int type = 0;
+	     if (strcmp(STR1(vm), "member") == 0) type = GROUP_MEMBER;
+	else if (strcmp(STR1(vm), "admin")  == 0) type = GROUP_ADMIN;
+	else return;
+
+	vm->acc = group_join(vm->aux.group, type,
+		user_find(vm->aux.authdb, STR2(vm), NO_UID));
 }
 
 static void op_group_kick(vm_t *vm)
 {
 	ARG2("group.kick");
 	vm->acc = 1;
+	if (!vm->aux.group)
+		return;
+
+	int type = 0;
+	     if (strcmp(STR1(vm), "member") == 0) type = GROUP_MEMBER;
+	else if (strcmp(STR1(vm), "admin")  == 0) type = GROUP_ADMIN;
+	else return;
+
+	vm->acc = group_kick(vm->aux.group, type,
+		user_find(vm->aux.authdb, STR2(vm), NO_UID));
 }
 
 static void op_augeas_init(vm_t *vm)

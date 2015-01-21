@@ -30,22 +30,13 @@
 
 #define LINEMAX 8192
 
-#define GROUP_MEMBER 0
-#define GROUP_ADMIN  1
-
-static void s_membership(authdb_t *db, int type, group_t *group, user_t *user)
+static void s_add_member(authdb_t *db, int type, group_t *group, user_t *user)
 {
 	if (!group || !user) return;
 	assert(type == GROUP_MEMBER || type == GROUP_ADMIN);
 
-	list_t *group_list, *user_list;
-	if (type == GROUP_MEMBER) {
-		group_list = &group->members;
-		user_list = &user->member_of;
-	} else {
-		group_list = &group->admins;
-		user_list = &user->admin_of;
-	}
+	list_t *group_list = (type == GROUP_MEMBER ? &group->members  : &group->admins);
+	list_t *user_list  = (type == GROUP_MEMBER ? &user->member_of : &user->admin_of);
 
 	member_t *member = vmalloc(sizeof(member_t));
 	member->user  = user;  list_init(&member->on_user);
@@ -73,6 +64,40 @@ done:
 		free(member);
 	else
 		list_push(&db->memberships, &member->l);
+}
+
+static void s_remove_member(authdb_t *db, int type, group_t *group, user_t *user)
+{
+	if (!group || !user) return;
+	assert(type == GROUP_MEMBER || type == GROUP_ADMIN);
+
+	list_t *group_list = (type == GROUP_MEMBER ? &group->members : &group->admins);
+
+	member_t *needle;
+	for_each_object(needle, group_list, on_group) {
+		if (needle->group != group || needle->user != user)
+			continue;
+		list_delete(&needle->l);
+		list_delete(&needle->on_user);
+		list_delete(&needle->on_group);
+		free(needle);
+		return;
+	}
+}
+
+static char* s_group_list(group_t *group, int type)
+{
+	strings_t *lst = strings_new(NULL);
+	list_t *group_list = (type == GROUP_MEMBER ? &group->members : &group->admins);
+
+	member_t *member;
+	for_each_object(member, group_list, on_group)
+		strings_add(lst, member->user->name);
+
+	char *s = strings_join(lst, ",");
+	strings_free(lst);
+
+	return s;
 }
 
 authdb_t* authdb_read(const char *root, int dbs)
@@ -270,7 +295,7 @@ authdb_t* authdb_read(const char *root, int dbs)
 					strlen(group->raw_members), ",", SPLIT_NORMAL);
 			int i;
 			for_each_string(lst,  i)
-				s_membership(db, GROUP_MEMBER, group, user_find(db, lst->strings[i], -1));
+				s_add_member(db, GROUP_MEMBER, group, user_find(db, lst->strings[i], -1));
 			strings_free(lst);
 		}
 
@@ -279,7 +304,7 @@ authdb_t* authdb_read(const char *root, int dbs)
 					strlen(group->raw_admins), ",", SPLIT_NORMAL);
 			int i;
 			for_each_string(lst,  i)
-				s_membership(db, GROUP_ADMIN, group, user_find(db, lst->strings[i], -1));
+				s_add_member(db, GROUP_ADMIN, group, user_find(db, lst->strings[i], -1));
 			strings_free(lst);
 		}
 	}
@@ -366,6 +391,10 @@ int authdb_write(authdb_t *db)
 		if (!io) goto bail;
 
 		for_each_object(group, &db->groups, l) {
+			/* re-construct raw_members from member list */
+			free(group->raw_members);
+			group->raw_members = s_group_list(group, GROUP_MEMBER);
+
 			fprintf(io, "%s:%s:%u:%s\n",
 				group->name, group->clear_pass, group->gid, group->raw_members);
 		}
@@ -387,6 +416,14 @@ int authdb_write(authdb_t *db)
 		if (!io) goto bail;
 
 		for_each_object(group, &db->groups, l) {
+			/* re-construct raw_admins from admin list */
+			free(group->raw_admins);
+			group->raw_admins = s_group_list(group, GROUP_ADMIN);
+
+			/* re-construct raw_members from member list */
+			free(group->raw_members);
+			group->raw_members = s_group_list(group, GROUP_MEMBER);
+
 			fprintf(io, "%s:%s:%s:%s\n",
 				group->name, group->crypt_pass,
 				group->raw_admins, group->raw_members);
@@ -509,6 +546,7 @@ user_t* user_find(authdb_t *db, const char *name, uid_t uid)
 user_t* user_add(authdb_t *db)
 {
 	user_t *user = vmalloc(sizeof(user_t));
+	user->db = db;
 	list_push(&db->users, &user->l);
 	list_init(&user->member_of);
 	list_init(&user->admin_of);
@@ -548,6 +586,7 @@ group_t* group_find(authdb_t *db, const char *name, gid_t gid)
 group_t* group_add(authdb_t *db)
 {
 	group_t *group = vmalloc(sizeof(group_t));
+	group->db = db;
 	list_push(&db->groups, &group->l);
 	list_init(&group->members);
 	list_init(&group->admins);
@@ -564,4 +603,38 @@ void group_remove(group_t *group)
 	free(group->raw_members);
 	free(group->raw_admins);
 	free(group);
+}
+
+int group_has(group_t *group, int type, user_t *user)
+{
+	if (!user) return 1;
+	member_t *needle;
+	list_t *list = (type == GROUP_MEMBER ? &group->members : &group->admins);
+	for_each_object(needle, list, on_group)
+		if (needle->user == user) return 0;
+	return 1;
+}
+
+int group_join(group_t *group, int type, user_t *user)
+{
+	if (!user) return 1;
+	s_add_member(group->db, type, group, user);
+
+	member_t *needle;
+	list_t *list = (type == GROUP_MEMBER ? &group->members : &group->admins);
+	for_each_object(needle, list, on_group)
+		if (needle->user == user) return 0;
+	return 1;
+}
+
+int group_kick(group_t *group, int type, user_t *user)
+{
+	if (!user) return 1;
+	s_remove_member(group->db, type, group, user);
+
+	member_t *needle;
+	list_t *list = (type == GROUP_MEMBER ? &group->members : &group->admins);
+	for_each_object(needle, list, on_group)
+		if (needle->user == user) return 1;
+	return 0;
 }

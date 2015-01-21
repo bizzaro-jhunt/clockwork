@@ -309,6 +309,81 @@ TESTS {
 		reset("t/tmp");
 
 		authdb_t *db = authdb_read("t/tmp", AUTHDB_ALL);
+		group_t *group = group_find(db, "members", NO_GID);
+		isnt_null(group, "found 'members' group for membership test");
+
+		user_t *user;
+		user = user_find(db, "account2", NO_UID);
+		isnt_null(user, "found 'account2' in database");
+		ok(group_has(group, GROUP_MEMBER, user) == 0, "account2 is a member of group 'members'");
+		ok(group_has(group, GROUP_ADMIN,  user) != 0, "account2 is not an admin of 'members'");
+
+		ok(group_kick(group, GROUP_MEMBER, user) == 0, "kicked account2 from 'members'");
+		ok(group_has(group, GROUP_MEMBER, user)  != 0, "account2 no longer in 'members'");
+		ok(group_has(group, GROUP_ADMIN,  user)  != 0, "account2 is not an admin of 'members'");
+
+		ok(group_join(group, GROUP_ADMIN,  user) == 0, "joined account2 to 'members' (normal)");
+		ok(group_join(group, GROUP_MEMBER, user) == 0, "joined account2 to 'members' (admin)");
+		ok(group_has(group, GROUP_MEMBER, user)  == 0, "account2 is back in 'members'");
+		ok(group_has(group, GROUP_ADMIN,  user)  == 0, "account2 is NOW an admin of 'members'");
+
+		user = user_find(db, "account3", NO_UID);
+		isnt_null(user, "found 'account3' in database");
+		ok(group_has(group, GROUP_MEMBER, user) == 0, "account3 is a member of group 'members'");
+		ok(group_has(group, GROUP_ADMIN,  user) != 0, "account3 is not an admin of 'members'");
+
+		ok(group_kick(group, GROUP_MEMBER, user) == 0, "kicked account3 from 'members'");
+		ok(group_has(group, GROUP_MEMBER, user)  != 0, "account3 no longer in 'members'");
+
+		user = user_find(db, "admin1", NO_UID);
+		isnt_null(user, "found 'admin2' in database");
+		ok(group_has(group, GROUP_ADMIN,  user) == 0, "admin1 is an admin of group 'members'");
+		ok(group_has(group, GROUP_MEMBER, user) != 0, "admin1 is not a member of 'members'");
+
+		ok(group_has(group, GROUP_ADMIN,  NULL) != 0,
+			"group_has() can handle NULL member searches");
+		ok(group_has(group, GROUP_MEMBER, NULL) != 0,
+			"group_has() can handle NULL admin searches");
+
+		ok(group_kick(group, GROUP_MEMBER, NULL) != 0,
+			"group_has() can handle NULL member removal");
+		ok(group_kick(group, GROUP_ADMIN, NULL) != 0,
+			"group_has() can handle NULL admin removal");
+
+		ok(group_join(group, GROUP_MEMBER, NULL) != 0,
+			"group_has() can handle NULL member joins");
+		ok(group_join(group, GROUP_ADMIN, NULL) != 0,
+			"group_has() can handle NULL admin joins");
+
+		authdb_write(db);
+		authdb_close(db);
+
+		db = authdb_read("t/tmp", AUTHDB_ALL);
+		group = group_find(db, "members", NO_GID);
+		isnt_null(group, "found 'members' group for membership change verification");
+
+		user = user_find(db, "account2", NO_UID);
+		isnt_null(user, "found 'account2' in database");
+		ok(group_has(group, GROUP_MEMBER, user)  == 0, "account2 is in 'members'");
+		ok(group_has(group, GROUP_ADMIN,  user)  == 0, "account2 is an admin of 'members'");
+
+		user = user_find(db, "account3", NO_UID);
+		isnt_null(user, "found 'account3' in database");
+		ok(group_has(group, GROUP_MEMBER, user) != 0, "account3 is not in 'members'");
+		ok(group_has(group, GROUP_ADMIN,  user) != 0, "account3 is not an admin of 'members'");
+
+		user = user_find(db, "admin1", NO_UID);
+		isnt_null(user, "found 'admin2' in database");
+		ok(group_has(group, GROUP_ADMIN,  user) == 0, "admin1 is an admin of group 'members'");
+		ok(group_has(group, GROUP_MEMBER, user) != 0, "admin1 is not a member of 'members'");
+
+		authdb_close(db);
+	}
+
+	subtest {
+		reset("t/tmp");
+
+		authdb_t *db = authdb_read("t/tmp", AUTHDB_ALL);
 
 		char *s = authdb_creds(db, "account1");
 		is_string(s, "account1:users:members:service",

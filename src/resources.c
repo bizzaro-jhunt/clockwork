@@ -2015,7 +2015,7 @@ int res_exec_gencode(const void *res, FILE *io)
 	if (ENFORCED(r, RES_EXEC_TEST))
 		fprintf(io, "  set %%c \"%s\"\n"
 		            "  exec %%c %%d\n"
-		            "  jnz +1 ret\n", r->test);
+		            "  jz +1 ret\n", r->test);
 
 	if (ENFORCED(r, RES_EXEC_ONDEMAND))
 		fprintf(io, "  flagged? \"%s\"\n"

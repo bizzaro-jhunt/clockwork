@@ -1407,7 +1407,7 @@ fn fix:00000001
   runas.gid 0
   set %c "/usr/bin/test ! -f /stuff"
   exec %c %d
-  jnz +1 ret
+  jz +1 ret
   exec %b %d
 
 fn main
@@ -1456,7 +1456,7 @@ fn fix:00000001
   call util.authdb.close
   set %c "/bin/find /usr/share/mans -mtime +1 | grep -q 'xx'"
   exec %c %d
-  jnz +1 ret
+  jz +1 ret
   exec %b %d
 
 fn main

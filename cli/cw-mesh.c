@@ -431,19 +431,10 @@ void print_optout(const char *fqdn, const char *uuid)
 
 static void printf_eachline(const char *fmt, const char *buf)
 {
-	size_t len = 0;
-	const char *a, *b;
-
-	for (a = buf, b = strchr(a, '\n'); b; a = b + 1, b = strchr(a, '\n'))
-		if (b - a > len)
-			len = b - a;
-
-	char *tmp = vmalloc(len + 1);
-	for (a = buf, b = strchr(a, '\n'); b; a = b + 1, b = strchr(a, '\n')) {
-		memcpy(tmp, a, b - a);
-		tmp[b-a] = '\0';
-		printf(fmt, tmp);
-	}
+	strings_t *lines = strings_split(buf, sizeof(buf), ":", SPLIT_NORMAL);
+	int i;
+	for (i = 0; i < lines->num; i++)
+		printf(fmt, lines->strings[i]);
 }
 
 void print_result(const char *fqdn, const char *uuid, const char *result, const char *output)

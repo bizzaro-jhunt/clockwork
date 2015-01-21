@@ -387,8 +387,8 @@ static int s_state_machine(client_t *fsm, pdu_t *pdu, pdu_t **reply)
 		}
 		fsm->policy = policy_generate(fsm->pnode, fsm->facts);
 
-		byte_t *code;
-		size_t len;
+		byte_t *code = NULL;
+		size_t len = 0;
 		int rc = s_gencode(fsm, &code, &len); assert(rc == 0);
 		*reply = pdu_reply(pdu, "POLICY", 0); assert(*reply);
 		pdu_extend(*reply, code, len);

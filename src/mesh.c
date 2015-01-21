@@ -1026,7 +1026,7 @@ int mesh_server_reactor(void *sock, pdu_t *pdu, void *data)
 		     *filters  = pdu_string(pdu, 5),
 		     *creds    = NULL;
 
-		byte_t *code;
+		byte_t *code = NULL;
 		size_t len;
 
 		mesh_slot_t *client = vmalloc(sizeof(mesh_slot_t));

@@ -414,7 +414,7 @@ subtest "register operators" => sub {
 		pragma test "on"
 		swap %a %a),
 
-	"pendulum bytecode error (0x001c): swap requires distinct registers\n",
+	"pendulum bytecode error (0x0027): swap requires distinct registers\n",
 	"`swap %a %a` is invalid");
 };
 
@@ -522,7 +522,7 @@ subtest "dump operator" => sub {
     %m [ 00000000 ]   %n [ 00000000 ]   %o [ 00000000 ]   %p [ 00000000 ]
 
     acc: 00000000
-     pc: 0000000a
+     pc: 00000015
 
     data: | 80000000 | 0
           | 00000001 | 1
@@ -549,7 +549,7 @@ subtest "dump operator" => sub {
     %m [ 00000000 ]   %n [ 00000000 ]   %o [ 00000000 ]   %p [ 00000000 ]
 
     acc: 00000000
-     pc: 00000016
+     pc: 00000021
 
     data: <s_empty>
     inst: <s_empty>
@@ -581,7 +581,7 @@ subtest "dump operator" => sub {
     %m [ 00000000 ]   %n [ 00000000 ]   %o [ 00000000 ]   %p [ 00000024 ]
 
     acc: 00000000
-     pc: 00000042
+     pc: 00000058
 
     data: | 80000000 | 0
           | 00000001 | 1
@@ -589,7 +589,7 @@ subtest "dump operator" => sub {
           | 00898989 | 3
           | 00001111 | 4
           '----------'
-    inst: | 0000002e | 0
+    inst: | 00000039 | 0
           '----------'
     heap:
           <program name> 0
@@ -616,13 +616,13 @@ subtest "dump operator" => sub {
     %m [ 00000000 ]   %n [ 00000000 ]   %o [ 00000000 ]   %p [ 00000000 ]
 
     acc: 00000000
-     pc: 0000001a
+     pc: 0000003d
 
     data: | 80000000 | 0
           | 00000001 | 1
           '----------'
-    inst: | 0000000e | 0
-          | 00000016 | 1
+    inst: | 00000019 | 0
+          | 0000002d | 1
           '----------'
     heap:
           <program name> 0
@@ -2047,13 +2047,49 @@ subtest "disassembly" => sub {
 
 	<<EOF, "pendulum compiler de-duplicates strings");
 0x00000000: 70 6e
-0x00000002: 18 30 [00 00 00 08]           jmp 0x00000008
-0x00000008: 1c 30 [00 00 00 18]         print 0x00000018 ; "foo"
-0x0000000e: 1c 30 [00 00 00 18]         print 0x00000018 ; "foo"
-0x00000014: 10 00                         ret
-0x00000016: ff 00
+0x00000002: 18 30 [00 00 00 13]           jmp 0x00000013
+                                 fn main
+0x00000013: 1c 30 [00 00 00 23]         print 0x00000023 ; "foo"
+0x00000019: 1c 30 [00 00 00 23]         print 0x00000023 ; "foo"
+0x0000001f: 10 00                         ret
+0x00000021: ff 00
 ---
-0x00000018: [foo]
+0x00000023: [foo]
+EOF
+
+	disassemble_ok(qq(
+	fn main
+		print "foo"
+		print "foo"),
+
+	<<EOF, "pendulum compiler inserts ret opcodes at the end of functions");
+0x00000000: 70 6e
+0x00000002: 18 30 [00 00 00 13]           jmp 0x00000013
+                                 fn main
+0x00000013: 1c 30 [00 00 00 23]         print 0x00000023 ; "foo"
+0x00000019: 1c 30 [00 00 00 23]         print 0x00000023 ; "foo"
+0x0000001f: 10 00                         ret
+0x00000021: ff 00
+---
+0x00000023: [foo]
+EOF
+
+	disassemble_ok(qq(
+	fn main
+		print "foo"
+		print "foo"
+		bail 2),
+
+	<<EOF, "pendulum compiler treats a final bail as sufficient");
+0x00000000: 70 6e
+0x00000002: 18 30 [00 00 00 13]           jmp 0x00000013
+                                 fn main
+0x00000013: 1c 30 [00 00 00 27]         print 0x00000027 ; "foo"
+0x00000019: 1c 30 [00 00 00 27]         print 0x00000027 ; "foo"
+0x0000001f: 11 10 [00 00 00 02]          bail 2
+0x00000025: ff 00
+---
+0x00000027: [foo]
 EOF
 };
 
@@ -2062,6 +2098,11 @@ subtest "includes" => sub {
 	put_file "t/tmp/incl.pn", <<EOF;
 fn from.incl
   print "Hello, Includes!\\n"
+EOF
+	put_file "t/tmp/incl2.pn", <<EOF;
+#include incl
+fn from.incl2
+  set %a 1
 EOF
 
 	pendulum_ok(qq(
@@ -2086,6 +2127,39 @@ EOF
 	"Hello, Includes!\n".
 	"fin\n",
 	"files can only be included once");
+
+	disassemble_ok(qq(
+	#include incl2
+	fn main),
+
+	<<EOF, "pendulum compiler handles nested includes");
+0x00000000: 70 6e
+0x00000002: 18 30 [00 00 00 9a]           jmp 0x0000009a
+
+=== [ module : incl2 ] =========================================================
+
+
+=== [ module : incl ] ==========================================================
+
+                                 fn from.incl
+0x00000041: 1c 30 [00 00 00 9e]         print 0x0000009e ; "Hello, Includes!\\n"
+0x00000047: 10 00                         ret
+
+=== [ module : incl ] ==========================================================
+
+                                 fn from.incl2
+0x0000006e: 03 21 [00 00 00 00]           set %a
+                  [00 00 00 01]               1
+0x00000078: 10 00                         ret
+
+=== [ module : incl2 ] =========================================================
+
+                                 fn main
+0x0000009a: 10 00                         ret
+0x0000009c: ff 00
+---
+0x0000009e: [Hello, Includes!\\n]
+EOF
 };
 
 subtest "stack" => sub {

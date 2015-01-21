@@ -37,8 +37,9 @@ int main (int argc, char **argv)
 	int mode = MODE_EXECUTE;
 	int coverage = 0;
 	int strip = 1;
+	strings_t *inc = strings_new(NULL);
 
-	const char *short_opts = "h?vqDVTSdCg";
+	const char *short_opts = "h?vqDVTSdCgI:";
 	struct option long_opts[] = {
 		{ "help",        no_argument,       NULL, 'h' },
 		{ "verbose",     no_argument,       NULL, 'v' },
@@ -103,6 +104,10 @@ int main (int argc, char **argv)
 			strip = 0;
 			break;
 
+		case 'I':
+			strings_add(inc, optarg);
+			break;
+
 		case 0: /* --syslog */
 			facility = optarg;
 			break;
@@ -117,9 +122,12 @@ int main (int argc, char **argv)
 	if (debug) level = LOG_DEBUG;
 	log_open(ident, facility);
 	log_level(level, NULL);
+	logger(LOG_INFO, "pn starting up");
 
 	if (mode == MODE_EXECUTE || mode == MODE_DISASSEMBLE) {
-		/* modes that require a valid binary image */
+		logger(LOG_DEBUG, "running in execute / disassemble mode; a valid binary image is required");
+		logger(LOG_DEBUG, "opening `%s' for execution / disassembly", argv[optind]);
+
 		int rc, fd = open(argv[optind], O_RDONLY);
 		if (fd < 0) {
 			perror(argv[optind]);
@@ -184,34 +192,69 @@ int main (int argc, char **argv)
 	}
 
 	if (mode == MODE_ASSEMBLE) {
-		byte_t *code;
-		size_t len;
+		logger(LOG_DEBUG, "running in assembler mode");
 		int rc, outfd = 1;
 
-		if (strcmp(argv[optind], "-") == 0) {
-			rc = vm_asm_io(stdin, &code, &len, "<stdin>", NULL, strip);
-			assert(rc == 0);
-		} else {
-			rc = vm_asm_file(argv[optind], &code, &len, NULL, strip);
-			assert(rc == 0);
+		asm_t *pna = asm_new();
+		if (!pna) return 1;
 
+		const char *path = argv[optind];
+		if (strcmp(path, "-") == 0) {
+			rc = asm_setopt(pna, PNASM_OPT_INIO, stdin, sizeof(stdin));
+			if (rc != 0) goto bail;
+
+			rc = asm_setopt(pna, PNASM_OPT_INFILE, "<stdin>", strlen("<stdin>"));
+			if (rc != 0) goto bail;
+
+		} else {
+			rc = asm_setopt(pna, PNASM_OPT_INFILE, path, strlen(path));
+			if (rc != 0) goto bail;
+		}
+
+
+		char *s = getenv("PENDULUM_INCLUDE");
+		if (s)
+			strings_add(inc, s);
+
+		strings_add(inc, PENDULUM_INCLUDE);
+		s = strings_join(inc, ":");
+		logger(LOG_DEBUG, "setting include path to `%s'", s);
+		rc = asm_setopt(pna, PNASM_OPT_INCLUDE, s, strlen(s));
+		free(s);
+		if (rc != 0) goto bail;
+
+		rc = asm_setopt(pna, PNASM_OPT_STRIPPED, &strip, sizeof(strip));
+		if (rc != 0) goto bail;
+
+		rc = asm_compile(pna);
+		if (rc != 0) goto bail;
+
+		logger(LOG_DEBUG, "asm: assembly complete, writing bytecode image");
+		if (strcmp(path, "-") == 0) {
+			logger(LOG_DEBUG, "writing image to standard output");
+			outfd = 1;
+
+		} else {
 			char *sfile = string("%s.S", argv[optind]);
+			logger(LOG_DEBUG, "writing image to `%s'", sfile);
+
 			outfd = open(sfile, O_WRONLY|O_CREAT|O_TRUNC, 0666);
 			if (outfd < 0) {
 				perror(sfile);
-				free(sfile);
 				return 1;
 			}
 			free(sfile);
 		}
 
-		if (write(outfd, code, len) != len) {
+		if (write(outfd, pna->code, pna->size) != pna->size) {
 			perror("short write");
-			close(outfd);
 			return 1;
 		}
-		close(outfd);
 		return 0;
+
+bail:
+		logger(LOG_ERR, "assembly failed!");
+		return 1;
 	}
 
 	return 3;

@@ -17,6 +17,7 @@ syn keyword   clockdDirective  listen timeout gatherers copydown interval pidfil
 syn match     clockdDirective  /syslog\.\(ident\|facility\|level\)/
 syn match     clockdDirective  /security\.\(strict\|cert\|trusted\)/
 syn match     clockdDirective  /ccache\.\(connections\|expiration\)/
+syn match     clockdDirective  /pendulum\.\(inc\)/
 
 syn keyword   clockdYesNo      yes no
 syn keyword   clockdLogLevel   emergency alert critical error warning notice info debug

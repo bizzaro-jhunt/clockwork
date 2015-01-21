@@ -22,11 +22,11 @@ syn keyword   pnasmOpSyslog   syslog contained
 syn keyword   pnasmLogLevel   emerg emergency alert critical error warning notice info debug contained
 syn match     pnasmLogBad     /[^ \t]*/ contained
 
-syn keyword   pnasmOpcode1    noop push pop set swap acc
+syn keyword   pnasmOpcode1    noop push pop set swap acc anno
 syn keyword   pnasmOpcode1    add sub mult div mod
 syn keyword   pnasmOpcode1    eq lt lte gt gte streq jmp jz jnz
-syn keyword   pnasmOpcode1    string print error perror
-syn keyword   pnasmOpcode1    flag unflag flagged?
+syn keyword   pnasmOpcode1    string print error perror flag unflag
+syn match     pnasmOpcode1    /flagged?/
 syn match     pnasmOpCode1    /fs\.\(stat\|type\|readlink\|dev\|inode\|mode\|nlink\|uid\|gid\|major\|minor\|size\|atime\|mtime\|ctime\)/
 syn match     pnasmOpCode1    /fs\.\(touch\|mkdir\|link\|symlink\|unlink\|rmdir\|rename\|copy\|chown\|chgrp\|chmod\|sha1\|get\|put\)/
 syn match     pnasmOpCode1    /fs\.\(open\|read\|close\)dir/
@@ -36,7 +36,7 @@ syn match     pnasmOpCode1    /\(user\|group\)\.\(find\|get\|set\|new\|delete\)/
 syn match     pnasmOpCode1    /group\.\(has?\|join\|kick\)/
 syn match     pnasmOpCode1    /augeas\.\(init\|done\|perror\|write\|set\|find\|remove\)/
 syn match     pnasmOpCode1    /env\.\(get\|set\|unset\)/
-syn keyword   pnasmOpCode1    localsys exec dump acl
+syn keyword   pnasmOpCode1    localsys exec dump acl umask loglevel geteuid getegid
 syn match     pnasmOpCode1    /runas\.\(uid\|gid\)/
 syn match     pnasmOpCode1    /show\.\(acl\|acls\)/
 syn match     pnasmOpCode1    /remote\.\(live?\|sha1\|file\)/
@@ -44,6 +44,7 @@ syn match     pnasmOpCode1    /remote\.\(live?\|sha1\|file\)/
 syn keyword   pnasmOpcode2    ret retv bail pragma halt property topic
 
 syn region    pnasmString     start=+L\="+ skip=+\\\\\|\\"\|\\$+ excludenl end=+"+ contains=pnasmFormat
+syn region    pnasmString     start=+<<EOF$+ end=/^EOF$/ contains=pnasmFormat
 syn match     pnasmFormat     display "%\[[a-p]\]\(\d\+\$\)\=[-+' #0*]*\(\d*\|\*\|\*\d\+\$\)\(\.\(\d*\|\*\|\*\d\+\$\)\)\=\([hlL]\|ll\)\=\([bdiuoxXDOUfeEgGcCsSpn]\|\[\^\=.[^]]*\]\)" contained
 syn match     pnasmFormat     display /\\[nrt"]/ contained
 syn match     pnasmFormat     display /%[%T]/ contained

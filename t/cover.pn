@@ -18,7 +18,7 @@ fn setup.authdb
   umask 022 %e
 
   fs.put "t/tmp/passwd" <<EOF
-root:x:0:0:root:/root:/bin/bash\n
+root:x:0:0:root:/root:/bin/bash
 daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin
 jhacker:x:566:401:J. Random Hacker:/home/jhacker:/bin/zsh
 oldman:NOTSET:1001:501:Old Man:/home/oldman:/bin/bash

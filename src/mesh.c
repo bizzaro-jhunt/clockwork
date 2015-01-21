@@ -173,9 +173,35 @@ static int s_cmd_compile(const char *command, byte_t **code, size_t *len)
 	cmd_destroy(cmd);
 	rewind(io);
 
-	int rc = vm_asm_io(io, code, len, "<mesh>", NULL, 1);
-	fclose(io);
-	return rc;
+	asm_t *pna = asm_new();
+
+	int rc;
+	rc = asm_setopt(pna, PNASM_OPT_INIO, io, sizeof(io));
+	if (rc != 0) goto bail;
+
+	rc = asm_setopt(pna, PNASM_OPT_INFILE, "mesh", 4);
+	if (rc != 0) goto bail;
+
+	/* FIXME: pendulum.inc in mesh configs! */
+
+	int strip = 1;
+	rc = asm_setopt(pna, PNASM_OPT_STRIPPED, &strip, sizeof(strip));
+	if (rc != 0) goto bail;
+
+	rc = asm_compile(pna);
+	if (rc != 0) goto bail;
+
+	*code = vmalloc(pna->size);
+	if (!*code) goto bail;
+
+	memcpy(*code, pna->code, pna->size);
+	*len = pna->size;
+	asm_free(pna);
+	return 0;
+
+bail:
+	free(pna);
+	return 1;
 }
 /*
      ######  ##     ## ########
@@ -686,12 +712,14 @@ filter_t* filter_parse(const char *s)
 		a++; b--;
 		char *pat = s_string(a, b);
 
-		const char *e_string;
-		int e_offset;
+		const char *e_string = NULL; int e_offset;
 		f->regex = pcre_compile(pat, PCRE_CASELESS, &e_string, &e_offset, NULL);
 		free(pat);
 
-		/* FIXME: what do we do with the error string?? */
+		if (e_string) {
+			logger(LOG_ERR, "failed to parse regular expression for acl: %s", e_string);
+			f->regex = NULL;
+		}
 	} else {
 		f->literal = s_string(a, b);
 	}

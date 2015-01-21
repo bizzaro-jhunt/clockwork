@@ -2534,6 +2534,7 @@ static int s_asm_include(asm_t *pna, const char *module)
 			return -1;
 
 		s_asm_unit_pop(pna);
+		u = s_asm_unit(pna);
 		s_asm_annotate(pna, ANNO_MODULE, strdup(u->name));
 		return 0;
 	}
@@ -2943,6 +2944,18 @@ static int s_asm_bytecode(asm_t *pna)
 	op->args[0].type = VALUE_FNLABEL;
 	op->args[0]._.label = strdup("main");
 	list_unshift(&pna->ops, &op->l);
+
+	/* strip off redundant successive annotations */
+	op_t *last = NULL;
+	for_each_object(op, &pna->ops, l) {
+		if (op->op == OP_ANNO && op->args[0]._.literal == ANNO_MODULE) {
+			if (last)
+				list_delete(&last->l);
+			last = op;
+			continue;
+		}
+		last = NULL;
+	}
 
 	/* phase II: calculate offsets & sizes */
 	dword_t text = 2; /* 0x7068 (pn) */

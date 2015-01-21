@@ -86,9 +86,6 @@ struct res_user {
 	long inact;  /* disable expired accounts after X days */
 	long expire; /* when account expires (days since 1/1/70) */
 
-	struct passwd *pw;   /* pointer to the /etc/passwd entry */
-	struct spwd   *sp;   /* pointer to the /etc/shadow entry */
-
 	unsigned int enforced;  /* enforcements, see RES_USER_* constants */
 };
 
@@ -117,12 +114,6 @@ struct res_group {
 
 	strings_t *adm_add;  /* users that should be admins */
 	strings_t *adm_rm;   /* users that should not be admins */
-
-	strings_t *mem;      /* copy of gr_mem (from stat) for fixup */
-	strings_t *adm;      /* copy of sg_adm (from stat) for fixup */
-
-	struct group *grp;    /* pointer to /etc/group entry */
-	struct sgrp *sg;      /* pointer to /etc/gshadow entry */
 
 	unsigned int enforced;   /* enforcements; see RES_GROUP_* constants */
 };

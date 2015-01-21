@@ -127,9 +127,6 @@ void* res_user_clone(const void *res, const char *key)
 	ru->dir    = RES_DEFAULT_STR(orig, dir,    NULL);
 	ru->skel   = RES_DEFAULT_STR(orig, skel,   NULL);
 
-	ru->pw     = NULL;
-	ru->sp     = NULL;
-
 	ru->key = NULL;
 	if (key) {
 		ru->key = strdup(key);
@@ -869,19 +866,11 @@ void* res_group_clone(const void *res, const char *key)
 
 	rg->gid    = RES_DEFAULT(orig, gid, 0);
 
-	/* FIXME: clone members of res_group */
-	rg->mem_add = strings_new(NULL);
-	rg->mem_rm  = strings_new(NULL);
+	rg->mem_add = orig ? strings_dup(orig->mem_add) : strings_new(NULL);
+	rg->mem_rm  = orig ? strings_dup(orig->mem_rm)  : strings_new(NULL);
 
-	/* FIXME: clone admins of res_group */
-	rg->adm_add = strings_new(NULL);
-	rg->adm_rm  = strings_new(NULL);
-
-	/* state variables are never cloned */
-	rg->grp = NULL;
-	rg->sg  = NULL;
-	rg->mem = NULL;
-	rg->adm = NULL;
+	rg->adm_add = orig ? strings_dup(orig->adm_add) : strings_new(NULL);
+	rg->adm_rm  = orig ? strings_dup(orig->adm_rm)  : strings_new(NULL);
 
 	rg->key = NULL;
 	if (key) {
@@ -902,15 +891,9 @@ void res_group_free(void *res)
 		free(rg->name);
 		free(rg->passwd);
 
-		if (rg->mem) {
-			strings_free(rg->mem);
-		}
 		strings_free(rg->mem_add);
 		strings_free(rg->mem_rm);
 
-		if (rg->adm) {
-			strings_free(rg->adm);
-		}
 		strings_free(rg->adm_add);
 		strings_free(rg->adm_rm);
 	}

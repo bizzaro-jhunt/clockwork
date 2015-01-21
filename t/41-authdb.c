@@ -93,7 +93,7 @@ TESTS {
 		isnt_null(db, "opened all four databases in " "t/tmp");
 
 		// 'root' is the first entry
-		user = user_find(db, "root", -1);
+		user = user_find(db, "root", NO_UID);
 			isnt_null(user, "found root by username search");
 			if (!user) break;
 			is_int(user->state, AUTHDB_PASSWD | AUTHDB_SHADOW, "root is in both passwd and shadow");
@@ -130,7 +130,7 @@ TESTS {
 			is_string(user->name, "user", "user username");
 
 		// first group entry
-		group = group_find(db, "root", -1);
+		group = group_find(db, "root", NO_GID);
 			isnt_null(group, "found root group by name");
 			if (!group) break;
 			is_int(group->gid, 0, "root group GID");
@@ -173,8 +173,8 @@ TESTS {
 		group_t *group;
 
 		db = authdb_read("t/tmp", AUTHDB_ALL);
-		is_null(user_find(db, "new_user", -1), "new_user does not exist yet");
-		is_null(group_find(db, "new_group", -1), "new_group does not exist yet");
+		is_null(user_find(db, "new_user", NO_UID), "new_user does not exist yet");
+		is_null(group_find(db, "new_group", NO_GID), "new_group does not exist yet");
 
 		user = user_add(db);
 		isnt_null(user, "user_add() returned a new user");
@@ -192,7 +192,7 @@ TESTS {
 		user->creds.warn_days    = 4;
 		user->creds.grace_period = 0;
 		user->creds.expiration   = 0;
-		isnt_null(user_find(db, "new_user", -1), "new_user exists in memory");
+		isnt_null(user_find(db, "new_user", NO_UID), "new_user exists in memory");
 
 		group = group_add(db);
 		isnt_null(group, "group_add() returns a new group");
@@ -206,7 +206,7 @@ TESTS {
 
 		db = authdb_read("t/tmp", AUTHDB_ALL);
 
-		isnt_null(user = user_find(db, "new_user", -1), "new_user exists on disk");
+		isnt_null(user = user_find(db, "new_user", NO_UID), "new_user exists on disk");
 
 		is_string( user->name,               "new_user",        "new user username");
 		is_string( user->clear_pass,         "x",               "new user password field");
@@ -223,7 +223,7 @@ TESTS {
 		is_int(    user->creds.grace_period,  -1,               "account inactivity deadline");
 		is_int(    user->creds.expiration,    -1,               "account expiry");
 
-		isnt_null(group = group_find(db, "new_group", -1), "new_group exists on disk");
+		isnt_null(group = group_find(db, "new_group", NO_GID), "new_group exists on disk");
 		is_string(group->name,       "new_group", "group name");
 		is_string(group->clear_pass, "x",         "group name");
 		is_string(group->crypt_pass, "$6$pwhash", "group name");
@@ -241,23 +241,23 @@ TESTS {
 
 		db = authdb_read("t/tmp", AUTHDB_ALL);
 
-		user = user_find(db, "sys", -1);
+		user = user_find(db, "sys", NO_UID);
 		isnt_null(user, "found 'sys' user (for deletion)");
 		user_remove(user);
-		is_null(user_find(db, "sys", -1), "'sys' user no longer in memory");
+		is_null(user_find(db, "sys", NO_UID), "'sys' user no longer in memory");
 
-		group = group_find(db, "sys", -1);
+		group = group_find(db, "sys", NO_GID);
 		isnt_null(group, "found 'sys' group (for deletion)");
 		group_remove(group);
-		is_null(group_find(db, "sys", -1), "'sys' group no longer in memory");
+		is_null(group_find(db, "sys", NO_GID), "'sys' group no longer in memory");
 
 		authdb_write(db);
 		authdb_close(db);
 
 		db = authdb_read("t/tmp", AUTHDB_ALL);
 
-		is_null(user_find(db, "sys", -1), "'sys' user no longer on disk");
-		is_null(group_find(db, "sys", -1), "'sys' group no longer on disk");
+		is_null(user_find(db, "sys", NO_UID), "'sys' user no longer on disk");
+		is_null(group_find(db, "sys", NO_GID), "'sys' group no longer on disk");
 
 		authdb_close(db);
 	}
@@ -277,7 +277,7 @@ TESTS {
 		reset("t/tmp");
 
 		authdb_t *db = authdb_read("t/tmp", AUTHDB_ALL);
-		group_t *group = group_find(db, "members", -1);
+		group_t *group = group_find(db, "members", NO_GID);
 		isnt_null(group, "found 'members' group for membership test");
 
 		static const char *members[] = { "account1", "account2", "account3", NULL };

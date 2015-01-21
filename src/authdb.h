@@ -106,10 +106,12 @@ char* authdb_creds(authdb_t *db, const char *user);
 uid_t authdb_nextuid(authdb_t *db, uid_t start);
 gid_t authdb_nextgid(authdb_t *db, gid_t start);
 
+#define NO_UID (uid_t)(-1)
 user_t* user_find(authdb_t *db, const char *name, uid_t uid);
 user_t* user_add(authdb_t *db);
 void user_remove(user_t *user);
 
+#define NO_GID (gid_t)(-1)
 group_t* group_find(authdb_t *db, const char *name, gid_t gid);
 group_t* group_add(authdb_t *db);
 void group_remove(group_t *group);

@@ -1479,13 +1479,9 @@ void* res_host_clone(const void *res, const char *key)
 
 	rh->enforced  = RES_DEFAULT(orig, enforced, RES_NONE);
 
-	/* FIXME: clone host aliases */
-	rh->aliases = strings_new(NULL);
+	rh->aliases = orig ? strings_dup(rh->aliases) : strings_new(NULL);
 
 	rh->ip = RES_DEFAULT_STR(orig, ip, NULL);
-
-	/* state variables are never cloned */
-	rh->aug_root = NULL;
 
 	rh->key = NULL;
 	if (key) {
@@ -1500,7 +1496,6 @@ void res_host_free(void *res)
 {
 	struct res_host *rh = (struct res_host*)(res);
 	if (rh) {
-		free(rh->aug_root);
 		free(rh->hostname);
 		free(rh->ip);
 		strings_free(rh->aliases);

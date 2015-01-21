@@ -223,8 +223,6 @@ struct res_host {
 	strings_t *aliases;
 
 	unsigned int enforced;
-
-	char *aug_root;
 };
 
 NEW_RESOURCE(host);

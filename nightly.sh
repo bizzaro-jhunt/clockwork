@@ -11,6 +11,7 @@ make
 make DESTDIR=_nightly install
 cp -R t/lxc _nightly/cw/cfm
 cd _nightly;
+mkdir -p var/lock/cogd
 tar -czf ../nightly.tar.gz *
 cd ..
 rm -rf _nightly

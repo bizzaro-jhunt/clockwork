@@ -71,6 +71,9 @@ policy "tests" {
 	file "/etc/motd" {
 		source: "/cw/cfm/files/etc/motd"
 	}
+	file "/etc/issue" {
+		source: "/this/file/does/not/exist"
+	}
 
 	package "fortune-mod" { installed: "no" }
 
@@ -84,6 +87,10 @@ policy "tests" {
 	}
 	service("ntp") depends on file("/etc/ntp.conf")
 	service("ntp") depends on package("ntp")
+
+	file "/etc/template.example.conf" {
+		template: "/cw/cfm/files/template.erb"
+	}
 
 	# Patch openssl vulnerabilities
 	if (lsb.distro.release is "12.04") {

@@ -259,6 +259,7 @@ TESTS {
 		is_null(user_find(db, "sys", NO_UID), "'sys' user no longer on disk");
 		is_null(group_find(db, "sys", NO_GID), "'sys' group no longer on disk");
 
+		authdb_write(db);
 		authdb_close(db);
 	}
 
@@ -393,6 +394,71 @@ TESTS {
 		s = authdb_creds(db, "enoent");
 		is_null(s, "no record for enoent");
 
+		authdb_close(db);
+	}
+
+	subtest {
+		reset("t/tmp");
+		FILE *io;
+
+		/* build some seriously screwed up authdb files */
+		io = fopen("t/tmp/passwd", "w");
+		if (!io) BAIL_OUT("test setup: failed to open t/tmp/passwd database for reset");
+		fprintf(io, "root:x:0:0:root:/root:/bin/bash\n");
+		fprintf(io, "daemon:x:1:1:daemon:/usr/sbin:/bin/sh\n");
+		fclose(io);
+
+		io = fopen("t/tmp/shadow", "w");
+		if (!io) BAIL_OUT("test setup: failed to open t/tmp/shadow database for reset");
+		fprintf(io, "root:!:14009:0:99999:7:::\n");
+		fprintf(io, "daemon:*:13991:0:99999:7:::\n");
+		fclose(io);
+
+		io = fopen("t/tmp/group", "w");
+		if (!io) BAIL_OUT("test setup: failed to open t/tmp/group database for reset");
+		fprintf(io, "members:x:4:bad,accounts\n");
+		fclose(io);
+
+		io = fopen("t/tmp/gshadow", "w");
+		if (!io) BAIL_OUT("test setup: failed to open t/tmp/gshadow database for reset");
+		fprintf(io, "members:*:more,bad:accounts\n");
+		fclose(io);
+
+		authdb_t *db = authdb_read("t/tmp", AUTHDB_ALL);
+		authdb_write(db);
+		ok(1, "authdb_write() with bad group memberships (dangling accounts) doesn't crash");
+		authdb_close(db);
+
+		char buf[8192];
+		io = fopen("t/tmp/group", "r");
+		if (!io) BAIL_OUT("test setup: failed to open t/tmp/group database for confirmation");
+		isnt_null(fgets(buf, 8192, io), "read a line from t/tmp/group");
+		is(buf, "members:x:4:\n", "bad members removed from t/tmp/group");
+		fclose(io);
+
+		io = fopen("t/tmp/gshadow", "r");
+		if (!io) BAIL_OUT("test setup: failed to open t/tmp/gshadow database for confirmation");
+		isnt_null(fgets(buf, 8192, io), "read a line from t/tmp/gshadow");
+		is(buf, "members:*::\n", "bad members removed from t/tmp/gshadow");
+		fclose(io);
+	}
+
+	subtest {
+		reset("t/tmp");
+		authdb_t *db = authdb_read("t/tmp", AUTHDB_ALL);
+		group_t *group = group_find(db, "members", NO_GID);
+		isnt_null(group, "found 'members' group for membership test");
+		group_remove(group);
+		is_null(group_find(db, "members", NO_GID), "'members' group no longer in memory");
+
+		user_t *user;
+		user = user_find(db, "account2", NO_UID);
+		isnt_null(user, "found 'account2' in database");
+		user_remove(user);
+		is_null(user_find(db, "account2", NO_UID), "'account2' user no longer in memory");
+
+		authdb_write(db);
+		ok(1, "authdb_write() doesn't crash when removing users / groups");
 		authdb_close(db);
 	}
 

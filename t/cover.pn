@@ -33,14 +33,14 @@ EOF
 root:x:0:
 daemon:x:1:abbadon
 people:x:400:
-rnd:x:401:
+rnd:x:401:daemon,root
 oldman:NOTSET:501:
 EOF
   fs.put "t/tmp/gshadow" <<EOF
 root:*::
 daemon:*:abbadon:mephisto
 people:*::
-rnd:*::
+rnd:*:daemon:daemon,root
 oldman:$$gcrypt::
 EOF
 
@@ -2297,6 +2297,275 @@ EOF
     call notok
   call localsys-check
 
+fn test.res.group.member.1
+  call setup.authdb
+  call util.authdb.open
+  set %p "res.group.member can add members"
+
+  set %a "rnd"
+  set %b 1
+  set %c "member"
+  set %d "jhacker"
+
+  group.find %a jz +2
+    string "%[p]s: group %[a]s not found in auth db" %p
+    call notok
+  user.find %d jz +2
+    string "%[p]s: user %[d]s not found in auth db" %p
+    call notok
+
+  group.has? %c %d jnz +2
+    string "%[p]s: user %[d]s is already a %[c]s of %[a]s" %p
+    call notok
+
+  unflag "changed"
+  call res.group.member
+  flagged? "changed" jz +2
+    string "%[p]s: not flagged" %p
+    call notok
+
+  group.has? %c %d jz +2
+    string "%[p]s: user %[d]s not added to %[a]s as a(n) %[c]s" %p
+    call notok
+  call ok
+
+fn test.res.group.member.2
+  call setup.authdb
+  call util.authdb.open
+  set %p "res.group.member can remove members"
+
+  set %a "rnd"
+  set %b 0
+  set %c "member"
+  set %d "daemon"
+
+  group.find %a jz +2
+    string "%[p]s: group %[a]s not found in auth db" %p
+    call notok
+  user.find %d jz +2
+    string "%[p]s: user %[d]s not found in auth db" %p
+    call notok
+
+fn test.res.group.member.3
+  call setup.authdb
+  call util.authdb.open
+  set %p "res.group.member skips extant members"
+
+  set %a "rnd"
+  set %b 1
+  set %c "member"
+  set %d "daemon"
+
+  group.find %a jz +2
+    string "%[p]s: group %[a]s not found in auth db" %p
+    call notok
+  user.find %d jz +2
+    string "%[p]s: user %[d]s not found in auth db" %p
+    call notok
+
+  group.has? %c %d jz +2
+    string "%[p]s: user %[d]s is not already a %[c]s of %[a]s" %p
+    call notok
+
+  unflag "changed"
+  call res.group.member
+  flagged? "changed" jnz +2
+    string "%[p]s: flagged" %p
+    call notok
+
+  group.has? %c %d jz +2
+    string "%[p]s: user %[d]s removed from %[a]s as a(n) %[c]s" %p
+    call notok
+  call ok
+
+fn test.res.group.member.4
+  call setup.authdb
+  call util.authdb.open
+  set %p "res.group.member skips non-members"
+
+  set %a "rnd"
+  set %b 0
+  set %c "member"
+  set %d "jhacker"
+
+  group.find %a jz +2
+    string "%[p]s: group %[a]s not found in auth db" %p
+    call notok
+  user.find %d jz +2
+    string "%[p]s: user %[d]s not found in auth db" %p
+    call notok
+
+  group.has? %c %d jnz +2
+    string "%[p]s: user %[d]s is already a %[c]s of %[a]s" %p
+    call notok
+
+  unflag "changed"
+  call res.group.member
+  flagged? "changed" jnz +2
+    string "%[p]s: flagged" %p
+    call notok
+
+  group.has? %c %d jnz +2
+    string "%[p]s: user %[d]s is a member of %[a]s as a(n) %[c]s" %p
+    call notok
+  call ok
+
+fn test.res.group.member.5
+  call setup.authdb
+  call util.authdb.open
+  set %p "res.group.member can add admin"
+
+  set %a "rnd"
+  set %b 1
+  set %c "admin"
+  set %d "jhacker"
+
+  group.find %a jz +2
+    string "%[p]s: group %[a]s not found in auth db" %p
+    call notok
+  user.find %d jz +2
+    string "%[p]s: user %[d]s not found in auth db" %p
+    call notok
+
+  group.has? %c %d jnz +2
+    string "%[p]s: user %[d]s is already a %[c]s of %[a]s" %p
+    call notok
+
+  unflag "changed"
+  call res.group.member
+  flagged? "changed" jz +2
+    string "%[p]s: not flagged" %p
+    call notok
+
+  group.has? %c %d jz +2
+    string "%[p]s: user %[d]s not added to %[a]s as a(n) %[c]s" %p
+    call notok
+  call ok
+
+fn test.res.group.member.6
+  call setup.authdb
+  call util.authdb.open
+  set %p "res.group.member can remove admins"
+
+  set %a "rnd"
+  set %b 0
+  set %c "member"
+  set %d "daemon"
+
+  group.find %a jz +2
+    string "%[p]s: group %[a]s not found in auth db" %p
+    call notok
+  user.find %d jz +2
+    string "%[p]s: user %[d]s not found in auth db" %p
+    call notok
+
+  group.has? %c %d jz +2
+    string "%[p]s: user %[d]s is not already a %[c]s of %[a]s" %p
+    call notok
+
+  unflag "changed"
+  call res.group.member
+  flagged? "changed" jz +2
+    string "%[p]s: not flagged" %p
+    call notok
+
+  group.has? %c %d jnz +2
+    string "%[p]s: user %[d]s not removed from %[a]s as a(n) %[c]s" %p
+    call notok
+  call ok
+
+fn test.res.group.member.7
+  call setup.authdb
+  call util.authdb.open
+  set %p "res.group.member skips extant admins"
+
+  set %a "rnd"
+  set %b 1
+  set %c "admin"
+  set %d "daemon"
+
+  group.find %a jz +2
+    string "%[p]s: group %[a]s not found in auth db" %p
+    call notok
+  user.find %d jz +2
+    string "%[p]s: user %[d]s not found in auth db" %p
+    call notok
+
+  group.has? %c %d jz +2
+    string "%[p]s: user %[d]s is not already a %[c]s of %[a]s" %p
+    call notok
+
+  unflag "changed"
+  call res.group.member
+  flagged? "changed" jnz +2
+    string "%[p]s: flagged" %p
+    call notok
+
+  group.has? %c %d jz +2
+    string "%[p]s: user %[d]s removed from %[a]s as a(n) %[c]s" %p
+    call notok
+  call ok
+
+fn test.res.group.member.8
+  call setup.authdb
+  call util.authdb.open
+  set %p "res.group.member skips non-admins"
+
+  set %a "rnd"
+  set %b 0
+  set %c "admin"
+  set %d "jhacker"
+
+  group.find %a jz +2
+    string "%[p]s: group %[a]s not found in auth db" %p
+    call notok
+  user.find %d jz +2
+    string "%[p]s: user %[d]s not found in auth db" %p
+    call notok
+
+  group.has? %c %d jnz +2
+    string "%[p]s: user %[d]s is already a %[c]s of %[a]s" %p
+    call notok
+
+  unflag "changed"
+  call res.group.member
+  flagged? "changed" jnz +2
+    string "%[p]s: flagged" %p
+    call notok
+
+  group.has? %c %d jnz +2
+    string "%[p]s: user %[d]s is a member of %[a]s as a(n) %[c]s" %p
+    call notok
+  call ok
+
+fn test.res.group.member.9
+  call setup.authdb
+  call util.authdb.open
+  set %p "res.group.member handles missing groups"
+
+  set %a "ENOENT"
+  set %b 0
+  set %c "admin"
+  set %d "jhacker"
+
+  group.find %a jnz +2
+    string "%[p]s: group %[a]s found in auth db" %p
+    call notok
+  user.find %d jz +2
+    string "%[p]s: user %[d]s not found in auth db" %p
+    call notok
+
+  group.has? %c %d jnz +2
+    string "%[p]s: user %[d]s is already a %[c]s of %[a]s" %p
+    call notok
+
+  unflag "changed"
+  call res.group.member
+  flagged? "changed" jnz +2
+    string "%[p]s: flagged" %p
+    call notok
+  call ok
+
 fn test.res.chgrp.1
   call setup.authdb
   set %p "fs.chgrp ignores absent files"
@@ -2875,6 +3144,16 @@ fn main
   add %o 1 try test.res.package.install.11 jz +1 set %p 1
   add %o 1 try test.res.package.install.12 jz +1 set %p 1
   add %o 1 try test.res.package.install.13 jz +1 set %p 1
+
+  add %o 1 try test.res.group.member.1 jz +1 set %p 1
+  add %o 1 try test.res.group.member.2 jz +1 set %p 1
+  add %o 1 try test.res.group.member.3 jz +1 set %p 1
+  add %o 1 try test.res.group.member.4 jz +1 set %p 1
+  add %o 1 try test.res.group.member.5 jz +1 set %p 1
+  add %o 1 try test.res.group.member.6 jz +1 set %p 1
+  add %o 1 try test.res.group.member.7 jz +1 set %p 1
+  add %o 1 try test.res.group.member.8 jz +1 set %p 1
+  add %o 1 try test.res.group.member.9 jz +1 set %p 1
 
   geteuid %a
   eq %a 0 jz +2

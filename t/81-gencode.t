@@ -690,8 +690,28 @@ fn fix:00000001
   call res.group.present
   set %b "$$crypt"
   call res.group.passwd
-  ;; FIXME: manage group membership!
-  ;; FIXME: manage group adminhood!
+
+  ;; add members
+  set %b 1 set %c "member"
+  set %d "user1"
+    call util.group.member
+  set %d "user2"
+    call util.group.member
+
+  ;; remove members
+  set %b 0 set %c "member"
+  set %d "user3"
+    call util.group.member
+
+  ;; add admins
+  set %b 1 set %c "admin"
+  set %d "adm1"
+    call util.group.member
+
+  ;; remove admins
+  set %b 0 set %c "admin"
+  set %d "root"
+    call util.group.member
   call util.authdb.save
 
 fn main

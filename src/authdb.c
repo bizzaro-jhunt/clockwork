@@ -66,6 +66,15 @@ done:
 		list_push(&db->memberships, &member->l);
 }
 
+static void s_member_free(member_t *m)
+{
+	if (!m) return;
+	list_delete(&m->l);
+	list_delete(&m->on_user);
+	list_delete(&m->on_group);
+	free(m);
+}
+
 static void s_remove_member(authdb_t *db, int type, group_t *group, user_t *user)
 {
 	if (!group || !user) return;
@@ -77,10 +86,7 @@ static void s_remove_member(authdb_t *db, int type, group_t *group, user_t *user
 	for_each_object(needle, group_list, on_group) {
 		if (needle->group != group || needle->user != user)
 			continue;
-		list_delete(&needle->l);
-		list_delete(&needle->on_user);
-		list_delete(&needle->on_group);
-		free(needle);
+		s_member_free(needle);
 		return;
 	}
 }
@@ -557,6 +563,12 @@ void user_remove(user_t *user)
 {
 	if (!user) return;
 	list_delete(&user->l);
+
+	member_t *member, *tmp;
+	for_each_object_safe(member, tmp, &user->db->memberships, l)
+		if (member->user == user)
+			s_member_free(member);
+
 	free(user->name);
 	free(user->clear_pass);
 	free(user->crypt_pass);
@@ -597,6 +609,12 @@ void group_remove(group_t *group)
 {
 	if (!group) return;
 	list_delete(&group->l);
+
+	member_t *member, *tmp;
+	for_each_object_safe(member, tmp, &group->db->memberships, l)
+		if (member->group == group)
+			s_member_free(member);
+
 	free(group->name);
 	free(group->clear_pass);
 	free(group->crypt_pass);

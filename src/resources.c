@@ -1063,6 +1063,7 @@ int res_group_gencode(const void *res, FILE *io)
 {
 	struct res_group *r = (struct res_group*)(res);
 	assert(r); // LCOV_EXCL_LINE
+	int i;
 
 	fprintf(io, "  call util.authdb.open\n"
 	            "  set %%a \"%s\"\n", r->name);
@@ -1080,10 +1081,35 @@ int res_group_gencode(const void *res, FILE *io)
 		fprintf(io, "  set %%b \"%s\"\n"
 		            "  call res.group.passwd\n", r->passwd);
 	if (ENFORCED(r, RES_GROUP_MEMBERS)) {
-		fprintf(io, "  ;; FIXME: manage group membership!\n");
+		fprintf(io, "\n"
+		            "  ;; add members\n"
+		            "  set %%b 1 set %%c \"member\"\n");
+		for_each_string(r->mem_add, i)
+			fprintf(io, "  set %%d \"%s\"\n"
+			            "    call util.group.member\n", r->mem_add->strings[i]);
+
+		fprintf(io, "\n"
+		            "  ;; remove members\n"
+		            "  set %%b 0 set %%c \"member\"\n");
+		for_each_string(r->mem_rm, i)
+			fprintf(io, "  set %%d \"%s\"\n"
+			            "    call util.group.member\n", r->mem_rm->strings[i]);
 	}
 	if (ENFORCED(r, RES_GROUP_ADMINS)) {
-		fprintf(io, "  ;; FIXME: manage group adminhood!\n");
+		fprintf(io, "\n"
+		            "  ;; add admins\n"
+		            "  set %%b 1 set %%c \"admin\"\n");
+		for_each_string(r->adm_add, i)
+			fprintf(io, "  set %%d \"%s\"\n"
+			            "    call util.group.member\n", r->adm_add->strings[i]);
+
+		fprintf(io, "\n"
+		            "  ;; remove admins\n"
+		            "  set %%b 0 set %%c \"admin\"\n");
+		for_each_string(r->adm_rm, i)
+			fprintf(io, "  set %%d \"%s\"\n"
+			            "    call util.group.member\n", r->adm_rm->strings[i]);
+
 	}
 	fprintf(io, "  call util.authdb.save\n");
 	return 0;

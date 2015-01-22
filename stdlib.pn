@@ -1079,4 +1079,40 @@ fn res.host.add-alias
     flag "changed"
     retv 0
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; res.group.member
+;;
+;;   %a = group name
+;;   %b = add/remove (1 = add, 0 = remove)
+;;   %c = type (member / admin)
+;;   %d = user name
+;;
+fn res.group.member
+    syslog info "%T: enforcing group %[c]sship for %[d]s in group %[a]s"
+    group.find %a jz +2
+      perror "%T: failed to find group %[a]s"
+      bail 1
+
+    group.has? %c %d jz exists
+  ;; see if we should add the user
+    eq %b 1 jz +1 retv 0
+    syslog info "%T: adding %[a]s to group '%[d]s' as a(n) %[c]s"
+    group.join %c %d
+    jz +2
+      perror "%T: failed to add %[a]s to group '%[d]s' as a(n) %[c]s"
+      bail 1
+    flag "changed"
+    retv 0
+
+  exists: ;; see if we should remove the user
+    eq %b 0 jz +1 retv 0
+    syslog info "%T: removing %[a]s from group '%[d]s' (as a(n) %[c]s)"
+    group.kick %c %d
+    jz +2
+      perror "%T: failed to remove %[a]s from group '%[d]s' (as a(n) %[c]s)"
+      bail 1
+    flag "changed"
+    retv 0
+
 ;; vim:et:ts=5:sw=4

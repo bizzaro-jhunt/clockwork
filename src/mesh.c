@@ -386,6 +386,8 @@ int cmd_gencode(cmd_t *cmd, FILE *io)
 	end = &cmd->tokens;
 	tok = list_object(l, cmd_token_t, l);
 
+	fprintf(io, "fn main\n");
+
 	if (strcmp(tok->value, "show") == 0) {
 		if (l->next == end) goto syntax;
 		l = l->next;
@@ -393,16 +395,14 @@ int cmd_gencode(cmd_t *cmd, FILE *io)
 
 		if (strcmp(tok->value, "version") == 0) {
 			if (l->next != end) goto syntax;
-			fprintf(io, "fn main\n"
-			            "  property \"version\" %%a\n"
+			fprintf(io, "  property \"version\" %%a\n"
 			            "  print %%a\n");
 			return 0;
 		}
 
 		if (strcmp(tok->value, "acls") == 0) {
 			if (l->next == end) {
-				fprintf(io, "fn main\n"
-				            "  show.acls\n");
+				fprintf(io, "  show.acls\n");
 				return 0;
 			}
 
@@ -415,19 +415,19 @@ int cmd_gencode(cmd_t *cmd, FILE *io)
 
 				if (l->next != end) goto syntax;
 				if (*tok->value == '%') {
-					fprintf(io, "fn main\n"
-					            "  show.acl \":%s\"\n", tok->value + 1);
+					fprintf(io, "  show.acl \":%s\"\n", tok->value + 1);
 					return 0;
 				}
 
-				fprintf(io, "fn main\n"
-				            "  show.acl \"%s\"\n", tok->value);
+				fprintf(io, "  show.acl \"%s\"\n", tok->value);
 				return 0;
 			}
 		}
 	}
 
 syntax:
+	fprintf(io, "  print \"mesh command unrecognized: %s\"\n"
+	            "  retv 3\n", cmd->string);
 	return 0;
 }
 

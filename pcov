@@ -46,15 +46,12 @@ while (<$dism>) {
 		$ignore = $obj !~ m/$OPTIONS{exclude}/ if $OPTIONS{exclude};
 		$ignore = $obj !~ m/$OPTIONS{only}/    if $OPTIONS{only};
 
+		next if $ignore;
 		push @report, { txt => $_ };
 		$lines++;
 		next;
 	}
-
-	if ($ignore) {
-		push @report, { txt => $_ };
-		next;
-	}
+	next if $ignore;
 
 	$lines++;
 	if (m/^0x00000000: 70 6e$/) { # header

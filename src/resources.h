@@ -41,7 +41,7 @@ int            res_ ## t ## _attrs(const void *res, hash_t *attrs); \
 int            res_ ## t ## _norm(void *res, struct policy *pol, hash_t *facts); \
 int            res_ ## t ## _set(void *res, const char *attr, const char *value); \
 int            res_ ## t ## _match(const void *res, const char *attr, const char *value); \
-FILE*          res_ ## t ## _content(const void *res, hash_t *facts)
+content_t*     res_ ## t ## _content(const void *res, hash_t *facts)
 
 #define RES_NONE 0x00
 

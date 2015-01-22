@@ -51,60 +51,6 @@ int cw_strcmp(const char *a, const char *b)
 }
 
 /*
-    ######## ########  ##
-       ##    ##     ## ##
-       ##    ##     ## ##
-       ##    ########  ##
-       ##    ##        ##
-       ##    ##        ##
-       ##    ##        ########
- */
-
-FILE* cw_tpl_erb(const char *src, hash_t *facts)
-{
-	FILE *in  = tmpfile();
-	FILE *out = tmpfile();
-
-	if (!in || !out) {
-		fclose(in);
-		fclose(out);
-		return NULL;
-	}
-
-	char *k, *v;
-	for_each_key_value(facts, k, v)
-		fprintf(in, "%s=%s\n", k, v);
-	rewind(in);
-
-	FILE *err = tmpfile();
-
-	runner_t runner = {
-		.in  = in,
-		.out = out,
-		.err = err,
-		.uid = 0,
-		.gid = 0,
-	};
-	int rc = run2(&runner, "cw", "template-erb", src, NULL);
-	fclose(in);
-
-	char buf[8192];
-	while (fgets(buf, 8192, err)) {
-		char *p;
-		if    ((p = strchr(buf, '\n')) != NULL) *p = '\0';
-		while ((p = strchr(buf, '\t')) != NULL) *p = ' ';
-		logger(LOG_ERR, "%s", buf);
-	}
-	fclose(err);
-
-	if (rc == 0)
-		return out;
-
-	fclose(out);
-	return NULL;
-}
-
-/*
 
     ########  ########  ########    ###
     ##     ## ##     ## ##         ## ##

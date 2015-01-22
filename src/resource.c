@@ -31,7 +31,7 @@ typedef int (*resource_norm_f)(void *res, struct policy *pol, hash_t *facts);
 typedef int (*resource_set_f)(void *res, const char *attr, const char *value);
 typedef int (*resource_match_f)(const void *res, const char *attr, const char *value);
 typedef int (*resource_gencode_f)(const void *res, FILE *io);
-typedef FILE* (*resource_content_f)(const void *res, hash_t *facts);
+typedef content_t* (*resource_content_f)(const void *res, hash_t *facts);
 
 #define RESOURCE_TYPE(t) { \
 	             .name = #t,                    \
@@ -341,7 +341,7 @@ int resource_gencode(const struct resource *r, FILE *io)
 	return (*(resource_types[r->type].gencode_callback))(r->resource, io);
 }
 
-FILE * resource_content(const struct resource *r, hash_t *facts)
+content_t* resource_content(const struct resource *r, hash_t *facts)
 {
 	assert(r); // LCOV_EXCL_LINE
 	assert(r->type != RES_UNKNOWN); // LCOV_EXCL_LINE

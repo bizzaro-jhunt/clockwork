@@ -438,51 +438,11 @@ static int s_copyfile(FILE *src, FILE *dst)
 	return 0;
 }
 
-static char* s_remote_sha1(vm_t *vm, const char *key)
-{
-	if (!vm->aux.remote) return NULL;
-
-	int rc;
-	pdu_t *pdu;
-	char *s;
-
-	rc = pdu_send_and_free(pdu_make("FILE", 1, key), vm->aux.remote);
-	if (rc != 0) return NULL;
-
-	pdu = pdu_recv(vm->aux.remote);
-	if (!pdu) {
-		logger(LOG_ERR, "remote.sh1 - failed: %s", zmq_strerror(errno));
-		return NULL;
-	}
-	if (strcmp(pdu_type(pdu), "ERROR") == 0) {
-		s = pdu_string(pdu, 1);
-		logger(LOG_ERR, "remote.sha1 - protocol violation: %s", s);
-		free(s); pdu_free(pdu);
-		return NULL;
-	}
-	if (strcmp(pdu_type(pdu), "SHA1") == 0) {
-		s = pdu_string(pdu, 1);
-		pdu_free(pdu);
-		return s;
-	}
-
-	logger(LOG_ERR, "remote.sha1 - unexpected reply PDU [%s]", pdu_type(pdu));
-	pdu_free(pdu);
-	return NULL;
-}
-
-static int s_remote_file(vm_t *vm, const char *target, const char *temp)
+static int s_remote_fileio(vm_t *vm, FILE *io)
 {
 	int rc, n = 0;
 	char *s;
 	pdu_t *reply;
-
-	FILE *tmpf = tmpfile();
-	if (!tmpf) {
-		logger(LOG_ERR, "remote.file failed to create temporary file: %s",
-			strerror(errno));
-		return 1;
-	}
 
 	for (;;) {
 		s = string("%i", n++);
@@ -493,7 +453,6 @@ static int s_remote_file(vm_t *vm, const char *target, const char *temp)
 		reply = pdu_recv(vm->aux.remote);
 		if (!reply) {
 			logger(LOG_ERR, "remote.file failed: %s", zmq_strerror(errno));
-			if (tmpf) fclose(tmpf);
 			return 1;
 		}
 		logger(LOG_DEBUG, "remote.file received a %s PDU", pdu_type(reply));
@@ -505,14 +464,32 @@ static int s_remote_file(vm_t *vm, const char *target, const char *temp)
 		if (strcmp(pdu_type(reply), "BLOCK") != 0) {
 			pdu_free(reply);
 			logger(LOG_ERR, "remote.file - protocol violation: received a %s PDU (expected a BLOCK)", pdu_type(reply));
-			if (tmpf) fclose(tmpf);
 			return 1;
 		}
 
 		char *data = pdu_string(reply, 1);
-		fprintf(tmpf, "%s", data);
+		fprintf(io, "%s", data);
 		free(data);
 		pdu_free(reply);
+	}
+
+	return 0;
+}
+
+static int s_remote_file(vm_t *vm, const char *target, const char *temp)
+{
+	int rc;
+
+	FILE *tmpf = tmpfile();
+	if (!tmpf) {
+		logger(LOG_ERR, "remote.file failed to create temporary file: %s",
+			strerror(errno));
+		return 1;
+	}
+
+	if (s_remote_fileio(vm, tmpf) != 0) {
+		fclose(tmpf);
+		return 1;
 	}
 
 	char *difftool = hash_get(&vm->pragma, "difftool");
@@ -570,6 +547,63 @@ static int s_remote_file(vm_t *vm, const char *target, const char *temp)
 	fclose(dst);
 	fclose(tmpf);
 	return rc;
+}
+
+
+static char* s_remote_sha1(vm_t *vm, const char *key)
+{
+	if (!vm->aux.remote) return NULL;
+
+	int rc;
+	pdu_t *pdu;
+	char *s;
+
+	rc = pdu_send_and_free(pdu_make("FILE", 1, key), vm->aux.remote);
+	if (rc != 0) return NULL;
+
+	pdu = pdu_recv(vm->aux.remote);
+	if (!pdu) {
+		logger(LOG_ERR, "remote.sh1 - failed: %s", zmq_strerror(errno));
+		return NULL;
+	}
+	if (strcmp(pdu_type(pdu), "ERROR") == 0) {
+		s = pdu_string(pdu, 1);
+		logger(LOG_ERR, "remote.sha1 - protocol violation: %s", s);
+		free(s); pdu_free(pdu);
+		return NULL;
+	}
+	if (strcmp(pdu_type(pdu), "SHA1") == 0) {
+		s = pdu_string(pdu, 1);
+		pdu_free(pdu);
+		return s;
+	}
+	if (strcmp(pdu_type(pdu), "SHA1.FAIL") == 0) {
+		int err = 0;
+		s = pdu_string(pdu, 1); err = atoi(s); free(s);
+		logger(LOG_ERR, "%s failed: %s (error %u)", key, strerror(err), err);
+
+		FILE *io = tmpfile();
+		if (!io) {
+			logger(LOG_ERR, "unable to download error to local temporary file: %s",
+				strerror(errno));
+			return NULL;
+		}
+
+		if (s_remote_fileio(vm, io) != 0)
+			logger(LOG_ERR, "failed retreiving DATA blocks from clockd master (may only have partial error messge)");
+
+		rewind(io);
+		char *pre = string("%s failed: %%s", key);
+		cw_logio(LOG_ERR, pre, io);
+		free(pre);
+
+		fclose(io);
+		return NULL;
+	}
+
+	logger(LOG_ERR, "remote.sha1 - unexpected reply PDU [%s]", pdu_type(pdu));
+	pdu_free(pdu);
+	return NULL;
 }
 
 static int s_copy(const char *from, const char *to)

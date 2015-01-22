@@ -95,6 +95,13 @@ struct dependency {
 	list_t l;
 };
 
+typedef struct {
+	int   error;  /* error encountered while generating contents */
+	FILE *io;     /* either the resource contents (error = 0) or the
+
+	                 error messages from trying to generate them */
+} content_t;
+
 /**
   CHeck if attribute $a is enforced on $r.
 
@@ -113,7 +120,7 @@ int resource_norm(struct resource *r, struct policy *pol, hash_t *facts);
 int resource_set(struct resource *r, const char *attr, const char *value);
 int resource_match(const struct resource *r, const char *attr, const char *value);
 int resource_gencode(const struct resource *r, FILE *io);
-FILE* resource_content(const struct resource *r, hash_t *facts);
+content_t* resource_content(const struct resource *r, hash_t *facts);
 
 int resource_add_dependency(struct resource *r, struct resource *dep);
 int resource_drop_dependency(struct resource *r, struct resource *dep);

@@ -318,8 +318,10 @@ fn res.file.contents
 
     syslog info "%T: retrieving remote SHA1 checksum"
     remote.sha1 %c %o
-    jz +2
-      perror "failed to retrieve remote SHA1 for %[a]s"
+    jz +1
+      ;; NOTE: we don't need to syslog anything, as remote.sha1
+      ;;       does a much more thorough job of this, and doesn't
+      ;;       confuse local/remote errnos like perror would.
       bail 1
 
     syslog info "%T: calculating local SHA1 checksum"

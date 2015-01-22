@@ -399,7 +399,7 @@ int res_user_gencode(const void *res, FILE *io)
 	return 0;
 }
 
-FILE * res_user_content(const void *res, hash_t *facts) { return NULL; }
+content_t* res_user_content(const void *res, hash_t *facts) { return NULL; }
 
 
 /*****************************************************************/
@@ -700,16 +700,55 @@ int res_file_gencode(const void *res, FILE *io)
 	return 0;
 }
 
-FILE * res_file_content(const void *res, hash_t *facts)
+content_t* res_file_content(const void *res, hash_t *facts)
 {
 	struct res_file *r = (struct res_file*)(res);
 	assert(r); // LCOV_EXCL_LINE
 
 	if (r->template) {
-		return cw_tpl_erb(r->template, facts);
+		content_t *c = vmalloc(sizeof(content_t));
+
+		runner_t runner = {
+			.in  = tmpfile(),
+			.out = tmpfile(),
+			.err = tmpfile(),
+			.uid = 0,
+			.gid = 0,
+		};
+		if (!runner.in || !runner.out) {
+			c->error = errno;
+			c->io = NULL;
+			if (runner.in)  fclose(runner.in);
+			if (runner.out) fclose(runner.out);
+			if (runner.err) fclose(runner.err);
+			return c;
+		}
+
+		char *k, *v;
+		for_each_key_value(facts, k, v)
+			fprintf(runner.in, "%s=%s\n", k, v);
+		rewind(runner.in);
+
+		errno = 0;
+		int rc = run2(&runner, "cw", "template-erb", r->template, NULL);
+		fclose(runner.in);
+
+		if (rc == 0) {
+			c->io = runner.out;
+			fclose(runner.err);
+		} else {
+			c->error = errno ? errno : EREMOTEIO;
+			c->io = runner.err;
+			fclose(runner.out);
+		}
+		return c;
 
 	} else if (r->source) {
-		return fopen(r->source, "r");
+		content_t *c = vmalloc(sizeof(content_t));
+		c->io = fopen(r->source, "r");
+		if (!c->io)
+			c->error = errno;
+		return c;
 	}
 	return NULL;
 }
@@ -844,7 +883,7 @@ int res_symlink_gencode(const void *res, FILE *io)
 	return 0;
 }
 
-FILE * res_symlink_content(const void *res, hash_t *facts) { return NULL; }
+content_t* res_symlink_content(const void *res, hash_t *facts) { return NULL; }
 
 
 /*****************************************************************/
@@ -1199,7 +1238,7 @@ int res_group_remove_admin(struct res_group *rg, const char *user)
 	return _group_update(rg->adm_rm, rg->adm_add, user);
 }
 
-FILE * res_group_content(const void *res, hash_t *facts) { return NULL; }
+content_t* res_group_content(const void *res, hash_t *facts) { return NULL; }
 
 /*****************************************************************/
 
@@ -1329,7 +1368,7 @@ int res_package_gencode(const void *res, FILE *io)
 	return 0;
 }
 
-FILE * res_package_content(const void *res, hash_t *facts) { return NULL; }
+content_t* res_package_content(const void *res, hash_t *facts) { return NULL; }
 
 /*****************************************************************/
 
@@ -1489,7 +1528,7 @@ int res_service_gencode(const void *res, FILE *io)
 	return 0;
 }
 
-FILE * res_service_content(const void *res, hash_t *facts) { return NULL; }
+content_t* res_service_content(const void *res, hash_t *facts) { return NULL; }
 
 /*****************************************************************/
 
@@ -1642,7 +1681,7 @@ int res_host_gencode(const void *res, FILE *io)
 	return 0;
 }
 
-FILE * res_host_content(const void *res, hash_t *facts) { return NULL; }
+content_t* res_host_content(const void *res, hash_t *facts) { return NULL; }
 
 /*****************************************************************/
 
@@ -1833,7 +1872,7 @@ int res_dir_gencode(const void *res, FILE *io)
 	return 0;
 }
 
-FILE * res_dir_content(const void *res, hash_t *facts) { return NULL; }
+content_t* res_dir_content(const void *res, hash_t *facts) { return NULL; }
 
 /********************************************************************/
 
@@ -2029,4 +2068,4 @@ int res_exec_gencode(const void *res, FILE *io)
 	return 0;
 }
 
-FILE * res_exec_content(const void *res, hash_t *facts) { return NULL; }
+content_t* res_exec_content(const void *res, hash_t *facts) { return NULL; }

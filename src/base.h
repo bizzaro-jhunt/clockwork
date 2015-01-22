@@ -30,8 +30,6 @@
 char* cw_strdup(const char *s);
 int cw_strcmp(const char *a, const char *b);
 
-FILE* cw_tpl_erb(const char *src, hash_t *facts);
-
 int cw_bdfa_pack(int out, const char *root);
 int cw_bdfa_unpack(int in, const char *root);
 

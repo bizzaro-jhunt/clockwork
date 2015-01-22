@@ -124,7 +124,7 @@ struct __client_t {
 	struct policy    *policy;
 	hash_t           *facts;
 
-	FILE             *io;
+	content_t        *contents;
 	unsigned long     offset;
 	struct SHA1       sha1;
 };
@@ -148,19 +148,22 @@ struct __server_t {
 
 static int s_sha1(client_t *fsm)
 {
+	if (fsm->contents->error)
+		return fsm->contents->error;
+
 	struct sha1_ctx ctx;
 	sha1_init(&fsm->sha1, NULL);
 	sha1_ctx_init(&ctx);
 
 	char data[BLOCK_SIZE];
 	size_t n;
-	int fd = fileno(fsm->io);
+	int fd = fileno(fsm->contents->io);
 	while ((n = read(fd, data, BLOCK_SIZE)) > 0)
 		sha1_ctx_update(&ctx, (uint8_t *)data, n);
 	sha1_ctx_final(&ctx, fsm->sha1.raw);
 	sha1_hexdigest(&fsm->sha1);
 
-	rewind(fsm->io);
+	rewind(fsm->contents->io);
 	return 0;
 }
 
@@ -290,8 +293,12 @@ static int s_state_machine(client_t *fsm, pdu_t *pdu, pdu_t **reply)
 		switch (fsm->state) {
 		case STATE_FILE:
 		case STATE_COPYDOWN:
-			if (fsm->io) fclose(fsm->io);
-			fsm->io = NULL;
+			if (fsm->contents) {
+				if (fsm->contents->io)
+					fclose(fsm->contents->io);
+				free(fsm->contents);
+			}
+			fsm->contents = NULL;
 			fsm->offset = 0;
 
 		case STATE_POLICY:
@@ -326,21 +333,22 @@ static int s_state_machine(client_t *fsm, pdu_t *pdu, pdu_t **reply)
 			return 1;
 
 		case STATE_IDENTIFIED:
-			fsm->io = tmpfile();
-			if (!fsm->io) {
+			fsm->contents = vmalloc(sizeof(content_t));
+			fsm->contents->io = tmpfile();
+			if (!fsm->contents->io) {
 				logger(LOG_ERR, "unable to create a temporary file for the copydown archive: %s",
 					strerror(errno));
 				fsm->error = FSM_ERR_INTERNAL;
 				return 1;
 			}
 
-			if (cw_bdfa_pack(fileno(fsm->io), fsm->server->copydown) != 0) {
+			if (cw_bdfa_pack(fileno(fsm->contents->io), fsm->server->copydown) != 0) {
 				logger(LOG_ERR, "unable to pack the copydown archive: %s",
 					strerror(errno));
 				fsm->error = FSM_ERR_INTERNAL;
 				return 1;
 			}
-			rewind(fsm->io);
+			rewind(fsm->contents->io);
 			fsm->offset = 0;
 
 			*reply = pdu_reply(pdu, "OK", 0);
@@ -359,8 +367,12 @@ static int s_state_machine(client_t *fsm, pdu_t *pdu, pdu_t **reply)
 		case STATE_REPORT:
 		case STATE_FILE:
 		case STATE_COPYDOWN:
-			if (fsm->io) fclose(fsm->io);
-			fsm->io = NULL;
+			if (fsm->contents) {
+				if (fsm->contents->io)
+					fclose(fsm->contents->io);
+				free(fsm->contents);
+			}
+			fsm->contents = NULL;
 			fsm->offset = 0;
 
 		case STATE_POLICY:
@@ -405,8 +417,12 @@ static int s_state_machine(client_t *fsm, pdu_t *pdu, pdu_t **reply)
 			return 1;
 
 		case STATE_FILE:
-			if (fsm->io) fclose(fsm->io);
-			fsm->io = NULL;
+			if (fsm->contents) {
+				if (fsm->contents->io)
+					fclose(fsm->contents->io);
+				free(fsm->contents);
+			}
+			fsm->contents = NULL;
 			fsm->offset = 0;
 
 		case STATE_POLICY:
@@ -424,17 +440,26 @@ static int s_state_machine(client_t *fsm, pdu_t *pdu, pdu_t **reply)
 			return 1;
 		}
 
-		fsm->io = resource_content(r, fsm->facts);
-		if (!fsm->io) {
+		fsm->contents = resource_content(r, fsm->facts);
+		if (!fsm->contents) {
 			logger(LOG_ERR, "failed to generate content for %s (on behalf of %s): %s",
 				r->key, fsm->name, strerror(errno));
 			fsm->error = FSM_ERR_INTERNAL;
 			return 1;
 		}
+		if (fsm->contents->error) {
+			logger(LOG_ERR, "error encountered while generating content for %s (on behalf of %s): %s (error %u)",
+				r->key, fsm->name, strerror(fsm->contents->error), fsm->contents->error);
+			char *e = string("%u", fsm->contents->error);
+			*reply = pdu_reply(pdu, "SHA1.FAIL", 2, e, strerror(fsm->contents->error));
+			free(e);
+			fsm->state = STATE_FILE;
 
-		s_sha1(fsm);
-		*reply = pdu_reply(pdu, "SHA1", 1, fsm->sha1.hex);
-		fsm->state = STATE_FILE;
+		} else {
+			s_sha1(fsm);
+			*reply = pdu_reply(pdu, "SHA1", 1, fsm->sha1.hex);
+			fsm->state = STATE_FILE;
+		}
 		return 0;
 
 	case EVENT_DATA:
@@ -456,13 +481,19 @@ static int s_state_machine(client_t *fsm, pdu_t *pdu, pdu_t **reply)
 		fsm->offset = BLOCK_SIZE * atoi(off);
 		free(off);
 
+		if (!fsm->contents->io) {
+			logger(LOG_ERR, "No file handle for DATA block; returning initial EOF");
+			*reply = pdu_reply(pdu, "EOF", 0);
+			return 0;
+		}
+
 		char block[BLOCK_SIZE+1] = "";
-		fseek(fsm->io, fsm->offset, SEEK_SET);
-		size_t n = fread(block, 1, BLOCK_SIZE, fsm->io);
+		fseek(fsm->contents->io, fsm->offset, SEEK_SET);
+		size_t n = fread(block, 1, BLOCK_SIZE, fsm->contents->io);
 		block[n] = '\0';
 
 		if (n == 0) {
-			if (feof(fsm->io)) {
+			if (feof(fsm->contents->io)) {
 				*reply = pdu_reply(pdu, "EOF", 0);
 			} else {
 				logger(LOG_ERR, "Failed to read from cached IO handled: %s", strerror(errno));
@@ -484,8 +515,12 @@ static int s_state_machine(client_t *fsm, pdu_t *pdu, pdu_t **reply)
 
 		case STATE_FILE:
 		case STATE_COPYDOWN:
-			if (fsm->io) fclose(fsm->io);
-			fsm->io = NULL;
+			if (fsm->contents) {
+				if (fsm->contents->io)
+					fclose(fsm->contents->io);
+				free(fsm->contents);
+			}
+			fsm->contents = NULL;
 			fsm->offset = 0;
 
 		case STATE_POLICY:
@@ -500,8 +535,12 @@ static int s_state_machine(client_t *fsm, pdu_t *pdu, pdu_t **reply)
 		case STATE_REPORT:
 		case STATE_FILE:
 		case STATE_COPYDOWN:
-			if (fsm->io) fclose(fsm->io);
-			fsm->io = NULL;
+			if (fsm->contents) {
+				if (fsm->contents->io)
+					fclose(fsm->contents->io);
+				free(fsm->contents);
+			}
+			fsm->contents = NULL;
 			fsm->offset = 0;
 
 		case STATE_POLICY:
@@ -544,8 +583,10 @@ static void s_client_destroy(void *p)
 		free(c->facts);
 	}
 
-	if (c->io)
-		fclose(c->io);
+	if (c->contents) {
+		fclose(c->contents->io);
+		free(c->contents);
+	}
 
 	policy_free_all(c->policy);
 	free(c);
@@ -876,7 +917,7 @@ int main(int argc, char **argv)
 		int rc = s_state_machine(c, pdu, &reply);
 		if (rc == 0) {
 			logger(LOG_DEBUG, "%s: fsm is now at %s [%i]", pdu_peer(pdu), FSM_STATES[c->state], c->state);
-			logger(LOG_DEBUG, "%s: sending back a %s PDU", pdu_peer(pdu), reply->type);
+			logger(LOG_DEBUG, "%s: sending back a %s PDU", pdu_peer(pdu), pdu_type(reply));
 			pdu_send_and_free(reply, s->listener);
 			pdu_free(pdu);
 

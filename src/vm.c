@@ -65,12 +65,12 @@ static void s_eprintf(FILE *io, const char *orig)
 	}
 }
 
-static int s_empty(stack_t *st)
+static int s_empty(pstack_t *st)
 {
 	return st->top == 0;
 }
 
-static int s_push(vm_t *vm, stack_t *st, dword_t value)
+static int s_push(vm_t *vm, pstack_t *st, dword_t value)
 {
 	assert(st);
 	if (st->top == 254) {
@@ -83,7 +83,7 @@ static int s_push(vm_t *vm, stack_t *st, dword_t value)
 	return 0;
 }
 
-static dword_t s_pop(vm_t *vm, stack_t *st)
+static dword_t s_pop(vm_t *vm, pstack_t *st)
 {
 	assert(st);
 	if (s_empty(st)) {

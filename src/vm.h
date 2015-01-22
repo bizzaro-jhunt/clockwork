@@ -53,7 +53,7 @@ typedef uint32_t dword_t;
 typedef struct {
 	dword_t val[254];
 	byte_t  top;
-} stack_t;
+} pstack_t;
 
 typedef struct {
 	dword_t  addr;
@@ -83,10 +83,10 @@ typedef struct {
 	const char *topic;
 	unsigned int topics;
 
-	stack_t  dstack; /* data stack */
-	stack_t  rstack; /* register stack */
-	stack_t  istack; /* instruction stack */
-	stack_t  tstack; /* "try" nesting stack */
+	pstack_t dstack; /* data stack */
+	pstack_t rstack; /* register stack */
+	pstack_t istack; /* instruction stack */
+	pstack_t tstack; /* "try" nesting stack */
 
 	hash_t   flags;  /* flags (see flag/unflag/flagged? opcodes */
 	hash_t   pragma; /* compiler/runtime pragma settings */

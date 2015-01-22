@@ -29,8 +29,6 @@
 
 char* cw_strdup(const char *s);
 int cw_strcmp(const char *a, const char *b);
-char** cw_arrdup(char **a);
-void cw_arrfree(char **a);
 
 FILE* cw_tpl_erb(const char *src, hash_t *facts);
 

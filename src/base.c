@@ -50,29 +50,6 @@ int cw_strcmp(const char *a, const char *b)
 	return ((!a || !b) ? -1 : strcmp(a,b));
 }
 
-char** cw_arrdup(char **a)
-{
-	char **n, **t;
-
-	if (!a) { return NULL; }
-	for (t = a; *t; t++)
-		;
-
-	n = vmalloc((t -a + 1) * sizeof(char*));
-	for (t = n; *a; a++)
-		*t++ = cw_strdup(*a);
-
-	return n;
-}
-
-void cw_arrfree(char **a)
-{
-	char **s;
-	if (!a) { return; }
-	for (s = a; *s; free(*s++));
-	free(a);
-}
-
 /*
     ######## ########  ##
        ##    ##     ## ##

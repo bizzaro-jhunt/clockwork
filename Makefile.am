@@ -58,7 +58,6 @@ nobase_stdlib_DATA  = stdlib.pn
 ############################################################
 
 CTAP_TESTS  =
-CTAP_TESTS += t/05-mem
 CTAP_TESTS += t/07-sha1
 CTAP_TESTS += t/10-facts
 CTAP_TESTS += t/11-cmd
@@ -134,7 +133,6 @@ TEST_ps_SOURCES          = t/test-ps.c     $(core_src)
 TEST_lock_SOURCES        = t/test-lock.c   $(core_src)
 TEST_cmd_SOURCES         = t/test-cmd.c    $(core_src)
 
-t_05_mem_SOURCES         = t/05-mem.c           $(test_source)
 t_07_sha1_SOURCES        = t/07-sha1.c          $(test_source)
 t_10_facts_SOURCES       = t/10-facts.c         $(test_source)
 t_11_cmd_SOURCES         = t/11-cmd.c           $(test_source)

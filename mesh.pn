@@ -1,0 +1,75 @@
+;;
+;; Mesh Pendulum Standard Library
+;;   mesh.pn
+;;
+;; author:  James Hunt <james@niftylogic.com>
+;; created: 2015-01-22
+;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; mesh.unhandled
+;;
+;; Handles an unknown or unrecognized mesh command.
+;;
+;; Params:
+;;  (%a) The original command string
+;;
+fn mesh.unhandled
+  print "UNRECOGNIZED mesh command: \"%[a]s\"\n"
+  retv 3
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; mesh.show.version
+;;
+;; Prints the current version of Clockwork to standard output
+;; and then returns 0, always.  This action cannot fail.
+;;
+fn mesh.show.version
+  property "version" %a
+  print "%[a]s\n"
+  retv 0
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; mesh.show.acls
+;;
+;; Print out a list of all in-force Mesh ACL entries.
+;;
+fn mesh.show.acls
+  show.acls
+  retv 0
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; mesh.show.acl
+;;
+;; Print out the subset of Mesh ACL entries that affect the
+;; named user or group.
+;;
+;; Parameters:
+;;  (%a) Name of the user or group to limit ACL display to.
+;;       Group names start with ':' (colon).
+;;
+fn mesh.show.acl
+  show.acl %a
+  retv 0
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; mesh.cfm
+;;
+;; Trigger a CFM (configuration management) run, to force
+;; policy retrieval, validation and enforcement, ahead of
+;; schedule.
+;;
+;; Returns 0 if the execution was successful, or non-zero
+;; if running cogd was not possible.
+;;
+;; Parameters: none
+;;
+fn mesh.cfm
+  exec "cogd -F1" %a acc %b
+  print %a
+  retv %b

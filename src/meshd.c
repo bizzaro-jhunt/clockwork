@@ -38,6 +38,7 @@ static inline mesh_server_t *s_server_new(int argc, char **argv)
 	config_set(&config, "broadcast",           "*:2316");
 	config_set(&config, "client.connections",  "2048");
 	config_set(&config, "client.expiration",   "600");
+	config_set(&config, "pendulum.inc",        PENDULUM_INCLUDE);
 	config_set(&config, "syslog.ident",        "meshd");
 	config_set(&config, "syslog.facility",     "daemon");
 	config_set(&config, "syslog.level",        "error");
@@ -54,6 +55,7 @@ static inline mesh_server_t *s_server_new(int argc, char **argv)
 	logger(LOG_DEBUG, "  control             %s", config_get(&config, "control"));
 	logger(LOG_DEBUG, "  client.connections  %s", config_get(&config, "client.connections"));
 	logger(LOG_DEBUG, "  client.expiration   %s", config_get(&config, "client.expiration"));
+	logger(LOG_DEBUG, "  pendulum.inc        %s", config_get(&config, "pendulum.inc"));
 	logger(LOG_DEBUG, "  syslog.ident        %s", config_get(&config, "syslog.ident"));
 	logger(LOG_DEBUG, "  syslog.facility     %s", config_get(&config, "syslog.facility"));
 	logger(LOG_DEBUG, "  syslog.level        %s", config_get(&config, "syslog.level"));
@@ -201,6 +203,7 @@ static inline mesh_server_t *s_server_new(int argc, char **argv)
 		printf("broadcast           %s\n", config_get(&config, "broadcast"));
 		printf("client.connections  %s\n", config_get(&config, "client.connections"));
 		printf("client.expiration   %s\n", config_get(&config, "client.expiration"));
+		printf("pendulum.inc        %s\n", config_get(&config, "pendulum.inc"));
 		printf("syslog.ident        %s\n", config_get(&config, "syslog.ident"));
 		printf("syslog.facility     %s\n", config_get(&config, "syslog.facility"));
 		printf("syslog.level        %s\n", config_get(&config, "syslog.level"));
@@ -249,6 +252,10 @@ static inline mesh_server_t *s_server_new(int argc, char **argv)
 
 	int32_t life = atoi(config_get(&config, "client.expiration"));
 	rc = mesh_server_setopt(s, MESH_SERVER_CACHE_LIFE, &life, sizeof(life));
+	assert(rc == 0);
+
+	t = config_get(&config, "pendulum.inc");
+	rc = mesh_server_setopt(s, MESH_SERVER_PN_INCLUDE, t, strlen(t));
 	assert(rc == 0);
 
 	t = config_get(&config, "auth.service");

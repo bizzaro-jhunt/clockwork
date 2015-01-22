@@ -114,6 +114,18 @@ try to reclaim stale entries for use in new client connections.
 
 This value is specified in seconds.
 
+=item B<pendulum.inc> - Include path for Pendulum VM
+
+Clockwork translates policies into Pendulum code, which is then shipped to
+clients for execution.  This directive sets the paths (colon-separated) that
+B<meshd> will search through when handling B<#include> directives in the
+Pendulum source for each policy.
+
+You probably want to leave this alone unless you know what you are doing and
+why you would want or need to change it.
+
+Defaults to B</lib/clockwork/pn>.
+
 =item B<pidfile> - PID file for storing the daemon process ID
 
 Defaults to I</var/run/clockd.pid>.

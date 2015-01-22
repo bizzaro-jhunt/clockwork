@@ -122,6 +122,8 @@ TESTS {
 			"Disabled PAM authentication in the mesh_server");
 		ok(mesh_server_setopt(server, MESH_SERVER_SAFE_WORD, "TEST_COMPLETE", 13) == 0,
 			"Set a safe-word for early exit");
+		ok(mesh_server_setopt(server, MESH_SERVER_PN_INCLUDE, ".", 1) == 0,
+			"Set Pendulum include path");
 
 		ok(mesh_server_bind_control(server, "inproc://ctl.1") == 0,
 			"Bound control port to inproc://ctl.1");
@@ -313,6 +315,8 @@ TESTS {
 			"Set trust database path for key-based auth");
 		ok(mesh_server_setopt(server, MESH_SERVER_SAFE_WORD, "TEST_COMPLETE", 13) == 0,
 			"Set a safe-word for early exit");
+		ok(mesh_server_setopt(server, MESH_SERVER_PN_INCLUDE, ".", 1) == 0,
+			"Set Pendulum include path");
 
 		ok(mesh_server_bind_control(server, "inproc://ctl.1") == 0,
 			"Bound control port to inproc://ctl.1");
@@ -392,6 +396,8 @@ TESTS {
 			"Set trust database path for key-based auth");
 		ok(mesh_server_setopt(server, MESH_SERVER_SAFE_WORD, "TEST_COMPLETE", 13) == 0,
 			"Set a safe-word for early exit");
+		ok(mesh_server_setopt(server, MESH_SERVER_PN_INCLUDE, ".", 1) == 0,
+			"Set Pendulum include path");
 
 		ok(mesh_server_bind_control(server, "inproc://ctl.1") == 0,
 			"Bound control port to inproc://ctl.1");
@@ -471,6 +477,8 @@ TESTS {
 			"Set trust database path for key-based auth");
 		ok(mesh_server_setopt(server, MESH_SERVER_SAFE_WORD, "TEST_COMPLETE", 13) == 0,
 			"Set a safe-word for early exit");
+		ok(mesh_server_setopt(server, MESH_SERVER_PN_INCLUDE, ".", 1) == 0,
+			"Set Pendulum include path");
 
 		ok(mesh_server_bind_control(server, "inproc://ctl.1") == 0,
 			"Bound control port to inproc://ctl.1");

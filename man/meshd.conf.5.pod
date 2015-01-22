@@ -109,6 +109,18 @@ for it (not as an absolute time since query submission).
 
 This value is specified in seconds.
 
+=item B<pendulum.inc> - Include path for Pendulum VM
+
+Under the hood, mesh commands are implemented in Pendulum, Clockwork's
+custom language for systems automation.  This directive sets the paths
+(colon-separated) that B<meshd> will search through when handling
+B<#include> directives in the Pendulum source for each command.
+
+You probably want to leave this alone unless you know what you are doing and
+why you would want or need to change it.
+
+Defaults to B</lib/clockwork/pn>.
+
 =item B<pidfile> - PID file for storing the daemon process ID
 
 Defaults to I</var/run/meshd.pid>.

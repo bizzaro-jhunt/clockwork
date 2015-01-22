@@ -17,6 +17,7 @@ syn keyword   meshdDirective  control broadcast pidfile
 syn match     meshdDirective  /client\.\(connections\|expiration\)/
 syn match     meshdDirective  /syslog\.\(ident\|facility\|level\)/
 syn match     meshdDirective  /auth\.\(service\|trusted\)/
+syn match     meshdDirective  /pendulum\.inc/
 syn match     meshdDirective  /security\.cert/
 syn match     meshdDirective  /acl\.global/
 

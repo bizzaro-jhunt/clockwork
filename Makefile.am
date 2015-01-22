@@ -54,6 +54,7 @@ gather_SCRIPTS += gather.d/time
 
 stdlibdir=$(pkglibdir)/pn
 nobase_stdlib_DATA  = stdlib.pn
+nobase_stdlib_DATA += mesh.pn
 
 ############################################################
 
@@ -85,8 +86,7 @@ PERL_TESTS += t/81-gencode.t
 PERL_TESTS += t/82-security.t
 PERL_TESTS += t/83-bdfa.t
 PERL_TESTS += t/84-stdlib.t
-
-PERL_TESTS += t/cmd/01-show.t
+PERL_TESTS += t/91-meshpn.t
 
 PERL_TESTS += t/cw/01-ps.t
 PERL_TESTS += t/cw/02-lock.t
@@ -161,7 +161,7 @@ EXTRA_DIST      += bootstrap
 EXTRA_DIST      += augeas gather.d
 EXTRA_DIST      += examples extras
 EXTRA_DIST      += help man
-EXTRA_DIST      += pcov stdlib.pn
+EXTRA_DIST      += pcov stdlib.pn mesh.pn
 EXTRA_DIST      += $(TEST_EXTRAS)
 
 dist_man_MANS    =

@@ -154,6 +154,7 @@ typedef struct {
 	uint64_t    serial;
 	char       *pam_service;
 	trustdb_t  *trustdb;
+	char       *include;
 
 	list_t      acl;
 	cache_t    *slots;
@@ -181,6 +182,7 @@ typedef struct {
 #define MESH_SERVER_CACHE_SIZE   6
 #define MESH_SERVER_GLOBAL_ACL   7
 #define MESH_SERVER_TRUSTDB      8
+#define MESH_SERVER_PN_INCLUDE   9
 
 mesh_server_t* mesh_server_new(void *zmq);
 int mesh_server_setopt(mesh_server_t *s, int opt, const void *data, size_t len);

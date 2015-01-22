@@ -163,7 +163,7 @@ static char* s_user_lookup(const char *username)
 	return s;
 }
 
-static int s_cmd_compile(const char *command, byte_t **code, size_t *len)
+static int s_cmd_compile(mesh_server_t *s, const char *command, byte_t **code, size_t *len)
 {
 	cmd_t *cmd = cmd_parse(command, COMMAND_LITERAL);
 	if (!cmd) return -1;
@@ -182,7 +182,8 @@ static int s_cmd_compile(const char *command, byte_t **code, size_t *len)
 	rc = asm_setopt(pna, PNASM_OPT_INFILE, "mesh", 4);
 	if (rc != 0) goto bail;
 
-	/* FIXME: pendulum.inc in mesh configs! */
+	rc = asm_setopt(pna, PNASM_OPT_INCLUDE, s->include, strlen(s->include));
+	if (rc != 0) goto bail;
 
 	int strip = 1;
 	rc = asm_setopt(pna, PNASM_OPT_STRIPPED, &strip, sizeof(strip));
@@ -386,7 +387,8 @@ int cmd_gencode(cmd_t *cmd, FILE *io)
 	end = &cmd->tokens;
 	tok = list_object(l, cmd_token_t, l);
 
-	fprintf(io, "fn main\n");
+	fprintf(io, "#include mesh\n"
+	            "fn main\n");
 
 	if (strcmp(tok->value, "show") == 0) {
 		if (l->next == end) goto syntax;
@@ -395,14 +397,13 @@ int cmd_gencode(cmd_t *cmd, FILE *io)
 
 		if (strcmp(tok->value, "version") == 0) {
 			if (l->next != end) goto syntax;
-			fprintf(io, "  property \"version\" %%a\n"
-			            "  print %%a\n");
+			fprintf(io, "  call mesh.show.version\n");
 			return 0;
 		}
 
 		if (strcmp(tok->value, "acls") == 0) {
 			if (l->next == end) {
-				fprintf(io, "  show.acls\n");
+				fprintf(io, "  call mesh.show.acls\n");
 				return 0;
 			}
 
@@ -414,26 +415,23 @@ int cmd_gencode(cmd_t *cmd, FILE *io)
 				tok = list_object(l, cmd_token_t, l);
 
 				if (l->next != end) goto syntax;
-				if (*tok->value == '%') {
-					fprintf(io, "  show.acl \":%s\"\n", tok->value + 1);
-					return 0;
-				}
-
-				fprintf(io, "  show.acl \"%s\"\n", tok->value);
+				if (*tok->value == '%')
+				     fprintf(io, "  set %%a \":%s\"\n", tok->value + 1);
+				else fprintf(io, "  set %%a \"%s\"\n",  tok->value);
+				fprintf(io, "  call mesh.show.acl\n");
 				return 0;
 			}
 		}
 
 	} else if (strcmp(tok->value, "cfm") == 0) {
 		if (l->next != end) goto syntax;
-		fprintf(io, "  exec \"cogd -F1 2>&1\" %%a\n"
-		            "  print %%a\n");
+		fprintf(io, "  call mesh.cfm\n");
 		return 0;
 	}
 
 syntax:
-	fprintf(io, "  print \"mesh command unrecognized: %s\"\n"
-	            "  retv 3\n", cmd->string);
+	fprintf(io, "  set %%a \"%s\"\n"
+	            "  call mesh.unhandled\n", cmd->string);
 	return 0;
 }
 
@@ -804,6 +802,7 @@ mesh_server_t* mesh_server_new(void *zmq)
 
 	s->pam_service = strdup("clockwork");
 	s->_safe_word = NULL;
+	s->include = strdup(PENDULUM_INCLUDE);
 
 	list_init(&s->acl);
 
@@ -882,6 +881,17 @@ int mesh_server_setopt(mesh_server_t *s, int opt, const void *data, size_t len)
 		if (!s->trustdb)
 			s->trustdb = trustdb_new();
 		return 0;
+
+	case MESH_SERVER_PN_INCLUDE:
+		free(s->include);
+		if (len == 0) {
+			s->include = strdup(PENDULUM_INCLUDE);
+		}  else {
+			s->include = vmalloc(len + 1);
+			memcpy(s->include, data, len);
+		}
+		return 0;
+
 	}
 
 	errno = ENOTSUP;
@@ -969,6 +979,7 @@ void mesh_server_destroy(mesh_server_t *s)
 
 	free(s->pam_service);
 	free(s->_safe_word);
+	free(s->include);
 
 	cert_free(s->cert);
 	trustdb_free(s->trustdb);
@@ -1052,7 +1063,7 @@ int mesh_server_reactor(void *sock, pdu_t *pdu, void *data)
 
 		creds = s_user_lookup(username);
 		assert(creds);
-		int rc = s_cmd_compile(command, &code, &len);
+		int rc = s_cmd_compile(server, command, &code, &len);
 		assert(rc == 0);
 
 		if (strlen(pubkey) > 0) {

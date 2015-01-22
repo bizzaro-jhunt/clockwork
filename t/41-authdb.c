@@ -29,7 +29,7 @@ static void reset(const char *root)
 
 	mkdir(root, 0777);
 	file = string("%s/passwd", root); io = fopen(file, "w"); free(file);
-	if (!io) BAIL_OUT("test setup: failed to open %s/passwd database for reset");
+	if (!io) BAIL_OUT("test setup: failed to open {root}/passwd database for reset");
 	fprintf(io, "root:x:0:0:root:/root:/bin/bash\n");
 	fprintf(io, "daemon:x:1:1:daemon:/usr/sbin:/bin/sh\n");
 	fprintf(io, "bin:x:2:2:bin:/bin:/bin/sh\n");
@@ -46,7 +46,7 @@ static void reset(const char *root)
 	fclose(io);
 
 	file = string("%s/shadow", root); io = fopen(file, "w"); free(file);
-	if (!io) BAIL_OUT("test setup: failed to open %s/shadow database for reset");
+	if (!io) BAIL_OUT("test setup: failed to open {root}/shadow database for reset");
 	fprintf(io, "root:!:14009:0:99999:7:::\n");
 	fprintf(io, "daemon:*:13991:0:99999:7:::\n");
 	fprintf(io, "bin:*:13991:0:99999:7:::\n");
@@ -56,7 +56,7 @@ static void reset(const char *root)
 	fclose(io);
 
 	file = string("%s/group", root); io = fopen(file, "w"); free(file);
-	if (!io) BAIL_OUT("test setup: failed to open %s/group database for reset");
+	if (!io) BAIL_OUT("test setup: failed to open {root}/group database for reset");
 	fprintf(io, "root:x:0:\n");
 	fprintf(io, "daemon:x:1:\n");
 	fprintf(io, "bin:x:2:\n");
@@ -67,7 +67,7 @@ static void reset(const char *root)
 	fclose(io);
 
 	file = string("%s/gshadow", root); io = fopen(file, "w"); free(file);
-	if (!io) BAIL_OUT("test setup: failed to open %s/gshadow database for reset");
+	if (!io) BAIL_OUT("test setup: failed to open {root}/gshadow database for reset");
 	fprintf(io, "root:*::\n");
 	fprintf(io, "daemon:*::\n");
 	fprintf(io, "bin:*::\n");

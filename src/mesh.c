@@ -423,6 +423,12 @@ int cmd_gencode(cmd_t *cmd, FILE *io)
 				return 0;
 			}
 		}
+
+	} else if (strcmp(tok->value, "cfm") == 0) {
+		if (l->next != end) goto syntax;
+		fprintf(io, "  exec \"cogd -F1 2>&1\" %%a\n"
+		            "  print %%a\n");
+		return 0;
 	}
 
 syntax:

@@ -5,7 +5,7 @@ origin/master
 
 3.0.2        2014-01-22
 
-  [BUGS]
+  [BUG FIXES]
 
   - Fix truncation of `cw mesh` result output at 8-characters
     The full output will now be shown, in all output formats.
@@ -40,7 +40,7 @@ origin/master
     When pcov generates a report, it will now skip the disassembly output
     for all modules it is ignoring code coverage calculations for.
 
-  [BUGS]
+  [BUG FIXES]
 
   - Fix handling of automatic user and group ID numbers
     A mismatch between the definition of res.user.present and
@@ -111,6 +111,6 @@ origin/master
   - cw-mesh now ignores nodes that optout by default
     (use --optout to retain the legacy behavior)
 
-  [BUGS]
+  [BUG FIXES]
 
   - cw-mesh now honors ~/.cwrc as an adjunct to /etc/clockwork/cw.conf

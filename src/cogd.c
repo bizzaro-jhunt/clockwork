@@ -30,6 +30,7 @@
 #include <netdb.h>
 #include <getopt.h>
 #include <fcntl.h>
+#include <signal.h>
 
 #include "policy.h"
 
@@ -42,7 +43,14 @@
 #define MINIMUM_INTERVAL 30
 #define MINIMUM_TIMEOUT  5
 
+/* should we try to reload config?
+   (for when we catch a SIGHUP) */
+static int DO_RELOAD = 0;
+
 typedef struct {
+	char *config_file;
+	int   verbose;
+
 	void *zmq;
 	void *broadcast;
 	void *control;
@@ -84,6 +92,11 @@ typedef struct {
 		int     interval;
 	} schedule;
 } client_t;
+
+static void s_sighandler(int signal, siginfo_t *info, void *_)
+{
+	if (signal == SIGHUP) DO_RELOAD++;
+}
 
 static pdu_t *s_sendto(void *socket, pdu_t *pdu, int timeout)
 {
@@ -462,11 +475,283 @@ maybe_next_time:
 		(c->schedule.interval > 120000 ? "minutes" : "seconds"));
 }
 
-static inline client_t* s_client_new(int argc, char **argv)
+static inline void s_client_default_config(list_t *config, int init)
+{
+	config_set(config, "timeout",         "5");
+	config_set(config, "gatherers",       CW_GATHER_DIR "/*");
+	config_set(config, "copydown",        CW_GATHER_DIR);
+	config_set(config, "interval",        "300");
+	config_set(config, "acl",             "/etc/clockwork/local.acl");
+	config_set(config, "acl.default",     "deny");
+	config_set(config, "syslog.ident",    "cogd");
+	config_set(config, "syslog.facility", "daemon");
+	config_set(config, "syslog.level",    "error");
+	config_set(config, "security.cert",   "/etc/clockwork/certs/cogd");
+	config_set(config, "pidfile",         "/var/run/cogd.pid");
+	config_set(config, "lockdir",         "/var/lock/cogd");
+	config_set(config, "statedir",        "/lib/clockwork/state");
+	config_set(config, "difftool",        "/usr/bin/diff -u");
+
+	if (init) {
+		log_open(config_get(config, "syslog.ident"), "stderr");
+		log_level(0, (getenv("COGD_DEBUG") ? "debug" : "error"));
+	}
+	logger(LOG_DEBUG, "default configuration:");
+	logger(LOG_DEBUG, "  timeout         %s", config_get(config, "timeout"));
+	logger(LOG_DEBUG, "  gatherers       %s", config_get(config, "gatherers"));
+	logger(LOG_DEBUG, "  copydown        %s", config_get(config, "copydown"));
+	logger(LOG_DEBUG, "  interval        %s", config_get(config, "interval"));
+	logger(LOG_DEBUG, "  acl             %s", config_get(config, "acl"));
+	logger(LOG_DEBUG, "  acl.default     %s", config_get(config, "acl.default"));
+	logger(LOG_DEBUG, "  syslog.ident    %s", config_get(config, "syslog.ident"));
+	logger(LOG_DEBUG, "  syslog.facility %s", config_get(config, "syslog.facility"));
+	logger(LOG_DEBUG, "  syslog.level    %s", config_get(config, "syslog.level"));
+	logger(LOG_DEBUG, "  security.cert   %s", config_get(config, "security.cert"));
+	logger(LOG_DEBUG, "  pidfile         %s", config_get(config, "pidfile"));
+	logger(LOG_DEBUG, "  lockdir         %s", config_get(config, "lockdir"));
+	logger(LOG_DEBUG, "  statedir        %s", config_get(config, "statedir"));
+	logger(LOG_DEBUG, "  difftool        %s", config_get(config, "difftool"));
+}
+
+static void s_client_setup_logger(client_t *c, list_t *config)
+{
+	logger(LOG_DEBUG, "determining adjusted log level/facility");
+	int level = LOG_NOTICE;
+	if (c->daemonize) {
+		char *s = config_get(config, "syslog.level");
+		logger(LOG_DEBUG, "configured log level is '%s', verbose modifier is %+i", s, c->verbose);
+		level = log_level_number(s);
+
+		if (level < 0) {
+			logger(LOG_WARNING, "'%s' is not a recognized log level, falling back to 'error'", s);
+			level = LOG_ERR;
+		}
+	}
+	level += c->verbose;
+	if (level > LOG_DEBUG) level = LOG_DEBUG;
+	if (level < 0) level = 0;
+	logger(LOG_DEBUG, "adjusted log level is %s (%i)",
+		log_level_name(level), level);
+	if (!c->daemonize) {
+		logger(LOG_DEBUG, "Running in --foreground mode; forcing all logging to stderr");
+		config_set(config, "syslog.facility", "stderr");
+		umask(0);
+	}
+	if (c->mode == MODE_DUMP) {
+		logger(LOG_DEBUG, "Running in --show-config mode; forcing all logging to stderr");
+		config_set(config, "syslog.facility", "stderr");
+	}
+	logger(LOG_DEBUG, "redirecting to %s log as %s",
+		config_get(config, "syslog.facility"),
+		config_get(config, "syslog.ident"));
+
+	log_open(config_get(config, "syslog.ident"),
+	            config_get(config, "syslog.facility"));
+	log_level(level, NULL);
+}
+
+static void s_client_parse_managers(client_t *c, list_t *config)
 {
 	char *s;
+	int n; char key[9] = "master.1", cert[7] = "cert.1";
+
+	logger(LOG_DEBUG, "parsing master.* definitions into endpoint records");
+
+	c->nmasters = 0;
+	memset(c->masters, 0, sizeof(c->masters));
+
+	for (n = 0; n < 8; n++, key[7]++, cert[5]++) {
+		logger(LOG_DEBUG, "searching for %s", key);
+		s = config_get(config, key);
+		if (!s) break;
+		logger(LOG_DEBUG, "found a master: %s", s);
+		c->masters[n].endpoint = strdup(s);
+		c->nmasters++;
+
+		logger(LOG_DEBUG, "searching for %s", cert);
+		s = config_get(config, cert);
+		if (!s) break;
+		logger(LOG_DEBUG, "found certificate: %s", s);
+		c->masters[n].cert_file = strdup(s);
+	}
+}
+
+static int s_client_check_managers(client_t *c)
+{
+	int i;
+	if (c->nmasters == 0) {
+		logger(LOG_ERR, "No masters defined in %s", c->config_file);
+		return 1;
+	}
+
+	for (i = 0; i < c->nmasters; i++) {
+		if (c->masters[i].cert_file) {
+			logger(LOG_DEBUG, "Reading master.%i certificate from %s",
+				i+1, c->masters[i].cert_file);
+			if ((c->masters[i].cert = cert_read(c->masters[i].cert_file)) != NULL)
+				continue;
+			logger(LOG_ERR, "cert.%i %s: %s", i+1, c->masters[i].cert_file,
+				errno == EINVAL ? "Invalid Clockwork certificate" : strerror(errno));
+			return 1;
+
+		} else {
+			logger(LOG_ERR, "master.%i (%s) has no matching certificate (cert.%i)",
+				i+1, c->masters[i].endpoint, i+1);
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+static void s_client_load_acls(client_t *c, list_t *config)
+{
+	c->acl_file = strdup(config_get(config, "acl"));
+	logger(LOG_DEBUG, "parsing stored ACLs from %s", c->acl_file);
+	c->acl = vmalloc(sizeof(list_t)); list_init(c->acl);
+	acl_read(c->acl, c->acl_file);
+}
+
+static int s_client_setup_certs(client_t *c, list_t *config)
+{
+	char *s = config_get(config, "security.cert");
+	logger(LOG_DEBUG, "reading public/private key from certificate file %s", s);
+	c->cert = cert_read(s);
+	if (!c->cert) {
+		logger(LOG_ERR, "%s: %s", s,
+			errno == EINVAL ? "Invalid Clockwork certificate" : strerror(errno));
+		return 1;
+	}
+	if (!c->cert->seckey) {
+		logger(LOG_ERR, "%s: No secret key found in certificate", s);
+		return 1;
+	}
+	if (!c->cert->ident) {
+		logger(LOG_ERR, "%s: No identity found in certificate", s);
+		return 1;
+	}
+
+	return 0;
+}
+
+static void s_client_finish(client_t *c, list_t *config)
+{
+	c->gatherers = strdup(config_get(config, "gatherers"));
+	c->copydown  = strdup(config_get(config, "copydown"));
+	c->difftool  = strdup(config_get(config, "difftool"));
+	c->schedule.interval  = atoi(config_get(config, "interval"));
+	c->timeout            = atoi(config_get(config, "timeout"));
+	c->acl_default = strcmp(config_get(config, "acl.default"), "deny") == 0
+		? ACL_DENY : ACL_ALLOW;
+
+	/* enforce sane defaults, in case we screwed up the config */
+	if (c->schedule.interval < MINIMUM_INTERVAL) {
+		logger(LOG_WARNING, "invalid interval value %i detected; "
+		                    "falling back to sane default (%i)",
+		                    c->schedule.interval, MINIMUM_INTERVAL);
+		c->schedule.interval = MINIMUM_INTERVAL;
+	}
+	if (c->timeout < MINIMUM_TIMEOUT) {
+		logger(LOG_WARNING, "invalid timeout value %i detected; "
+		                    "falling back to sane default (%i)",
+		                    c->timeout, MINIMUM_TIMEOUT);
+		c->timeout = MINIMUM_TIMEOUT;
+	}
+
+	c->schedule.interval *= 1000;
+	c->timeout           *= 1000;
+
+	c->cfm_lock = string("%s/%s",
+		config_get(config, "lockdir"),
+		"cfm.lock");
+	logger(LOG_DEBUG, "will use CFM lock file '%s'", c->cfm_lock);
+
+	c->cfm_killswitch = string("%s/%s",
+		config_get(config, "lockdir"),
+		"cfm.KILLSWITCH");
+	logger(LOG_DEBUG, "will use CFM killswitch file '%s'", c->cfm_killswitch);
+
+	c->cfm_last_retr = string("%s/%s",
+		config_get(config, "statedir"), "retr.S");
+	logger(LOG_DEBUG, "will use last retrieved policy file '%s'", c->cfm_last_retr);
+
+	c->cfm_last_exec = string("%s/%s",
+		config_get(config, "statedir"), "policy.S");
+	logger(LOG_DEBUG, "will use last successfully executed policy file '%s'", c->cfm_last_exec);
+}
+
+static inline client_t* s_client_reload(client_t *orig)
+{
+	if (!orig->daemonize) {
+		logger(LOG_WARNING, "Ignoring attempt to reload foreground-mode cogd");
+		return NULL;
+	}
+	if (orig->mode != MODE_RUN) {
+		logger(LOG_WARNING, "Ignoring attempt to reload cogd");
+		return NULL;
+	}
+
+	logger(LOG_WARNING, "Reloading cogd configuration");
+
+	client_t *c = vmalloc(sizeof(client_t));
+	c->daemonize   = 1;
+	c->mode        = MODE_RUN;
+	c->verbose     = orig->verbose;
+	c->trace       = orig->trace;
+	c->config_file = strdup(orig->config_file);
+
+	/* preserve the current schedule */
+	c->schedule.next_run = orig->schedule.next_run;
+
+	LIST(config);
+	s_client_default_config(&config, 0);
+
+	logger(LOG_DEBUG, "reloading cogd configuration file '%s'", c->config_file);
+	FILE *io = fopen(c->config_file, "r");
+	if (!io) {
+		logger(LOG_WARNING, "Failed to read configuration from %s: %s",
+			c->config_file, strerror(errno));
+		return NULL;
+
+	} else {
+		int rc = config_read(&config, io);
+		fclose(io);
+		io = NULL;
+
+		if (rc != 0) {
+			logger(LOG_ERR, "Unable to parse %s", c->config_file);
+			return NULL;
+		}
+	}
+
+	/* set log level, facility and ident */
+	s_client_setup_logger(c, &config);
+
+	/* parse the manager endpoints */
+	s_client_parse_managers(c, &config);
+
+	/* load acls */
+	s_client_load_acls(c, &config);
+
+	/* verify that we have at least one master,
+	   and that all of them have valid certificates */
+	if (s_client_check_managers(c) != 0)
+		return NULL;
+
+	/* load secret keys from cogd certificates */
+	if (s_client_setup_certs(c, &config) != 0)
+		return NULL;
+
+	s_client_finish(c, &config);
+	return c;
+}
+
+static inline client_t* s_client_new(int argc, char **argv)
+{
 	client_t *c = vmalloc(sizeof(client_t));
 	c->daemonize = 1;
+	c->config_file = strdup(DEFAULT_CONFIG_FILE);
+	c->verbose = 0;
 
 	logger(LOG_DEBUG, "processing command-line options");
 	const char *short_opts = "h?vqVc:FdTX1";
@@ -483,8 +768,6 @@ static inline client_t* s_client_new(int argc, char **argv)
 		{ "once",        no_argument,       NULL, '1' },
 		{ 0, 0, 0, 0 },
 	};
-	int verbose = 0;
-	const char *config_file = DEFAULT_CONFIG_FILE;
 	int opt, idx = 0;
 	while ( (opt = getopt_long(argc, argv, short_opts, long_opts, &idx)) != -1) {
 		switch (opt) {
@@ -510,14 +793,14 @@ static inline client_t* s_client_new(int argc, char **argv)
 			break;
 
 		case 'v':
-			if (verbose < 0) verbose = 0;
-			verbose++;
-			logger(LOG_DEBUG, "handling -v/--verbose (modifier = %i)", verbose);
+			if (c->verbose < 0) c->verbose = 0;
+			c->verbose++;
+			logger(LOG_DEBUG, "handling -v/--verbose (modifier = %i)", c->verbose);
 			break;
 
 		case 'q':
-			verbose = -1 * LOG_DEBUG;;
-			logger(LOG_DEBUG, "handling -q/--quiet (modifier = %i)", verbose);
+			c->verbose = -1 * LOG_DEBUG;;
+			logger(LOG_DEBUG, "handling -q/--quiet (modifier = %i)", c->verbose);
 			break;
 
 		case 'V':
@@ -530,8 +813,9 @@ static inline client_t* s_client_new(int argc, char **argv)
 
 		case 'c':
 			logger(LOG_DEBUG, "handling -c/--config; replacing '%s' with '%s'",
-				config_file, optarg);
-			config_file = optarg;
+				c->config_file, optarg);
+			free(c->config_file);
+			c->config_file = strdup(optarg);
 			break;
 
 		case 'F':
@@ -570,114 +854,34 @@ static inline client_t* s_client_new(int argc, char **argv)
 
 
 	LIST(config);
-	config_set(&config, "timeout",         "5");
-	config_set(&config, "gatherers",       CW_GATHER_DIR "/*");
-	config_set(&config, "copydown",        CW_GATHER_DIR);
-	config_set(&config, "interval",        "300");
-	config_set(&config, "acl",             "/etc/clockwork/local.acl");
-	config_set(&config, "acl.default",     "deny");
-	config_set(&config, "syslog.ident",    "cogd");
-	config_set(&config, "syslog.facility", "daemon");
-	config_set(&config, "syslog.level",    "error");
-	config_set(&config, "security.cert",   "/etc/clockwork/certs/cogd");
-	config_set(&config, "pidfile",         "/var/run/cogd.pid");
-	config_set(&config, "lockdir",         "/var/lock/cogd");
-	config_set(&config, "statedir",        "/lib/clockwork/state");
-	config_set(&config, "difftool",        "/usr/bin/diff -u");
+	s_client_default_config(&config, 1);
 
-	log_open(config_get(&config, "syslog.ident"), "stderr");
-	log_level(0, (getenv("COGD_DEBUG") ? "debug" : "error"));
-	logger(LOG_DEBUG, "default configuration:");
-	logger(LOG_DEBUG, "  timeout         %s", config_get(&config, "timeout"));
-	logger(LOG_DEBUG, "  gatherers       %s", config_get(&config, "gatherers"));
-	logger(LOG_DEBUG, "  copydown        %s", config_get(&config, "copydown"));
-	logger(LOG_DEBUG, "  interval        %s", config_get(&config, "interval"));
-	logger(LOG_DEBUG, "  acl             %s", config_get(&config, "acl"));
-	logger(LOG_DEBUG, "  acl.default     %s", config_get(&config, "acl.default"));
-	logger(LOG_DEBUG, "  syslog.ident    %s", config_get(&config, "syslog.ident"));
-	logger(LOG_DEBUG, "  syslog.facility %s", config_get(&config, "syslog.facility"));
-	logger(LOG_DEBUG, "  syslog.level    %s", config_get(&config, "syslog.level"));
-	logger(LOG_DEBUG, "  security.cert   %s", config_get(&config, "security.cert"));
-	logger(LOG_DEBUG, "  pidfile         %s", config_get(&config, "pidfile"));
-	logger(LOG_DEBUG, "  lockdir         %s", config_get(&config, "lockdir"));
-	logger(LOG_DEBUG, "  statedir        %s", config_get(&config, "statedir"));
-	logger(LOG_DEBUG, "  difftool        %s", config_get(&config, "difftool"));
-
-
-	logger(LOG_DEBUG, "parsing cogd configuration file '%s'", config_file);
-	FILE *io = fopen(config_file, "r");
+	logger(LOG_DEBUG, "parsing cogd configuration file '%s'", c->config_file);
+	FILE *io = fopen(c->config_file, "r");
 	if (!io) {
 		logger(LOG_WARNING, "Failed to read configuration from %s: %s",
-			config_file, strerror(errno));
+			c->config_file, strerror(errno));
 		logger(LOG_WARNING, "Using default configuration");
 
 	} else {
-		if (config_read(&config, io) != 0) {
-			logger(LOG_ERR, "Unable to parse %s");
-			exit(1);
-		}
+		int rc = config_read(&config, io);
 		fclose(io);
 		io = NULL;
-	}
 
-
-	logger(LOG_DEBUG, "determining adjusted log level/facility");
-	int level = LOG_NOTICE;
-	if (c->daemonize) {
-		s = config_get(&config, "syslog.level");
-		logger(LOG_DEBUG, "configured log level is '%s', verbose modifier is %+i", s, verbose);
-		level = log_level_number(s);
-
-		if (level < 0) {
-			logger(LOG_WARNING, "'%s' is not a recognized log level, falling back to 'error'", s);
-			level = LOG_ERR;
+		if (rc != 0) {
+			logger(LOG_ERR, "Unable to parse %s", c->config_file);
+			exit(1);
 		}
 	}
-	level += verbose;
-	if (level > LOG_DEBUG) level = LOG_DEBUG;
-	if (level < 0) level = 0;
-	logger(LOG_DEBUG, "adjusted log level is %s (%i)",
-		log_level_name(level), level);
-	if (!c->daemonize) {
-		logger(LOG_DEBUG, "Running in --foreground mode; forcing all logging to stderr");
-		config_set(&config, "syslog.facility", "stderr");
-		umask(0);
-	}
-	if (c->mode == MODE_DUMP) {
-		logger(LOG_DEBUG, "Running in --show-config mode; forcing all logging to stderr");
-		config_set(&config, "syslog.facility", "stderr");
-	}
-	logger(LOG_DEBUG, "redirecting to %s log as %s",
-		config_get(&config, "syslog.facility"),
-		config_get(&config, "syslog.ident"));
 
-	log_open(config_get(&config, "syslog.ident"),
-	            config_get(&config, "syslog.facility"));
-	log_level(level, NULL);
+	/* set log level, facility and ident */
+	s_client_setup_logger(c, &config);
 
-	logger(LOG_DEBUG, "parsing master.* definitions into endpoint records");
-	int n; char key[9] = "master.1", cert[7] = "cert.1";
-	c->nmasters = 0;
-	memset(c->masters, 0, sizeof(c->masters));
-	for (n = 0; n < 8; n++, key[7]++, cert[5]++) {
-		logger(LOG_DEBUG, "searching for %s", key);
-		s = config_get(&config, key);
-		if (!s) break;
-		logger(LOG_DEBUG, "found a master: %s", s);
-		c->masters[n].endpoint = strdup(s);
-		c->nmasters++;
+	/* parse the manager endpoints */
+	s_client_parse_managers(c, &config);
 
-		logger(LOG_DEBUG, "searching for %s", cert);
-		s = config_get(&config, cert);
-		if (!s) break;
-		logger(LOG_DEBUG, "found certificate: %s", s);
-		c->masters[n].cert_file = strdup(s);
-	}
-
-	c->acl_file = strdup(config_get(&config, "acl"));
-	logger(LOG_DEBUG, "parsing stored ACLs from %s", c->acl_file);
-	c->acl = vmalloc(sizeof(list_t)); list_init(c->acl);
-	acl_read(c->acl, c->acl_file);
+	/* load acls */
+	s_client_load_acls(c, &config);
 
 	if (c->mode == MODE_DUMP) {
 		int i;
@@ -704,28 +908,10 @@ static inline client_t* s_client_new(int argc, char **argv)
 		exit(0);
 	}
 
-
-	if (c->nmasters == 0) {
-		logger(LOG_ERR, "No masters defined in %s", config_file);
+	/* verify that we have at least one master,
+	   and that all of them have valid certificates */
+	if (s_client_check_managers(c) != 0)
 		exit(2);
-	}
-
-	int i;
-	for (i = 0; i < c->nmasters; i++) {
-		if (c->masters[i].cert_file) {
-			logger(LOG_DEBUG, "Reading master.%i certificate from %s",
-				i+1, c->masters[i].cert_file);
-			if ((c->masters[i].cert = cert_read(c->masters[i].cert_file)) != NULL)
-				continue;
-			logger(LOG_ERR, "cert.%i %s: %s", i+1, c->masters[i].cert_file,
-				errno == EINVAL ? "Invalid Clockwork certificate" : strerror(errno));
-			exit(2);
-		} else {
-			logger(LOG_ERR, "master.%i (%s) has no matching certificate (cert.%i)",
-				i+1, c->masters[i].endpoint, i+1);
-			exit(2);
-		}
-	}
 
 #ifndef UNIT_TESTS
 	if (getuid() != 0 || geteuid() != 0) {
@@ -734,23 +920,9 @@ static inline client_t* s_client_new(int argc, char **argv)
 	}
 #endif
 
-	s = config_get(&config, "security.cert");
-	logger(LOG_DEBUG, "reading public/private key from certificate file %s", s);
-	c->cert = cert_read(s);
-	if (!c->cert) {
-		logger(LOG_ERR, "%s: %s", s,
-			errno == EINVAL ? "Invalid Clockwork certificate" : strerror(errno));
+	/* load secret keys from cogd certificates */
+	if (s_client_setup_certs(c, &config) != 0)
 		exit(1);
-	}
-	if (!c->cert->seckey) {
-		logger(LOG_ERR, "%s: No secret key found in certificate", s);
-		exit(1);
-	}
-	if (!c->cert->ident) {
-		logger(LOG_ERR, "%s: No identity found in certificate", s);
-		exit(1);
-	}
-
 
 	logger(LOG_INFO, "cogd starting up");
 	c->schedule.next_run = time_ms();
@@ -760,31 +932,8 @@ static inline client_t* s_client_new(int argc, char **argv)
 	if (!c->fqdn) exit(1);
 	logger(LOG_INFO, "detected my FQDN as '%s'", c->fqdn);
 
+	s_client_finish(c, &config);
 
-	c->gatherers = strdup(config_get(&config, "gatherers"));
-	c->copydown  = strdup(config_get(&config, "copydown"));
-	c->difftool  = strdup(config_get(&config, "difftool"));
-	c->schedule.interval  = atoi(config_get(&config, "interval"));
-	c->timeout            = atoi(config_get(&config, "timeout"));
-	c->acl_default = strcmp(config_get(&config, "acl.default"), "deny") == 0
-		? ACL_DENY : ACL_ALLOW;
-
-	/* enforce sane defaults, in case we screwed up the config */
-	if (c->schedule.interval < MINIMUM_INTERVAL) {
-		logger(LOG_WARNING, "invalid interval value %i detected; "
-		                    "falling back to sane default (%i)",
-		                    c->schedule.interval, MINIMUM_INTERVAL);
-		c->schedule.interval = MINIMUM_INTERVAL;
-	}
-	if (c->timeout < MINIMUM_TIMEOUT) {
-		logger(LOG_WARNING, "invalid timeout value %i detected; "
-		                    "falling back to sane default (%i)",
-		                    c->timeout, MINIMUM_TIMEOUT);
-		c->timeout = MINIMUM_TIMEOUT;
-	}
-
-	c->schedule.interval *= 1000;
-	c->timeout           *= 1000;
 
 	unsetenv("COGD");
 	if (c->daemonize) {
@@ -855,24 +1004,6 @@ static inline client_t* s_client_new(int argc, char **argv)
 		c->broadcast = c->control = NULL;
 	}
 
-	c->cfm_lock = string("%s/%s",
-		config_get(&config, "lockdir"),
-		"cfm.lock");
-	logger(LOG_DEBUG, "will use CFM lock file '%s'", c->cfm_lock);
-
-	c->cfm_killswitch = string("%s/%s",
-		config_get(&config, "lockdir"),
-		"cfm.KILLSWITCH");
-	logger(LOG_DEBUG, "will use CFM killswitch file '%s'", c->cfm_killswitch);
-
-	c->cfm_last_retr = string("%s/%s",
-		config_get(&config, "statedir"), "retr.S");
-	logger(LOG_DEBUG, "will use last retrieved policy file '%s'", c->cfm_last_retr);
-
-	c->cfm_last_exec = string("%s/%s",
-		config_get(&config, "statedir"), "policy.S");
-	logger(LOG_DEBUG, "will use last successfully executed policy file '%s'", c->cfm_last_exec);
-
 	config_done(&config);
 	return c;
 }
@@ -917,6 +1048,7 @@ static void s_client_free(client_t *c)
 	zap_shutdown(c->zap);
 	zmq_ctx_destroy(c->zmq);
 
+	free(c->config_file);
 	free(c);
 }
 
@@ -934,7 +1066,15 @@ int main(int argc, char **argv)
 		goto shut_it_down;
 	}
 
-	while (!signalled()) {
+	if (c->daemonize) {
+		struct sigaction sa;
+		sa.sa_sigaction = s_sighandler;
+		sigaction(SIGHUP, &sa, NULL);
+	}
+
+	signal_handlers();
+again:
+	while (!signalled() && !DO_RELOAD) {
 		zmq_pollitem_t socks[] = {
 			{ c->broadcast, 0, ZMQ_POLLIN, 0 },
 		};
@@ -945,6 +1085,7 @@ int main(int argc, char **argv)
 
 		errno = 0;
 		int rc = zmq_poll(socks, c->broadcast ? 1 : 0, time_left);
+		logger(LOG_DEBUG, "zmq_poll returned %u");
 		if (rc == -1)
 			break;
 
@@ -979,6 +1120,17 @@ int main(int argc, char **argv)
 				exit(0);
 #endif
 		}
+	}
+
+	if (DO_RELOAD) {
+		logger(LOG_INFO, "Caught %u SIGHUP(s); reloading", DO_RELOAD);
+		DO_RELOAD = 0;
+		client_t *new = s_client_reload(c);
+		if (new) {
+			s_client_free(c);
+			c = new;
+		}
+		goto again;
 	}
 
 shut_it_down:

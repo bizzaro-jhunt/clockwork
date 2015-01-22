@@ -1,7 +1,11 @@
 
 origin/master
 
-  (none)
+  [ENHANCEMENTS]
+
+  - SIGHUP-to-reload Support
+    cogd supports use of `kill -HUP $pid` to cause it to reload configuration
+    while running.
 
 3.0.2        2014-01-22
 

@@ -1,12 +1,19 @@
 
 origin/master
 
+  (none)
+
+3.0.2        2014-01-22
+
   [BUGS]
 
   - Fix truncation of `cw mesh` result output at 8-characters
     The full output will now be shown, in all output formats.
 
-3.0.1         2014-01-22
+  - Fix calls to util.group.member to res.group.member
+    Prevents internal fatals on clockd leading to assertion bails.
+
+3.0.1         2014-01-21
 
   [ENHANCEMENTS]
 

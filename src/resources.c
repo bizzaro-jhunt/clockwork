@@ -1125,14 +1125,14 @@ int res_group_gencode(const void *res, FILE *io)
 		            "  set %%b 1 set %%c \"member\"\n");
 		for_each_string(r->mem_add, i)
 			fprintf(io, "  set %%d \"%s\"\n"
-			            "    call util.group.member\n", r->mem_add->strings[i]);
+			            "    call res.group.member\n", r->mem_add->strings[i]);
 
 		fprintf(io, "\n"
 		            "  ;; remove members\n"
 		            "  set %%b 0 set %%c \"member\"\n");
 		for_each_string(r->mem_rm, i)
 			fprintf(io, "  set %%d \"%s\"\n"
-			            "    call util.group.member\n", r->mem_rm->strings[i]);
+			            "    call res.group.member\n", r->mem_rm->strings[i]);
 	}
 	if (ENFORCED(r, RES_GROUP_ADMINS)) {
 		fprintf(io, "\n"
@@ -1140,14 +1140,14 @@ int res_group_gencode(const void *res, FILE *io)
 		            "  set %%b 1 set %%c \"admin\"\n");
 		for_each_string(r->adm_add, i)
 			fprintf(io, "  set %%d \"%s\"\n"
-			            "    call util.group.member\n", r->adm_add->strings[i]);
+			            "    call res.group.member\n", r->adm_add->strings[i]);
 
 		fprintf(io, "\n"
 		            "  ;; remove admins\n"
 		            "  set %%b 0 set %%c \"admin\"\n");
 		for_each_string(r->adm_rm, i)
 			fprintf(io, "  set %%d \"%s\"\n"
-			            "    call util.group.member\n", r->adm_rm->strings[i]);
+			            "    call res.group.member\n", r->adm_rm->strings[i]);
 
 	}
 	fprintf(io, "  call util.authdb.save\n");

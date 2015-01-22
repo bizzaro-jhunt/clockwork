@@ -694,24 +694,24 @@ fn fix:00000001
   ;; add members
   set %b 1 set %c "member"
   set %d "user1"
-    call util.group.member
+    call res.group.member
   set %d "user2"
-    call util.group.member
+    call res.group.member
 
   ;; remove members
   set %b 0 set %c "member"
   set %d "user3"
-    call util.group.member
+    call res.group.member
 
   ;; add admins
   set %b 1 set %c "admin"
   set %d "adm1"
-    call util.group.member
+    call res.group.member
 
   ;; remove admins
   set %b 0 set %c "admin"
   set %d "root"
-    call util.group.member
+    call res.group.member
   call util.authdb.save
 
 fn main

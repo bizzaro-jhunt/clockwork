@@ -2415,6 +2415,9 @@ static int s_asm_unit_pop(asm_t *pna)
 	if (!u) return 1;
 
 	list_delete(&u->l);
+	if (u->io) fclose(u->io);
+	free(u->file);
+	free(u->name);
 	free(u);
 	return 0;
 }

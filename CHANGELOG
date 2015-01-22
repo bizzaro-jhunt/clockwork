@@ -1,9 +1,85 @@
-Release Notes for Clockwork
+
+3.0.1         2014-01-22
+
+  [ENHANCEMENTS]
+
+  - `pn` Command-line argument to change include path
+    The pn utility now takes zero or more `-I /path/to/include` arguments, à
+    la gcc/clang/other compilers.
+
+  - Better Template / Source file Error Reporting
+    clockd now propagates error messages encountered during a [SHA1] PDU
+    exchange to cogd, so that they can be displayed in the logs on the
+    affected host, or to the terminal of a manual run.
+
+  - Guard against function redefinition
+    It is now a fatal error to redefine a function (fn) block in Pendulum.
+    This, combined with a new function lookup algorithm, eliminates a
+    loophole allowing stdlib functions to be overridden by callers.
+
+  - Mesh Standard Library
+    The guts of mesh command implementation now exist in mesh.pn, a Pendulum
+    module.  Mesh commands do minimal argument parsing / validation and then
+    call into this library, easing maintenance and enabling experimentation.
+
+  - Skip Disassembly / Coverage of ignore modules
+    When pcov generates a report, it will now skip the disassembly output
+    for all modules it is ignoring code coverage calculations for.
+
+  [BUGS]
+
+  - Fix handling of automatic user and group ID numbers
+    A mismatch between the definition of res.user.present and
+    res.group.present in stdlib, and the C res_*_gencode() functions caused
+    users and groups without hard-set UID/GID values to become UID/GID 0.
+
+  - Fix handling of res_exec 'test' guards
+    Due to a logical error in the standard library, the semantics of exec
+    resources with 'test' guards (commands that inhibit the execution of the
+    exec resource if they don't return 0) was flipped.
+
+  - Implement missing group membership / administrator remediation
+
+  - Fix memory leaks in #include handling, and the `localsys` opcode
 
 
-v2.3.0 - 2014-09-11
 
-  * New `cw' multi-call binary to replace cw* tools into a single,
+3.0.0         2014-01-20
+
+  [ENHANCEMENTS]
+
+  - Pendulum 2.0 register machine implementation
+    Supports function calling, lightweight exception handling and
+    module inclusion via `#include x` preprocessor directives.
+
+    Bytecode implementation reduces parsing overhead on cogd-side,
+    which is a boon in large mesh configurations.
+
+  - Analysis tools for Pendulum bytecode
+    Includes full-fidelity (source recoverable) disassembler (`pn -d`) and a
+    code coverage analyzer (`pn --cover` to generate .pconv database and
+    `pcov` to format it nice-like).
+
+  - Pendulum 2.0 Standard Library
+    stdlib.pn is a standard library of re-usable (and tested) routines for
+    system configuration remediation.
+
+  - New authdb implementation
+    Replaces bulky and difficult-to-use userdb API, unifying the
+    concepts of passwd/spent entries (into user_t) and group/sgent
+    (into group_t).
+
+  - More reliance on libvigor for the Missing Bits of C
+    cw_arr* functions are gone, because we have strings_* from libvigor.
+    Some manual string pointer voodoo replaced by string() and friends.
+
+
+
+2.3.0     2014-09-11
+
+  [ENHANCEMENTS]
+
+  - New `cw' multi-call binary to replace cw* tools into a single,
     user-extensible sub-command dispather, a la git.
 
     The following utilities have therefore been renamed:
@@ -17,9 +93,10 @@ v2.3.0 - 2014-09-11
 
        cwtool   ->  cw-localsys [internal to cogd]
 
-   * cw-mesh prompting is now done to stderr, for pipelines
-   * cw-mesh now ignores nodes that optout by default
-     (use --optout to retain the legacy behavior)
-   * cw-mesh now honors ~/.cwrc as an adjunct to /etc/clockwork/cw.conf
+  - cw-mesh prompting is now done to stderr, for pipelines
+  - cw-mesh now ignores nodes that optout by default
+    (use --optout to retain the legacy behavior)
 
+  [BUGS]
 
+  - cw-mesh now honors ~/.cwrc as an adjunct to /etc/clockwork/cw.conf

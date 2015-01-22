@@ -1,6 +1,7 @@
 TODO
 ====
 
+  - SIGHUP support in clockd/cogd/meshd for reloading config
   - man page for pcov (and probably updates for pn)
   - better logging
 

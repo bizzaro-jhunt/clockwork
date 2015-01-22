@@ -1,7 +1,11 @@
 
 origin/master
 
-  (none)
+  [ENHANCEMENTS]
+
+  - Support '-%>' for newline suppression in ERB templates
+    Any ERB ruby snippet ending with '-%>' (instead of just '%>'), will
+    ignore trailing whitespace.
 
 3.0.2        2014-01-22
 

@@ -14,7 +14,7 @@ class ClockworkERB
 		instance_variable_set "@#{n.gsub(/\./, '_')}", v
 	end
 end
-inst = ERB.new(File.read(ARGV[0])).def_class(ClockworkERB, 'render()').new
+inst = ERB.new(File.read(ARGV[0]), nil, '-').def_class(ClockworkERB, 'render()').new
 while l = $stdin.gets do
 	k, v = l.gsub(/\r?\n$/, '').split '=', 2
 	inst.var k, v

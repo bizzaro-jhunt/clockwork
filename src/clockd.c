@@ -24,6 +24,7 @@
 #include <sys/mman.h>
 #include <libgen.h>
 #include <getopt.h>
+#include <signal.h>
 
 #include "spec/parser.h"
 #include "resources.h"
@@ -32,6 +33,10 @@
 #define BLOCK_SIZE 8192
 
 #define DEFAULT_CONFIG_FILE "/etc/clockwork/clockd.conf"
+
+/* should we try to reload config?
+   (for when we catch a SIGHUP) */
+static int DO_RELOAD = 0;
 
 typedef enum {
 	STATE_INIT,
@@ -130,6 +135,9 @@ struct __client_t {
 };
 
 struct __server_t {
+	char *config_file;
+	int   verbose;
+
 	void *zmq;
 	void *listener;
 
@@ -145,6 +153,11 @@ struct __server_t {
 	trustdb_t  *tdb;
 	void       *zap;
 };
+
+static void s_sighandler(int signal, siginfo_t *info, void *_)
+{
+	if (signal == SIGHUP) DO_RELOAD++;
+}
 
 static int s_sha1(client_t *fsm)
 {
@@ -592,44 +605,142 @@ static void s_client_destroy(void *p)
 	free(c);
 }
 
+static inline void s_server_default_config(list_t *config, int init)
+{
+	config_set(config, "listen",              "*:2314");
+	config_set(config, "ccache.connections",  "2048");
+	config_set(config, "ccache.expiration",   "600");
+	config_set(config, "manifest",            "/etc/clockwork/manifest.pol");
+	config_set(config, "copydown",            CW_GATHER_DIR);
+	config_set(config, "syslog.ident",        "clockd");
+	config_set(config, "syslog.facility",     "daemon");
+	config_set(config, "syslog.level",        "error");
+	config_set(config, "security.strict",     "yes");
+	config_set(config, "security.trusted",    "/etc/clockwork/certs/trusted");
+	config_set(config, "security.cert",       "/etc/clockwork/certs/clockd");
+	config_set(config, "pidfile",             "/var/run/clockd.pid");
+	config_set(config, "pendulum.inc",        PENDULUM_INCLUDE);
+
+	if (init) {
+		log_open(config_get(config, "syslog.ident"), "stderr");
+		log_level(0, (getenv("CLOCKD_DEBUG") ? "debug" : "error"));
+	}
+	logger(LOG_DEBUG, "default configuration:");
+	logger(LOG_DEBUG, "  listen              %s", config_get(config, "listen"));
+	logger(LOG_DEBUG, "  ccache.connections  %s", config_get(config, "ccache.connections"));
+	logger(LOG_DEBUG, "  ccache.expiration   %s", config_get(config, "ccache.expiration"));
+	logger(LOG_DEBUG, "  manifest            %s", config_get(config, "manifest"));
+	logger(LOG_DEBUG, "  copydown            %s", config_get(config, "copydown"));
+	logger(LOG_DEBUG, "  syslog.ident        %s", config_get(config, "syslog.ident"));
+	logger(LOG_DEBUG, "  syslog.facility     %s", config_get(config, "syslog.facility"));
+	logger(LOG_DEBUG, "  syslog.level        %s", config_get(config, "syslog.level"));
+	logger(LOG_DEBUG, "  security.strict     %s", config_get(config, "security.strict"));
+	logger(LOG_DEBUG, "  security.trusted    %s", config_get(config, "security.trusted"));
+	logger(LOG_DEBUG, "  security.cert       %s", config_get(config, "security.cert"));
+	logger(LOG_DEBUG, "  pidfile             %s", config_get(config, "pidfile"));
+	logger(LOG_DEBUG, "  pendulum.inc        %s", config_get(config, "pendulum.inc"));
+}
+
+static void s_server_setup_logger(server_t *s, list_t *config)
+{
+	logger(LOG_DEBUG, "determining adjusted log level/facility");
+	int level = LOG_NOTICE;
+	if (s->daemonize) {
+		char *t = config_get(config, "syslog.level");
+		logger(LOG_DEBUG, "configured log level is '%s', verbose modifier is %+i", t, s->verbose);
+		int level = log_level_number(t);
+
+		if (level < 0) {
+			logger(LOG_WARNING, "'%s' is not a recognized log level, falling back to 'error'", t);
+			level = LOG_ERR;
+		}
+	}
+	level += s->verbose;
+	if (level > LOG_DEBUG) level = LOG_DEBUG;
+	if (level < 0) level = 0;
+	logger(LOG_DEBUG, "adjusted log level is %s (%i)",
+		log_level_name(level), level);
+	if (!s->daemonize) {
+		logger(LOG_DEBUG, "Running in --foreground mode; forcing all logging to stdout");
+		config_set(config, "syslog.facility", "stdout");
+	}
+	if (s->mode == MODE_DUMP) {
+		logger(LOG_DEBUG, "Running in --show-config mode; forcing all logging to stderr");
+		config_set(config, "syslog.facility", "stderr");
+	}
+	if (s->mode == MODE_TEST) {
+		logger(LOG_DEBUG, "Running in --test mode; forcing all logging to stderr");
+		config_set(config, "syslog.facility", "stderr");
+	}
+	logger(LOG_DEBUG, "redirecting to %s log as %s",
+		config_get(config, "syslog.facility"),
+		config_get(config, "syslog.ident"));
+
+	log_open(config_get(config, "syslog.ident"),
+	            config_get(config, "syslog.facility"));
+	log_level(level, NULL);
+
+	logger(LOG_INFO, "clockd starting up");
+}
+
+static inline server_t *s_server_reload(server_t *orig)
+{
+	if (!orig->daemonize) {
+		logger(LOG_WARNING, "Ignoring attempt to reload foreground-mode clockd");
+		return NULL;
+	}
+	if (orig->mode != MODE_RUN) {
+		logger(LOG_WARNING, "Ignoring attempt to reload clockd");
+		return NULL;
+	}
+
+	logger(LOG_WARNING, "Reloading clockd configuration");
+
+	server_t *s  = vmalloc(sizeof(server_t));
+	s->mode      = MODE_RUN;
+	s->daemonize = 1;
+
+	LIST(config);
+	s_server_default_config(&config, 0);
+
+	logger(LOG_DEBUG, "parsing clockd configuration file '%s'", s->config_file);
+	FILE *io = fopen(s->config_file, "r");
+	if (!io) {
+		logger(LOG_WARNING, "Failed to read configuration from %s: %s",
+			s->config_file, strerror(errno));
+		logger(LOG_WARNING, "Using default configuration");
+
+	} else {
+		if (config_read(&config, io) != 0) {
+			logger(LOG_ERR, "Unable to parse %s");
+			return NULL;
+		}
+		fclose(io);
+		io = NULL;
+	}
+
+	/* set log level, facility and ident */
+	s_server_setup_logger(s, &config);
+
+	s->manifest = parse_file(config_get(&config, "manifest"));
+	if (!s->manifest) {
+		if (errno)
+			logger(LOG_CRIT, "Failed to parse %s: %s",
+				config_get(&config, "manifest"), strerror(errno));
+		return NULL;
+	}
+
+	s->copydown = strdup(config_get(&config, "copydown"));
+	s->include  = strdup(config_get(&config, "pendulum.inc"));
+	return s;
+}
+
 static inline server_t *s_server_new(int argc, char **argv)
 {
 	char *t;
 	server_t *s = vmalloc(sizeof(server_t));
 	s->daemonize = 1;
-
-	CONFIG(config);
-	config_set(&config, "listen",              "*:2314");
-	config_set(&config, "ccache.connections",  "2048");
-	config_set(&config, "ccache.expiration",   "600");
-	config_set(&config, "manifest",            "/etc/clockwork/manifest.pol");
-	config_set(&config, "copydown",            CW_GATHER_DIR);
-	config_set(&config, "syslog.ident",        "clockd");
-	config_set(&config, "syslog.facility",     "daemon");
-	config_set(&config, "syslog.level",        "error");
-	config_set(&config, "security.strict",     "yes");
-	config_set(&config, "security.trusted",    "/etc/clockwork/certs/trusted");
-	config_set(&config, "security.cert",       "/etc/clockwork/certs/clockd");
-	config_set(&config, "pidfile",             "/var/run/clockd.pid");
-	config_set(&config, "pendulum.inc",        PENDULUM_INCLUDE);
-
-	log_open(config_get(&config, "syslog.ident"), "stderr");
-	log_level(0, (getenv("CLOCKD_DEBUG") ? "debug" : "error"));
-	logger(LOG_DEBUG, "default configuration:");
-	logger(LOG_DEBUG, "  listen              %s", config_get(&config, "listen"));
-	logger(LOG_DEBUG, "  ccache.connections  %s", config_get(&config, "ccache.connections"));
-	logger(LOG_DEBUG, "  ccache.expiration   %s", config_get(&config, "ccache.expiration"));
-	logger(LOG_DEBUG, "  manifest            %s", config_get(&config, "manifest"));
-	logger(LOG_DEBUG, "  copydown            %s", config_get(&config, "copydown"));
-	logger(LOG_DEBUG, "  syslog.ident        %s", config_get(&config, "syslog.ident"));
-	logger(LOG_DEBUG, "  syslog.facility     %s", config_get(&config, "syslog.facility"));
-	logger(LOG_DEBUG, "  syslog.level        %s", config_get(&config, "syslog.level"));
-	logger(LOG_DEBUG, "  security.strict     %s", config_get(&config, "security.strict"));
-	logger(LOG_DEBUG, "  security.trusted    %s", config_get(&config, "security.trusted"));
-	logger(LOG_DEBUG, "  security.cert       %s", config_get(&config, "security.cert"));
-	logger(LOG_DEBUG, "  pidfile             %s", config_get(&config, "pidfile"));
-	logger(LOG_DEBUG, "  pendulum.inc        %s", config_get(&config, "pendulum.inc"));
-
+	s->config_file = strdup(DEFAULT_CONFIG_FILE);
 
 	logger(LOG_DEBUG, "processing command-line options");
 	const char *short_opts = "?hvqVFSt" "c:";
@@ -645,7 +756,6 @@ static inline server_t *s_server_new(int argc, char **argv)
 		{ 0, 0, 0, 0 },
 	};
 	int verbose = -1;
-	const char *config_file = DEFAULT_CONFIG_FILE;
 	int opt, idx = 0;
 	while ( (opt = getopt_long(argc, argv, short_opts, long_opts, &idx)) != -1) {
 		switch (opt) {
@@ -687,8 +797,9 @@ static inline server_t *s_server_new(int argc, char **argv)
 
 		case 'c':
 			logger(LOG_DEBUG, "handling -c/--config; replacing '%s' with '%s'",
-				config_file, optarg);
-			config_file = optarg;
+				s->config_file, optarg);
+			free(s->config_file);
+			s->config_file = strdup(optarg);
 			break;
 
 		case 'F':
@@ -709,12 +820,14 @@ static inline server_t *s_server_new(int argc, char **argv)
 	}
 	logger(LOG_DEBUG, "option processing complete");
 
+	CONFIG(config);
+	s_server_default_config(&config, 1);
 
-	logger(LOG_DEBUG, "parsing clockd configuration file '%s'", config_file);
-	FILE *io = fopen(config_file, "r");
+	logger(LOG_DEBUG, "parsing clockd configuration file '%s'", s->config_file);
+	FILE *io = fopen(s->config_file, "r");
 	if (!io) {
 		logger(LOG_WARNING, "Failed to read configuration from %s: %s",
-			config_file, strerror(errno));
+			s->config_file, strerror(errno));
 		logger(LOG_WARNING, "Using default configuration");
 
 	} else {
@@ -726,41 +839,8 @@ static inline server_t *s_server_new(int argc, char **argv)
 		io = NULL;
 	}
 
-
-	logger(LOG_DEBUG, "determining adjusted log level/facility");
-	if (verbose < 0) verbose = 0;
-	t = config_get(&config, "syslog.level");
-	logger(LOG_DEBUG, "configured log level is '%s', verbose modifier is %+i", t, verbose);
-	int level = log_level_number(t);
-	if (level < 0) {
-		logger(LOG_WARNING, "'%s' is not a recognized log level, falling back to 'error'", t);
-		level = LOG_ERR;
-	}
-	level += verbose;
-	logger(LOG_DEBUG, "adjusted log level is %s (%i)",
-		log_level_name(level), level);
-	if (!s->daemonize) {
-		logger(LOG_DEBUG, "Running in --foreground mode; forcing all logging to stdout");
-		config_set(&config, "syslog.facility", "stdout");
-	}
-	if (s->mode == MODE_DUMP) {
-		logger(LOG_DEBUG, "Running in --show-config mode; forcing all logging to stderr");
-		config_set(&config, "syslog.facility", "stderr");
-	}
-	if (s->mode == MODE_TEST) {
-		logger(LOG_DEBUG, "Running in --test mode; forcing all logging to stderr");
-		config_set(&config, "syslog.facility", "stderr");
-	}
-	logger(LOG_DEBUG, "redirecting to %s log as %s",
-		config_get(&config, "syslog.facility"),
-		config_get(&config, "syslog.ident"));
-
-	log_open(config_get(&config, "syslog.ident"),
-	            config_get(&config, "syslog.facility"));
-	log_level(level, NULL);
-
-	logger(LOG_INFO, "clockd starting up");
-
+	/* set log level, facility and ident */
+	s_server_setup_logger(s, &config);
 
 	if (s->mode == MODE_DUMP) {
 		printf("listen              %s\n", config_get(&config, "listen"));
@@ -779,7 +859,7 @@ static inline server_t *s_server_new(int argc, char **argv)
 		exit(0);
 	}
 
-
+	logger(LOG_INFO, "clockd starting up");
 	s->cert = cert_read(config_get(&config, "security.cert"));
 	if (!s->cert) {
 		logger(LOG_ERR, "%s: %s", config_get(&config, "security.cert"),
@@ -882,22 +962,69 @@ int main(int argc, char **argv)
 	/* only let unit tests run for 60s */
 	alarm(60);
 #endif
+
+	server_t *new = NULL;
 	server_t *s = s_server_new(argc, argv);
+
 #ifdef UNIT_TESTS
 	if (getenv("TEST_CLOCKD_BAIL_EARLY"))
 		exit(0);
 #endif
+
+	if (s->daemonize) {
+		struct sigaction sa;
+		sa.sa_sigaction = s_sighandler;
+		sigaction(SIGHUP, &sa, NULL);
+	}
+
 	signal_handlers();
-	while (!signalled()) {
+again:
+	while (!signalled() && !DO_RELOAD) {
+		cache_purge(s->clients, 0);
+		if (new) {
+			int empty = 1;
+			int i;
+			for (i = 0; i < s->clients->max_len; i++) {
+				if (!s->clients->entries[i].ident) continue;
+				empty = 0;
+				break;
+			}
+
+			if (empty) {
+				new->config_file = s->config_file;
+				new->zmq         = s->zmq;
+				new->listener    = s->listener;
+				new->clients     = s->clients;
+				new->cert        = s->cert;
+				new->tdb         = s->tdb;
+				new->zap         = s->zap;
+
+				manifest_free(s->manifest);
+				free(s->copydown);
+				free(s->include);
+				free(s);
+				s = new;
+				new = NULL;
+			}
+		}
+
 		logger(LOG_DEBUG, "awaiting inbound connection");
 		pdu_t *pdu, *reply;
 		pdu = pdu_recv(s->listener);
 		if (!pdu) continue;
 
 		logger(LOG_DEBUG, "received inbound connection, checking for client details");
-		cache_purge(s->clients, 0);
 		client_t *c = cache_get(s->clients, pdu_peer(pdu));
 		if (!c) {
+			if (new) {
+				/* don't accept new inbound connections while reloading... */
+				logger(LOG_WARNING, "clockd is reloading; turning away client");
+				reply = pdu_reply(pdu, "ERROR", 1, "Server busy; try again later\n");
+				pdu_send_and_free(reply, s->listener);
+				pdu_free(pdu);
+				continue;
+			}
+
 			c = vmalloc(sizeof(client_t));
 			c->id = strdup(pdu_peer(pdu));
 
@@ -936,6 +1063,13 @@ int main(int argc, char **argv)
 			goto unit_tests_finished;
 #endif
 		}
+	}
+
+	if (DO_RELOAD) {
+		logger(LOG_INFO, "Caught %u SIGHUP(s); reloading", DO_RELOAD);
+		DO_RELOAD = 0;
+		new = s_server_reload(s);
+		goto again;
 	}
 
 #ifdef UNIT_TESTS

@@ -1,11 +1,20 @@
 
 origin/master
 
+  (none)
+
+3.0.3        2014-01-27
+
   [ENHANCEMENTS]
 
-  - SIGHUP-to-reload Support
+  - SIGHUP-to-reload Support for cogd
     cogd supports use of `kill -HUP $pid` to cause it to reload configuration
     while running.
+
+  - SIGHUP-to-reload Support for clockd
+    clockd supports use of `kill -HUP $pid` to cause it to reload configuration
+    and parse a new policy manifest while running.  Intelligently handles client
+    connections for in-flight remediation.
 
 3.0.2        2014-01-22
 

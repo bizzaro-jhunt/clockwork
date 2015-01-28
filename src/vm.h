@@ -70,6 +70,7 @@ typedef struct {
 #define NREGS 16
 #define VM_MAX_OPENDIRS 2048
 #define HEAP_ADDRMASK 0x80000000
+#define VM_DEFAULT_AUX_TIMEOUT 10
 
 typedef struct {
 	dword_t  r[16];  /* generic registers */
@@ -114,6 +115,7 @@ typedef struct {
 		struct SHA1   sha1;
 
 		void         *remote;
+		int           timeout;
 
 		dirlist_t     dirs[VM_MAX_OPENDIRS];
 

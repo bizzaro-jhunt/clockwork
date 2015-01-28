@@ -289,10 +289,9 @@ static void s_cfm_run(client_t *c)
 			rc = snprintf(size, 15, "%i", n++);
 			assert(rc > 0);
 			pdu = pdu_make("DATA", 1, size);
-			rc = pdu_send_and_free(pdu, client);
-			assert(rc == 0);
+			reply = s_sendto(client, pdu, c->timeout);
+			pdu_free(pdu);
 
-			reply = pdu_recv(client);
 			if (!reply) {
 				logger(LOG_ERR, "DATA failed: %s", zmq_strerror(errno));
 				break;

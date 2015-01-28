@@ -1,7 +1,12 @@
 
 origin/master
 
-  (none)
+  [BUG FIXES]
+
+  - cogd now honors `timeout` when waiting for responses from clockd masters,
+    during remediation.  This fixes several stall-out conditions where the clockd
+    master goes away mid-run, and the cogd process hangs waiting for a response
+    that will never come.
 
 3.0.3        2014-01-27
 

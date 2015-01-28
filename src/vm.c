@@ -438,6 +438,19 @@ static int s_copyfile(FILE *src, FILE *dst)
 	return 0;
 }
 
+static pdu_t* s_remote_recv(vm_t *vm)
+{
+	if (!vm->aux.timeout) vm->aux.timeout = VM_DEFAULT_AUX_TIMEOUT;
+	zmq_pollitem_t socks[] = {{ vm->aux.remote, 0, ZMQ_POLLIN, 0 }};
+	for (;;) {
+		int rc = zmq_poll(socks, 1, vm->aux.timeout * 1000);
+		if (rc == 1)
+			return pdu_recv(vm->aux.remote);
+		if (errno != EINTR) break;
+	}
+	return NULL;
+}
+
 static int s_remote_fileio(vm_t *vm, FILE *io)
 {
 	int rc, n = 0;
@@ -450,7 +463,7 @@ static int s_remote_fileio(vm_t *vm, FILE *io)
 		free(s);
 		if (rc != 0) return 1;
 
-		reply = pdu_recv(vm->aux.remote);
+		reply = s_remote_recv(vm);
 		if (!reply) {
 			logger(LOG_ERR, "remote.file failed: %s", zmq_strerror(errno));
 			return 1;
@@ -561,7 +574,7 @@ static char* s_remote_sha1(vm_t *vm, const char *key)
 	rc = pdu_send_and_free(pdu_make("FILE", 1, key), vm->aux.remote);
 	if (rc != 0) return NULL;
 
-	pdu = pdu_recv(vm->aux.remote);
+	pdu = s_remote_recv(vm);
 	if (!pdu) {
 		logger(LOG_ERR, "remote.sh1 - failed: %s", zmq_strerror(errno));
 		return NULL;
@@ -751,6 +764,9 @@ static void op_pragma(vm_t *vm)
 
 	} else if (strcmp(v, "trace") == 0) {
 		vm->trace = strcmp(STR2(vm), "on") == 0;
+
+	} else if (strcmp(v, "timeout") == 0) {
+		vm->aux.timeout = VAL2(vm);
 
 	} else {
 		/* set the value in the pragma hash */

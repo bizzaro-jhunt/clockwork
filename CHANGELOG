@@ -1,6 +1,10 @@
 
 origin/master
 
+  (none)
+
+3.0.4        2014-01-28
+
   [BUG FIXES]
 
   - cogd now honors `timeout` when waiting for responses from clockd masters,

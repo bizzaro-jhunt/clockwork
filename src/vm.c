@@ -603,7 +603,7 @@ static char* s_remote_sha1(vm_t *vm, const char *key)
 		}
 
 		if (s_remote_fileio(vm, io) != 0)
-			logger(LOG_ERR, "failed retreiving DATA blocks from clockd master (may only have partial error messge)");
+			logger(LOG_ERR, "failed retrieving DATA blocks from clockd master (may only have partial error messge)");
 
 		rewind(io);
 		char *pre = string("%s failed: %%s", key);

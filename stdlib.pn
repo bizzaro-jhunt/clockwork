@@ -318,10 +318,8 @@ fn res.file.contents
 
     syslog info "%T: retrieving remote SHA1 checksum"
     remote.sha1 %c %o
-    jz +1
-      ;; NOTE: we don't need to syslog anything, as remote.sha1
-      ;;       does a much more thorough job of this, and doesn't
-      ;;       confuse local/remote errnos like perror would.
+    jz +2
+      error "%T: failed to retrieve remote SHA1 checksum"
       bail 1
 
     syslog info "%T: calculating local SHA1 checksum"
@@ -349,15 +347,20 @@ fn res.file.contents
     ;; otherwise, we have to verify via %d and %e
     syslog info "%T: verifying new local copy via `%[d]s`"
     exec %d %m
-    jz +2
-      perror "failed to exec pre-change verification check `%[d]s`"
-      bail 1
-
+    acc %m
+    error "`%[d]s` exited %[m]i\n"
     syslog info "%T: pre-change verification check exited %[m]d (want %[e]d)"
     eq %m %e ;; actual return code == expected return code?
     jz +2
       error "pre-change verification check `%[d]s` failed; returned %[m]u (not %[e]u)\n"
       bail 1
+
+    syslog info "%T: copying ownership of %[a]s -> %[b]s (verified)"
+    fs.uid %a %p fs.chown %b %p
+    fs.gid %a %p fs.chgrp %b %p
+
+    syslog info "%T: copying mode of %[a]s -> %[b]s (verified)"
+    fs.mode %a %p fs.chmod %b %p
 
     syslog info "%T: renaming %[b]s -> %[a]s (verified)"
     fs.rename %b %a

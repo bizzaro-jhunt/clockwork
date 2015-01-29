@@ -572,7 +572,10 @@ static char* s_remote_sha1(vm_t *vm, const char *key)
 	char *s;
 
 	rc = pdu_send_and_free(pdu_make("FILE", 1, key), vm->aux.remote);
-	if (rc != 0) return NULL;
+	if (rc != 0) {
+		logger(LOG_ERR, "remote.sh1 - failed to send FILE query: %s", zmq_strerror(errno));
+		return NULL;
+	}
 
 	pdu = s_remote_recv(vm);
 	if (!pdu) {
@@ -1922,7 +1925,7 @@ static void op_exec(vm_t *vm)
 		.gid = vm->aux.runas_gid,
 	};
 
-	logger(LOG_DEBUG, "exec: running `/bin/ash -c \"%s\"`", STR1(vm));
+	logger(LOG_DEBUG, "exec: running `/bin/sh -c \"%s\"`", STR1(vm));
 	vm->acc = run2(&runner, "/bin/sh", "-c", STR1(vm), NULL);
 	if (fgets(execline, sizeof(execline), runner.out)) {
 		char *s = strchr(execline, '\n'); if (s) *s = '\0';

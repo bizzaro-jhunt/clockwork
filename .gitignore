@@ -32,6 +32,7 @@ stamp-h?
 /TEST_cogd
 /TEST_clockd
 /TEST_ps
+/TEST_pn
 /TEST_lock
 /TEST_meshd
 /TEST_cmd

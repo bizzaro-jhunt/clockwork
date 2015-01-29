@@ -100,7 +100,7 @@ SHELL_TESTS += t/memcheck/33-cwtrust.t
 
 TESTS          = $(CTAP_TESTS) $(PERL_TESTS) $(SHELL_TESTS)
 BUILT_TESTS    = $(CTAP_TESTS)
-check_PROGRAMS = $(CTAP_TESTS) TEST_cogd TEST_clockd TEST_ps TEST_lock TEST_meshd TEST_cmd
+check_PROGRAMS = $(CTAP_TESTS) TEST_cogd TEST_clockd TEST_ps TEST_lock TEST_meshd TEST_cmd TEST_pn
 
 TEST_EXTRAS  = t/common.pm
 TEST_EXTRAS += t/cover.pn
@@ -132,6 +132,7 @@ TEST_meshd_SOURCES       = t/test-meshd.c  $(core_src) $(parser_spec_src)
 TEST_ps_SOURCES          = t/test-ps.c     $(core_src)
 TEST_lock_SOURCES        = t/test-lock.c   $(core_src)
 TEST_cmd_SOURCES         = t/test-cmd.c    $(core_src)
+TEST_pn_SOURCES          = t/test-pn.c     $(core_src)
 
 t_07_sha1_SOURCES        = t/07-sha1.c          $(test_source)
 t_10_facts_SOURCES       = t/10-facts.c         $(test_source)

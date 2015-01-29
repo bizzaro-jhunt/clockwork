@@ -3021,6 +3021,264 @@ fn test.res.user.mkhome.5
     call notok
   call ok
 
+fn test.res.file.contents.1
+  call setup
+  umask 022 %p
+  set %p "res.file.contents creates files from upstream contents"
+  set %a "t/tmp/want"
+  set %b %a
+  set %c "file://key"
+  set %d ""
+  set %e 0
+
+  fs.put %a "this is wrong\n"
+  fs.file? %a jz +2
+    string "%[p]s: %[a]s does not exist" %p
+    call notok
+
+  unflag "changed"
+  try res.file.contents
+  flagged? "changed" jz +2
+    string "%[p]s: not flagged" %p
+    call notok
+
+  fs.file? %a jz +2
+    string "%[p]s: not created" %p
+    call notok
+
+  fs.get %a %f
+  streq "this is what i want.\n" %f jz +2
+    string "%[p]s: contents were incorrect [%[f]s]" %p
+    call notok
+  call ok
+
+fn test.res.file.contents.2
+  call setup
+  umask 022 %p
+  set %p "res.file.contents skips files with correct contents"
+  set %a "t/tmp/want"
+  set %b %a
+  set %c "file://key"
+  set %d ""
+  set %e 0
+
+  fs.put %a "this is what i want.\n"
+  fs.file? %a jz +2
+    string "%[p]s: %[a]s does not exist" %p
+    call notok
+
+  unflag "changed"
+  try res.file.contents
+  flagged? "changed" jnz +2
+    string "%[p]s: flagged" %p
+    call notok
+
+  fs.file? %a jz +2
+    string "%[p]s: was removed" %p
+    call notok
+
+  fs.get %a %f
+  streq "this is what i want.\n" %f jz +2
+    string "%[p]s: contents were incorrect [%[f]s]" %p
+    call notok
+  call ok
+
+fn test.res.file.contents.3
+  call setup
+  umask 022 %p
+  set %p "res.file.contents leaves mode/ownership alone when doing nothing"
+  set %a "t/tmp/want"
+  set %b %a
+  set %c "file://key"
+  set %d ""
+  set %e 0
+
+  fs.put %a "this is what i want.\n"
+  fs.file? %a jz +2
+    string "%[p]s: %[a]s does not exist" %p
+    call notok
+  fs.chown %a 1234
+  fs.chgrp %a 2468
+  fs.chmod %a 0467
+
+  unflag "changed"
+  try res.file.contents
+  flagged? "changed" jnz +2
+    string "%[p]s: flagged" %p
+    call notok
+
+  fs.file? %a jz +2
+    string "%[p]s: was removed" %p
+    call notok
+
+  fs.get %a %f
+  streq "this is what i want.\n" %f jz +2
+    string "%[p]s: contents were incorrect [%[f]s]" %p
+    call notok
+
+  fs.mode %a %m
+  eq %m 0467 jz +2
+    string "%[p]s: mode changed from 0467 to %[m]04o" %p
+    call notok
+
+  fs.uid %a %m
+  eq %m 1234 jz +2
+    string "%[p]s: owner uid changed from 1234 to %[m]d" %p
+    call notok
+
+  fs.gid %a %m
+  eq %m 2468 jz +2
+    string "%[p]s: owner gid changed from 1234 to %[m]d" %p
+    call notok
+  call ok
+
+fn test.res.file.contents.4
+  call setup
+  umask 022 %p
+  set %p "res.file.contents leaves mode/ownership alone when updating files"
+  set %a "t/tmp/want"
+  set %b %a
+  set %c "file://key"
+  set %d ""
+  set %e 0
+
+  fs.put %a ".-'-..-'-..-'-."
+  fs.file? %a jz +2
+    string "%[p]s: %[a]s does not exist" %p
+    call notok
+  fs.chown %a 1234
+  fs.chgrp %a 2468
+  fs.chmod %a 0467
+
+  unflag "changed"
+  try res.file.contents
+  flagged? "changed" jz +2
+    string "%[p]s: not flagged" %p
+    call notok
+
+  fs.file? %a jz +2
+    string "%[p]s: was removed" %p
+    call notok
+
+  fs.get %a %f
+  streq "this is what i want.\n" %f jz +2
+    string "%[p]s: contents were incorrect [%[f]s]" %p
+    call notok
+
+  fs.mode %a %m
+  eq %m 0467 jz +2
+    string "%[p]s: mode changed from 0467 to %[m]04o" %p
+    call notok
+
+  fs.uid %a %m
+  eq %m 1234 jz +2
+    string "%[p]s: owner uid changed from 1234 to %[m]d" %p
+    call notok
+
+  fs.gid %a %m
+  eq %m 2468 jz +2
+    string "%[p]s: owner gid changed from 2468 to %[m]d" %p
+    call notok
+  call ok
+
+fn test.res.file.contents.5
+  call setup
+  umask 022 %p
+  set %p "res.file.contents leaves original file alone if verification fails"
+  set %a "t/tmp/want"
+  set %b "t/tmp/.want"
+  set %c "file://key"
+  set %d "/bin/false" ; always returns 1
+  set %e 0
+
+  fs.put %a "original contents\n"
+  fs.file? %a jz +2
+    string "%[p]s: %[a]s does not exist" %p
+    call notok
+  fs.chown %a 1234
+  fs.chgrp %a 2468
+  fs.chmod %a 0467
+
+  unflag "changed"
+  try res.file.contents
+  flagged? "changed" jnz +2
+    string "%[p]s: flagged" %p
+    call notok
+
+  fs.file? %a jz +2
+    string "%[p]s: was removed" %p
+    call notok
+
+  fs.get %a %f
+  streq "original contents\n" %f jz +2
+    string "%[p]s: contents were incorrect [%[f]s]" %p
+    call notok
+
+  fs.mode %a %m
+  eq %m 0467 jz +2
+    string "%[p]s: mode changed from 0467 to %[m]04o" %p
+    call notok
+
+  fs.uid %a %m
+  eq %m 1234 jz +2
+    string "%[p]s: owner uid changed from 1234 to %[m]d" %p
+    call notok
+
+  fs.gid %a %m
+  eq %m 2468 jz +2
+    string "%[p]s: owner gid changed from 2468 to %[m]d" %p
+    call notok
+  call ok
+
+fn test.res.file.contents.6
+  call setup
+  umask 022 %p
+  set %p "res.file.contents keeps mode/ownership through verification"
+  set %a "t/tmp/want"
+  set %b "t/tmp/.want"
+  set %c "file://key"
+  set %d "/bin/false" ; always returns 1
+  set %e 1            ; which is what we want...
+
+  fs.put %a "original contents\n"
+  fs.file? %a jz +2
+    string "%[p]s: %[a]s does not exist" %p
+    call notok
+  fs.chown %a 1234
+  fs.chgrp %a 2468
+  fs.chmod %a 0467
+
+  unflag "changed"
+  try res.file.contents
+  flagged? "changed" jz +2
+    string "%[p]s: not flagged" %p
+    call notok
+
+  fs.file? %a jz +2
+    string "%[p]s: was removed" %p
+    call notok
+
+  fs.get %a %f
+  streq "this is what i want.\n" %f jz +2
+    string "%[p]s: contents were incorrect [%[f]s]" %p
+    call notok
+
+  fs.mode %a %m
+  eq %m 0467 jz +2
+    string "%[p]s: mode changed from 0467 to %[m]04o" %p
+    call notok
+
+  fs.uid %a %m
+  eq %m 1234 jz +2
+    string "%[p]s: owner uid changed from 1234 to %[m]d" %p
+    call notok
+
+  fs.gid %a %m
+  eq %m 2468 jz +2
+    string "%[p]s: owner gid changed from 2468 to %[m]d" %p
+    call notok
+  call ok
+
 fn main
   set %o 0
   set %p 0
@@ -3192,6 +3450,13 @@ skip-run-as:
   add %o 1 try test.res.user.mkhome.3 jz +1 set %p 1
   add %o 1 try test.res.user.mkhome.4 jz +1 set %p 1
   add %o 1 try test.res.user.mkhome.5 jz +1 set %p 1
+
+  add %o 1 try test.res.file.contents.1 jz +1 set %p 1
+  add %o 1 try test.res.file.contents.2 jz +1 set %p 1
+  add %o 1 try test.res.file.contents.3 jz +1 set %p 1
+  add %o 1 try test.res.file.contents.4 jz +1 set %p 1
+  add %o 1 try test.res.file.contents.5 jz +1 set %p 1
+  add %o 1 try test.res.file.contents.6 jz +1 set %p 1
 
 noroot:
   exec "rm -rf t/tmp" %e

@@ -3,6 +3,18 @@ origin/master
 
   (none)
 
+3.0.5        2014-01-29
+
+  [BUG FIXES]
+
+  - Fix an issue in stdlib.pn's res.file.contents function, whereby file resources
+    that come with verification steps (as /etc/sudoers often do) don't transfer mode
+    or ownership (UID/GID) to the temporary file before renaming it over the top of
+    the original file.  This causes havoc on files like /etc/sudoers, which *must*
+    have specific permissions.
+
+  - Fix a typo (retrieve not 'retreive') in a diagnostic message for remote.file
+
 3.0.4        2014-01-28
 
   [BUG FIXES]

@@ -671,8 +671,14 @@
 
 - runtime:
     help: Retrieve the current Pendulum Runtime Version
-    runtime: 20150131
+    runtime: 20150119
     args:
       - [register]
+
+- fs.mkparent:
+    help: Create all necessary parent directories for a given path
+    runtime: 20150131
+    args:
+      - [register, string]
 
 # vim:ft=yaml:et:ts=2:sts=2:sw=2

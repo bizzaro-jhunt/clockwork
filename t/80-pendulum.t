@@ -2423,4 +2423,138 @@ subtest "runtime version detection" => sub {
 	"runtime version detection works");
 };
 
+subtest "fs.mkparent parentage" => sub {
+	qx(rm -rf t/tmp; mkdir -p t/tmp);
+	pendulum_ok(qq(
+	fn main
+		fs.dir? "t/tmp/new" jnz +2
+			print "t/tmp/new already exists!"
+			bail 1
+		fs.mkparent "t/tmp/new/file"
+		jz +2
+			perror "fs.mkparent call failed"
+			bail 1
+		fs.dir? "t/tmp/new" jz +2
+			print "t/tmp/new not created!"
+			bail 1
+		fs.stat "t/tmp/new/file" jnz +2
+			print "t/tmp/new/file was created!"
+			bail 1
+		print "ok"),
+
+	"ok",
+	"fs.mkparent creates single-level ancestry");
+
+	qx(rm -rf t/tmp; mkdir -p t/tmp);
+	pendulum_ok(qq(
+	fn main
+		fs.dir? "t/tmp/new" jnz +2
+			print "t/tmp/new already exists!"
+			bail 1
+		fs.dir? "t/tmp/new/place/for" jnz +2
+			print "t/tmp/new/place/for already exists!"
+			bail 1
+		fs.mkparent "t/tmp/new/place/for/file"
+		jz +2
+			perror "fs.mkparent call failed"
+			bail 1
+		fs.dir? "t/tmp/new" jz +2
+			print "t/tmp/new not created!"
+			bail 1
+		fs.dir? "t/tmp/new/place/for" jz +2
+			print "t/tmp/new/place/for not created!"
+			bail 1
+		fs.stat "t/tmp/new/place/for/file" jnz +2
+			print "t/tmp/new/place/for/file was created!"
+			bail 1
+		print "ok"),
+
+	"ok",
+	"fs.mkparent creates multi-level ancestry");
+
+	qx(rm -rf t/tmp; mkdir -p t/tmp/an/old/place/for);
+	pendulum_ok(qq(
+	fn main
+		fs.dir? "t/tmp/an" jz +2
+			print "t/tmp/an doesnt exist!"
+			bail 1
+		fs.dir? "t/tmp/an/old/place" jz +2
+			print "t/tmp/an/old/place doesnt exist!"
+			bail 1
+		fs.mkparent "t/tmp/an/old/place/for/file"
+		jz +2
+			perror "fs.mkparent call failed"
+			bail 1
+		fs.dir? "t/tmp/an" jz +2
+			print "t/tmp/an was removed!"
+			bail 1
+		fs.dir? "t/tmp/an/old/place/for" jz +2
+			print "t/tmp/an/old/place/for was removed!"
+			bail 1
+		fs.stat "t/tmp/an/old/place/for/file" jnz +2
+			print "t/tmp/an/old/place/for/file was created!"
+			bail 1
+		print "ok"),
+
+	"ok",
+	"fs.mkparent is idempotent");
+
+	SKIP: {
+		skip "must be run as root for chown/chgrp tests", 1
+			unless $< == 0;
+		qx(rm -rf t/tmp; mkdir -p t/tmp);
+		pendulum_ok(qq(
+		fn checkdir
+			fs.dir? %a jz +2
+				print "%[a]s not created!"
+				bail 1
+
+			fs.mode %a %e
+			eq %e %b jz +2
+				print "permissions of %[a]s set to %[e]04o (not %[b]04o)"
+				bail 1
+
+			fs.uid %a %e
+			eq %e %c jz +2
+				print "ownership of %[a]s set to %[e]i (not %[c]i)"
+				bail 1
+
+			fs.gid %a %e
+			eq %e %d jz +2
+				print "group ownership of %[a]s set to %[e]i (not %[d]i)"
+				bail 1
+			ret
+
+		fn main
+			fs.dir? "t/tmp" jz +2
+				print "t/tmp doesnt exist!"
+				bail 1
+			fs.dir? "t/tmp/all/the/way" jnz +2
+				print "t/tmp/all/the/way already exists!"
+				bail 1
+
+			fs.chmod "t/tmp" 0757 set %b 0757
+			fs.chown "t/tmp" 1234 set %c 1234
+			fs.chgrp "t/tmp" 9876 set %d 9876
+
+			fs.mkparent "t/tmp/all/the/way/down"
+			jz +2
+				perror "fs.mkparent call failed"
+				bail 1
+
+			set %a "t/tmp/all"
+			call checkdir
+
+			set %a "t/tmp/all/the"
+			call checkdir
+
+			set %a "t/tmp/all/the/way"
+			call checkdir
+			print "ok"),
+
+		"ok",
+		"fs.mkparent honors parent ownership/permissions");
+	};
+};
+
 done_testing;

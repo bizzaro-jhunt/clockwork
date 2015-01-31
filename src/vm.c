@@ -2054,6 +2054,48 @@ static void op_runtime(vm_t *vm)
 	vm->r[vm->oper1] = CLOCKWORK_RUNTIME;
 }
 
+static void op_fs_mkparent(vm_t *vm)
+{
+	ARG1("fs.mkparent");
+	vm->acc = 1;
+	path_t *p = path_new(STR1(vm));
+	if (!p) return;
+
+	strings_t *paths = strings_new(NULL);
+	while (path_pop(p) != 0)
+		strings_add(paths, path(p));
+
+	mode_t mode = 0755;
+	uid_t  uid  = 0;
+	gid_t  gid  = 0;
+
+	int i;
+	for (i = paths->num - 1; i >= 0; i--) {
+		struct stat st;
+		if (stat(paths->strings[i], &st) == 0) {
+			mode = st.st_mode;
+			uid  = st.st_uid;
+			gid  = st.st_gid;
+			continue;
+		}
+
+		if (errno != ENOENT)
+			return;
+
+		if (mkdir(paths->strings[i], 0777) != 0)
+			return;
+
+		if (chown(paths->strings[i], uid, gid) != 0
+		 || chmod(paths->strings[i], mode) != 0) {
+
+			rmdir(paths->strings[i]);
+			return;
+		}
+	}
+
+	vm->acc = 0;
+}
+
 /************************************************************************/
 
 int vm_iscode(byte_t *code, size_t len)

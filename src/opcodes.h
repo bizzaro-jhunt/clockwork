@@ -122,6 +122,7 @@
 #define OP_GETEUID         0x76  /* Retrieve the effective UID of the current process */
 #define OP_GETEGID         0x77  /* Retreive the effect GID of the current process */
 #define OP_RUNTIME         0x78  /* Retrieve the current Pendulum Runtime Version */
+#define OP_FS_MKPARENT     0x79  /* Create all necessary parent directories for a given path */
 
 
 /** OPCODE MNEMONIC NAMES **/
@@ -247,6 +248,7 @@ static const char * OPCODES[] = {
 	"geteuid",           /* OP_GETEUID         118  0x76 */
 	"getegid",           /* OP_GETEGID         119  0x77 */
 	"runtime",           /* OP_RUNTIME         120  0x78 */
+	"fs.mkparent",       /* OP_FS_MKPARENT     121  0x79 */
 	NULL,
 };
 
@@ -374,6 +376,7 @@ static const char * OPCODES[] = {
 #define T_OP_GETEUID         0xb7  /* Retrieve the effective UID of the current process */
 #define T_OP_GETEGID         0xb8  /* Retreive the effect GID of the current process */
 #define T_OP_RUNTIME         0xb9  /* Retrieve the current Pendulum Runtime Version */
+#define T_OP_FS_MKPARENT     0xba  /* Create all necessary parent directories for a given path */
 
 
 static const char * ASM[] = {
@@ -499,6 +502,7 @@ static const char * ASM[] = {
 	"geteuid",           /* T_OP_GETEUID         119  0x77 */
 	"getegid",           /* T_OP_GETEGID         120  0x78 */
 	"runtime",           /* T_OP_RUNTIME         121  0x79 */
+	"fs.mkparent",       /* T_OP_FS_MKPARENT     122  0x7a */
 	NULL,
 };
 
@@ -661,6 +665,7 @@ static struct {
 	{ T_OP_GETEUID,        "geteuid %a",                                     OP_GETEUID,        { ARG_REGISTER,                           ARG_NONE,                           } },
 	{ T_OP_GETEGID,        "getegid %a",                                     OP_GETEGID,        { ARG_REGISTER,                           ARG_NONE,                           } },
 	{ T_OP_RUNTIME,        "runtime %a",                                     OP_RUNTIME,        { ARG_REGISTER,                           ARG_NONE,                           } },
+	{ T_OP_FS_MKPARENT,    "fs.mkparent (%a|<string>)",                      OP_FS_MKPARENT,    { ARG_REGISTER|ARG_STRING,                ARG_NONE,                           } },
 	{ 0, 0, 0, { 0, 0 } },
 };
 
@@ -787,6 +792,7 @@ static void op_loglevel       (vm_t*);
 static void op_geteuid        (vm_t*);
 static void op_getegid        (vm_t*);
 static void op_runtime        (vm_t*);
+static void op_fs_mkparent    (vm_t*);
 
 typedef void (*opcode_fn)(vm_t*);
 
@@ -915,6 +921,7 @@ static struct {
 	{ OP_GETEUID,        op_geteuid,        },
 	{ OP_GETEGID,        op_getegid,        },
 	{ OP_RUNTIME,        op_runtime,        },
+	{ OP_FS_MKPARENT,    op_fs_mkparent,    },
 	{ 0, 0 },
 };
 #endif

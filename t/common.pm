@@ -187,7 +187,6 @@ sub dependencies_ok { _cw_shell_ok(@_, command => "use host example; show order"
 
 sub pendulum_compile_ok
 {
-	local $Test::Builder::Level = $Test::Builder::Level + 1;
 	my ($asm, $target, $message, %opts) = @_;
 	$message ||= "compile";
 	$opts{timeout} ||= 5;
@@ -248,7 +247,6 @@ sub pendulum_compile_ok
 
 sub pendulum_ok
 {
-	local $Test::Builder::Level = $Test::Builder::Level + 1;
 	my ($asm, $expect, $message, %opts) = @_;
 	$message ||= "run ok";
 	$opts{timeout} ||= 5;
@@ -329,8 +327,10 @@ sub pendulum_ok
 	return 1;
 }
 
-sub disassemble_ok { pendulum_ok @_, args => ['-d']; }
-sub stdlib_ok      { pendulum_ok @_, args => [qw[--stdlib stdlib.pn --cover]],
+sub disassemble_ok { local $Test::Builder::Level = $Test::Builder::Level + 1;
+                     pendulum_ok @_, args => ['-d']; }
+sub stdlib_ok      { local $Test::Builder::Level = $Test::Builder::Level + 1;
+                     pendulum_ok @_, args => [qw[--stdlib stdlib.pn --cover]],
                                      stderr => 'stdout'; }
 
 sub command_ok
@@ -410,7 +410,6 @@ sub command_ok
 
 sub bdfa_ok
 {
-	local $Test::Builder::Level = $Test::Builder::Level + 1;
 	my ($args, $message, %opts) = @_;
 	$message ||= "bdfa run ok";
 	$opts{timeout} ||= 5;
@@ -527,7 +526,6 @@ sub file_is
 
 sub bdfa_file_is
 {
-	local $Test::Builder::Level = $Test::Builder::Level + 1;
 	my ($path, $expect, $message) = @_;
 	$message ||= "$path contents";
 

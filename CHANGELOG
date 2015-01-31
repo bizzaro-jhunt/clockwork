@@ -7,6 +7,10 @@ origin/master
     Now, if a service depends on a config file, changing the config file will
     cause cogd to properly reload/restart the dependent service.
 
+  - Properly set "changed" (lastchg) attribute on new users
+    Without it, new users are required to change their passwords immediately
+    upon login.
+
 3.0.5        2014-01-29
 
   [BUG FIXES]

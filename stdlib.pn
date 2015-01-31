@@ -485,6 +485,7 @@ fn res.user.present
       user.set "pwwarn"    7
       user.set "inact"     0
       user.set "expiry"    0
+      user.set "changed"   98765
 
   exists:
     eq %b 65536 ;; max(UID) + 1

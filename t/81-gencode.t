@@ -1880,8 +1880,8 @@ fn res:00000001
   call fix:00000001
   flagged? "changed"
   jz +1 retv 0
-  flag "dir:/tmp"
-  flag "dir:/tmp"
+  flag "file:/tmp/inner/file"
+  flag "dir:/tmp/inner"
   retv 1
 
 fn fix:00000001
@@ -1893,7 +1893,7 @@ fn res:00000003
   call fix:00000003
   flagged? "changed"
   jz +1 retv 0
-  flag "dir:/tmp/inner"
+  flag "file:/tmp/inner/file"
   retv 1
 
 fn fix:00000003

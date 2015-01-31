@@ -1136,7 +1136,7 @@ int policy_gencode(const struct policy *pol, FILE *io)
 		if (n) {
 			for_each_dependency(d, pol)
 				if (r == d->resource_b)
-					fprintf(io, "  flag \"%s\"\n", r->key);
+					fprintf(io, "  flag \"%s\"\n", d->resource_a->key);
 
 		} else {
 			fprintf(io, "  ;; no dependencies\n");

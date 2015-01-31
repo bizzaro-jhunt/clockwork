@@ -669,10 +669,10 @@
     args:
       - [register]
 
-- vreq:
-    help: Require a version of the Pendulum runtime
+- runtime:
+    help: Retrieve the current Pendulum Runtime Version
     runtime: 20150131
     args:
-      - [number]
+      - [register]
 
 # vim:ft=yaml:et:ts=2:sts=2:sw=2

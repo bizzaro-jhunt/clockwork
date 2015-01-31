@@ -121,7 +121,7 @@
 #define OP_LOGLEVEL        0x75  /* Set the current syslog level */
 #define OP_GETEUID         0x76  /* Retrieve the effective UID of the current process */
 #define OP_GETEGID         0x77  /* Retreive the effect GID of the current process */
-#define OP_VREQ            0x78  /* Require a version of the Pendulum runtime */
+#define OP_RUNTIME         0x78  /* Retrieve the current Pendulum Runtime Version */
 
 
 /** OPCODE MNEMONIC NAMES **/
@@ -246,7 +246,7 @@ static const char * OPCODES[] = {
 	"loglevel",          /* OP_LOGLEVEL        117  0x75 */
 	"geteuid",           /* OP_GETEUID         118  0x76 */
 	"getegid",           /* OP_GETEGID         119  0x77 */
-	"vreq",              /* OP_VREQ            120  0x78 */
+	"runtime",           /* OP_RUNTIME         120  0x78 */
 	NULL,
 };
 
@@ -373,7 +373,7 @@ static const char * OPCODES[] = {
 #define T_OP_LOGLEVEL        0xb6  /* Set the current syslog level */
 #define T_OP_GETEUID         0xb7  /* Retrieve the effective UID of the current process */
 #define T_OP_GETEGID         0xb8  /* Retreive the effect GID of the current process */
-#define T_OP_VREQ            0xb9  /* Require a version of the Pendulum runtime */
+#define T_OP_RUNTIME         0xb9  /* Retrieve the current Pendulum Runtime Version */
 
 
 static const char * ASM[] = {
@@ -498,7 +498,7 @@ static const char * ASM[] = {
 	"loglevel",          /* T_OP_LOGLEVEL        118  0x76 */
 	"geteuid",           /* T_OP_GETEUID         119  0x77 */
 	"getegid",           /* T_OP_GETEGID         120  0x78 */
-	"vreq",              /* T_OP_VREQ            121  0x79 */
+	"runtime",           /* T_OP_RUNTIME         121  0x79 */
 	NULL,
 };
 
@@ -660,7 +660,7 @@ static struct {
 	{ T_OP_LOGLEVEL,       "loglevel (%a|<string>|identifier) %b",           OP_LOGLEVEL,       { ARG_REGISTER|ARG_STRING|ARG_IDENTIFIER, ARG_REGISTER,                       } },
 	{ T_OP_GETEUID,        "geteuid %a",                                     OP_GETEUID,        { ARG_REGISTER,                           ARG_NONE,                           } },
 	{ T_OP_GETEGID,        "getegid %a",                                     OP_GETEGID,        { ARG_REGISTER,                           ARG_NONE,                           } },
-	{ T_OP_VREQ,           "vreq <number>",                                  OP_VREQ,           { ARG_NUMBER,                             ARG_NONE,                           } },
+	{ T_OP_RUNTIME,        "runtime %a",                                     OP_RUNTIME,        { ARG_REGISTER,                           ARG_NONE,                           } },
 	{ 0, 0, 0, { 0, 0 } },
 };
 
@@ -786,7 +786,7 @@ static void op_umask          (vm_t*);
 static void op_loglevel       (vm_t*);
 static void op_geteuid        (vm_t*);
 static void op_getegid        (vm_t*);
-static void op_vreq           (vm_t*);
+static void op_runtime        (vm_t*);
 
 typedef void (*opcode_fn)(vm_t*);
 
@@ -914,7 +914,7 @@ static struct {
 	{ OP_LOGLEVEL,       op_loglevel,       },
 	{ OP_GETEUID,        op_geteuid,        },
 	{ OP_GETEGID,        op_getegid,        },
-	{ OP_VREQ,           op_vreq,           },
+	{ OP_RUNTIME,        op_runtime,        },
 	{ 0, 0 },
 };
 #endif

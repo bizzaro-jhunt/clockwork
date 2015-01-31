@@ -2406,4 +2406,21 @@ subtest "stack" => sub {
 	"push/pop operate on their own data stack");
 };
 
+subtest "runtime version detection" => sub {
+	pendulum_ok(qq(
+	fn main
+		runtime %a
+		lt %a 21840125 jz +2
+			print "%[a]i >= 21840125...\\n"
+			bail 1
+		gt %a 20150119 jz +2 ; 20150131 was the first runtime
+		                     ; to support `runtime %a`
+			print "%[a]i <= 20150119...\\n"
+			bail 1
+		print "ok"),
+
+	"ok",
+	"runtime version detection works");
+};
+
 done_testing;

@@ -2047,14 +2047,11 @@ static void op_getegid(vm_t *vm)
 	vm->acc = 0;
 }
 
-static void op_vreq(vm_t *vm)
+static void op_runtime(vm_t *vm)
 {
-	ARG1("vreq");
-	if (CLOCKWORK_RUNTIME != VAL1(vm)) {
-		logger(LOG_ERR, "vreq assertion failed: this pendulum bytecode image requires runtime %i, but this is runtime %i; ABORTING",
-			VAL1(vm), CLOCKWORK_RUNTIME);
-		vm->stop = 1;
-	}
+	ARG1("runtime");
+	REGISTER1("runtime");
+	vm->r[vm->oper1] = CLOCKWORK_RUNTIME;
 }
 
 /************************************************************************/

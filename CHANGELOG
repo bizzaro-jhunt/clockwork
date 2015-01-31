@@ -1,6 +1,10 @@
 
 origin/master
 
+  (none)
+
+3.0.6        2014-01-30
+
   [BUG FIXES]
 
   - Fix misfiring notifies for dependency forward tracking.

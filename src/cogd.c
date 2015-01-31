@@ -774,7 +774,7 @@ static inline client_t* s_client_new(int argc, char **argv)
 		case '?':
 			logger(LOG_DEBUG, "handling -h/-?/--help");
 			logger(LOG_DEBUG, "handling -h/-?/--help");
-			printf("cogd, part of clockwork v%s runtime %s protocol %i\n",
+			printf("cogd, part of clockwork v%s runtime %i protocol %i\n",
 				CLOCKWORK_VERSION, CLOCKWORK_RUNTIME, CLOCKWORK_PROTOCOL);
 			printf("Usage: cogd [-?hvVqFdT] [-c filename]\n\n");
 			printf("Options:\n");
@@ -804,7 +804,7 @@ static inline client_t* s_client_new(int argc, char **argv)
 
 		case 'V':
 			logger(LOG_DEBUG, "handling -V/--version");
-			printf("cogd (Clockwork) %s runtime %s\n"
+			printf("cogd (Clockwork) %s runtime %i\n"
 			       "Copyright (C) 2014 James Hunt\n",
 			       CLOCKWORK_VERSION, CLOCKWORK_RUNTIME);
 			exit(0);

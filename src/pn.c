@@ -79,7 +79,7 @@ int main (int argc, char **argv)
 			break;
 
 		case 'V':
-			printf("pn (Clockwork) v%s runtime %s\n"
+			printf("pn (Clockwork) v%s runtime %i\n"
 			       "Copyright (C) 2015 James Hunt\n",
 			       CLOCKWORK_VERSION, CLOCKWORK_RUNTIME);
 			exit(0);

@@ -1,551 +1,678 @@
 - noop:
     help: does nothing
+    runtime: 20150119
     args: []
 - push:
     help: push a value onto data stack
+    runtime: 20150119
     args:
       - [register, string, number]
 - pop:
     help: pop data stack top into a register
+    runtime: 20150119
     args: 
       - [register]
 - set:
     help: set register value
+    runtime: 20150119
     args:
       - [register]
       - [register, string, number]
 - swap:
     help: swap two register values
+    runtime: 20150119
     args:
       - [register]
       - [register]
 - acc:
     help: copy the accumulator value into a register
+    runtime: 20150119
     args:
       - [register]
 
 - pragma:
     help: set a compiler pragma
+    runtime: 20150119
     args:
       - [identifier]
       - [string, number]
 - property:
     help: retrieve a property into a register
+    runtime: 20150119
     args:
       - [register, string]
       - [register]
 
 - anno:
     help: insert a source code annotation
+    runtime: 20150119
     args:
       - [embed]
 
 - add:
     help: add the second operand to the first
+    runtime: 20150119
     args:
       - [register]
       - [register, number]
 - sub:
     help: subtract the second operand from the first
+    runtime: 20150119
     args:
       - [register]
       - [register, number]
 - mult:
     help: multiply the first operand by the second
+    runtime: 20150119
     args:
       - [register]
       - [register, number]
 - div:
     help: divide the first operand by the second
+    runtime: 20150119
     args:
       - [register]
       - [register, number]
 - mod:
     help: modulo the first operand by the second
+    runtime: 20150119
     args:
       - [register]
       - [register, number]
 
 - call:
     help: call a user-defined function
+    runtime: 20150119
     args:
       - [function]
 - try:
     help: call a user-defined function, as a die-return point
+    runtime: 20150119
     args:
       - [function]
 - ret:
     help: return to caller
+    runtime: 20150119
 - retv:
     help: return to caller (with value)
+    runtime: 20150119
     alias: ret
     args:
       - [register, string, number]
 - bail:
     help: return, unwinding the stack back to inner most try opcode
+    runtime: 20150119
     args:
       - [register, number]
 
 # FIXME: these should end in '?'
 - eq:
     help: compare two integers for equality
+    runtime: 20150119
     args:
       - [register, number]
       - [register, number]
 - lt:
     help: check that operand 1 < operand 2
+    runtime: 20150119
     args:
       - [register, number]
       - [register, number]
 - lte:
     help: check that operand 1 <= operand 2
+    runtime: 20150119
     args:
       - [register, number]
       - [register, number]
 - gt:
     help: check that operand 1 > operand 2
+    runtime: 20150119
     args:
       - [register, number]
       - [register, number]
 - gte:
     help: check that operand 1 >= operand 2
+    runtime: 20150119
     args:
       - [register, number]
       - [register, number]
 
 - streq:
     help: compare two strings
+    runtime: 20150119
     args:
       - [register, string]
       - [register, string]
 
 - jmp:
     help: unconditional jump
+    runtime: 20150119
     args:
       - [label]
 - jz:
     help: jump if accumulator is 0
+    runtime: 20150119
     args:
       - [label]
 - jnz:
     help: jump if accumulator is not 0
+    runtime: 20150119
     args:
       - [label]
 
 - string:
     help: format a (heap-allocated) string
+    runtime: 20150119
     args:
       - [string, register]
       - [register]
 
 - print:
     help: print a message to standard output
+    runtime: 20150119
     args:
       - [register, string]
 - error:
     help: print an error
+    runtime: 20150119
     args:
       - [register, string]
 - perror:
     help: print an error (with system error message)
+    runtime: 20150119
     args:
       - [register, string]
 - syslog:
     help: log a message to syslog
+    runtime: 20150119
     args:
       - [register, identifier, string]
       - [register, string]
 
 - flag:
     help: set a flag in the runtime
+    runtime: 20150119
     args:
       - [register, string]
 - unflag:
     help: unset a flag in the runtime
+    runtime: 20150119
     args:
       - [register, string]
 - flagged?:
     help: see if a flag is set in the runtime
+    runtime: 20150119
     args:
       - [register, string]
 
 - fs.stat:
     help: check to see if a file exists
+    runtime: 20150119
     args:
       - [register, string]
 - fs.type:
     help: return a string describing the type of file
+    runtime: 20150119
     args:
       - [register, string]
       - [register]
 - fs.file?:
     help: is a path a regular file?
+    runtime: 20150119
     args:
       - [register, string]
 - fs.symlink?:
     help: is a path a symbolic link?
+    runtime: 20150119
     args:
       - [register, string]
 - fs.dir?:
     help: is a path a directory?
+    runtime: 20150119
     args:
       - [register, string]
 - fs.chardev?:
     help: is a path a character device?
+    runtime: 20150119
     args:
       - [register, string]
 - fs.blockdev?:
     help: is a path a block device?
+    runtime: 20150119
     args:
       - [register, string]
 - fs.fifo?:
     help: is a path a FIFO queue?
+    runtime: 20150119
     args:
       - [register, string]
 - fs.socket?:
     help: is a path a socket?
+    runtime: 20150119
     args:
       - [register, string]
 - fs.readlink:
     help: get the value of a symbolic link
+    runtime: 20150119
     args:
       - [register, string]
       - [register]
 
 - fs.dev:
     help: get the ID of the device containing a file
+    runtime: 20150119
     args:
       - [register, string]
       - [register]
 - fs.inode:
     help: get the inode of a file
+    runtime: 20150119
     args:
       - [register, string]
       - [register]
 - fs.mode:
     help: get the mode (permissions) of a file
+    runtime: 20150119
     args:
       - [register, string]
       - [register]
 - fs.nlink:
     help: get the number of hard links to a file
+    runtime: 20150119
     args:
       - [register, string]
       - [register]
 - fs.uid:
     help: get the UID of the file's owner
+    runtime: 20150119
     args:
       - [register, string]
       - [register]
 - fs.gid:
     help: get the GID of the file's group
+    runtime: 20150119
     args:
       - [register, string]
       - [register]
 - fs.major:
     help: get the device major number (char/block devices only)
+    runtime: 20150119
     args:
       - [register, string]
       - [register]
 - fs.minor:
     help: get the device minor number (char/block devices only)
+    runtime: 20150119
     args:
       - [register, string]
       - [register]
 - fs.size:
     help: get the size of a file
+    runtime: 20150119
     args:
       - [register, string]
       - [register]
 - fs.atime:
     help: get the access time of a file
+    runtime: 20150119
     args:
       - [register, string]
       - [register]
 - fs.mtime:
     help: get the modification time of a file
+    runtime: 20150119
     args:
       - [register, string]
       - [register]
 - fs.ctime:
     help: get the inode change time of a file
+    runtime: 20150119
     args:
       - [register, string]
       - [register]
 
 - fs.touch:
     help: touch a file (create or update its utime)
+    runtime: 20150119
     args:
       - [register, string]
 - fs.mkdir:
     help: create a new (empty) directory
+    runtime: 20150119
     args:
       - [register, string]
 - fs.link:
     help: create a file link
+    runtime: 20150119
     args:
       - [register, string]
       - [register, string]
 - fs.symlink:
     help: create a symbolic link
+    runtime: 20150119
     args:
       - [register, string]
       - [register, string]
 
 - fs.unlink:
     help: remove a file
+    runtime: 20150119
     args:
       - [register, string]
 - fs.rmdir:
     help: remove an empty directory
+    runtime: 20150119
     args:
       - [register, string]
 - fs.rename:
     help: rename a file
+    runtime: 20150119
     args:
       - [register, string]
       - [register, string]
 - fs.copy:
     help: copy a file from one name to another
+    runtime: 20150119
     args:
       - [register, string]
       - [register, string]
 
 - fs.chown:
     help: change file ownership
+    runtime: 20150119
     args:
       - [register, string]
       - [register, number]
 - fs.chgrp:
     help: change file group ownership
+    runtime: 20150119
     args:
       - [register, string]
       - [register, number]
 - fs.chmod:
     help: change file permissions
+    runtime: 20150119
     args:
       - [register, string]
       - [register, number]
 
 - fs.sha1:
     help: calculate SHA1 of a file's contents
+    runtime: 20150119
     args:
       - [register, string]
       - [register]
 - fs.get:
     help: retrieve the contents of a local file
+    runtime: 20150119
     args:
       - [register, string]
       - [register]
 - fs.put:
     help: update the contents of a local file
+    runtime: 20150119
     args:
       - [register, string]
       - [register, string]
 - fs.opendir:
     help: open a directory, to inspect its contents
+    runtime: 20150119
     args:
       - [register, string]
       - [register]
 - fs.readdir:
     help: read the next entry out of a directory handle
+    runtime: 20150119
     args:
       - [register]
       - [register]
 - fs.closedir:
     help: close an open directory handle
+    runtime: 20150119
     args:
       - [register]
 
 - authdb.open:
     help: open the passwd/shadow (and group) databases for reading or writing
+    runtime: 20150119
 - authdb.save:
     help: writes the passwd/shadow (and group) databases to disk
+    runtime: 20150119
 - authdb.close:
     help: closes the passwd/shadow (and group) databases, without writing them to disk
+    runtime: 20150119
 - authdb.nextuid:
     help: return the next available UID (> operand 1) into a register
+    runtime: 20150119
     args:
       - [register, number]
       - [register]
 - authdb.nextgid:
     help: return the next available GID (> operand 1) into a register
+    runtime: 20150119
     args:
       - [register, number]
       - [register]
 
 - user.find:
     help: find a user by username
+    runtime: 20150119
     args:
       - [register, string]
 - user.get:
     help: retrieve the value of an attribute from the last found user
+    runtime: 20150119
     args:
       - [register, string]
       - [register, string, number]
 - user.set:
     help: set an attribute on the last found user
+    runtime: 20150119
     args:
       - [register, string]
       - [register, string, number]
 - user.new:
     help: allocate a new (unsaved) user object
+    runtime: 20150119
 - user.delete:
     help: remove the current user from the (in-memory) database
+    runtime: 20150119
 
 - group.find:
     help: find a group by name
+    runtime: 20150119
     args:
       - [register, string]
 - group.get:
     help: retrieve the value of an attribute from the last found group
+    runtime: 20150119
     args:
       - [register, string]
       - [register, string, number]
 - group.set:
     help: set an attribute on the last found group
+    runtime: 20150119
     args:
       - [register, string]
       - [register, string, number]
 - group.new:
     help: allocate a new (unsaved) group object
+    runtime: 20150119
 - group.delete:
     help: remove the current group from the (in-memory) database
+    runtime: 20150119
 - group.has?:
     help: check if a user is a member/admin of a group
+    runtime: 20150119
     args:
       - [register, string]
       - [register, string]
 - group.join:
     help: join a member/admin to a group
+    runtime: 20150119
     args:
       - [register, string]
       - [register, string]
 - group.kick:
     help: kick a member/admin from a group
+    runtime: 20150119
     args:
       - [register, string]
       - [register, string]
 
 - augeas.init:
     help: initialize the augeas system
+    runtime: 20150119
 - augeas.done:
     help: de-initializes the augeas system
+    runtime: 20150119
 - augeas.perror:
     help: print a helpful augeas error message
+    runtime: 20150119
     args:
       - [register, string]
 - augeas.write:
     help: write all pending changes to disk
+    runtime: 20150119
 - augeas.set:
     help: set the value of a file/key
+    runtime: 20150119
     args:
       - [register, string]
       - [register, string]
 - augeas.get:
     help: retrieve the value of a file/key
+    runtime: 20150119
     args:
       - [register, string]
       - [register]
 - augeas.find:
     help: search for and retrieve the value of file/key
+    runtime: 20150119
     args:
       - [register, string]
       - [register]
 - augeas.remove:
     help: remove a file/key
+    runtime: 20150119
     args:
       - [register, string]
 
 - env.get:
     help: retrieve the value of an environment variable
+    runtime: 20150119
     args:
       - [register, string]
       - [register]
 - env.set:
     help: set the value of an environment variable
+    runtime: 20150119
     args:
       - [register, string]
       - [register, string]
 - env.unset:
     help: unset an environment variable
+    runtime: 20150119
     args:
       - [register, string]
 
 - localsys:
     help: execute `cw localsys` with arguments
+    runtime: 20150119
     args:
       - [register, string]
       - [register]
 
 - runas.uid:
     help: Set the run-as UID
+    runtime: 20150119
     args:
       - [register, number]
 - runas.gid:
     help: Set the run-as GID
+    runtime: 20150119
     args:
       - [register, number]
 
 - exec:
     help: execute a command
+    runtime: 20150119
     args:
       - [register, string]
       - [register]
 
 - dump:
     help: dump virtual machine state for debugging
+    runtime: 20150119
 - halt:
     help: halt the virtual machine
+    runtime: 20150119
 
 - acl:
     help: store a mech ACL
+    runtime: 20150119
     args:
       - [register, string]
 - show.acls:
     help: print ACL entries
+    runtime: 20150119
 - show.acl:
     help: print ACL entries that match the query
+    runtime: 20150119
     args:
       - [register, string]
 
 - remote.live?:
     help: Determine if we are connected to a clockd server
+    runtime: 20150119
 - remote.sha1:
     help: Retrieve the remote SHA1 based on a resource key
+    runtime: 20150119
     args:
       - [register, string]
       - [register]
 - remote.file:
     help: Retrieve the contents of a file based on a resource key
+    runtime: 20150119
     args:
       - [register, string]
       - [register, string]
 
 - topic:
     help: Set the current topic, for the %T special register
+    runtime: 20150119
     args:
       - [register, string]
 
 - umask:
     help: Set the file and directory permissions mask
+    runtime: 20150119
     args:
       - [register, number]
       - [register]
 
 - loglevel:
     help: Set the current syslog level
+    runtime: 20150119
     args:
       - [register, string, identifier]
       - [register]
 
 - geteuid:
     help: Retrieve the effective UID of the current process
+    runtime: 20150119
     args:
       - [register]
 - getegid:
     help: Retreive the effect GID of the current process
+    runtime: 20150119
     args:
       - [register]
+
+- vreq:
+    help: Require a version of the Pendulum runtime
+    runtime: 20150131
+    args:
+      - [number]
 
 # vim:ft=yaml:et:ts=2:sts=2:sw=2

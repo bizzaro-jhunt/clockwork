@@ -762,7 +762,7 @@ static inline server_t *s_server_new(int argc, char **argv)
 		case 'h':
 		case '?':
 			logger(LOG_DEBUG, "handling -h/-?/--help");
-			printf("clockd, part of clockwork v%s runtime %s protocol %i\n",
+			printf("clockd, part of clockwork v%s runtime %i protocol %i\n",
 				CLOCKWORK_VERSION, CLOCKWORK_RUNTIME, CLOCKWORK_PROTOCOL);
 			printf("Usage: clockd [-?hvqVFSt] [-c filename]\n\n");
 			printf("Options:\n");
@@ -789,9 +789,9 @@ static inline server_t *s_server_new(int argc, char **argv)
 
 		case 'V':
 			logger(LOG_DEBUG, "handling -V/--version");
-			printf("clockd (Clockwork) v%s runtime %s\n"
+			printf("clockd (Clockwork) v%s runtime %i protocol %i\n"
 			       "Copyright (C) 2014 James Hunt\n",
-			       CLOCKWORK_VERSION, CLOCKWORK_RUNTIME);
+			       CLOCKWORK_VERSION, CLOCKWORK_RUNTIME, CLOCKWORK_PROTOCOL);
 			exit(0);
 			break;
 

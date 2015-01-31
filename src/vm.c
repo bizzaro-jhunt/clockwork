@@ -2047,6 +2047,16 @@ static void op_getegid(vm_t *vm)
 	vm->acc = 0;
 }
 
+static void op_vreq(vm_t *vm)
+{
+	ARG1("vreq");
+	if (CLOCKWORK_RUNTIME != VAL1(vm)) {
+		logger(LOG_ERR, "vreq assertion failed: this pendulum bytecode image requires runtime %i, but this is runtime %i; ABORTING",
+			VAL1(vm), CLOCKWORK_RUNTIME);
+		vm->stop = 1;
+	}
+}
+
 /************************************************************************/
 
 int vm_iscode(byte_t *code, size_t len)
@@ -2082,8 +2092,9 @@ int vm_load(vm_t *vm, byte_t *code, size_t len)
 	hash_set(&vm->pragma, "localsys.cmd", "cw localsys");
 
 	/* default properties */
-	hash_set(&vm->props, "version", CLOCKWORK_VERSION);
-	hash_set(&vm->props, "runtime", CLOCKWORK_RUNTIME);
+	hash_set(&vm->props, "version",  CLOCKWORK_VERSION);
+	hash_set(&vm->props, "runtime",  CLOCKWORK_RUNTIME_STR);
+	hash_set(&vm->props, "protocol", CLOCKWORK_PROTOCOL_STR);
 
 	list_init(&vm->acl);
 

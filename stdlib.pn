@@ -348,7 +348,6 @@ fn res.file.contents
     syslog info "%T: verifying new local copy via `%[d]s`"
     exec %d %m
     acc %m
-    error "`%[d]s` exited %[m]i\n"
     syslog info "%T: pre-change verification check exited %[m]d (want %[e]d)"
     eq %m %e ;; actual return code == expected return code?
     jz +2

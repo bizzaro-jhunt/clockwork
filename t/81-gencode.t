@@ -2066,9 +2066,6 @@ EOF
   deny %probate "*"
 EOF
 
-	# FIXME: run gencode_ok to get ACL data
-#include stdlib
-
 	#######################################################
 
 	put_file "t/tmp/manifest.pol", <<EOF;

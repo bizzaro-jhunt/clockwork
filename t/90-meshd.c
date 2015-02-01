@@ -109,6 +109,9 @@ static char *CODE = "\x70\x6e"                            /* HEADER             
                     "%[e]s\n\0";
 
 TESTS {
+	const char *include = getenv("srcdir");
+	if (!include) include = ".";
+
 	subtest { /* server reactor */
 		char *s; int rc;
 
@@ -122,7 +125,7 @@ TESTS {
 			"Disabled PAM authentication in the mesh_server");
 		ok(mesh_server_setopt(server, MESH_SERVER_SAFE_WORD, "TEST_COMPLETE", 13) == 0,
 			"Set a safe-word for early exit");
-		ok(mesh_server_setopt(server, MESH_SERVER_PN_INCLUDE, ".", 1) == 0,
+		ok(mesh_server_setopt(server, MESH_SERVER_PN_INCLUDE, include, strlen(include)) == 0,
 			"Set Pendulum include path");
 
 		ok(mesh_server_bind_control(server, "inproc://ctl.1") == 0,
@@ -315,7 +318,7 @@ TESTS {
 			"Set trust database path for key-based auth");
 		ok(mesh_server_setopt(server, MESH_SERVER_SAFE_WORD, "TEST_COMPLETE", 13) == 0,
 			"Set a safe-word for early exit");
-		ok(mesh_server_setopt(server, MESH_SERVER_PN_INCLUDE, ".", 1) == 0,
+		ok(mesh_server_setopt(server, MESH_SERVER_PN_INCLUDE, include, strlen(include)) == 0,
 			"Set Pendulum include path");
 
 		ok(mesh_server_bind_control(server, "inproc://ctl.1") == 0,
@@ -396,7 +399,7 @@ TESTS {
 			"Set trust database path for key-based auth");
 		ok(mesh_server_setopt(server, MESH_SERVER_SAFE_WORD, "TEST_COMPLETE", 13) == 0,
 			"Set a safe-word for early exit");
-		ok(mesh_server_setopt(server, MESH_SERVER_PN_INCLUDE, ".", 1) == 0,
+		ok(mesh_server_setopt(server, MESH_SERVER_PN_INCLUDE, include, strlen(include)) == 0,
 			"Set Pendulum include path");
 
 		ok(mesh_server_bind_control(server, "inproc://ctl.1") == 0,
@@ -477,7 +480,7 @@ TESTS {
 			"Set trust database path for key-based auth");
 		ok(mesh_server_setopt(server, MESH_SERVER_SAFE_WORD, "TEST_COMPLETE", 13) == 0,
 			"Set a safe-word for early exit");
-		ok(mesh_server_setopt(server, MESH_SERVER_PN_INCLUDE, ".", 1) == 0,
+		ok(mesh_server_setopt(server, MESH_SERVER_PN_INCLUDE, include, strlen(include)) == 0,
 			"Set Pendulum include path");
 
 		ok(mesh_server_bind_control(server, "inproc://ctl.1") == 0,

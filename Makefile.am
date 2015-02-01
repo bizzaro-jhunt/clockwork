@@ -157,6 +157,8 @@ t_70_res_symlink_SOURCES = t/70-res_symlink.c   $(test_source)
 t_90_meshd_SOURCES       = t/90-meshd.c         $(test_source)
 
 CLEANFILES       = $(BUILT_SOURCES)
+CLEANFILES      += t/cover.pn.S
+CLEANFILES      += t/cover.pn.S.pcov
 
 EXTRA_DIST       = HACKING CHANGELOG
 EXTRA_DIST      += opcodes.yml gencode

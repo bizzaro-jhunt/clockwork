@@ -844,19 +844,18 @@ fn res.package.install
     retv 0
 
   update.latest:
-    set %p "(no output)"
-    localsys "pkg-latest %[a]s" %p
+    localsys "pkg-latest %[a]s" %o
     jz +2
-      syslog err "%T: failed to determine latest version of %[a]s: %[p]s"
+      syslog err "%T: failed to determine latest version of %[a]s: %[o]s"
       bail 1
 
-    syslog info "%T: checking if current version (%[c]s) matches latest version (%[p]s)"
-    streq %c %p
+    syslog info "%T: checking if current version (%[c]s) matches latest version (%[o]s)"
+    streq %c %o
     jnz +1 ret
 
-    syslog notice "%T: upgrading package %[a]s from version %[c]s to (latest) %[p]s"
+    syslog notice "%T: upgrading package %[a]s from version %[c]s to (latest) %[o]s"
     set %p "(no output)"
-    localsys "pkg-install %[a]s %[p]s" %p
+    localsys "pkg-install %[a]s %[o]s" %p
     jz +2
       syslog err "%T: package update failed: %[p]s"
       bail 1

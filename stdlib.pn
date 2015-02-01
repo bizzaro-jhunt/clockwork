@@ -76,7 +76,7 @@ fn res.file.absent
     fs.symlink? %a
     jz rm
 
-    error "%[a]s already exists, as a %[b]s, and will not be automatically removed"
+    syslog err "%T: %[a]s already exists, as a %[b]s, and will not be automatically removed"
     bail 1
 
   rm:
@@ -106,7 +106,7 @@ fn res.dir.absent
     fs.symlink? %a
     jz rm
 
-    error "%[a]s already exists, as a %[b]s, and will not be automatically removed"
+    syslog err "%T: %[a]s already exists, as a %[b]s, and will not be automatically removed"
     bail 1
 
   rm:
@@ -143,7 +143,7 @@ fn res.dir.present
     fs.symlink? %a
     jz rm
 
-    error "%[a]s already exists, as a %[b]s, and will not be automatically removed"
+    syslog err "%T: %[a]s already exists, as a %[b]s, and will not be automatically removed"
     bail 1
 
   rm:
@@ -186,7 +186,7 @@ fn res.file.present
     fs.symlink? %a
     jz rm
 
-    error "%[a]s already exists, as a %[b]s, and will not be automatically removed"
+    syslog err "%T: %[a]s already exists, as a %[b]s, and will not be automatically removed"
     bail 1
 
   rm:
@@ -233,7 +233,7 @@ fn res.file.chown
     syslog info "%T: looking for user named %[b]s"
     user.find %b
     jz +3
-      error "failed to find user %[b]s"
+      syslog err "%T: failed to find user %[b]s"
       authdb.close
       bail 1
 
@@ -274,7 +274,7 @@ fn res.file.chgrp
     syslog info "%T: looking for group named %[b]s"
     group.find %b
     jz +3
-      error "failed to find group %[b]s"
+      syslog err "%T: failed to find group %[b]s"
       authdb.close
       bail 1
 
@@ -758,13 +758,13 @@ fn res.package.absent
 
     eq %d 0
     jz +2
-      perror "failed to detect installed version of %[a]s"
+      syslog err "%T: failed to detect installed version of %[a]s: %[p]s"
       bail 1
 
     syslog notice "%T: uninstalling %[a]s"
     localsys "pkg-remove %[a]s" %p
     jz +2
-      perror "failed to uninstall package %[a]s"
+      syslog err "%T: failed to uninstall package %[a]s: %[p]s"
       bail 1
 
     flag "changed"
@@ -794,7 +794,7 @@ fn res.package.install
       syslog info "%T: package is not installed yet"
       jmp install
 
-    perror "failed to detect installed version of %[a]s"
+    syslog err "%T: failed to detect installed version of %[a]s: %[p]s"
     bail 1
 
   install:
@@ -804,7 +804,7 @@ fn res.package.install
     syslog notice "%T: installing %[a]s version %[b]s"
     localsys "pkg-install %[a]s %[b]s" %p
     jz +2
-      perror "package installation failed"
+      syslog err "%T: package installation failed: %[p]s"
       bail 1
 
     flag "changed"
@@ -814,7 +814,7 @@ fn res.package.install
     syslog notice "%T: installing latest version of %[a]s"
     localsys "pkg-install %[a]s latest" %p
     jz +2
-      perror "package installation failed"
+      syslog err "%T: package installation failed: %[p]s"
       bail 1
 
     flag "changed"
@@ -832,7 +832,7 @@ fn res.package.install
     syslog notice "%T: upgrading package %[a]s from v%[c]s to v%[b]s"
     localsys "pkg-install %[a]s %[b]s" %p
     jz +2
-      perror "package update failed"
+      syslog err "%T: package update failed: %[p]s"
       bail 1
 
     flag "changed"
@@ -841,17 +841,17 @@ fn res.package.install
   update.latest:
     localsys "pkg-latest %[a]s" %p
     jz +2
-      error "failed to determine latest version of %[a]s"
+      syslog err "%T: failed to determine latest version of %[a]s: %[p]s"
       bail 1
 
     syslog info "%T: checking if current version (%[c]s) matches latest version (%[p]s)"
     streq %c %p
     jnz +1 ret
 
-    syslog notice "upgrading package %[a]s from version %[c]s to (latest) %[p]s"
+    syslog notice "%T: upgrading package %[a]s from version %[c]s to (latest) %[p]s"
     localsys "pkg-install %[a]s %[p]s" %p
     jz +2
-      perror "package update failed"
+      syslog err "%T: package update failed: %[p]s"
       bail 1
 
     flag "changed"
@@ -871,7 +871,7 @@ fn res.service.enable
     syslog notice "%T: enabling service %[a]s to start at boot"
     localsys "svc-enable %[a]s" %b
     jz +2
-      error "failed to enable service %[a]s to start at boot"
+      syslog err "%T: failed to enable service %[a]s to start at boot: %[b]s"
       bail 1
     flag "changed"
     retv 0
@@ -890,7 +890,7 @@ fn res.service.disable
     syslog notice "%T: disabling service %[a]s"
     localsys "svc-disable %[a]s" %b
     jz +2
-      error "failed to disable service %[a]s"
+      syslog err "%T: failed to disable service %[a]s: %[b]s"
       bail 1
 
     flag "changed"
@@ -910,7 +910,7 @@ fn res.service.start
     syslog notice "%T: starting service %[a]s"
     localsys "svc-init %[a]s start" %b
     jz +2
-      error "failed to start service %[a]s"
+      syslog err "%T: failed to start service %[a]s: %[b]s"
       bail 1
 
     flag "changed"
@@ -930,17 +930,17 @@ fn res.service.restart
       syslog notice "%T: starting service %[a]s"
       localsys "svc-init %[a]s start" %b
       jz +2
-        error "failed to start service %[a]s"
+        syslog err "%T: failed to start service %[a]s: %[b]s"
         bail 1
 
       flag "changed"
       retv 0
 
   restart:
-      syslog notice "restarting service %[a]s"
+      syslog notice "%T: restarting service %[a]s"
       localsys "svc-init %[a]s restart" %b
       jz +2
-        error "failed to restart service %[a]s"
+        syslog err "%T: failed to restart service %[a]s: %[b]s"
         bail 1
 
       flag "changed"
@@ -957,20 +957,20 @@ fn res.service.reload
     localsys "svc-run-status %[a]s" %b
     jz reload
 
-      syslog notice "starting service %[a]s"
+      syslog notice "%T: starting service %[a]s"
       localsys "svc-init %[a]s start" %b
       jnz +2
         flag "changed"
         retv 0
 
-      error "failed to start service %[a]s"
+      syslog err "%T: failed to start service %[a]s: %[b]s"
       bail 1
 
   reload:
-      syslog notice "reloading service %[a]s"
+      syslog notice "%T: reloading service %[a]s"
       localsys "svc-init %[a]s reload" %b
       jz +2
-        error "failed to reload service %[a]s"
+        syslog err "%T: failed to reload service %[a]s: %[b]s"
         bail 1
 
       flag "changed"
@@ -987,10 +987,10 @@ fn res.service.stop
     localsys "svc-run-status %[a]s" %b
     jz +1 ret
 
-    syslog notice "stopping service %[a]s"
+    syslog notice "%T: stopping service %[a]s"
     localsys "svc-init %[a]s stop" %b
     jz +2
-      error "failed to stop service %[a]s"
+      syslog err "%T: failed to stop service %[a]s: %[b]s"
       bail 1
 
     flag "changed"

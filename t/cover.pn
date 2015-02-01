@@ -3315,9 +3315,6 @@ fn main
   add %o 1 try test.res.file.chmod.1 jz +1 set %p 1
   add %o 1 try test.res.file.chmod.2 jz +1 set %p 1
 
-  ;; FIXME: I have no idea how we test res.file.contents
-  ;; since it requires a 0mq context to retrieve files
-
   add %o 1 try test.res.symlink.absent.1 jz +1 set %p 1
   add %o 1 try test.res.symlink.absent.2 jz +1 set %p 1
   add %o 1 try test.res.symlink.absent.3 jz +1 set %p 1

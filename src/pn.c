@@ -34,12 +34,13 @@ int main (int argc, char **argv)
 	int trace = 0, debug = 0;
 	int level = LOG_WARNING;
 	const char *ident = "pn", *facility = "console";
+	char *outfile = NULL;
 	int mode = MODE_EXECUTE;
 	int coverage = 0;
 	int strip = 1;
 	strings_t *inc = strings_new(NULL);
 
-	const char *short_opts = "h?vqDVTSdCgI:";
+	const char *short_opts = "h?vqDVTSdCgI:o:";
 	struct option long_opts[] = {
 		{ "help",        no_argument,       NULL, 'h' },
 		{ "verbose",     no_argument,       NULL, 'v' },
@@ -53,6 +54,7 @@ int main (int argc, char **argv)
 		{ "coverage",    no_argument,       NULL, 'C' },
 		{ "annotations", no_argument,       NULL, 'g' },
 		{ "syslog",      required_argument, NULL,  0  },
+		{ "output",      required_argument, NULL, 'o' },
 
 		{ 0, 0, 0, 0 },
 	};
@@ -110,6 +112,11 @@ int main (int argc, char **argv)
 
 		case 0: /* --syslog */
 			facility = optarg;
+			break;
+
+		case 'o':
+			free(outfile);
+			outfile = strdup(optarg);
 			break;
 		}
 	}
@@ -233,6 +240,13 @@ int main (int argc, char **argv)
 		if (strcmp(path, "-") == 0) {
 			logger(LOG_DEBUG, "writing image to standard output");
 			outfd = 1;
+
+		} else if (outfile) {
+			outfd = open(outfile, O_WRONLY|O_CREAT|O_TRUNC, 0666);
+			if (outfd < 0) {
+				perror(outfile);
+				return 1;
+			}
 
 		} else {
 			char *sfile = string("%s.S", argv[optind]);

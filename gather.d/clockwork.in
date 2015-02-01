@@ -1,0 +1,4 @@
+#!/bin/sh
+echo "clockwork.version=@PACKAGE_VERSION@"
+echo "clockwork.runtime=@PACKAGE_RUNTIME@"
+echo "clockwork.protocol=@PACKAGE_PROTOCOL@"

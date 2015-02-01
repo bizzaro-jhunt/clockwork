@@ -89,6 +89,7 @@ build/
 dev/
 
 src/clockwork.h
+gather.d/clockwork
 
 t/tmp
 t/vars.pl

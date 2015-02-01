@@ -49,7 +49,9 @@ nobase_aug_DATA  = augeas/lenses/hosts.aug
 nobase_aug_DATA += augeas/lenses/util.aug
 
 gatherdir=$(pkglibdir)/gather.d
-gather_SCRIPTS  = gather.d/core
+gather_SCRIPTS  =
+gather_SCRIPTS += gather.d/clockwork
+gather_SCRIPTS += gather.d/core
 gather_SCRIPTS += gather.d/time
 
 stdlibdir=$(pkglibdir)/pn

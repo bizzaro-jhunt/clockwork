@@ -188,5 +188,5 @@ AC_CHECK_FUNCS([\
 
 ################################################
 
-AC_CONFIG_FILES([Makefile src/clockwork.h t/vars.pl])
+AC_CONFIG_FILES([Makefile src/clockwork.h t/vars.pl gather.d/clockwork])
 AC_OUTPUT

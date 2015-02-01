@@ -3,7 +3,49 @@ origin/master
 
   (none)
 
-3.0.6        2014-01-30
+
+
+3.0.7        2014-02-01                                    runtime 20150131
+
+  [ENHANCEMENTS]
+
+  - Set a umask in cogd
+    cogd now sets a more sane umask, which can be specified via a new
+    configuration directive, 'umask'.  Defaults to 0022.
+
+  - pn --output flag
+    The pn utility, in assembler (-S) mode, now supports -o / --output
+    for specifying where to write the pendulum bytecode image.  This allows
+    callers to short-circuit the auto-naming ("just add .S") logic, and was
+    needed to support VPATH builds in automake.
+
+  - New clockwork.* facts
+    The new clockwork.version, clockwork.runtime and clockwork.protocol
+    facts can be used to query for version (x.y.z), runtime (YYYYMMDD) and
+    network protocol version (N) in play.
+
+  - New `runtime` opcode for determining version of Pendulum runtime
+    The runtime version will be set to date of finalization of new
+    instruction set prior to release.  This means the each runtime version
+    is a fixed specification of interface (but not necessarily behavior),
+    and pendulum code can use this new opcode to determine if the runtime is
+    new enough before using new opcodes.
+
+  - New `fs.mkparent` opcode
+    Intelligently creates missing parent directories of its first argument,
+    using the ownership and mode of the closest existing ancestor directory.
+    This emulates pre-3.0 Clockwork behavior that was missed during the
+    conversion to the register machine implementation.
+
+  [BUG FIXES]
+
+  - Fix some vim pnasm highlighting issues.
+
+  - Remove superfluous debugging from stdlib.pn
+
+
+
+3.0.6        2014-01-30                                    runtime 20150119
 
   [BUG FIXES]
 

@@ -8,48 +8,56 @@ origin/master
   [BUG FIXES]
 
   - Fix misfiring notifies for dependency forward tracking.
-    Now, if a service depends on a config file, changing the config file will
-    cause cogd to properly reload/restart the dependent service.
+    Now, if a service depends on a config file, changing the config file
+    will cause cogd to properly reload/restart the dependent service.
 
   - Properly set "changed" (lastchg) attribute on new users
     Without it, new users are required to change their passwords immediately
     upon login.
 
-3.0.5        2014-01-29
+
+
+3.0.5        2014-01-29                                    runtime 20150119
 
   [BUG FIXES]
 
-  - Fix an issue in stdlib.pn's res.file.contents function, whereby file resources
-    that come with verification steps (as /etc/sudoers often do) don't transfer mode
-    or ownership (UID/GID) to the temporary file before renaming it over the top of
-    the original file.  This causes havoc on files like /etc/sudoers, which *must*
-    have specific permissions.
+  - Fix an issue in stdlib.pn's res.file.contents function, whereby file
+    resources that come with verification steps (as /etc/sudoers often do)
+    don't transfer mode or ownership (UID/GID) to the temporary file before
+    renaming it over the top of the original file.  This causes havoc on
+    files like /etc/sudoers, which *must* have specific permissions.
 
-  - Fix a typo (retrieve not 'retreive') in a diagnostic message for remote.file
+  - Fix typo (retrieve not 'retreive') in diagnostic message for remote.file.
 
-3.0.4        2014-01-28
+
+
+3.0.4        2014-01-28                                    runtime 20150119
 
   [BUG FIXES]
 
-  - cogd now honors `timeout` when waiting for responses from clockd masters,
-    during remediation.  This fixes several stall-out conditions where the clockd
-    master goes away mid-run, and the cogd process hangs waiting for a response
-    that will never come.
+  - cogd now honors `timeout` when waiting for responses from clockd
+    masters, during remediation.  This fixes several stall-out conditions
+    where the clockd master goes away mid-run, and the cogd process hangs
+    waiting for a response that will never come.
 
-3.0.3        2014-01-27
+
+
+3.0.3        2014-01-27                                    runtime 20150119
 
   [ENHANCEMENTS]
 
   - SIGHUP-to-reload Support for cogd
-    cogd supports use of `kill -HUP $pid` to cause it to reload configuration
-    while running.
+    cogd supports use of `kill -HUP $pid` to cause it to reload
+    configuration while running.
 
   - SIGHUP-to-reload Support for clockd
-    clockd supports use of `kill -HUP $pid` to cause it to reload configuration
-    and parse a new policy manifest while running.  Intelligently handles client
-    connections for in-flight remediation.
+    clockd supports use of `kill -HUP $pid` to cause it to reload
+    configuration and parse a new policy manifest while running.
+    Intelligently handles client connections for in-flight remediation.
 
-3.0.2        2014-01-22
+
+
+3.0.2        2014-01-22                                    runtime 20150119
 
   [ENHANCEMENTS]
 
@@ -65,7 +73,9 @@ origin/master
   - Fix calls to util.group.member to res.group.member
     Prevents internal fatals on clockd leading to assertion bails.
 
-3.0.1         2014-01-21
+
+
+3.0.1         2014-01-21                                    runtime 20150119
 
   [ENHANCEMENTS]
 
@@ -110,7 +120,7 @@ origin/master
 
 
 
-3.0.0         2014-01-20
+3.0.0         2014-01-20                                    runtime 20150119
 
   [ENHANCEMENTS]
 
@@ -166,3 +176,5 @@ origin/master
   [BUG FIXES]
 
   - cw-mesh now honors ~/.cwrc as an adjunct to /etc/clockwork/cw.conf
+
+# vim:tw=76:et

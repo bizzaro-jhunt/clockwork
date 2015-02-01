@@ -64,15 +64,14 @@ policy "tests" {
 		mode:  "0644"
 	}
 
-	exec "rm-motd-symlink" {
-		test:    "/usr/bin/test -h /etc/motd"
-		command: "/bin/rm /etc/motd"
-	}
 	file "/etc/motd" {
 		source: "/cw/cfm/files/etc/motd"
 	}
 	file "/etc/issue" {
 		source: "/this/file/does/not/exist"
+	}
+	exec "umask test" {
+		command: "mkdir -p /srv/whatever"
 	}
 
 	package "fortune-mod" { installed: "no" }

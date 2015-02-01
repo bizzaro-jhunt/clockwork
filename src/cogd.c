@@ -490,6 +490,7 @@ static inline void s_client_default_config(list_t *config, int init)
 	config_set(config, "lockdir",         "/var/lock/cogd");
 	config_set(config, "statedir",        "/lib/clockwork/state");
 	config_set(config, "difftool",        "/usr/bin/diff -u");
+	config_set(config, "umask",           "0022");
 
 	if (init) {
 		log_open(config_get(config, "syslog.ident"), "stderr");
@@ -510,6 +511,7 @@ static inline void s_client_default_config(list_t *config, int init)
 	logger(LOG_DEBUG, "  lockdir         %s", config_get(config, "lockdir"));
 	logger(LOG_DEBUG, "  statedir        %s", config_get(config, "statedir"));
 	logger(LOG_DEBUG, "  difftool        %s", config_get(config, "difftool"));
+	logger(LOG_DEBUG, "  umask           %s", config_get(config, "umask"));
 }
 
 static void s_client_setup_logger(client_t *c, list_t *config)
@@ -679,6 +681,17 @@ static void s_client_finish(client_t *c, list_t *config)
 	logger(LOG_DEBUG, "will use last successfully executed policy file '%s'", c->cfm_last_exec);
 }
 
+static void s_client_umask(client_t *c, list_t *config)
+{
+	char *n, *v = config_get(config, "umask");
+	unsigned long mask = strtoul(v, &n, 8);
+	if (*n) mask = 0002;
+	if (mask > 0777) mask = 0002;
+
+	logger(LOG_INFO, "setting umask to %04o", mask);
+	umask(mask);
+}
+
 static inline client_t* s_client_reload(client_t *orig)
 {
 	if (!orig->daemonize) {
@@ -742,6 +755,7 @@ static inline client_t* s_client_reload(client_t *orig)
 		return NULL;
 
 	s_client_finish(c, &config);
+	s_client_umask(c, &config);
 	return c;
 }
 
@@ -942,7 +956,7 @@ static inline client_t* s_client_new(int argc, char **argv)
 		}
 		daemonize(config_get(&config, "pidfile"), "root", "root");
 	}
-
+	s_client_umask(c, &config);
 
 	c->zmq = zmq_ctx_new();
 	c->zap = zap_startup(c->zmq, NULL);

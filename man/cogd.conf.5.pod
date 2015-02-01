@@ -177,6 +177,19 @@ Defaults to I<error>.
 
 =back
 
+=item B<umask> - File and directory creation mask
+
+On UNIX systems, umask is used at file and directory creation time to
+determine what the effective new permissions should be.  Given as a
+four-digit octal number (i.e. 0002), it identifies which permissions bits
+get turned off.
+
+When B<cogd> daemonizes, it will set its umask to this value, which defaults
+to I<0002> (not world-writable).  B<umask> does not affect file and
+directory resources with explicit permissions set, but it will be taken into
+consideration when creating other files and directories, and during exec
+resource evaluation.
+
 =head1 EXAMPLES
 
 This is the default configuration, plus a single master server at

@@ -234,14 +234,14 @@ meshd_SOURCES       = src/meshd.c    $(core_src)
 bin_PROGRAMS        = bdfa pn cw
 bdfa_SOURCES        = src/bdfa.c src/base.h src/base.c
 pn_SOURCES          = src/pn.c    $(core_src)
-cw_SOURCES          = cli/cw.c    $(core_src) $(parser_spec_src)
+cw_SOURCES          = src/cw.c    $(core_src) $(parser_spec_src)
 
 bin_SCRIPTS         = pcov
 
 clidir=$(pkglibdir)/cli
-dist_cli_SCRIPTS  = cli/mesh-builtin
-dist_cli_SCRIPTS += cli/cw-localsys
-dist_cli_SCRIPTS += cli/cw-template-erb
+dist_cli_SCRIPTS  = mesh-builtin
+dist_cli_SCRIPTS += cw-localsys
+dist_cli_SCRIPTS += cw-template-erb
 
 cli_SCRIPTS  = cw-cfm
 cli_SCRIPTS += cw-exec
@@ -251,13 +251,10 @@ cli_SCRIPTS += cw-query
 cli_SCRIPTS += cw-service
 cli_SCRIPTS += cw-show
 
-cli_SCRIPTS += cli/cw-localsys
-cli_SCRIPTS += cli/cw-template-erb
-
 cli_PROGRAMS = cw cw-shell cw-cc cw-mesh
-cw_shell_SOURCES = cli/cw-shell.c     $(core_src) $(parser_spec_src)
-cw_cc_SOURCES    = cli/cw-cc.c        $(core_src) $(parser_spec_src)
-cw_mesh_SOURCES  = cli/cw-mesh.c      $(core_src)
+cw_shell_SOURCES = src/cw-shell.c     $(core_src) $(parser_spec_src)
+cw_cc_SOURCES    = src/cw-cc.c        $(core_src) $(parser_spec_src)
+cw_mesh_SOURCES  = src/cw-mesh.c      $(core_src)
 
 BUILTINS  =
 BUILTINS += cw-cert
@@ -279,7 +276,7 @@ MESH_BUILTINS += cw-query
 MESH_BUILTINS += cw-service
 MESH_BUILTINS += cw-show
 
-$(MESH_BUILTINS): cli/mesh-builtin
+$(MESH_BUILTINS): mesh-builtin
 	rm -f $@ && cp $< $@
 
 CLEANFILES += $(MESH_BUILTINS);

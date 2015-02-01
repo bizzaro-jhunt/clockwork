@@ -2557,4 +2557,5 @@ subtest "fs.mkparent parentage" => sub {
 	};
 };
 
+qx(rm -rf t/tmp);
 done_testing;

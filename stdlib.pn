@@ -156,6 +156,10 @@ fn res.dir.present
 
   create:
     syslog notice "%T: creating directory %[a]s"
+    fs.mkparent %a
+    jz +2
+      perror "failed to create intermediary parent directories for %[a]s"
+      bail 1
     fs.mkdir %a
     jz +2
       perror "failed to create directory %[a]s"
@@ -195,6 +199,10 @@ fn res.file.present
 
   create:
     syslog notice "%T: creating new file %[a]s"
+    fs.mkparent %a
+    jz +2
+      perror "failed to create intermediary parent directories for %[a]s"
+      bail 1
     fs.touch %a
     jz +2
       perror "failed to create regular file %[a]s"

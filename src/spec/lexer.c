@@ -626,7 +626,7 @@ static yyconst flex_int32_t yy_rule_can_match_eol[45] =
 #line 1 "src/spec/lexer.l"
 #line 2 "src/spec/lexer.l"
 /*
-  Copyright 2011-2014 James Hunt <james@jameshunt.us>
+  Copyright 2011-2015 James Hunt <james@jameshunt.us>
 
   This file is part of Clockwork.
 

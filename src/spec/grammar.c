@@ -65,7 +65,7 @@
 #line 1 "src/spec/grammar.y" /* yacc.c:339  */
 
 /*
-  Copyright 2011-2014 James Hunt <james@jameshunt.us>
+  Copyright 2011-2015 James Hunt <james@jameshunt.us>
 
   This file is part of Clockwork.
 

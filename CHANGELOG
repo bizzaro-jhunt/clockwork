@@ -39,7 +39,12 @@ origin/master
 
   [BUG FIXES]
 
-  - Fix some vim pnasm highlighting issues.
+  - Memory leaks plugged
+    cogd no longer leaks the bytecode image it received from clockd (big).
+    SHA1.FAIL PDUs are no longer leaked by `remote.sha1` opcode.
+    SHA1 checksums are no longer leaked by `remote.sha1` opcode.
+
+  - Fix some vim pnasm highlighting issues
 
   - Remove superfluous debugging from stdlib.pn
 

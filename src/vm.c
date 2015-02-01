@@ -595,7 +595,7 @@ static char* s_remote_sha1(vm_t *vm, const char *key)
 	}
 	if (strcmp(pdu_type(pdu), "SHA1.FAIL") == 0) {
 		int err = 0;
-		s = pdu_string(pdu, 1); err = atoi(s); free(s);
+		s = pdu_string(pdu, 1); err = atoi(s); free(s); pdu_free(pdu);
 		logger(LOG_ERR, "%s failed: %s (error %u)", key, strerror(err), err);
 
 		FILE *io = tmpfile();
@@ -1994,7 +1994,7 @@ static void op_remote_sha1(vm_t *vm)
 	char *s = s_remote_sha1(vm, STR1(vm));
 	vm->acc = 1;
 	if (s) {
-		REG2(vm) = vm_heap_strdup(vm, s);
+		REG2(vm) = vm_heap_string(vm, s);
 		vm->acc = 0;
 	}
 }
@@ -2064,6 +2064,7 @@ static void op_fs_mkparent(vm_t *vm)
 	strings_t *paths = strings_new(NULL);
 	while (path_pop(p) != 0)
 		strings_add(paths, path(p));
+	path_free(p);
 
 	mode_t mode = 0755;
 	uid_t  uid  = 0;
@@ -2080,20 +2081,23 @@ static void op_fs_mkparent(vm_t *vm)
 		}
 
 		if (errno != ENOENT)
-			return;
+			goto bail;
 
 		if (mkdir(paths->strings[i], 0777) != 0)
-			return;
+			goto bail;
 
 		if (chown(paths->strings[i], uid, gid) != 0
 		 || chmod(paths->strings[i], mode) != 0) {
 
 			rmdir(paths->strings[i]);
-			return;
+			goto bail;
 		}
 	}
 
 	vm->acc = 0;
+bail:
+	strings_free(paths);
+	return;
 }
 
 /************************************************************************/

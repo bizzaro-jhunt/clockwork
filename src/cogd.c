@@ -411,6 +411,7 @@ static void s_cfm_run(client_t *c)
 		}
 		count = vm.topics;
 		rc = vm_done(&vm);
+		free(code);
 		assert(rc == 0);
 
 		io = fopen(c->cfm_last_exec, "w");

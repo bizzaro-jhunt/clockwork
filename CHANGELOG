@@ -37,6 +37,8 @@ origin/master
     This emulates pre-3.0 Clockwork behavior that was missed during the
     conversion to the register machine implementation.
 
+  - Better error / output handling from `localsys` in stdlib.pn
+
   [BUG FIXES]
 
   - Memory leaks plugged

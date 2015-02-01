@@ -749,6 +749,7 @@ fn res.group.present
 fn res.package.absent
     syslog info "%T: enforcing absence of %[a]s"
     syslog info "%T: checking for currently installed version (if any)"
+    set %p "(no output)"
     localsys "pkg-version %[a]s" %p
     acc %d
     eq %d 1
@@ -762,6 +763,7 @@ fn res.package.absent
       bail 1
 
     syslog notice "%T: uninstalling %[a]s"
+    set %p "(no output)"
     localsys "pkg-remove %[a]s" %p
     jz +2
       syslog err "%T: failed to uninstall package %[a]s: %[p]s"
@@ -802,6 +804,7 @@ fn res.package.install
     streq %b "latest"   jz install.latest
 
     syslog notice "%T: installing %[a]s version %[b]s"
+    set %p "(no output)"
     localsys "pkg-install %[a]s %[b]s" %p
     jz +2
       syslog err "%T: package installation failed: %[p]s"
@@ -812,6 +815,7 @@ fn res.package.install
 
   install.latest:
     syslog notice "%T: installing latest version of %[a]s"
+    set %p "(no output)"
     localsys "pkg-install %[a]s latest" %p
     jz +2
       syslog err "%T: package installation failed: %[p]s"
@@ -830,6 +834,7 @@ fn res.package.install
       retv 0
 
     syslog notice "%T: upgrading package %[a]s from v%[c]s to v%[b]s"
+    set %p "(no output)"
     localsys "pkg-install %[a]s %[b]s" %p
     jz +2
       syslog err "%T: package update failed: %[p]s"
@@ -839,6 +844,7 @@ fn res.package.install
     retv 0
 
   update.latest:
+    set %p "(no output)"
     localsys "pkg-latest %[a]s" %p
     jz +2
       syslog err "%T: failed to determine latest version of %[a]s: %[p]s"
@@ -849,6 +855,7 @@ fn res.package.install
     jnz +1 ret
 
     syslog notice "%T: upgrading package %[a]s from version %[c]s to (latest) %[p]s"
+    set %p "(no output)"
     localsys "pkg-install %[a]s %[p]s" %p
     jz +2
       syslog err "%T: package update failed: %[p]s"
@@ -865,10 +872,12 @@ fn res.package.install
 ;;
 fn res.service.enable
     syslog info "%T: enforcing that %[a]s is enabled"
+    set %b "(no output)"
     localsys "svc-boot-status %[a]s" %b
     jnz +1 ret
 
     syslog notice "%T: enabling service %[a]s to start at boot"
+    set %b "(no output)"
     localsys "svc-enable %[a]s" %b
     jz +2
       syslog err "%T: failed to enable service %[a]s to start at boot: %[b]s"
@@ -884,10 +893,12 @@ fn res.service.enable
 ;;
 fn res.service.disable
     syslog info "%T: enforcing that %[a]s is disabled"
+    set %b "(no output)"
     localsys "svc-boot-status %[a]s" %b
     jz +1 ret
 
     syslog notice "%T: disabling service %[a]s"
+    set %b "(no output)"
     localsys "svc-disable %[a]s" %b
     jz +2
       syslog err "%T: failed to disable service %[a]s: %[b]s"
@@ -904,10 +915,12 @@ fn res.service.disable
 ;;
 fn res.service.start
     syslog info "%T: enforcing that %[a]s is running"
+    set %b "(no output)"
     localsys "svc-run-status %[a]s" %b
     jnz +1 ret
 
     syslog notice "%T: starting service %[a]s"
+    set %b "(no output)"
     localsys "svc-init %[a]s start" %b
     jz +2
       syslog err "%T: failed to start service %[a]s: %[b]s"
@@ -924,10 +937,12 @@ fn res.service.start
 ;;
 fn res.service.restart
     syslog info "%T: conditionally restarting %[a]s"
+    set %b "(no output)"
     localsys "svc-run-status %[a]s" %b
     jz restart
 
       syslog notice "%T: starting service %[a]s"
+      set %b "(no output)"
       localsys "svc-init %[a]s start" %b
       jz +2
         syslog err "%T: failed to start service %[a]s: %[b]s"
@@ -938,6 +953,7 @@ fn res.service.restart
 
   restart:
       syslog notice "%T: restarting service %[a]s"
+      set %b "(no output)"
       localsys "svc-init %[a]s restart" %b
       jz +2
         syslog err "%T: failed to restart service %[a]s: %[b]s"
@@ -954,10 +970,12 @@ fn res.service.restart
 ;;
 fn res.service.reload
     syslog info "%T: reloading %[a]s"
+    set %b "(no output)"
     localsys "svc-run-status %[a]s" %b
     jz reload
 
       syslog notice "%T: starting service %[a]s"
+      set %b "(no output)"
       localsys "svc-init %[a]s start" %b
       jnz +2
         flag "changed"
@@ -968,6 +986,7 @@ fn res.service.reload
 
   reload:
       syslog notice "%T: reloading service %[a]s"
+      set %b "(no output)"
       localsys "svc-init %[a]s reload" %b
       jz +2
         syslog err "%T: failed to reload service %[a]s: %[b]s"
@@ -984,10 +1003,12 @@ fn res.service.reload
 ;;
 fn res.service.stop
     syslog info "%T: enforcing that %[a]s is stopped"
+    set %b "(no output)"
     localsys "svc-run-status %[a]s" %b
     jz +1 ret
 
     syslog notice "%T: stopping service %[a]s"
+    set %b "(no output)"
     localsys "svc-init %[a]s stop" %b
     jz +2
       syslog err "%T: failed to stop service %[a]s: %[b]s"

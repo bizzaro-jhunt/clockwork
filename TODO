@@ -2,11 +2,3 @@ TODO
 ====
 
   - man page for pcov (and probably updates for pn)
-
-LONGTERM IDEAS
-==============
-
-Some ideas, for later.
-
-  augeas.exists? opcode
-    works like augeas.find, execpt that it doesn't heap-allocate

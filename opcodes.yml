@@ -681,4 +681,10 @@
     args:
       - [register, string]
 
+- augeas.exists?:
+    help: Check if a key exists (similar to augeas.find, without the heap allocation)
+    runtime: 20150201
+    args:
+      - [register, string]
+
 # vim:ft=yaml:et:ts=2:sts=2:sw=2

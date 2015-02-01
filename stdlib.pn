@@ -5,7 +5,6 @@
 ;; author:  James Hunt <james@niftylogic.com>
 ;; created: 2015-01-08
 ;;
-anno "v20150119"
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -1026,7 +1025,9 @@ fn res.service.stop
 fn res.host.absent
     syslog info "%T: enforcing absence of hosts entry %[a]s/%[b]s"
     string "/files/etc/hosts/*[ipaddr = \"%[a]s\" and canonical = \"%[b]s\"]" %p
-    augeas.find %p %o
+    runtime %d lt %d 20150201 jnz +2
+      augeas.find %p %o jmp +1
+      augeas.exists? %p
     jz +1 retv 0
       augeas.remove %p
       jz +2
@@ -1046,7 +1047,9 @@ fn res.host.absent
 fn res.host.present
     syslog info "%T: enforcing presence of hosts entry %[a]s/%[b]s"
     string "/files/etc/hosts/*[ipaddr = \"%[a]s\" and canonical = \"%[b]s\"]" %p
-    augeas.find %p %o
+    runtime %d lt %d 20150201 jnz +2
+      augeas.find %p %o jmp +1
+      augeas.exists? %p
     jnz +1 ret
 
     syslog notice "%T: creating new hosts entry for %[a]s/%[b]s"
@@ -1073,15 +1076,12 @@ fn res.host.present
 fn res.host.clear-aliases
     syslog info "%T: clearing previous host aliases"
     string "/files/etc/hosts/*[ipaddr = \"%[a]s\" and canonical = \"%[b]s\"]" %p
-    augeas.find %p %o
-
-    jz +2
+    augeas.find %p %o jz +2
       augeas.perror "failed to find host record %[a]s/%[b]s"
       bail 1
 
     string "%[o]s/alias" %n
-    augeas.remove %n
-    jz +2
+    augeas.remove %n jz +2
       augeas.perror "failed to clear host aliases for %[a]s/%[b]s"
       bail 1
 

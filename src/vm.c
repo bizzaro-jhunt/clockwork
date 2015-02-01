@@ -1828,6 +1828,22 @@ static void op_augeas_find(vm_t *vm)
 	free(r);
 }
 
+static void op_augeas_exists_p(vm_t *vm)
+{
+	ARG2("augeas.exists?");
+	REGISTER2("augeas.exists?");
+	vm->acc = 1;
+	if (!vm->aux.augeas) return;
+
+	char **r = NULL;
+	int rc = aug_match(vm->aux.augeas, STR1(vm), &r);
+	if (rc == 1)
+		vm->acc = 0;
+
+	while (rc > 0) free(r[rc--]);
+	free(r);
+}
+
 static void op_augeas_remove(vm_t *vm)
 {
 	ARG1("augeas.remove");

@@ -434,3 +434,84 @@ int cw_cat(int src, int dst)
 			return 1;
 	return n;
 }
+
+char* cw_escape_json(const char *in)
+{
+	size_t n = 0;
+	char *esc, *a = in;
+
+	while (*a) {
+		n++;
+		switch (*a) {
+		case '\\':
+		case '"' :
+		case '\n':
+		case '\r':
+		case '\t':
+			n++;
+		}
+		a++;
+	}
+
+	a = esc = vcalloc(n + 1, sizeof(char));
+	if (!esc) return NULL;
+
+	while (*in) {
+		switch (*in) {
+		case '\\':
+		case '"' :
+		case '\n':
+		case '\r':
+		case '\t':
+			*a++ = '\\';
+		}
+
+		switch (*in) {
+		case '\n': *a++ = 'n'; in++; break;
+		case '\r': *a++ = 'r'; in++; break;
+		case '\t': *a++ = 't'; in++; break;
+		default:
+			*a++ = *in++;
+		}
+	}
+	*a = '\0';
+	return esc;
+}
+
+char* cw_escape_cdata(const char *in)
+{
+	char *esc, *a;
+	const char *needle = in;
+	int n = 1;
+	while ((needle = strstr(needle, "]]>"))) {
+		needle += 2; /* skip ']]' */
+		n++;
+	}
+	n *= strlen("<![CDATA[]]>");
+
+	a = esc = vcalloc(strlen(in) + n + 1, sizeof(char));
+	if (!esc) return NULL;
+	while (in) {
+		memcpy(a, "<![CDATA[", strlen("<![CDATA[")+1);
+		a += strlen("<![CDATA[");
+
+		needle = strstr(in, "]]>");
+		if (needle) {
+			needle += 2; /* skip ']]' */
+
+			memcpy(a, in, needle - in);
+			a += needle - in;
+
+		} else {
+			memcpy(a, in, strlen(in));
+			a += strlen(in);
+		}
+		in = needle;
+
+		memcpy(a, "]]>", strlen("]]>"));
+		a += strlen("]]>");
+	}
+
+	return esc;
+}
+

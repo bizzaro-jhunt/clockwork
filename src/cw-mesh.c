@@ -439,6 +439,7 @@ static void printf_eachline(const char *fmt, const char *buf)
 
 void print_result(const char *fqdn, const char *uuid, const char *result, const char *output)
 {
+	char *esc;
 	switch (FORMAT) {
 	case FORMAT_YAML:
 		printf("%s:\n", uuid);
@@ -452,7 +453,9 @@ void print_result(const char *fqdn, const char *uuid, const char *result, const 
 		printf("  \"%s\": {\n", uuid);
 		printf("    \"fqdn\"   : \"%s\",\n", fqdn);
 		printf("    \"status\" : \"%s\",\n", result);
-		printf("    \"output\" : \"%s\"\n",  output); /* FIXME: escape quotes/newlines! */
+		esc = cw_escape_json(output);
+		printf("    \"output\" : \"%s\"\n",  esc);
+		free(esc);
 		printf("  }\n");
 		break;
 
@@ -460,7 +463,9 @@ void print_result(const char *fqdn, const char *uuid, const char *result, const 
 		printf("  <result uuid=\"%s\">\n", uuid);
 		printf("    <fqdn>%s</fqdn>\n", fqdn);
 		printf("    <status>%s</status>\n", result);
-		printf("    <output><![CDATA[%s]]></output>\n", output); /* FIXME: escape ']]>' */
+		esc = cw_escape_cdata(output);
+		printf("    <output><![CDATA[%s]]></output>\n", esc);
+		free(esc);
 		printf("  </result>\n");
 		break;
 

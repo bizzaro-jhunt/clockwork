@@ -61,6 +61,7 @@ nobase_stdlib_DATA += mesh.pn
 ############################################################
 
 CTAP_TESTS  =
+CTAP_TESTS += t/02-escapes
 CTAP_TESTS += t/07-sha1
 CTAP_TESTS += t/10-facts
 CTAP_TESTS += t/11-cmd
@@ -136,6 +137,7 @@ TEST_lock_SOURCES        = t/test-lock.c   $(core_src)
 TEST_cmd_SOURCES         = t/test-cmd.c    $(core_src)
 TEST_pn_SOURCES          = t/test-pn.c     $(core_src)
 
+t_02_escapes_SOURCES     = t/02-escapes.c       $(test_source)
 t_07_sha1_SOURCES        = t/07-sha1.c          $(test_source)
 t_10_facts_SOURCES       = t/10-facts.c         $(test_source)
 t_11_cmd_SOURCES         = t/11-cmd.c           $(test_source)

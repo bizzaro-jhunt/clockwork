@@ -93,13 +93,7 @@ gather.d/clockwork
 
 t/tmp
 t/vars.pl
-t/00-bits
-t/01-string
-t/02-pdu
-t/03-basex
-t/04-hash
-t/05-mem
-t/06-cache
+t/02-escapes
 t/07-sha1
 t/08-list
 t/09-curve

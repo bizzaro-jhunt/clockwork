@@ -8,9 +8,13 @@ origin/master
 3.0.8        2014-02-01                                    runtime 20150201
 
   [ENHANCMENTS]
+
   - New `augeas.exists?` opcode
     Like the 20150119 opcode `augeas.find`, except that it has no output
     parameter and therefore does no heap-allocation.
+
+  - Introduce proper JSON and XML/CDATA escaping in mesh output routines
+
 
 
 3.0.7        2014-02-01                                    runtime 20150131

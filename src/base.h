@@ -41,4 +41,7 @@ int cw_logio(int level, const char *fmt, FILE *io);
 int cw_fcat(FILE *src, FILE *dst);
 int cw_cat(int src, int dst);
 
+char* cw_escape_json(const char *in);
+char* cw_escape_cdata(const char *in);
+
 #endif

@@ -19,16 +19,16 @@ syn match     pnasmFuncName   /[a-z][a-z0-9._?:-]*/ contained
 
 syn match     pnasmLog        /syslog[ \t]*[^ \t]*/ contains=pnasmOpSyslog,pnasmLogLevel,pnasmLogBad
 syn keyword   pnasmOpSyslog   syslog contained
-syn keyword   pnasmLogLevel   emerg emergency alert critical error warning notice info debug contained
+syn keyword   pnasmLogLevel   emerg emergency alert critical err warning notice info debug contained
 syn match     pnasmLogBad     /[^ \t]*/ contained
 
-syn keyword   pnasmOpcode1    noop push pop set swap acc anno
+syn keyword   pnasmOpcode1    noop push pop set swap acc anno runtime
 syn keyword   pnasmOpcode1    add sub mult div mod
 syn keyword   pnasmOpcode1    eq lt lte gt gte streq jmp jz jnz
 syn keyword   pnasmOpcode1    string print error perror flag unflag
 syn match     pnasmOpcode1    /flagged?/
 syn match     pnasmOpCode1    /fs\.\(stat\|type\|readlink\|dev\|inode\|mode\|nlink\|uid\|gid\|major\|minor\|size\|atime\|mtime\|ctime\)/
-syn match     pnasmOpCode1    /fs\.\(touch\|mkdir\|link\|symlink\|unlink\|rmdir\|rename\|copy\|chown\|chgrp\|chmod\|sha1\|get\|put\)/
+syn match     pnasmOpCode1    /fs\.\(touch\|mkdir\|link\|symlink\|unlink\|rmdir\|rename\|copy\|chown\|chgrp\|chmod\|sha1\|get\|put\|mkparent\)/
 syn match     pnasmOpCode1    /fs\.\(open\|read\|close\)dir/
 syn match     pnasmOpCode1    /fs\.\(file\|symlink\|dir\|chardev\|blockdev\|fifo\|socket\)?/
 syn match     pnasmOpCode1    /authdb\.\(open\|save\|close\|next[ug]id\)/

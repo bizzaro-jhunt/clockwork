@@ -1,7 +1,10 @@
 
-origin/master
+origin/master                                              runtime 20150202
 
-  (none)
+  [ENHANCEMENTS]
+
+  - New `sha1` opcode
+    Useful for generating checksums of in-memory strings (like file names)
 
 
 

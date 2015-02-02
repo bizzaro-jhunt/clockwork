@@ -2118,6 +2118,17 @@ bail:
 	return;
 }
 
+static void op_sha1(vm_t *vm)
+{
+	ARG2("sha1");
+	REGISTER2("sha1");
+
+	const char *in = STR1(vm);
+	struct SHA1 sha1;
+	vm->acc = sha1_data(in, strlen(in), &sha1);
+	vm->r[vm->oper2] = vm_heap_strdup(vm, sha1.hex);
+}
+
 /************************************************************************/
 
 int vm_iscode(byte_t *code, size_t len)

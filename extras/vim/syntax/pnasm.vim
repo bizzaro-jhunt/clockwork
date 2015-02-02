@@ -36,7 +36,7 @@ syn match     pnasmOpCode1    /\(user\|group\)\.\(find\|get\|set\|new\|delete\)/
 syn match     pnasmOpCode1    /group\.\(has?\|join\|kick\)/
 syn match     pnasmOpCode1    /augeas\.\(init\|done\|perror\|write\|set\|find\|remove\|exists?\)/
 syn match     pnasmOpCode1    /env\.\(get\|set\|unset\)/
-syn keyword   pnasmOpCode1    localsys exec dump acl umask loglevel geteuid getegid
+syn keyword   pnasmOpCode1    localsys exec dump acl umask loglevel geteuid getegid sha1
 syn match     pnasmOpCode1    /runas\.\(uid\|gid\)/
 syn match     pnasmOpCode1    /show\.\(acl\|acls\)/
 syn match     pnasmOpCode1    /remote\.\(live?\|sha1\|file\)/

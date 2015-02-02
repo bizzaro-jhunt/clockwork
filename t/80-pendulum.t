@@ -2557,5 +2557,29 @@ subtest "fs.mkparent parentage" => sub {
 	};
 };
 
+subtest "sha1" => sub {
+	pendulum_ok(qq(
+		fn main
+			sha1 "abc" %a
+			jz +2
+				perror "SHA1 failed"
+				bail 1
+			print "%[a]s"),
+
+	"a9993e36"."4706816a"."ba3e2571"."7850c26c"."9cd0d89d",
+	"FIPS Pub 180-1 test vector #1");
+
+	pendulum_ok(qq(
+		fn main
+			sha1 "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq" %a
+			jz +2
+				perror "SHA1 failed"
+				bail 1
+			print "%[a]s"),
+
+	"84983e44"."1c3bd26e"."baae4aa1"."f95129e5"."e54670f1",
+	"FIPS Pub 180-1 test vector #2");
+};
+
 qx(rm -rf t/tmp);
 done_testing;

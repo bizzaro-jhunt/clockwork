@@ -687,4 +687,11 @@
     args:
       - [register, string]
 
+- sha1:
+    help: Calculate the SHA1 checksum of an in-memory string
+    runtime: 20150202
+    args:
+      - [register, string]
+      - [register]
+
 # vim:ft=yaml:et:ts=2:sts=2:sw=2

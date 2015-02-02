@@ -99,6 +99,7 @@ TESTS {
 		ok(res_file_attrs(rf, h) == 0, "got raw file attrs");
 		is_string(hash_get(h, "path"),    "/etc/sudoers", "h.path");
 		is_string(hash_get(h, "present"), "yes",          "h.present"); // default
+		is_string(hash_get(h, "cache"),   "no",           "h.cache");   // default
 		is_null(hash_get(h, "owner"),    "h.owner is unset");
 		is_null(hash_get(h, "group"),    "h.group is unset");
 		is_null(hash_get(h, "mode"),     "h.mode is unset");
@@ -125,6 +126,7 @@ TESTS {
 		is_null(hash_get(h, "tmpfile"),  "h.tmpfile is unset");
 
 		res_file_set(rf, "present", "no");
+		res_file_set(rf, "cache", "yes");
 		res_file_set(rf, "template", "/srv/tpl/sudo");
 
 		res_file_set(rf, "tmpfile", "/etc/sd.TMP");
@@ -133,6 +135,7 @@ TESTS {
 		is_string(hash_get(h, "tmpfile"), "/etc/sd.TMP",    "h.tmpfile");
 		is_string(hash_get(h, "template"), "/srv/tpl/sudo", "h.template");
 		is_string(hash_get(h, "present"),  "no",            "h.present");
+		is_string(hash_get(h, "cache"),    "yes",           "h.cache");
 		is_null(hash_get(h, "source"), "h.source is unset");
 
 		ok(res_file_set(rf, "xyzzy", "bad") != 0, "xyzzy is not a valid attr");

@@ -423,6 +423,7 @@ void* res_file_clone(const void *res, const char *key)
 	rf->gid      = RES_DEFAULT(orig, gid, 0);
 
 	rf->mode     = RES_DEFAULT(orig, mode, 0600);
+	rf->cache    = RES_DEFAULT(orig, cache, 0);
 
 	rf->path     = RES_DEFAULT_STR(orig, path, NULL);
 	rf->source   = RES_DEFAULT_STR(orig, source, NULL);
@@ -469,6 +470,7 @@ int res_file_attrs(const void *res, hash_t *attrs)
 
 	_hash_attr(attrs, "path", strdup(rf->path));
 	_hash_attr(attrs, "present", strdup(ENFORCED(rf, RES_FILE_ABSENT) ? "no" : "yes"));
+	_hash_attr(attrs, "cache", strdup(rf->cache ? "yes" : "no"));
 
 	_hash_attr(attrs, "owner", ENFORCED(rf, RES_FILE_UID) ? strdup(rf->owner) : NULL);
 	_hash_attr(attrs, "group", ENFORCED(rf, RES_FILE_GID) ? strdup(rf->group) : NULL);
@@ -636,6 +638,9 @@ int res_file_set(void *res, const char *name, const char *value)
 		free(rf->tmpfile);
 		rf->tmpfile = strdup(value);
 
+	} else if (strcmp(name, "cache") == 0) {
+		rf->cache = (strcmp(value, "yes") == 0 ? 1 : 0);
+
 	} else {
 		/* unknown attribute. */
 		return -1;
@@ -695,7 +700,9 @@ int res_file_gencode(const void *res, FILE *io)
 			fprintf(io, "  set %%b \"%s\"\n", r->path);
 
 		fprintf(io, "  set %%c \"file:%s\"\n"
-		            "  call res.file.contents\n", r->key);
+		            "  set %%f %d\n"
+		            "  call res.file.contents\n",
+		            r->key, r->cache ? 1 : 0);
 	}
 	return 0;
 }

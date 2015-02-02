@@ -11,6 +11,12 @@ origin/master                                              runtime 20150202
     named pragma's value.  This lets us use pragmas as globals vars (without
     scope).  It also lets us move more functionality into stdlib.pn
 
+  - Local File Caching support
+    If files are marked 'cache: yes' in their resource definitions, cogd
+    will keep the desired contents in a local cache directory, so that a
+    future run can still enforce system state even when disconnected from a
+    clockd policy master daemon.
+
 
 
 3.0.8        2014-02-01                                    runtime 20150201

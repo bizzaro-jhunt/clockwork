@@ -2006,7 +2006,12 @@ static void op_show_acl(vm_t *vm)
 static void op_remote_live_p(vm_t *vm)
 {
 	ARG0("remote.live?");
+
 	vm->acc = vm->aux.remote ? 0 : 1;
+
+	const char *guard = hash_get(&vm->pragma, "remote");
+	if (guard && strcasecmp(guard, "online") != 0)
+		vm->acc = 1;
 }
 
 static void op_remote_sha1(vm_t *vm)
@@ -2166,6 +2171,8 @@ int vm_load(vm_t *vm, byte_t *code, size_t len)
 	hash_set(&vm->pragma, "augeas.root",  AUGEAS_ROOT);
 	hash_set(&vm->pragma, "augeas.libs",  AUGEAS_LIBS);
 	hash_set(&vm->pragma, "localsys.cmd", "cw localsys");
+	hash_set(&vm->pragma, "filecache",    CACHED_FILES_DIR);
+	hash_set(&vm->pragma, "remote",       "online");
 
 	/* default properties */
 	hash_set(&vm->props, "version",  CLOCKWORK_VERSION);

@@ -11,6 +11,8 @@ fn notok
 fn setup
   loglevel emergency %e
   exec "rm -rf t/tmp; mkdir -p t/tmp" %e
+  pragma remote "online"
+  pragma filecache "t/tmp/cache"
   umask 0 %e
 
 fn setup.authdb
@@ -3032,6 +3034,7 @@ fn test.res.file.contents.1
   set %c "file://key"
   set %d ""
   set %e 0
+  set %f 0 ; no caching
 
   fs.put %a "this is wrong\n"
   fs.file? %a jz +2
@@ -3063,6 +3066,7 @@ fn test.res.file.contents.2
   set %c "file://key"
   set %d ""
   set %e 0
+  set %f 0 ; no caching
 
   fs.put %a "this is what i want.\n"
   fs.file? %a jz +2
@@ -3094,6 +3098,7 @@ fn test.res.file.contents.3
   set %c "file://key"
   set %d ""
   set %e 0
+  set %f 0 ; no caching
 
   fs.put %a "this is what i want.\n"
   fs.file? %a jz +2
@@ -3143,6 +3148,7 @@ fn test.res.file.contents.4
   set %c "file://key"
   set %d ""
   set %e 0
+  set %f 0 ; no caching
 
   fs.put %a ".-'-..-'-..-'-."
   fs.file? %a jz +2
@@ -3192,6 +3198,7 @@ fn test.res.file.contents.5
   set %c "file://key"
   set %d "/bin/false" ; always returns 1
   set %e 0
+  set %f 0 ; no caching
 
   fs.put %a "original contents\n"
   fs.file? %a jz +2
@@ -3241,6 +3248,7 @@ fn test.res.file.contents.6
   set %c "file://key"
   set %d "/bin/false" ; always returns 1
   set %e 1            ; which is what we want...
+  set %f 0 ; no caching
 
   fs.put %a "original contents\n"
   fs.file? %a jz +2
@@ -3278,6 +3286,230 @@ fn test.res.file.contents.6
   fs.gid %a %m
   eq %m 2468 jz +2
     string "%[p]s: owner gid changed from 2468 to %[m]d" %p
+    call notok
+  call ok
+
+fn test.res.file.contents.7
+  call setup
+  umask 022 %p
+  set %p "res.file.contents caches changed files locally"
+  pragma remote "offline" ; pretend we can't contact clockd
+  remote.live? jnz +2
+    string "%[p]s: remote.live? still returning true; `pragma` had no effect?" %p
+    call notok
+  set %a "t/tmp/want"
+  set %b "t/tmp/want"
+  set %c "file://key"
+  set %d ""
+  set %e 0
+  set %f 1 ; caching
+
+  fs.put %a "original contents\n"
+  fs.file? %a jz +2
+    string "%[p]s: %[a]s does not exist" %p
+    call notok
+
+  sha1 %a %o string "t/tmp/cache/%[o]s" %o ; cached file name
+  fs.mkparent %o
+  fs.put %o "cached contents\n"
+  fs.file? %o jz +2
+    string "%[p]s: %[o]s (cached file) does not exist" %p
+    call notok
+
+  unflag "changed"
+  try res.file.contents
+  flagged? "changed" jz +2
+    string "%[p]s: not flagged" %p
+    call notok
+
+  fs.get %a %f
+  streq "cached contents\n" %f jz +2
+    string "%[p]s: contents were incorrect [%[f]s]" %p
+    call notok
+
+  fs.get %o %f
+  streq "cached contents\n" %f jz +2
+    string "%[p]s: cached contents changed [%[f]s]" %p
+    call notok
+  call ok
+
+fn test.res.file.contents.8
+  call setup
+  umask 022 %p
+  set %p "res.file.contents creates initial cache file locally"
+  set %a "t/tmp/want"
+  set %b "t/tmp/want"
+  set %c "file://key"
+  set %d ""
+  set %e 0
+  set %f 1 ; caching
+
+  fs.put %a "original contents\n"
+  fs.file? %a jz +2
+    string "%[p]s: %[a]s does not exist" %p
+    call notok
+
+  sha1 %a %o string "t/tmp/cache/%[o]s" %o ; cached file name
+  fs.file? %o jnz +2
+    string "%[p]s: %[o]s (cached file) already exists" %p
+    call notok
+
+  fs.dir? "t/tmp/cache" jnz +2
+    string "%[p]s: t/tmp/cache directory already exists" %p
+    call notok
+
+  unflag "changed"
+  try res.file.contents
+  flagged? "changed" jz +2
+    string "%[p]s: not flagged" %p
+    call notok
+
+  fs.get %a %f
+  streq "this is what i want.\n" %f jz +2
+    string "%[p]s: contents were incorrect [%[f]s]" %p
+    call notok
+
+  fs.get %o %f
+  streq "this is what i want.\n" %f jz +2
+    string "%[p]s: cached contents changed [%[f]s]" %p
+    call notok
+  call ok
+
+fn test.res.file.contents.9
+  call setup
+  umask 022 %p
+  set %p "res.file.contents handles caching and failed verification"
+  pragma remote "offline" ; pretend we can't contact clockd
+  remote.live? jnz +2
+    string "%[p]s: remote.live? still returning true; `pragma` had no effect?" %p
+    call notok
+  set %a "t/tmp/want"
+  set %b "t/tmp/.want"
+  set %c "file://key"
+  set %d "/bin/false" ; always returns 1
+  set %e 0
+  set %f 1 ; caching
+
+  fs.put %a "original contents\n"
+  fs.file? %a jz +2
+    string "%[p]s: %[a]s does not exist" %p
+    call notok
+  fs.chown %a 1234
+  fs.chgrp %a 2468
+  fs.chmod %a 0467
+
+  sha1 %a %o string "t/tmp/cache/%[o]s" %o ; cached file name
+  fs.mkparent %o
+  fs.put %o "cached contents\n"
+  fs.file? %o jz +2
+    string "%[p]s: %[o]s (cached file) does not exist" %p
+    call notok
+
+  unflag "changed"
+  try res.file.contents
+  flagged? "changed" jnz +2
+    string "%[p]s: flagged" %p
+    call notok
+
+  fs.file? %a jz +2
+    string "%[p]s: was removed" %p
+    call notok
+
+  fs.get %a %f
+  streq "original contents\n" %f jz +2
+    string "%[p]s: contents were incorrect [%[f]s]" %p
+    call notok
+
+  fs.mode %a %m
+  eq %m 0467 jz +2
+    string "%[p]s: mode changed from 0467 to %[m]04o" %p
+    call notok
+
+  fs.uid %a %m
+  eq %m 1234 jz +2
+    string "%[p]s: owner uid changed from 1234 to %[m]d" %p
+    call notok
+
+  fs.gid %a %m
+  eq %m 2468 jz +2
+    string "%[p]s: owner gid changed from 2468 to %[m]d" %p
+    call notok
+
+  fs.file? %o jz +2
+    string "%[p]s: cached file was removed" %p
+    call notok
+  fs.get %o %f
+  streq "cached contents\n" %f jz +2
+    string "%[p]s: cached contents were changed [%[f]s]" %p
+    call notok
+  call ok
+
+fn test.res.file.contents.10
+  call setup
+  umask 022 %p
+  set %p "res.file.contents handles caching and successful verification"
+  pragma remote "offline" ; pretend we can't contact clockd
+  remote.live? jnz +2
+    string "%[p]s: remote.live? still returning true; `pragma` had no effect?" %p
+    call notok
+  set %a "t/tmp/want"
+  set %b "t/tmp/.want"
+  set %c "file://key"
+  set %d "/bin/false" ; always returns 1
+  set %e 1            ; which is what we want
+  set %f 1 ; caching
+
+  fs.put %a "original contents\n"
+  fs.file? %a jz +2
+    string "%[p]s: %[a]s does not exist" %p
+    call notok
+  fs.chown %a 1234
+  fs.chgrp %a 2468
+  fs.chmod %a 0467
+
+  sha1 %a %o string "t/tmp/cache/%[o]s" %o ; cached file name
+  fs.mkparent %o
+  fs.put %o "cached contents\n"
+  fs.file? %o jz +2
+    string "%[p]s: %[o]s (cached file) does not exist" %p
+    call notok
+
+  unflag "changed"
+  try res.file.contents
+  flagged? "changed" jz +3
+    string "%[p]s: not flagged" %p
+    call notok
+
+  fs.file? %a jz +2
+    string "%[p]s: was removed" %p
+    call notok
+
+  fs.get %a %f
+  streq "cached contents\n" %f jz +2
+    string "%[p]s: contents were incorrect [%[f]s]" %p
+    call notok
+
+  fs.mode %a %m
+  eq %m 0467 jz +2
+    string "%[p]s: mode changed from 0467 to %[m]04o" %p
+    call notok
+
+  fs.uid %a %m
+  eq %m 1234 jz +2
+    string "%[p]s: owner uid changed from 1234 to %[m]d" %p
+    call notok
+
+  fs.gid %a %m
+  eq %m 2468 jz +2
+    string "%[p]s: owner gid changed from 2468 to %[m]d" %p
+    call notok
+
+  fs.file? %o jz +2
+    string "%[p]s: cached file was removed" %p
+    call notok
+  fs.get %o %f
+  streq "cached contents\n" %f jz +2
+    string "%[p]s: cached contents were changed [%[f]s]" %p
     call notok
   call ok
 
@@ -3456,6 +3688,10 @@ skip-run-as:
   try test.res.file.contents.4 jz +1 set %p 1
   try test.res.file.contents.5 jz +1 set %p 1
   try test.res.file.contents.6 jz +1 set %p 1
+  try test.res.file.contents.7 jz +1 set %p 1
+  try test.res.file.contents.8 jz +1 set %p 1
+  try test.res.file.contents.9 jz +1 set %p 1
+  try test.res.file.contents.10 jz +1 set %p 1
 
 noroot:
   exec "rm -rf t/tmp" %e

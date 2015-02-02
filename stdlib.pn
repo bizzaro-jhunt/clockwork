@@ -320,19 +320,66 @@ fn res.file.contents
     ; %c is resource key
     ; %d is verify command
     ; %e is expected return code of `%d`
+    ; %f is the cache flag
+    ;       (if 1, and !remote.live?, enforce file contents
+    ;        from local file cache, instead of remote.file)
 
     syslog info "%T: enforcing file contents of %[a]s"
-
-    syslog info "%T: retrieving remote SHA1 checksum"
-    remote.sha1 %c %o
-    jz +2
-      error "%T: failed to retrieve remote SHA1 checksum"
-      bail 1
-
     syslog info "%T: calculating local SHA1 checksum"
     fs.sha1 %a %p
     jz +2
       perror "failed to calculate SHA1 for local copy of %[a]s"
+      bail 1
+
+    runtime %o gte %o 20150202 jz +1
+      set %f 0 ;; clear the cache flag; we can't support it
+    eq %f 1 jnz fix
+    syslog info "%T: local caching enabled; determining cached file and its checksum"
+    sha1 %a %j jz +2
+      perror "failed to calculate SHA1 checksum of path (%[a]s) for determine cached file name"
+      bail 1
+
+    property "filecache" %n
+    string "%[n]s/%[j]s" %j
+    syslog debug "%T: cached file = %[j]s"
+
+  fix:
+    remote.live? jz live
+    eq %f 1 jz cache
+
+    syslog info "%T: skipping - not connected to clockd, and %[a]s is not cacheable"
+    retv 1
+
+  cache:
+    syslog info "%T: retrieving SHA1 from local file cache"
+    fs.file? %j jz +2
+      syslog notice "%T: skipping local cache; %[j]s not found"
+      retv 1
+
+    syslog info "%T: calculating cached-file SHA1 checksum"
+    fs.sha1 %j %m
+    jz +2
+      perror "failed to calculate SHA1 for cached copy of %[a]s (%[j]s)"
+      bail 1
+
+    syslog info "%T: checking if local SHA1 (%[p]s) matches cache (%[m]s)"
+    streq %m %p
+    jnz +1
+      ret
+
+    syslog notice "%T: updating local content of %[a]s (%[p]s) from cached copy (%[m]s)"
+    syslog info   "%T: using cached file %[j]s"
+    fs.copy %j %b
+    jz +2
+      perror "failed to write to %[b]s"
+      bail 1
+    jmp compare
+
+  live:
+    syslog info "%T: retrieving remote SHA1 checksum"
+    remote.sha1 %c %o
+    jz +2
+      error "%T: failed to retrieve remote SHA1 checksum"
       bail 1
 
     syslog info "%T: checking if local SHA1 (%[p]s) matches remote (%[o]s)"
@@ -342,15 +389,16 @@ fn res.file.contents
 
     syslog notice "%T: updating local content of %[a]s (%[p]s) from remote copy (%[o]s)"
     remote.file %c %b
-    jz +2
+    jz compare
       perror "failed to write to %[b]s"
+      eq %f 1 jz cache ; if we can get it from cache, do that.
       bail 1
 
-    streq %a %b
-    jnz +2
-      flag "changed";; if path (%a) == tempfile (%b), nothing more to be done here
-      ret
+  compare:
+    ;; if path (%a) == tempfile (%b), nothing more to be done here
+    streq %a %b jz recache
 
+  verify:
     ;; otherwise, we have to verify via %d and %e
     syslog info "%T: verifying new local copy via `%[d]s`"
     exec %d %m
@@ -375,7 +423,15 @@ fn res.file.contents
       fs.unlink %b
       bail 1
 
+  recache:
     flag "changed"
+    eq %f 1 jz +1
+      retv 0
+
+    fs.mkparent %j
+    syslog info "%T: updating local cache with new file contents at %[j]s"
+    fs.copy %a %j
+    fs.chmod %j 0400 ; lock it down
     retv 0
 
 

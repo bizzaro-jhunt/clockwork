@@ -44,6 +44,7 @@
 #endif
 
 #define CACHED_FACTS_DIR CW_CACHE_DIR "/facts"
+#define CACHED_FILES_DIR CW_CACHE_DIR "/files"
 
 #ifndef CW_PAM_SERVICE
 #  define CW_PAM_SERVICE "clockwork"

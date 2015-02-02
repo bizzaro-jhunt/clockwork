@@ -193,6 +193,7 @@ fn fix:00000001
   call res.file.chmod
   set %b "/etc/file.conf"
   set %c "file:/etc/file.conf"
+  set %f 0
   call res.file.contents
 
 fn main
@@ -235,6 +236,7 @@ fn fix:00000001
   set %d "visudo -vf /etc/.sudoers.cogd"
   set %e 0
   set %c "file:/etc/sudoers"
+  set %f 0
   call res.file.contents
 
 fn main
@@ -278,6 +280,7 @@ fn fix:00000001
   set %d "/usr/local/bin/check-stuff"
   set %e 22
   set %c "file:/etc/somefile"
+  set %f 0
   call res.file.contents
 
 fn main
@@ -289,6 +292,51 @@ fn main
   retv 0
 EOF
 		"file resource with pre-change verification and explicit return code");
+
+	#######################################################
+
+	put_file "t/tmp/manifest.pol", <<'EOF';
+policy "example" {
+	file "/etc/somefile" {
+		source:  "/cfm/files/something"
+		tmpfile: "/etc/.xyz"
+		verify:  "/usr/local/bin/check-stuff"
+		expect:  22
+		cache:   "yes"
+	}
+}
+host "example" { enforce "example" }
+EOF
+
+	gencode_ok(<<'EOF',
+#include stdlib
+fn res:00000001
+  unflag "changed"
+  call fix:00000001
+  flagged? "changed"
+  jz +1 retv 0
+  ;; no dependencies
+  retv 1
+
+fn fix:00000001
+  set %a "/etc/somefile"
+  call res.file.present
+  set %b "/etc/.xyz"
+  set %d "/usr/local/bin/check-stuff"
+  set %e 22
+  set %c "file:/etc/somefile"
+  set %f 1
+  call res.file.contents
+
+fn main
+  set %o 0
+  topic "file:/etc/somefile"
+  try res:00000001
+  acc %p
+  add %o %p
+  retv 0
+EOF
+		"file resource with verification, explicit return code and caching");
 
 	#######################################################
 };

@@ -1,8 +1,10 @@
 #include stdlib
 fn ok
+  pop %o add %o 1 push %o
   print "ok %[o]u - %[p]s\n"
   bail 0
 fn notok
+  pop %o add %o 1 push %o
   print "not ok %[o]u - %[p]s\n"
   bail 1
 
@@ -3280,135 +3282,135 @@ fn test.res.file.contents.6
   call ok
 
 fn main
-  set %o 0
+  set %o 0 push %o
   set %p 0
 
-  add %o 1 try test.authdb.1 jz +1 set %p 1
-  add %o 1 try test.authdb.2 jz +1 set %p 1
-  add %o 1 try test.authdb.3 jz +1 set %p 1
-  add %o 1 try test.authdb.4 jz +1 set %p 1
-  add %o 1 try test.authdb.5 jz +1 set %p 1
+  try test.authdb.1 jz +1 set %p 1
+  try test.authdb.2 jz +1 set %p 1
+  try test.authdb.3 jz +1 set %p 1
+  try test.authdb.4 jz +1 set %p 1
+  try test.authdb.5 jz +1 set %p 1
 
-  add %o 1 try test.copytree.1 jz +1 set %p 1
-  add %o 1 try test.copytree.2 jz +1 set %p 1
+  try test.copytree.1 jz +1 set %p 1
+  try test.copytree.2 jz +1 set %p 1
 
-  add %o 1 try test.res.file.absent.1 jz +1 set %p 1
-  add %o 1 try test.res.file.absent.2 jz +1 set %p 1
-  add %o 1 try test.res.file.absent.3 jz +1 set %p 1
-  add %o 1 try test.res.file.absent.4 jz +1 set %p 1
+  try test.res.file.absent.1 jz +1 set %p 1
+  try test.res.file.absent.2 jz +1 set %p 1
+  try test.res.file.absent.3 jz +1 set %p 1
+  try test.res.file.absent.4 jz +1 set %p 1
 
-  add %o 1 try test.res.file.present.1 jz +1 set %p 1
-  add %o 1 try test.res.file.present.2 jz +1 set %p 1
-  add %o 1 try test.res.file.present.3 jz +1 set %p 1
-  add %o 1 try test.res.file.present.4 jz +1 set %p 1
+  try test.res.file.present.1 jz +1 set %p 1
+  try test.res.file.present.2 jz +1 set %p 1
+  try test.res.file.present.3 jz +1 set %p 1
+  try test.res.file.present.4 jz +1 set %p 1
 
-  add %o 1 try test.res.dir.absent.1 jz +1 set %p 1
-  add %o 1 try test.res.dir.absent.2 jz +1 set %p 1
-  add %o 1 try test.res.dir.absent.3 jz +1 set %p 1
-  add %o 1 try test.res.dir.absent.4 jz +1 set %p 1
+  try test.res.dir.absent.1 jz +1 set %p 1
+  try test.res.dir.absent.2 jz +1 set %p 1
+  try test.res.dir.absent.3 jz +1 set %p 1
+  try test.res.dir.absent.4 jz +1 set %p 1
 
-  add %o 1 try test.res.dir.present.1 jz +1 set %p 1
-  add %o 1 try test.res.dir.present.2 jz +1 set %p 1
-  add %o 1 try test.res.dir.present.3 jz +1 set %p 1
-  add %o 1 try test.res.dir.present.4 jz +1 set %p 1
+  try test.res.dir.present.1 jz +1 set %p 1
+  try test.res.dir.present.2 jz +1 set %p 1
+  try test.res.dir.present.3 jz +1 set %p 1
+  try test.res.dir.present.4 jz +1 set %p 1
 
-  add %o 1 try test.res.file.chmod.1 jz +1 set %p 1
-  add %o 1 try test.res.file.chmod.2 jz +1 set %p 1
+  try test.res.file.chmod.1 jz +1 set %p 1
+  try test.res.file.chmod.2 jz +1 set %p 1
 
-  add %o 1 try test.res.symlink.absent.1 jz +1 set %p 1
-  add %o 1 try test.res.symlink.absent.2 jz +1 set %p 1
-  add %o 1 try test.res.symlink.absent.3 jz +1 set %p 1
-  add %o 1 try test.res.symlink.absent.4 jz +1 set %p 1
+  try test.res.symlink.absent.1 jz +1 set %p 1
+  try test.res.symlink.absent.2 jz +1 set %p 1
+  try test.res.symlink.absent.3 jz +1 set %p 1
+  try test.res.symlink.absent.4 jz +1 set %p 1
 
-  add %o 1 try test.res.symlink.present.1 jz +1 set %p 1
-  add %o 1 try test.res.symlink.present.2 jz +1 set %p 1
-  add %o 1 try test.res.symlink.present.3 jz +1 set %p 1
-  add %o 1 try test.res.symlink.present.4 jz +1 set %p 1
+  try test.res.symlink.present.1 jz +1 set %p 1
+  try test.res.symlink.present.2 jz +1 set %p 1
+  try test.res.symlink.present.3 jz +1 set %p 1
+  try test.res.symlink.present.4 jz +1 set %p 1
 
-  add %o 1 try test.res.user.absent.1 jz +1 set %p 1
-  add %o 1 try test.res.user.absent.2 jz +1 set %p 1
+  try test.res.user.absent.1 jz +1 set %p 1
+  try test.res.user.absent.2 jz +1 set %p 1
 
-  add %o 1 try test.res.user.present.1 jz +1 set %p 1
-  add %o 1 try test.res.user.present.2 jz +1 set %p 1
-  add %o 1 try test.res.user.present.3 jz +1 set %p 1
+  try test.res.user.present.1 jz +1 set %p 1
+  try test.res.user.present.2 jz +1 set %p 1
+  try test.res.user.present.3 jz +1 set %p 1
 
-  add %o 1 try test.res.group.absent.1 jz +1 set %p 1
-  add %o 1 try test.res.group.absent.2 jz +1 set %p 1
+  try test.res.group.absent.1 jz +1 set %p 1
+  try test.res.group.absent.2 jz +1 set %p 1
 
-  add %o 1 try test.res.group.present.1 jz +1 set %p 1
-  add %o 1 try test.res.group.present.2 jz +1 set %p 1
-  add %o 1 try test.res.group.present.3 jz +1 set %p 1
+  try test.res.group.present.1 jz +1 set %p 1
+  try test.res.group.present.2 jz +1 set %p 1
+  try test.res.group.present.3 jz +1 set %p 1
 
-  add %o 1 try test.res.group.passwd.1 jz +1 set %p 1
-  add %o 1 try test.res.group.passwd.2 jz +1 set %p 1
+  try test.res.group.passwd.1 jz +1 set %p 1
+  try test.res.group.passwd.2 jz +1 set %p 1
 
-  add %o 1 try test.res.service.enable.1 jz +1 set %p 1
-  add %o 1 try test.res.service.enable.2 jz +1 set %p 1
-  add %o 1 try test.res.service.enable.3 jz +1 set %p 1
+  try test.res.service.enable.1 jz +1 set %p 1
+  try test.res.service.enable.2 jz +1 set %p 1
+  try test.res.service.enable.3 jz +1 set %p 1
 
-  add %o 1 try test.res.service.disable.1 jz +1 set %p 1
-  add %o 1 try test.res.service.disable.2 jz +1 set %p 1
-  add %o 1 try test.res.service.disable.3 jz +1 set %p 1
+  try test.res.service.disable.1 jz +1 set %p 1
+  try test.res.service.disable.2 jz +1 set %p 1
+  try test.res.service.disable.3 jz +1 set %p 1
 
-  add %o 1 try test.res.service.start.1 jz +1 set %p 1
-  add %o 1 try test.res.service.start.2 jz +1 set %p 1
-  add %o 1 try test.res.service.start.3 jz +1 set %p 1
+  try test.res.service.start.1 jz +1 set %p 1
+  try test.res.service.start.2 jz +1 set %p 1
+  try test.res.service.start.3 jz +1 set %p 1
 
-  add %o 1 try test.res.service.stop.1 jz +1 set %p 1
-  add %o 1 try test.res.service.stop.2 jz +1 set %p 1
-  add %o 1 try test.res.service.stop.3 jz +1 set %p 1
+  try test.res.service.stop.1 jz +1 set %p 1
+  try test.res.service.stop.2 jz +1 set %p 1
+  try test.res.service.stop.3 jz +1 set %p 1
 
-  add %o 1 try test.res.service.reload.1 jz +1 set %p 1
-  add %o 1 try test.res.service.reload.2 jz +1 set %p 1
-  add %o 1 try test.res.service.reload.3 jz +1 set %p 1
-  add %o 1 try test.res.service.reload.4 jz +1 set %p 1
+  try test.res.service.reload.1 jz +1 set %p 1
+  try test.res.service.reload.2 jz +1 set %p 1
+  try test.res.service.reload.3 jz +1 set %p 1
+  try test.res.service.reload.4 jz +1 set %p 1
 
-  add %o 1 try test.res.service.restart.1 jz +1 set %p 1
-  add %o 1 try test.res.service.restart.2 jz +1 set %p 1
-  add %o 1 try test.res.service.restart.3 jz +1 set %p 1
-  add %o 1 try test.res.service.restart.4 jz +1 set %p 1
+  try test.res.service.restart.1 jz +1 set %p 1
+  try test.res.service.restart.2 jz +1 set %p 1
+  try test.res.service.restart.3 jz +1 set %p 1
+  try test.res.service.restart.4 jz +1 set %p 1
 
-  add %o 1 try test.res.host.absent.1 jz +1 set %p 1
-  add %o 1 try test.res.host.absent.2 jz +1 set %p 1
-  add %o 1 try test.res.host.absent.3 jz +1 set %p 1
+  try test.res.host.absent.1 jz +1 set %p 1
+  try test.res.host.absent.2 jz +1 set %p 1
+  try test.res.host.absent.3 jz +1 set %p 1
 
-  add %o 1 try test.res.host.present.1 jz +1 set %p 1
-  add %o 1 try test.res.host.present.2 jz +1 set %p 1
-  add %o 1 try test.res.host.present.3 jz +1 set %p 1
+  try test.res.host.present.1 jz +1 set %p 1
+  try test.res.host.present.2 jz +1 set %p 1
+  try test.res.host.present.3 jz +1 set %p 1
 
-  add %o 1 try test.res.host.aliases.1 jz +1 set %p 1
-  add %o 1 try test.res.host.aliases.2 jz +1 set %p 1
-  add %o 1 try test.res.host.aliases.3 jz +1 set %p 1
-  add %o 1 try test.res.host.aliases.4 jz +1 set %p 1
+  try test.res.host.aliases.1 jz +1 set %p 1
+  try test.res.host.aliases.2 jz +1 set %p 1
+  try test.res.host.aliases.3 jz +1 set %p 1
+  try test.res.host.aliases.4 jz +1 set %p 1
 
-  add %o 1 try test.res.package.absent.1 jz +1 set %p 1
-  add %o 1 try test.res.package.absent.2 jz +1 set %p 1
-  add %o 1 try test.res.package.absent.3 jz +1 set %p 1
-  add %o 1 try test.res.package.absent.4 jz +1 set %p 1
+  try test.res.package.absent.1 jz +1 set %p 1
+  try test.res.package.absent.2 jz +1 set %p 1
+  try test.res.package.absent.3 jz +1 set %p 1
+  try test.res.package.absent.4 jz +1 set %p 1
 
-  add %o 1 try test.res.package.install.1 jz +1 set %p 1
-  add %o 1 try test.res.package.install.2 jz +1 set %p 1
-  add %o 1 try test.res.package.install.3 jz +1 set %p 1
-  add %o 1 try test.res.package.install.4 jz +1 set %p 1
-  add %o 1 try test.res.package.install.5 jz +1 set %p 1
-  add %o 1 try test.res.package.install.6 jz +1 set %p 1
-  add %o 1 try test.res.package.install.7 jz +1 set %p 1
-  add %o 1 try test.res.package.install.8 jz +1 set %p 1
-  add %o 1 try test.res.package.install.9 jz +1 set %p 1
-  add %o 1 try test.res.package.install.10 jz +1 set %p 1
-  add %o 1 try test.res.package.install.11 jz +1 set %p 1
-  add %o 1 try test.res.package.install.12 jz +1 set %p 1
-  add %o 1 try test.res.package.install.13 jz +1 set %p 1
+  try test.res.package.install.1 jz +1 set %p 1
+  try test.res.package.install.2 jz +1 set %p 1
+  try test.res.package.install.3 jz +1 set %p 1
+  try test.res.package.install.4 jz +1 set %p 1
+  try test.res.package.install.5 jz +1 set %p 1
+  try test.res.package.install.6 jz +1 set %p 1
+  try test.res.package.install.7 jz +1 set %p 1
+  try test.res.package.install.8 jz +1 set %p 1
+  try test.res.package.install.9 jz +1 set %p 1
+  try test.res.package.install.10 jz +1 set %p 1
+  try test.res.package.install.11 jz +1 set %p 1
+  try test.res.package.install.12 jz +1 set %p 1
+  try test.res.package.install.13 jz +1 set %p 1
 
-  add %o 1 try test.res.group.member.1 jz +1 set %p 1
-  add %o 1 try test.res.group.member.2 jz +1 set %p 1
-  add %o 1 try test.res.group.member.3 jz +1 set %p 1
-  add %o 1 try test.res.group.member.4 jz +1 set %p 1
-  add %o 1 try test.res.group.member.5 jz +1 set %p 1
-  add %o 1 try test.res.group.member.6 jz +1 set %p 1
-  add %o 1 try test.res.group.member.7 jz +1 set %p 1
-  add %o 1 try test.res.group.member.8 jz +1 set %p 1
-  add %o 1 try test.res.group.member.9 jz +1 set %p 1
+  try test.res.group.member.1 jz +1 set %p 1
+  try test.res.group.member.2 jz +1 set %p 1
+  try test.res.group.member.3 jz +1 set %p 1
+  try test.res.group.member.4 jz +1 set %p 1
+  try test.res.group.member.5 jz +1 set %p 1
+  try test.res.group.member.6 jz +1 set %p 1
+  try test.res.group.member.7 jz +1 set %p 1
+  try test.res.group.member.8 jz +1 set %p 1
+  try test.res.group.member.9 jz +1 set %p 1
 
   geteuid %a
   eq %a 0 jz +2
@@ -3416,15 +3418,15 @@ fn main
     jmp noroot
 
 ifroot:
-  add %o 1 try test.res.chgrp.1 jz +1 set %p 1
-  add %o 1 try test.res.chgrp.2 jz +1 set %p 1
-  add %o 1 try test.res.chgrp.3 jz +1 set %p 1
-  add %o 1 try test.res.chgrp.4 jz +1 set %p 1
+  try test.res.chgrp.1 jz +1 set %p 1
+  try test.res.chgrp.2 jz +1 set %p 1
+  try test.res.chgrp.3 jz +1 set %p 1
+  try test.res.chgrp.4 jz +1 set %p 1
 
-  add %o 1 try test.res.chown.1 jz +1 set %p 1
-  add %o 1 try test.res.chown.2 jz +1 set %p 1
-  add %o 1 try test.res.chown.3 jz +1 set %p 1
-  add %o 1 try test.res.chown.4 jz +1 set %p 1
+  try test.res.chown.1 jz +1 set %p 1
+  try test.res.chown.2 jz +1 set %p 1
+  try test.res.chown.3 jz +1 set %p 1
+  try test.res.chown.4 jz +1 set %p 1
 
   ;; for run(user|group), we need a real user and group
   ;; try nobody:nobody (redhat) or nobody:nogroup (debian)
@@ -3433,8 +3435,8 @@ ifroot:
   set %b "nobody"  group.find %b jz +3
   set %b "nogroup" group.find %b jnz skip-run-as group.get "gid" %d
 
-  add %o 1 try test.res.run-as.1 jz +1 set %p 1
-  add %o 1 try test.res.run-as.2 jz +1 set %p 1
+  try test.res.run-as.1 jz +1 set %p 1
+  try test.res.run-as.2 jz +1 set %p 1
   ;; back to root
   set %a "root" call util.runuser
                 call util.rungroup
@@ -3442,22 +3444,22 @@ ifroot:
 skip-run-as:
   print "# skipping util.run* tests (couldn't find a suitable system user/group)\n"
 
-  add %o 1 try test.res.user.mkhome.1 jz +1 set %p 1
-  add %o 1 try test.res.user.mkhome.2 jz +1 set %p 1
-  add %o 1 try test.res.user.mkhome.3 jz +1 set %p 1
-  add %o 1 try test.res.user.mkhome.4 jz +1 set %p 1
-  add %o 1 try test.res.user.mkhome.5 jz +1 set %p 1
+  try test.res.user.mkhome.1 jz +1 set %p 1
+  try test.res.user.mkhome.2 jz +1 set %p 1
+  try test.res.user.mkhome.3 jz +1 set %p 1
+  try test.res.user.mkhome.4 jz +1 set %p 1
+  try test.res.user.mkhome.5 jz +1 set %p 1
 
-  add %o 1 try test.res.file.contents.1 jz +1 set %p 1
-  add %o 1 try test.res.file.contents.2 jz +1 set %p 1
-  add %o 1 try test.res.file.contents.3 jz +1 set %p 1
-  add %o 1 try test.res.file.contents.4 jz +1 set %p 1
-  add %o 1 try test.res.file.contents.5 jz +1 set %p 1
-  add %o 1 try test.res.file.contents.6 jz +1 set %p 1
+  try test.res.file.contents.1 jz +1 set %p 1
+  try test.res.file.contents.2 jz +1 set %p 1
+  try test.res.file.contents.3 jz +1 set %p 1
+  try test.res.file.contents.4 jz +1 set %p 1
+  try test.res.file.contents.5 jz +1 set %p 1
+  try test.res.file.contents.6 jz +1 set %p 1
 
 noroot:
   exec "rm -rf t/tmp" %e
-  print "1..%[o]i\n"
+  pop %o print "1..%[o]i\n"
   retv %p
 
 ;; vim:et:ts=2

@@ -5,7 +5,7 @@
 AC_PREREQ(2.68)
 
 AC_INIT([Clockwork], [3.0.8], [bugs@niftylogic.com])
-AC_SUBST([PACKAGE_RUNTIME],  [20150201])
+AC_SUBST([PACKAGE_RUNTIME],  [20150202])
 AC_SUBST([PACKAGE_PROTOCOL], [1])
 
 ################################################

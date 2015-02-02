@@ -1304,8 +1304,10 @@ static void op_fs_sha1(vm_t *vm)
 {
 	ARG2("fs.sha1");
 	REGISTER2("fs.sha1");
-	vm->acc = sha1_file(STR1(vm), &vm->aux.sha1);
-	REG2(vm) = vm_heap_strdup(vm, vm->aux.sha1.hex);
+
+	struct SHA1 sha1;
+	vm->acc = sha1_file(STR1(vm), &sha1);
+	REG2(vm) = vm_heap_strdup(vm, sha1.hex);
 }
 
 static void op_fs_get(vm_t *vm)

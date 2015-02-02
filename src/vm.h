@@ -112,8 +112,6 @@ typedef struct {
 		user_t       *user;
 		group_t      *group;
 
-		struct SHA1   sha1;
-
 		void         *remote;
 		int           timeout;
 

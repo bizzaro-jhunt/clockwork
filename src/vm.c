@@ -1355,7 +1355,7 @@ static void op_fs_opendir(vm_t *vm)
 				strings_add(vm->aux.dirs[i].paths, strdup(D->d_name));
 
 		strings_sort(vm->aux.dirs[i].paths, STRINGS_ASC);
-		vm->r[vm->oper2] = i;
+		REG2(vm) = i;
 		return;
 	}
 	errno = ENFILE;
@@ -1376,7 +1376,7 @@ static void op_fs_readdir(vm_t *vm)
 	}
 
 	vm->acc = 0;
-	vm->r[vm->oper2] = vm_heap_strdup(vm,
+	REG2(vm) = vm_heap_strdup(vm,
 		vm->aux.dirs[d].paths->strings[vm->aux.dirs[d].i++]);
 }
 
@@ -2038,7 +2038,7 @@ static void op_umask(vm_t *vm)
 {
 	ARG2("umask");
 	REGISTER2("umask");
-	vm->r[vm->oper2] = umask(VAL1(vm));
+	REG2(vm) = umask(VAL1(vm));
 }
 
 static void op_loglevel(vm_t *vm)
@@ -2048,7 +2048,7 @@ static void op_loglevel(vm_t *vm)
 
 	const char *new = STR1(vm);
 	int level = log_level(-1, strcmp(new, "") == 0 ? NULL : new);
-	vm->r[vm->oper2] = vm_heap_strdup(vm, log_level_name(level));
+	REG2(vm) = vm_heap_strdup(vm, log_level_name(level));
 }
 
 static void op_geteuid(vm_t *vm)
@@ -2056,7 +2056,7 @@ static void op_geteuid(vm_t *vm)
 	ARG1("geteuid");
 	REGISTER1("geteuid");
 
-	vm->r[vm->oper1] = geteuid();
+	REG1(vm) = geteuid();
 	vm->acc = 0;
 }
 
@@ -2065,7 +2065,7 @@ static void op_getegid(vm_t *vm)
 	ARG1("getegid");
 	REGISTER1("getegid");
 
-	vm->r[vm->oper1] = getegid();
+	REG1(vm) = getegid();
 	vm->acc = 0;
 }
 
@@ -2073,7 +2073,7 @@ static void op_runtime(vm_t *vm)
 {
 	ARG1("runtime");
 	REGISTER1("runtime");
-	vm->r[vm->oper1] = CLOCKWORK_RUNTIME;
+	REG1(vm) = CLOCKWORK_RUNTIME;
 }
 
 static void op_fs_mkparent(vm_t *vm)
@@ -2130,7 +2130,7 @@ static void op_sha1(vm_t *vm)
 	const char *in = STR1(vm);
 	struct SHA1 sha1;
 	vm->acc = sha1_data(in, strlen(in), &sha1);
-	vm->r[vm->oper2] = vm_heap_strdup(vm, sha1.hex);
+	REG2(vm) = vm_heap_strdup(vm, sha1.hex);
 }
 
 /************************************************************************/

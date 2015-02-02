@@ -762,6 +762,10 @@ static void op_pragma(vm_t *vm)
 	ARG2("pragma");
 	const char *v = STR1(vm);
 
+	/* set the value in the pragma hash */
+	hash_set(&vm->pragma, v, (void *)STR2(vm));
+
+	/* special pragmas */
 	if (strcmp(v, "test") == 0) {
 		vm->stderr = strcmp(STR2(vm), "on") == 0 ? stdout : stderr;
 
@@ -770,10 +774,6 @@ static void op_pragma(vm_t *vm)
 
 	} else if (strcmp(v, "timeout") == 0) {
 		vm->aux.timeout = VAL2(vm);
-
-	} else {
-		/* set the value in the pragma hash */
-		hash_set(&vm->pragma, v, (void *)STR2(vm));
 	}
 }
 
@@ -781,12 +781,16 @@ static void op_property(vm_t *vm)
 {
 	ARG2("property");
 	REGISTER2("property");
-	const char *v = hash_get(&vm->props, STR1(vm));
-	if (v) {
+
+	vm->acc = 1;
+	const char *v;
+
+	if ((v = hash_get(&vm->props,  STR1(vm))) != NULL) {
 		REG2(vm) = vm_heap_strdup(vm, v);
 		vm->acc = 0;
-	} else {
-		vm->acc = 1;
+	} else if ((v = hash_get(&vm->pragma, STR1(vm))) != NULL) {
+		REG2(vm) = vm_heap_strdup(vm, v);
+		vm->acc = 0;
 	}
 }
 

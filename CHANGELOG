@@ -6,6 +6,11 @@ origin/master                                              runtime 20150202
   - New `sha1` opcode
     Useful for generating checksums of in-memory strings (like file names)
 
+  - Modify `property` opcode to return pragma values
+    If a property with the desired name isn't found, we should return the
+    named pragma's value.  This lets us use pragmas as globals vars (without
+    scope).  It also lets us move more functionality into stdlib.pn
+
 
 
 3.0.8        2014-02-01                                    runtime 20150201

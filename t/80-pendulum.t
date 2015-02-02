@@ -2005,6 +2005,19 @@ subtest "properies" => sub {
 
 	"ok",
 	"property handles non-existent properties properly");
+
+	pendulum_ok(qq(
+	fn main
+		set %c "fail"
+		pragma xyzzy "ok"
+		property "xyzzy" %c
+		jz +2
+			print "property failed"
+			bail 1
+		print "%[c]s"),
+
+	"ok",
+	"property will retrieve a pragma value if no property is found");
 };
 
 subtest "acl" => sub {

@@ -327,7 +327,8 @@ EOF
 	string_is $stderr, <<EOF, "Standard error output";
 Starting configuration run
 No response from master 1 (127.0.0.1:2313): possible certificate mismatch
-No masters were reachable; giving up
+No masters were reachable; falling back to cached policy
+No cached policy found; giving up
 EOF
 	kill 9, $pid;
 };
@@ -454,7 +455,8 @@ EOF
 	string_is $stderr, <<EOF, "Standard error output";
 Starting configuration run
 No response from master 1 (127.0.0.1:2313): possible certificate mismatch
-No masters were reachable; giving up
+No masters were reachable; falling back to cached policy
+No cached policy found; giving up
 EOF
 	kill 9, $pid;
 };

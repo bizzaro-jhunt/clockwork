@@ -11,6 +11,13 @@ origin/master                                              runtime 20150202
     named pragma's value.  This lets us use pragmas as globals vars (without
     scope).  It also lets us move more functionality into stdlib.pn
 
+  - Offline/Cache Mode
+    cogd now supports cache/offline mode.  If a previous CFM run was
+    successfull, the Pendulum bytecode image that represents the policy will
+    be cached.  Subsequent runs that fail to connect to a clockd master can
+    then fallback on this cached policy for local enforcement of the "last
+    known good state"
+
   - Local File Caching support
     If files are marked 'cache: yes' in their resource definitions, cogd
     will keep the desired contents in a local cache directory, so that a

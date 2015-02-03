@@ -193,7 +193,7 @@ static inline int s_cfm_connect(client_t *c)
 		}
 
 		if (i == c->current_master) {
-			logger(LOG_ERR, "No masters were reachable; giving up");
+			logger(LOG_ERR, "No masters were reachable; falling back to cached policy");
 			vzmq_shutdown(c->cfm_client, 0);
 			pdu_free(ping);
 			pdu_free(pong);
@@ -406,25 +406,46 @@ static void s_cfm_run(client_t *c)
 	c->cfm_client = NULL;
 	STOPWATCH(&t, ms_connect) { rc = s_cfm_connect(c); }
 
-	if (!c->cfm_client)
-		goto maybe_next_time;
-	logger(LOG_DEBUG, "connected");
+	if (c->cfm_client) {
+		logger(LOG_DEBUG, "connected");
 
-	STOPWATCH(&t, ms_hello) { rc = s_cfm_hello(c); }
-	if (rc != 0) goto shut_it_down;
-	logger(LOG_INFO, "HELLO took %lums", stopwatch_ms(&t));
+		STOPWATCH(&t, ms_hello) { rc = s_cfm_hello(c); }
+		if (rc != 0) goto shut_it_down;
+		logger(LOG_INFO, "HELLO took %lums", stopwatch_ms(&t));
 
-	STOPWATCH(&t, ms_copydown) { rc = s_cfm_copydown(c); }
-	if (rc != 0) goto shut_it_down;
-	logger(LOG_INFO, "COPYDOWN took %lums", stopwatch_ms(&t));
+		STOPWATCH(&t, ms_copydown) { rc = s_cfm_copydown(c); }
+		if (rc != 0) goto shut_it_down;
+		logger(LOG_INFO, "COPYDOWN took %lums", stopwatch_ms(&t));
 
-	STOPWATCH(&t, ms_facts) { rc = s_cfm_facts(c); }
-	if (rc != 0) goto shut_it_down;
-	logger(LOG_INFO, "FACTS took %lums", stopwatch_ms(&t));
+		STOPWATCH(&t, ms_facts) { rc = s_cfm_facts(c); }
+		if (rc != 0) goto shut_it_down;
+		logger(LOG_INFO, "FACTS took %lums", stopwatch_ms(&t));
 
-	STOPWATCH(&t, ms_getpolicy) { rc = s_cfm_getpolicy(c); }
-	if (rc != 0) goto shut_it_down;
-	logger(LOG_INFO, "GETPOLICY took %lums", stopwatch_ms(&t));
+		STOPWATCH(&t, ms_getpolicy) { rc = s_cfm_getpolicy(c); }
+		if (rc != 0) goto shut_it_down;
+		logger(LOG_INFO, "GETPOLICY took %lums", stopwatch_ms(&t));
+
+	} else {
+		logger(LOG_DEBUG, "not connected; running in offline/cache mode");
+		logger(LOG_INFO, "reading last known good bytecode image from %s", c->cfm_last_exec);
+		FILE *io = fopen(c->cfm_last_exec, "r");
+		if (io) {
+			fseek(io, 0, SEEK_END);
+			c->codelen = ftell(io);
+			rewind(io);
+			c->code = vmalloc(c->codelen);
+			fread(c->code, c->codelen, 1, io);
+			fclose(io);
+
+		} else {
+			logger(LOG_INFO, "unable to open %s: %s", c->cfm_last_exec, strerror(errno));
+			logger(LOG_ERR, "No cached policy found; giving up");
+			goto maybe_next_time;
+		}
+	}
+
+	if (!c->code)
+		goto shut_it_down;
 
 	vm_t vm;
 	STOPWATCH(&t, ms_parse) {
@@ -445,13 +466,16 @@ static void s_cfm_run(client_t *c)
 	} else {
 		vm.aux.remote = c->cfm_client;
 
-		FILE *io = fopen(c->cfm_last_retr, "w");
-		if (io) {
-			fwrite(c->code, c->codelen, 1, io);
-			fclose(io);
-		} else {
-			logger(LOG_ERR, "Failed to open %s for writing: %s",
-				c->cfm_last_retr, strerror(errno));
+		if (c->cfm_client) {
+			logger(LOG_INFO, "saving bytecode image at %s", c->cfm_last_retr);
+			FILE *io = fopen(c->cfm_last_retr, "w");
+			if (io) {
+				fwrite(c->code, c->codelen, 1, io);
+				fclose(io);
+			} else {
+				logger(LOG_ERR, "Failed to open %s for writing: %s",
+					c->cfm_last_retr, strerror(errno));
+			}
 		}
 
 		STOPWATCH(&t, ms_enforce) {
@@ -464,22 +488,28 @@ static void s_cfm_run(client_t *c)
 		rc = vm_done(&vm);
 		assert(rc == 0);
 
+		if (c->cfm_client) {
+			logger(LOG_INFO, "saving bytecode image at %s", c->cfm_last_exec);
+			FILE *io = fopen(c->cfm_last_exec, "w");
+
+			if (io) {
+				fwrite(c->code, c->codelen, 1, io);
+				fclose(io);
+			} else {
+				logger(LOG_ERR, "Failed to open %s for writing: %s",
+					c->cfm_last_exec, strerror(errno));
+			}
+		}
+
 		free(c->code);
 		c->codelen = 0;
-
-		io = fopen(c->cfm_last_exec, "w");
-		if (io) {
-			fwrite(c->code, c->codelen, 1, io);
-			fclose(io);
-		} else {
-			logger(LOG_ERR, "Failed to open %s for writing: %s",
-				c->cfm_last_exec, strerror(errno));
-		}
 	}
 
-	STOPWATCH(&t, ms_cleanup) { rc = s_cfm_cleanup(c); }
-	if (!rc) goto shut_it_down;
-	logger(LOG_INFO, "CLEANUP took %lums", stopwatch_ms(&t));
+	if (c->cfm_client) {
+		STOPWATCH(&t, ms_cleanup) { rc = s_cfm_cleanup(c); }
+		if (!rc) goto shut_it_down;
+		logger(LOG_INFO, "CLEANUP took %lums", stopwatch_ms(&t));
+	}
 
 shut_it_down:
 	if (c->cfm_client) {

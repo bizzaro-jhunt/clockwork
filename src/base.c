@@ -438,11 +438,12 @@ int cw_cat(int src, int dst)
 char* cw_escape_json(const char *in)
 {
 	size_t n = 0;
-	char *esc, *a = in;
+	char *esc, *a;
+	const char *b = in;
 
-	while (*a) {
+	while (*b) {
 		n++;
-		switch (*a) {
+		switch (*b) {
 		case '\\':
 		case '"' :
 		case '\n':
@@ -450,7 +451,7 @@ char* cw_escape_json(const char *in)
 		case '\t':
 			n++;
 		}
-		a++;
+		b++;
 	}
 
 	a = esc = vcalloc(n + 1, sizeof(char));

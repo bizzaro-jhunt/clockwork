@@ -404,6 +404,9 @@ static void s_cfm_run(client_t *c)
 	logger(LOG_DEBUG, "connecting to one of the masters");
 
 	c->cfm_client = NULL;
+	c->code = NULL;
+	c->codelen = 0;
+
 	STOPWATCH(&t, ms_connect) { rc = s_cfm_connect(c); }
 
 	if (c->cfm_client) {

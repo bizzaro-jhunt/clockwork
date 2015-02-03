@@ -15,6 +15,7 @@ master.1 127.0.0.1:3333
 cert.1   t/tmp/master.1.pub
 
 security.cert t/tmp/badcert
+statedir      t/tmp/state
 EOF
 	put_file "t/tmp/master.1.pub", <<EOF;
 id  master.host.1
@@ -45,6 +46,7 @@ master.1 127.0.0.1:3333
 cert.1   t/tmp/master.1.pub
 
 security.cert /path/to/nowhere
+statedir      t/tmp/state
 EOF
 	put_file "t/tmp/master.1.pub", <<EOF;
 id  master.host.1
@@ -71,6 +73,7 @@ master.1 127.0.0.1:3333
 cert.1   t/tmp/master.1.pub
 
 security.cert t/tmp/cert
+statedir      t/tmp/state
 EOF
 	put_file "t/tmp/master.1.pub", <<EOF;
 id  master.host.1
@@ -101,6 +104,7 @@ master.1 127.0.0.1:3333
 cert.1   t/tmp/master.1.pub
 
 security.cert t/tmp/cert
+statedir      t/tmp/state
 EOF
 	put_file "t/tmp/master.1.pub", <<EOF;
 id  master.host.1
@@ -131,6 +135,7 @@ master.1 127.0.0.1:3333
 # no cert.1
 
 security.cert t/tmp/cert
+statedir      t/tmp/state
 EOF
 	put_file "t/tmp/cert", <<EOF;
 pub aea625f90ac478b9bc9649f6ab74e5f095bab8522f107b1a6d701e83c41cfc4b
@@ -157,6 +162,7 @@ master.1 127.0.0.1:3333
 cert.1 t/tmp/master.pub
 
 security.cert t/tmp/master.1
+statedir      t/tmp/state
 EOF
 	put_file "t/tmp/master.pub", <<EOF;
 # no pubkey in here!
@@ -299,6 +305,7 @@ master.1 127.0.0.1:2313
 cert.1   t/tmp/altmaster.pub
 
 security.cert t/tmp/client
+statedir      t/tmp/state
 lockdir       t/tmp
 copydown      t/tmp/local
 gatherers     t/tmp/gather.d/*
@@ -371,6 +378,7 @@ cert.1   t/tmp/master.pub
 timeout  90
 
 security.cert t/tmp/client
+statedir      t/tmp/state
 lockdir       t/tmp
 copydown      t/tmp/local
 gatherers     t/tmp/gather.d/*
@@ -427,6 +435,7 @@ master.1 127.0.0.1:2313
 cert.1   t/tmp/altmaster.pub
 
 security.cert t/tmp/client
+statedir      t/tmp/state
 lockdir       t/tmp
 copydown      t/tmp/local
 gatherers     t/tmp/gather.d/*
@@ -490,6 +499,7 @@ master.1 127.0.0.1:2313
 cert.1   t/tmp/master.pub
 
 security.cert t/tmp/client
+statedir      t/tmp/state
 lockdir       t/tmp
 copydown      t/tmp/local
 gatherers     t/tmp/gather.d/*

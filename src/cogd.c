@@ -91,6 +91,10 @@ typedef struct {
 		int64_t next_run;
 		int     interval;
 	} schedule;
+
+	void    *cfm_client;
+	uint8_t *code;
+	size_t   codelen;
 } client_t;
 
 static void s_sighandler(int signal, siginfo_t *info, void *_)
@@ -116,14 +120,14 @@ static pdu_t *s_sendto(void *socket, pdu_t *pdu, int timeout)
 	return NULL;
 }
 
-static void *s_connect(client_t *c)
+static inline int s_cfm_connect(client_t *c)
 {
-	void *client = zmq_socket(c->zmq, ZMQ_DEALER);
-	if (!client) return NULL;
+	c->cfm_client = zmq_socket(c->zmq, ZMQ_DEALER);
+	if (!c->cfm_client) return 0;
 
 	int rc;
 	logger(LOG_DEBUG, "Setting ZMQ_CURVE_SECRETKEY (sec) to %s", c->cert->seckey_b16);
-	rc = zmq_setsockopt(client, ZMQ_CURVE_SECRETKEY, cert_secret(c->cert), 32);
+	rc = zmq_setsockopt(c->cfm_client, ZMQ_CURVE_SECRETKEY, cert_secret(c->cert), 32);
 	if (rc != 0) {
 		logger(LOG_CRIT, "Failed to set ZMQ_CURVE_SECRETKEY option on client socket: %s",
 			zmq_strerror(errno));
@@ -136,7 +140,7 @@ static void *s_connect(client_t *c)
 		exit(4);
 	}
 	logger(LOG_DEBUG, "Setting ZMQ_CURVE_PUBLICKEY (pub) to %s", c->cert->pubkey_b16);
-	rc = zmq_setsockopt(client, ZMQ_CURVE_PUBLICKEY, cert_public(c->cert), 32);
+	rc = zmq_setsockopt(c->cfm_client, ZMQ_CURVE_PUBLICKEY, cert_public(c->cert), 32);
 	assert(rc == 0);
 
 	pdu_t *ping = pdu_make("PING", 0);
@@ -150,16 +154,16 @@ static void *s_connect(client_t *c)
 
 		logger(LOG_DEBUG, "Setting ZMQ_CURVE_SERVERKEY (pub) to %s",
 				c->masters[i].cert->pubkey_b16);
-		rc = zmq_setsockopt(client, ZMQ_CURVE_SERVERKEY, cert_public(c->masters[i].cert), 32);
+		rc = zmq_setsockopt(c->cfm_client, ZMQ_CURVE_SERVERKEY, cert_public(c->masters[i].cert), 32);
 		assert(rc == 0);
 
 		strncat(endpoint+6, c->masters[i].endpoint, 249);
 		logger(LOG_DEBUG, "Attempting to connect to %s (%s)", endpoint, c->masters[i].endpoint);
-		rc = zmq_connect(client, endpoint);
+		rc = zmq_connect(c->cfm_client, endpoint);
 		assert(rc == 0);
 
 		/* send the PING */
-		pong = s_sendto(client, ping, c->timeout);
+		pong = s_sendto(c->cfm_client, ping, c->timeout);
 		if (pong) {
 			if (strcmp(pdu_type(pong), "PONG") != 0) {
 				logger(LOG_ERR, "Unexpected %s response from master %i (%s) - expected PONG",
@@ -190,10 +194,11 @@ static void *s_connect(client_t *c)
 
 		if (i == c->current_master) {
 			logger(LOG_ERR, "No masters were reachable; giving up");
-			vzmq_shutdown(client, 0);
+			vzmq_shutdown(c->cfm_client, 0);
 			pdu_free(ping);
 			pdu_free(pong);
-			return NULL;
+			c->cfm_client = NULL;
+			return 0;
 		};
 	}
 
@@ -202,7 +207,162 @@ static void *s_connect(client_t *c)
 
 	logger(LOG_DEBUG, "setting current master idx to %i", i);
 	c->current_master = i;
-	return client;
+	return 0;
+}
+
+static inline int s_cfm_hello(client_t *c)
+{
+	pdu_t *pdu = pdu_make("HELLO", 1, c->fqdn);
+	pdu_t *reply = s_sendto(c->cfm_client, pdu, c->timeout);
+	pdu_free(pdu);
+
+	if (!reply) {
+		logger(LOG_ERR, "HELLO failed: %s", zmq_strerror(errno));
+		return 1;
+	}
+	logger(LOG_DEBUG, "Received a '%s' PDU", pdu_type(reply));
+	if (strcmp(pdu_type(reply), "ERROR") == 0) {
+		char *e = pdu_string(reply, 1);
+		logger(LOG_ERR, "protocol error: %s", e);
+		free(e);
+		pdu_free(reply);
+		return 1;
+	}
+	pdu_free(reply);
+	return 0;
+}
+
+static inline int s_cfm_copydown(client_t *c)
+{
+	pdu_t *pdu = pdu_make("COPYDOWN", 0);
+	pdu_t *reply = s_sendto(c->cfm_client, pdu, c->timeout);
+	pdu_free(pdu);
+
+	if (!reply) {
+		logger(LOG_ERR, "COPYDOWN failed: %s", zmq_strerror(errno));
+		return 1;
+	}
+	pdu_free(reply);
+
+	FILE *bdfa = tmpfile();
+	int n = 0;
+	char size[16];
+	for (;;) {
+		int rc = snprintf(size, 15, "%i", n++);
+		assert(rc > 0);
+		pdu = pdu_make("DATA", 1, size);
+		reply = s_sendto(c->cfm_client, pdu, c->timeout);
+		pdu_free(pdu);
+
+		if (!reply) {
+			logger(LOG_ERR, "DATA failed: %s", zmq_strerror(errno));
+			break;
+		}
+		logger(LOG_DEBUG, "received a %s PDU", pdu_type(reply));
+
+		if (strcmp(pdu_type(reply), "EOF") == 0) {
+			pdu_free(reply);
+			break;
+		}
+		if (strcmp(pdu_type(reply), "BLOCK") != 0) {
+			logger(LOG_ERR, "protocol violation: received a %s PDU (expected a BLOCK)", pdu_type(reply));
+			pdu_free(reply);
+			fclose(bdfa);
+			return 1;
+		}
+
+		size_t len;
+		char *data = (char*)pdu_segment(reply, 1, &len);
+		fwrite(data, 1, len, bdfa);
+		free(data);
+		pdu_free(reply);
+	}
+	rewind(bdfa);
+	mkdir(c->copydown, 0777);
+	if (cw_bdfa_unpack(fileno(bdfa), c->copydown) != 0) {
+		logger(LOG_CRIT, "Unable to perform copydown to %s", c->copydown);
+		fclose(bdfa);
+		return 1;
+	}
+	fclose(bdfa);
+	return 0;
+}
+
+static inline int s_cfm_facts(client_t *c)
+{
+	hash_done(c->facts, 1);
+	c->facts = vmalloc(sizeof(hash_t));
+	logger(LOG_INFO, "Gathering facts from '%s'", c->gatherers);
+	int rc = fact_gather(c->gatherers, c->facts) != 0;
+	if (rc != 0) {
+		logger(LOG_CRIT, "Unable to gather facts from %s", c->gatherers);
+		return 1;
+	}
+	return 0;
+}
+
+static inline int s_cfm_getpolicy(client_t *c)
+{
+	FILE *io = tmpfile();
+	assert(io);
+
+	int rc = fact_write(io, c->facts);
+	assert(rc == 0);
+
+	fprintf(io, "%c", '\0');
+	size_t len = ftell(io);
+	fseek(io, 0, SEEK_SET);
+
+	char *factstr = mmap(NULL, len, PROT_READ, MAP_SHARED, fileno(io), 0);
+	if ((void *)factstr == MAP_FAILED) {
+		logger(LOG_CRIT, "Failed to mmap fact data");
+		fclose(io);
+		return 1;
+	}
+
+	pdu_t *pdu = pdu_make("POLICY", 2, c->fqdn, factstr);
+	pdu_t *reply = s_sendto(c->cfm_client, pdu, c->timeout);
+	pdu_free(pdu);
+
+	munmap(factstr, len);
+	fclose(io);
+
+	if (!reply) {
+		logger(LOG_ERR, "POLICY failed: %s", zmq_strerror(errno));
+		return 1;
+	}
+	logger(LOG_DEBUG, "Received a '%s' PDU", pdu_type(reply));
+	if (strcmp(pdu_type(reply), "ERROR") == 0) {
+		char *e = pdu_string(reply, 1);
+		logger(LOG_ERR, "protocol error: %s", e);
+		free(e);
+		pdu_free(reply);
+		return 1;
+	}
+
+	c->code = pdu_segment(reply, 1, &c->codelen);
+	pdu_free(reply);
+	return 0;
+}
+
+static inline int s_cfm_cleanup(client_t *c)
+{
+	pdu_t *pdu = pdu_make("BYE", 0);
+	pdu_t *reply = s_sendto(c->cfm_client, pdu, c->timeout);
+	pdu_free(pdu);
+
+	if (!reply) {
+		logger(LOG_ERR, "BYE failed: %s", zmq_strerror(errno));
+		return 1;
+	}
+	logger(LOG_DEBUG, "Received a '%s' PDU", pdu_type(reply));
+	if (strcmp(pdu_type(reply), "ERROR") == 0) {
+		char *e = pdu_string(reply, 1);
+		logger(LOG_ERR, "protocol error: %s", e);
+		free(e);
+	}
+	pdu_free(reply);
+	return 0;
 }
 
 static void s_cfm_run(client_t *c)
@@ -242,163 +402,52 @@ static void s_cfm_run(client_t *c)
 		time_strf(NULL, c->schedule.next_run / 1000));
 
 	logger(LOG_DEBUG, "connecting to one of the masters");
-	void *client = NULL;
-	STOPWATCH(&t, ms_connect) { client = s_connect(c); }
 
-	if (!client)
+	c->cfm_client = NULL;
+	STOPWATCH(&t, ms_connect) { rc = s_cfm_connect(c); }
+
+	if (!c->cfm_client)
 		goto maybe_next_time;
 	logger(LOG_DEBUG, "connected");
 
-	pdu_t *pdu = pdu_make("HELLO", 1, c->fqdn),
-	    *reply = NULL;
-	STOPWATCH(&t, ms_hello) {
-		reply = s_sendto(client, pdu, c->timeout);
-		pdu_free(pdu);
-	}
-	if (!reply) {
-		logger(LOG_ERR, "HELLO failed: %s", zmq_strerror(errno));
-		goto shut_it_down;
-	}
-	logger(LOG_DEBUG, "Received a '%s' PDU", pdu_type(reply));
-	if (strcmp(pdu_type(reply), "ERROR") == 0) {
-		char *e = pdu_string(reply, 1);
-		logger(LOG_ERR, "protocol error: %s", e);
-		free(e);
-		pdu_free(reply);
-		goto shut_it_down;
-	}
-	pdu_free(reply);
+	STOPWATCH(&t, ms_hello) { rc = s_cfm_hello(c); }
+	if (rc != 0) goto shut_it_down;
+	logger(LOG_INFO, "HELLO took %lums", stopwatch_ms(&t));
 
-	pdu = pdu_make("COPYDOWN", 0);
-	STOPWATCH(&t, ms_preinit) {
-		reply = s_sendto(client, pdu, c->timeout);
-		pdu_free(pdu);
-	}
-	if (!reply) {
-		logger(LOG_ERR, "COPYDOWN failed: %s", zmq_strerror(errno));
-		goto shut_it_down;
-	}
+	STOPWATCH(&t, ms_copydown) { rc = s_cfm_copydown(c); }
+	if (rc != 0) goto shut_it_down;
 	logger(LOG_INFO, "COPYDOWN took %lums", stopwatch_ms(&t));
-	pdu_free(reply);
 
-	STOPWATCH(&t, ms_copydown) {
-		FILE *bdfa = tmpfile();
-		int n = 0;
-		char size[16];
-		for (;;) {
-			rc = snprintf(size, 15, "%i", n++);
-			assert(rc > 0);
-			pdu = pdu_make("DATA", 1, size);
-			reply = s_sendto(client, pdu, c->timeout);
-			pdu_free(pdu);
+	STOPWATCH(&t, ms_facts) { rc = s_cfm_facts(c); }
+	if (rc != 0) goto shut_it_down;
+	logger(LOG_INFO, "FACTS took %lums", stopwatch_ms(&t));
 
-			if (!reply) {
-				logger(LOG_ERR, "DATA failed: %s", zmq_strerror(errno));
-				break;
-			}
-			logger(LOG_DEBUG, "received a %s PDU", pdu_type(reply));
-
-			if (strcmp(pdu_type(reply), "EOF") == 0) {
-				pdu_free(reply);
-				break;
-			}
-			if (strcmp(pdu_type(reply), "BLOCK") != 0) {
-				logger(LOG_ERR, "protocol violation: received a %s PDU (expected a BLOCK)", pdu_type(reply));
-				pdu_free(reply);
-				goto shut_it_down;
-			}
-
-			size_t len;
-			char *data = (char*)pdu_segment(reply, 1, &len);
-			fwrite(data, 1, len, bdfa);
-			free(data);
-			pdu_free(reply);
-		}
-		rewind(bdfa);
-		mkdir(c->copydown, 0777);
-		if (cw_bdfa_unpack(fileno(bdfa), c->copydown) != 0) {
-			logger(LOG_CRIT, "Unable to perform copydown to %s", c->copydown);
-			fclose(bdfa);
-			goto shut_it_down;
-		}
-		fclose(bdfa);
-	}
-
-	hash_done(c->facts, 1);
-	c->facts = vmalloc(sizeof(hash_t));
-	STOPWATCH(&t, ms_facts) {
-		logger(LOG_INFO, "Gathering facts from '%s'", c->gatherers);
-		rc = fact_gather(c->gatherers, c->facts) != 0;
-	}
-	if (rc != 0) {
-		logger(LOG_CRIT, "Unable to gather facts from %s", c->gatherers);
-		goto shut_it_down;
-	}
-
-	FILE *io = tmpfile();
-	assert(io);
-
-	rc = fact_write(io, c->facts);
-	assert(rc == 0);
-
-	fprintf(io, "%c", '\0');
-	size_t len = ftell(io);
-	fseek(io, 0, SEEK_SET);
-
-	char *factstr = mmap(NULL, len, PROT_READ, MAP_SHARED, fileno(io), 0);
-	if ((void *)factstr == MAP_FAILED) {
-		logger(LOG_CRIT, "Failed to mmap fact data");
-		fclose(io);
-		goto shut_it_down;
-	}
-
-	pdu = pdu_make("POLICY", 2, c->fqdn, factstr);
-	STOPWATCH(&t, ms_getpolicy) {
-		reply = s_sendto(client, pdu, c->timeout);
-		pdu_free(pdu);
-	}
-
-	munmap(factstr, len);
-	fclose(io);
-
-	if (!reply) {
-		logger(LOG_ERR, "POLICY failed: %s", zmq_strerror(errno));
-		goto shut_it_down;
-	}
-	logger(LOG_DEBUG, "Received a '%s' PDU", pdu_type(reply));
-	if (strcmp(pdu_type(reply), "ERROR") == 0) {
-		char *e = pdu_string(reply, 1);
-		logger(LOG_ERR, "protocol error: %s", e);
-		free(e);
-		pdu_free(reply);
-		goto shut_it_down;
-	}
-
-	size_t n;
-	uint8_t *code = pdu_segment(reply, 1, &n);
-	pdu_free(reply);
+	STOPWATCH(&t, ms_getpolicy) { rc = s_cfm_getpolicy(c); }
+	if (rc != 0) goto shut_it_down;
+	logger(LOG_INFO, "GETPOLICY took %lums", stopwatch_ms(&t));
 
 	vm_t vm;
 	STOPWATCH(&t, ms_parse) {
 		rc = vm_reset(&vm);
 		assert(rc == 0);
 
-		rc = vm_load(&vm, code, n);
+		rc = vm_load(&vm, c->code, c->codelen);
 		assert(rc == 0);
 
 		hash_set(&vm.pragma, "diff.tool", c->difftool);
 	}
+	logger(LOG_INFO, "PARSE took %lums", stopwatch_ms(&t));
 
 	if (c->mode == MODE_CODE) {
 		logger(LOG_DEBUG, "dumping pendulum code to standard output");
 		vm_disasm(&vm, stdout);
 
 	} else {
-		vm.aux.remote = client;
+		vm.aux.remote = c->cfm_client;
 
 		FILE *io = fopen(c->cfm_last_retr, "w");
 		if (io) {
-			fwrite(code, n, 1, io);
+			fwrite(c->code, c->codelen, 1, io);
 			fclose(io);
 		} else {
 			logger(LOG_ERR, "Failed to open %s for writing: %s",
@@ -409,14 +458,18 @@ static void s_cfm_run(client_t *c)
 			vm.trace = c->trace;
 			vm_exec(&vm);
 		}
+		logger(LOG_INFO, "ENFORCE took %lums", stopwatch_ms(&t));
+
 		count = vm.topics;
 		rc = vm_done(&vm);
-		free(code);
 		assert(rc == 0);
+
+		free(c->code);
+		c->codelen = 0;
 
 		io = fopen(c->cfm_last_exec, "w");
 		if (io) {
-			fwrite(code, n, 1, io);
+			fwrite(c->code, c->codelen, 1, io);
 			fclose(io);
 		} else {
 			logger(LOG_ERR, "Failed to open %s for writing: %s",
@@ -424,27 +477,15 @@ static void s_cfm_run(client_t *c)
 		}
 	}
 
-	STOPWATCH(&t, ms_cleanup) {
-		pdu = pdu_make("BYE", 0);
-		reply = s_sendto(client, pdu, c->timeout);
-		pdu_free(pdu);
-	}
-	if (!reply) {
-		logger(LOG_ERR, "BYE failed: %s", zmq_strerror(errno));
-		goto shut_it_down;
-	}
-	logger(LOG_DEBUG, "Received a '%s' PDU", pdu_type(reply));
-	if (strcmp(pdu_type(reply), "ERROR") == 0) {
-		char *e = pdu_string(reply, 1);
-		logger(LOG_ERR, "protocol error: %s", e);
-		free(e);
-	}
-	pdu_free(reply);
+	STOPWATCH(&t, ms_cleanup) { rc = s_cfm_cleanup(c); }
+	if (!rc) goto shut_it_down;
+	logger(LOG_INFO, "CLEANUP took %lums", stopwatch_ms(&t));
 
 shut_it_down:
-	if (client) {
-		vzmq_shutdown(client, 0);
+	if (c->cfm_client) {
+		vzmq_shutdown(c->cfm_client, 0);
 		logger(LOG_INFO, "closed connection");
+		c->cfm_client = NULL;
 	}
 
 	logger(LOG_NOTICE, "complete. enforced %lu resources in %0.2lfs",

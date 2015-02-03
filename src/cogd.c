@@ -437,8 +437,28 @@ static void s_cfm_run(client_t *c)
 			c->codelen = ftell(io);
 			rewind(io);
 			c->code = vmalloc(c->codelen);
-			fread(c->code, c->codelen, 1, io);
+
+			if (fread(c->code, c->codelen, 1, io) != 1) {
+				logger(LOG_WARNING, "%s: failed to read %i bytes from bytecode image",
+					c->cfm_last_exec, c->codelen);
+				free(c->code);
+				c->code = NULL;
+				c->codelen = 0;
+			}
 			fclose(io);
+
+			if (c->code && !vm_iscode(c->code, c->codelen)) {
+				if (c->codelen >= 4) {
+					logger(LOG_WARNING, "%s contains an invalid or corrupt bytecode image.  File starts %02x %02x %02x %02x",
+						c->code[0], c->code[1], c->code[2], c->code[3]);
+				} else {
+					logger(LOG_WARNING, "%s contains an invalid or corrupt bytecode image.  File is only %i bytes long",
+						c->codelen);
+				}
+				free(c->code);
+				c->code = NULL;
+				c->codelen = 0;
+			}
 
 		} else {
 			logger(LOG_INFO, "unable to open %s: %s", c->cfm_last_exec, strerror(errno));

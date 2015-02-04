@@ -24,6 +24,7 @@
 #   pkg-latest  <package>
 #   pkg-install <package> <version>
 #   pkg-remove  <package>
+#   pkg-recache
 #
 
 export PATH=/sbin:/bin:/usr/sbin:/usr/bin
@@ -76,6 +77,8 @@ export PATH=/sbin:/bin:/usr/sbin:/usr/bin
 #   pkg-latest
 #   pkg-install
 #   pkg-remove
+#   pkg-recache
+#
 
 #################################################################
 # AUTO-DETECTION
@@ -170,6 +173,10 @@ on_debian () {
 		/usr/bin/dpkg --purge "$NAME" 2>&1
 		exit $?
 		;;
+	pkg-recache)
+		/usr/bin/apt-get update 2>&1
+		exit $?
+		;;
 
 	svc-run-status)
 		NAME=$1
@@ -244,6 +251,12 @@ on_redhat () {
 	pkg-remove)
 		NAME=$1
 		/usr/bin/yum erase -qy "$NAME"
+		exit $?
+		;;
+	pkg-recache)
+		/usr/bin/yum clean all
+		/usr/bin/yum list >/dev/null 2>&1
+		exit $?
 		;;
 
 	svc-run-status)
@@ -338,6 +351,10 @@ on_gentoo () {
 			/usr/bin/emerge -q -C "$NAME"
 		fi
 		exit $?
+		;;
+	pkg-recache)
+		# FIXME: need to know if this is even applicable on Gentoo...
+		exit 1;
 		;;
 
 	svc-run-status)

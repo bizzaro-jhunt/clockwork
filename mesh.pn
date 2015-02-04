@@ -107,9 +107,11 @@ fn mesh.service
 ;;   (%c) Optional argument (used for install)
 ;;
 fn mesh.package
-  streq %b "install" jz +1
-    localsys "pkg-%[b]s %[a]s" %c
+  streq %b "install" jnz +1
     localsys "pkg-install %[a]s %[c]s" %c
+  streq %b "recache" jnz +1
+    localsys "pkg-recache" %c
+    localsys "pkg-%[b]s %[a]s" %c
 
   acc %d
   print %c

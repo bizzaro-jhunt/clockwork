@@ -80,6 +80,15 @@ fn main
   call mesh.package
 EOF
 
+command_ok qq(package recache), <<EOF;
+#include mesh
+fn main
+  set %a ""
+  set %b "recache"
+  set %c ""
+  call mesh.package
+EOF
+
 command_ok qq(some crazy command), <<EOF;
 #include mesh
 fn main

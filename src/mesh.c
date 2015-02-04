@@ -431,17 +431,23 @@ int cmd_gencode(cmd_t *cmd, FILE *io)
 		tok = list_object(l, cmd_token_t, l);
 		name = tok->value;
 
-		if (l->next == end) goto syntax;
-		l = l->next;
-		tok = list_object(l, cmd_token_t, l);
-		action = tok->value;
+		if (l->next == end) {
+			if (strcmp(name, "recache") != 0)
+				goto syntax;
+			action = name;
+			name = "";
+		} else {
+			l = l->next;
+			tok = list_object(l, cmd_token_t, l);
+			action = tok->value;
 
-		if (strcmp(action, "install") == 0) {
-			version = "latest";
-			if (l->next != end) {
-				l = l->next;
-				tok = list_object(l, cmd_token_t, l);
-				version = tok->value;
+			if (strcmp(action, "install") == 0) {
+				version = "latest";
+				if (l->next != end) {
+					l = l->next;
+					tok = list_object(l, cmd_token_t, l);
+					version = tok->value;
+				}
 			}
 		}
 

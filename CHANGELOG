@@ -5,6 +5,17 @@ origin/master                                              runtime 20150202
 
 
 
+3.0.10       2014-02-03                                    runtime 20150202
+
+  [ENHANCEMENTS]
+
+  - New Mesh commands for managing packages and services
+    `package <name> <action> [version]` lets remote administrators manage
+    and query the installed system packages.
+    `service <name> <action>` deals with service run/boot status.
+
+
+
 3.0.9        2014-02-02                                    runtime 20150202
 
   [ENHANCEMENTS]

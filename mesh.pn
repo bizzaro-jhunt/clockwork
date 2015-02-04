@@ -73,3 +73,44 @@ fn mesh.cfm
   exec "cogd -F1" %a acc %b
   print %a
   retv %b
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; mesh.service
+;;
+;; Manage System Services
+;;
+;; Parameters:
+;;   (%a) Name of the service to manage
+;;   (%b) Action to take (start/stop/reload/etc.)
+;;
+fn mesh.service
+  streq %b "enable" jnz +1
+    localsys "svc-enable %[a]s" %c
+  streq %b "disable" jnz +1
+    localsys "svc-disable %[a]s" %c
+    localsys "svc-init %[a]s %[b]s" %c
+
+  acc %d
+  print %c
+  retv %d
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; mesh.package
+;;
+;; Manage System Packages
+;;
+;; Parameters:
+;;   (%a) Name of the package to manage
+;;   (%b) Action to take (version|latest|install|remove)
+;;   (%c) Optional argument (used for install)
+;;
+fn mesh.package
+  streq %b "install" jz +1
+    localsys "pkg-%[b]s %[a]s" %c
+    localsys "pkg-install %[a]s %[c]s" %c
+
+  acc %d
+  print %c
+  retv %d

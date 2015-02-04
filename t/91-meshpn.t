@@ -37,12 +37,54 @@ fn main
   call mesh.cfm
 EOF
 
+command_ok qq(service ntpd start), <<EOF;
+#include mesh
+fn main
+  set %a "ntpd"
+  set %b "start"
+  call mesh.service
+EOF
+
+command_ok qq(service whatever custom-action), <<EOF;
+#include mesh
+fn main
+  set %a "whatever"
+  set %b "custom-action"
+  call mesh.service
+EOF
+
+command_ok qq(package useless-tools remove), <<EOF;
+#include mesh
+fn main
+  set %a "useless-tools"
+  set %b "remove"
+  set %c ""
+  call mesh.package
+EOF
+
+command_ok qq(package useless-tools install), <<EOF;
+#include mesh
+fn main
+  set %a "useless-tools"
+  set %b "install"
+  set %c "latest"
+  call mesh.package
+EOF
+
+command_ok qq(package useless-tools install 1.2.3), <<EOF;
+#include mesh
+fn main
+  set %a "useless-tools"
+  set %b "install"
+  set %c "1.2.3"
+  call mesh.package
+EOF
+
 command_ok qq(some crazy command), <<EOF;
 #include mesh
 fn main
   set %a "some crazy command"
   call mesh.unhandled
 EOF
-
 
 done_testing;

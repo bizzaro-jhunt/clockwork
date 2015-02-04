@@ -423,6 +423,54 @@ int cmd_gencode(cmd_t *cmd, FILE *io)
 			}
 		}
 
+	} else if (strcmp(tok->value, "package") == 0) {
+		char *name, *action, *version = "";
+
+		if (l->next == end) goto syntax;
+		l = l->next;
+		tok = list_object(l, cmd_token_t, l);
+		name = tok->value;
+
+		if (l->next == end) goto syntax;
+		l = l->next;
+		tok = list_object(l, cmd_token_t, l);
+		action = tok->value;
+
+		if (strcmp(action, "install") == 0) {
+			version = "latest";
+			if (l->next != end) {
+				l = l->next;
+				tok = list_object(l, cmd_token_t, l);
+				version = tok->value;
+			}
+		}
+
+		if (l->next != end) goto syntax;
+		fprintf(io, "  set %%a \"%s\"\n"
+		            "  set %%b \"%s\"\n"
+		            "  set %%c \"%s\"\n"
+		            "  call mesh.package\n", name, action, version);
+		return 0;
+
+	} else if (strcmp(tok->value, "service") == 0) {
+		char *name, *action;
+
+		if (l->next == end) goto syntax;
+		l = l->next;
+		tok = list_object(l, cmd_token_t, l);
+		name = tok->value;
+
+		if (l->next == end) goto syntax;
+		l = l->next;
+		tok = list_object(l, cmd_token_t, l);
+		action = tok->value;
+
+		if (l->next != end) goto syntax;
+		fprintf(io, "  set %%a \"%s\"\n"
+		            "  set %%b \"%s\"\n"
+		            "  call mesh.service\n", name, action);
+		return 0;
+
 	} else if (strcmp(tok->value, "cfm") == 0) {
 		if (l->next != end) goto syntax;
 		fprintf(io, "  call mesh.cfm\n");

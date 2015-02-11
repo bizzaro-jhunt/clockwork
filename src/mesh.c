@@ -423,6 +423,24 @@ int cmd_gencode(cmd_t *cmd, FILE *io)
 			}
 		}
 
+		if (strcmp(tok->value, "facts") == 0) {
+			if (l->next == end) {
+				fprintf(io, "  call mesh.show.facts\n");
+				return 0;
+			} else {
+				goto syntax;
+			}
+		}
+
+		if (strcmp(tok->value, "fact") == 0) {
+			if (l->next == end) goto syntax;
+			l = l->next;
+			tok = list_object(l, cmd_token_t, l);
+			fprintf(io, "  set %%a \"%s\"\n", tok->value);
+			fprintf(io, "  call mesh.show.fact\n");
+			return 0;
+		}
+
 	} else if (strcmp(tok->value, "package") == 0) {
 		char *name, *action, *version = "";
 

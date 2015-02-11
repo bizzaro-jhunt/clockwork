@@ -31,6 +31,19 @@ fn main
   call mesh.show.acl
 EOF
 
+command_ok qq(show facts), <<EOF;
+#include mesh
+fn main
+  call mesh.show.facts
+EOF
+
+command_ok qq(show fact sys.fqdn), <<EOF;
+#include mesh
+fn main
+  set %a "sys.fqdn"
+  call mesh.show.fact
+EOF
+
 command_ok qq(cfm), <<EOF;
 #include mesh
 fn main

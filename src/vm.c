@@ -1957,6 +1957,32 @@ static void op_exec(vm_t *vm)
 	fclose(runner.err); runner.err = NULL;
 }
 
+static void op_system(vm_t *vm)
+{
+	ARG1("system");
+
+	runner_t runner = {
+		.in  = NULL,
+		.out = tmpfile(),
+		.err = tmpfile(),
+		.uid = vm->aux.runas_uid,
+		.gid = vm->aux.runas_gid,
+	};
+
+	char *cmd = _sprintf(vm, STR1(vm));
+	logger(LOG_DEBUG, "exec: running `bin/sh -c \"%s\"`", cmd);
+	vm->acc = run2(&runner, "/bin/sh", "-c", cmd, NULL);
+	free(cmd);
+
+	char buf[8192];
+	while (fgets(buf, sizeof(buf), runner.out) != NULL) {
+		vm_fprintf(vm, vm->stdout, buf);
+	}
+
+	fclose(runner.out); runner.out = NULL;
+	fclose(runner.err); runner.err = NULL;
+}
+
 static void op_dump(vm_t *vm)
 {
 	ARG0("dump");

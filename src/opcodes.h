@@ -125,6 +125,7 @@
 #define OP_FS_MKPARENT      0x79  /* Create all necessary parent directories for a given path */
 #define OP_AUGEAS_EXISTS_P  0x7a  /* Check if a key exists (similar to augeas.find, without the heap allocation) */
 #define OP_SHA1             0x7b  /* Calculate the SHA1 checksum of an in-memory string */
+#define OP_SYSTEM           0x7c  /* execute a command, printing out stdout */
 
 
 /** OPCODE MNEMONIC NAMES **/
@@ -253,6 +254,7 @@ static const char * OPCODES[] = {
 	"fs.mkparent",        /* OP_FS_MKPARENT      121  0x79 */
 	"augeas.exists?",     /* OP_AUGEAS_EXISTS_P  122  0x7a */
 	"sha1",               /* OP_SHA1             123  0x7b */
+	"system",             /* OP_SYSTEM           124  0x7c */
 	NULL,
 };
 
@@ -383,6 +385,7 @@ static const char * OPCODES[] = {
 #define T_OP_FS_MKPARENT      0xba  /* Create all necessary parent directories for a given path */
 #define T_OP_AUGEAS_EXISTS_P  0xbb  /* Check if a key exists (similar to augeas.find, without the heap allocation) */
 #define T_OP_SHA1             0xbc  /* Calculate the SHA1 checksum of an in-memory string */
+#define T_OP_SYSTEM           0xbd  /* execute a command, printing out stdout */
 
 
 static const char * ASM[] = {
@@ -511,6 +514,7 @@ static const char * ASM[] = {
 	"fs.mkparent",        /* T_OP_FS_MKPARENT      122  0x7a */
 	"augeas.exists?",     /* T_OP_AUGEAS_EXISTS_P  123  0x7b */
 	"sha1",               /* T_OP_SHA1             124  0x7c */
+	"system",             /* T_OP_SYSTEM           125  0x7d */
 	NULL,
 };
 
@@ -676,6 +680,7 @@ static struct {
 	{ T_OP_FS_MKPARENT,     "fs.mkparent (%a|<string>)",                      OP_FS_MKPARENT,     { ARG_REGISTER|ARG_STRING,                ARG_NONE,                           } },
 	{ T_OP_AUGEAS_EXISTS_P, "augeas.exists? (%a|<string>)",                   OP_AUGEAS_EXISTS_P, { ARG_REGISTER|ARG_STRING,                ARG_NONE,                           } },
 	{ T_OP_SHA1,            "sha1 (%a|<string>) %b",                          OP_SHA1,            { ARG_REGISTER|ARG_STRING,                ARG_REGISTER,                       } },
+	{ T_OP_SYSTEM,          "system (%a|<string>)",                           OP_SYSTEM,          { ARG_REGISTER|ARG_STRING,                ARG_NONE,                           } },
 	{ 0, 0, 0, { 0, 0 } },
 };
 
@@ -805,6 +810,7 @@ static void op_runtime         (vm_t*);
 static void op_fs_mkparent     (vm_t*);
 static void op_augeas_exists_p (vm_t*);
 static void op_sha1            (vm_t*);
+static void op_system          (vm_t*);
 
 typedef void (*opcode_fn)(vm_t*);
 
@@ -936,6 +942,7 @@ static struct {
 	{ OP_FS_MKPARENT,     op_fs_mkparent,     },
 	{ OP_AUGEAS_EXISTS_P, op_augeas_exists_p, },
 	{ OP_SHA1,            op_sha1,            },
+	{ OP_SYSTEM,          op_system,          },
 	{ 0, 0 },
 };
 #endif

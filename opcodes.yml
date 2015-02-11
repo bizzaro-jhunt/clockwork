@@ -694,4 +694,10 @@
       - [register, string]
       - [register]
 
+- system:
+    help: execute a command, printing out stdout
+    runtime: 20150119
+    args:
+      - [register, string]
+
 # vim:ft=yaml:et:ts=2:sts=2:sw=2

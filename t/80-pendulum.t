@@ -2134,6 +2134,93 @@ EOF
 	};
 };
 
+subtest "system" => sub {
+	pendulum_ok(qq(
+	fn main
+		system "/bin/echo this is a test"
+		jz +1
+		print "fail"
+		print "ok"),
+
+	"this is a test\nok", # no newline removal
+	"system + echo");
+
+	pendulum_ok(qq(
+	fn main
+		system "/bin/echo this is a test >&2"
+		jz +1
+		print "fail"
+		print "ok"),
+
+	"ok", # no newline removal
+	"system + echo + stderr");
+
+	pendulum_ok(qq(
+	fn main
+		system "/usr/bin/test 0 == 1"
+		jnz +1
+		print "fail"
+		print "ok"),
+
+	"ok",
+	"system passes return code via accumulator");
+
+	SKIP: {
+		skip "must be run as root for run-as UID/GID tests", 2
+			unless $< == 0;
+
+		mkdir "t/tmp";
+		put_file "t/tmp/exec.pl", <<'EOF';
+use POSIX;
+my $uid = geteuid();
+my $gid = getegid();
+print "$uid:$gid\n"
+EOF
+
+		my @st = stat($0);
+		my ($uid, $gid) = @st[4,5];
+
+		pendulum_ok(qq(
+		fn main
+			runas.uid $uid
+			runas.gid $gid
+
+			system "/usr/bin/perl t/tmp/exec.pl"
+			jz +1
+			print "fail"
+			ret),
+
+		"$uid:$gid\n",
+		"system honors runas.* values");
+
+		($uid, $gid) = (geteuid(), getegid());
+		pendulum_ok(qq(
+		fn main
+			runas.uid 165536
+			runas.gid 265536
+
+			system "/usr/bin/perl t/tmp/exec.pl"
+			jz +1
+			print "fail"
+			ret),
+
+		"$uid:$gid\n",
+		"out-of-bounds runas.* values are ignored");
+	};
+
+	my $expect; $expect .= "this is a test\n" for (1..8192);
+	put_file "t/tmp/expect", $expect;
+	pendulum_ok(qq(
+	fn main
+		system "cat t/tmp/expect"
+		jz +1
+		print "fail"
+		ret),
+
+	$expect,
+	"system handles extremely large output");
+};
+
 subtest "localsys" => sub {
 	pendulum_ok(qq(
 	fn main

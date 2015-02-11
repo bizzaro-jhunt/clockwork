@@ -58,6 +58,34 @@ fn mesh.show.acl
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
+;; mesh.show.facts
+;;
+;; Print out all facts defined by gather scripts on the host
+;;
+fn mesh.show.facts
+  runtime %d gte %d 20150209 jz +1
+    bail 1 ; `system` not supported
+  system "cw fact"
+  retv 0
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; mesh.show.fact
+;;
+;; Print out a specific fact defined on the host
+;;
+;; Parameters:
+;;  (%a) Name of the fact to limit the display to.
+;;
+fn mesh.show.fact
+  runtime %d gte %d 20150209 jz +1
+    bail 1 ; `system` not supported
+  system "cw fact %[a]s"
+  retv 0
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
 ;; mesh.cfm
 ;;
 ;; Trigger a CFM (configuration management) run, to force

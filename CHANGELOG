@@ -1,7 +1,24 @@
 
-origin/master                                              runtime 20150202
+origin/master                                              runtime 20150209
 
   (none)
+
+
+
+3.0.11       2014-02-09                                    runtime 20150209
+
+  [ENHANCEMENTS]
+
+  - New Mesh commands for retrieving fact info
+
+    `show facts` lets remote administrators retrieve full lists of all
+    facts defined on hosts. Additionally `show fact <fact>` will target
+    that list, and return only the specific fact value for the remote
+    hosts.
+
+  - Added the `system` opcode added to pendulum for execing commands and
+    sending stdout of the command run to stdout of the process running the
+    pendulum code.
 
 
 

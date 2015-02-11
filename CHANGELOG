@@ -4,6 +4,13 @@ origin/master                                              runtime 20150209
   (none)
 
 
+3.0.12       2014-02-10                                    runtime 20150209
+
+  [ENHANCEMENTS]
+
+  - Multiline output of mesh commands is now supported.
+
+
 
 3.0.11       2014-02-09                                    runtime 20150209
 

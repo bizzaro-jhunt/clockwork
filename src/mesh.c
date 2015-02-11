@@ -20,6 +20,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <assert.h>
+#include <sys/mman.h>
 #include "mesh.h"
 #include "authdb.h"
 #include "policy.h"
@@ -1360,11 +1361,14 @@ int mesh_client_handle(mesh_client_t *c, void *sock, pdu_t *pdu)
 		vm.stdout = tmpfile();
 		vm_exec(&vm);
 
+		size_t len = ftell(vm.stdout);
 		rewind(vm.stdout);
-		char output[8192] = {0};
-		if (!fgets(output, 8192, vm.stdout))
-			output[0] = '\0';
-		fclose(vm.stdout);
+		char *output = mmap(NULL, len, PROT_READ, MAP_PRIVATE, fileno(vm.stdout), 0);
+		if ((void *)output == MAP_FAILED) {
+			logger(LOG_CRIT, "Failed to mmap mesh output");
+			fclose(vm.stdout);
+			return 1;
+		}
 
 		rc = vm_done(&vm);
 		assert(rc == 0);
@@ -1375,6 +1379,9 @@ int mesh_client_handle(mesh_client_t *c, void *sock, pdu_t *pdu)
 				hash_get(c->facts, "sys.uuid"),
 				"0",
 				output);
+
+		munmap(output, len);
+		fclose(vm.stdout);
 
 		pdu_send_and_free(reply, sock);
 

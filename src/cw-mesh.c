@@ -431,7 +431,7 @@ void print_optout(const char *fqdn, const char *uuid)
 
 static void printf_eachline(const char *fmt, const char *buf)
 {
-	strings_t *lines = strings_split(buf, strlen(buf), ":", SPLIT_NORMAL);
+	strings_t *lines = strings_split(buf, strlen(buf), "\n", SPLIT_NORMAL);
 	int i;
 	for (i = 0; i < lines->num; i++)
 		printf(fmt, lines->strings[i]);

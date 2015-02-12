@@ -26,9 +26,9 @@ origin/master                                              runtime 20150209
     that list, and return only the specific fact value for the remote
     hosts.
 
-  - Added the `system` opcode added to pendulum for execing commands and
-    sending stdout of the command run to stdout of the process running the
-    pendulum code.
+  - New `system` opcode for executinging commands and redirecting all of
+    standard output to the pendulum VMs configured stdout stream.  Standard
+    error is ignored.
 
 
 

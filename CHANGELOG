@@ -1,7 +1,10 @@
 
 origin/master                                              runtime 20150209
 
-  (none)
+  [BUG FIXES]
+
+  - Fix log level of res.group.absent "enforcing" message.
+
 
 
 3.0.12       2014-02-10                                    runtime 20150209

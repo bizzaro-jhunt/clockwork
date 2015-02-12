@@ -602,7 +602,7 @@ fn res.user.present
 ;; res.group.absent
 ;;
 fn res.group.absent
-    syslog notice "%T: enforcing absence of %[a]s"
+    syslog info "%T: enforcing absence of %[a]s"
     group.find %a
     jz +1
       retv 0

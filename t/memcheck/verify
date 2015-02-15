@@ -8,7 +8,10 @@ if [[ ! -x $VG ]]; then
 	exit 77;
 fi
 
-SUPPS="t/tmp/clockwork.supp"
+SUPPS=$(mktemp)
+TEMPFILE=$(mktemp);
+trap "rm -f $TEMPFILE $SUPPS" INT TERM EXIT
+
 cat >$SUPPS <<EOF
 {
    <libzmq3_socketcall_sendto>
@@ -26,8 +29,6 @@ cat >$SUPPS <<EOF
 }
 EOF
 
-TEMPFILE=$(mktemp);
-trap "rm -f $TEMPFILE" INT TERM EXIT
 $VG --tool=memcheck --leak-check=full --show-leak-kinds=all --error-exitcode=$EFAIL --suppressions=$SUPPS 2>$TEMPFILE >/dev/null -- "$@"
 if [[ $? == $EFAIL ]]; then
 	echo "FAIL: $@"

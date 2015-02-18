@@ -5,6 +5,8 @@ origin/master                                              runtime 20150209
 
   - Fix log level of res.group.absent "enforcing" message.
 
+  - Fix debian/control dependencies on libvigor
+
 
 
 3.0.12       2014-02-10                                    runtime 20150209

@@ -16,6 +16,8 @@ origin/master
     definitely want to set up file resources to set the permissions back
     to more secure values (like 0600 for /etc/shadow and /etc/gshadow)
 
+  - Fix pathing issue in time gatherer, to play nicely with mesh
+
 
 
 3.0.12       2014-02-10                                    runtime 20150209

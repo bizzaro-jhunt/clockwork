@@ -348,7 +348,7 @@ int authdb_write(authdb_t *db)
 		}
 
 		fclose(io);
-		rc = rename(tmpfile, file); free(file);
+		rc = cw_frename(tmpfile, file); free(file);
 		if (rc != 0) {
 			unlink(tmpfile); free(tmpfile);
 			goto bail;
@@ -381,7 +381,7 @@ int authdb_write(authdb_t *db)
 		}
 
 		fclose(io);
-		rc = rename(tmpfile, file); free(file);
+		rc = cw_frename(tmpfile, file); free(file);
 		if (rc != 0) {
 			unlink(tmpfile); free(tmpfile);
 			goto bail;
@@ -406,7 +406,7 @@ int authdb_write(authdb_t *db)
 		}
 
 		fclose(io);
-		rc = rename(tmpfile, file); free(file);
+		rc = cw_frename(tmpfile, file); free(file);
 		if (rc != 0) {
 			unlink(tmpfile); free(tmpfile);
 			goto bail;
@@ -436,7 +436,7 @@ int authdb_write(authdb_t *db)
 		}
 
 		fclose(io);
-		rc = rename(tmpfile, file); free(file);
+		rc = cw_frename(tmpfile, file); free(file);
 		if (rc != 0) {
 			unlink(tmpfile); free(tmpfile);
 			goto bail;

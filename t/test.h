@@ -87,4 +87,21 @@ static FILE* temp_file(const char *contents)
 	return io;
 }
 
+TEST_HELPER
+static int is_root(void)
+{
+	return geteuid() == 0;
+}
+
+TEST_HELPER
+static int stat_match(const char *orig, const char *copy)
+{
+	struct stat a, b;
+	return stat(orig, &a) == 0
+	    && stat(copy, &b) == 0
+	    && a.st_uid  == b.st_uid
+	    && a.st_gid  == b.st_gid
+	    && a.st_mode == b.st_mode;
+}
+
 #endif

@@ -435,6 +435,24 @@ int cw_cat(int src, int dst)
 	return n;
 }
 
+int cw_frename(const char *oldf, const char *newf)
+{
+	struct stat st;
+	int rc, overwrite;
+
+	overwrite = (stat(newf, &st) == 0);
+	rc = rename(oldf, newf);
+	if (rc != 0)
+		return rc;
+
+	if (!overwrite)
+		return 0;
+
+	rc  = chown(newf, st.st_uid, st.st_gid);
+	rc += chmod(newf, st.st_mode);
+	return rc;
+}
+
 char* cw_escape_json(const char *in)
 {
 	size_t n = 0;

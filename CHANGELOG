@@ -1,11 +1,20 @@
 
-origin/master                                              runtime 20150209
+origin/master
+
+  (none)
+
+3.0.13                                                     runtime 20150209
 
   [BUG FIXES]
 
   - Fix log level of res.group.absent "enforcing" message.
 
   - Fix debian/control dependencies on libvigor
+
+  - Fix bug in authdb that was improperly setting /etc/* file modes
+    If you were using Clockwork to manage users prior to 3.0.13, you'll
+    definitely want to set up file resources to set the permissions back
+    to more secure values (like 0600 for /etc/shadow and /etc/gshadow)
 
 
 

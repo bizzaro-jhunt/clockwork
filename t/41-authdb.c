@@ -27,7 +27,7 @@ static void reset(const char *root)
 	FILE *io;
 	char *file;
 
-	mkdir(root, 0777);
+	mkdir(root, 0755);
 	file = string("%s/passwd", root); io = fopen(file, "w"); free(file);
 	if (!io) BAIL_OUT("test setup: failed to open {root}/passwd database for reset");
 	fprintf(io, "root:x:0:0:root:/root:/bin/bash\n");
@@ -43,6 +43,7 @@ static void reset(const char *root)
 	fprintf(io, "admin2:x:912:20:Admin Two:/home/adm2:/sbin/nologin\n");
 	fprintf(io, "admin3:x:913:20:Admin Three:/home/adm3:/sbin/nologin\n");
 	fprintf(io, "svc:x:999:909:service account:/tmp/nonexistent:/sbin/nologin\n");
+	if (is_root()) fchmod(fileno(io), 0644);
 	fclose(io);
 
 	file = string("%s/shadow", root); io = fopen(file, "w"); free(file);
@@ -53,6 +54,7 @@ static void reset(const char *root)
 	fprintf(io, "sys:*:13991:0:99999:7:::\n");
 	fprintf(io, "user:$6$nahablHe$1qen4PePmYtEIC6aCTYoQFLgMp//snQY7nDGU7.9iVzXrmmCYLDsOKc22J6MPRUuH/X4XJ7w.JaEXjofw9h1d/:14871:0:99999:7:::\n");
 	fprintf(io, "svc:*:13991:0:99999:7:::\n");
+	if (is_root()) fchmod(fileno(io), 0600);
 	fclose(io);
 
 	file = string("%s/group", root); io = fopen(file, "w"); free(file);
@@ -64,6 +66,7 @@ static void reset(const char *root)
 	fprintf(io, "members:x:4:account1,account2,account3\n");
 	fprintf(io, "users:x:20:\n");
 	fprintf(io, "service:x:909:account1,account2\n");
+	if (is_root()) fchmod(fileno(io), 0644);
 	fclose(io);
 
 	file = string("%s/gshadow", root); io = fopen(file, "w"); free(file);
@@ -75,10 +78,44 @@ static void reset(const char *root)
 	fprintf(io, "members:*:admin1,admin2:account1,account2,account3\n");
 	fprintf(io, "users:*::\n");
 	fprintf(io, "service:!:admin2:account1,account2\n");
+	if (is_root()) fchmod(fileno(io), 0600);
 	fclose(io);
 }
 
 TESTS {
+	if (is_root()) {
+		subtest { /* verify UID/GID/mode */
+			reset("t/tmp");
+
+			authdb_t *db;
+			db = authdb_read("t/tmp", AUTHDB_ALL);
+			isnt_null(db, "opened all four databases in t/tmp");
+			authdb_write(db);
+			authdb_close(db);
+
+			struct stat st;
+			is_int(stat("t/tmp/passwd", &st), 0, "stat'd t/tmp/passwd");
+			is_int(st.st_uid,        0, "t/tmp/passwd is owned by root (0)");
+			is_int(st.st_gid,        0, "t/tmp/passwd is owned by root (0)");
+			is_int(st.st_mode, 0100644, "t/tmp/passwd has 0644 permissions");
+
+			is_int(stat("t/tmp/shadow", &st), 0, "stat'd t/tmp/shadow");
+			is_int(st.st_uid,        0, "t/tmp/shadow is owned by root (0)");
+			is_int(st.st_gid,        0, "t/tmp/shadow is owned by root (0)");
+			is_int(st.st_mode, 0100600, "t/tmp/shadow has 0600 permissions");
+
+			is_int(stat("t/tmp/group", &st), 0, "stat'd t/tmp/group");
+			is_int(st.st_uid,        0, "t/tmp/group is owned by root (0)");
+			is_int(st.st_gid,        0, "t/tmp/group is owned by root (0)");
+			is_int(st.st_mode, 0100644, "t/tmp/group has 0644 permissions");
+
+			is_int(stat("t/tmp/gshadow", &st), 0, "stat'd t/tmp/gshadow");
+			is_int(st.st_uid,        0, "t/tmp/gshadow is owned by root (0)");
+			is_int(st.st_gid,        0, "t/tmp/gshadow is owned by root (0)");
+			is_int(st.st_mode, 0100600, "t/tmp/gshadow has 0600 permissions");
+		}
+	}
+
 	subtest {
 		reset("t/tmp");
 

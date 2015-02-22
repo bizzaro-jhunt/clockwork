@@ -938,9 +938,9 @@ EOF
 		jz +2
 			print "fail"
 			ret
-		print "SHA1:%[d]s\\n"),
+		print "CW_SHA1:%[d]s\\n"),
 
-	"SHA1:9b032ba6005e483b9e33706a8e9e3f17e4c3d1fc\n",
+	"CW_SHA1:9b032ba6005e483b9e33706a8e9e3f17e4c3d1fc\n",
 	"fs.sha1");
 
 
@@ -2662,7 +2662,7 @@ subtest "sha1" => sub {
 		fn main
 			sha1 "abc" %a
 			jz +2
-				perror "SHA1 failed"
+				perror "CW_SHA1 failed"
 				bail 1
 			print "%[a]s"),
 
@@ -2673,7 +2673,7 @@ subtest "sha1" => sub {
 		fn main
 			sha1 "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq" %a
 			jz +2
-				perror "SHA1 failed"
+				perror "CW_SHA1 failed"
 				bail 1
 			print "%[a]s"),
 

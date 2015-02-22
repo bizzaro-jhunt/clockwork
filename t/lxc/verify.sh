@@ -40,13 +40,13 @@ function file_should_exist() {
 	fi
 }
 
-function file_sha1_should_be() {
+function file_cw_sha1_should_be() {
 	local file=$1
-	local sha1=$2
+	local cw_sha1=$2
 	if [[ -f $file ]]; then
-		local got=$(sha1sum $file | awk '{print $1}')
-		if [[ $got != $sha1 ]]; then
-			echo >&2 "SHA1 of $file ($got) != expected ($sha1)"
+		local got=$(cw_sha1sum $file | awk '{print $1}')
+		if [[ $got != $cw_sha1 ]]; then
+			echo >&2 "CW_SHA1 of $file ($got) != expected ($cw_sha1)"
 			RC=2
 		fi
 	fi
@@ -91,15 +91,15 @@ user_should_exist kharding
 dir_should_exist /home/rjoseph
 dir_should_exist /home/rjoseph/.ssh
 file_should_exist /home/rjoseph/.vimrc
-file_sha1_should_be /home/rjoseph/.vimrc 45612457ba26f94ad404c72b90220856668d5d55
+file_cw_sha1_should_be /home/rjoseph/.vimrc 45612457ba26f94ad404c72b90220856668d5d55
 dir_should_exist /home/rjoseph/env
 file_should_exist /home/rjoseph/env/gitprompt
-file_sha1_should_be /home/rjoseph/env/gitprompt 036955bcc7013256f4c30e5acc60e10fa221daa1
+file_cw_sha1_should_be /home/rjoseph/env/gitprompt 036955bcc7013256f4c30e5acc60e10fa221daa1
 file_should_exist /home/rjoseph/env/git.bashrc
-file_sha1_should_be /home/rjoseph/env/git.bashrc e2def2b11b9ed7fbffcb297c99ccfc6f8046b6ca
+file_cw_sha1_should_be /home/rjoseph/env/git.bashrc e2def2b11b9ed7fbffcb297c99ccfc6f8046b6ca
 
 file_should_exist /etc/motd
-file_sha1_should_be /etc/motd 2920d4dc6ca787b79e214baeff72e1a4d3d71067
+file_cw_sha1_should_be /etc/motd 2920d4dc6ca787b79e214baeff72e1a4d3d71067
 
 package_should_be_installed     ntp
 package_should_not_be_installed fortune-mod

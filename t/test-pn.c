@@ -25,7 +25,7 @@
 #include <fcntl.h>
 #include <pthread.h>
 
-#define SHA1_WANT "db726735fb9f56a8f4e9569a0118cc2544c60700"
+#define CW_SHA1_WANT "db726735fb9f56a8f4e9569a0118cc2544c60700"
         /* sha1 of the string "this is what i want.\n" */
 
 #define FAKE_CLOCKD "inproc://clockd"
@@ -54,9 +54,9 @@ static void* fake_clockd(void *zmq)
 
 		logger(LOG_INFO, "fake_clockd: received a %s", pdu_type(pdu));
 
-		if (strcmp(pdu_type(pdu), "FILE") == 0) { /* should return a 'SHA1' */
-			logger(LOG_INFO, "fake_clockd: sending [SHA1][" SHA1_WANT "] response");
-			pdu_send_and_free(pdu_reply(pdu, "SHA1", 1, SHA1_WANT), Z);
+		if (strcmp(pdu_type(pdu), "FILE") == 0) { /* should return a 'CW_SHA1' */
+			logger(LOG_INFO, "fake_clockd: sending [CW_SHA1][" CW_SHA1_WANT "] response");
+			pdu_send_and_free(pdu_reply(pdu, "CW_SHA1", 1, CW_SHA1_WANT), Z);
 			continue;
 		}
 

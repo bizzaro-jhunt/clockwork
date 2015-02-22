@@ -3,6 +3,17 @@ origin/master
 
   (none)
 
+
+
+3.0.14                                                     runtime 20150209
+
+  [CLEANUP]
+
+  - Rename SHA1 primitives (prefix with 'cw_') so that the SHA1
+    implementation can be moved into libvigor.
+
+
+
 3.0.13                                                     runtime 20150209
 
   [BUG FIXES]

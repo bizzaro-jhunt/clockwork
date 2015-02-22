@@ -35,10 +35,10 @@
 
 #include "sha1.h"
 
-static void sha1_transform(uint32_t state[5], const uint8_t buffer[64]);
+static void cw_sha1_transform(uint32_t state[5], const uint8_t buffer[64]);
 
-/* for sha1_fd */
-#define SHA1_FD_BUFSIZE 8192
+/* for cw_sha1_fd */
+#define CW_SHA1_FD_BUFSIZE 8192
 
 #define rol(value, bits) (((value) << (bits)) | ((value) >> (32 - (bits))))
 
@@ -53,7 +53,7 @@ static void sha1_transform(uint32_t state[5], const uint8_t buffer[64]);
 #define blk(i) (block->l[i&15] = rol(block->l[(i+13)&15]^block->l[(i+8)&15] \
     ^block->l[(i+2)&15]^block->l[i&15],1))
 
-/* (R0+R1), R2, R3, R4 are the different operations used in SHA1 */
+/* (R0+R1), R2, R3, R4 are the different operations used in CW_SHA1 */
 #define R0(v,w,x,y,z,i) z+=((w&(x^y))^y)+blk0(i)+0x5A827999+rol(v,5);w=rol(w,30);
 #define R1(v,w,x,y,z,i) z+=((w&(x^y))^y)+blk(i)+0x5A827999+rol(v,5);w=rol(w,30);
 #define R2(v,w,x,y,z,i) z+=(w^x^y)+blk(i)+0x6ED9EBA1+rol(v,5);w=rol(w,30);
@@ -62,7 +62,7 @@ static void sha1_transform(uint32_t state[5], const uint8_t buffer[64]);
 
 
 /* Hash a single 512-bit block. This is the core of the algorithm. */
-static void sha1_transform(uint32_t state[5], const uint8_t buffer[64])
+static void cw_sha1_transform(uint32_t state[5], const uint8_t buffer[64])
 {
     uint32_t a, b, c, d, e;
     typedef union {
@@ -115,9 +115,9 @@ static void sha1_transform(uint32_t state[5], const uint8_t buffer[64])
 
 
 /* Initialize new context */
-void sha1_ctx_init(struct sha1_ctx* context)
+void cw_sha1_ctx_init(struct cw_sha1_ctx* context)
 {
-    /* SHA1 initialization constants */
+    /* CW_SHA1 initialization constants */
     context->state[0] = 0x67452301;
     context->state[1] = 0xEFCDAB89;
     context->state[2] = 0x98BADCFE;
@@ -128,7 +128,7 @@ void sha1_ctx_init(struct sha1_ctx* context)
 
 
 /* Run your data through this. */
-void sha1_ctx_update(struct sha1_ctx* context, const uint8_t* data, const size_t len)
+void cw_sha1_ctx_update(struct cw_sha1_ctx* context, const uint8_t* data, const size_t len)
 {
     size_t i, j;
 
@@ -137,9 +137,9 @@ void sha1_ctx_update(struct sha1_ctx* context, const uint8_t* data, const size_t
     context->count[1] += (len >> 29);
     if ((j + len) > 63) {
         memcpy(&context->buffer[j], data, (i = 64-j));
-        sha1_transform(context->state, context->buffer);
+        cw_sha1_transform(context->state, context->buffer);
         for ( ; i + 63 < len; i += 64) {
-            sha1_transform(context->state, data + i);
+            cw_sha1_transform(context->state, data + i);
         }
         j = 0;
     }
@@ -149,7 +149,7 @@ void sha1_ctx_update(struct sha1_ctx* context, const uint8_t* data, const size_t
 
 
 /* Add padding and return the message digest. */
-void sha1_ctx_final(struct sha1_ctx* context, uint8_t digest[SHA1_DIGLEN])
+void cw_sha1_ctx_final(struct cw_sha1_ctx* context, uint8_t digest[CW_SHA1_DIGLEN])
 {
     uint32_t i;
     uint8_t  finalcount[8];
@@ -158,12 +158,12 @@ void sha1_ctx_final(struct sha1_ctx* context, uint8_t digest[SHA1_DIGLEN])
         finalcount[i] = (unsigned char)((context->count[(i >= 4 ? 0 : 1)]
          >> ((3-(i & 3)) * 8) ) & 255);  /* Endian independent */
     }
-    sha1_ctx_update(context, (uint8_t *)"\200", 1);
+    cw_sha1_ctx_update(context, (uint8_t *)"\200", 1);
     while ((context->count[0] & 504) != 448) {
-        sha1_ctx_update(context, (uint8_t *)"\0", 1);
+        cw_sha1_ctx_update(context, (uint8_t *)"\0", 1);
     }
-    sha1_ctx_update(context, finalcount, 8);  /* Should cause a sha1_transform() */
-    for (i = 0; i < SHA1_DIGLEN; i++) {
+    cw_sha1_ctx_update(context, finalcount, 8);  /* Should cause a cw_sha1_transform() */
+    for (i = 0; i < CW_SHA1_DIGLEN; i++) {
         digest[i] = (uint8_t)
          ((context->state[i>>2] >> ((3-(i & 3)) * 8) ) & 255);
     }
@@ -176,38 +176,38 @@ void sha1_ctx_final(struct sha1_ctx* context, uint8_t digest[SHA1_DIGLEN])
     memset(finalcount, 0, 8);
 }
 
-void sha1_hexdigest(struct SHA1 *sha1)
+void cw_sha1_hexdigest(struct CW_SHA1 *cw_sha1)
 {
 	unsigned int i;
-	char *hex = sha1->hex;
-	for (i = 0; i < SHA1_DIGLEN; i++) {
-		sprintf(hex,"%02x", sha1->raw[i]);
+	char *hex = cw_sha1->hex;
+	for (i = 0; i < CW_SHA1_DIGLEN; i++) {
+		sprintf(hex,"%02x", cw_sha1->raw[i]);
 		hex += 2;
 	}
 	*hex = '\0';
 }
 
 /**
-  Initialize a SHA1 $checksum.
+  Initialize a CW_SHA1 $checksum.
 
-  This function ensures that the $sha1->$raw and $sha1->$hex
+  This function ensures that the $cw_sha1->$raw and $cw_sha1->$hex
   are initialized to appropriate starting values.  Callers using
-  helper methods like @sha1_file and @sha1_data do not need to
+  helper methods like @cw_sha1_file and @cw_sha1_data do not need to
   call this function explicitly.
 
   If $hex is specified, then $checksum will be initialized with
   a starting checksum.
  */
-void sha1_init(struct SHA1 *cksum, const char *hex)
+void cw_sha1_init(struct CW_SHA1 *cksum, const char *hex)
 {
-	if (hex && strlen(hex) == SHA1_HEXLEN - 1) {
-		memcpy(cksum->hex, hex, SHA1_HEXLEN - 1);
-		cksum->hex[SHA1_HEXLEN - 1] = '\0';
+	if (hex && strlen(hex) == CW_SHA1_HEXLEN - 1) {
+		memcpy(cksum->hex, hex, CW_SHA1_HEXLEN - 1);
+		cksum->hex[CW_SHA1_HEXLEN - 1] = '\0';
 
 		unsigned int i;
 		char digit[3] = {0};
 		char *endptr = NULL; /* for strtol */
-		for (i = 0; i < SHA1_DIGLEN; i++) {
+		for (i = 0; i < CW_SHA1_DIGLEN; i++) {
 			digit[0] = *hex++; digit[1] = *hex++;
 			cksum->raw[i] = strtol(digit, &endptr, 16);
 			if (endptr && *endptr != '\0') {
@@ -218,8 +218,8 @@ void sha1_init(struct SHA1 *cksum, const char *hex)
 	}
 
 blank_init:
-	memset(cksum->raw, 0, SHA1_DIGLEN);
-	memset(cksum->hex, 0, SHA1_HEXLEN);
+	memset(cksum->raw, 0, CW_SHA1_DIGLEN);
+	memset(cksum->hex, 0, CW_SHA1_HEXLEN);
 }
 
 /**
@@ -231,9 +231,9 @@ blank_init:
   If $a and $b are the same checksum, returns 0.  Otherwise,
   returns non-zero.
  */
-int sha1_cmp(const struct SHA1 *a, const struct SHA1 *b)
+int cw_sha1_cmp(const struct CW_SHA1 *a, const struct CW_SHA1 *b)
 {
-	return memcmp(a->raw, b->raw, SHA1_DIGLEN);
+	return memcmp(a->raw, b->raw, CW_SHA1_DIGLEN);
 }
 
 /**
@@ -241,50 +241,50 @@ int sha1_cmp(const struct SHA1 *a, const struct SHA1 *b)
 
   Data will be read until $fd reaches EOF.
 
-  The $cksum parameter must be a user-supplied `sha1`
-  structure.  This function will call @sha1_init on $cksum.
+  The $cksum parameter must be a user-supplied `cw_sha1`
+  structure.  This function will call @cw_sha1_init on $cksum.
 
   On success, returns 0 and updates $cksum accordingly.
   On failure, returns non-zero, and the contents of $cksum
   are undefined.
  */
-int sha1_fd(int fd, struct SHA1 *cksum)
+int cw_sha1_fd(int fd, struct CW_SHA1 *cksum)
 {
-	struct sha1_ctx ctx;
-	char buf[SHA1_FD_BUFSIZE];
+	struct cw_sha1_ctx ctx;
+	char buf[CW_SHA1_FD_BUFSIZE];
 	ssize_t nread;
 
-	sha1_init(cksum, NULL);
-	sha1_ctx_init(&ctx);
-	while ((nread = read(fd, buf, SHA1_FD_BUFSIZE)) != 0) {
-		sha1_ctx_update(&ctx, (uint8_t*)buf, nread);
+	cw_sha1_init(cksum, NULL);
+	cw_sha1_ctx_init(&ctx);
+	while ((nread = read(fd, buf, CW_SHA1_FD_BUFSIZE)) != 0) {
+		cw_sha1_ctx_update(&ctx, (uint8_t*)buf, nread);
 	}
-	sha1_ctx_final(&ctx, cksum->raw);
-	sha1_hexdigest(cksum);
+	cw_sha1_ctx_final(&ctx, cksum->raw);
+	cw_sha1_hexdigest(cksum);
 
 	return 0;
 }
 
 /**
-  Calculate the SHA1 checksum of $path.
+  Calculate the CW_SHA1 checksum of $path.
 
   $path will be opened in read-only mode and read in chunks
   to calculate the checksum.  If $path cannot be opened
   (permission denied, ENOENT, etc.) non-zero will be returned
   to indicate failure.
 
-  The $cksum parameter must be a user-supplied `sha1`
-  structure.  This function will call @sha1_init on $cksum.
+  The $cksum parameter must be a user-supplied `cw_sha1`
+  structure.  This function will call @cw_sha1_init on $cksum.
 
   On success, returns 0 and updates $cksum accordingly.
   On failure, returns non-zero, and the contents of $cksum
   are undefined.
  */
-int sha1_file(const char *path, struct SHA1 *cksum) {
+int cw_sha1_file(const char *path, struct CW_SHA1 *cksum) {
 	int fd;
 	struct stat st;
 
-	sha1_init(cksum, NULL);
+	cw_sha1_init(cksum, NULL);
 	fd = open(path, O_RDONLY);
 
 	if (fd < 0 || fstat(fd, &st) == -1) {
@@ -296,35 +296,35 @@ int sha1_file(const char *path, struct SHA1 *cksum) {
 		return -1;
 	}
 
-	sha1_fd(fd, cksum);
+	cw_sha1_fd(fd, cksum);
 
 	close(fd);
 	return 0;
 }
 
 /**
-  Calculate the SHA1 checksum of $data.
+  Calculate the CW_SHA1 checksum of $data.
 
   $data will be treated as an array of $len 8-bit unsigned
   integers.  Character strings will be converted according to
   standard C locale rules.
 
-  The $cksum parameter must be a user-supplied `sha1`
-  structure.  This function will call @sha1_init on $cksum.
+  The $cksum parameter must be a user-supplied `cw_sha1`
+  structure.  This function will call @cw_sha1_init on $cksum.
 
   On success, returns 0 and updates $cksum accordingly.
   On failure, returns non-zero, and the contents of $cksum
   are undefined.
  */
-int sha1_data(const void *data, size_t len, struct SHA1 *cksum)
+int cw_sha1_data(const void *data, size_t len, struct CW_SHA1 *cksum)
 {
-	struct sha1_ctx ctx;
+	struct cw_sha1_ctx ctx;
 
-	sha1_init(cksum, NULL);
-	sha1_ctx_init(&ctx);
-	sha1_ctx_update(&ctx, (uint8_t *)data, len);
-	sha1_ctx_final(&ctx, cksum->raw);
-	sha1_hexdigest(cksum);
+	cw_sha1_init(cksum, NULL);
+	cw_sha1_ctx_init(&ctx);
+	cw_sha1_ctx_update(&ctx, (uint8_t *)data, len);
+	cw_sha1_ctx_final(&ctx, cksum->raw);
+	cw_sha1_hexdigest(cksum);
 
 	return 0;
 }

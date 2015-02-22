@@ -50,7 +50,7 @@ TESTS {
 		ok(!ENFORCED(rf, RES_FILE_UID),  "UID not enforced by default");
 		ok(!ENFORCED(rf, RES_FILE_GID),  "GID not enforced by default");
 		ok(!ENFORCED(rf, RES_FILE_MODE), "MODE not enforced by default");
-		ok(!ENFORCED(rf, RES_FILE_SHA1), "SHA1 not enforced by default");
+		ok(!ENFORCED(rf, RES_FILE_CW_SHA1), "CW_SHA1 not enforced by default");
 
 		res_file_set(rf, "owner", "someone");
 		ok(ENFORCED(rf, RES_FILE_UID), "UID enforced");
@@ -65,7 +65,7 @@ TESTS {
 		is_int(rf->mode, 0755, "mode to enforce");
 
 		res_file_set(rf, "source", "sha1/file");
-		ok(ENFORCED(rf, RES_FILE_SHA1), "SHA1 enforced");
+		ok(ENFORCED(rf, RES_FILE_CW_SHA1), "CW_SHA1 enforced");
 		is_string(rf->source, "sha1/file", "source file to enforce");
 
 		res_file_set(rf, "path", "t/tmp/file");

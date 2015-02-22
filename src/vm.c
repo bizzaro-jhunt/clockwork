@@ -584,16 +584,16 @@ static char* s_remote_sha1(vm_t *vm, const char *key)
 	}
 	if (strcmp(pdu_type(pdu), "ERROR") == 0) {
 		s = pdu_string(pdu, 1);
-		logger(LOG_ERR, "remote.sha1 - protocol violation: %s", s);
+		logger(LOG_ERR, "remote.cw_sha1 - protocol violation: %s", s);
 		free(s); pdu_free(pdu);
 		return NULL;
 	}
-	if (strcmp(pdu_type(pdu), "SHA1") == 0) {
+	if (strcmp(pdu_type(pdu), "CW_SHA1") == 0) {
 		s = pdu_string(pdu, 1);
 		pdu_free(pdu);
 		return s;
 	}
-	if (strcmp(pdu_type(pdu), "SHA1.FAIL") == 0) {
+	if (strcmp(pdu_type(pdu), "CW_SHA1.FAIL") == 0) {
 		int err = 0;
 		s = pdu_string(pdu, 1); err = atoi(s); free(s); pdu_free(pdu);
 		logger(LOG_ERR, "%s failed: %s (error %u)", key, strerror(err), err);
@@ -617,7 +617,7 @@ static char* s_remote_sha1(vm_t *vm, const char *key)
 		return NULL;
 	}
 
-	logger(LOG_ERR, "remote.sha1 - unexpected reply PDU [%s]", pdu_type(pdu));
+	logger(LOG_ERR, "remote.cw_sha1 - unexpected reply PDU [%s]", pdu_type(pdu));
 	pdu_free(pdu);
 	return NULL;
 }
@@ -1306,12 +1306,12 @@ static void op_fs_chmod(vm_t *vm)
 
 static void op_fs_sha1(vm_t *vm)
 {
-	ARG2("fs.sha1");
-	REGISTER2("fs.sha1");
+	ARG2("fs.cw_sha1");
+	REGISTER2("fs.cw_sha1");
 
-	struct SHA1 sha1;
-	vm->acc = sha1_file(STR1(vm), &sha1);
-	REG2(vm) = vm_heap_strdup(vm, sha1.hex);
+	struct CW_SHA1 cw_sha1;
+	vm->acc = cw_sha1_file(STR1(vm), &cw_sha1);
+	REG2(vm) = vm_heap_strdup(vm, cw_sha1.hex);
 }
 
 static void op_fs_get(vm_t *vm)
@@ -2042,8 +2042,8 @@ static void op_remote_live_p(vm_t *vm)
 
 static void op_remote_sha1(vm_t *vm)
 {
-	ARG2("remote.sha1");
-	REGISTER2("remote.sha1");
+	ARG2("remote.cw_sha1");
+	REGISTER2("remote.cw_sha1");
 	char *s = s_remote_sha1(vm, STR1(vm));
 	vm->acc = 1;
 	if (s) {
@@ -2155,13 +2155,13 @@ bail:
 
 static void op_sha1(vm_t *vm)
 {
-	ARG2("sha1");
-	REGISTER2("sha1");
+	ARG2("cw_sha1");
+	REGISTER2("cw_sha1");
 
 	const char *in = STR1(vm);
-	struct SHA1 sha1;
-	vm->acc = sha1_data(in, strlen(in), &sha1);
-	REG2(vm) = vm_heap_strdup(vm, sha1.hex);
+	struct CW_SHA1 cw_sha1;
+	vm->acc = cw_sha1_data(in, strlen(in), &cw_sha1);
+	REG2(vm) = vm_heap_strdup(vm, cw_sha1.hex);
 }
 
 /************************************************************************/

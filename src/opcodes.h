@@ -69,7 +69,7 @@
 #define OP_FS_CHOWN         0x41  /* change file ownership */
 #define OP_FS_CHGRP         0x42  /* change file group ownership */
 #define OP_FS_CHMOD         0x43  /* change file permissions */
-#define OP_FS_SHA1          0x44  /* calculate SHA1 of a file's contents */
+#define OP_FS_CW_SHA1          0x44  /* calculate CW_SHA1 of a file's contents */
 #define OP_FS_GET           0x45  /* retrieve the contents of a local file */
 #define OP_FS_PUT           0x46  /* update the contents of a local file */
 #define OP_FS_OPENDIR       0x47  /* open a directory, to inspect its contents */
@@ -114,7 +114,7 @@
 #define OP_SHOW_ACLS        0x6e  /* print ACL entries */
 #define OP_SHOW_ACL         0x6f  /* print ACL entries that match the query */
 #define OP_REMOTE_LIVE_P    0x70  /* Determine if we are connected to a clockd server */
-#define OP_REMOTE_SHA1      0x71  /* Retrieve the remote SHA1 based on a resource key */
+#define OP_REMOTE_CW_SHA1      0x71  /* Retrieve the remote CW_SHA1 based on a resource key */
 #define OP_REMOTE_FILE      0x72  /* Retrieve the contents of a file based on a resource key */
 #define OP_TOPIC            0x73  /* Set the current topic, for the %T special register */
 #define OP_UMASK            0x74  /* Set the file and directory permissions mask */
@@ -124,7 +124,7 @@
 #define OP_RUNTIME          0x78  /* Retrieve the current Pendulum Runtime Version */
 #define OP_FS_MKPARENT      0x79  /* Create all necessary parent directories for a given path */
 #define OP_AUGEAS_EXISTS_P  0x7a  /* Check if a key exists (similar to augeas.find, without the heap allocation) */
-#define OP_SHA1             0x7b  /* Calculate the SHA1 checksum of an in-memory string */
+#define OP_CW_SHA1             0x7b  /* Calculate the CW_SHA1 checksum of an in-memory string */
 #define OP_SYSTEM           0x7c  /* execute a command, printing out stdout */
 
 
@@ -198,7 +198,7 @@ static const char * OPCODES[] = {
 	"fs.chown",           /* OP_FS_CHOWN          65  0x41 */
 	"fs.chgrp",           /* OP_FS_CHGRP          66  0x42 */
 	"fs.chmod",           /* OP_FS_CHMOD          67  0x43 */
-	"fs.sha1",            /* OP_FS_SHA1           68  0x44 */
+	"fs.sha1",            /* OP_FS_CW_SHA1           68  0x44 */
 	"fs.get",             /* OP_FS_GET            69  0x45 */
 	"fs.put",             /* OP_FS_PUT            70  0x46 */
 	"fs.opendir",         /* OP_FS_OPENDIR        71  0x47 */
@@ -243,7 +243,7 @@ static const char * OPCODES[] = {
 	"show.acls",          /* OP_SHOW_ACLS        110  0x6e */
 	"show.acl",           /* OP_SHOW_ACL         111  0x6f */
 	"remote.live?",       /* OP_REMOTE_LIVE_P    112  0x70 */
-	"remote.sha1",        /* OP_REMOTE_SHA1      113  0x71 */
+	"remote.sha1",        /* OP_REMOTE_CW_SHA1      113  0x71 */
 	"remote.file",        /* OP_REMOTE_FILE      114  0x72 */
 	"topic",              /* OP_TOPIC            115  0x73 */
 	"umask",              /* OP_UMASK            116  0x74 */
@@ -253,7 +253,7 @@ static const char * OPCODES[] = {
 	"runtime",            /* OP_RUNTIME          120  0x78 */
 	"fs.mkparent",        /* OP_FS_MKPARENT      121  0x79 */
 	"augeas.exists?",     /* OP_AUGEAS_EXISTS_P  122  0x7a */
-	"sha1",               /* OP_SHA1             123  0x7b */
+	"sha1",               /* OP_CW_SHA1             123  0x7b */
 	"system",             /* OP_SYSTEM           124  0x7c */
 	NULL,
 };
@@ -329,7 +329,7 @@ static const char * OPCODES[] = {
 #define T_OP_FS_CHOWN         0x82  /* change file ownership */
 #define T_OP_FS_CHGRP         0x83  /* change file group ownership */
 #define T_OP_FS_CHMOD         0x84  /* change file permissions */
-#define T_OP_FS_SHA1          0x85  /* calculate SHA1 of a file's contents */
+#define T_OP_FS_CW_SHA1          0x85  /* calculate CW_SHA1 of a file's contents */
 #define T_OP_FS_GET           0x86  /* retrieve the contents of a local file */
 #define T_OP_FS_PUT           0x87  /* update the contents of a local file */
 #define T_OP_FS_OPENDIR       0x88  /* open a directory, to inspect its contents */
@@ -374,7 +374,7 @@ static const char * OPCODES[] = {
 #define T_OP_SHOW_ACLS        0xaf  /* print ACL entries */
 #define T_OP_SHOW_ACL         0xb0  /* print ACL entries that match the query */
 #define T_OP_REMOTE_LIVE_P    0xb1  /* Determine if we are connected to a clockd server */
-#define T_OP_REMOTE_SHA1      0xb2  /* Retrieve the remote SHA1 based on a resource key */
+#define T_OP_REMOTE_CW_SHA1      0xb2  /* Retrieve the remote CW_SHA1 based on a resource key */
 #define T_OP_REMOTE_FILE      0xb3  /* Retrieve the contents of a file based on a resource key */
 #define T_OP_TOPIC            0xb4  /* Set the current topic, for the %T special register */
 #define T_OP_UMASK            0xb5  /* Set the file and directory permissions mask */
@@ -384,7 +384,7 @@ static const char * OPCODES[] = {
 #define T_OP_RUNTIME          0xb9  /* Retrieve the current Pendulum Runtime Version */
 #define T_OP_FS_MKPARENT      0xba  /* Create all necessary parent directories for a given path */
 #define T_OP_AUGEAS_EXISTS_P  0xbb  /* Check if a key exists (similar to augeas.find, without the heap allocation) */
-#define T_OP_SHA1             0xbc  /* Calculate the SHA1 checksum of an in-memory string */
+#define T_OP_CW_SHA1             0xbc  /* Calculate the CW_SHA1 checksum of an in-memory string */
 #define T_OP_SYSTEM           0xbd  /* execute a command, printing out stdout */
 
 
@@ -458,7 +458,7 @@ static const char * ASM[] = {
 	"fs.chown",           /* T_OP_FS_CHOWN         66  0x42 */
 	"fs.chgrp",           /* T_OP_FS_CHGRP         67  0x43 */
 	"fs.chmod",           /* T_OP_FS_CHMOD         68  0x44 */
-	"fs.sha1",            /* T_OP_FS_SHA1          69  0x45 */
+	"fs.sha1",            /* T_OP_FS_CW_SHA1          69  0x45 */
 	"fs.get",             /* T_OP_FS_GET           70  0x46 */
 	"fs.put",             /* T_OP_FS_PUT           71  0x47 */
 	"fs.opendir",         /* T_OP_FS_OPENDIR       72  0x48 */
@@ -503,7 +503,7 @@ static const char * ASM[] = {
 	"show.acls",          /* T_OP_SHOW_ACLS        111  0x6f */
 	"show.acl",           /* T_OP_SHOW_ACL         112  0x70 */
 	"remote.live?",       /* T_OP_REMOTE_LIVE_P    113  0x71 */
-	"remote.sha1",        /* T_OP_REMOTE_SHA1      114  0x72 */
+	"remote.sha1",        /* T_OP_REMOTE_CW_SHA1      114  0x72 */
 	"remote.file",        /* T_OP_REMOTE_FILE      115  0x73 */
 	"topic",              /* T_OP_TOPIC            116  0x74 */
 	"umask",              /* T_OP_UMASK            117  0x75 */
@@ -513,7 +513,7 @@ static const char * ASM[] = {
 	"runtime",            /* T_OP_RUNTIME          121  0x79 */
 	"fs.mkparent",        /* T_OP_FS_MKPARENT      122  0x7a */
 	"augeas.exists?",     /* T_OP_AUGEAS_EXISTS_P  123  0x7b */
-	"sha1",               /* T_OP_SHA1             124  0x7c */
+	"sha1",               /* T_OP_CW_SHA1             124  0x7c */
 	"system",             /* T_OP_SYSTEM           125  0x7d */
 	NULL,
 };
@@ -624,7 +624,7 @@ static struct {
 	{ T_OP_FS_CHOWN,        "fs.chown (%a|<string>) (%b|<number>)",           OP_FS_CHOWN,        { ARG_REGISTER|ARG_STRING,                ARG_REGISTER|ARG_NUMBER,            } },
 	{ T_OP_FS_CHGRP,        "fs.chgrp (%a|<string>) (%b|<number>)",           OP_FS_CHGRP,        { ARG_REGISTER|ARG_STRING,                ARG_REGISTER|ARG_NUMBER,            } },
 	{ T_OP_FS_CHMOD,        "fs.chmod (%a|<string>) (%b|<number>)",           OP_FS_CHMOD,        { ARG_REGISTER|ARG_STRING,                ARG_REGISTER|ARG_NUMBER,            } },
-	{ T_OP_FS_SHA1,         "fs.sha1 (%a|<string>) %b",                       OP_FS_SHA1,         { ARG_REGISTER|ARG_STRING,                ARG_REGISTER,                       } },
+	{ T_OP_FS_CW_SHA1,         "fs.sha1 (%a|<string>) %b",                       OP_FS_CW_SHA1,         { ARG_REGISTER|ARG_STRING,                ARG_REGISTER,                       } },
 	{ T_OP_FS_GET,          "fs.get (%a|<string>) %b",                        OP_FS_GET,          { ARG_REGISTER|ARG_STRING,                ARG_REGISTER,                       } },
 	{ T_OP_FS_PUT,          "fs.put (%a|<string>) (%b|<string>)",             OP_FS_PUT,          { ARG_REGISTER|ARG_STRING,                ARG_REGISTER|ARG_STRING,            } },
 	{ T_OP_FS_OPENDIR,      "fs.opendir (%a|<string>) %b",                    OP_FS_OPENDIR,      { ARG_REGISTER|ARG_STRING,                ARG_REGISTER,                       } },
@@ -669,7 +669,7 @@ static struct {
 	{ T_OP_SHOW_ACLS,       "show.acls",                                      OP_SHOW_ACLS,       { ARG_NONE,                               ARG_NONE,                           } },
 	{ T_OP_SHOW_ACL,        "show.acl (%a|<string>)",                         OP_SHOW_ACL,        { ARG_REGISTER|ARG_STRING,                ARG_NONE,                           } },
 	{ T_OP_REMOTE_LIVE_P,   "remote.live?",                                   OP_REMOTE_LIVE_P,   { ARG_NONE,                               ARG_NONE,                           } },
-	{ T_OP_REMOTE_SHA1,     "remote.sha1 (%a|<string>) %b",                   OP_REMOTE_SHA1,     { ARG_REGISTER|ARG_STRING,                ARG_REGISTER,                       } },
+	{ T_OP_REMOTE_CW_SHA1,     "remote.sha1 (%a|<string>) %b",                   OP_REMOTE_CW_SHA1,     { ARG_REGISTER|ARG_STRING,                ARG_REGISTER,                       } },
 	{ T_OP_REMOTE_FILE,     "remote.file (%a|<string>) (%b|<string>)",        OP_REMOTE_FILE,     { ARG_REGISTER|ARG_STRING,                ARG_REGISTER|ARG_STRING,            } },
 	{ T_OP_TOPIC,           "topic (%a|<string>)",                            OP_TOPIC,           { ARG_REGISTER|ARG_STRING,                ARG_NONE,                           } },
 	{ T_OP_UMASK,           "umask (%a|<number>) %b",                         OP_UMASK,           { ARG_REGISTER|ARG_NUMBER,                ARG_REGISTER,                       } },
@@ -679,7 +679,7 @@ static struct {
 	{ T_OP_RUNTIME,         "runtime %a",                                     OP_RUNTIME,         { ARG_REGISTER,                           ARG_NONE,                           } },
 	{ T_OP_FS_MKPARENT,     "fs.mkparent (%a|<string>)",                      OP_FS_MKPARENT,     { ARG_REGISTER|ARG_STRING,                ARG_NONE,                           } },
 	{ T_OP_AUGEAS_EXISTS_P, "augeas.exists? (%a|<string>)",                   OP_AUGEAS_EXISTS_P, { ARG_REGISTER|ARG_STRING,                ARG_NONE,                           } },
-	{ T_OP_SHA1,            "sha1 (%a|<string>) %b",                          OP_SHA1,            { ARG_REGISTER|ARG_STRING,                ARG_REGISTER,                       } },
+	{ T_OP_CW_SHA1,            "sha1 (%a|<string>) %b",                          OP_CW_SHA1,            { ARG_REGISTER|ARG_STRING,                ARG_REGISTER,                       } },
 	{ T_OP_SYSTEM,          "system (%a|<string>)",                           OP_SYSTEM,          { ARG_REGISTER|ARG_STRING,                ARG_NONE,                           } },
 	{ 0, 0, 0, { 0, 0 } },
 };
@@ -886,7 +886,7 @@ static struct {
 	{ OP_FS_CHOWN,        op_fs_chown,        },
 	{ OP_FS_CHGRP,        op_fs_chgrp,        },
 	{ OP_FS_CHMOD,        op_fs_chmod,        },
-	{ OP_FS_SHA1,         op_fs_sha1,         },
+	{ OP_FS_CW_SHA1,         op_fs_sha1,         },
 	{ OP_FS_GET,          op_fs_get,          },
 	{ OP_FS_PUT,          op_fs_put,          },
 	{ OP_FS_OPENDIR,      op_fs_opendir,      },
@@ -931,7 +931,7 @@ static struct {
 	{ OP_SHOW_ACLS,       op_show_acls,       },
 	{ OP_SHOW_ACL,        op_show_acl,        },
 	{ OP_REMOTE_LIVE_P,   op_remote_live_p,   },
-	{ OP_REMOTE_SHA1,     op_remote_sha1,     },
+	{ OP_REMOTE_CW_SHA1,     op_remote_sha1,     },
 	{ OP_REMOTE_FILE,     op_remote_file,     },
 	{ OP_TOPIC,           op_topic,           },
 	{ OP_UMASK,           op_umask,           },
@@ -941,7 +941,7 @@ static struct {
 	{ OP_RUNTIME,         op_runtime,         },
 	{ OP_FS_MKPARENT,     op_fs_mkparent,     },
 	{ OP_AUGEAS_EXISTS_P, op_augeas_exists_p, },
-	{ OP_SHA1,            op_sha1,            },
+	{ OP_CW_SHA1,            op_sha1,            },
 	{ OP_SYSTEM,          op_system,          },
 	{ 0, 0 },
 };

@@ -25,39 +25,39 @@
   along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef SHA1_H
-#define SHA1_H
+#ifndef CW_SHA1_H
+#define CW_SHA1_H
 
 #include <stdint.h>
 #include <sys/types.h>
 
-#define SHA1_DIGLEN 20
-#define SHA1_HEXLEN 40+1
+#define CW_SHA1_DIGLEN 20
+#define CW_SHA1_HEXLEN 40+1
 
-struct sha1_ctx {
+struct cw_sha1_ctx {
     uint32_t state[5];
     uint32_t count[2];
     uint8_t  buffer[64];
 };
 
 /**
-  SHA1 checksum.
+  CW_SHA1 checksum.
  */
-struct SHA1 {
-	uint8_t raw[SHA1_DIGLEN]; /* raw checksum, for bit comparison */
-	char    hex[SHA1_HEXLEN]; /* hex-formatted checksum, for display */
+struct CW_SHA1 {
+	uint8_t raw[CW_SHA1_DIGLEN]; /* raw checksum, for bit comparison */
+	char    hex[CW_SHA1_HEXLEN]; /* hex-formatted checksum, for display */
 };
 
-void sha1_ctx_init(struct sha1_ctx* context);
-void sha1_ctx_update(struct sha1_ctx* context, const uint8_t* data, const size_t len);
-void sha1_ctx_final(struct sha1_ctx* context, uint8_t digest[SHA1_DIGLEN]);
+void cw_sha1_ctx_init(struct cw_sha1_ctx* context);
+void cw_sha1_ctx_update(struct cw_sha1_ctx* context, const uint8_t* data, const size_t len);
+void cw_sha1_ctx_final(struct cw_sha1_ctx* context, uint8_t digest[CW_SHA1_DIGLEN]);
 
-void sha1_hexdigest(struct SHA1 *sha1);
+void cw_sha1_hexdigest(struct CW_SHA1 *cw_sha1);
 
-void sha1_init(struct SHA1 *checksum, const char *hex);
-int sha1_cmp(const struct SHA1* a, const struct SHA1 *b);
-int sha1_fd(int fd, struct SHA1* checksum);
-int sha1_file(const char *path, struct SHA1* checksum);
-int sha1_data(const void *data, size_t len, struct SHA1* checksum);
+void cw_sha1_init(struct CW_SHA1 *checksum, const char *hex);
+int cw_sha1_cmp(const struct CW_SHA1* a, const struct CW_SHA1 *b);
+int cw_sha1_fd(int fd, struct CW_SHA1* checksum);
+int cw_sha1_file(const char *path, struct CW_SHA1* checksum);
+int cw_sha1_data(const void *data, size_t len, struct CW_SHA1* checksum);
 
 #endif

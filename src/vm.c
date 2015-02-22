@@ -588,12 +588,12 @@ static char* s_remote_sha1(vm_t *vm, const char *key)
 		free(s); pdu_free(pdu);
 		return NULL;
 	}
-	if (strcmp(pdu_type(pdu), "CW_SHA1") == 0) {
+	if (strcmp(pdu_type(pdu), "SHA1") == 0) {
 		s = pdu_string(pdu, 1);
 		pdu_free(pdu);
 		return s;
 	}
-	if (strcmp(pdu_type(pdu), "CW_SHA1.FAIL") == 0) {
+	if (strcmp(pdu_type(pdu), "SHA1.FAIL") == 0) {
 		int err = 0;
 		s = pdu_string(pdu, 1); err = atoi(s); free(s); pdu_free(pdu);
 		logger(LOG_ERR, "%s failed: %s (error %u)", key, strerror(err), err);
@@ -1309,9 +1309,9 @@ static void op_fs_sha1(vm_t *vm)
 	ARG2("fs.cw_sha1");
 	REGISTER2("fs.cw_sha1");
 
-	struct CW_SHA1 cw_sha1;
-	vm->acc = cw_sha1_file(STR1(vm), &cw_sha1);
-	REG2(vm) = vm_heap_strdup(vm, cw_sha1.hex);
+	sha1_t sha1;
+	vm->acc = sha1_file(STR1(vm), &sha1);
+	REG2(vm) = vm_heap_strdup(vm, sha1.hex);
 }
 
 static void op_fs_get(vm_t *vm)
@@ -2158,10 +2158,10 @@ static void op_sha1(vm_t *vm)
 	ARG2("cw_sha1");
 	REGISTER2("cw_sha1");
 
+	sha1_t sha1;
 	const char *in = STR1(vm);
-	struct CW_SHA1 cw_sha1;
-	vm->acc = cw_sha1_data(in, strlen(in), &cw_sha1);
-	REG2(vm) = vm_heap_strdup(vm, cw_sha1.hex);
+	vm->acc = sha1_data(in, strlen(in), &sha1);
+	REG2(vm) = vm_heap_strdup(vm, sha1.hex);
 }
 
 /************************************************************************/

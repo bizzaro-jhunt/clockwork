@@ -94,7 +94,6 @@ gather.d/clockwork
 t/tmp
 t/vars.pl
 t/02-escapes
-t/07-sha1
 t/08-list
 t/09-curve
 t/10-facts

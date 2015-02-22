@@ -62,7 +62,6 @@ nobase_stdlib_DATA += mesh.pn
 
 CTAP_TESTS  =
 CTAP_TESTS += t/02-escapes
-CTAP_TESTS += t/07-sha1
 CTAP_TESTS += t/10-facts
 CTAP_TESTS += t/11-cmd
 CTAP_TESTS += t/12-filter
@@ -116,7 +115,6 @@ test_source  = t/test.h
 test_source += src/opcodes.h
 test_source += src/base.h       src/base.c
 test_source += src/mesh.h       src/mesh.c
-test_source += src/sha1.h       src/sha1.c
 test_source += src/authdb.h     src/authdb.c
 test_source += src/policy.h     src/policy.c
 test_source += src/resource.h   src/resource.c
@@ -138,7 +136,6 @@ TEST_cmd_SOURCES         = t/test-cmd.c    $(core_src)
 TEST_pn_SOURCES          = t/test-pn.c     $(core_src)
 
 t_02_escapes_SOURCES     = t/02-escapes.c       $(test_source)
-t_07_sha1_SOURCES        = t/07-sha1.c          $(test_source)
 t_10_facts_SOURCES       = t/10-facts.c         $(test_source)
 t_11_cmd_SOURCES         = t/11-cmd.c           $(test_source)
 t_12_filter_SOURCES      = t/12-filter.c        $(test_source)
@@ -216,7 +213,6 @@ man/%.8: man/%.8.pod
 core_src  = src/clockwork.h src/base.h src/base.c
 core_src += src/opcodes.h
 core_src += src/mesh.h src/mesh.c
-core_src += src/sha1.h src/sha1.c
 core_src += src/authdb.h src/authdb.c
 core_src += src/policy.h src/policy.c
 core_src += src/resource.h src/resource.c src/resources.h src/resources.c

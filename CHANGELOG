@@ -9,8 +9,7 @@ origin/master
 
   [CLEANUP]
 
-  - Rename SHA1 primitives (prefix with 'cw_') so that the SHA1
-    implementation can be moved into libvigor.
+  - Move SHA1 implementation into libvigor 1.2.2+
 
 
 

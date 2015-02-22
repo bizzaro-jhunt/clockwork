@@ -131,7 +131,7 @@ struct __client_t {
 
 	content_t        *contents;
 	unsigned long     offset;
-	struct CW_SHA1       cw_sha1;
+	sha1_t            sha1;
 };
 
 struct __server_t {
@@ -159,23 +159,12 @@ static void s_sighandler(int signal, siginfo_t *info, void *_)
 	if (signal == SIGHUP) DO_RELOAD++;
 }
 
-static int s_cw_sha1(client_t *fsm)
+static int s_sha1(client_t *fsm)
 {
 	if (fsm->contents->error)
 		return fsm->contents->error;
 
-	struct cw_sha1_ctx ctx;
-	cw_sha1_init(&fsm->cw_sha1, NULL);
-	cw_sha1_ctx_init(&ctx);
-
-	char data[BLOCK_SIZE];
-	size_t n;
-	int fd = fileno(fsm->contents->io);
-	while ((n = read(fd, data, BLOCK_SIZE)) > 0)
-		cw_sha1_ctx_update(&ctx, (uint8_t *)data, n);
-	cw_sha1_ctx_final(&ctx, fsm->cw_sha1.raw);
-	cw_sha1_hexdigest(&fsm->cw_sha1);
-
+	sha1_fd(&fsm->sha1, fileno(fsm->contents->io));
 	rewind(fsm->contents->io);
 	return 0;
 }
@@ -443,7 +432,7 @@ static int s_state_machine(client_t *fsm, pdu_t *pdu, pdu_t **reply)
 			break;
 		}
 
-		/* open the file, calculate the CW_SHA1 */
+		/* open the file, calculate the SHA1 */
 		char *key = pdu_string(pdu, 1);
 		struct resource *r = hash_get(fsm->policy->index, key);
 		free(key);
@@ -464,13 +453,13 @@ static int s_state_machine(client_t *fsm, pdu_t *pdu, pdu_t **reply)
 			logger(LOG_ERR, "error encountered while generating content for %s (on behalf of %s): %s (error %u)",
 				r->key, fsm->name, strerror(fsm->contents->error), fsm->contents->error);
 			char *e = string("%u", fsm->contents->error);
-			*reply = pdu_reply(pdu, "CW_SHA1.FAIL", 2, e, strerror(fsm->contents->error));
+			*reply = pdu_reply(pdu, "SHA1.FAIL", 2, e, strerror(fsm->contents->error));
 			free(e);
 			fsm->state = STATE_FILE;
 
 		} else {
-			s_cw_sha1(fsm);
-			*reply = pdu_reply(pdu, "CW_SHA1", 1, fsm->cw_sha1.hex);
+			s_sha1(fsm);
+			*reply = pdu_reply(pdu, "SHA1", 1, fsm->sha1.hex);
 			fsm->state = STATE_FILE;
 		}
 		return 0;

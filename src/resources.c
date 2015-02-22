@@ -483,7 +483,7 @@ int res_file_attrs(const void *res, hash_t *attrs)
 			_hash_attr(attrs, "tmpfile", strdup(rf->tmpfile));
 	}
 
-	if (ENFORCED(rf, RES_FILE_CW_SHA1)) {
+	if (ENFORCED(rf, RES_FILE_SHA1)) {
 		_hash_attr(attrs, "template", cw_strdup(rf->template));
 		_hash_attr(attrs, "source",   cw_strdup(rf->source));
 	} else {
@@ -607,14 +607,14 @@ int res_file_set(void *res, const char *name, const char *value)
 		rf->template = NULL;
 		free(rf->source);
 		rf->source = strdup(value);
-		ENFORCE(rf, RES_FILE_CW_SHA1);
+		ENFORCE(rf, RES_FILE_SHA1);
 
 	} else if (strcmp(name, "template") == 0) {
 		free(rf->source);
 		rf->source = NULL;
 		free(rf->template);
 		rf->template = strdup(value);
-		ENFORCE(rf, RES_FILE_CW_SHA1);
+		ENFORCE(rf, RES_FILE_SHA1);
 
 	} else if (strcmp(name, "path") == 0) {
 		free(rf->path);
@@ -690,7 +690,7 @@ int res_file_gencode(const void *res, FILE *io)
 	if (ENFORCED(r, RES_FILE_MODE))
 		fprintf(io, "  set %%b 0%o\n"
 		            "  call res.file.chmod\n", r->mode);
-	if (ENFORCED(r, RES_FILE_CW_SHA1)) {
+	if (ENFORCED(r, RES_FILE_SHA1)) {
 		if (r->verify)
 			fprintf(io, "  set %%b \"%s\"\n"
 			            "  set %%d \"%s\"\n"

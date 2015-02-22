@@ -46,7 +46,7 @@ function file_cw_sha1_should_be() {
 	if [[ -f $file ]]; then
 		local got=$(cw_sha1sum $file | awk '{print $1}')
 		if [[ $got != $cw_sha1 ]]; then
-			echo >&2 "CW_SHA1 of $file ($got) != expected ($cw_sha1)"
+			echo >&2 "SHA1 of $file ($got) != expected ($cw_sha1)"
 			RC=2
 		fi
 	fi

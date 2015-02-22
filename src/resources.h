@@ -134,7 +134,7 @@ int res_group_remove_admin(struct res_group *rg, const char *user);
 #define RES_FILE_UID      0x01
 #define RES_FILE_GID      0x02
 #define RES_FILE_MODE     0x04
-#define RES_FILE_CW_SHA1     0x08
+#define RES_FILE_SHA1     0x08
 
 /**
   A File

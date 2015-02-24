@@ -1310,7 +1310,7 @@ static void op_fs_sha1(vm_t *vm)
 	REGISTER2("fs.cw_sha1");
 
 	sha1_t sha1;
-	vm->acc = sha1_file(STR1(vm), &sha1);
+	vm->acc = sha1_file(&sha1, STR1(vm));
 	REG2(vm) = vm_heap_strdup(vm, sha1.hex);
 }
 
@@ -2160,7 +2160,7 @@ static void op_sha1(vm_t *vm)
 
 	sha1_t sha1;
 	const char *in = STR1(vm);
-	vm->acc = sha1_data(in, strlen(in), &sha1);
+	vm->acc = sha1_data(&sha1, in, strlen(in));
 	REG2(vm) = vm_heap_strdup(vm, sha1.hex);
 }
 

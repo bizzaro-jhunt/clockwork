@@ -5,6 +5,15 @@ origin/master
 
 
 
+3.0.15                                                     runtime 20150209
+
+  [BUG FIXES
+
+  - Fix segfaults in sha1_*() argument ordering problems
+    (libvigor-1.2.3+ fixed up the SHA1 calls to match convention)
+
+
+
 3.0.14                                                     runtime 20150209
 
   [CLEANUP]

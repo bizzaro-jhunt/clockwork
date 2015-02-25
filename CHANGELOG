@@ -1,13 +1,18 @@
 
 origin/master
 
-  (none)
+  [BUG FIXES]
+
+  - Fix memory leak in cogd process
+    Not properly freeing the facts hash.  While we freed the values
+    *in* the hash, the hash itself was being leaked.  Also, fixed some
+    incidental (but constant) leaks related to startup overhead.
 
 
 
 3.0.15                                                     runtime 20150209
 
-  [BUG FIXES
+  [BUG FIXES]
 
   - Fix segfaults in sha1_*() argument ordering problems
     (libvigor-1.2.3+ fixed up the SHA1 calls to match convention)

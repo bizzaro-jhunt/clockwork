@@ -291,6 +291,8 @@ static inline int s_cfm_copydown(client_t *c)
 static inline int s_cfm_facts(client_t *c)
 {
 	hash_done(c->facts, 1);
+	free(c->facts);
+
 	c->facts = vmalloc(sizeof(hash_t));
 	logger(LOG_INFO, "Gathering facts from '%s'", c->gatherers);
 	int rc = fact_gather(c->gatherers, c->facts) != 0;
@@ -1089,6 +1091,7 @@ static inline client_t* s_client_new(int argc, char **argv)
 		assert(rc == 0);
 		rc = zmq_connect(c->control, control);
 		assert(rc == 0);
+		free(control);
 
 
 		logger(LOG_INFO, "Subscribing to the mesh broadcast at %s", broadcast);
@@ -1103,9 +1106,11 @@ static inline client_t* s_client_new(int argc, char **argv)
 		assert(rc == 0);
 		rc = zmq_setsockopt(c->broadcast, ZMQ_SUBSCRIBE, NULL, 0);
 		assert(rc == 0);
+		free(broadcast);
 
 
 		cert_free(ephemeral);
+		cert_free(mesh_cert);
 
 	} else {
 		logger(LOG_INFO, "Skipping mesh registeration");

@@ -329,6 +329,7 @@ int res_user_gencode(const void *res, FILE *io)
 	            ENFORCED(r, RES_USER_DIR)   ? r->dir   : s,
 	            ENFORCED(r, RES_USER_SHELL) ? r->shell : "",
 	            r->passwd ? r->passwd : "*");
+	free(s);
 
 	if (ENFORCED(r, RES_USER_DIR))
 		fprintf(io, "  ;;; home\n"

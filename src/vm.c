@@ -3217,7 +3217,8 @@ static int s_asm_bytecode(asm_t *pna)
 	*c++ = OPx_EOF; *c++ = 0x00;
 
 	for_each_object_safe(op, tmp, &pna->ops, l) {
-		if (op->special == SPECIAL_FUNC) free(op->label);
+		if (op->special == SPECIAL_FUNC)  free(op->label);
+		if (op->special == SPECIAL_LABEL) free(op->label);
 		if (op->args[0].type == VALUE_EMBED) free(op->args[0]._.string);
 		if (op->args[1].type == VALUE_EMBED) free(op->args[1]._.string);
 		free(op);

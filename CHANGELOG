@@ -8,6 +8,12 @@ origin/master
     *in* the hash, the hash itself was being leaked.  Also, fixed some
     incidental (but constant) leaks related to startup overhead.
 
+  - Fix memory leaks in clockd process:
+    1) Free generated code after sending it to clients via PDU
+    2) Free the config_file option value (not critical)
+    3) Free label values after the ASM parse tree is no longer needed.
+    4) Free a temporary string used in res_user_gencode (for $HOME)
+
 
 
 3.0.15                                                     runtime 20150209

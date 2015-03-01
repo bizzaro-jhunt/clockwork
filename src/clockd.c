@@ -406,6 +406,7 @@ static int s_state_machine(client_t *fsm, pdu_t *pdu, pdu_t **reply)
 		int rc = s_gencode(fsm, &code, &len); assert(rc == 0);
 		*reply = pdu_reply(pdu, "POLICY", 0); assert(*reply);
 		pdu_extend(*reply, code, len);
+		free(code);
 		fsm->state = STATE_POLICY;
 		return 0;
 
@@ -936,6 +937,7 @@ static inline void s_server_destroy(server_t *s)
 	manifest_free(s->manifest);
 	cert_free(s->cert);
 	trustdb_free(s->tdb);
+	free(s->config_file);
 	free(s->copydown);
 	free(s->include);
 

@@ -120,6 +120,26 @@ static pdu_t *s_sendto(void *socket, pdu_t *pdu, int timeout)
 	return NULL;
 }
 
+static int s_zmq_connect(void *z, const char *endpoint)
+{
+	strings_t *names = vzmq_resolve(endpoint, AF_UNSPEC);
+	if (names->num == 0) {
+		errno = ENOENT;
+		return 1;
+	}
+
+	int i, rc;
+	for (i = 0; i < names->num; i++) {
+		logger(LOG_DEBUG, "trying endpoint %s (from %s)", names->strings[i], endpoint);
+		rc = zmq_connect(z, names->strings[i]);
+		if (rc == 0)
+			break;
+	}
+
+	strings_free(names);
+	return rc;
+}
+
 static inline int s_cfm_connect(client_t *c)
 {
 	c->cfm_client = zmq_socket(c->zmq, ZMQ_DEALER);
@@ -159,8 +179,12 @@ static inline int s_cfm_connect(client_t *c)
 
 		strncat(endpoint+6, c->masters[i].endpoint, 249);
 		logger(LOG_DEBUG, "Attempting to connect to %s (%s)", endpoint, c->masters[i].endpoint);
-		rc = zmq_connect(c->cfm_client, endpoint);
-		assert(rc == 0);
+		rc = s_zmq_connect(c->cfm_client, endpoint);
+		if (rc != 0) {
+			logger(LOG_ERR, "Failed to connect to %s: %s", endpoint, zmq_strerror(errno));
+			continue;
+		}
+		logger(LOG_DEBUG, "Connected to %s", endpoint);
 
 		/* send the PING */
 		pong = s_sendto(c->cfm_client, ping, c->timeout);
@@ -1089,7 +1113,7 @@ static inline client_t* s_client_new(int argc, char **argv)
 		assert(rc == 0);
 		rc = zmq_setsockopt(c->control, ZMQ_CURVE_SERVERKEY, cert_public(mesh_cert), 32);
 		assert(rc == 0);
-		rc = zmq_connect(c->control, control);
+		rc = s_zmq_connect(c->control, control);
 		assert(rc == 0);
 		free(control);
 
@@ -1102,7 +1126,7 @@ static inline client_t* s_client_new(int argc, char **argv)
 		assert(rc == 0);
 		rc = zmq_setsockopt(c->broadcast, ZMQ_CURVE_SERVERKEY, cert_public(mesh_cert), 32);
 		assert(rc == 0);
-		rc = zmq_connect(c->broadcast, broadcast);
+		rc = s_zmq_connect(c->broadcast, broadcast);
 		assert(rc == 0);
 		rc = zmq_setsockopt(c->broadcast, ZMQ_SUBSCRIBE, NULL, 0);
 		assert(rc == 0);

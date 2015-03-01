@@ -11,7 +11,7 @@ $ENV{PENDULUM_INCLUDE} = ".";
 subtest "cogd: invalid configuration" => sub {
 	mkdir "t/tmp";
 	put_file "t/tmp/cogd.conf", <<EOF;
-master.1 127.0.0.1:3333
+master.1 localhost:3333
 cert.1   t/tmp/master.1.pub
 
 security.cert t/tmp/badcert
@@ -42,7 +42,7 @@ EOF
 subtest "cogd: missing certificate" => sub {
 	mkdir "t/tmp";
 	put_file "t/tmp/cogd.conf", <<EOF;
-master.1 127.0.0.1:3333
+master.1 localhost:3333
 cert.1   t/tmp/master.1.pub
 
 security.cert /path/to/nowhere
@@ -69,7 +69,7 @@ EOF
 subtest "cogd: cert with no private certificate" => sub {
 	mkdir "t/tmp";
 	put_file "t/tmp/cogd.conf", <<EOF;
-master.1 127.0.0.1:3333
+master.1 localhost:3333
 cert.1   t/tmp/master.1.pub
 
 security.cert t/tmp/cert
@@ -100,7 +100,7 @@ EOF
 subtest "cogd: missing identity" => sub {
 	mkdir "t/tmp";
 	put_file "t/tmp/cogd.conf", <<EOF;
-master.1 127.0.0.1:3333
+master.1 localhost:3333
 cert.1   t/tmp/master.1.pub
 
 security.cert t/tmp/cert
@@ -131,7 +131,7 @@ EOF
 subtest "cogd: no master certificate" => sub {
 	mkdir "t/tmp";
 	put_file "t/tmp/cogd.conf", <<EOF;
-master.1 127.0.0.1:3333
+master.1 localhost:3333
 # no cert.1
 
 security.cert t/tmp/cert
@@ -147,7 +147,7 @@ EOF
 
 	$stderr =~ s/^cogd\[\d+\]\s*//mg;
 	string_is $stderr, <<EOF, "nomastercert: Standard error output";
-master.1 (127.0.0.1:3333) has no matching certificate (cert.1)
+master.1 (localhost:3333) has no matching certificate (cert.1)
 EOF
 
 	string_is $stdout, '', "nomastercert: No standard output";
@@ -158,7 +158,7 @@ EOF
 subtest "cogd: invalid master certificate" => sub {
 	mkdir "t/tmp";
 	put_file "t/tmp/cogd.conf", <<EOF;
-master.1 127.0.0.1:3333
+master.1 localhost:3333
 cert.1 t/tmp/master.pub
 
 security.cert t/tmp/master.1
@@ -301,7 +301,7 @@ EOF
 ;; no standard lib
 EOF
 	put_file "t/tmp/cogd.conf", <<EOF;
-master.1 127.0.0.1:2313
+master.1 localhost:2313
 cert.1   t/tmp/altmaster.pub
 
 security.cert t/tmp/client
@@ -333,7 +333,7 @@ EOF
 	$stderr =~ s/^cogd\[\d+\]\s*//mg;
 	string_is $stderr, <<EOF, "Standard error output";
 Starting configuration run
-No response from master 1 (127.0.0.1:2313): possible certificate mismatch
+No response from master 1 (localhost:2313): possible certificate mismatch
 No masters were reachable; falling back to cached policy
 No cached policy found; giving up
 EOF
@@ -373,7 +373,7 @@ EOF
 ;; no standard lib
 EOF
 	put_file "t/tmp/cogd.conf", <<EOF;
-master.1 127.0.0.1:2313
+master.1 localhost:2313
 cert.1   t/tmp/master.pub
 timeout  90
 
@@ -431,7 +431,7 @@ EOF
 ;; no standard lib
 EOF
 	put_file "t/tmp/cogd.conf", <<EOF;
-master.1 127.0.0.1:2313
+master.1 localhost:2313
 cert.1   t/tmp/altmaster.pub
 
 security.cert t/tmp/client
@@ -463,7 +463,7 @@ EOF
 	$stderr =~ s/^cogd\[\d+\]\s*//mg;
 	string_is $stderr, <<EOF, "Standard error output";
 Starting configuration run
-No response from master 1 (127.0.0.1:2313): possible certificate mismatch
+No response from master 1 (localhost:2313): possible certificate mismatch
 No masters were reachable; falling back to cached policy
 No cached policy found; giving up
 EOF
@@ -495,7 +495,7 @@ EOF
 ;; no standard lib
 EOF
 	put_file "t/tmp/cogd.conf", <<EOF;
-master.1 127.0.0.1:2313
+master.1 localhost:2313
 cert.1   t/tmp/master.pub
 
 security.cert t/tmp/client

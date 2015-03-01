@@ -72,6 +72,26 @@ static char* s_prompt(const char *prompt, int echo)
 	return strdup(answer);
 }
 
+static int s_zmq_connect(void *z, const char *endpoint)
+{
+	strings_t *names = vzmq_resolve(endpoint, AF_UNSPEC);
+	if (names->num == 0) {
+		errno = ENOENT;
+		return 1;
+	}
+
+	int i, rc;
+	for (i = 0; i < names->num; i++) {
+		logger(LOG_DEBUG, "trying endpoint %s (from %s)", names->strings[i], endpoint);
+		rc = zmq_connect(z, names->strings[i]);
+		if (rc == 0)
+			break;
+	}
+
+	strings_free(names);
+	return rc;
+}
+
 typedef struct {
 	char      *endpoint;
 	char      *username;
@@ -530,7 +550,7 @@ int main(int argc, char **argv)
 	rc = zmq_setsockopt(client, ZMQ_CURVE_SERVERKEY, cert_public(c->master_cert), 32);
 	assert(rc == 0);
 	logger(LOG_INFO, "Connecting to %s", c->endpoint);
-	rc = zmq_connect(client, c->endpoint);
+	rc = s_zmq_connect(client, c->endpoint);
 	assert(rc == 0);
 
 

@@ -1,6 +1,9 @@
 
 origin/master
 
+  [ENHANCEMENTS]
+  - Support DNS resolution in cogd and cw-mesh configuration
+
   [BUG FIXES]
 
   - Fix memory leak in cogd process

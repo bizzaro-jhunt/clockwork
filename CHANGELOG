@@ -17,6 +17,10 @@ origin/master
     3) Free label values after the ASM parse tree is no longer needed.
     4) Free a temporary string used in res_user_gencode (for $HOME)
 
+  [DOCUMENTATION]
+
+  - Fix references to clockd(1) to read clockd(8)
+
 
 
 3.0.15                                                     runtime 20150209

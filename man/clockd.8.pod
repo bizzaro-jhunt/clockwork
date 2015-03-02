@@ -55,7 +55,7 @@ contents to clients that need to update file resources.
 
 Print version and copyright information.
 
-=item B<-c> B<--config> I</path/to/clockd.conf>
+=item B<-c>, B<--config> I</path/to/clockd.conf>
 
 Specify the path to an alternate configuration file.  If not
 given, the default configuration file (/etc/clockwork/clockd.conf)

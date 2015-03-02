@@ -27,7 +27,7 @@ B</etc/clockwork/clockd.conf>
 
 =head1 DESCRIPTION
 
-B<clockd>(1) reads its configuration from
+B<clockd>(8) reads its configuration from
 I</etc/clockwork/clockd.conf> (unless a different file is
 specified with the -c option).
 

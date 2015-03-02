@@ -806,6 +806,10 @@ static inline server_t *s_server_new(int argc, char **argv)
 			logger(LOG_DEBUG, "handling -t/--test");
 			s->mode = MODE_TEST;
 			break;
+
+		default:
+			fprintf(stderr, "unhandled option flag %#02x\n", opt);
+			exit(1);
 		}
 	}
 	logger(LOG_DEBUG, "option processing complete");

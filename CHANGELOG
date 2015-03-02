@@ -17,6 +17,9 @@ origin/master
     3) Free label values after the ASM parse tree is no longer needed.
     4) Free a temporary string used in res_user_gencode (for $HOME)
 
+  - Catch unhandled (but known) options in clockd's option processing.
+    Now we get a warning and an exit 1, just like with cogd, cw-mesh, etc.
+
   [DOCUMENTATION]
 
   - Fix references to clockd(1) to read clockd(8)

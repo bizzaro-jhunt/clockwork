@@ -3,7 +3,7 @@ Upstream-Name: clockwork
 Source: <http://clockwork.niftylogic.com>
 
 Files: *
-Copyright: 2011-2013 James Hunt <james@jameshunt.us>
+Copyright: 2011-2015 James Hunt <james@jameshunt.us>
 License: GPL-3
  Clockwork is published under the GNU Public License v3 without any
  warranty implied or otherwise, with no suitability for any purpose.
@@ -14,7 +14,7 @@ License: GPL-3
  /usr/share/common-licenses/GPL-3.
 
 Files: debian/*
-Copyright: 2013 James Hunt <james@jameshunt.us>
+Copyright: 2013-2015 James Hunt <james@jameshunt.us>
 License: GPL-3
  Clockwork is published under the GNU Public License v3 without any
  warranty implied or otherwise, with no suitability for any purpose.

@@ -389,7 +389,7 @@ int res_user_gencode(const void *res, FILE *io)
 		            "    bail 1\n", r->shell);
 	if (ENFORCED(r, RES_USER_MKHOME))
 		fprintf(io, "  flagged? \"mkhome\"\n"
-		            "  jnz +2\n"
+		            "  jnz +5\n"
 		            "    user.get \"home\" %%a\n"
 		            "    set %%b \"%s\"\n"
 		            "    user.get \"uid\" %%c\n"

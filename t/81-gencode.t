@@ -471,7 +471,7 @@ fn fix:00000001
     error "Failed to set %[a]s' home directory to %[b]s"
     bail 1
   flagged? "mkhome"
-  jnz +2
+  jnz +5
     user.get "home" %a
     set %b "/etc/skel"
     user.get "uid" %c

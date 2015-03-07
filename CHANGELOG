@@ -5,9 +5,20 @@ origin/master
 
 
 
+3.0.17       2015-03-06                                    runtime 20150209
+
+  [BUG FIXES]
+
+  - Fix bad offset in user remediation
+    Clockwork will no longer indiscriminately create directories named after
+    users in its working directory.
+
+
+
 3.0.16       2015-03-02                                    runtime 20150209
 
   [ENHANCEMENTS]
+
   - Support DNS resolution in cogd and cw-mesh configuration
 
   [BUG FIXES]

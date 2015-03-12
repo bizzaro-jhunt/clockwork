@@ -182,7 +182,7 @@ static int builtin_cw_cert(int argc, char **argv)
 		switch (opt) {
 		case 'h':
 		case '?':
-			printf("USAGE: %s [--identity FQDN] [--type host|user] [--file cwcert]\n", argv[0]);
+			printf("USAGE: %s [--identity FQDN] [--user] [--file cwcert]\n", argv[0]);
 			exit(0);
 
 		case 'i':

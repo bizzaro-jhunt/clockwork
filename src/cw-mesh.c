@@ -621,8 +621,8 @@ int main(int argc, char **argv)
 				continue;
 
 			/* timer expired */
-			if ((now >= deadline1 && expect == 0) /* no one discovered */
-			  || now >= deadline2)                /* or we're out of time */
+			if ((now >= deadline1 && seen >= expect) /* no one discovered */
+			  || now >= deadline2)                   /* or we're out of time */
 				break;
 
 			deadline = deadline2;
@@ -668,7 +668,7 @@ int main(int argc, char **argv)
 			free(output);
 			pdu_free(pdu);
 
-			if (now >= deadline1 || seen == expect)
+			if (now >= deadline1 && seen >= expect)
 				break;
 
 		} else {

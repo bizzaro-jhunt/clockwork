@@ -1130,6 +1130,7 @@ REQUEST_exit:
 		free(username);
 		free(pubkey);
 		free(secret);
+		free(command);
 		free(serial);
 		free(creds);
 		free(code);

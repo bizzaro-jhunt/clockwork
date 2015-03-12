@@ -1123,7 +1123,7 @@ int mesh_server_reactor(void *sock, pdu_t *pdu, void *data)
 		pdu_extendf(blast, "%s", filters);
 		pdu_send_and_free(blast, server->broadcast);
 
-		reply = pdu_reply(pdu, "OK", 1);
+		reply = pdu_reply(pdu, "OK", 0);
 		pdu_send_and_free(reply, sock);
 
 REQUEST_exit:

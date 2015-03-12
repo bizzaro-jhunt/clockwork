@@ -1,0 +1,4 @@
+mesh.master    localhost:2315
+mesh.cert      /cw/cfm/cert/meshd.pub
+mesh.timemout  10
+mesh.discovery 2

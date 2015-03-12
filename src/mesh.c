@@ -26,25 +26,6 @@
 #include "policy.h"
 #include "vm.h"
 
-typedef struct {
-	list_t      l;
-
-	char       *fqdn;
-	char       *uuid;
-	char       *status;
-	char       *output;
-} mesh_result_t;
-
-typedef struct {
-	char       *ident;
-	uint64_t    serial;
-
-	list_t      results;
-
-	char       *username;
-	char       *command;
-} mesh_slot_t;
-
 static char * s_string(const char *a, const char *b)
 {
 	assert(a); assert(b);
@@ -129,26 +110,6 @@ static char * s_qstring(const char *a, const char *b)
 	char *s = s_string(a, b);
 	if (!s) return NULL;
 	return s_unescape(s);
-}
-
-static void s_mesh_slot_free(void *p)
-{
-	if (!p) return;
-	mesh_slot_t *c = (mesh_slot_t*)p;
-	free(c->ident);
-	free(c->username);
-	free(c->command);
-
-	mesh_result_t *r, *tmp;
-	for_each_object_safe(r, tmp, &c->results, l) {
-		free(r->fqdn);
-		free(r->uuid);
-		free(r->status);
-		free(r->output);
-		free(r);
-	}
-
-	free(c);
 }
 
 static char* s_user_lookup(const char *username)
@@ -880,7 +841,7 @@ mesh_server_t* mesh_server_new(void *zmq)
 	list_init(&s->acl);
 
 	s->slots = cache_new(128, 600);
-	cache_setopt(s->slots, VIGOR_CACHE_DESTRUCTOR, s_mesh_slot_free);
+	cache_setopt(s->slots, VIGOR_CACHE_DESTRUCTOR, free);
 
 	s->cert = cert_generate(VIGOR_CERT_ENCRYPTION);
 	return s;
@@ -1073,35 +1034,17 @@ int mesh_server_reactor(void *sock, pdu_t *pdu, void *data)
 	mesh_server_t *server = (mesh_server_t*)data;
 
 	logger(LOG_DEBUG, "Inbound [%s] packet from %s", pdu_type(pdu), pdu_peer(pdu));
-	if (strcmp(pdu_type(pdu), "RESULT") == 0) {
-		char *serial = pdu_string(pdu, 1);
-		mesh_slot_t *client = cache_get(server->slots, serial);
-		free(serial);
+	if (strcmp(pdu_type(pdu), "RESULT") == 0
+	 || strcmp(pdu_type(pdu), "OPTIN")  == 0
+	 || strcmp(pdu_type(pdu), "OPTOUT") == 0) {
 
-		if (client) {
-			mesh_result_t *r = vmalloc(sizeof(mesh_result_t));
-			list_init(&r->l);
-			r->fqdn   = pdu_string(pdu, 2);
-			r->uuid   = pdu_string(pdu, 3);
-			r->status = pdu_string(pdu, 4);
-			r->output = pdu_string(pdu, 5);
-
-			list_push(&client->results, &r->l);
-		}
-	}
-
-	if (strcmp(pdu_type(pdu), "OPTOUT") == 0) {
-		char *serial = pdu_string(pdu, 1);
-		mesh_slot_t *client = cache_get(server->slots, serial);
-		free(serial);
-
-		if (client) {
-			mesh_result_t *r = vmalloc(sizeof(mesh_result_t));
-			list_init(&r->l);
-			r->fqdn = pdu_string(pdu, 2);
-			r->uuid = pdu_string(pdu, 3);
-
-			list_push(&client->results, &r->l);
+		char *s = pdu_string(pdu, 1);
+		char *addr = cache_get(server->slots, s); free(s);
+		if (addr) {
+			pdu_t *fwd = pdu_make(pdu_type(pdu), 0);
+			pdu_attn(fwd, addr);
+			pdu_copy(fwd, pdu, 2, 0);
+			pdu_send_and_free(fwd, sock);
 		}
 	}
 
@@ -1119,16 +1062,8 @@ int mesh_server_reactor(void *sock, pdu_t *pdu, void *data)
 		byte_t *code = NULL;
 		size_t len;
 
-		mesh_slot_t *client = vmalloc(sizeof(mesh_slot_t));
-		client->ident    = strdup(pdu_peer(pdu));
-		client->serial   = server->serial++;
-		client->username = username;
-		client->command  = command;
-		list_init(&client->results);
-
-		char *serial = string("%lx", client->serial);
-
-		if (!cache_set(server->slots, serial, client)) {
+		char *serial = string("%lx", server->serial++);
+		if (!cache_set(server->slots, serial, strdup(pdu_peer(pdu)))) {
 			reply = pdu_reply(pdu, "ERROR", 1, "Too many client connections; try again later");
 			pdu_send_and_free(reply, sock);
 			goto REQUEST_exit;
@@ -1188,11 +1123,11 @@ int mesh_server_reactor(void *sock, pdu_t *pdu, void *data)
 		pdu_extendf(blast, "%s", filters);
 		pdu_send_and_free(blast, server->broadcast);
 
-		reply = pdu_reply(pdu, "SUBMITTED", 1, serial);
+		reply = pdu_reply(pdu, "OK", 1);
 		pdu_send_and_free(reply, sock);
 
 REQUEST_exit:
-		/* username is owned by the client object now */
+		free(username);
 		free(pubkey);
 		free(secret);
 		free(serial);
@@ -1200,34 +1135,6 @@ REQUEST_exit:
 		free(code);
 		free(filters);
 		return VIGOR_REACTOR_CONTINUE;
-	}
-
-	if (strcmp(pdu_type(pdu), "CHECK") == 0) {
-		mesh_result_t *r, *r_tmp;
-		char *serial = pdu_string(pdu, 1);
-		mesh_slot_t *client = cache_get(server->slots, serial);
-		free(serial);
-
-		if (client) {
-			for_each_object_safe(r, r_tmp, &client->results, l) {
-				reply = (r->status && r->output)
-					? pdu_reply(pdu, "RESULT", 4, r->fqdn, r->uuid, r->status, r->output)
-					: pdu_reply(pdu, "OPTOUT", 2, r->fqdn, r->uuid);
-
-				pdu_send_and_free(reply, sock);
-				list_delete(&r->l);
-				free(r->fqdn);
-				free(r->uuid);
-				free(r->status);
-				free(r->output);
-				free(r);
-			}
-
-			reply = pdu_reply(pdu, "DONE", 0);
-		} else {
-			reply = pdu_reply(pdu, "ERROR", 1, "not a client");
-		}
-		pdu_send_and_free(reply, sock);
 	}
 
 	if (server->_safe_word && strcmp(pdu_type(pdu), server->_safe_word) == 0)
@@ -1350,6 +1257,12 @@ int mesh_client_handle(mesh_client_t *c, void *sock, pdu_t *pdu)
 			pdu_send_and_free(reply, sock);
 			goto bail;
 		}
+
+		reply = pdu_make("OPTIN", 3,
+				serial,
+				c->fqdn,
+				hash_get(c->facts, "sys.uuid"));
+		pdu_send_and_free(reply, sock);
 
 		vm_t vm;
 		int rc = vm_reset(&vm);

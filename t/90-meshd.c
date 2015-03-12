@@ -109,6 +109,7 @@ static char *CODE = "\x70\x6e"                            /* HEADER             
                     "%[e]s\n\0";
 
 TESTS {
+	alarm(5);
 	const char *include = getenv("srcdir");
 	if (!include) include = ".";
 
@@ -137,22 +138,25 @@ TESTS {
 		rc = pthread_create(&tid, NULL, mesh_server_thread, server);
 		is_int(rc, 0, "created meshd thread");
 
-		void *sock = zmq_socket(server->zmq, ZMQ_DEALER);
-		rc = zmq_connect(sock, "inproc://ctl.1");
-		is_int(rc, 0, "connected to inproc://ctl.1");
+		void *client = zmq_socket(server->zmq, ZMQ_DEALER);
+		rc = zmq_connect(client, "inproc://ctl.1");
+		is_int(rc, 0, "connected client socket to inproc://ctl.1");
+
+		void *backend = zmq_socket(server->zmq, ZMQ_DEALER);
+		rc = zmq_connect(backend, "inproc://ctl.1");
+		is_int(rc, 0, "connected backend socket to inproc://ctl.1");
 
 		pdu_t *pdu, *reply;
 		pdu = pdu_make("REQUEST", 5,
 				"anonymous", "", "nopassword",
 				"show version", "" /* no filter */);
-		rc = pdu_send_and_free(pdu, sock);
+		rc = pdu_send_and_free(pdu, client);
 		is_int(rc, 0, "sent REQUEST PDU to meshd thread");
 
-		reply = pdu_recv(sock);
+		reply = pdu_recv(client);
 		isnt_null(reply, "Got a reply from meshd thread");
-		is_string(s = pdu_string(reply, 0), "SUBMITTED", "REQUEST -> SUBMITTED"); free(s);
-		is_string(s = pdu_string(reply, 1), "4242", "Serial returned to client"); free(s);
-		is_null(pdu_string(reply, 2), "There is no 3rd frame");
+		is_string(s = pdu_string(reply, 0), "OK", "REQUEST -> OK"); free(s);
+		is_null(pdu_string(reply, 1), "There are no data frames");
 		pdu_free(reply);
 
 		/* simulate back-channel responses */
@@ -162,15 +166,11 @@ TESTS {
 				UUID1,
 				"0",           /* status code */
 				"1.2.3\n");    /* output */
-		rc = pdu_send_and_free(pdu, sock);
+		rc = pdu_send_and_free(pdu, backend);
 		is_int(rc, 0, "sent RESULT PDU to meshd thread");
 
 		/* check our data */
-		pdu = pdu_make("CHECK", 1, "4242");
-		rc = pdu_send_and_free(pdu, sock);
-		is_int(rc, 0, "sent a CHECK PDU");
-
-		reply = pdu_recv(sock);
+		reply = pdu_recv(client);
 		isnt_null(reply, "Got a reply from meshd thread");
 		is_string(s = pdu_string(reply, 0), "RESULT",      "first reply is a RESULT");    free(s);
 		is_string(s = pdu_string(reply, 1), "host1.fq.dn", "first reply is from host1");  free(s);
@@ -178,12 +178,6 @@ TESTS {
 		is_string(s = pdu_string(reply, 3), "0",           "first reply was OK (rc 0)");  free(s);
 		is_string(s = pdu_string(reply, 4), "1.2.3\n",     "first reply output proxied"); free(s);
 		is_null(pdu_string(reply, 5), "there is no 5th frame in a RESULT PDU");
-		pdu_free(reply);
-
-		reply = pdu_recv(sock);
-		isnt_null(reply, "Got a reply from meshd thread");
-		is_string(s = pdu_string(reply, 0), "DONE", "end of transmission"); free(s);
-		is_null(pdu_string(reply, 1), "there is no 2nd frame in a DONE PDU");
 		pdu_free(reply);
 
 		/* send more data from backend nodes */
@@ -195,19 +189,15 @@ TESTS {
 				"0",
 				"1.2.5\n");
 
-		rc = pdu_send_and_free(pdu, sock);
+		rc = pdu_send_and_free(pdu, backend);
 		is_int(rc, 0, "sent another RESULT PDU from host2.fq.dn");
 
 		pdu = pdu_make("OPTOUT", 3, "4242", "host3.fq.dn", UUID3);
-		rc = pdu_send_and_free(pdu, sock);
+		rc = pdu_send_and_free(pdu, backend);
 		is_int(rc, 0, "sent an OPTOUT PDU from host3.fq.dn");
 
 		/* check our data */
-		pdu = pdu_make("CHECK", 1, "4242");
-		rc = pdu_send_and_free(pdu, sock);
-		is_int(rc, 0, "sent a CHECK PDU");
-
-		reply = pdu_recv(sock);
+		reply = pdu_recv(client);
 		isnt_null(reply, "Got a reply from meshd thread");
 		is_string(s = pdu_string(reply, 0), "RESULT",      "first reply is a RESULT");    free(s);
 		is_string(s = pdu_string(reply, 1), "host2.fq.dn", "first reply is from host2");  free(s);
@@ -217,27 +207,22 @@ TESTS {
 		is_null(pdu_string(reply, 5), "there is no sixth frame in a RESULT PDU");
 		pdu_free(reply);
 
-		reply = pdu_recv(sock);
+		reply = pdu_recv(client);
 		isnt_null(reply, "Got a reply from meshd thread");
-		is_string(s = pdu_string(reply, 0), "OPTOUT",      "second reply is a OPTOUT");   free(s);
+		is_string(pdu_type(reply), "OPTOUT", "second reply is a OPTOUT");
 		is_string(s = pdu_string(reply, 1), "host3.fq.dn", "second reply is from host3"); free(s);
 		is_string(s = pdu_string(reply, 2), UUID3,         "host3 UUID"); free(s);
-		is_null(pdu_string(reply, 3), "there is no fourth frame in an OPTOUT PDU");
-		pdu_free(reply);
-
-		reply = pdu_recv(sock);
-		isnt_null(reply, "Got a reply from meshd thread");
-		is_string(s = pdu_string(reply, 0), "DONE", "end of transmission"); free(s);
-		is_null(pdu_string(reply, 1), "there is no 2nd frame in a DONE PDU");
+		is_null(pdu_string(reply, 3), "there is no 3rd frame in an OPTOUT PDU");
 		pdu_free(reply);
 
 		/* send the safe word to terminate the meshd thread */
 		pdu = pdu_make("TEST_COMPLETE", 0);
-		pdu_send_and_free(pdu, sock);
+		pdu_send_and_free(pdu, client);
 
 		void *_;
 		pthread_join(tid, &_);
-		vzmq_shutdown(sock, 0);
+		vzmq_shutdown(client, 0);
+		vzmq_shutdown(backend, 0);
 		mesh_server_destroy(server);
 		zmq_ctx_destroy(ctx);
 	}
@@ -272,13 +257,22 @@ TESTS {
 
 		pdu_t *reply = pdu_recv(control);
 		isnt_null(reply, "Got a reply from the mesh client thread");
+		is_string(pdu_type(reply), "OPTIN", "reply was an OPTIN");
+		is_string(s = pdu_string(reply, 1), "4242", "serial echoed back in frame 1");   free(s);
+		is_string(s = pdu_string(reply, 2), FQDN,   "mesh node FQDN in frame 2");       free(s);
+		is_string(s = pdu_string(reply, 3), UUID1,  "mesh node UUID in frame 3");       free(s);
+		is_null(pdu_string(reply, 4), "there is no 4th frame in an OPTIN PDU");
+		pdu_free(reply);
+
+		reply = pdu_recv(control);
+		isnt_null(reply, "Got a follow-up reply from the mesh client thread");
 		is_string(pdu_type(reply), "RESULT", "reply was a RESULT");
 		is_string(s = pdu_string(reply, 1), "4242", "serial echoed back in frame 1");   free(s);
 		is_string(s = pdu_string(reply, 2), FQDN,   "mesh node FQDN in frame 2");       free(s);
 		is_string(s = pdu_string(reply, 3), UUID1,  "mesh node UUID in frame 3");       free(s);
 		is_string(s = pdu_string(reply, 4), "0",    "status code is in frame 4");       free(s);
 		is_string(s = pdu_string(reply, 5), PACKAGE_VERSION "\n", "output in frame 5"); free(s);
-		is_null(pdu_string(reply, 6), "there is no sixth frame");
+		is_null(pdu_string(reply, 6), "there is no 6th frame");
 		pdu_free(reply);
 
 		void *_;
@@ -360,9 +354,8 @@ TESTS {
 
 		reply = pdu_recv(sock);
 		isnt_null(reply, "Got a reply from meshd thread");
-		is_string(s = pdu_string(reply, 0), "SUBMITTED", "REQUEST -> SUBMITTED"); free(s);
-		is_string(s = pdu_string(reply, 1), "4242", "Serial returned to client"); free(s);
-		is_null(pdu_string(reply, 2), "There is no 3rd frame");
+		is_string(s = pdu_string(reply, 0), "OK", "REQUEST -> OK"); free(s);
+		is_null(pdu_string(reply, 1), "There are no data frames");
 		pdu_free(reply);
 
 		/* send the safe word to terminate the meshd thread */
@@ -539,5 +532,6 @@ TESTS {
 		zmq_ctx_destroy(ctx);
 	}
 
+	alarm(0);
 	done_testing();
 }

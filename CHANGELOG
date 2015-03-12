@@ -5,6 +5,27 @@ origin/master
 
 
 
+3.1.0        2015-03-11                                    runtime 20150209
+
+  [ENHANCEMENTS]
+
+  - Rework Mesh Signalling Protocol
+    `meshd' now operates solely as a proxy/router for proxying commands from
+    clients to interested `cogd' agents, and routing replies back.  As such,
+    timeouts have been moved into clients like `cw-mesh', and the protocol
+    has been redesigned to provide faster convergence on subset responses.
+
+    `cw-client' now has two timeouts, a discovery timeout (in milliseconds)
+    that represents a minimum amount of time the client will wait for nodes
+    to opt-in, and a proper timeout for waiting on client execution.
+
+    Additionally, the ACL check on `cogd' nodes now comes before the
+    filtering step, to avoid accidental disclosure of node information.
+
+    The new (3.1) mesh protocol is documented in the MESH file.
+
+
+
 3.0.17       2015-03-06                                    runtime 20150209
 
   [BUG FIXES]

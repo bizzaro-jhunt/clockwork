@@ -100,8 +100,8 @@ typedef struct {
 	cmd_t     *command;
 	char      *filters;
 
-	int        timeout_ms;
-	int        sleep_ms;
+	uint64_t   timeout_ms;
+	uint64_t   discovery_ms;
 
 	cert_t    *client_cert;
 	cert_t    *master_cert;
@@ -181,7 +181,7 @@ static client_t* s_init(int argc, char **argv)
 {
 	client_t *c = s_client_new();
 
-	const char *short_opts = "+h?Vvqnu:k:t:s:w:c:YJXTP";
+	const char *short_opts = "+h?Vvqnu:k:d:t:w:c:YJXTP";
 	struct option long_opts[] = {
 		{ "help",        no_argument,       NULL, 'h' },
 		{ "version",     no_argument,       NULL, 'V' },
@@ -190,8 +190,8 @@ static client_t* s_init(int argc, char **argv)
 		{ "noop",        no_argument,       NULL, 'n' },
 		{ "username",    required_argument, NULL, 'u' },
 		{ "key",         required_argument, NULL, 'k' },
+		{ "discovery",   required_argument, NULL, 'd' },
 		{ "timeout",     required_argument, NULL, 't' },
-		{ "sleep",       required_argument, NULL, 's' },
 		{ "where",       required_argument, NULL, 'w' },
 		{ "config",      required_argument, NULL, 'c' },
 		{ "optouts",     no_argument,       NULL,  1  },
@@ -250,16 +250,16 @@ static client_t* s_init(int argc, char **argv)
 			c->authkey = strcmp(optarg, "0") == 0 ? NULL : strdup(optarg);
 			break;
 
+		case 'd':
+			c->discovery_ms = atoi(optarg);
+			if (c->discovery_ms <=   0) c->discovery_ms = 5000;
+			if (c->discovery_ms <  250) c->discovery_ms =  250;
+			break;
+
 		case 't':
 			c->timeout_ms = atoi(optarg) * 1000;
 			if (c->timeout_ms <=    0) c->timeout_ms = 40 * 1000;
 			if (c->timeout_ms <  1000) c->timeout_ms =  1 * 1000;
-			break;
-
-		case 's':
-			c->sleep_ms = atoi(optarg);
-			if (c->sleep_ms <=   0) c->sleep_ms = 250;
-			if (c->sleep_ms <  100) c->sleep_ms = 100;
 			break;
 
 		case 'w':
@@ -304,8 +304,8 @@ static client_t* s_init(int argc, char **argv)
 	c->filters = strings_join(filters, "");
 
 	LIST(config);
-	config_set(&config, "mesh.timeout",  "40");
-	config_set(&config, "mesh.sleep",   "250");
+	config_set(&config, "mesh.timeout",   "40");
+	config_set(&config, "mesh.discovery", "5");
 
 	if (!config_file) {
 		if (s_read_config(&config, CW_MTOOL_CONFIG_FILE, 0) != 0)
@@ -332,10 +332,10 @@ static client_t* s_init(int argc, char **argv)
 	if (c->timeout_ms < 1000)
 		c->timeout_ms = 1000;
 
-	if (c->sleep_ms == 0)
-		c->sleep_ms = atoi(config_get(&config, "mesh.sleep"));
-	if (c->sleep_ms < 100)
-		c->sleep_ms = 100;
+	if (c->discovery_ms == 0)
+		c->discovery_ms = atoi(config_get(&config, "mesh.discovery"));
+	if (c->discovery_ms < 250)
+		c->discovery_ms = 250;
 
 	c->endpoint = config_get(&config, "mesh.master");
 	if (!c->endpoint) {
@@ -593,73 +593,90 @@ int main(int argc, char **argv)
 		logger(LOG_ERR, "ERROR: %s", pdu_string(reply, 1));
 		exit(3);
 	}
-	if (strcmp(pdu_type(reply), "SUBMITTED") != 0) {
+	if (strcmp(pdu_type(reply), "OK") != 0) {
 		logger(LOG_ERR, "Unknown response: %s", pdu_type(reply));
 		exit(3);
 	}
 
-	char *serial = pdu_string(reply, 1);
 	pdu_free(reply);
-	logger(LOG_INFO, "query submitted; serial = %s", serial);
+	logger(LOG_INFO, "query submitted");
+
+	int expect = 0, seen = 0;
+	uint64_t deadline1 = time_ms() + c->discovery_ms;
+	uint64_t deadline2 = time_ms() + c->timeout_ms;
+	uint64_t deadline = deadline1;
 
 	print_header();
+	zmq_pollitem_t socks[] = {{ client, 0, ZMQ_POLLIN, 0 }};
+	for (;;) {
+		uint64_t now = time_ms();
+		uint64_t timeout = deadline > now ? deadline - now : 250;
 
-	int n;
-	for (n = c->timeout_ms / c->sleep_ms; n > 0; n--) {
-		sleep_ms(c->sleep_ms);
+		logger(LOG_INFO, "waiting to recv for up to %lums", timeout);
+		rc = zmq_poll(socks, 1, timeout);
+		now = time_ms();
 
-		logger(LOG_INFO, "awaiting result, countdown = %i", n);
-		pdu = pdu_make("CHECK", 1, serial);
-		rc = pdu_send_and_free(pdu, client);
-		assert(rc == 0);
+		if (rc != 1) {
+			if (errno == EINTR)
+				continue;
 
-		for (;;) {
-			reply = pdu_recv(client);
-			if (strcmp(pdu_type(reply), "DONE") == 0) {
-				pdu_free(reply);
+			/* timer expired */
+			if ((now >= deadline1 && expect == 0) /* no one discovered */
+			  || now >= deadline2)                /* or we're out of time */
 				break;
-			}
 
-			if (strcmp(pdu_type(reply), "ERROR") == 0) {
-				logger(LOG_ERR, "ERROR: %s", pdu_string(reply, 1));
-				pdu_free(reply);
-				break;
-			}
+			deadline = deadline2;
+			continue;
+		}
 
+		pdu_t *pdu = pdu_recv(client);
+		if (strcmp(pdu_type(pdu), "OPTIN") == 0) {
+			char *fqdn = pdu_string(pdu, 1);
+			char *uuid = pdu_string(pdu, 2);
 
-			if (strcmp(pdu_type(reply), "OPTOUT") == 0) {
-				if (SHOW_OPTOUTS) {
-					char *fqdn = pdu_string(reply, 1);
-					char *uuid = pdu_string(reply, 2);
-					print_optout(fqdn, uuid);
+			expect++;
+			logger(LOG_INFO, "%s (%s) opted in; seen/expect = %i/%i", fqdn, uuid, seen, expect);
 
-					free(fqdn);
-					free(uuid);
-				}
+			free(fqdn);
+			free(uuid);
+			pdu_free(pdu);
 
-			} else if (strcmp(pdu_type(reply), "RESULT") == 0) {
-				char *fqdn   = pdu_string(reply, 1);
-				char *uuid   = pdu_string(reply, 2);
-				char *result = pdu_string(reply, 3);
-				char *output = pdu_string(reply, 4);
-
-				print_result(fqdn, uuid, result, output);
+		} else if (strcmp(pdu_type(pdu), "OPTOUT") == 0) {
+			if (SHOW_OPTOUTS) {
+				char *fqdn = pdu_string(pdu, 1);
+				char *uuid = pdu_string(pdu, 2);
+				print_optout(fqdn, uuid);
 
 				free(fqdn);
 				free(uuid);
-				free(result);
-				free(output);
-
-			} else {
-				logger(LOG_ERR, "Unknown response: %s", pdu_type(reply));
-				pdu_free(reply);
-				break;
 			}
+			pdu_free(pdu);
 
-			pdu_free(reply);
+		} else if (strcmp(pdu_type(pdu), "RESULT") == 0) {
+			char *fqdn   = pdu_string(pdu, 1);
+			char *uuid   = pdu_string(pdu, 2);
+			char *result = pdu_string(pdu, 3);
+			char *output = pdu_string(pdu, 4);
+
+			seen++;
+			logger(LOG_INFO, "%s (%s) completed; seen/expect = %i/%i", fqdn, uuid, seen, expect);
+			print_result(fqdn, uuid, result, output);
+
+			free(fqdn);
+			free(uuid);
+			free(result);
+			free(output);
+			pdu_free(pdu);
+
+			if (now >= deadline1 || seen == expect)
+				break;
+
+		} else {
+			logger(LOG_ERR, "Unknown response: %s", pdu_type(pdu));
+			pdu_free(pdu);
+			break;
 		}
 	}
-
 	print_footer();
 
 	logger(LOG_INFO, "cw-mesh shutting down");

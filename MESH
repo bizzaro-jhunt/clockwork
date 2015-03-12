@@ -1,0 +1,180 @@
+
+                   ##     ## ########  ######  ##     ##
+                   ###   ### ##       ##    ## ##     ##
+                   #### #### ##       ##       ##     ##
+                   ## ### ## ######    ######  #########
+                   ##     ## ##             ## ##     ##
+                   ##     ## ##       ##    ## ##     ##
+                   ##     ## ########  ######  ##     ##
+
+                   -------------------------------------
+                   secure remote execution for clockwork
+                   -------------------------------------
+
+    Architecture:
+
+
+                                                         [COMMAND]
+                                                        .-----------------
+                                                       /
+                                                      /    cogd
+                                                     /            cogd
+     -----------.    [REQUEST]    .-----------.     /   cogd
+                |    [BYE]        |           |----'           cogd
+       cw-mesh  |-----------------|   meshd   |                      cogd
+                |    [OPTIN]      |           |----.      cogd
+     -----------'    [OPTOUT]     '-----------'     \              cogd
+                     [RESULT]           |            \      cogd
+                                        |             \               cogd
+                                        |              \
+                               [OPTIN]  |               `-----------------
+                               [OPTOUT] |                       |
+                               [RESULT] |                       |
+                                        '-----------------------'
+
+  ##############################################################################
+
+  Mesh is a remote execution framework for Clockwork.  It lets Clockwork site
+  administrators run commands on some or all of their managed nodes, via the
+  `cogd' agent.
+
+  `meshd' acts as a simple proxy/router for getting commands from clients (via
+  the `cw-mesh' utility) out to all cogds via a PUB/SUB broadcast channel, and
+  routing replies back from the cogd nodes to the original requesting client.
+
+  Mesh does not require network symmetry.  Put another way, the cogd nodes don't
+  need to be able to route packets directly to the client hosts. All connections
+  pass through the meshd server node, which is expected to be at a centrally
+  accessible network endpoint.
+
+  The protocol works like this:
+
+  1. A client (`cw-mesh') submits a [REQUEST] PDU to the `meshd' server
+     The PDU contains the full details of the request:
+
+     +----------------+
+     | REQUEST        |    PDU type.  Always "REQUEST"
+     +----------------+
+     | <username>     |    Username of the requester.
+     +----------------+
+     | <public key>   |    User's public key, for key-based authentication.
+     +----------------+
+     | <secret>       |    Authentication secret.
+     +----------------+
+     | <command>      |    The command string to run.
+     +----------------+
+     | <filters>      |    Zero or more filters identifying which subset
+     +----------------+      of nodes to run the command on.
+
+     There are two methods of authentication, key-based and password-based.
+
+     Under key-based authentication, the user provides their public key, along
+     with 256 bytes of random data signed by the private key, in <secret>.
+     meshd will verify the signature, proving that the rquester is in possession
+     of the corresponding private key, and then confirms that the public key is
+     listed in the mesh trust database.
+
+     Under password-based authentication, the public key frame must be empty
+     (consisting of the byte 00, for the empty, null-terminated C string).
+     The <secret> field should then contain the user's password, also as a
+     null-terminated C string.  meshd will use these authentication tokens to
+     to perform a PAM-based authentication request, per its configuration.
+
+  2. meshd performs the authentication, pursuant to the rules set forth above.
+     If authentication fails, an [ERROR] PDU with the message "Authentication
+     failed ($method)" is returned, where $message is either "pubkey" or "password",
+     based on what method was used.
+
+  3. meshd parses the command and filters given.  If they are malformed, an
+     [ERROR] PDU to that effect is sent back.  Otherwise, a [COMMAND] PDU
+     is constructed containing:
+
+     +---------------+
+     | COMMAND       |    PDU type.  Always "COMMAND"
+     +---------------+
+     | <serial>      |    A unique serial number.  Must be returned with all
+     +---------------+      replies (OPTIN/OPTOUT/RESULT).
+     | <credentials> |    Requester credentials (user:group1:group2:...), for
+     +---------------+      use in ACL evaluation.
+     | <command>     |    The original command string, also for ACL evaluation.
+     +---------------+
+     | <code>        |    The pendulum bytecode image to run.
+     +---------------+
+     | <filters>     |    The original node filters, for OPTIN / OPTOUT decisions.
+     +---------------+
+
+     Once the [COMMAND] is sent out to all listening `cogd' nodes, meshd replies
+     to the client with an [OK] PDU.
+
+  4. Each `cogd' that received the [COMMAND] PDU in step 3 evaluates its own
+     facts against the given filters.  If it does not match, it sends an [OPTOUT]
+     PDU and leaves the interaction.
+
+     +----------+
+     | OPTOUT   |    PDU type.  Always "OPTOUT"
+     +----------+
+     | <serial> |    The serial number from the [COMMAND] PDU that elicited the
+     +----------+      OPTOUT response.
+     | <fqdn>   |    Fully-qualified name of the host opting out.
+     +----------+
+     | <uuid>   |    Globally unique system identifier (not based on MAC, IP or
+     +----------+      host/domain name.  Useful for differentiating duplicate hosts).
+
+     If it does match, but the ACLs prohibit the requester from running the command,
+     no reply is sent.
+
+     If `cogd' determines that it matches the filter, and the ACL allows execution,
+     it sends an [OPTIN] PDU back to `meshd', and then begins the work:
+
+     +----------+
+     | OPTIN    |    PDU type.  Always "OPTIN"
+     +----------+
+     | <serial> |    The serial number from the [COMMAND] PDU that elicited the
+     +----------+    OPTIN response.
+     | <fqdn>   |    Fully-qualified name of the host opting in.
+     +----------+
+     | <uuid>   |    Globally unique system identifier (not based on MAC, IP or
+     +----------+      host/domain name.  Useful for differentiating duplicate hosts).
+
+  5. As [OPTIN] and [OPTOUT] messages are received, `meshd' matches up the
+     serial numbers to the open client socket, strips the <serial> frame, and
+     forwards the remaining frames on, with the same PDU type.
+
+  6. All `cogd' nodes that opted into the request execute the request and submit
+     a [RESULT] PDU to the `meshd' when they are complete:
+
+     +----------+
+     | RESULT   |    PDU type.  Always "RESULT"
+     +----------+
+     | <serial> |    The serial number from the [COMMAND] PDU that elicited the
+     +----------+    OPTIN response.
+     | <fqdn>   |    Fully-qualified name of the host opting in.
+     +----------+
+     | <uuid>   |    Globally unique system identifier (not based on MAC, IP or
+     +----------+      host/domain name.  Useful for differentiating duplicate hosts).
+     | <code>   |    Return code of the Pendulum VM.  "0" for normal exit.
+     +----------+
+     | <output> |    Output of the executed bytecode.
+     +----------+
+
+  7. As [RESULT] messages are received, `meshd' matches up the serial numbers
+     to the open client socket, and forwards the PDUs on, after removing the
+     <serial> frame.
+
+  8. When the client is done waiting for replies, it sends a [BYE] PDU, indicating
+     that it wishes to withdraw its query.  The [BYE] PDU has no data frames.
+
+     When `meshd' receives a [BYE] PDU, it will stop forwarding requests to the
+     client, forget about its associated serial number, and close the socket.
+
+
+
+  A few notes:
+
+   - Timeout handling is entirely on the client.
+
+   - Since `meshd' only keeps enough state to route replies back to the client,
+     it's memory footprint shouldn't be a bottleneck to scaling.
+
+   - Since serials are generated by `meshd', and never shared with or recived from
+     the client, routing mix-ups should be mitigated.

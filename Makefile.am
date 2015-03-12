@@ -159,7 +159,7 @@ CLEANFILES       = $(BUILT_SOURCES)
 CLEANFILES      += t/cover.pn.S
 CLEANFILES      += t/cover.pn.S.pcov
 
-EXTRA_DIST       = HACKING CHANGELOG
+EXTRA_DIST       = HACKING CHANGELOG MESH
 EXTRA_DIST      += opcodes.yml gencode
 EXTRA_DIST      += bootstrap
 EXTRA_DIST      += augeas gather.d

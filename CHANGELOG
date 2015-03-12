@@ -25,6 +25,12 @@ origin/master
     The new (3.1) mesh protocol is documented in the MESH file.
 
 
+  [DOCUMENTATION]
+
+  - Fix incorrect flag examples in `cw-cert' usage screen.
+
+
+
 
 3.0.17       2015-03-06                                    runtime 20150209
 

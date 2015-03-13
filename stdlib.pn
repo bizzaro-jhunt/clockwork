@@ -172,6 +172,7 @@ fn res.dir.present
 ;; res.file.present
 ;;
 fn res.file.present
+    unflag "file.created"
     syslog info "%T: enforcing presence of %[a]s"
     fs.stat %a
     jnz create
@@ -207,9 +208,20 @@ fn res.file.present
       perror "failed to create regular file %[a]s"
       bail 1
 
+    flag "file.created"
     flag "changed"
     retv 0
 
+
+fn res.file.undo
+  flagged? "file.created"
+  jz +1 ret
+
+  syslog info "%T: removing partially created file %[a]s"
+  fs.unlink %a
+  unflag "file.created"
+  unflag "changed"
+  ret
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -348,6 +360,7 @@ fn res.file.contents
     eq %f 1 jz cache
 
     syslog info "%T: skipping - not connected to clockd, and %[a]s is not cacheable"
+    flagged? "file.created" jnz +1 call res.file.undo
     retv 1
 
   cache:
@@ -358,10 +371,12 @@ fn res.file.contents
 
     syslog info "%T: calculating cached-file SHA1 checksum"
     fs.sha1 %j %m
-    jz +2
+    jz check
       perror "failed to calculate SHA1 for cached copy of %[a]s (%[j]s)"
+      flagged? "file.created" jnz +1 call res.file.undo
       bail 1
 
+  check:
     syslog info "%T: checking if local SHA1 (%[p]s) matches cache (%[m]s)"
     streq %m %p
     jnz +1

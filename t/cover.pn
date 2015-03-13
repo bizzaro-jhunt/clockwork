@@ -3476,7 +3476,7 @@ fn test.res.file.contents.10
 
   unflag "changed"
   try res.file.contents
-  flagged? "changed" jz +3
+  flagged? "changed" jz +2
     string "%[p]s: not flagged" %p
     call notok
 
@@ -3510,6 +3510,111 @@ fn test.res.file.contents.10
   fs.get %o %f
   streq "cached contents\n" %f jz +2
     string "%[p]s: cached contents were changed [%[f]s]" %p
+    call notok
+  call ok
+
+fn test.res.file.undo.1
+  call setup
+  umask 022 %p
+  set %p "newly-created files are removed if we can't update the contents"
+  pragma remote "offline" ; pretend we can't contact clockd
+  remote.live? jnz +2
+    string "%[p]s: remote.live? still returning true; `pragma` had no effect?" %p
+    call notok
+
+  set %a "t/tmp/local"
+  set %b "t/tmp/local"
+  set %c "file://key"
+  set %d ""
+  set %e 0
+  set %f 0
+
+  fs.file? %o jnz +2
+    string "%[p]s: %[o]s already exists" %p
+    call notok
+
+  unflag "changed"
+  unflag "file.created"
+  try res.file.present
+  flagged? "changed" jz +2
+    string "%[p]s: empty file not created" %p
+    call notok
+
+  fs.file? %a jz +2
+    string "%[p]s: empty file not created (on disk)" %p
+    call notok
+
+  flagged? "file.created" jz +2
+    string "%[p]s: 'file.created' flag not set" %p
+    call notok
+
+  fs.get %a %g
+  streq %g "" jz +2
+    string "%[p]s: file not empty (%[g]s)" %p
+    call notok
+
+  try res.file.contents
+  flagged? "changed" jnz +2
+    string "%[p]s: 'changed' flag is still set" %p
+    call notok
+
+  fs.file? %a jnz +2
+    string "%[p]s: %[a]s was not removed" %p
+    call notok
+
+  flagged? "file.created" jnz +2
+    string "%[p]s: 'file.created' flag is still set" %p
+    call notok
+  call ok
+
+fn test.res.file.undo.2
+  call setup
+  umask 022 %p
+  set %p "existing files are not removed if we can't update the contents"
+  pragma remote "offline" ; pretend we can't contact clockd
+  remote.live? jnz +2
+    string "%[p]s: remote.live? still returning true; `pragma` had no effect?" %p
+    call notok
+
+  set %a "t/tmp/local"
+  set %b "t/tmp/local"
+  set %c "file://key"
+  set %d ""
+  set %e 0
+  set %f 0
+
+  fs.put %a "{contents}"
+  fs.file? %a jz +2
+    string "%[p]s: %[o]s not created (initially)" %p
+    call notok
+
+  unflag "changed"
+  unflag "file.created"
+  try res.file.present
+  flagged? "changed" jnz +2
+    string "%[p]s: res.file.present did stuff (and should not have)" %p
+    call notok
+
+  fs.file? %a jz +2
+    string "%[p]s: %[a]s was removed" %p
+    call notok
+
+  flagged? "file.created" jnz +2
+    string "%[p]s: 'file.created' flag was set" %p
+    call notok
+
+  fs.get %a %g
+  streq %g "{contents}" jz +2
+    string "%[p]s: file contents were changed by res.file.present (to %[g]s)" %p
+    call notok
+
+  try res.file.contents
+  flagged? "changed" jnz +2
+    string "%[p]s: res.file.contents set the 'changed' flag" %p
+    call notok
+
+  fs.file? %a jz +2
+    string "%[p]s: %[a]s was removed" %p
     call notok
   call ok
 
@@ -3694,6 +3799,11 @@ skip-run-as:
   try test.res.file.contents.10 jz +1 set %p 1
 
 noroot:
+
+  ; what happens if we create a file but can't set its contents?
+  try test.res.file.undo.1 jz +1 set %p 1
+  try test.res.file.undo.2 jz +1 set %p 1
+
   exec "rm -rf t/tmp" %e
   pop %o print "1..%[o]i\n"
   retv %p

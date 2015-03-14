@@ -42,8 +42,12 @@ just I<grep>) for security and reliability reasons.
 
 Another command, to determine if the B<command> should actually
 be run.  An exit code of B<0> means the test passed.  Any other
-exit coe is interpreted as a failure, indicating that B<command>
+exit code is interpreted as a failure, indicating that B<command>
 should I<not> be run.
+
+If B<test> is combined with B<ondemand>, the test will only be
+attempted if the resource is notified, and must still pass.
+Otherwise, the exec will be skipped.
 
 =item B<user>
 
@@ -63,6 +67,9 @@ depends on it.
 
 This is an advanced use case for exec resources that can lead to some
 elaborate (and somewhat obtuse) behavior.  Use at your own peril.
+
+If B<ondemand> is combined with B<test>, the test will only be
+attempted if the resource is notified, and must still pass.
 
 =back
 
@@ -107,6 +114,54 @@ Without the B<ondemand> option, Clockwork would continually re-run
 the postmap command on every single run, regardless of whether it was
 needed or not.
 
+It may be tempting to add a B<test> option to the exec resource,
+so that the map gets compiled if it doesn't exist, regardless of
+whether or not the source file has changed:
+
+    file "/etc/postfix/some-map" {
+        owner:  "root"
+        group:  "root"
+        mode:   "0640"
+        source: "/files/postfix/some-map"
+    }
+    exec "regen some-map" {
+        command:  "/usr/bin/postmap -r /etc/postfix/some-map"
+        ondemand: "yes"
+                             # this next part is WRONG!
+        test:     "/usr/bin/test ! -f /etc/postfix/some-map.db"
+    }
+    exec("regen some-map") depends on file "/etc/postfix/some-map"
+
+This B<will not> work.  When B<ondemand> and B<test> are composed
+in this manner, both conditionals ("only if notified" and "if the
+file doesn't exist") are requisite.  The only scenario where the
+exec in the above configuration fires is when the source file gets
+updated, and the some-map.db file is missing.  Any updates made to
+the source file will be otherwise ignored.
+
+Instead, for this type of case, you'll generally be better off
+creating a better compound B<test> and dropping the B<ondemand>
+behavior altogether:
+
+    file "/etc/postfix/some-map" {
+        owner:  "root"
+        group:  "root"
+        mode:   "0640"
+        source: "/files/postfix/some-map"
+    }
+    exec "regen some-map" {
+        command:  "/usr/bin/postmap -r /etc/postfix/some-map"
+        test:     "/usr/bin/test ! -f /etc/postfix/some-map.db -o /etc/postfix/some-map.db -ot /etc/postfix/some-map"
+    }
+    exec("regen some-map") depends on file "/etc/postfix/some-map"
+
+That is, if the file does not already exist (-f) or, the file is
+older than (-ot) the source file, then run the regeneration exec.
+
+Note that we keep the dependency between the regen exec and the
+source file resource in order to force Clockwork to apply any
+necessary updates to the source file before attempting compilation.
+
 =head1 CAVEATS
 
 =head2 1. Default Behavior
@@ -119,6 +174,17 @@ intended.
 
 As a general rule, it is best to always specify the user and group,
 even if you just set them explicitly to the defaults.
+
+=head2 2. C<ondemand> Execution with C<test>
+
+Combining the B<ondemand> option (to defer execution until another
+resource explicitly requires it) with the B<test> option (to skip
+execution unless a conditional test passes) is possible, but keep
+in mind that both requirements must be satisfied.  The exec
+resource I<must> be notified by another resource, B<and> the test
+command has to pass.
+
+See the B<EXAMPLES> section above for a more detailed explanation.
 
 =head1 DEPENDENCIES
 

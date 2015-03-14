@@ -5,7 +5,7 @@ origin/master
 
 
 
-3.1.1        2015-03-13                                    runtime 20150209
+3.1.1        2015-03-14                                    runtime 20150209
 
   [ENHANCEMENTS]
 
@@ -14,6 +14,11 @@ origin/master
     then fails to contact clockd for the remote SHA1 / file contents, that
     file should be removed.  Otherwise, we are left with extant files with
     nothing in them, which can confuse some 'conf.d' style code.
+
+  [DOCUMENTATION]
+
+  - Clarify the effects of composing `ondemand' and `test' in res_exec
+    It may not do what you think it will.
 
 
 

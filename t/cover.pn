@@ -3513,6 +3513,38 @@ fn test.res.file.contents.10
     call notok
   call ok
 
+fn test.remote.file.binary.1
+  call setup
+  umask 022 %p
+  set %p "remote.file handles binary files"
+  set %a "t/tmp/want"
+  set %b %a
+  set %c "file://BINARY"
+  set %d ""
+  set %e 0
+  set %f 0
+
+  fs.put %a "this is wrong\n"
+  fs.file? %a jz +2
+    string "%[p]s: %[a]s does not exist" %p
+    call notok
+
+  unflag "changed"
+  try res.file.contents
+  flagged? "changed" jz +2
+    string "%[p]s: not flagged" %p
+    call notok
+
+  fs.file? %a jz +2
+    string "%[p]s: not created" %p
+    call notok
+
+  fs.sha1 %a %f
+  streq "76d315cebf6852ed5d9306ae6f5120e51f9eb920" %f jz +2
+    string "%[p]s: SHA1 incorrect [%[f]s]" %p
+    call notok
+  call ok
+
 fn test.res.file.undo.1
   call setup
   umask 022 %p
@@ -3803,6 +3835,8 @@ noroot:
   ; what happens if we create a file but can't set its contents?
   try test.res.file.undo.1 jz +1 set %p 1
   try test.res.file.undo.2 jz +1 set %p 1
+
+  try test.remote.file.binary.1 jz +1 set %p 1
 
   exec "rm -rf t/tmp" %e
   pop %o print "1..%[o]i\n"

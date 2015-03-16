@@ -480,10 +480,21 @@ static int s_remote_fileio(vm_t *vm, FILE *io)
 			return 1;
 		}
 
-		char *data = pdu_string(reply, 1);
-		fprintf(io, "%s", data);
-		free(data);
+		size_t n;
+		char *data = (char *)pdu_segment(reply, 1, &n);
 		pdu_free(reply);
+
+		if (!data) {
+			logger(LOG_ERR, "remote.file - failed to get block payload frame!");
+			return 1;
+		}
+
+		size_t written = fwrite(data, sizeof(char), n, io);
+		free(data);
+		if (written != n) {
+			logger(LOG_ERR, "remote.file - only wrote %i/%i bytes!");
+			return 1;
+		}
 	}
 
 	return 0;

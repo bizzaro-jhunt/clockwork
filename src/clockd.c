@@ -490,10 +490,9 @@ static int s_state_machine(client_t *fsm, pdu_t *pdu, pdu_t **reply)
 			return 0;
 		}
 
-		char block[BLOCK_SIZE+1] = "";
+		char block[BLOCK_SIZE] = "";
 		fseek(fsm->contents->io, fsm->offset, SEEK_SET);
 		size_t n = fread(block, 1, BLOCK_SIZE, fsm->contents->io);
-		block[n] = '\0';
 
 		if (n == 0) {
 			if (feof(fsm->contents->io)) {

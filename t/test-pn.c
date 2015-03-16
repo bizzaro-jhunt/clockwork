@@ -25,8 +25,15 @@
 #include <fcntl.h>
 #include <pthread.h>
 
-#define SHA1_WANT "db726735fb9f56a8f4e9569a0118cc2544c60700"
-        /* sha1 of the string "this is what i want.\n" */
+#define  SRC_TXT "this is what i want.\n"
+#define SSRC_TXT "this is what i want.\\n"
+#define SHA1_TXT "db726735fb9f56a8f4e9569a0118cc2544c60700"
+
+#define  SRC_BIN "binary\0files\0rock" /* 17 bytes */
+#define SSRC_BIN "binary\\0files\\0rock"
+#define SHA1_BIN "76d315cebf6852ed5d9306ae6f5120e51f9eb920"
+
+static int text_mode = 1;
 
 #define FAKE_CLOCKD "inproc://clockd"
 
@@ -55,14 +62,30 @@ static void* fake_clockd(void *zmq)
 		logger(LOG_INFO, "fake_clockd: received a %s", pdu_type(pdu));
 
 		if (strcmp(pdu_type(pdu), "FILE") == 0) { /* should return a 'SHA1' */
-			logger(LOG_INFO, "fake_clockd: sending [SHA1][" SHA1_WANT "] response");
-			pdu_send_and_free(pdu_reply(pdu, "SHA1", 1, SHA1_WANT), Z);
+			char *file = pdu_string(pdu, 1);
+			text_mode = strcmp(file, "file://BINARY") != 0;
+			free(file);
+
+			if (text_mode) {
+				logger(LOG_INFO, "fake_clockd: sending [SHA1][" SHA1_TXT "] response");
+				pdu_send_and_free(pdu_reply(pdu, "SHA1", 1, SHA1_TXT), Z);
+			} else {
+				logger(LOG_INFO, "fake_clockd: sending [SHA1][" SHA1_BIN "] response");
+				pdu_send_and_free(pdu_reply(pdu, "SHA1", 1, SHA1_BIN), Z);
+			}
 			continue;
 		}
 
 		if (strcmp(pdu_type(pdu), "DATA") == 0) { /* should return BLOCK+ EOF */
-			logger(LOG_INFO, "fake_clockd: sending [BLOCK][this is what i want.\\n] response");
-			pdu_send_and_free(pdu_reply(pdu, "BLOCK", 1, "this is what i want.\n"), Z);
+			if (text_mode) {
+				logger(LOG_INFO, "fake_clockd: sending [BLOCK][" SSRC_TXT "] response");
+				pdu_send_and_free(pdu_reply(pdu, "BLOCK", 1, SRC_TXT), Z);
+			} else {
+				logger(LOG_INFO, "fake_clockd: sending [BLOCK][" SSRC_BIN "] response");
+				pdu_t *re = pdu_reply(pdu, "BLOCK", 0);
+				pdu_extend(re, SRC_BIN, 17);
+				pdu_send_and_free(re, Z);
+			}
 			pdu = pdu_recv(Z);
 			logger(LOG_INFO, "fake_clockd: sending [EOF] response");
 			pdu_send_and_free(pdu_reply(pdu, "EOF", 0), Z);

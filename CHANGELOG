@@ -1,7 +1,12 @@
 
 origin/master
 
-  (none)
+  [BUG FIXES]
+
+  - Handle files with NULL bytes in them
+    Instead of using `pdu_extendf` and only getting partial BLOCK PDUs,
+    use `pdu_extend` and fwrite to get the full block.  Fixes corruption
+    found when trying to enforce presence of PNG images and other bin files.
 
 
 

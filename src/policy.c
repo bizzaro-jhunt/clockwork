@@ -209,11 +209,13 @@ static int _policy_normalize(struct policy *pol, hash_t *facts)
 		if (!r1) {
 			logger(LOG_ERR, "Failed dependency for unknown resource %s", dep->a);
 			list_delete(&dep->l);
+			dependency_free(dep);
 			continue;
 		}
 		if (!r2) {
 			logger(LOG_ERR, "Failed dependency on unknown resource %s", dep->b);
 			list_delete(&dep->l);
+			dependency_free(dep);
 			continue;
 		}
 

@@ -200,6 +200,31 @@ TESTS {
 		manifest_free(m);
 	}
 
+	subtest {
+		struct manifest *m;
+		struct policy *pol;
+		hash_t *facts;
+
+		mkdir("t/tmp", 0777);
+		FILE *io = fopen("t/tmp/manifest.pol", "w");
+		if (!io) BAIL_OUT("failed to create test file 't/tmp/manifest.pol'");
+
+		fprintf(io, "policy \"base\" {\n");
+		fprintf(io, "\tdir \"/b\" { depends on dir(\"/a\") }\n");
+		fprintf(io, "\tdir(\"/b\") depends on dir(\"/a\")\n");
+		fprintf(io, "}\n");
+		fclose(io);
+
+		facts = vmalloc(sizeof(hash_t));
+		isnt_null(m = parse_file("t/tmp/manifest.pol"),
+				"manifest parsed");
+		isnt_null(pol = policy_generate(hash_get(m->policies, "base"), facts),
+				"policy 'base' found");
+
+		policy_free_all(pol);
+		free(facts);
+		manifest_free(m);
+	}
 
 	done_testing();
 }

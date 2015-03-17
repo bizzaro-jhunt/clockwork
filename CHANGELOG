@@ -8,6 +8,10 @@ origin/master
     use `pdu_extend` and fwrite to get the full block.  Fixes corruption
     found when trying to enforce presence of PNG images and other bin files.
 
+  - Fix memory leaks when dependency injection failes
+    If `policy_add_dependency()` fails (usually because of duplicate deps),
+    memory was leaking in the unused dependency structure.  Fixed.
+
 
 
 3.1.1        2015-03-14                                    runtime 20150209

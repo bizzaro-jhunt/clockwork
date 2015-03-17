@@ -813,7 +813,8 @@ again:
 		free(dep.a);
 		free(dep.b);
 
-		policy_add_dependency(pgen->policy, pgen->dep);
+		if (policy_add_dependency(pgen->policy, pgen->dep) != 0)
+			dependency_free(pgen->dep);
 		return 0; /* don't need to traverse the RESOURCE_ID nodes */
 
 	case LOCAL_DEP:
@@ -828,7 +829,8 @@ again:
 			pgen->dep = dependency_new(dep.a, dep.b);
 			free(dep.b);
 
-			policy_add_dependency(pgen->policy, pgen->dep);
+			if (policy_add_dependency(pgen->policy, pgen->dep) != 0)
+				dependency_free(pgen->dep);
 
 		} else {
 			logger(LOG_WARNING, "Forward dependency on %s(%s) defined for unknown type",
@@ -848,7 +850,8 @@ again:
 			pgen->dep = dependency_new(dep.a, dep.b);
 			free(dep.a);
 
-			policy_add_dependency(pgen->policy, pgen->dep);
+			if (policy_add_dependency(pgen->policy, pgen->dep) != 0)
+				dependency_free(pgen->dep);
 
 		} else {
 			logger(LOG_WARNING, "Reverse dependency on %s(%s) defined for unknown type",

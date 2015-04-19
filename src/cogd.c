@@ -534,8 +534,6 @@ static void s_cfm_run(client_t *c)
 		logger(LOG_INFO, "ENFORCE took %lums", stopwatch_ms(&t));
 
 		count = vm.topics;
-		rc = vm_done(&vm);
-		assert(rc == 0);
 
 		if (c->cfm_client) {
 			logger(LOG_INFO, "saving bytecode image at %s", c->cfm_last_exec);
@@ -549,10 +547,13 @@ static void s_cfm_run(client_t *c)
 					c->cfm_last_exec, strerror(errno));
 			}
 		}
-
-		free(c->code);
-		c->codelen = 0;
 	}
+
+	free(c->code);
+	c->codelen = 0;
+
+	rc = vm_done(&vm);
+	assert(rc == 0);
 
 	if (c->cfm_client) {
 		STOPWATCH(&t, ms_cleanup) { rc = s_cfm_cleanup(c); }

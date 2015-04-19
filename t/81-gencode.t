@@ -2262,4 +2262,75 @@ EOF
 	is $? >> 8, 2, "policy with unknown type 'blah' failed validation";
 };
 
+subtest "sys.policy.* facts" => sub {
+	put_file "t/tmp/manifest.pol", <<EOF;
+policy "baseline" {
+	package "00:always" { }
+
+	if (sys.policy.linux is "enforced") {
+		package "01:linux" { }
+	} else {
+		package "01:sys.policy.linux not defined" { }
+	}
+
+	if (sys.policy.bsd is "enforced") {
+		package "02:bsd" { }
+	} else {
+		package "02:sys.policy.bsd not defined" { }
+	}
+
+	package "03:final"
+}
+policy "linux" {
+	extend "baseline"
+}
+policy "bsd" {
+	extend "baseline"
+}
+host "example" { enforce "linux" }
+EOF
+
+	resources_ok <<'EOF', "sys.policy.facts are defined";
+  package 00:always
+  package 01:linux
+  package 02:sys.policy.bsd not defined
+  package 03:final
+EOF
+
+
+	put_file "t/tmp/manifest.pol", <<EOF;
+policy "baseline" {
+	package "00:always" { }
+
+	if (sys.policy.core.os.linux is "enforced") {
+		package "01:linux" { }
+	} else {
+		package "01:sys.policy.* fact not defined" { }
+	}
+
+	package "02:final"
+}
+policy "core::os" {
+	extend "baseline"
+}
+policy "core::os::linux" {
+	extend "core::os"
+}
+policy "linux" {
+	extend "core::os::linux"
+}
+policy "core::os::bsd" {
+	extend "core::os"
+}
+host "example" { enforce "linux" }
+EOF
+
+	resources_ok <<'EOF', "::-delimited policy names are handled";
+  package 00:always
+  package 01:linux
+  package 02:final
+EOF
+
+};
+
 done_testing;

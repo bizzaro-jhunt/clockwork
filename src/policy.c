@@ -584,6 +584,16 @@ int fact_cat_read(const char *file, hash_t *facts)
 	return 0;
 }
 
+void fact_clean(hash_t *facts)
+{
+	/* unset all of the 'reserved' fact trees */
+	char *k, *v;
+	for_each_key_value(facts, k, v) {
+		if (strncmp(k, "sys.policy.", 11) == 0)
+			free(hash_set(facts, k, NULL));
+	}
+}
+
 int fact_gather(const char *paths, hash_t *facts)
 {
 	glob_t scripts;
@@ -596,6 +606,7 @@ int fact_gather(const char *paths, hash_t *facts)
 			hash_done(facts, 0);
 			return -1;
 		}
+		fact_clean(facts);
 		return 0;
 
 	case GLOB_NOSPACE:
@@ -610,6 +621,7 @@ int fact_gather(const char *paths, hash_t *facts)
 	}
 
 	globfree(&scripts);
+	fact_clean(facts);
 	return 0;
 }
 
@@ -751,11 +763,28 @@ static struct resource * _policy_make_resource(struct policy_generator *pgen, co
 	return res;
 }
 
+static char *policy_fact_name(const char *policy)
+{
+	strings_t *parts = strings_split(policy, strlen(policy), "::", SPLIT_NORMAL);
+	if (!parts)
+		return NULL;
+
+	char *dotted = strings_join(parts, ".");
+	strings_free(parts);
+	if (!dotted)
+		return NULL;
+
+	char *key = string("sys.policy.%s", dotted);
+	free(dotted);
+	return key;
+}
+
 static int _policy_generate(struct stree *node, struct policy_generator *pgen, int depth)
 {
 	unsigned int i;
 	struct dependency dep;
 	acl_t *acl;
+	char *fact;
 
 again:
 	assert(node); // LCOV_EXCL_LINE
@@ -894,8 +923,15 @@ again:
 	case PROG:
 	case NOOP:
 	case HOST:
-	case INCLUDE:
 		/* do nothing */
+		break;
+
+	case INCLUDE:
+		fact = policy_fact_name(node->data1);
+		if (fact) {
+			hash_set(pgen->facts, fact, strdup("enforced"));
+			free(fact);
+		}
 		break;
 
 	case POLICY:

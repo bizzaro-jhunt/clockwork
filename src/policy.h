@@ -150,6 +150,7 @@ int fact_parse(const char *line, hash_t *hash);
 int fact_exec_read(const char *script, hash_t *facts);
 int fact_cat_read(const char *file, hash_t *facts);
 int fact_gather(const char *paths, hash_t *facts);
+void fact_clean(hash_t *facts);
 
 struct policy* policy_generate(struct stree *root, hash_t *facts);
 struct policy* policy_new(const char *name);

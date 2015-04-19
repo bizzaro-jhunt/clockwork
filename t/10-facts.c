@@ -103,6 +103,7 @@ TESTS {
 	put_file("t/tmp/facts.d/node.facts", 0755,
 	         "#!/bin/bash\n"
 	         "echo \"sys.type=agent\"\n"
+	         "echo \"sys.policy.bad=behavior\"\n"
 	         "echo \"sys.hostname=host22\"\n"
 	         "echo \"sys.fqdn=host22.example.com\"\n");
 
@@ -134,6 +135,8 @@ TESTS {
 		"sys.os is defined (from os.facts)");
 	ok(!hash_get(facts, "not.defined"),
 		"not.defined fact (in skip.me) not defined");
+	ok(!hash_get(facts, "sys.policy.bad"),
+		"sys.policy.* facts are skipped in fact_gather() for security reasons");
 	hash_done(facts, 1);
 	free(facts);
 

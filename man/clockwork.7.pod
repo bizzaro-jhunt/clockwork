@@ -674,6 +674,75 @@ And the following boolean operators are defined:
 There are no precedence rules to remember.  B<and> and B<&&>
 are completely interchangeable, as are B<or> and B<||>.
 
+When collating the manifest, B<clockd> keeps track of all of the
+I<enforce>d and I<extend>ed policies, and populates server-side
+facts under the B<sys.policy.*> namespace.  These can be used in
+the manifest to provide some more powerful, meta-level behavior.
+
+For example, we may want to define an application-specific
+policy for setting up a general purpose web server like nginx:
+
+    policy "web::nginx" {
+        package "nginx" { installed: "yes" }
+        service "nginx" {
+          enabled: "yes"
+          running: "yes"
+        }
+
+        file "/etc/nginx/nginx.conf" {
+          owner: "root"
+          group: "root"
+          mode:  0640
+          source: "/files/nginx/base.conf"
+        }
+    }
+
+That works fine, until you need to do some wildly different
+things in nginx.conf on different profiles.  What if we have a
+static asset server role (B<server::static>) that uses nginx,
+and a reverse-proxy web applicaiton pool B(<server::app1::pool>)
+that also uses nginx?
+
+We can use a B<sys.policy.*> fact in a conditional to handle
+both configurations:
+
+    policy "web::nginx" {
+        # ...
+
+        file "/etc/nginx/nginx.conf" {
+          # ...
+
+          if (sys.policy.server.static == "enforced") {
+            source: "/files/nginx/static.conf"
+
+          } else if (sys.policy.server.app1.pool == "enforced") {
+            source: "/files/nginx/app1.conf"
+
+          } else {
+            source: "/files/nginx/base.conf"
+          }
+        }
+    }
+
+    policy "server::static" {
+      extend "web::nginx"
+      # ...
+    }
+
+    policy "server::app1::pool" {
+      extend "web::nginx"
+      # ...
+    }
+
+Here, when we enforce the B<server::static> policy, our nginx
+configuration will come from the I<static.conf> file source.
+Note that for security reasons, B<clockd> will ignore any facts
+supplied I<by the client> in the sys.policy namespace.
+
+While there are better ways of decoupling this design, you will
+ultimately find yourself in a situation where B<sys.policy> is
+the simplest, and cleanest way of getting things done.
+
 Conditionals are very powerful parts of the Clockwork manifest
 language that can help to produce specific and sophisticated
 policy and resource definitions.

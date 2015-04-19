@@ -1,7 +1,29 @@
 
 origin/master
 
+  (none)
+
+
+
+3.2.0        2015-04-19                                    runtime 20150209
+
+  [ENHANCEMENTS]
+
+  - New sys.policy.* facts
+    When generating manifest configuration for a given host, clockd now
+    tracks what policies have been enforced or extended.  This information
+    is made available to the manifest language via special facts under the
+    sys.policy namespace, and can be used in conditionals.
+
+  [DOCUMENTATION]
+
+  - Fix incorrect references to the old `fact' utility, instead of the newer
+    `cw-fact' program.
+
   [BUG FIXES]
+
+  - Properly free memory when running `cogd -X', which was causing memory
+    tests to fail.
 
   - Handle files with NULL bytes in them
     Instead of using `pdu_extendf` and only getting partial BLOCK PDUs,

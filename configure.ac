@@ -4,7 +4,7 @@
 
 AC_PREREQ(2.68)
 
-AC_INIT([Clockwork], [3.2.0], [bugs@niftylogic.com])
+AC_INIT([Clockwork], [3.2.1], [bugs@niftylogic.com])
 AC_SUBST([PACKAGE_RUNTIME],  [20150209])
 AC_SUBST([PACKAGE_PROTOCOL], [1])
 
@@ -48,10 +48,6 @@ AC_CHECK_LIB(augeas,
 AC_CHECK_LIB(pcre,
 	pcre_compile,,
 	AC_MSG_ERROR(Missing PCRE library))
-
-AC_CHECK_LIB(ctap,
-	main,,
-	AC_MSG_ERROR(Missing ctap testing library - see http://github.com/filefrog/ctap))
 
 AC_CHECK_LIB(vigor,
 	time_s,,

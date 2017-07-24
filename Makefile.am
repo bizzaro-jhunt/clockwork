@@ -27,7 +27,7 @@ AM_CFLAGS += @GCOV_CFLAGS@
 AM_LFLAGS = --header-file --yylineno
 AM_YFLAGS = -d
 
-LDADD = -lctap -lzmq -lsodium -lpam -luuid -lvigor
+LDADD = -lzmq -lsodium -lpam -luuid -lvigor
 
 ############################################################
 

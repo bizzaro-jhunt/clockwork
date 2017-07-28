@@ -738,7 +738,13 @@ content_t* res_file_content(const void *res, hash_t *facts)
 		rewind(runner.in);
 
 		errno = 0;
-		int rc = run2(&runner, "cw", "template-erb", r->template, NULL);
+		int rc;
+		if (strlen(r->template) > 3
+				&& strcmp(r->template + strlen(r->template) - 3, ".tt") == 0) {
+			rc = run2(&runner, "cw", "template-tt",  r->template, NULL);
+		} else {
+			rc = run2(&runner, "cw", "template-erb", r->template, NULL);
+		}
 		fclose(runner.in);
 
 		if (rc == 0) {

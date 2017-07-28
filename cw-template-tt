@@ -1,0 +1,32 @@
+#!/usr/bin/perl
+
+#
+# template-tt - Clockwork Template Toolkit Renderer
+#
+# author:  Dan Molik <dan@d3fy.net>
+# created: 2017-07-26
+#
+
+use strict;
+use warnings;
+
+use Template;
+
+my $tt = Template->new({EVAL_PERL => 1});
+open my $fh, '<', $ARGV[0] or die "unable to open $ARGV[0]: $!";
+my $template;
+while (<$fh>) {
+	$template .= $_;
+}
+close $fh;
+my ($k, $v, $l);
+my $data = {map {
+	$l = $ARGV[$_];
+	$l =~ s/\r?\n//;
+	($k, $v) = split '=', $l;
+	$k =~ s/\./_/;
+	($k, $v);
+} 1..(scalar(@ARGV) - 1)};
+$tt->process(\$template, $data);
+
+# vim:ft=perl

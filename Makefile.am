@@ -183,6 +183,7 @@ dist_man_MANS   += man/cw-localsys.8
 dist_man_MANS   += man/cw-mesh.1
 dist_man_MANS   += man/cw-shell.1
 dist_man_MANS   += man/cw-template-erb.8
+dist_man_MANS   += man/cw-template-tt.8
 dist_man_MANS   += man/cw-trust.1
 dist_man_MANS   += man/cw-uuid.1
 dist_man_MANS   += man/mesh.7
@@ -240,6 +241,7 @@ clidir=$(pkglibdir)/cli
 dist_cli_SCRIPTS  = mesh-builtin
 dist_cli_SCRIPTS += cw-localsys
 dist_cli_SCRIPTS += cw-template-erb
+dist_cli_SCRIPTS += cw-template-tt
 
 cli_SCRIPTS  = cw-cfm
 cli_SCRIPTS += cw-exec

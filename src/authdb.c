@@ -17,6 +17,7 @@
   along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define _DEFAULT_SOURCE
 #define _SVID_SOURCE
 #define _GNU_SOURCE
 

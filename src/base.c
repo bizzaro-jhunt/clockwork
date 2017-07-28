@@ -379,8 +379,9 @@ int cw_authenticate(const char *service, const char *username, const char *passw
 	rc = pam_start(service, creds.username, &convo, &pam);
 	if (rc == PAM_SUCCESS)
 		rc = pam_authenticate(pam, PAM_DISALLOW_NULL_AUTHTOK);
-		if (rc == PAM_SUCCESS)
-			rc = pam_acct_mgmt(pam, PAM_DISALLOW_NULL_AUTHTOK);
+	if (rc == PAM_SUCCESS)
+		rc = pam_acct_mgmt(pam, PAM_DISALLOW_NULL_AUTHTOK);
+
 
 	if (rc != PAM_SUCCESS) {
 		free(_CW_AUTH_ERR);

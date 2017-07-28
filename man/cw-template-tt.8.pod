@@ -1,0 +1,41 @@
+  Clockwork is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  Clockwork is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
+
+
+=head1 NAME
+
+cw-template-tt - Clockwork Template Bridge for TT
+
+=head1 SYNOPSIS
+
+B<cw-template-tt> /path/to/template/tt < facts
+
+=head1 DESCRIPTION
+
+#INTRO
+
+B<cw-template-tt> is used internally by the B<clockd> policy master to
+render file templates against client facts as part of a CFM run.
+
+cw-template-tt uses http://www.template-toolkit.org/ which is
+implemented in Perl.
+
+=head1 SEE ALSO
+
+#SEEALSO
+
+=head1 AUTHOR
+
+#AUTHOR
+
+=cut

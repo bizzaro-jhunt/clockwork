@@ -175,8 +175,6 @@ Defaults to I<daemon>.
 
 Defaults to I<error>.
 
-=back
-
 =item B<umask> - File and directory creation mask
 
 On UNIX systems, umask is used at file and directory creation time to
@@ -189,6 +187,8 @@ to I<0002> (not world-writable).  B<umask> does not affect file and
 directory resources with explicit permissions set, but it will be taken into
 consideration when creating other files and directories, and during exec
 resource evaluation.
+
+=back
 
 =head1 EXAMPLES
 

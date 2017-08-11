@@ -5,6 +5,22 @@ origin/master
 
 
 
+3.3.0        2017-08-11                                    runtime 20150209
+
+  [ENHANCEMENTS]
+
+  - Support for Perl Template::Toolkit templates
+    Ruby ERB templates are still supported, and are the default, but if the
+    policy defines templates with .tt extensions, the Template module will
+    be used instead.
+
+  [BUG FIXES]
+
+  - Some minor build issues, related to ctap (for testing) and sysmacros.h
+    got fixed.
+
+
+
 3.2.0        2015-04-19                                    runtime 20150209
 
   [ENHANCEMENTS]

@@ -26,6 +26,7 @@
 #include <errno.h>
 #include <ctype.h>
 #include <sys/types.h>
+#include <sys/sysmacros.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <dirent.h>

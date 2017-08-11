@@ -17,9 +17,6 @@
   along with Clockwork.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "test.h"
-#include "../src/mesh.h"
-
 #include "../src/mesh.h"
 #include <stdlib.h>
 #include <stdio.h>

@@ -345,7 +345,7 @@ EOF
 subtest "strict verification success" => sub {
 	mkdir $_ for qw(t/tmp t/tmp/copydown t/tmp/gather.d);
 	put_file "t/tmp/clockd.conf", <<EOF;
-listen *:2313
+listen 127.0.0.1:2313
 security.cert    t/tmp/master
 security.trusted t/tmp/trusted
 security.strict  yes
@@ -373,7 +373,7 @@ EOF
 ;; no standard lib
 EOF
 	put_file "t/tmp/cogd.conf", <<EOF;
-master.1 localhost:2313
+master.1 127.0.0.1:2313
 cert.1   t/tmp/master.pub
 timeout  90
 
@@ -475,7 +475,7 @@ EOF
 subtest "non-strict verification success" => sub {
 	mkdir $_ for qw(t/tmp t/tmp/copydown t/tmp/gather.d);
 	put_file "t/tmp/clockd.conf", <<EOF;
-listen *:2313
+listen 127.0.0.1:2313
 security.cert    t/tmp/master
 security.strict  no
 copydown t/tmp/copydown
@@ -495,7 +495,7 @@ EOF
 ;; no standard lib
 EOF
 	put_file "t/tmp/cogd.conf", <<EOF;
-master.1 localhost:2313
+master.1 127.0.0.1:2313
 cert.1   t/tmp/master.pub
 
 security.cert t/tmp/client

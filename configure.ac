@@ -64,6 +64,9 @@ AC_CHECK_LIB(uuid,
 AC_HAVE_LIBRARY(zmq,,
 	AC_MSG_ERROR(Missing 0MQ library))
 
+AC_HAVE_LIBRARY(pam,,
+	AC_MSG_ERROR(Missing PAM library))
+
 ##
 ## check that libzmq has cryptography / CURVE support compiled in
 ## (otherwise, most of clockwork will fail, if it even builds).

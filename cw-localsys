@@ -316,7 +316,6 @@ on_gentoo () {
 		;;
 	pkg-latest)
 		NAME=$1
-		/usr/bin/eix-sync -q
 		/usr/bin/eix -q -e "$NAME"
 		exit $?
 		;;
@@ -353,7 +352,7 @@ on_gentoo () {
 		exit $?
 		;;
 	pkg-recache)
-		# FIXME: need to know if this is even applicable on Gentoo...
+		/usr/bin/eix-sync -q
 		exit 1;
 		;;
 

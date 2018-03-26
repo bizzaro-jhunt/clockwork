@@ -358,7 +358,7 @@ on_gentoo () {
 
 	svc-run-status)
 		NAME=$1
-		/sbin/service $NAME status
+		/sbin/rc-service $NAME status
 		exit $?
 		;;
 	svc-boot-status)
@@ -372,14 +372,14 @@ on_gentoo () {
 		if test "x$NAME" = "xcogd" && test "x$VERB" = "xrestart" && test "x$COGD" != "x"; then
 			touch /var/lock/cogd/.needs-restart
 		else
-			/sbin/service $NAME $VERB
+			/sbin/rc-service $NAME $VERB
 		fi
 		exit $?
 		;;
 	svc-init-force)
 		NAME=$1
 		VERB=$2
-		/sbin/service $NAME $VERB
+		/sbin/rc-service $NAME $VERB
 		exit $?
 		;;
 	svc-enable)
